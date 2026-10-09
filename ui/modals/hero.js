@@ -59,13 +59,12 @@ function openHeroChronicleModalContent(studentId, student) {
         oathsButton.onclick = () => switchHeroChronicleTab('oaths');
     }
 
+    // The green ribbon on the cover: the child's growth profile in the class; a tap shows them there.
     const greenhouseButton = document.getElementById('hero-chronicle-greenhouse-btn');
     if (greenhouseButton) {
         greenhouseButton.hidden = !student.classId;
-        greenhouseButton.onclick = () => {
-            hideModal('hero-chronicle-modal');
-            import('./classGreenhouse.js').then(m => m.openClassGreenhouse(student.classId, { tab: 'heroes', studentId }));
-        };
+        greenhouseButton.onclick = () => showChildInGreenhouse(studentId);
+        import('./chronicleClassRibbon.js').then(m => m.paintCoverRibbon(greenhouseButton, student));
     }
 
     // Set student name
@@ -100,6 +99,14 @@ function openHeroChronicleModalContent(studentId, student) {
     `;
 
     showAnimatedModal('hero-chronicle-modal');
+}
+
+/** Closes the Chronicle and shows this child's glowing dot in the Class Greenhouse (stepping it forward when it waits behind). */
+export function showChildInGreenhouse(studentId) {
+    const student = state.get('allStudents').find(s => s.id === studentId);
+    if (!student?.classId) return;
+    hideModal('hero-chronicle-modal');
+    import('./classGreenhouse.js').then(m => m.openClassGreenhouse(student.classId, { tab: 'class', studentId }));
 }
 
 export function switchHeroChronicleTab(tabId) {

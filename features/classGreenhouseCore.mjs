@@ -1017,6 +1017,15 @@ export function almanacBrief(green, { className = '', level = '' } = {}) {
         if (ch.interests.length) lines.push(`Interests from the notes: ${ch.interests.slice(0, 5).map((i) => `${i.label} (${i.children.map((x) => x.first).join(', ')})`).join('; ')}.`);
         if (ch.friction.length) lines.push(`Keep apart in pair work: ${ch.friction.slice(0, 4).map((p) => `${p.aFirst} & ${p.bFirst}`).join('; ')}.`);
     }
+    const p = green.plan;
+    const planLines = [];
+    if (p.focus.length) planLines.push(`tend first: ${p.focus.map((f) => f.first).join(', ')}`);
+    if (p.spotlight.length) planLines.push(`catch shining (rarely starred): ${p.spotlight.map((x) => x.first).join(', ')}`);
+    if (p.noteGroups.length) planLines.push(`small groups from the notes: ${p.noteGroups.map((g) => `${g.label} (${g.members.map((m) => m.first).join(', ')})`).join('; ')}`);
+    if (p.buddies.length) planLines.push(`buddies: ${p.buddies.map((b) => `${b.helper.first} helps ${b.child.first}`).join('; ')}`);
+    if (p.crews) planLines.push(`ability crews by papers: ${p.crews.map((cr) => `${cr.label} ${cr.members.map((m) => m.first).join(', ')}`).join('; ')}`);
+    if (p.hooks.length) planLines.push(`lesson hooks (passions): ${p.hooks.map((h) => h.label).join(', ')}`);
+    if (planLines.length) lines.push(`The app's plan for the next lesson: ${planLines.join(' | ')}.`);
     lines.push('Children (first name: profile; stars a lesson; papers average; signals; note themes):');
     green.students.forEach((r) => {
         const sig = r.signals.filter((s) => s.kind === 'act' && !s.context && !AI_PRIVATE.has(s.theme)).map((s) => s.id).join(', ');
@@ -1030,14 +1039,129 @@ export function almanacBrief(green, { className = '', level = '' } = {}) {
 }
 
 export const ALMANAC_COUNSELS = [
-    { id: 'fortnight', label: 'Two-week plan', icon: 'fa-calendar-week', hint: 'A lesson-by-lesson plan for the whole class',
-        task: 'Write a practical two-week plan for this class (about four lessons). Use markdown headings "### Lesson 1" to "### Lesson 4". Under each, 2-3 bullets: one whole-class move and one or two named children to focus on, with exactly what to do. End with "### Watch for" and 2 bullets.' },
-    { id: 'groups', label: 'Pairs & groups', icon: 'fa-people-group', hint: 'Who works well with whom, for activities',
-        task: 'Suggest how to pair and group these children for pair work and group activities over the next weeks (temporary activity groups only; never suggest changing guilds or teams, they are permanent). Use "### Pairs" (bullets of pairs with a one-line reason), "### Small groups" (3-4 groups with a role for each child), and "### Seating tips" (2 bullets).' },
-    { id: 'parents', label: 'Class letter home', icon: 'fa-envelope-open-text', hint: 'A warm whole-class update for families',
-        task: 'Write a short, warm letter to the families of this class about how the class as a whole is doing: what the class is good at, what we are working on together, and two simple ways families can help at home. Never name or single out any child and never quote numbers about individual children. About 150 words, plain paragraphs, no headings.' },
-    { id: 'coach', label: 'Coach me', icon: 'fa-chalkboard-user', hint: 'Honest coaching on how this class is being taught',
-        task: 'Act as a teaching coach. Based on these patterns, give honest coaching to the teacher. Use "### What is working" (2-3 bullets), "### Blind spots" (2-3 bullets, e.g. who gets recognised and who does not), and "### Try this week" (3 concrete bullets). Be specific to the data; no generic advice.' }
+    { id: 'week', label: 'This week, lesson by lesson', icon: 'fa-calendar-week', hint: 'Two lessons planned around this class',
+        task: 'Plan the next two lessons for this class. Use "### Lesson 1" and "### Lesson 2". Under each: "**Warm-up**" (one activity, 5 minutes, tied to a shared theme or passion), "**Main move**" (one whole-class technique that answers the strongest class signal, with how to run it), "**Who to watch**" (2-3 named children and exactly what to do with each, taken from the plan), "**Close**" (a 3-minute check of learning). End with "### Why this plan" in two bullets that name the data it rests on.' },
+    { id: 'groups', label: 'Groups, pairs and seating', icon: 'fa-people-group', hint: 'Who works with whom, and why',
+        task: 'Advise on temporary activity groups and seating for the next weeks (guilds are permanent and must never be changed or mentioned as changeable). Use "### Pairs" (bullets: two names and a one-line reason), "### Small groups" (3-4 groups, a role for each child and what the group practises), "### Seating" (3 bullets, respecting the keep-apart pairs) and "### One routine for everyone" (one routine that removes a shared worry from the notes).' },
+    { id: 'coach', label: 'Coach me', icon: 'fa-chalkboard-user', hint: 'Honest coaching on how this class is taught',
+        task: 'Act as a warm but honest teaching coach. Use "### What is working" (2-3 bullets with evidence), "### Blind spots" (2-3 bullets: who gets noticed and who does not, what the notes keep returning to without a plan, any mismatch between notes and numbers), "### Try this week" (3 concrete moves, each with how to know it worked) and "### A thought to keep" (one sentence).' },
+    { id: 'parents', label: 'Letter to the families', icon: 'fa-envelope-open-text', hint: 'A warm whole-class update',
+        task: 'Write a short, warm letter to the families of this class: what the class is good at, what we are working on together, and two simple ways families can help at home (in Greece, with little English at home). Never name or single out any child, never quote individual numbers, never mention anything private. About 150 words, plain paragraphs, no headings. Sign off as "Your English teacher".' }
 ];
 
-export const ALMANAC_SYSTEM_PROMPT = 'You are an experienced primary ESL teacher and mentor in Greece, coaching a colleague who teaches English to Greek children through a gamified class quest (stars for the virtues Teamwork, Creativity, Respect and Focus; test and dictation papers; permanent guilds that must never be changed). You read a data summary of one whole class and give practical, warm, specific advice that can be used in the very next lessons. Use the children\'s first names when the task allows it. Keep it concise. Never invent data that is not in the summary.';
+export const ALMANAC_SYSTEM_PROMPT = 'You are a wise, experienced primary ESL teacher, mentor and school counsellor in Greece, coaching a colleague who teaches English to Greek children through a gamified class quest (stars for the virtues Teamwork, Creativity, Respect and Focus; test and dictation papers; permanent guilds that must never be changed). You read a summary of ONE WHOLE CLASS: numbers, signals, the themes of the teacher\'s private notes and the plan the app already made for the next lesson. Your advice is for the whole class: routines, groupings, the climate of the room, differentiation and how the teacher notices children; named children appear only where the plan calls for them, and one child\'s full picture belongs to that child\'s own Oracle, so do not write individual profiles. Ground every suggestion in the data you were given and say briefly which part. Prefer proven classroom practice (retrieval practice, scaffolding and sentence frames, think-pair-share, choral and pair rehearsal before speaking, specific praise, restorative conversations, predictable routines, warm relationships). Be practical, warm and specific; something the teacher can use in the very next lesson. Use the children\'s first names exactly as given. Never invent data, never diagnose, never mention home or health matters. Markdown: "###" headings, short bullets, **bold** sparingly.';
+
+/** A free question about the whole class, answered from the same brief. */
+export function almanacQuestionTask(question) {
+    return `The teacher asks about the whole class: "${String(question || '').trim().slice(0, 300)}". Answer in under 220 words: a direct answer first, then 2-4 concrete bullets they can try next lesson, each grounded in the summary. If the question is really about one child, give the class-level part and suggest asking that child's Oracle for the rest.`;
+}
+
+// ---------------------------------------------------------------- one child in the class
+
+/**
+ * Where one child stands in the class reading: profile, the next-lesson rounds they are part of
+ * (focus, groups, buddies, partners, keep apart) and the class themes they share. The Hero's
+ * Chronicle shows this beside its own reading of the child, so the two books tell one story.
+ */
+export function classRoleOf(green, studentId) {
+    const r = green?.students?.find((x) => x.id === studentId);
+    if (!r) return null;
+    const p = green.plan;
+    const c = green.classReading;
+    const roles = [];
+    const add = (id, icon, label, text = '') => roles.push({ id, icon, label, text });
+    const is = (x) => x && x.id === studentId;
+
+    const focus = p.focus.find(is);
+    if (focus) add('focus', 'fa-hand-holding-droplet', 'Tend first next lesson', focus.action);
+    const follow = p.followUps.find(is);
+    if (follow) add('follow', 'fa-reply', 'Follow up a note', `${follow.label} · written ${follow.daysAgo} days ago`);
+    const shine = p.spotlight.find(is);
+    if (shine) add('shine', 'fa-sun', 'Catch them shining', shine.lessonsWithoutStar ? `${plural(shine.lessonsWithoutStar, 'lesson')} since a star` : 'quiet lately');
+    const welcome = p.welcome.find(is);
+    if (welcome) add('welcome', 'fa-door-open', 'Welcome back', welcome.streak > 1 ? `missed ${welcome.streak} lessons` : 'missed last lesson');
+    const catchUp = p.catchUps.find(is);
+    if (catchUp) add('catch-up', 'fa-file-circle-question', 'Catch-up paper', catchUp.papers.slice(0, 2).join(', '));
+    p.noteGroups.forEach((g) => {
+        if (!g.members.some(is)) return;
+        add('group', g.icon || 'fa-people-group', `${g.label} group`, `with ${g.members.filter((m) => !is(m)).map((m) => m.first).join(', ')}`);
+    });
+    p.buddies.forEach((b) => {
+        if (is(b.child)) add('buddy', 'fa-hands-holding-child', `Buddy: ${b.helper.first}`, b.helper.why);
+        if (is(b.helper)) add('helper', 'fa-hands-holding-child', `Buddy for ${b.child.first}`, 'a helper role');
+    });
+    p.keepApart.forEach((k) => {
+        if (is(k.a)) add('apart', 'fa-arrows-left-right', `Keep apart from ${k.b.first}`, 'in pairs and seating');
+        if (is(k.b)) add('apart', 'fa-arrows-left-right', `Keep apart from ${k.a.first}`, 'in pairs and seating');
+    });
+    const pair = (p.pairs || []).find((g) => g.some(is));
+    if (pair) add('partner', 'fa-user-group', `Partner: ${pair.filter((m) => !is(m)).map((m) => m.first).join(' & ')}`, 'mixed-ability pair work');
+    const crew = (p.crews || []).find((cr) => cr.members.some(is));
+    if (crew) add('crew', 'fa-layer-group', `${crew.label} crew`, crew.hint);
+    p.hooks.filter((h) => r.chronicle?.interests.includes(h.id)).forEach((h) => add('hook', 'fa-heart', `Lesson hook: ${h.label}`, `shared with ${h.children.filter((n) => n !== r.first).join(', ') || 'the class'}`));
+
+    // Class themes this child is part of (the same worry or strength in two or more children)
+    const shared = (c.chronicle?.clusters || []).map((cl) => {
+        const all = [...cl.open, ...cl.strong, ...cl.improving];
+        if (all.length < 2 || !all.some(is)) return null;
+        return { id: cl.id, label: cl.label, icon: cl.icon, others: all.filter((x) => !is(x)).map((x) => x.first) };
+    }).filter(Boolean);
+
+    return {
+        id: r.id,
+        first: r.first,
+        profile: r.profile,
+        profileLabel: PROFILES[r.profile].label,
+        profileIcon: PROFILES[r.profile].icon,
+        meaning: PROFILES[r.profile].meaning,
+        summary: r.summary,
+        action: r.action,
+        priority: r.priority,
+        needsYou: r.signals.some((s) => s.sev >= 2),
+        signals: r.signals.filter((s) => !s.quote && s.kind === 'act').slice(0, 3).map((s) => ({ icon: s.icon, text: s.text, sev: s.sev })),
+        numbers: {
+            starsPerLesson: r.stars.perLesson,
+            classStarsPerLesson: c.stars.perChildRecent,
+            papersAvg: r.papers.avg,
+            papersVsClass: r.papers.rel,
+            attendance: r.attendance.rate == null ? null : Math.round(r.attendance.rate * 100)
+        },
+        roles,
+        shared,
+        classSize: c.size
+    };
+}
+
+/** A short plain-text version for the Oracle's AI brief (no note text, first names only). */
+export function classRoleBrief(role) {
+    if (!role) return '';
+    const lines = [`IN THE CLASS (from the Class Greenhouse, ${role.classSize} children): growth profile "${role.profileLabel}" (${role.meaning})`];
+    const n = role.numbers;
+    const bits = [];
+    if (n.starsPerLesson != null) bits.push(`${n.starsPerLesson} stars a lesson${n.classStarsPerLesson != null ? ` (class ${n.classStarsPerLesson})` : ''}`);
+    if (n.papersVsClass != null) bits.push(`papers ${n.papersVsClass > 0 ? '+' : ''}${n.papersVsClass} points vs the class`);
+    if (n.attendance != null) bits.push(`${n.attendance}% attendance`);
+    if (bits.length) lines.push(`- ${bits.join('; ')}`);
+    if (role.roles.length) lines.push(`- Next lesson the class plan already has: ${role.roles.map((x) => `${x.label}${x.text ? ` (${x.text})` : ''}`).join('; ')}`);
+    if (role.shared.length) lines.push(`- Shares these themes with classmates: ${role.shared.map((s) => `${s.label} (with ${s.others.slice(0, 4).join(', ')})`).join('; ')}`);
+    return lines.join('\n');
+}
+
+/** One sentence about the whole class, for the top of the Greenhouse. */
+export function classHeadline(green) {
+    const c = green.classReading;
+    if (!c.size) return 'No heroes in this class yet.';
+    if (green.lessons.all < 3) return `Still filling: only ${plural(green.lessons.all, 'lesson')} with records in the last six weeks.`;
+    const parts = [];
+    const need = green.plan.focus.length;
+    parts.push(need ? `${plural(need, 'child', 'children')} need${need === 1 ? 's' : ''} you first` : 'nobody urgent');
+    const warn = c.insights.find((i) => i.tone === 'warn' && i.source !== 'notes');
+    if (warn) parts.push(warn.title.toLowerCase());
+    const shared = (c.chronicle?.clusters || []).filter((cl) => cl.kind !== 'context' && cl.kind !== 'strength' && cl.open.length >= 2)
+        .sort((a, b) => b.open.length - a.open.length)[0];
+    if (shared) parts.push(`${shared.label.toLowerCase()} is the shared worry in your notes`);
+    const good = c.insights.find((i) => i.tone === 'good' && i.id !== 'healthy');
+    if (good) parts.push(good.title.toLowerCase());
+    const mood = c.health == null ? 'This class' : c.health >= 75 ? 'A thriving class' : c.health >= 55 ? 'A growing class' : c.health >= 40 ? 'A class that needs some care' : 'A class that needs tending';
+    return `${mood}: ${parts.join('; ')}.`;
+}

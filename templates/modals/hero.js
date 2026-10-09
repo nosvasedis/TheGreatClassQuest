@@ -174,7 +174,7 @@ export const heroModalsHTML = `
                         <h2 id="hero-chronicle-title" class="hc-cover__title font-title">Hero's Chronicle</h2>
                         <p id="hero-chronicle-student-name" class="hc-cover__name"></p>
                         <button type="button" id="hero-chronicle-greenhouse-btn" class="hc-greenhouse-link" title="See this hero among the whole class">
-                            <i class="fas fa-seedling" aria-hidden="true"></i><span>Whole class in the Greenhouse</span>
+                            <span class="hc-greenhouse-link__seed" aria-hidden="true"><i class="fas fa-seedling"></i></span><span data-ribbon-label>In the class</span><i class="fas fa-arrow-right hc-greenhouse-link__go" aria-hidden="true"></i>
                         </button>
                     </div>
                 </div>

@@ -1,96 +1,100 @@
 // /ui/modals/classGreenhouse.js
-// The Class Greenhouse: the whole-class companion to the Hero's Chronicle.
-// Opened from a class card in My Classes, the class roster and the Chronicle itself.
+// The Class Greenhouse: the WHOLE class, beside the Hero's Chronicle for each child.
+// Opened from a class card in My Classes, the class roster and the Chronicle's class ribbon.
 //
-//   Overview     health thermometer, the class signals with matched techniques, what the
-//                Chronicle notes say across the class (shared worries, strengths, interests,
-//                who to keep apart), the growth map and the class's virtue mix.
-//   Every hero   one pot per child: profile, plain-English reading, signals (with the sentence
-//                from the notes that raised them) and the next move; a tap opens the full reading.
-//   Next lesson  the rounds for the next lesson: who to focus on, notes to follow up, who to
-//                catch shining, small groups and buddies from the notes, who to keep apart,
+//   The class    one sentence about the class, three moves for it, who needs you first, the
+//                growth map, what your Chronicle notes say across the class, and the stars and
+//                papers in detail (folded away).
+//   Next lesson  the rounds for the next lesson: who to tend first, notes to follow up, who
+//                to catch shining, small groups and buddies from the notes, who to keep apart,
 //                lesson hooks, ability crews and partners for one activity (guilds are never
 //                touched). Ticks are kept per laptop.
+//   Counsel      the Gardener's Almanac (Elite AI, written once per class and shared
+//                school-wide in daily_cache/greenhouse_<classId>_<counsel>, questions too), and
+//                the seed shelf of techniques, the ones picked for this class first.
 //
-// Boundaries: the Hero's Chronicle owns writing notes and the Oracle owns AI advice about ONE
-// child. The Greenhouse only reads the notes (on this laptop, by keyword, no AI) and hands the
-// teacher over to the Chronicle or the Oracle for a single child.
-//   Playbook     seed packets: the techniques picked for this class, then the whole shelf.
-//   Almanac      Elite AI counsel, written once per class and shared school-wide
-//                (daily_cache/greenhouse_<classId>_<counsel>); only re-asked by hand.
+// Every child's name opens that child's Hero's Chronicle on top: the Greenhouse steps back
+// behind it and comes forward again when the Chronicle closes. The Chronicle shows where the
+// child stands in this class (classRoleOf) and its ribbon leads back here, to that child's dot.
 //
-// Numbers come from features/classGreenhouseCore.mjs (pure, tested); techniques from
-// features/classGreenhousePlaybook.mjs. Styles: styles/class_greenhouse.css.
+// Numbers come from features/classGreenhouseCore.mjs (pure, tested), records from
+// ui/modals/classGreenhouseData.js; techniques from features/classGreenhousePlaybook.mjs.
+// Styles: styles/class_greenhouse.css.
 
 import * as state from '../../state.js';
-import { db, collection, query, where, getDocs, doc, getDoc, setDoc } from '../../firebase.js';
+import { db, doc, getDoc, setDoc } from '../../firebase.js';
 import { dataPath } from '../../utils/tenant.mjs';
-import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
-import { normalizeTrialType } from '../../features/trialTypesCore.mjs';
-import { getAwardLogMonthlyStarCredit } from '../../features/awardLogReasonMeta.js';
-import { fetchAllTrialsForClass } from '../../db/queries.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { requireEliteAI } from '../../utils/upgradePrompt.js';
 import { esc } from '../../features/scholarScrollCore.mjs';
 import { oracleMarkdown } from '../../features/scholarFolioCore.mjs';
 import {
-    buildGreenhouse, almanacBrief, dayLabel, PROFILES, PROFILE_ORDER, VIRTUES, WINDOW_DAYS,
+    almanacBrief, almanacQuestionTask, classHeadline, dayLabel, PROFILES, PROFILE_ORDER,
     ALMANAC_COUNSELS, ALMANAC_SYSTEM_PROMPT
 } from '../../features/classGreenhouseCore.mjs';
 import { TECHNIQUES, PLAYBOOK_AREAS, getTechnique } from '../../features/classGreenhousePlaybook.mjs';
+import { findClass, loadRecords, readGreenhouse } from './classGreenhouseData.js';
 import { showAnimatedModal, hideModal } from './base.js';
 import { showToast } from '../effects.js';
 import '../../styles/class_greenhouse.css';
 
 const MODAL_ID = 'class-greenhouse-modal';
 const TABS = [
-    { id: 'overview', label: 'Overview', icon: 'fa-sun' },
-    { id: 'heroes', label: 'Every hero', icon: 'fa-seedling' },
+    { id: 'class', label: 'The class', icon: 'fa-sun' },
     { id: 'lesson', label: 'Next lesson', icon: 'fa-list-check' },
-    { id: 'playbook', label: 'Playbook', icon: 'fa-envelope-open-text' },
-    { id: 'almanac', label: 'Almanac', icon: 'fa-book-open' }
+    { id: 'counsel', label: 'Counsel', icon: 'fa-book-open' }
 ];
+// Older links (and the guidebook) used five tabs; they land on the one that holds that content now.
+const TAB_ALIASES = { overview: 'class', heroes: 'class', playbook: 'counsel', almanac: 'counsel' };
 const PROFILE_TONE = { bloom: 'bloom', reaching: 'reaching', roots: 'roots', tending: 'tending', steady: 'steady', planted: 'planted' };
-const RECORD_CACHE_MS = 3 * 60 * 1000;
 
 const view = {
     classId: null,
-    tab: 'overview',
+    tab: 'class',
     green: null,
-    heroFilter: 'all',
     areaFilter: 'all',
-    drawerId: null,
     packetId: null,
+    spotId: null,          // the child the Chronicle sent us to: their dot is lit on the map
     almanacBusy: false,
     almanacLast: null,
-    unsubscribe: null
+    asked: new Map(),      // classId → [{ question, content, createdAt }] asked this session
+    unsubscribe: null,
+    chronicleWatch: null
 };
-const recordCache = new Map(); // classId → { at, awards, absences, trials }
 
 // ------------------------------------------------------------------ open / close
 
-export async function openClassGreenhouse(classId, { tab = 'overview', studentId = '' } = {}) {
+export async function openClassGreenhouse(classId, { tab = 'class', studentId = '' } = {}) {
     const classData = findClass(classId);
     if (!classData) {
         showToast('Choose one of your classes first.', 'info');
         return;
     }
     ensureShell();
+    const modal = document.getElementById(MODAL_ID);
+    const wanted = TAB_ALIASES[tab] || (TABS.some((t) => t.id === tab) ? tab : 'class');
+    view.spotId = studentId || null;
+
+    // Already open on this class, waiting behind the Chronicle: just step forward to the child.
+    if (isOpen() && view.classId === classId && view.green) {
+        modal.classList.remove('is-behind');
+        view.tab = wanted;
+        recompute();
+        revealSpot();
+        return;
+    }
+
     view.classId = classId;
-    view.tab = tab;
-    view.heroFilter = 'all';
-    view.drawerId = null;
+    view.tab = wanted;
     view.packetId = null;
     view.green = null;
-
-    const modal = document.getElementById(MODAL_ID);
+    modal.classList.remove('is-behind');
     modal.querySelector('.gh-title__logo').textContent = classData.logo || '🌱';
     modal.querySelector('.gh-title__name').textContent = classData.name || 'Class';
     modal.querySelector('.gh-title__sub').textContent = 'Reading the last six weeks…';
     renderThermometer(null);
     renderTabs();
     body().innerHTML = `<div class="gh-loading"><span class="gh-loading__sprout" aria-hidden="true">${plantSvg({ profile: 'planted', growth: 0.3, leafiness: 0.4 })}</span><p>Walking the rows…</p></div>`;
-    closeDrawer();
     showAnimatedModal(MODAL_ID);
 
     import('../../db/listeners.js').then(({ ensureHeroChronicleNotesListener }) => ensureHeroChronicleNotesListener()).catch(() => {});
@@ -108,13 +112,16 @@ export async function openClassGreenhouse(classId, { tab = 'overview', studentId
     }
     if (view.classId !== classId) return;
     recompute();
-    if (studentId) openDrawer(studentId);
+    revealSpot();
 }
 
 function closeGreenhouse() {
-    closeDrawer();
+    closePacket();
     view.unsubscribe?.();
     view.unsubscribe = null;
+    view.chronicleWatch?.disconnect();
+    view.chronicleWatch = null;
+    document.getElementById(MODAL_ID)?.classList.remove('is-behind');
     hideModal(MODAL_ID);
 }
 
@@ -127,86 +134,9 @@ function body() {
     return document.getElementById('class-greenhouse-body');
 }
 
-function findClass(classId) {
-    return (state.get('allTeachersClasses') || []).find((c) => c.id === classId)
-        || (state.get('allSchoolClasses') || []).find((c) => c.id === classId)
-        || null;
-}
-
-// ------------------------------------------------------------------ records
-
-function sinceDate() {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() - WINDOW_DAYS - 1);
-    return d;
-}
-
-async function readClassCollection(name, classId) {
-    const yearKey = state.getActiveSchoolYearKey?.();
-    const clauses = [where('classId', '==', classId), where('createdAt', '>=', sinceDate())];
-    if (yearKey) clauses.unshift(where('schoolYearKey', '==', yearKey));
-    const snap = await getDocs(query(collection(db, dataPath(name)), ...clauses));
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-}
-
-async function loadRecords(classId) {
-    const cached = recordCache.get(classId);
-    if (cached && Date.now() - cached.at < RECORD_CACHE_MS) return cached;
-    const [awards, absences, trials] = await Promise.all([
-        readClassCollection('award_log', classId).catch((e) => { console.warn('Greenhouse awards:', e?.message); return null; }),
-        readClassCollection('attendance', classId).catch((e) => { console.warn('Greenhouse attendance:', e?.message); return null; }),
-        fetchAllTrialsForClass(classId).catch(() => null)
-    ]);
-    let oaths = [];
-    if (canUseFeature('heroCampfire')) {
-        try {
-            const { loadEmberOaths } = await import('../../db/actions/emberOaths.js');
-            oaths = await loadEmberOaths(classId);
-        } catch { /* oaths are a nicety */ }
-    }
-    const entry = { at: Date.now(), awards, absences, trials, oaths };
-    recordCache.set(classId, entry);
-    return entry;
-}
-
-/** Fetched records merged with the live listeners (today's stars land without a re-read). */
-function gatherInputs(classId) {
-    const classData = findClass(classId);
-    const cached = recordCache.get(classId) || {};
-    const students = (state.get('allStudents') || []).filter((s) => s.classId === classId);
-    const ids = new Set(students.map((s) => s.id));
-    const mergeById = (fetched, live) => {
-        const map = new Map();
-        (fetched || []).forEach((r) => map.set(r.id, r));
-        (live || []).filter((r) => r.classId === classId || ids.has(r.studentId)).forEach((r) => map.set(r.id, r));
-        return [...map.values()];
-    };
-    const awards = mergeById(cached.awards, state.get('allAwardLogs')).map((log) => ({
-        studentId: log.studentId, date: log.date, stars: getAwardLogMonthlyStarCredit(log), reason: log.reason
-    }));
-    const absences = mergeById(cached.absences, state.get('allAttendanceRecords')).map((r) => ({ studentId: r.studentId, date: r.date }));
-    const trials = mergeById(cached.trials, state.get('allWrittenScores')).map((t) => ({
-        studentId: t.studentId,
-        date: t.date,
-        pct: getNormalizedPercentForScore(t, classData),
-        type: normalizeTrialType(t.type),
-        title: t.title || ''
-    }));
-    const notes = (state.get('allHeroChronicleNotes') || []).filter((n) => ids.has(n.studentId)).map((n) => ({
-        id: n.id,
-        studentId: n.studentId,
-        category: n.category,
-        text: n.noteText || '',
-        source: n.source || '',
-        createdAtMs: n.createdAt?.toMillis ? n.createdAt.toMillis() : (n.createdAt?.seconds ? n.createdAt.seconds * 1000 : Date.now())
-    }));
-    return { students, awards, absences, trials, notes, oaths: cached.oaths || [] };
-}
-
 function recompute({ keepScroll = false } = {}) {
     const scroll = keepScroll ? body()?.scrollTop : 0;
-    view.green = buildGreenhouse({ ...gatherInputs(view.classId), now: new Date() });
+    view.green = readGreenhouse(view.classId);
     const g = view.green;
     const sub = document.querySelector(`#${MODAL_ID} .gh-title__sub`);
     if (sub) {
@@ -216,9 +146,51 @@ function recompute({ keepScroll = false } = {}) {
     }
     renderThermometer(g.classReading.health);
     renderTabs();
-    renderPanel();
+    renderPanel({ animate: !keepScroll });
     if (keepScroll && body()) body().scrollTop = scroll;
-    if (view.drawerId) renderDrawer(view.drawerId);
+}
+
+/** Arriving from a child's Chronicle: light their dot and bring the map into view. */
+function revealSpot() {
+    if (!view.spotId || view.tab !== 'class') return;
+    requestAnimationFrame(() => {
+        const dot = document.querySelector(`#${MODAL_ID} .gh-dot.is-spot`);
+        dot?.closest('.gh-card')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+}
+
+// ------------------------------------------------------------------ the hand-off to the Chronicle
+
+/** A child's own book opens on top; the Greenhouse steps back and returns when it closes. */
+function openChronicle(studentId, { oracle = false } = {}) {
+    const modal = document.getElementById(MODAL_ID);
+    modal?.classList.add('is-behind');
+    view.spotId = studentId;
+    import('./hero.js')
+        .then((m) => {
+            m.openHeroChronicleModal(studentId, { tab: oracle ? 'oracle' : 'notes' });
+            watchChronicle();
+        })
+        .catch(() => modal?.classList.remove('is-behind'));
+}
+
+function watchChronicle() {
+    const chronicle = document.getElementById('hero-chronicle-modal');
+    if (!chronicle) {
+        document.getElementById(MODAL_ID)?.classList.remove('is-behind');
+        return;
+    }
+    view.chronicleWatch?.disconnect();
+    view.chronicleWatch = new MutationObserver(() => {
+        if (!chronicle.classList.contains('hidden')) return;
+        view.chronicleWatch?.disconnect();
+        view.chronicleWatch = null;
+        const modal = document.getElementById(MODAL_ID);
+        modal?.classList.remove('is-behind');
+        // Notes written in the Chronicle change the class reading: show it fresh.
+        if (isOpen()) recompute({ keepScroll: true });
+    });
+    view.chronicleWatch.observe(chronicle, { attributes: true, attributeFilter: ['class'] });
 }
 
 // ------------------------------------------------------------------ shell
@@ -239,6 +211,7 @@ function ensureShell() {
                     <path class="gh-roof__rib" d="M875 170 V70"/>
                     <path class="gh-roof__bar" d="M0 128 H1000"/>
                 </svg>
+                <span class="gh-roof__sun" aria-hidden="true"></span>
                 <svg class="gh-roof__ivy gh-roof__ivy--l" viewBox="0 0 120 130" aria-hidden="true" focusable="false">${ivySvg()}</svg>
                 <svg class="gh-roof__ivy gh-roof__ivy--r" viewBox="0 0 120 130" aria-hidden="true" focusable="false">${ivySvg()}</svg>
                 <div class="gh-title">
@@ -255,7 +228,6 @@ function ensureShell() {
             <nav class="gh-tabs" role="tablist" aria-label="Greenhouse sections"></nav>
             <div class="gh-stage">
                 <main id="class-greenhouse-body" class="gh-body custom-scrollbar" tabindex="-1"></main>
-                <aside class="gh-drawer" aria-hidden="true" aria-label="A hero's reading"></aside>
                 <div class="gh-packet-layer" hidden></div>
             </div>
         </div>`;
@@ -263,16 +235,16 @@ function ensureShell() {
 
     el.addEventListener('click', onClick);
     el.addEventListener('change', onChange);
+    el.addEventListener('submit', onSubmit);
     el.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             e.stopPropagation();
             if (view.packetId) closePacket();
-            else if (view.drawerId) closeDrawer();
             else closeGreenhouse();
         }
         if ((e.key === 'Enter' || e.key === ' ') && e.target.matches?.('[data-gh-student][role="button"]')) {
             e.preventDefault();
-            openDrawer(e.target.dataset.ghStudent);
+            openChronicle(e.target.dataset.ghStudent);
         }
     });
     el.addEventListener('mousedown', (e) => { if (e.target === el) closeGreenhouse(); });
@@ -282,18 +254,15 @@ function onClick(e) {
     const t = e.target.closest('button, [data-gh-student], a');
     if (!t) return;
     if (t.classList.contains('gh-close')) return closeGreenhouse();
-    if (t.dataset.ghFilterAfter) view.heroFilter = t.dataset.ghFilterAfter;
-    if (t.dataset.ghTab) { view.tab = t.dataset.ghTab; renderTabs(); renderPanel(); body().scrollTop = 0; return; }
-    if (t.dataset.ghFilter) { view.heroFilter = t.dataset.ghFilter; renderPanel({ keepScroll: true }); return; }
+    if (t.dataset.ghTab) { switchTab(t.dataset.ghTab); return; }
     if (t.dataset.ghArea) { view.areaFilter = t.dataset.ghArea; renderPanel({ keepScroll: true }); return; }
     if (t.dataset.ghPacket) return openPacket(t.dataset.ghPacket);
     if (t.dataset.ghClosePacket != null) return closePacket();
-    if (t.dataset.ghChronicle) return openChronicle(t.dataset.ghChronicle);
-    if (t.dataset.ghOracle) return openChronicle(t.dataset.ghOracle, { oracle: true });
-    if (t.dataset.ghCloseDrawer != null) return closeDrawer();
     if (t.dataset.ghCounsel) return askAlmanac(t.dataset.ghCounsel, { fresh: t.dataset.ghFresh === '1' });
+    if (t.dataset.ghQuestionFresh) return askClassQuestion(t.dataset.ghQuestionFresh, { fresh: true });
     if (t.dataset.ghCopyPlan != null) return copyPlan();
-    if (t.dataset.ghStudent) return openDrawer(t.dataset.ghStudent);
+    if (t.dataset.ghOracle) return openChronicle(t.dataset.ghOracle, { oracle: true });
+    if (t.dataset.ghStudent) return openChronicle(t.dataset.ghStudent);
 }
 
 function onChange(e) {
@@ -301,95 +270,173 @@ function onChange(e) {
     if (box) setTick(box.dataset.ghTick, box.checked);
 }
 
+function onSubmit(e) {
+    const form = e.target.closest('.gh-ask');
+    if (!form) return;
+    e.preventDefault();
+    const input = form.querySelector('input');
+    const q = input?.value.trim();
+    if (q) askClassQuestion(q);
+}
+
+function switchTab(tab) {
+    if (tab === view.tab) return;
+    view.tab = tab;
+    renderTabs();
+    renderPanel({ animate: true });
+    body().scrollTop = 0;
+}
+
 function renderTabs() {
     const nav = document.querySelector(`#${MODAL_ID} .gh-tabs`);
     if (!nav) return;
     const g = view.green;
-    const counts = {
-        heroes: g ? g.students.filter((r) => r.signals.some((s) => s.sev >= 2)).length : 0,
-        lesson: g ? g.plan.focus.length : 0
-    };
+    const counts = { lesson: g ? g.plan.focus.length + g.plan.followUps.length : 0 };
     nav.innerHTML = TABS.map((t) => `
         <button type="button" role="tab" class="gh-tab${view.tab === t.id ? ' is-active' : ''}" data-gh-tab="${t.id}" aria-selected="${view.tab === t.id}">
             <span class="gh-tab__hole" aria-hidden="true"></span>
             <i class="fas ${t.icon}" aria-hidden="true"></i><span>${t.label}</span>
-            ${counts[t.id] ? `<span class="gh-tab__count" aria-label="${counts[t.id]} need you">${counts[t.id]}</span>` : ''}
+            ${counts[t.id] ? `<span class="gh-tab__count" aria-label="${counts[t.id]} to do">${counts[t.id]}</span>` : ''}
         </button>`).join('');
 }
 
-function renderPanel({ keepScroll = false } = {}) {
+function renderPanel({ keepScroll = false, animate = false } = {}) {
     const el = body();
     const g = view.green;
     if (!el || !g) return;
     const scroll = el.scrollTop;
-    const html = {
-        overview: overviewHtml,
-        heroes: heroesHtml,
-        lesson: lessonHtml,
-        playbook: playbookHtml,
-        almanac: almanacHtml
-    }[view.tab]?.(g) || '';
-    el.innerHTML = `<section class="gh-panel gh-panel--${view.tab}" role="tabpanel">${html}</section>`;
+    const html = { class: classHtml, lesson: lessonHtml, counsel: counselHtml }[view.tab]?.(g) || '';
+    el.innerHTML = `<section class="gh-panel gh-panel--${view.tab}${animate ? ' is-entering' : ''}" role="tabpanel">${html}</section>`;
     if (keepScroll) el.scrollTop = scroll;
-    if (view.tab === 'almanac') hydrateAlmanac();
+    if (view.tab === 'counsel') hydrateAlmanac();
 }
 
-// ------------------------------------------------------------------ overview
+// ------------------------------------------------------------------ the class
 
-function overviewHtml(g) {
+const avatarHtml = (r) => (r.avatar ? `<img src="${esc(r.avatar)}" alt="" loading="lazy">` : `<span class="font-title">${esc(r.first.charAt(0))}</span>`);
+
+function classHtml(g) {
     const c = g.classReading;
     if (!c.size) return emptyHtml('No heroes in this class yet', 'Add students to the class and the greenhouse fills itself.');
-    const trendArrow = (x, unit = '') => (x == null ? '' : `<span class="gh-trend gh-trend--${x > 0 ? 'up' : x < 0 ? 'down' : 'flat'}">${x > 0 ? '▲' : x < 0 ? '▼' : '•'} ${Math.abs(x)}${unit}</span>`);
-    const tiles = [
-        { label: 'Stars per child', value: c.stars.perChildRecent ?? '—', foot: c.stars.trend != null ? trendArrow(Math.round(c.stars.trend * 100), '%') + ' a lesson, vs before' : 'a lesson, last two weeks' },
-        { label: 'Papers average', value: c.papers.classAvg != null ? `${c.papers.classAvg}%` : '—', foot: c.papers.trend != null ? trendArrow(c.papers.trend, ' pts') + ' latest papers' : `${c.papers.count} papers this year` },
-        { label: 'Attendance', value: c.attendance.rate != null ? `${Math.round(c.attendance.rate * 100)}%` : '—', foot: c.attendance.worstWeekday ? `lowest on ${c.attendance.worstWeekday.day}s` : 'last six weeks' },
-        { label: 'Unseen', value: c.stars.unseen, foot: '3+ lessons without a star' },
-        { label: 'Fresh notes', value: `${c.notes.noted}/${c.size}`, foot: 'Chronicle, last six weeks' }
-    ];
+    const stat = (value, label, foot = '') => `<div class="gh-stat"><b class="font-title">${value}</b><span>${label}</span>${foot ? `<small>${foot}</small>` : ''}</div>`;
+    const trend = (x, unit = '') => (x == null || x === 0 ? '' : `<em class="gh-trend gh-trend--${x > 0 ? 'up' : 'down'}">${x > 0 ? '▲' : '▼'} ${Math.abs(x)}${unit}</em>`);
+
+    const all = c.insights.filter((i) => i.id !== 'healthy' && i.tone !== 'info');
+    const moves = (all.length ? all : c.insights).slice(0, 3);
+    const rest = c.insights.filter((i) => !moves.includes(i));
+    const need = g.students.filter((r) => r.signals.some((s) => s.sev >= 2)).slice(0, 6);
+
     return `
-        <div class="gh-labels">${tiles.map((t) => `
-            <div class="gh-label"><span class="gh-label__hole" aria-hidden="true"></span>
-                <p class="gh-label__name">${t.label}</p><p class="gh-label__value font-title">${t.value}</p><p class="gh-label__foot">${t.foot}</p>
-            </div>`).join('')}
-        </div>
+        <section class="gh-hello gh-rise" style="--i:0">
+            <span class="gh-hello__sprout" aria-hidden="true">${plantSvg({ profile: c.health >= 55 ? 'bloom' : c.health >= 40 ? 'steady' : 'tending', growth: Math.max(0.25, (c.health || 40) / 100), leafiness: 0.7 })}</span>
+            <div class="gh-hello__text">
+                <p class="gh-hello__kicker">The class this week</p>
+                <p class="gh-hello__line font-title">${esc(classHeadline(g))}</p>
+                <div class="gh-hello__stats">
+                    ${stat(c.stars.perChildRecent ?? '—', 'stars a child, a lesson', trend(c.stars.trend == null ? null : Math.round(c.stars.trend * 100), '%'))}
+                    ${stat(c.papers.classAvg != null ? `${c.papers.classAvg}%` : '—', 'papers average', trend(c.papers.trend, ' pts'))}
+                    ${stat(c.attendance.rate != null ? `${Math.round(c.attendance.rate * 100)}%` : '—', 'attendance', c.attendance.worstWeekday ? `lowest on ${c.attendance.worstWeekday.day}s` : '')}
+                    ${stat(`${c.notes.noted}/${c.size}`, 'with a recent note')}
+                </div>
+            </div>
+        </section>
+
+        <section class="gh-card gh-card--moves gh-rise" style="--i:1">
+            <h3 class="gh-h"><i class="fas fa-compass" aria-hidden="true"></i> ${moves.length === 1 ? 'One move' : `${moves.length === 2 ? 'Two' : 'Three'} moves`} for this class</h3>
+            <ol class="gh-moves">${moves.map((i, k) => `
+                <li class="gh-move gh-insight--${i.tone}" style="--k:${k}">
+                    <span class="gh-move__num font-title" aria-hidden="true">${k + 1}</span>
+                    <div class="gh-move__body">
+                        <p class="gh-insight__title">${esc(i.title)}${i.source === 'notes' ? ' <span class="gh-from-notes"><i class="fas fa-feather-pointed" aria-hidden="true"></i> from your notes</span>' : ''}</p>
+                        <p class="gh-insight__text">${linkNames(esc(i.text))}</p>
+                        ${i.techniques.length ? `<div class="gh-chips">${i.techniques.map(packetChip).join('')}</div>` : ''}
+                    </div>
+                </li>`).join('')}
+            </ol>
+            ${rest.length ? `<details class="gh-more"><summary>Everything else the greenhouse sees <b>${rest.length}</b></summary>
+                <ul class="gh-insights">${rest.map(insightLi).join('')}</ul></details>` : ''}
+        </section>
+
+        <section class="gh-card gh-card--kids gh-rise" style="--i:2">
+            <h3 class="gh-h"><i class="fas fa-hand-holding-droplet" aria-hidden="true"></i> Who needs you first</h3>
+            <p class="gh-hint">Tap a hero to open their Chronicle: their notes, their Oracle and their place in this class.</p>
+            ${need.length ? `<div class="gh-kids">${need.map((r, k) => {
+        const why = r.signals.find((s) => s.action && s.action === r.action) || r.signals.find((s) => s.kind === 'act');
+        return `
+                <button type="button" class="gh-kid gh-tone--${PROFILE_TONE[r.profile]}" data-gh-student="${r.id}" style="--k:${k}">
+                    <span class="gh-kid__avatar">${avatarHtml(r)}</span>
+                    <span class="gh-kid__text">
+                        <span class="gh-kid__name font-title">${esc(r.first)}</span>
+                        <span class="gh-kid__why">${esc(why?.text || PROFILES[r.profile].label)}</span>
+                        <span class="gh-kid__next"><i class="fas fa-seedling" aria-hidden="true"></i> ${esc(r.action)}</span>
+                    </span>
+                    <i class="fas fa-book-open gh-kid__open" aria-hidden="true"></i>
+                </button>`;
+    }).join('')}</div>` : '<p class="gh-calm"><i class="fas fa-sun" aria-hidden="true"></i> Nobody urgent this week. A good time to stretch the strongest and notice the quiet ones.</p>'}
+        </section>
 
         <div class="gh-grid-2">
-            <section class="gh-card gh-card--signals">
-                <h3 class="gh-h"><i class="fas fa-binoculars" aria-hidden="true"></i> What the greenhouse sees</h3>
-                <ul class="gh-insights">${c.insights.filter((i) => i.source !== 'notes' || i.tone === 'warn').map(insightLi).join('')}</ul>
-            </section>
-            <section class="gh-card gh-card--map">
+            <section class="gh-card gh-card--map gh-rise" style="--i:3">
                 <h3 class="gh-h"><i class="fas fa-seedling" aria-hidden="true"></i> The growth map</h3>
-                <p class="gh-hint">Each dot is a hero: across, stars a lesson (effort); up, papers against the class. Tap a dot for the full reading.</p>
+                <p class="gh-hint">Every dot is a hero. Across: stars a lesson (effort). Up: papers against the class. Tap a dot to open their Chronicle.</p>
+                ${spotBanner(g)}
                 ${growthMapSvg(g)}
                 <div class="gh-legend">${PROFILE_ORDER.filter((p) => c.profiles[p]).map((p) => `
-                    <button type="button" class="gh-legend__item gh-tone--${p}" data-gh-tab="heroes" data-gh-filter-after="${p}">
-                        <span class="gh-legend__dot" aria-hidden="true"></span>${PROFILES[p].label} <b>${c.profiles[p]}</b>
-                    </button>`).join('')}
+                    <span class="gh-legend__item gh-tone--${p}" title="${esc(PROFILES[p].meaning)}"><span class="gh-legend__dot" aria-hidden="true"></span>${PROFILES[p].label} <b>${c.profiles[p]}</b></span>`).join('')}
                 </div>
             </section>
+            ${notesCardHtml(g)}
         </div>
 
-        ${notesCardHtml(g)}
+        <details class="gh-card gh-more gh-more--numbers gh-rise" style="--i:5">
+            <summary><i class="fas fa-chart-simple" aria-hidden="true"></i> Stars and papers in detail</summary>
+            <div class="gh-grid-2">
+                <div><h4 class="gh-h4">Virtue mix</h4>${virtueMixHtml(c.virtueMix, g.students)}</div>
+                <div><h4 class="gh-h4">Paper levels</h4>${bandsHtml(c.papers)}</div>
+            </div>
+        </details>`;
+}
 
-        <div class="gh-grid-2">
-            <section class="gh-card">
-                <h3 class="gh-h"><i class="fas fa-gem" aria-hidden="true"></i> Virtue mix</h3>
-                ${virtueMixHtml(c.virtueMix, g.students)}
-            </section>
-            <section class="gh-card">
-                <h3 class="gh-h"><i class="fas fa-layer-group" aria-hidden="true"></i> Paper levels</h3>
-                ${bandsHtml(c.papers)}
-            </section>
+/** "Ioanna is here": shown above the map when the Chronicle sent the teacher to a child. */
+function spotBanner(g) {
+    const r = view.spotId ? g.students.find((x) => x.id === view.spotId) : null;
+    if (!r) return '';
+    return `
+        <div class="gh-spot gh-tone--${PROFILE_TONE[r.profile]}">
+            <span class="gh-spot__avatar">${avatarHtml(r)}</span>
+            <p><b>${esc(r.first)}</b> is the glowing dot: ${esc(PROFILES[r.profile].label.toLowerCase())}. ${esc(PROFILES[r.profile].meaning)}</p>
+            <button type="button" class="gh-btn gh-btn--ghost" data-gh-student="${r.id}"><i class="fas fa-book-open" aria-hidden="true"></i> Back to ${esc(r.first)}'s Chronicle</button>
         </div>`;
+}
+
+/** First names in a sentence become links to that child's Chronicle. */
+function linkNames(html) {
+    const g = view.green;
+    if (!g) return html;
+    const counts = new Map();
+    g.students.forEach((r) => counts.set(r.first, (counts.get(r.first) || 0) + 1));
+    const byFirst = new Map(g.students.filter((r) => counts.get(r.first) === 1 && r.first.length >= 2).map((r) => [r.first, r.id]));
+    if (!byFirst.size) return html;
+    const names = [...byFirst.keys()].sort((a, b) => b.length - a.length).map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const re = new RegExp(`(?<![\\p{L}])(${names.join('|')})(?![\\p{L}])`, 'gu');
+    // Only text between tags, never inside an attribute or an existing button.
+    let insideButton = 0;
+    return html.split(/(<[^>]+>)/).map((part) => {
+        if (part.startsWith('<')) {
+            if (/^<button\b/i.test(part)) insideButton += 1;
+            if (/^<\/button>/i.test(part)) insideButton = Math.max(0, insideButton - 1);
+            return part;
+        }
+        if (insideButton) return part;
+        return part.replace(re, (name) => `<button type="button" class="gh-name" data-gh-student="${byFirst.get(name)}">${name}</button>`);
+    }).join('');
 }
 
 function insightLi(i) {
     return `
         <li class="gh-insight gh-insight--${i.tone}">
             <p class="gh-insight__title">${esc(i.title)}</p>
-            <p class="gh-insight__text">${esc(i.text)}</p>
+            <p class="gh-insight__text">${linkNames(esc(i.text))}</p>
             ${i.techniques.length ? `<div class="gh-chips">${i.techniques.map(packetChip).join('')}</div>` : ''}
         </li>`;
 }
@@ -399,7 +446,7 @@ function notesCardHtml(g) {
     const ch = g.classReading.chronicle;
     const nameBtn = (x) => `<button type="button" class="gh-name" data-gh-student="${x.id}">${esc(x.first)}</button>`;
     if (!ch.written) {
-        return `<section class="gh-card gh-card--notes">
+        return `<section class="gh-card gh-card--notes gh-rise" style="--i:4">
             <h3 class="gh-h"><i class="fas fa-book-reader" aria-hidden="true"></i> What your notes say</h3>
             <p class="gh-hint">No Chronicle notes for this class yet. Write a line or two in a child's Hero's Chronicle (spelling, shyness, a passion for football, who argues with whom) and the greenhouse turns it into groups, buddies and lesson hooks for the whole class.</p>
         </section>`;
@@ -408,21 +455,19 @@ function notesCardHtml(g) {
     const toneTotal = Math.max(1, (t.worry || 0) + (t.good || 0) + (t.mixed || 0) + (t.neutral || 0));
     const seg = (k, label) => (t[k] ? `<span class="gh-tone-bar__seg gh-tone-bar--${k}" style="flex-grow:${t[k]}" title="${label}: ${t[k]}"></span>` : '');
     const people = (list, tone) => list.map((x) => `<button type="button" class="gh-name gh-name--${tone}" data-gh-student="${x.id}" title="${esc(x.quote || '')}">${esc(x.first)}</button>`).join('');
-    const moves = g.classReading.insights.filter((i) => i.source === 'notes' && i.tone !== 'warn');
     const rows = ch.clusters.slice().sort((a, b) => (b.open.length + b.strong.length + b.improving.length) - (a.open.length + a.strong.length + a.improving.length));
     return `
-        <section class="gh-card gh-card--notes">
+        <section class="gh-card gh-card--notes gh-rise" style="--i:4">
             <div class="gh-notes-head">
                 <h3 class="gh-h"><i class="fas fa-book-reader" aria-hidden="true"></i> What your notes say</h3>
-                <p class="gh-hint">Read from ${ch.written} Chronicle ${ch.written === 1 ? 'note' : 'notes'}, word by word, on this computer. Tap a theme to see those heroes.</p>
+                <p class="gh-hint">Read from ${ch.written} Chronicle ${ch.written === 1 ? 'note' : 'notes'}, word by word, on this computer. Tap a name to open that hero's Chronicle.</p>
                 ${ch.recent ? `<div class="gh-tone-bar" role="img" aria-label="Last six weeks: ${t.worry || 0} worries, ${t.good || 0} good news, ${t.mixed || 0} mixed, ${t.neutral || 0} plain">
                     ${seg('worry', 'Worries')}${seg('mixed', 'Mixed')}${seg('good', 'Good news')}${seg('neutral', 'Plain notes')}
                 </div><p class="gh-tone-legend"><span class="gh-tone-bar--worry"></span>Worries ${Math.round(((t.worry || 0) / toneTotal) * 100)}%<span class="gh-tone-bar--good"></span>Good news ${Math.round(((t.good || 0) / toneTotal) * 100)}%<span class="gh-tone-bar--mixed"></span>Mixed</p>` : ''}
             </div>
-            ${moves.length ? `<h4 class="gh-h4">What to do about it, class-wide</h4><ul class="gh-insights gh-insights--notes">${moves.map(insightLi).join('')}</ul>` : ''}
-            ${rows.length ? `<h4 class="gh-h4">Theme by theme</h4><ul class="gh-themes">${rows.map((c) => `
+            ${rows.length ? `<ul class="gh-themes">${rows.map((c) => `
                 <li class="gh-theme">
-                    <button type="button" class="gh-theme__name" data-gh-tab="heroes" data-gh-filter-after="theme:${c.id}"><i class="fas ${c.icon}" aria-hidden="true"></i>${esc(c.label)}</button>
+                    <span class="gh-theme__name"><i class="fas ${c.icon}" aria-hidden="true"></i>${esc(c.label)}</span>
                     <span class="gh-theme__who">
                         ${c.open.length ? `<span class="gh-theme__group"><em>${c.kind === 'context' ? 'background' : 'worry'}</em>${people(c.open, c.kind === 'context' ? 'context' : 'worry')}</span>` : ''}
                         ${c.improving.length ? `<span class="gh-theme__group"><em>better</em>${people(c.improving, 'better')}</span>` : ''}
@@ -476,7 +521,7 @@ function growthMapSvg(g) {
     const px = (x) => L + x * iw;
     const py = (y) => T + (1 - y) * ih;
     const placed = [];
-    const dots = g.students.map((r) => {
+    const spots = g.students.map((r) => {
         let x = px(r.map.x), y = py(r.map.y);
         // Nudge overlapping dots apart so every name stays tappable.
         for (let k = 0; k < 12 && placed.some((p) => Math.hypot(p.x - x, p.y - y) < 30); k += 1) {
@@ -485,15 +530,42 @@ function growthMapSvg(g) {
             y = Math.max(T + 14, Math.min(H - B - 14, y + Math.sin(a) * 14));
         }
         placed.push({ x, y });
+        return { r, x, y };
+    });
+    // Put each name where it touches no other dot or name: below, above, right, then left.
+    const qw = (t) => t.length * 7.4;
+    const boxes = [ // the quadrant names stay readable too
+        { x0: L + 6, x1: L + 10 + qw(PROFILES.roots.label), y0: T + 2, y1: T + 20 },
+        { x0: L + iw - 10 - qw(PROFILES.bloom.label), x1: L + iw - 6, y0: T + 2, y1: T + 20 },
+        { x0: L + 6, x1: L + 10 + qw(PROFILES.tending.label), y0: T + ih - 22, y1: T + ih - 4 },
+        { x0: L + iw - 10 - qw(PROFILES.reaching.label), x1: L + iw - 6, y0: T + ih - 22, y1: T + ih - 4 },
+    ];
+    const hits = (b) => boxes.some((o) => b.x0 < o.x1 && b.x1 > o.x0 && b.y0 < o.y1 && b.y1 > o.y0)
+        || spots.some((s) => s.x + 13 > b.x0 && s.x - 13 < b.x1 && s.y + 13 > b.y0 && s.y - 13 < b.y1 && !(s.x === b.cx && s.y === b.cy));
+    const labels = spots.map(({ r, x, y }) => {
+        const w = r.first.length * 6.6 + 4;
+        const options = [
+            { dx: 0, dy: 27, anchor: 'middle', x0: x - w / 2, x1: x + w / 2, y0: y + 16, y1: y + 30 },
+            { dx: 0, dy: -19, anchor: 'middle', x0: x - w / 2, x1: x + w / 2, y0: y - 30, y1: y - 16 },
+            { dx: 17, dy: 4, anchor: 'start', x0: x + 15, x1: x + 17 + w, y0: y - 7, y1: y + 7 },
+            { dx: -17, dy: 4, anchor: 'end', x0: x - 17 - w, x1: x - 15, y0: y - 7, y1: y + 7 },
+        ].map((o) => ({ ...o, cx: x, cy: y }));
+        const pick = options.find((o) => !hits(o) && o.x0 >= 2 && o.x1 <= W - 2 && o.y0 >= 2 && o.y1 <= H - 2) || options[0];
+        boxes.push(pick);
+        return pick;
+    });
+    const dots = spots.map(({ r, x, y }, index) => {
+        const lab = labels[index];
         const initials = r.name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase();
         const urgent = r.signals.some((s) => s.sev >= 3);
         return `
-            <g class="gh-dot gh-tone--${PROFILE_TONE[r.profile]}${r.map.achKnown ? '' : ' is-unknown'}${urgent ? ' is-urgent' : ''}" data-gh-student="${r.id}" role="button" tabindex="0"
-                aria-label="${esc(r.name)}: ${PROFILES[r.profile].label}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})">
+            <g class="gh-dot gh-tone--${PROFILE_TONE[r.profile]}${r.map.achKnown ? '' : ' is-unknown'}${urgent ? ' is-urgent' : ''}${r.id === view.spotId ? ' is-spot' : ''}" data-gh-student="${r.id}" role="button" tabindex="0" style="--i:${index}"
+                aria-label="${esc(r.name)}: ${PROFILES[r.profile].label}. Open the Hero's Chronicle" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})">
                 ${urgent ? '<circle class="gh-dot__halo" r="19"/>' : ''}
+                ${r.id === view.spotId ? '<circle class="gh-dot__spot" r="24"/>' : ''}
                 <circle class="gh-dot__disc" r="13"/>
                 <text class="gh-dot__ini" y="4">${esc(initials)}</text>
-                <text class="gh-dot__name" y="27">${esc(r.first)}</text>
+                <text class="gh-dot__name" x="${lab.dx}" y="${lab.dy}" text-anchor="${lab.anchor}">${esc(r.first)}</text>
                 <title>${esc(r.name)} · ${PROFILES[r.profile].label}</title>
             </g>`;
     }).join('');
@@ -518,231 +590,11 @@ function growthMapSvg(g) {
             ${label(PROFILES.bloom.label, L + iw - 8, T + 16, 'end')}
             ${label(PROFILES.tending.label, L + 8, T + ih - 8, 'start')}
             ${label(PROFILES.reaching.label, L + iw - 8, T + ih - 8, 'end')}
-            ${label('Steady', px(0.5), py(0.5) + 4, 'middle')}
             <path class="gh-map__axis" d="M${L} ${T} V${T + ih} H${L + iw}"/>
             <text class="gh-map__axislabel" x="${L + iw / 2}" y="${H - 10}" text-anchor="middle">Stars a lesson (effort) →</text>
             <text class="gh-map__axislabel" transform="translate(16 ${T + ih / 2}) rotate(-90)" text-anchor="middle">Papers vs class →</text>
             ${dots}
         </svg>`;
-}
-
-// ------------------------------------------------------------------ every hero
-
-function heroesHtml(g) {
-    if (!g.students.length) return emptyHtml('No heroes in this class yet', 'Add students and every one gets a pot here.');
-    const filters = [
-        { id: 'all', label: 'All', count: g.students.length },
-        { id: 'act', label: 'Need you', count: g.students.filter((r) => r.signals.some((s) => s.sev >= 2)).length },
-        ...PROFILE_ORDER.map((p) => ({ id: p, label: PROFILES[p].short, count: g.classReading.profiles[p] })).filter((f) => f.count)
-    ];
-    // A theme from the notes ("theme:spelling"), picked on the Overview, filters the pots too.
-    const themeId = view.heroFilter.startsWith('theme:') ? view.heroFilter.slice(6) : null;
-    const cluster = themeId ? g.classReading.chronicle.clusters.find((c) => c.id === themeId) : null;
-    if (themeId && !cluster) view.heroFilter = 'all';
-    const inCluster = (r) => cluster && [...cluster.open, ...cluster.strong, ...cluster.improving].some((x) => x.id === r.id);
-    const list = g.students.filter((r) => view.heroFilter === 'all'
-        || (cluster ? inCluster(r) : view.heroFilter === 'act' ? r.signals.some((s) => s.sev >= 2) : r.profile === view.heroFilter));
-    return `
-        <div class="gh-filters" role="group" aria-label="Show">${filters.map((f) => `
-            <button type="button" class="gh-filter${view.heroFilter === f.id ? ' is-active' : ''}${PROFILES[f.id] ? ` gh-tone--${f.id}` : ''}" data-gh-filter="${f.id}" aria-pressed="${view.heroFilter === f.id}">${f.label}<b>${f.count}</b></button>`).join('')}
-            ${cluster ? `<button type="button" class="gh-filter gh-filter--theme is-active" data-gh-filter="all" aria-pressed="true"><i class="fas ${cluster.icon}" aria-hidden="true"></i>Notes: ${esc(cluster.label)}<b>${list.length}</b><i class="fas fa-xmark" aria-hidden="true"></i></button>` : ''}
-        </div>
-        <div class="gh-pots">${list.map(potHtml).join('') || '<p class="gh-hint">Nobody here right now.</p>'}</div>`;
-}
-
-function potHtml(r) {
-    const act = r.signals.filter((s) => s.kind === 'act').slice(0, 2);
-    const good = r.signals.find((s) => s.kind === 'good');
-    return `
-        <article class="gh-pot gh-tone--${PROFILE_TONE[r.profile]}">
-            <button type="button" class="gh-pot__open" data-gh-student="${r.id}" aria-label="Open ${esc(r.name)}'s reading">
-                <span class="gh-pot__plant" aria-hidden="true">${plantSvg(plantShape(r))}</span>
-                <span class="gh-pot__head">
-                    <span class="gh-pot__name font-title">${esc(r.name)}</span>
-                    <span class="gh-pot__profile"><i class="fas ${PROFILES[r.profile].icon}" aria-hidden="true"></i>${PROFILES[r.profile].label}</span>
-                </span>
-            </button>
-            <p class="gh-pot__summary">${esc(r.summary)}</p>
-            ${sparkHtml(r.stars.weekly)}
-            <ul class="gh-signals">
-                ${act.map((x) => signalLi(x)).join('')}
-                ${!act.length && good ? signalLi(good) : ''}
-            </ul>
-            ${noteTagsHtml(r)}
-            <p class="gh-pot__next"><span>Next</span>${esc(r.action)}</p>
-            <div class="gh-pot__foot">
-                <button type="button" class="gh-btn gh-btn--ghost" data-gh-student="${r.id}"><i class="fas fa-magnifying-glass" aria-hidden="true"></i> Reading</button>
-                <button type="button" class="gh-btn gh-btn--ghost" data-gh-chronicle="${r.id}"><i class="fas fa-book-reader" aria-hidden="true"></i> Chronicle</button>
-            </div>
-        </article>`;
-}
-
-/** Small tags for what the notes say about this child (newest first). */
-function noteTagsHtml(r) {
-    const themes = (r.chronicle?.themes || []).filter((t) => t.theme).slice(0, 4);
-    if (!themes.length) return '';
-    return `<p class="gh-pot__notes" aria-label="From the Chronicle">${themes.map((t) => `<span class="gh-tag gh-read--${t.tone}"${t.tone === 'context' ? '' : ` title="${esc(t.quote)}"`}><i class="fas ${t.theme.icon}" aria-hidden="true"></i>${esc(t.theme.label)}</span>`).join('')}</p>`;
-}
-
-function sparkHtml(weekly) {
-    const max = Math.max(1, ...weekly);
-    if (!weekly.some((w) => w > 0)) return '<div class="gh-spark gh-spark--empty" aria-hidden="true"><span>no stars in six weeks</span></div>';
-    return `<div class="gh-spark" role="img" aria-label="Stars week by week: ${weekly.join(', ')}">${weekly.map((w, i) => `
-        <span class="gh-spark__bar${i === weekly.length - 1 ? ' is-now' : ''}" style="--h:${Math.max(4, (w / max) * 100)}%" title="${w} stars"></span>`).join('')}
-        <span class="gh-spark__cap">6 weeks of stars</span></div>`;
-}
-
-function plantShape(r) {
-    const growth = r.map.achKnown ? r.map.y : (r.papers.avg != null ? r.papers.avg / 100 : 0.45);
-    return { profile: r.profile, growth: 0.15 + growth * 0.85, leafiness: r.map.x, thirsty: r.signals.some((s) => s.id === 'unseen') };
-}
-
-/** A potted plant drawn from a child's reading: height from papers, leaves from stars, crown from profile. */
-function plantSvg({ profile = 'steady', growth = 0.5, leafiness = 0.5, thirsty = false }) {
-    const h = 10 + growth * 34;
-    const top = 47 - h;
-    const leafCount = 1 + Math.round(leafiness * 3);
-    const droop = profile === 'tending';
-    const lean = profile === 'reaching' ? 6 : 0;
-    const stem = `M30 47 Q${30 + lean / 2} ${47 - h / 2} ${30 + lean} ${top}`;
-    let leaves = '';
-    for (let i = 0; i < leafCount; i += 1) {
-        const t = (i + 1) / (leafCount + 1);
-        const y = 47 - h * t;
-        const x = 30 + lean * t;
-        const side = i % 2 ? 1 : -1;
-        const rot = droop ? side * 120 : side * 35;
-        leaves += `<ellipse class="gh-plant__leaf" cx="${x + side * 6}" cy="${y}" rx="6.5" ry="3" transform="rotate(${rot} ${x + side * 6} ${y})"/>`;
-    }
-    let crown = '';
-    if (profile === 'bloom') {
-        crown = [0, 72, 144, 216, 288].map((a) => `<circle class="gh-plant__petal" cx="${30 + Math.cos((a * Math.PI) / 180) * 4.5}" cy="${top + Math.sin((a * Math.PI) / 180) * 4.5}" r="3.6"/>`).join('')
-            + `<circle class="gh-plant__heart" cx="30" cy="${top}" r="2.6"/>`;
-    } else if (profile === 'reaching') {
-        crown = `<ellipse class="gh-plant__bud" cx="${30 + lean}" cy="${top - 1}" rx="2.6" ry="4" transform="rotate(20 ${30 + lean} ${top - 1})"/>`;
-    } else if (profile === 'planted') {
-        crown = `<ellipse class="gh-plant__leaf" cx="27" cy="${top}" rx="4" ry="2" transform="rotate(-30 27 ${top})"/><ellipse class="gh-plant__leaf" cx="33" cy="${top}" rx="4" ry="2" transform="rotate(30 33 ${top})"/>`;
-    } else {
-        crown = `<ellipse class="gh-plant__leaf" cx="${30 + lean}" cy="${top}" rx="3" ry="5"/>`;
-    }
-    const drop = thirsty ? '<path class="gh-plant__drop" d="M50 14 Q54 21 50 24 Q46 21 50 14 Z"/>' : '';
-    return `<svg viewBox="0 0 60 72" focusable="false" class="gh-plant gh-plant--${profile}">
-        <path class="gh-plant__stem" d="${stem}"/>${leaves}${crown}${drop}
-        <path class="gh-plant__pot" d="M16 52 H44 L41 70 H19 Z"/>
-        <rect class="gh-plant__rim" x="13" y="46" width="34" height="7" rx="2"/>
-        <path class="gh-plant__soil" d="M16 47 H44"/>
-    </svg>`;
-}
-
-// ------------------------------------------------------------------ drawer: one hero
-
-function openDrawer(studentId) {
-    view.drawerId = studentId;
-    renderDrawer(studentId);
-    const drawer = document.querySelector(`#${MODAL_ID} .gh-drawer`);
-    drawer?.classList.add('is-open');
-    drawer?.setAttribute('aria-hidden', 'false');
-    drawer?.querySelector('.gh-drawer__close')?.focus();
-}
-
-function closeDrawer() {
-    view.drawerId = null;
-    const drawer = document.querySelector(`#${MODAL_ID} .gh-drawer`);
-    drawer?.classList.remove('is-open');
-    drawer?.setAttribute('aria-hidden', 'true');
-}
-
-function renderDrawer(studentId) {
-    const drawer = document.querySelector(`#${MODAL_ID} .gh-drawer`);
-    const r = view.green?.students.find((x) => x.id === studentId);
-    if (!drawer || !r) return;
-    const s = r.stars, p = r.papers, a = r.attendance;
-    const fact = (label, value, foot = '') => `<div class="gh-fact"><p class="gh-fact__label">${label}</p><p class="gh-fact__value">${value}</p>${foot ? `<p class="gh-fact__foot">${foot}</p>` : ''}</div>`;
-    const avatar = r.avatar ? `<img src="${esc(r.avatar)}" alt="">` : `<span class="font-title">${esc(r.first.charAt(0))}</span>`;
-    drawer.innerHTML = `
-        <div class="gh-drawer__head gh-tone--${PROFILE_TONE[r.profile]}">
-            <span class="gh-drawer__avatar">${avatar}</span>
-            <div class="gh-drawer__titles">
-                <h3 class="gh-drawer__name font-title">${esc(r.name)}</h3>
-                <p class="gh-drawer__profile"><i class="fas ${PROFILES[r.profile].icon}" aria-hidden="true"></i> ${PROFILES[r.profile].label}</p>
-            </div>
-            <button type="button" class="gh-drawer__close" data-gh-close-drawer aria-label="Close the reading"><i class="fas fa-xmark" aria-hidden="true"></i></button>
-        </div>
-        <div class="gh-drawer__body custom-scrollbar">
-            <p class="gh-drawer__meaning">${PROFILES[r.profile].meaning}</p>
-            <div class="gh-next"><p class="gh-next__label">Next lesson</p><p class="gh-next__text">${esc(r.action)}</p></div>
-            <div class="gh-facts">
-                ${fact('Stars a lesson', s.perLesson ?? '—', s.perLessonRecent != null && s.perLessonPrior != null ? `now ${s.perLessonRecent}, before ${s.perLessonPrior}` : '')}
-                ${fact('Last star', s.lastStarDay != null ? dayLabel(s.lastStarDay) : 'none yet', s.lessonsWithoutStar ? `${s.lessonsWithoutStar} lessons since` : 'last lesson')}
-                ${fact('Papers', p.avg != null ? `${p.avg}%` : '—', p.rel != null ? `${p.rel > 0 ? '+' : ''}${p.rel} vs class` : `${p.count} marked`)}
-                ${fact('Trend', p.trend != null ? `${p.trend > 0 ? '+' : ''}${p.trend} pts` : '—', 'recent papers vs earlier')}
-                ${fact('Tests / dictations', `${p.test ?? '—'} / ${p.dictation ?? '—'}`, 'average %')}
-                ${fact('Attendance', a.rate != null ? `${Math.round(a.rate * 100)}%` : '—', a.lessons ? `${a.present} of ${a.lessons} lessons` : '')}
-            </div>
-            ${r.virtueTotal ? `<div class="gh-mini-virtues">${VIRTUES.map((v) => `<span class="gh-virtue gh-virtue--${v.id}"><i class="fas ${v.icon}" aria-hidden="true"></i>${r.virtues[v.id]}</span>`).join('')}</div>` : ''}
-            ${sparkHtml(s.weekly)}
-            ${p.series.length >= 2 ? paperLineSvg(p.series) : ''}
-            <h4 class="gh-h4">Signals</h4>
-            <ul class="gh-signals gh-signals--all">${r.signals.map((x) => signalLi(x, { quote: false })).join('') || '<li class="gh-signal">Nothing to flag.</li>'}</ul>
-            ${p.missed.length ? `<h4 class="gh-h4">Papers without a mark</h4><ul class="gh-missed">${p.missed.map((m) => `<li>${esc(m.title)} · ${dayLabel(m.day)}${m.wasAbsent ? ' · absent that day' : ''}</li>`).join('')}</ul>` : ''}
-            ${chronicleReadHtml(r)}
-            <h4 class="gh-h4">Seed packets for ${esc(r.first)}</h4>
-            <div class="gh-chips">${r.techniques.map(packetChip).join('')}</div>
-            <div class="gh-handoff">
-                <button type="button" class="gh-btn gh-btn--wide" data-gh-chronicle="${r.id}"><i class="fas fa-feather-pointed" aria-hidden="true"></i> Write in ${esc(r.first)}'s Chronicle</button>
-                <button type="button" class="gh-btn gh-btn--wide gh-btn--ghost" data-gh-oracle="${r.id}"><i class="fas fa-hat-wizard" aria-hidden="true"></i> Ask the Oracle about ${esc(r.first)}</button>
-            </div>
-        </div>`;
-}
-
-const TONE_WORD = { worry: 'Worry', better: 'Getting better', strength: 'Strength', context: 'Background' };
-
-/** One signal line; signals raised by a note carry the sentence that raised them. */
-function signalLi(x, { quote = true } = {}) {
-    const cls = x.kind === 'good' ? 'good' : `sev${x.sev}`;
-    // Background notes (home, health, support) are never quoted on the open grid, only in the drawer.
-    const showQuote = quote && x.quote && !x.context;
-    return `<li class="gh-signal gh-signal--${cls}"><i class="fas ${x.icon}" aria-hidden="true"></i><span>${esc(x.text)}${showQuote ? `<q class="gh-quote">${esc(x.quote)}</q>` : ''}</span></li>`;
-}
-
-/** What this child's Chronicle notes say, theme by theme. Reading only: writing stays in the Chronicle. */
-function chronicleReadHtml(r) {
-    const ch = r.chronicle;
-    if (!ch || !ch.notes) {
-        return `<div class="gh-read"><h4 class="gh-h4"><i class="fas fa-book-reader" aria-hidden="true"></i> From the Chronicle</h4>
-            <p class="gh-hint">No notes about ${esc(r.first)} yet. Whatever you write in the Chronicle is read here across the whole class.</p></div>`;
-    }
-    const themes = ch.themes.slice(0, 6);
-    return `
-        <div class="gh-read">
-            <h4 class="gh-h4"><i class="fas fa-book-reader" aria-hidden="true"></i> From the Chronicle <span class="gh-h__count">${ch.written} ${ch.written === 1 ? 'note' : 'notes'}${ch.lastDay != null ? ` · last ${dayLabel(ch.lastDay)}` : ''}</span></h4>
-            ${themes.length ? `<ul class="gh-read__themes">${themes.map((t) => `
-                <li class="gh-read__theme gh-read--${t.tone}">
-                    <span class="gh-read__tag"><i class="fas ${t.theme?.icon || 'fa-feather'}" aria-hidden="true"></i>${esc(t.theme?.label || t.id)}<em>${TONE_WORD[t.tone] || ''}${t.count > 1 ? ` · ${t.count} notes` : ''}</em>${t.last != null ? `<span class="gh-read__day">${dayLabel(t.last)}</span>` : ''}</span>
-                    <q class="gh-quote">${esc(t.quote)}</q>
-                </li>`).join('')}</ul>`
-        : '<p class="gh-hint">The notes so far do not name a clear pattern (a skill, a habit, a strength).</p>'}
-            ${ch.interests.length ? `<p class="gh-read__likes"><i class="fas fa-heart" aria-hidden="true"></i> Loves ${ch.interests.map((id) => esc(interestLabel(id))).join(', ')}</p>` : ''}
-        </div>`;
-}
-
-function interestLabel(id) {
-    return view.green?.classReading.chronicle.interests.find((i) => i.id === id)?.label || id;
-}
-
-function paperLineSvg(series) {
-    const W = 260, H = 64, n = series.length;
-    const pts = series.map((v, i) => [8 + (i * (W - 16)) / Math.max(1, n - 1), H - 8 - (v / 100) * (H - 16)]);
-    return `<figure class="gh-paperline"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Last papers: ${series.join('%, ')}%">
-        <path class="gh-paperline__mid" d="M0 ${H / 2} H${W}"/>
-        <polyline class="gh-paperline__line" points="${pts.map((p) => p.map((v) => v.toFixed(1)).join(',')).join(' ')}"/>
-        ${pts.map((p, i) => `<circle class="gh-paperline__dot" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3"><title>${series[i]}%</title></circle>`).join('')}
-    </svg><figcaption>Last ${n} papers</figcaption></figure>`;
-}
-
-/** One child's notes and AI advice live in the Hero's Chronicle; it opens above the Greenhouse. */
-function openChronicle(studentId, { oracle = false } = {}) {
-    import('./hero.js').then((m) => m.openHeroChronicleModal(studentId, { tab: oracle ? 'oracle' : 'notes' }));
 }
 
 // ------------------------------------------------------------------ next lesson
@@ -751,13 +603,38 @@ function tickKey() {
     const d = new Date();
     return `gcq_greenhouse_ticks_${view.classId}_${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 }
+
 function readTicks() {
     try { return JSON.parse(localStorage.getItem(tickKey()) || '{}'); } catch { return {}; }
 }
+
 function setTick(id, on) {
     const ticks = readTicks();
     if (on) ticks[id] = 1; else delete ticks[id];
     try { localStorage.setItem(tickKey(), JSON.stringify(ticks)); } catch { /* ticks are a per-laptop nicety */ }
+}
+
+const NEED_WORDS = { newcomer: 'new to the class', shy: 'shy to speak', worry: 'needs a calm start', support: 'learning support', listening: 'instructions', reading: 'reading' };
+
+/** The rounds that come from what the Chronicle notes say. */
+function lessonNotesHtml(p, tick, nameBtn) {
+    if (!p.followUps.length && !p.noteGroups.length && !p.buddies.length && !p.keepApart.length && !p.hooks.length) return '';
+    return `
+        <section class="gh-card gh-card--fromnotes">
+            <h3 class="gh-h"><i class="fas fa-book-reader" aria-hidden="true"></i> From your notes</h3>
+            <div class="gh-fromnotes">
+                ${p.followUps.length ? `<div><h4 class="gh-h4">Follow up</h4><p class="gh-hint">You wrote these down, then nothing more. See how it is going, then add a line in the Chronicle.</p>
+                    ${p.followUps.map((f) => tick(`follow-${f.id}`, `${nameBtn(f)} <small>${esc(f.label.toLowerCase())}, ${f.daysAgo} days ago</small><q class="gh-quote">${esc(f.quote)}</q>`)).join('')}</div>` : ''}
+                ${p.noteGroups.length ? `<div><h4 class="gh-h4">Small groups, ten minutes with you</h4><p class="gh-hint">Children your notes name for the same skill. While the class works, sit with one group.</p>
+                    ${p.noteGroups.map((gr) => tick(`group-${gr.id}`, `<b><i class="fas ${gr.icon}" aria-hidden="true"></i> ${esc(gr.label)}</b> ${gr.members.map(nameBtn).join(', ')}${gr.technique ? ` <button type="button" class="gh-chip" data-gh-packet="${gr.technique}">${esc(getTechnique(gr.technique)?.title || '')}</button>` : ''}`)).join('')}</div>` : ''}
+                ${p.buddies.length ? `<div><h4 class="gh-h4">Buddies</h4><p class="gh-hint">A kind helper beside a child who needs one, for pair work.</p>
+                    ${p.buddies.map((b) => tick(`buddy-${b.child.id}`, `${nameBtn(b.helper)} <i class="fas fa-hands-holding-child" aria-hidden="true"></i> ${nameBtn(b.child)} <small>${esc(b.helper.why.toLowerCase())} · ${esc(NEED_WORDS[b.child.need] || b.child.need)}</small>`)).join('')}</div>` : ''}
+                ${p.keepApart.length ? `<div><h4 class="gh-h4">Keep apart</h4><p class="gh-hint">Written about together in rough notes. Seat and pair them apart.</p>
+                    ${p.keepApart.map((k) => `<p class="gh-duo gh-duo--apart">${nameBtn(k.a)} <i class="fas fa-arrows-left-right" aria-hidden="true"></i> ${nameBtn(k.b)}</p>`).join('')}</div>` : ''}
+                ${p.hooks.length ? `<div><h4 class="gh-h4">Lesson hooks</h4><p class="gh-hint">Passions from your notes. Use them in example sentences and warm-ups.</p>
+                    ${p.hooks.map((h) => `<p class="gh-hook"><b>${esc(h.icon || '')} ${esc(h.label)}</b> <small>${esc(h.children.join(', '))}</small>${h.words.length ? `<span class="gh-hook__words">${h.words.map((w) => `<span>${esc(w)}</span>`).join('')}</span>` : ''}</p>`).join('')}</div>` : ''}
+            </div>
+        </section>`;
 }
 
 function lessonHtml(g) {
@@ -814,29 +691,6 @@ function lessonHtml(g) {
         </section>` : ''}`;
 }
 
-const NEED_WORDS = { newcomer: 'new to the class', shy: 'shy to speak', worry: 'needs a calm start', support: 'learning support', listening: 'instructions', reading: 'reading' };
-
-/** The rounds that come from what the Chronicle notes say. */
-function lessonNotesHtml(p, tick, nameBtn) {
-    if (!p.followUps.length && !p.noteGroups.length && !p.buddies.length && !p.keepApart.length && !p.hooks.length) return '';
-    return `
-        <section class="gh-card gh-card--fromnotes">
-            <h3 class="gh-h"><i class="fas fa-book-reader" aria-hidden="true"></i> From your notes</h3>
-            <div class="gh-fromnotes">
-                ${p.followUps.length ? `<div><h4 class="gh-h4">Follow up</h4><p class="gh-hint">You wrote these down, then nothing more. See how it is going, then add a line in the Chronicle.</p>
-                    ${p.followUps.map((f) => tick(`follow-${f.id}`, `${nameBtn(f)} <small>${esc(f.label.toLowerCase())}, ${f.daysAgo} days ago</small><q class="gh-quote">${esc(f.quote)}</q>`)).join('')}</div>` : ''}
-                ${p.noteGroups.length ? `<div><h4 class="gh-h4">Small groups, ten minutes with you</h4><p class="gh-hint">Children your notes name for the same skill. While the class works, sit with one group.</p>
-                    ${p.noteGroups.map((gr) => tick(`group-${gr.id}`, `<b><i class="fas ${gr.icon}" aria-hidden="true"></i> ${esc(gr.label)}</b> ${gr.members.map(nameBtn).join(', ')}${gr.technique ? ` <button type="button" class="gh-chip" data-gh-packet="${gr.technique}">${esc(getTechnique(gr.technique)?.title || '')}</button>` : ''}`)).join('')}</div>` : ''}
-                ${p.buddies.length ? `<div><h4 class="gh-h4">Buddies</h4><p class="gh-hint">A kind helper beside a child who needs one, for pair work.</p>
-                    ${p.buddies.map((b) => tick(`buddy-${b.child.id}`, `${nameBtn(b.helper)} <i class="fas fa-hands-holding-child" aria-hidden="true"></i> ${nameBtn(b.child)} <small>${esc(b.helper.why.toLowerCase())} · ${esc(NEED_WORDS[b.child.need] || b.child.need)}</small>`)).join('')}</div>` : ''}
-                ${p.keepApart.length ? `<div><h4 class="gh-h4">Keep apart</h4><p class="gh-hint">Written about together in rough notes. Seat and pair them apart.</p>
-                    ${p.keepApart.map((k) => `<p class="gh-duo gh-duo--apart">${nameBtn(k.a)} <i class="fas fa-arrows-left-right" aria-hidden="true"></i> ${nameBtn(k.b)}</p>`).join('')}</div>` : ''}
-                ${p.hooks.length ? `<div><h4 class="gh-h4">Lesson hooks</h4><p class="gh-hint">Passions from your notes. Use them in example sentences and warm-ups.</p>
-                    ${p.hooks.map((h) => `<p class="gh-hook"><b>${esc(h.icon || '')} ${esc(h.label)}</b> <small>${esc(h.children.join(', '))}</small>${h.words.length ? `<span class="gh-hook__words">${h.words.map((w) => `<span>${esc(w)}</span>`).join('')}</span>` : ''}</p>`).join('')}</div>` : ''}
-            </div>
-        </section>`;
-}
-
 function planText(g) {
     const classData = findClass(view.classId);
     const p = g.plan;
@@ -867,7 +721,197 @@ async function copyPlan() {
     }
 }
 
-// ------------------------------------------------------------------ playbook
+// ------------------------------------------------------------------ counsel: the Almanac and the seed shelf
+
+function counselHtml(g) {
+    const elite = canUseFeature('eliteAI');
+    const asked = view.asked.get(view.classId) || [];
+    return `
+        <div class="gh-almanac gh-rise" style="--i:0">
+            <div class="gh-almanac__mast">
+                <p class="gh-almanac__kicker">Elite counsel · written once, shared by every computer in the school</p>
+                <h3 class="gh-almanac__title font-title">The Gardener's Almanac</h3>
+                <p class="gh-almanac__lede">Advice for the whole class, from its numbers, its signals, the themes of your notes and the plan for the next lesson. It never sees your note text or anything about home or health. For one child, open their Chronicle and ask the Oracle.</p>
+            </div>
+            <div class="gh-counsels">${ALMANAC_COUNSELS.map((c, k) => `
+                <button type="button" class="gh-counsel" data-gh-counsel="${c.id}" style="--k:${k}">
+                    <i class="fas ${c.icon}" aria-hidden="true"></i><span class="gh-counsel__name">${c.label}</span><span class="gh-counsel__hint">${c.hint}</span>
+                    ${elite ? '' : '<span class="gh-counsel__lock"><i class="fas fa-lock" aria-hidden="true"></i> Elite</span>'}
+                </button>`).join('')}
+            </div>
+            <form class="gh-ask" autocomplete="off">
+                <label for="gh-ask-input" class="gh-ask__label"><i class="fas fa-circle-question" aria-hidden="true"></i> Ask about the class</label>
+                <div class="gh-ask__row">
+                    <input id="gh-ask-input" class="gh-ask__input" type="text" maxlength="300" placeholder="How do I get the quiet ones speaking in pair work?">
+                    <button type="submit" class="gh-ask__btn" aria-label="Ask the Almanac"><i class="fas fa-paper-plane" aria-hidden="true"></i></button>
+                </div>
+            </form>
+            <div class="gh-almanac__page" aria-live="polite">
+                <p class="gh-hint">Choose a counsel or ask a question. A page someone already wrote for this class opens instantly, without asking the AI again.</p>
+            </div>
+            ${asked.length ? `<div class="gh-asked">${asked.map(askedHtml).join('')}</div>` : ''}
+        </div>
+        <section class="gh-shelf gh-rise" style="--i:1">${shelfHtml(g)}</section>`;
+}
+
+function askedHtml(a) {
+    return `<article class="gh-asked__item"><p class="gh-asked__q"><i class="fas fa-circle-question" aria-hidden="true"></i> ${esc(a.question)}</p><div class="gh-almanac__text">${linkNames(oracleMarkdown(a.content))}</div></article>`;
+}
+
+function shelfHtml(g) {
+    const picked = new Map();
+    g.classReading.insights.forEach((i) => i.techniques.forEach((id) => { if (!picked.has(id)) picked.set(id, i.title); }));
+    g.plan.focus.forEach((f) => { if (f.technique && !picked.has(f.technique)) picked.set(f.technique, f.first); });
+    const pickedList = [...picked.entries()].slice(0, 6).map(([id, because]) => ({ t: getTechnique(id), because })).filter((x) => x.t);
+    const shelf = TECHNIQUES.filter((t) => view.areaFilter === 'all' || t.area === view.areaFilter);
+    return `
+        ${pickedList.length ? `
+        <h3 class="gh-h"><i class="fas fa-hand-sparkles" aria-hidden="true"></i> Seed packets picked for this class</h3>
+        <div class="gh-packets">${pickedList.map(({ t, because }) => packetHtml(t, because)).join('')}</div>` : ''}
+        <details class="gh-more gh-more--shelf"${view.areaFilter !== 'all' ? ' open' : ''}>
+            <summary><i class="fas fa-box-archive" aria-hidden="true"></i> The whole seed shelf <b>${TECHNIQUES.length}</b></summary>
+            <div class="gh-filters" role="group" aria-label="Shelf">
+                <button type="button" class="gh-filter${view.areaFilter === 'all' ? ' is-active' : ''}" data-gh-area="all" aria-pressed="${view.areaFilter === 'all'}">All</button>
+                ${PLAYBOOK_AREAS.map((a) => `<button type="button" class="gh-filter gh-area--${a.id}${view.areaFilter === a.id ? ' is-active' : ''}" data-gh-area="${a.id}" aria-pressed="${view.areaFilter === a.id}"><i class="fas ${a.icon}" aria-hidden="true"></i>${a.label}</button>`).join('')}
+            </div>
+            <div class="gh-packets">${shelf.map((t) => packetHtml(t)).join('')}</div>
+        </details>`;
+}
+
+function hydrateAlmanac() {
+    if (view.almanacLast && view.almanacLast.classId === view.classId) showAlmanacPage(view.almanacLast);
+}
+
+/** Same words, same key on every computer: a repeated question opens the stored answer. */
+function questionKey(question) {
+    const s = String(question || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+    let h = 5381;
+    for (let i = 0; i < s.length; i += 1) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+    return h.toString(36);
+}
+
+async function writeAlmanac(task, closing) {
+    const classData = findClass(view.classId);
+    const { callGeminiApi } = await import('../../api.js');
+    const brief = almanacBrief(view.green, { className: classData?.name || '', level: classData?.questLevel || '' });
+    const content = String(await callGeminiApi(
+        `${ALMANAC_SYSTEM_PROMPT}\n\n${task}`,
+        `Here is the class summary:\n\n${brief}\n\n${closing}`,
+        { maxTokens: 1100, timeoutMs: 50000 }
+    ) || '').trim();
+    if (!content) throw new Error('empty');
+    return content;
+}
+
+function almanacWait(text, icon = 'fa-book-open') {
+    const page = document.querySelector(`#${MODAL_ID} .gh-almanac__page`);
+    if (page) page.innerHTML = `<p class="gh-almanac__wait"><span class="gh-almanac__quill" aria-hidden="true"><i class="fas ${icon}"></i></span> ${esc(text)}</p>`;
+}
+
+async function askAlmanac(counselId, { fresh = false } = {}) {
+    if (!requireEliteAI({ feature: "The Gardener's Almanac" })) return;
+    if (view.almanacBusy || !view.green) return;
+    const counsel = ALMANAC_COUNSELS.find((c) => c.id === counselId);
+    if (!counsel) return;
+    const classId = view.classId;
+    document.querySelectorAll(`#${MODAL_ID} [data-gh-counsel]`).forEach((b) => b.classList.toggle('is-chosen', b.dataset.ghCounsel === counselId));
+    const fingerprint = view.green.fingerprint;
+    const ref = counselDocRef(classId, counselId);
+    view.almanacBusy = true;
+    try {
+        if (!fresh) {
+            almanacWait('Turning to the right page…');
+            const snap = await getDoc(ref).catch(() => null);
+            const data = snap?.exists?.() ? snap.data() : null;
+            if (data?.content) {
+                showAlmanacPage({ classId, counselId, content: data.content, createdAt: data.createdAt, stale: data.fingerprint !== fingerprint });
+                return;
+            }
+        }
+        almanacWait('The Almanac is reading the whole class…', 'fa-feather-pointed');
+        const content = await writeAlmanac(counsel.task, `Write "${counsel.label}" now.`);
+        const createdAt = Date.now();
+        await setDoc(ref, {
+            type: 'class_greenhouse', classId, counsel: counselId, content, fingerprint, createdAt,
+            writtenFor: state.get('currentTeacherName') || ''
+        }).catch((e) => console.warn('Almanac page could not be shared:', e?.message));
+        if (view.classId === classId) showAlmanacPage({ classId, counselId, content, createdAt, stale: false });
+    } catch (err) {
+        console.error('Almanac error:', err);
+        if (view.classId === classId) almanacWait('The Almanac could not be written right now. Try again in a little while.', 'fa-cloud-bolt');
+    } finally {
+        view.almanacBusy = false;
+    }
+}
+
+async function askClassQuestion(question, { fresh = false } = {}) {
+    if (!requireEliteAI({ feature: "The Gardener's Almanac" })) return;
+    if (view.almanacBusy || !view.green) return;
+    const q = String(question || '').trim().slice(0, 300);
+    if (!q) return;
+    const classId = view.classId;
+    const fingerprint = view.green.fingerprint;
+    const ref = doc(db, dataPath('daily_cache'), `greenhouse_${classId}_q_${questionKey(q)}`);
+    view.almanacBusy = true;
+    document.querySelectorAll(`#${MODAL_ID} [data-gh-counsel]`).forEach((b) => b.classList.remove('is-chosen'));
+    try {
+        let content = null;
+        let createdAt = null;
+        let stale = false;
+        if (!fresh) {
+            almanacWait('Looking for an answer someone already has…');
+            const snap = await getDoc(ref).catch(() => null);
+            const data = snap?.exists?.() ? snap.data() : null;
+            if (data?.content) {
+                content = data.content;
+                createdAt = data.createdAt;
+                stale = data.fingerprint !== fingerprint;
+            }
+        }
+        if (!content) {
+            almanacWait('The Almanac is thinking about your class…', 'fa-feather-pointed');
+            content = await writeAlmanac(almanacQuestionTask(q), 'Answer the question now.');
+            createdAt = Date.now();
+            await setDoc(ref, {
+                type: 'class_greenhouse', classId, counsel: 'question', question: q, content, fingerprint, createdAt,
+                writtenFor: state.get('currentTeacherName') || ''
+            }).catch((e) => console.warn('Almanac answer could not be shared:', e?.message));
+        }
+        const list = (view.asked.get(classId) || []).filter((a) => a.question !== q);
+        list.unshift({ question: q, content, createdAt });
+        view.asked.set(classId, list.slice(0, 4));
+        if (view.classId === classId) showAlmanacPage({ classId, counselId: 'question', question: q, content, createdAt, stale });
+        const input = document.getElementById('gh-ask-input');
+        if (input) input.value = '';
+    } catch (err) {
+        console.error('Almanac question error:', err);
+        if (view.classId === classId) almanacWait('The Almanac could not answer right now. Try again in a little while.', 'fa-cloud-bolt');
+    } finally {
+        view.almanacBusy = false;
+    }
+}
+
+function showAlmanacPage({ classId, counselId, question = '', content, createdAt, stale }) {
+    view.almanacLast = { classId, counselId, question, content, createdAt, stale };
+    const page = document.querySelector(`#${MODAL_ID} .gh-almanac__page`);
+    if (!page || view.tab !== 'counsel' || classId !== view.classId) return;
+    const counsel = ALMANAC_COUNSELS.find((c) => c.id === counselId);
+    document.querySelectorAll(`#${MODAL_ID} [data-gh-counsel]`).forEach((b) => b.classList.toggle('is-chosen', b.dataset.ghCounsel === counselId));
+    const when = createdAt ? new Date(createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }) : '';
+    const title = counsel ? counsel.label : `“${question}”`;
+    const freshBtn = counsel
+        ? `<button type="button" class="gh-btn" data-gh-counsel="${counselId}" data-gh-fresh="1"><i class="fas fa-rotate" aria-hidden="true"></i> Write a fresh page</button>`
+        : `<button type="button" class="gh-btn" data-gh-question-fresh="${esc(question)}"><i class="fas fa-rotate" aria-hidden="true"></i> Answer it again</button>`;
+    page.innerHTML = `
+        <article class="gh-almanac__entry">
+            <p class="gh-almanac__dateline">${esc(title)}${when ? ` · written ${when}` : ''}</p>
+            <div class="gh-almanac__text">${linkNames(oracleMarkdown(content))}</div>
+            ${stale ? `<div class="gh-almanac__stale"><p>New records have come in since this page was written.</p>${freshBtn}</div>` : ''}
+            <p class="gh-almanac__tip"><i class="fas fa-book-open" aria-hidden="true"></i> Tap a name to open that hero's Chronicle.</p>
+        </article>`;
+}
+
+// ------------------------------------------------------------------ seed packets
 
 function packetChip(id) {
     const t = getTechnique(id);
@@ -887,24 +931,6 @@ function packetHtml(t, because = '') {
             <p class="gh-packet__why"><b>What grows</b>${esc(t.why)}</p>
             ${t.tool ? `<p class="gh-packet__tool"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i> In the app: ${esc(t.tool)}</p>` : ''}
         </article>`;
-}
-
-function playbookHtml(g) {
-    const picked = new Map();
-    g.classReading.insights.forEach((i) => i.techniques.forEach((id) => { if (!picked.has(id)) picked.set(id, i.title); }));
-    g.plan.focus.forEach((f) => { if (f.technique && !picked.has(f.technique)) picked.set(f.technique, f.first); });
-    const pickedList = [...picked.entries()].slice(0, 6).map(([id, because]) => ({ t: getTechnique(id), because })).filter((x) => x.t);
-    const shelf = TECHNIQUES.filter((t) => view.areaFilter === 'all' || t.area === view.areaFilter);
-    return `
-        ${pickedList.length ? `
-        <h3 class="gh-h"><i class="fas fa-hand-sparkles" aria-hidden="true"></i> Picked for this class</h3>
-        <div class="gh-packets">${pickedList.map(({ t, because }) => packetHtml(t, because)).join('')}</div>` : ''}
-        <h3 class="gh-h gh-h--shelf"><i class="fas fa-box-archive" aria-hidden="true"></i> The whole shelf <span class="gh-h__count">${TECHNIQUES.length} techniques</span></h3>
-        <div class="gh-filters" role="group" aria-label="Shelf">
-            <button type="button" class="gh-filter${view.areaFilter === 'all' ? ' is-active' : ''}" data-gh-area="all" aria-pressed="${view.areaFilter === 'all'}">All</button>
-            ${PLAYBOOK_AREAS.map((a) => `<button type="button" class="gh-filter gh-area--${a.id}${view.areaFilter === a.id ? ' is-active' : ''}" data-gh-area="${a.id}" aria-pressed="${view.areaFilter === a.id}"><i class="fas ${a.icon}" aria-hidden="true"></i>${a.label}</button>`).join('')}
-        </div>
-        <div class="gh-packets">${shelf.map((t) => packetHtml(t)).join('')}</div>`;
 }
 
 function openPacket(id) {
@@ -927,96 +953,8 @@ function closePacket() {
     if (layer) { layer.hidden = true; layer.innerHTML = ''; }
 }
 
-// ------------------------------------------------------------------ almanac (Elite AI, shared cache)
-
-function almanacHtml() {
-    const elite = canUseFeature('eliteAI');
-    return `
-        <div class="gh-almanac">
-            <div class="gh-almanac__mast">
-                <p class="gh-almanac__kicker">Elite counsel · written once, shared by every computer in the school</p>
-                <h3 class="gh-almanac__title font-title">The Gardener's Almanac</h3>
-                <p class="gh-almanac__lede">The Almanac reads this class's numbers, signals and the themes of your notes (like "spelling" or "talks over others"), never the note text itself or anything about home or health, and writes advice for the whole class. For one child, ask the Oracle in their Chronicle.</p>
-            </div>
-            <div class="gh-counsels">${ALMANAC_COUNSELS.map((c) => `
-                <button type="button" class="gh-counsel" data-gh-counsel="${c.id}">
-                    <i class="fas ${c.icon}" aria-hidden="true"></i><span class="gh-counsel__name">${c.label}</span><span class="gh-counsel__hint">${c.hint}</span>
-                    ${elite ? '' : '<span class="gh-counsel__lock"><i class="fas fa-lock" aria-hidden="true"></i> Elite</span>'}
-                </button>`).join('')}
-            </div>
-            <div class="gh-almanac__page" aria-live="polite">
-                <p class="gh-hint">Choose a counsel. A page someone already wrote for this class opens instantly, without asking the AI again.</p>
-            </div>
-        </div>`;
-}
-
-function hydrateAlmanac() {
-    if (view.almanacLast && view.almanacLast.classId === view.classId) showAlmanacPage(view.almanacLast);
-}
-
 function counselDocRef(classId, counselId) {
     return doc(db, dataPath('daily_cache'), `greenhouse_${classId}_${counselId}`);
-}
-
-async function askAlmanac(counselId, { fresh = false } = {}) {
-    if (!requireEliteAI({ feature: "The Gardener's Almanac" })) return;
-    if (view.almanacBusy || !view.green) return;
-    const counsel = ALMANAC_COUNSELS.find((c) => c.id === counselId);
-    if (!counsel) return;
-    const classId = view.classId;
-    const page = document.querySelector(`#${MODAL_ID} .gh-almanac__page`);
-    document.querySelectorAll(`#${MODAL_ID} [data-gh-counsel]`).forEach((b) => b.classList.toggle('is-chosen', b.dataset.ghCounsel === counselId));
-    const fingerprint = view.green.fingerprint;
-    const ref = counselDocRef(classId, counselId);
-    view.almanacBusy = true;
-    try {
-        if (!fresh) {
-            if (page) page.innerHTML = '<p class="gh-almanac__wait"><i class="fas fa-book-open fa-beat-fade" aria-hidden="true"></i> Turning to the right page…</p>';
-            const snap = await getDoc(ref).catch(() => null);
-            const data = snap?.exists?.() ? snap.data() : null;
-            if (data?.content) {
-                showAlmanacPage({ classId, counselId, content: data.content, createdAt: data.createdAt, stale: data.fingerprint !== fingerprint });
-                return;
-            }
-        }
-        if (page) page.innerHTML = '<p class="gh-almanac__wait"><i class="fas fa-feather-pointed fa-beat-fade" aria-hidden="true"></i> The Almanac is reading the whole class…</p>';
-        const classData = findClass(classId);
-        const { callGeminiApi } = await import('../../api.js');
-        const brief = almanacBrief(view.green, { className: classData?.name || '', level: classData?.questLevel || '' });
-        const content = String(await callGeminiApi(
-            `${ALMANAC_SYSTEM_PROMPT} ${counsel.task}`,
-            `Here is the class summary:\n\n${brief}\n\nWrite the ${counsel.label.toLowerCase()} now.`,
-            { maxTokens: 900, timeoutMs: 45000 }
-        ) || '').trim();
-        if (!content) throw new Error('empty');
-        const createdAt = Date.now();
-        await setDoc(ref, {
-            type: 'class_greenhouse', classId, counsel: counselId, content, fingerprint, createdAt,
-            writtenFor: state.get('currentTeacherName') || ''
-        }).catch((e) => console.warn('Almanac page could not be shared:', e?.message));
-        if (view.classId === classId) showAlmanacPage({ classId, counselId, content, createdAt, stale: false });
-    } catch (err) {
-        console.error('Almanac error:', err);
-        if (page && view.classId === classId) page.innerHTML = '<p class="gh-almanac__wait is-error"><i class="fas fa-cloud-bolt" aria-hidden="true"></i> The Almanac could not be written right now. Try again in a little while.</p>';
-    } finally {
-        view.almanacBusy = false;
-    }
-}
-
-function showAlmanacPage({ classId, counselId, content, createdAt, stale }) {
-    view.almanacLast = { classId, counselId, content, createdAt, stale };
-    const page = document.querySelector(`#${MODAL_ID} .gh-almanac__page`);
-    if (!page || view.tab !== 'almanac' || classId !== view.classId) return;
-    const counsel = ALMANAC_COUNSELS.find((c) => c.id === counselId);
-    document.querySelectorAll(`#${MODAL_ID} [data-gh-counsel]`).forEach((b) => b.classList.toggle('is-chosen', b.dataset.ghCounsel === counselId));
-    const when = createdAt ? new Date(createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }) : '';
-    page.innerHTML = `
-        <article class="gh-almanac__entry">
-            <p class="gh-almanac__dateline">${esc(counsel?.label || '')}${when ? ` · written ${when}` : ''}</p>
-            <div class="gh-almanac__text">${oracleMarkdown(content)}</div>
-            ${stale ? `<div class="gh-almanac__stale"><p>New records have come in since this page was written.</p>
-                <button type="button" class="gh-btn" data-gh-counsel="${counselId}" data-gh-fresh="1"><i class="fas fa-rotate" aria-hidden="true"></i> Write a fresh page</button></div>` : ''}
-        </article>`;
 }
 
 // ------------------------------------------------------------------ bits
@@ -1037,9 +975,45 @@ function emptyHtml(title, text) {
     return `<div class="gh-empty"><span aria-hidden="true">${plantSvg({ profile: 'planted', growth: 0.2, leafiness: 0.3 })}</span><p class="gh-empty__title font-title">${title}</p><p>${text}</p></div>`;
 }
 
+/** A potted plant drawn from a child's reading: height from papers, leaves from stars, crown from profile. */
+function plantSvg({ profile = 'steady', growth = 0.5, leafiness = 0.5, thirsty = false }) {
+    const h = 10 + growth * 34;
+    const top = 47 - h;
+    const leafCount = 1 + Math.round(leafiness * 3);
+    const droop = profile === 'tending';
+    const lean = profile === 'reaching' ? 6 : 0;
+    const stem = `M30 47 Q${30 + lean / 2} ${47 - h / 2} ${30 + lean} ${top}`;
+    let leaves = '';
+    for (let i = 0; i < leafCount; i += 1) {
+        const t = (i + 1) / (leafCount + 1);
+        const y = 47 - h * t;
+        const x = 30 + lean * t;
+        const side = i % 2 ? 1 : -1;
+        const rot = droop ? side * 120 : side * 35;
+        leaves += `<ellipse class="gh-plant__leaf" cx="${x + side * 6}" cy="${y}" rx="6.5" ry="3" transform="rotate(${rot} ${x + side * 6} ${y})"/>`;
+    }
+    let crown = '';
+    if (profile === 'bloom') {
+        crown = [0, 72, 144, 216, 288].map((a) => `<circle class="gh-plant__petal" cx="${30 + Math.cos((a * Math.PI) / 180) * 4.5}" cy="${top + Math.sin((a * Math.PI) / 180) * 4.5}" r="3.6"/>`).join('')
+            + `<circle class="gh-plant__heart" cx="30" cy="${top}" r="2.6"/>`;
+    } else if (profile === 'reaching') {
+        crown = `<ellipse class="gh-plant__bud" cx="${30 + lean}" cy="${top - 1}" rx="2.6" ry="4" transform="rotate(20 ${30 + lean} ${top - 1})"/>`;
+    } else if (profile === 'planted') {
+        crown = `<ellipse class="gh-plant__leaf" cx="27" cy="${top}" rx="4" ry="2" transform="rotate(-30 27 ${top})"/><ellipse class="gh-plant__leaf" cx="33" cy="${top}" rx="4" ry="2" transform="rotate(30 33 ${top})"/>`;
+    } else {
+        crown = `<ellipse class="gh-plant__leaf" cx="${30 + lean}" cy="${top}" rx="3" ry="5"/>`;
+    }
+    const drop = thirsty ? '<path class="gh-plant__drop" d="M50 14 Q54 21 50 24 Q46 21 50 14 Z"/>' : '';
+    return `<svg viewBox="0 0 60 72" focusable="false" class="gh-plant gh-plant--${profile}">
+        <path class="gh-plant__stem" d="${stem}"/>${leaves}${crown}${drop}
+        <path class="gh-plant__pot" d="M16 52 H44 L41 70 H19 Z"/>
+        <rect class="gh-plant__rim" x="13" y="46" width="34" height="7" rx="2"/>
+        <path class="gh-plant__soil" d="M16 47 H44"/>
+    </svg>`;
+}
+
 function ivySvg() {
     const leaf = (x, y, r) => `<path class="gh-ivy__leaf" transform="translate(${x} ${y}) rotate(${r})" d="M0 0 C6 -6 12 -2 10 6 C6 10 2 8 0 0 Z"/>`;
     return `<path class="gh-ivy__vine" d="M4 0 C20 30 6 60 26 88 S30 120 46 128"/>
         ${leaf(10, 18, 10)}${leaf(16, 38, 140)}${leaf(12, 58, 20)}${leaf(24, 80, 150)}${leaf(30, 100, 30)}${leaf(40, 120, 160)}`;
 }
-

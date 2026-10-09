@@ -210,23 +210,6 @@
 .gh-h__count { margin-left: auto; font-size: 0.8rem; color: var(--gh-ink-soft); font-weight: 700; }
 .gh-h4 { margin: 14px 0 6px; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gh-clay-deep); }
 .gh-hint { font-size: 0.85rem; color: var(--gh-ink-soft); line-height: 1.45; }
-
-/* Enamel plant labels: the overview numbers */
-.gh-labels { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
-.gh-label {
-    position: relative; padding: 12px 12px 10px 16px;
-    background: #fff; border-radius: 6px 18px 18px 6px;
-    border: 2px solid #dfe9da; border-left: 6px solid var(--gh-leaf);
-    box-shadow: 0 4px 0 #e3ece0;
-}
-.gh-label:nth-child(2) { border-left-color: var(--gh-reaching); }
-.gh-label:nth-child(3) { border-left-color: var(--gh-sun); }
-.gh-label:nth-child(4) { border-left-color: var(--gh-clay); }
-.gh-label:nth-child(5) { border-left-color: var(--gh-roots); }
-.gh-label__hole { position: absolute; right: 10px; top: 10px; width: 7px; height: 7px; border-radius: 50%; background: var(--gh-glass); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25); }
-.gh-label__name { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gh-ink-soft); padding-right: 12px; }
-.gh-label__value { font-size: 1.8rem; line-height: 1.15; color: var(--gh-ink); }
-.gh-label__foot { font-size: 0.75rem; font-weight: 600; color: var(--gh-ink-soft); }
 .gh-trend { font-weight: 800; }
 .gh-trend--up { color: var(--gh-leaf-deep); }
 .gh-trend--down { color: var(--gh-clay-deep); }
@@ -280,7 +263,7 @@
 .gh-dot__halo { fill: none; stroke: var(--gh-tending); stroke-width: 2; opacity: 0.6; animation: gh-halo 1.8s ease-out infinite; transform-box: fill-box; transform-origin: center; }
 @keyframes gh-halo { from { transform: scale(0.8); opacity: 0.8; } to { transform: scale(1.35); opacity: 0; } }
 .gh-dot__ini { font-size: 11px; font-weight: 800; fill: #fff; text-anchor: middle; pointer-events: none; }
-.gh-dot__name { font-size: 11px; font-weight: 700; fill: var(--gh-ink); text-anchor: middle; pointer-events: none; paint-order: stroke; stroke: rgba(255, 255, 255, 0.9); stroke-width: 3px; }
+.gh-dot__name { font-size: 11px; font-weight: 700; fill: var(--gh-ink); pointer-events: none; paint-order: stroke; stroke: rgba(255, 255, 255, 0.9); stroke-width: 3px; }
 .gh-dot:hover .gh-dot__disc, .gh-dot:focus-visible .gh-dot__disc { transform: scale(1.18); }
 .gh-dot:focus-visible .gh-dot__disc { stroke: var(--gh-ink); }
 
@@ -306,8 +289,6 @@
 .gh-shiner { display: flex; align-items: baseline; gap: 8px; font-size: 0.86rem; color: var(--gh-ink-soft); }
 .gh-shiner > i { width: 16px; text-align: center; color: var(--v); }
 .gh-shiner em { font-style: normal; color: #9aae95; }
-.gh-mini-virtues { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 10px 0; }
-.gh-mini-virtues .gh-virtue { gap: 5px; }
 
 .gh-bands { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; align-items: end; height: 140px; margin-bottom: 8px; }
 .gh-band { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; height: 100%; }
@@ -338,32 +319,6 @@
 .gh-filter.is-active { color: #fff; background: var(--tone, var(--gh-leaf-deep)); border-color: var(--tone, var(--gh-leaf-deep)); }
 .gh-filter.is-active b { background: rgba(255, 255, 255, 0.25); color: #fff; }
 
-.gh-pots { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
-.gh-pot {
-    position: relative; display: flex; flex-direction: column; gap: 8px;
-    padding: 12px 14px 12px;
-    background: #fff; border-radius: 20px;
-    border: 2px solid #e2ebdd; border-top: 5px solid var(--tone);
-    box-shadow: 0 10px 22px -18px rgba(31, 61, 44, 0.6);
-    animation: gh-grow 420ms cubic-bezier(.2, .8, .2, 1) both;
-}
-.gh-pot__open { display: flex; align-items: flex-end; gap: 10px; text-align: left; border-radius: 12px; }
-.gh-pot__open:focus-visible { outline: 3px solid var(--tone); outline-offset: 2px; }
-.gh-pot__plant { flex: none; width: 54px; height: 66px; }
-.gh-pot__plant svg { width: 100%; height: 100%; overflow: visible; }
-.gh-pot__open:hover .gh-plant { animation: gh-sway 1.4s ease-in-out infinite; transform-origin: 50% 100%; }
-.gh-pot__head { min-width: 0; display: flex; flex-direction: column; padding-bottom: 6px; }
-.gh-pot__name { font-size: 1.15rem; line-height: 1.1; color: var(--gh-ink); }
-.gh-pot__profile { display: inline-flex; align-items: center; gap: 5px; font-size: 0.78rem; font-weight: 800; color: color-mix(in srgb, var(--tone) 75%, #1f3d2c); }
-.gh-pot__summary { font-size: 0.82rem; color: var(--gh-ink-soft); font-weight: 600; line-height: 1.4; }
-.gh-pot__next {
-    font-size: 0.84rem; line-height: 1.4; color: var(--gh-ink);
-    padding: 8px 10px; border-radius: 12px; background: #f3f8ef;
-}
-.gh-pot__next span { display: block; font-size: 0.66rem; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gh-leaf-deep); }
-.gh-pot__foot { display: flex; gap: 8px; margin-top: auto; }
-.gh-pot__foot .gh-btn { flex: 1; }
-
 /* Plant drawing */
 .gh-plant__pot { fill: var(--gh-clay); }
 .gh-plant__rim { fill: #d97b52; stroke: var(--gh-clay-deep); stroke-width: 1; }
@@ -376,14 +331,6 @@
 .gh-plant__heart { fill: #c8673f; }
 .gh-plant__bud { fill: #8fc7f2; stroke: #3f8fd0; stroke-width: 0.8; }
 .gh-plant__drop { fill: #7cc4f0; stroke: #3f8fd0; stroke-width: 0.8; }
-
-/* Sparkline */
-.gh-spark { position: relative; display: flex; align-items: flex-end; gap: 4px; height: 34px; padding-bottom: 12px; }
-.gh-spark__bar { flex: 1; height: var(--h); min-height: 3px; border-radius: 4px 4px 1px 1px; background: #cfe3c7; }
-.gh-spark__bar.is-now { background: var(--gh-leaf); }
-.gh-spark__cap { position: absolute; left: 0; bottom: -2px; font-size: 0.64rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #8aa087; }
-.gh-spark--empty { align-items: center; justify-content: center; padding: 0; height: 26px; border-radius: 8px; background: repeating-linear-gradient(45deg, #f4f7f1, #f4f7f1 6px, #edf2ea 6px, #edf2ea 12px); }
-.gh-spark--empty span { font-size: 0.7rem; font-weight: 800; color: #8aa087; }
 
 /* Signals */
 .gh-signals { display: flex; flex-direction: column; gap: 4px; }
@@ -411,58 +358,6 @@
 .gh-btn--ghost { color: var(--gh-ink); background: #f3f8ef; box-shadow: 0 2px 0 #d7e4d1; border: 1px solid #dbe7d5; }
 .gh-btn--ghost:active { box-shadow: none; }
 .gh-btn--wide { width: 100%; margin-top: 12px; }
-
-/* ---------------------------------------------------------------- drawer */
-.gh-drawer {
-    position: absolute; top: 0; right: 0; bottom: 0; z-index: 5;
-    width: min(440px, 100%);
-    display: flex; flex-direction: column;
-    background: #fbfdf9;
-    border-left: 4px solid var(--gh-iron);
-    box-shadow: -20px 0 40px -24px rgba(18, 44, 30, 0.6);
-    transform: translateX(105%);
-    visibility: hidden;
-    transition: transform 320ms cubic-bezier(.2, .8, .2, 1), visibility 0s linear 320ms;
-}
-.gh-drawer.is-open { transform: none; visibility: visible; transition: transform 320ms cubic-bezier(.2, .8, .2, 1); }
-.gh-drawer__head {
-    flex: none; display: flex; align-items: center; gap: 12px;
-    padding: 14px 16px;
-    background: linear-gradient(135deg, color-mix(in srgb, var(--tone) 22%, #fff), #fff 80%);
-    border-bottom: 2px solid #e3ecdf;
-}
-.gh-drawer__avatar {
-    flex: none; width: 56px; height: 56px; border-radius: 50%; overflow: hidden;
-    display: grid; place-items: center; font-size: 1.6rem; color: #fff;
-    background: var(--tone); border: 3px solid #fff; box-shadow: 0 0 0 2px var(--tone);
-}
-.gh-drawer__avatar img { width: 100%; height: 100%; object-fit: cover; }
-.gh-drawer__titles { min-width: 0; flex: 1; }
-.gh-drawer__name { font-size: 1.35rem; line-height: 1.1; color: var(--gh-ink); }
-.gh-drawer__profile { font-size: 0.82rem; font-weight: 800; color: color-mix(in srgb, var(--tone) 75%, #1f3d2c); }
-.gh-drawer__close { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: #fff; border: 2px solid #e1ebdc; color: var(--gh-ink); }
-.gh-drawer__body { flex: 1; overflow-y: auto; padding: 14px 16px 22px; }
-.gh-drawer__meaning { font-size: 0.86rem; color: var(--gh-ink-soft); line-height: 1.45; }
-.gh-next { margin: 12px 0; padding: 10px 12px; border-radius: 14px; background: #eef7ea; border: 2px dashed #b9d8b0; }
-.gh-next__label { font-size: 0.66rem; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gh-leaf-deep); }
-.gh-next__text { font-weight: 700; color: var(--gh-ink); line-height: 1.4; }
-.gh-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 4px; }
-.gh-fact { padding: 8px 10px; border-radius: 12px; background: #fff; border: 1px solid #e2ebdd; }
-.gh-fact__label { font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gh-ink-soft); }
-.gh-fact__value { font-size: 1.1rem; font-weight: 800; color: var(--gh-ink); }
-.gh-fact__foot { font-size: 0.72rem; color: var(--gh-ink-soft); font-weight: 600; }
-.gh-paperline { margin: 10px 0 0; }
-.gh-paperline svg { width: 100%; height: auto; }
-.gh-paperline__mid { stroke: #e3ecdf; stroke-dasharray: 3 4; }
-.gh-paperline__line { fill: none; stroke: var(--gh-reaching); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
-.gh-paperline__dot { fill: #fff; stroke: var(--gh-reaching); stroke-width: 2; }
-.gh-paperline figcaption { font-size: 0.64rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #8aa087; }
-.gh-missed { font-size: 0.82rem; color: var(--gh-ink-soft); padding-left: 16px; list-style: disc; }
-/* What the Chronicle says: a ruled gardener's notebook pinned to the glass */
-#class-greenhouse-modal .gh-read--worry { --t: #c8673f; --tb: #fdf0e8; }
-#class-greenhouse-modal .gh-read--better { --t: #3f8fd0; --tb: #eaf3fb; }
-#class-greenhouse-modal .gh-read--strength { --t: #2a6f40; --tb: #e8f4e9; }
-#class-greenhouse-modal .gh-read--context { --t: #6b6a8f; --tb: #efeff6; }
 .gh-quote {
     display: block; margin-top: 3px; padding: 2px 0 2px 9px;
     border-left: 3px solid var(--t, #b9d0b1);
@@ -474,28 +369,6 @@
 .gh-signal > span { min-width: 0; }
 .gh-signal--sev3 .gh-quote, .gh-signal--sev2 .gh-quote { --t: #e3a487; }
 .gh-signal--good .gh-quote { --t: #9fcfaa; }
-.gh-read {
-    margin-top: 14px; padding: 4px 14px 12px; border-radius: 6px 14px 14px 6px;
-    background:
-        linear-gradient(90deg, transparent 22px, rgba(200, 103, 63, 0.35) 22px, rgba(200, 103, 63, 0.35) 23px, transparent 23px),
-        repeating-linear-gradient(180deg, #fffdf6 0 25px, #e9efe3 25px 26px);
-    border: 1px solid #e6e0c8; box-shadow: 0 6px 14px -10px rgba(31, 61, 44, 0.45);
-    padding-left: 32px;
-}
-.gh-read .gh-h4 { margin-top: 10px; display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
-.gh-read__themes { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
-.gh-read__theme { position: relative; }
-.gh-read__tag { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 0.8rem; font-weight: 800; color: var(--t); }
-.gh-read__tag em { font-style: normal; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; padding: 1px 7px; border-radius: 999px; background: var(--tb); }
-.gh-read__day { font-size: 0.68rem; font-weight: 700; color: #9aa596; }
-.gh-read__likes { margin-top: 10px; font-size: 0.8rem; font-weight: 700; color: #a6416a; }
-.gh-handoff { display: grid; gap: 8px; margin-top: 14px; }
-.gh-pot__notes { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
-.gh-tag {
-    display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px;
-    font-size: 0.7rem; font-weight: 800; color: var(--t); background: var(--tb); border: 1px solid color-mix(in srgb, var(--t) 25%, transparent);
-}
-.gh-filter--theme { background: #fffdf6; border-style: dashed; }
 
 .gh-card--notes {
     background:
@@ -696,16 +569,163 @@
 .gh-almanac__text ol { list-style: decimal; }
 .gh-almanac__stale { margin-top: 14px; padding: 10px 12px; border-radius: 12px; background: #fff4df; border: 1px dashed #e0b866; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-family: 'Open Sans', sans-serif; font-size: 0.85rem; font-weight: 700; color: #7a5413; }
 
+
+/* ---------------------------------------------------------------- the class: one calm page, top to bottom */
+.gh-rise { animation: gh-rise 560ms cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 70ms); }
+@keyframes gh-rise { from { opacity: 0; transform: translateY(14px) scale(0.985); } to { opacity: 1; transform: none; } }
+.gh-panel.is-entering { animation: gh-panel-in 380ms cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes gh-panel-in { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
+
+.gh-hello {
+    position: relative; display: flex; align-items: center; gap: 18px;
+    padding: 18px 22px; border-radius: 22px; overflow: hidden;
+    background:
+        radial-gradient(circle at 92% -20%, rgba(255, 222, 130, 0.55), transparent 45%),
+        linear-gradient(135deg, #fffdf3 0%, #f1f8ec 70%);
+    border: 2px solid #e6eed8;
+    box-shadow: 0 10px 26px -18px rgba(31, 61, 44, 0.5);
+}
+.gh-hello__sprout { flex: none; width: 84px; height: 100px; transform-origin: 50% 100%; animation: gh-sway 5s ease-in-out infinite; }
+.gh-hello__sprout svg { width: 100%; height: 100%; overflow: visible; }
+.gh-hello__text { flex: 1; min-width: 0; }
+.gh-panel > * { min-width: 0; }
+.gh-hello__kicker { font-size: 0.72rem; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gh-clay-deep); }
+.gh-hello__line { font-size: clamp(1.15rem, 2.1vw, 1.5rem); line-height: 1.25; color: var(--gh-ink); margin: 2px 0 12px; }
+.gh-hello__stats { display: flex; flex-wrap: wrap; gap: 8px 22px; }
+.gh-stat { display: flex; flex-direction: column; min-width: 92px; }
+.gh-stat b { font-size: 1.45rem; line-height: 1.05; color: var(--gh-leaf-deep); display: inline-flex; align-items: baseline; gap: 6px; }
+.gh-stat span { font-size: 0.74rem; font-weight: 700; color: var(--gh-ink-soft); }
+.gh-stat small { font-size: 0.7rem; font-weight: 700; color: var(--gh-ink-soft); }
+.gh-stat em, .gh-stat small em { font-style: normal; font-size: 0.72rem; font-weight: 800; }
+.gh-trend--up { color: var(--gh-leaf-deep); }
+.gh-trend--down { color: #b4502b; }
+
+.gh-moves { display: grid; gap: 10px; counter-reset: none; }
+.gh-move {
+    display: flex; gap: 14px; align-items: flex-start; padding: 12px 14px; border-radius: 16px;
+    background: #fbfdf9; border: 1px solid #e2ebdd; border-left: 5px solid var(--m, var(--gh-leaf));
+    animation: gh-rise 520ms cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(140ms + var(--k, 0) * 90ms);
+}
+.gh-move.gh-insight--warn { --m: var(--gh-clay); }
+.gh-move.gh-insight--idea { --m: var(--gh-reaching); }
+.gh-move.gh-insight--good { --m: var(--gh-leaf); }
+.gh-move__num {
+    flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+    font-size: 1.15rem; color: #fff; background: var(--m, var(--gh-leaf));
+    box-shadow: 0 3px 0 color-mix(in srgb, var(--m, var(--gh-leaf)) 70%, #000);
+}
+.gh-move__body { min-width: 0; flex: 1; }
+.gh-move .gh-chips { margin-top: 8px; }
+.gh-from-notes { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.04em; color: #8a5a1c; background: #fbf0d9; vertical-align: middle; }
+
+.gh-more { margin-top: 10px; }
+.gh-more > summary {
+    list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px; border-radius: 999px; font-size: 0.82rem; font-weight: 800; color: var(--gh-ink-soft);
+    background: #f3f8ef; border: 1px solid #dbe7d5;
+}
+.gh-more > summary::-webkit-details-marker { display: none; }
+.gh-more > summary::after { content: '▾'; transition: transform 200ms ease; }
+.gh-more[open] > summary::after { transform: rotate(180deg); }
+.gh-more > summary b { padding: 0 7px; border-radius: 8px; background: #fff; color: var(--gh-ink); }
+.gh-more[open] > :not(summary) { animation: gh-rise 360ms cubic-bezier(.2, .8, .2, 1) both; }
+.gh-more > .gh-insights { margin-top: 10px; }
+.gh-card.gh-more { margin-top: 0; }
+.gh-card.gh-more > summary { background: transparent; border: 0; padding: 0; font-size: 1rem; color: var(--gh-ink); }
+.gh-card.gh-more[open] > summary { margin-bottom: 8px; }
+
+.gh-kids { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin-top: 8px; }
+.gh-kid {
+    position: relative; display: flex; align-items: flex-start; gap: 12px; text-align: left;
+    padding: 12px 38px 12px 12px; border-radius: 18px; background: #fff;
+    border: 2px solid color-mix(in srgb, var(--tone) 30%, #fff);
+    box-shadow: 0 6px 16px -14px rgba(31, 61, 44, 0.7);
+    transition: transform 200ms cubic-bezier(.2, .8, .2, 1), box-shadow 200ms ease, border-color 200ms ease;
+    animation: gh-rise 480ms cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(200ms + var(--k, 0) * 70ms);
+}
+.gh-kid:hover, .gh-kid:focus-visible { transform: translateY(-3px); border-color: var(--tone); box-shadow: 0 14px 26px -16px rgba(31, 61, 44, 0.7); outline: none; }
+.gh-kid__avatar {
+    flex: none; width: 46px; height: 46px; border-radius: 50%; overflow: hidden; display: grid; place-items: center;
+    background: color-mix(in srgb, var(--tone) 20%, #fff); color: var(--tone); font-size: 1.3rem;
+    box-shadow: 0 0 0 3px #fff, 0 0 0 5px color-mix(in srgb, var(--tone) 55%, #fff);
+}
+.gh-kid__avatar img { width: 100%; height: 100%; object-fit: cover; }
+.gh-kid__text { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.gh-kid__name { font-size: 1.1rem; line-height: 1.1; color: var(--gh-ink); }
+.gh-kid__why { font-size: 0.8rem; font-weight: 700; color: #8b4220; line-height: 1.35; }
+.gh-kid__next { font-size: 0.8rem; font-weight: 600; color: var(--gh-ink-soft); line-height: 1.35; }
+.gh-kid__next i { color: var(--gh-leaf); margin-right: 2px; }
+.gh-kid__open { position: absolute; top: 14px; right: 14px; color: color-mix(in srgb, var(--tone) 70%, #fff); transition: transform 200ms ease; }
+.gh-kid:hover .gh-kid__open { transform: translateX(3px) rotate(-6deg); color: var(--tone); }
+.gh-calm { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 14px; background: #f3faef; font-weight: 700; color: var(--gh-leaf-deep); }
+.gh-calm i { color: var(--gh-sun); }
+
+/* The growth map: dots grow in one by one; the child the Chronicle sent us to glows */
+.gh-dot { animation: gh-dot-in 520ms cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: calc(260ms + var(--i, 0) * 35ms); transform-box: fill-box; }
+@keyframes gh-dot-in { from { opacity: 0; scale: 0.2; } to { opacity: 1; scale: 1; } }
+.gh-dot__spot { fill: none; stroke: var(--gh-sun); stroke-width: 4; animation: gh-spot 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes gh-spot { 0%, 100% { opacity: 0.95; transform: scale(0.9); } 50% { opacity: 0.35; transform: scale(1.15); } }
+.gh-dot.is-spot .gh-dot__disc { stroke: var(--gh-sun); stroke-width: 4; }
+.gh-spot {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 4px 0 10px; padding: 10px 12px;
+    border-radius: 14px; background: #fff9e6; border: 2px solid #f1d98a; animation: gh-rise 420ms both;
+}
+.gh-spot p { flex: 1; min-width: 180px; font-size: 0.85rem; color: var(--gh-ink); line-height: 1.4; }
+.gh-spot__avatar { width: 38px; height: 38px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: color-mix(in srgb, var(--tone) 22%, #fff); color: var(--tone); font-size: 1.1rem; box-shadow: 0 0 0 3px #fff, 0 0 0 5px var(--gh-sun); }
+.gh-spot__avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* The roof: a slow sun behind the glass */
+.gh-roof__sun {
+    position: absolute; top: -60px; right: 22%; width: 150px; height: 150px; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle, rgba(255, 228, 140, 0.75), rgba(255, 228, 140, 0) 65%);
+    animation: gh-sun 9s ease-in-out infinite alternate;
+}
+@keyframes gh-sun { from { transform: translate(0, 0) scale(1); } to { transform: translate(-40px, 10px) scale(1.12); } }
+
+/* Stepping back while a child's Chronicle is open on top, and forward again after */
+#class-greenhouse-modal .gh-shell { transition: transform 420ms cubic-bezier(.2, .8, .2, 1), filter 420ms ease, opacity 420ms ease; }
+#class-greenhouse-modal.is-behind { background: rgba(14, 38, 26, 0.3); }
+#class-greenhouse-modal.is-behind .gh-shell { transform: scale(0.94) translateY(10px); filter: blur(2px) saturate(0.8); opacity: 0.55; pointer-events: none; }
+
+/* Counsel: the Almanac, a question box and the seed shelf */
+.gh-counsel { animation: gh-rise 460ms cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(120ms + var(--k, 0) * 70ms); }
+.gh-ask { margin: 14px 0 4px; }
+.gh-ask__label { display: flex; align-items: center; gap: 7px; font-family: 'Open Sans', sans-serif; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #8a5a1c; margin-bottom: 6px; }
+.gh-ask__row { display: flex; gap: 8px; }
+.gh-ask__input {
+    flex: 1; min-width: 0; padding: 10px 14px; border-radius: 14px; border: 2px solid #e4d6b0; background: #fffdf6;
+    font-family: 'Open Sans', sans-serif; font-size: 0.92rem; color: var(--gh-ink);
+}
+.gh-ask__input:focus { outline: none; border-color: var(--gh-leaf); box-shadow: 0 0 0 4px rgba(63, 154, 92, 0.15); }
+.gh-ask__btn { flex: none; width: 46px; border-radius: 14px; color: #fff; background: linear-gradient(180deg, var(--gh-leaf), var(--gh-leaf-deep)); box-shadow: 0 3px 0 #1f5a33; transition: transform 140ms ease; }
+.gh-ask__btn:hover i { transform: translateX(2px) rotate(-10deg); }
+.gh-ask__btn i { transition: transform 180ms ease; }
+.gh-asked { display: grid; gap: 10px; margin-top: 12px; }
+.gh-asked__item { padding: 12px 14px; border-radius: 14px; background: #fffdf6; border: 1px dashed #e4d6b0; font-family: 'Open Sans', sans-serif; }
+.gh-asked__q { font-weight: 800; color: #8a5a1c; margin-bottom: 4px; }
+.gh-almanac__quill { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #fbf0d9; color: #8a5a1c; animation: gh-quill 1.2s ease-in-out infinite; }
+@keyframes gh-quill { 0%, 100% { transform: rotate(-8deg) translateY(0); } 50% { transform: rotate(8deg) translateY(-3px); } }
+.gh-almanac__tip { margin-top: 12px; font-family: 'Open Sans', sans-serif; font-size: 0.75rem; font-weight: 700; color: #9a8a66; }
+.gh-almanac__text .gh-name { font-family: inherit; }
+.gh-shelf { display: flex; flex-direction: column; gap: 12px; }
+.gh-more--shelf > .gh-filters { margin: 12px 0; }
+
 /* ---------------------------------------------------------------- phones and small screens */
 @media (max-width: 860px) {
     .gh-grid-2 { grid-template-columns: 1fr; }
-    .gh-labels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .gh-labels .gh-label:first-child { grid-column: span 2; }
     .gh-counsels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .gh-crews { grid-template-columns: 1fr; }
     .gh-themes, .gh-fromnotes, .gh-insights--notes { grid-template-columns: 1fr; }
 }
 @media (max-width: 600px) {
+    .gh-hello { flex-direction: column; align-items: flex-start; padding: 14px; gap: 6px; }
+    .gh-hello__sprout { width: 54px; height: 64px; position: absolute; right: 10px; top: 8px; opacity: 0.85; }
+    .gh-hello__text { padding-right: 0; width: 100%; }
+    .gh-hello__kicker, .gh-hello__line { padding-right: 58px; }
+    .gh-stat { min-width: calc(50% - 12px); }
+    .gh-kids { grid-template-columns: 1fr; }
+    .gh-move { padding: 10px; gap: 10px; }
+    .gh-move__num { width: 28px; height: 28px; font-size: 1rem; }
     #class-greenhouse-modal { padding: 0 !important; }
     #class-greenhouse-modal .gh-shell { height: 100%; width: 100%; border-radius: 0; border-width: 0; }
     .gh-roof { padding: 16px 14px 12px; min-height: 0; gap: 10px; flex-wrap: wrap; }
@@ -723,8 +743,7 @@
     .gh-tabs { padding: 10px 12px 0; gap: 8px; }
     .gh-tab { padding: 8px 12px 8px 22px; font-size: 0.85rem; }
     .gh-body { padding: 14px 12px 24px; }
-    .gh-drawer { width: 100%; border-left: 0; }
-    .gh-pots, .gh-packets { grid-template-columns: 1fr; }
+    .gh-packets { grid-template-columns: 1fr; }
     .gh-counsels { grid-template-columns: 1fr; }
     .gh-almanac__page { padding: 14px; }
     .gh-card--notes { padding-left: 30px; }

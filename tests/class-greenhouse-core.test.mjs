@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    buildGreenhouse, toDay, gini, profileFor, almanacBrief, DAY_MS, PROFILES
+    buildGreenhouse, toDay, gini, profileFor, almanacBrief, DAY_MS, PROFILES,
+    classRoleOf, classRoleBrief, classHeadline, almanacQuestionTask, ALMANAC_COUNSELS
 } from '../features/classGreenhouseCore.mjs';
 import { TECHNIQUES, getTechnique } from '../features/classGreenhousePlaybook.mjs';
 import { readNote, readClassNotes, NOTE_THEMES } from '../features/classGreenhouseNotes.mjs';
@@ -232,4 +233,51 @@ test('the shared reader catches the wordings the Oracle found it missing', () =>
     assert.ok(!happy.some((t) => t.endsWith(':worry')));
     assert.ok(tones('Writing in class.', 'Academic').includes('writing:worry'), 'a bare skill in a plain Academic note stays a worry');
     assert.ok(tones('He doesn’t pay attention.', 'Behavior').includes('focus:worry'), 'curly apostrophes read like straight ones');
+});
+
+test('the Chronicle sees each child\'s place in the class plan', () => {
+    const base = makeClass();
+    const day = (ago) => NOW.getTime() - ago * DAY_MS;
+    const notes = [
+        ...base.notes,
+        { id: 'x1', studentId: 's1', category: 'Academic', createdAtMs: day(6), text: 'Bob struggles with spelling, lots of mistakes.' },
+        { id: 'x2', studentId: 's2', category: 'Academic', createdAtMs: day(4), text: 'Chris: spelling is weak again.' },
+        { id: 'x3', studentId: 's7', category: 'Academic', createdAtMs: day(2), text: 'Hara has spelling difficulties.' },
+        { id: 'x4', studentId: 's6', category: 'Behavior', createdAtMs: day(5), text: 'Giorgos argued with Fotis over the cards.' },
+        { id: 'x5', studentId: 's3', category: 'General', createdAtMs: day(9), text: 'Dora is very shy. She loves football.' }
+    ];
+    const g = buildGreenhouse({ ...base, notes, now: NOW });
+
+    const chris = classRoleOf(g, 's2');
+    assert.equal(chris.first, 'Chris');
+    assert.ok(PROFILES[chris.profile]);
+    assert.equal(chris.classSize, 8);
+    const group = chris.roles.find((r) => r.id === 'group');
+    assert.ok(group && /Bob/.test(group.text) && /Hara/.test(group.text), 'Chris is in the spelling group with Bob and Hara');
+    assert.ok(chris.shared.some((s) => s.id === 'spelling' && s.others.includes('Bob')));
+
+    const dora = classRoleOf(g, 's3');
+    assert.ok(dora.roles.some((r) => r.id === 'buddy' && /Anna/.test(r.label)), 'shy Dora has Anna as a buddy');
+    assert.ok(classRoleOf(g, 's0').roles.some((r) => r.id === 'helper'), 'Anna sees her helper role');
+    const fotis = classRoleOf(g, 's5');
+    assert.ok(fotis.roles.some((r) => r.id === 'apart' && /Giorgos/.test(r.label)));
+    assert.equal(classRoleOf(g, 'nobody'), null);
+
+    const brief = classRoleBrief(chris);
+    assert.match(brief, /IN THE CLASS/);
+    assert.match(brief, /spelling group/i);
+    assert.doesNotMatch(brief, /weak again|lots of mistakes|argued/i, 'no note text reaches the brief');
+    assert.equal(classRoleBrief(null), '');
+
+    assert.match(classHeadline(g), /\w/);
+    assert.match(classHeadline(buildGreenhouse({ students: [], awards: [], absences: [], trials: [], notes: [], now: NOW })), /No heroes/);
+});
+
+test('the Almanac counsels are whole-class and questions carry the teacher\'s words', () => {
+    const ids = ALMANAC_COUNSELS.map((c) => c.id);
+    assert.deepEqual(ids, ['week', 'groups', 'coach', 'parents']);
+    assert.equal(new Set(ids).size, ids.length);
+    ALMANAC_COUNSELS.forEach((c) => assert.ok(c.label && c.task, `${c.id} has a label and a task`));
+    const task = almanacQuestionTask('How do I get the quiet ones speaking?');
+    assert.match(task, /quiet ones speaking/);
 });

@@ -28,6 +28,7 @@ import { noteTheme } from '../../features/classGreenhouseNotes.mjs';
 import { buildChronicleReading, oracleBrief, readingFingerprint, readOracleNote, themeMeta, TREND_LABEL } from '../../features/chronicleReadingCore.mjs';
 import { ORACLE_COUNSELS, ORACLE_PARENT_PROMPT, ORACLE_SYSTEM_PROMPT, getCounsel, questionTask } from '../../features/heroOracleCounsels.mjs';
 import { canUseFeature } from '../../utils/subscription.js';
+import { cachedClassRole, classBriefFor, classRoleFor, classSectionHtml } from './chronicleClassRibbon.js';
 import { requireEliteAI } from '../../utils/upgradePrompt.js';
 import { publishParentSummary as publishParentSummaryToRuntime } from '../../utils/adminRuntime.js';
 import { showToast } from '../effects.js';
@@ -231,6 +232,8 @@ function readingHtml(model) {
             ${reading.noteCount ? `<p class="hco-meta">${reading.noteCount} note${reading.noteCount === 1 ? '' : 's'}${spanText ? ` · ${esc(spanText)}` : ''}${lastText ? ` · ${esc(lastText)}` : ''}</p>` : ''}
             ${toneBar}
         </header>`);
+    // Where the child stands in the class: filled from the Greenhouse records, now or a moment later.
+    parts.push(`<div class="hco-class-slot" data-class-slot>${classSectionHtml(cachedClassRole(model.student.id))}</div>`);
 
     if (reading.balance === 'only-worries') parts.push(`<p class="hco-nudge"><i class="fas fa-scale-unbalanced" aria-hidden="true"></i> So far the notes hold only worries. Write down one thing ${esc(n)} did well this week: the counsels build their plans on strengths.</p>`);
     if (reading.balance === 'only-praise') parts.push(`<p class="hco-nudge"><i class="fas fa-scale-unbalanced-flip" aria-hidden="true"></i> So far the notes hold only praise. If something is hard for ${esc(n)}, a line about it lets the counsels plan the next step.</p>`);
@@ -304,6 +307,14 @@ export function renderOracleReading(studentId) {
     out.dataset.view = 'reading';
     out.innerHTML = readingHtml(view.model);
     markChosen(null);
+    if (!cachedClassRole(studentId)) {
+        classRoleFor(studentId).then((role) => {
+            const slot = out.querySelector('[data-class-slot]');
+            if (!role || !slot || view.studentId !== studentId || out.dataset.view !== 'reading' || slot.childElementCount) return;
+            slot.innerHTML = classSectionHtml(role);
+            slot.classList.add('is-arriving');
+        });
+    }
     // Oaths arrive a moment later; they only change the fingerprint and the AI brief.
     oathsFor(studentId).then((oaths) => {
         if (view.studentId !== studentId || !oaths.length || view.model?.oaths?.length) return;
@@ -360,10 +371,12 @@ async function writeCounsel(model, counsel) {
         heroClass: model.heroClass,
         oaths: model.oaths
     });
+    // Teacher counsels also see the child's place in the class plan; the parent summary never does.
+    const classLines = counsel.audience === 'parent' ? '' : await classBriefFor(model.student.id);
     const system = counsel.audience === 'parent' ? ORACLE_PARENT_PROMPT : `${ORACLE_SYSTEM_PROMPT}\n\n${TRIAL_TYPE_GUIDE}`;
     const content = String(await callGeminiApi(
         system,
-        `Here is ${model.first}'s record.\n\n${brief}\n\n---\n${counsel.task(model.first)}`,
+        `Here is ${model.first}'s record.\n\n${brief}${classLines ? `\n\n${classLines}` : ''}\n\n---\n${counsel.task(model.first)}`,
         { maxTokens: counsel.maxTokens || 1000, timeoutMs: 60000 }
     ) || '').trim();
     if (!content) throw new Error('The Oracle returned an empty page.');
@@ -447,9 +460,10 @@ export async function askOracleQuestion(studentId, question) {
         const model = buildModel(studentId, await oathsFor(studentId));
         if (!model) throw new Error('missing student');
         const brief = oracleBrief(model.reading, { league: model.league, ageGroup: model.ageGroup, heroClass: model.heroClass, oaths: model.oaths });
+        const classLines = await classBriefFor(studentId);
         const text = String(await callGeminiApi(
             `${ORACLE_SYSTEM_PROMPT}\n\n${TRIAL_TYPE_GUIDE}`,
-            `Here is ${model.first}'s record.\n\n${brief}\n\n---\n${questionTask(model.first, q)}`,
+            `Here is ${model.first}'s record.\n\n${brief}${classLines ? `\n\n${classLines}` : ''}\n\n---\n${questionTask(model.first, q)}`,
             { maxTokens: 800, timeoutMs: 45000 }
         ) || '').trim();
         const list = view.answers.get(studentId) || [];
@@ -544,6 +558,11 @@ function bindOracle() {
             const fresh = e.target.closest('[data-oracle-fresh]');
             if (fresh && view.studentId) {
                 askOracleCounsel(view.studentId, fresh.dataset.oracleFresh, { fresh: true });
+                return;
+            }
+            const toClass = e.target.closest('[data-class-greenhouse]');
+            if (toClass) {
+                import('./hero.js').then((m) => m.showChildInGreenhouse(toClass.dataset.classGreenhouse));
                 return;
             }
             const gap = e.target.closest('[data-gap-ask]');

@@ -17,6 +17,7 @@ How you read:
 - Follow change over time. Look at what the teacher already tried and what the later notes say; do not suggest it again unless you say how to adjust it.
 - Where the notes and the numbers disagree, say so, give the likeliest explanation and a quick way to check.
 - Where the record is thin on something that matters, say what to watch for and write down next.
+- When the brief shows the child in the class (from the Class Greenhouse), work with it: build on the groups, buddies, partners and seating the class plan already has for next lesson instead of contradicting them, and use a worry the child shares with classmates for small-group work.
 
 ${KNOWLEDGE}
 

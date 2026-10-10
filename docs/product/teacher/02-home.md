@@ -47,6 +47,8 @@ You are looking at **this group**:
 - **Class actions** — the same launcher tiles as Global Tools, for this class only and never a repeat of the bottom bar: **Roll Call** (shows who is away today), **Team Maker** (shows today's teams, or how many are here to split), **Fair Picker** (shows how many are still waiting for a turn this round), **Class Roster** (heroes, stars and Gold), **Class Report** (AI progress report), **Edit Class** and **Prodigies** (past Prodigies of the Month). In the last week of the month **Teacher Boon** comes first and shows who received it.
 - **Quiz of the Week** on the weather card when the class is eligible (Elite)
 
+**Calm refreshes.** When another teacher awards a star, someone is marked present or the school’s settings change, Home updates only the card that changed. The other cards, the weather window and the sky stay still instead of replaying their entrance, so the page no longer flashes while you teach. Opening the Home tab, or switching to another class view, still plays the entrance.
+
 ## What you can do
 
 - Switch class from the header; Home redraws immediately. Opening the app starts in **Follow today’s schedule** (the class in session, or General view when no lesson is on). Choosing **Enter class** in a schedule roster pins that class until you tap Follow today’s schedule again.

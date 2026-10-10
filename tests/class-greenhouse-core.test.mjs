@@ -281,3 +281,49 @@ test('the Almanac counsels are whole-class and questions carry the teacher\'s wo
     const task = almanacQuestionTask('How do I get the quiet ones speaking?');
     assert.match(task, /quiet ones speaking/);
 });
+
+test('a child with few stars and lively notes is wild growth, not quiet', async () => {
+    const { mapScale, spreadDots, profileWhy } = await import('../features/classGreenhouseCore.mjs');
+    const base = makeClass();
+    const notes = [...base.notes,
+        { id: 'w1', studentId: 's2', category: 'Behavior', createdAtMs: NOW.getTime() - 2 * DAY_MS, text: 'Chris is ΠΟΛΥ ΖΩΗΡΟΣ, δεν κάθεται στη θέση του.' }];
+    const g = buildGreenhouse({ ...base, notes, now: NOW });
+    const chris = g.students.find((r) => r.id === 's2');
+    assert.equal(chris.profile, 'wild');
+    assert.equal(chris.baseProfile, 'tending');
+    assert.match(chris.profileWhy, /very lively/);
+    assert.ok(PROFILES.wild && PROFILES.roots.label === 'Hidden roots');
+    assert.ok(g.classReading.profiles.wild >= 1);
+    assert.match(classRoleBrief(classRoleOf(g, 's2')), /Wild growth/);
+    assert.doesNotMatch(classRoleBrief(classRoleOf(g, 's2')), /ΖΩΗΡΟΣ|θέση/, 'no note text in the brief');
+    assert.equal(typeof profileWhy, 'function');
+
+    // The map reads as an even 3×3 grid: the steady band is the middle third.
+    assert.equal(mapScale(0), 0.5);
+    assert.ok(Math.abs(mapScale(-0.35) - 1 / 3) < 1e-9 && Math.abs(mapScale(0.35) - 2 / 3) < 1e-9);
+    assert.equal(mapScale(-5), 0);
+    assert.equal(mapScale(5), 1);
+
+    // Overlapping dots are pushed apart and stay inside the plot.
+    const box = { x0: 60, x1: 610, y0: 32, y1: 345 };
+    const spread = spreadDots([{ x: 300, y: 200 }, { x: 302, y: 201 }, { x: 300, y: 200 }, { x: 0, y: 999 }], box, 30);
+    for (let i = 0; i < spread.length; i += 1) {
+        assert.ok(spread[i].x >= box.x0 && spread[i].x <= box.x1 && spread[i].y >= box.y0 && spread[i].y <= box.y1);
+        for (let j = i + 1; j < spread.length; j += 1) assert.ok(Math.hypot(spread[i].x - spread[j].x, spread[i].y - spread[j].y) >= 29.5);
+    }
+});
+
+test('class clusters are weighed by how strongly and how often a worry was written', () => {
+    const base = makeClass();
+    const day = (ago) => NOW.getTime() - ago * DAY_MS;
+    const notes = [
+        { id: 'a', studentId: 's1', category: 'Academic', createdAtMs: day(3), text: 'Spelling is a bit weak.' },
+        { id: 'b', studentId: 's6', category: 'Behavior', createdAtMs: day(2), text: 'ΠΟΛΥ ΖΩΗΡΟΣ, συνέχεια σηκώνεται.' },
+        { id: 'c', studentId: 's7', category: 'Behavior', createdAtMs: day(1), text: 'Very lively, always out of her seat.' }
+    ];
+    const g = buildGreenhouse({ ...base, notes, now: NOW });
+    const clusters = g.classReading.chronicle.clusters;
+    assert.equal(clusters[0].id, 'energetic', 'the strongest shared worry comes first');
+    assert.equal(clusters[0].domain, 'behaviour');
+    assert.equal(g.classReading.chronicle.languageMix.el + g.classReading.chronicle.languageMix.mixed >= 1, true);
+});

@@ -214,12 +214,18 @@ export function renderHeroChronicleContent(studentId) {
                             </button>
                         </div>
                     </div>
-                    <p class="hc-entry__text">${note.noteText}</p>
+                    <p class="hc-entry__text">${escapeNoteText(note.noteText)}</p>
                 </div>
             </article>
         `;
     }).join('');
+    // Under each note: how it was read, and the teacher's say over it (lazy).
+    import('./chronicleNoteReading.js').then(m => m.paintNoteReadings(notesFeed, studentId)).catch(() => {});
     refreshOracleIfOpen(studentId);
+}
+
+function escapeNoteText(text) {
+    return String(text || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c]));
 }
 
 function refreshOracleIfOpen(studentId) {

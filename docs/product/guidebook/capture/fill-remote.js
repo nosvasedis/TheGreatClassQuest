@@ -27,6 +27,32 @@ const HEROES = [
   { id: 'i', first: 'Daphne', avatar: face('🐬', '#bae6fd'), stars: 0 }
 ];
 
+/** The Team Forge as the Wand shows it before a Showdown starts. */
+function sampleForge() {
+  const member = (id, first) => ({ id, first });
+  return {
+    className: '📚 Junior B', here: 8, away: 1, awayNames: ['Nikos'], split: 'fair', count: 3, minCount: 2, maxCount: 6,
+    canToday: true, canGuilds: true, canTug: false, mode: 'race', growth: false,
+    teams: [
+      { name: 'Foxes', color: '#f97316', emoji: '🦊', stars: 41, members: [member('a', 'Alex'), member('b', 'Maya'), member('c', 'Sam')] },
+      { name: 'Dolphins', color: '#0ea5e9', emoji: '🐬', stars: 40, members: [member('d', 'Robin'), member('e', 'Eleni'), member('g', 'Sofia')] },
+      { name: 'Turtles', color: '#10b981', emoji: '🐢', stars: 39, members: [member('h', 'Yannis'), member('i', 'Daphne')] }
+    ],
+    rules: { style: 'buzz', goal: 'points', goalN: 10, clock: 20, autoClock: true, streak: true, underdog: false, hotseat: true, deck: 'words', mode: 'race', lives: 3, tugN: 5 },
+    words: {
+      books: [{ id: 'yeti-2', label: 'Yeti 2', on: true }, { id: 'primary-path-2', label: 'Primary Path 2', on: false }],
+      reached: 5,
+      units: [1, 2, 3, 4, 5, 6].map((n) => ({ n, title: 'Unit ' + n, on: n >= 3 && n <= 5 })),
+      kinds: [
+        { key: 'meaning', label: 'Meanings', hint: 'Greek both ways', on: true },
+        { key: 'gap', label: 'Gap-fill', hint: 'From the book’s sentences', on: true },
+        { key: 'spell', label: 'Spelling', hint: 'Which is spelled right', on: false }
+      ],
+      summary: ['Unit 3', 'Unit 4', 'Unit 5']
+    }
+  };
+}
+
 function sampleShowdown() {
   let sd = createShowdown([
     { name: 'Foxes', color: '#f97316', emoji: '🦊' },
@@ -76,7 +102,7 @@ export function hideRemote() {
 
 /** The phone: `stars` (hero orbs), `several` (choosing heroes), `award` (the star to flick), `magic`, `show`, `stage`. */
 export function showWand(view = 'stars') {
-  const mode = view === 'award' || view === 'several' ? 'stars' : view === 'controls' ? 'stage' : view;
+  const mode = view === 'award' || view === 'several' ? 'stars' : view === 'controls' ? 'stage' : view === 'forge' ? 'show' : view;
   const root = mount(`<div class="qw qw-still is-in" data-phase="bound">${wandShellHtml({})}</div>`, 'capture-wand');
   const qw = root.querySelector('.qw');
   qw.querySelector('[data-qw-link]').dataset.state = 'bound';
@@ -102,7 +128,7 @@ export function showWand(view = 'stars') {
   if (mode === 'stars') html = starsHtml(HEROES, { className: '📚 Junior B', multi: view === 'several', picked: view === 'several' ? ['b', 'd', 'h'] : [], note: view === 'stars' ? 'Award Stars opens on the projector with your first star.' : '' });
   else if (mode === 'magic') html = magicHtml({ blackout: false, wall: false });
   else if (mode === 'lesson') html = lessonHtml({ timer: { id: 1, label: 'Pair', total: 60, remainingMs: 42000 }, blackout: false });
-  else if (mode === 'show') html = showHtml({ panel: showdownPanel(sd) });
+  else if (mode === 'show') html = view === 'forge' ? showHtml({}, { forge: sampleForge() }) : showHtml({ panel: showdownPanel(sd) });
   else if (view === 'controls') html = stageHtml(trainingStage(), { castAllowed: () => true });
   else html = stageHtml({ ...stage, scroll: { canUp: true, canDown: true, at: 0.35 } }, { castAllowed: () => true });
   qw.querySelector('[data-qw-main]').innerHTML = `<div class="qw-view">${html}</div>`;

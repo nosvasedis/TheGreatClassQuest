@@ -17,34 +17,27 @@
 // brief the AI counsels read, so their advice answers the notes rather than the fact that
 // notes exist. Pure: no DOM, no Firebase. Tested in tests/chronicle-reading-core.test.mjs.
 
-import { readNote as readSharedNote, noteTheme, sentencesOf } from './classGreenhouseNotes.mjs';
+import { readNote as readSharedNote, noteTheme, sentencesOf, READER_VERSION } from './classGreenhouseNotes.mjs';
+import { GREEK_GLOSSARY } from './noteLexicon.mjs';
 import { foldText, INTERESTS } from './oathForge.mjs';
+import { hashText } from './noteTextCore.mjs';
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
 const L = '(?<!\\p{L})';
 const rx = (src) => new RegExp(src.replace(/\\</g, L), 'u');
 
-// Two themes the Oracle needs for one English learner that the class reader does not keep.
-export const ORACLE_EXTRA_THEMES = [
-    { id: 'greek', kind: 'worry', sev: 1, label: 'Falls back on Greek', icon: 'fa-language', group: 'learning',
-        re: rx('speaks? (in )?greek|in greek|answers? in greek|translat|μιλαει (στα )?ελληνικα|απανταει (στα )?ελληνικα|ελληνικα στο μαθημα|μεταφραζ') },
-    { id: 'effort', kind: 'worry', sev: 1, label: 'Low effort', icon: 'fa-battery-quarter', group: 'habits',
-        re: rx('lazy|doesn\'?t try|does not try|no effort|little effort|unmotivated|not interested|uninterested|can\'?t be bothered|minimum effort|τεμπελ|δεν προσπαθ|καμια προσπαθ|αδιαφορ|δεν ενδιαφερ|δεν εχει ορεξη') }
-];
-const EXTRA_BY_ID = new Map(ORACLE_EXTRA_THEMES.map((t) => [t.id, t]));
+// The Oracle's two extra themes (falls back on Greek, low effort) now live in the shared
+// lexicon (features/noteLexicon.mjs). Kept as an empty list for older imports.
+export const ORACLE_EXTRA_THEMES = [];
 
-// Homework, chatty and materials wordings, curly apostrophes and happy bare-skill notes are
-// all read by the shared reader (features/classGreenhouseNotes.mjs), one source of truth.
-const EXTRA_BETTER = rx('improv|better|progress|no longer|now (tries|tries hard|speaks english|answers in english)|βελτιω|καλυτερ|πλεον|πια δεν|τωρα προσπαθ');
-
-/** Theme metadata, from the shared reader or the Oracle's own two. */
+/** Theme metadata, from the shared lexicon. */
 export function themeMeta(id) {
-    return noteTheme(id) || EXTRA_BY_ID.get(id) || { id, label: id, icon: 'fa-circle', kind: 'learning', group: 'learning' };
+    return noteTheme(id) || { id, label: id, icon: 'fa-circle', kind: 'learning', group: 'learning' };
 }
 
 // Background written for the teacher only: never sent into a parent summary.
-export const SENSITIVE_THEMES = new Set(['home', 'support', 'worry']);
+export const SENSITIVE_THEMES = new Set(['home', 'support', 'worry', 'selftalk']);
 
 // What a full picture of an English learner touches. Each has the themes that count as covering it.
 const COVERAGE = [
@@ -52,8 +45,8 @@ const COVERAGE = [
     { id: 'listening', label: 'Listening', covers: ['listening'], ask: 'Can {n} follow your English instructions without a Greek translation or a neighbour\'s help?' },
     { id: 'reading', label: 'Reading', covers: ['reading'], ask: 'How does {n} read aloud: smoothly, word by word, or guessing from the first letter?' },
     { id: 'writing', label: 'Writing', covers: ['writing', 'spelling', 'grammar'], ask: 'When {n} writes, are the sentences full and their own, copied, or mostly single words?' },
-    { id: 'heart', label: 'Confidence', covers: ['shy', 'eager', 'worry', 'temper', 'progress'], ask: 'Is {n} willing to have a go in front of the class, or only when sure of the answer?' },
-    { id: 'others', label: 'With classmates', covers: ['conflict', 'helper', 'leader', 'chatty', 'respect'], ask: 'Who does {n} work well with, and how does {n} manage in pair or group work?' }
+    { id: 'heart', label: 'Confidence', covers: ['shy', 'eager', 'worry', 'temper', 'progress', 'selftalk', 'resilient'], ask: 'Is {n} willing to have a go in front of the class, or only when sure of the answer?' },
+    { id: 'others', label: 'With classmates', covers: ['conflict', 'helper', 'leader', 'chatty', 'respect', 'bossy', 'isolated', 'polite'], ask: 'Who does {n} work well with, and how does {n} manage in pair or group work?' }
 ];
 
 // "I moved her seat", "we agreed", "μίλησα με τη μαμά": the moves a teacher writes down.
@@ -63,14 +56,17 @@ const TRIED_RX = rx([
     '\\<gave (him|her|them)\\b', '\\<we agreed', '\\<agreed (that|to|on)\\b', '\\<(spoke|talked) (to|with) (his |her |their |the )?(mum|mom|dad|parents?|mother|father|family)',
     '\\<called (home|his|her|their|the)\\b', '\\<told (his |her |their )?parents', '\\<sent (a |an )?(note|message|email) home', '\\<reward chart', '\\<extra (practice|worksheet|reading|help|time)',
     '\\<buddy', '\\<will try', '\\<next (time|lesson) i\\b', '\\<plan(ning)? to\\b', '\\<going to try',
-    'δοκιμασα', 'δοκιμαζω', 'θα δοκιμασ', 'αλλαξα (θεση|θεσ)', '\\<(τον|την|τους|τα) (εβαλα|καθισα|αλλαξα)', 'μιλησα (με|στη|στον|στους|στην)', 'ενημερωσα', 'συμφωνησαμε',
-    '\\<(του|της|τους) (εδωσα|ζητησα|προτεινα|εβαλα)', 'τηλεφωνησα', '\\<θα (του|της|τους) ', 'καναμε συμφωνια'
+    'δοκιμασα', 'δοκιμαζω', 'θα δοκιμασ', 'αλλαξα (θεση|θεσ)', '\\<(τον|την|τους|τα) (εβαλα|καθισα|αλλαξα|μετακινησα|χωρισα)', 'μιλησα (με|στη|στον|στους|στην)', 'ενημερωσα', 'συμφωνησαμε',
+    '\\<(του|της|τους) (εδωσα|ζητησα|προτεινα|εβαλα|ανεθεσα|εξηγησα)', 'τηλεφωνησα', '\\<θα (του|της|τους) ', 'καναμε συμφωνια', 'εστειλα (μηνυμα|σημειωμα)', 'επικοινωνησα με',
+    'βαλαμε (στοχο|πινακα)', 'πινακα (ανταμοιβ|επιβραβευσ)', 'του δινω ρολο', 'της δινω ρολο'
 ].join('|').replace(/ς/g, 'σ'));
 
 const clip = (text, max = 140) => {
     const t = String(text || '').replace(/\s+/g, ' ').trim();
     return t.length > max ? `${t.slice(0, max - 1).trimEnd()}…` : t;
 };
+
+export { hashText };
 
 /** Straight apostrophes, so "doesn’t" reads like "doesn't". */
 const tidy = (text) => String(text || '').replace(/[‘’ʼ´`]/g, '\'').trim();
@@ -87,22 +83,13 @@ const toTime = (value) => {
 
 const isGood = (tone) => tone === 'strength' || tone === 'better';
 
-/** Reads one note: shared themes and tone, the Oracle's two extra themes, and the moves it records. */
-export function readOracleNote(note, index = 0, classmates = []) {
+/** Reads one note: the shared reading (words, AI, teacher's fix) and the moves it records. */
+export function readOracleNote(note, index = 0, classmates = [], self = null) {
     const text = tidy(note?.noteText || note?.text);
     const source = note?.source === 'ember_oath' ? 'oath' : (note?.authorRole === 'office' ? 'office' : 'teacher');
-    const shared = readSharedNote({ ...note, noteText: text, text }, classmates);
+    const shared = readSharedNote({ ...note, noteText: text, text }, classmates, { self });
     const themes = [...shared.themes];
     const sentences = sentencesOf(text);
-    if (source !== 'oath') {
-        sentences.forEach((sentence) => {
-            const folded = foldText(sentence);
-            ORACLE_EXTRA_THEMES.forEach((theme) => {
-                if (themes.some((t) => t.id === theme.id) || !theme.re.test(folded)) return;
-                themes.push({ id: theme.id, tone: EXTRA_BETTER.test(folded) ? 'better' : 'worry', quote: clip(sentence) });
-            });
-        });
-    }
     const tried = source === 'oath' ? [] : sentences.filter((s) => TRIED_RX.test(foldText(s))).map((s) => clip(s, 160));
     return {
         ref: `N${index + 1}`,
@@ -115,6 +102,11 @@ export function readOracleNote(note, index = 0, classmates = []) {
         tone: source === 'oath' ? 'good' : toneFrom(themes, shared.tone),
         interests: shared.interests,
         mentions: shared.mentions,
+        lang: shared.lang,
+        aiRead: shared.aiRead,
+        corrected: shared.corrected,
+        aiKey: note?.aiReading?.h ? `${note.aiReading.h}.${(note.aiReading.t || []).length}` : '',
+        fixKey: note?.readingFix ? JSON.stringify(note.readingFix) : '',
         tried
     };
 }
@@ -165,13 +157,14 @@ export function buildChronicleReading({ notes = [], firstName = 'This hero', cla
         .filter((n) => tidy(n?.noteText || n?.text))
         .map((n) => ({ n, t: toTime(n.createdAt) ?? now }))
         .sort((a, b) => a.t - b.t)
-        .map(({ n }, i) => readOracleNote(n, i, classmates));
+        .map(({ n }, i) => readOracleNote(n, i, classmates, { name }));
 
     // Every note that touches a theme is one mention of it, with the sentence that said it.
     const byTheme = new Map();
     read.forEach((note) => note.themes.forEach((t) => {
         if (!byTheme.has(t.id)) byTheme.set(t.id, []);
-        byTheme.get(t.id).push({ ref: note.ref, noteId: note.id, time: note.time, tone: t.tone, quote: t.quote, source: note.source });
+        byTheme.get(t.id).push({ ref: note.ref, noteId: note.id, time: note.time, tone: t.tone, quote: t.quote, source: note.source,
+            intensity: t.intensity || 1, pattern: t.pattern || '', readBy: t.source || 'words' });
     }));
 
     const themes = [...byTheme.entries()].map(([id, mentions]) => {
@@ -192,6 +185,10 @@ export function buildChronicleReading({ notes = [], firstName = 'This hero', cla
             lastTime: last.time,
             lastTone: last.tone,
             trend: trendOf(meta, mentions),
+            intensity: Math.max(...mentions.map((m) => m.intensity || 1)),
+            lastIntensity: last.intensity || 1,
+            pattern: mentions.some((m) => m.pattern === 'trait') || mentions.filter((m) => m.tone === 'worry').length >= 3 ? 'trait' : last.pattern || '',
+            readBy: last.readBy || 'words',
             mentions
         };
     }).sort((a, b) => b.count - a.count || (b.lastTime || 0) - (a.lastTime || 0));
@@ -199,7 +196,7 @@ export function buildChronicleReading({ notes = [], firstName = 'This hero', cla
     // Threads to pick up: worries whose latest word is still a worry. Repeated, serious and recent first.
     const openThreads = themes
         .filter((t) => t.lastTone === 'worry')
-        .map((t) => ({ ...t, weight: t.worries * 2 + t.sev * 2 + (t.trend === 'slipping' ? 3 : 0) + recencyBoost(t.lastTime, now) }))
+        .map((t) => ({ ...t, weight: t.worries * 2 + t.sev * 2 + (t.lastIntensity - 1) * 1.5 + (t.pattern === 'trait' ? 1.5 : 0) + (t.trend === 'slipping' ? 3 : 0) + recencyBoost(t.lastTime, now) }))
         .sort((a, b) => b.weight - a.weight);
     const brightSpots = themes
         .filter((t) => isGood(t.lastTone))
@@ -399,6 +396,11 @@ const OUTCOME_TEXT = {
     'no-word-yet': 'no later note yet'
 };
 
+/** The Greek classroom words an AI could misread, in one compact line. */
+export function glossaryLine() {
+    return GREEK_GLOSSARY.map(([el, en]) => `${el} = ${en}`).join('; ');
+}
+
 /**
  * The brief the AI counsels read: numbered notes in the teacher's own words (the most recent
  * when there are many), the reading, and the numbers. For a parent summary, notes about home,
@@ -429,11 +431,13 @@ export function oracleBrief(reading, { audience = 'teacher', league = '', ageGro
     const visible = (t) => !(forParent && (t.sensitive || t.mentions.every((m) => hidden.has(m.ref))));
     const shownThemes = reading.themes.filter(visible);
     if (shownThemes.length) {
-        lines.push('', `THEMES THE NOTES RETURN TO (automatic keyword reading; trust the note text over it):`);
+        lines.push('', `THEMES THE NOTES RETURN TO (automatic reading of Greek and English; the teacher's corrections included; trust the note text over it):`);
         shownThemes.slice(0, 12).forEach((t) => {
             const mentions = t.mentions.filter((m) => !hidden.has(m.ref));
             const latest = mentions[mentions.length - 1];
-            lines.push(`- ${t.label}: ${TREND_LABEL[t.trend]}; ${mentions.length} note${mentions.length === 1 ? '' : 's'} (${mentions.map((m) => m.ref).join(', ')})${forParent ? '' : `; latest [${latest.ref}] "${latest.quote}"`}${t.sensitive ? ' (private background)' : ''}`);
+            const how = [t.lastIntensity >= 3 ? 'said very strongly' : t.lastIntensity === 2 ? 'said strongly' : '', t.pattern === 'trait' ? 'a pattern' : t.pattern === 'incident' ? 'a one-off' : '',
+                t.readBy === 'teacher' ? 'set by the teacher' : ''].filter(Boolean).join(', ');
+            lines.push(`- ${t.label}: ${TREND_LABEL[t.trend]}${how ? ` (${how})` : ''}; ${mentions.length} note${mentions.length === 1 ? '' : 's'} (${mentions.map((m) => m.ref).join(', ')})${forParent ? '' : `; latest [${latest.ref}] "${latest.quote}"`}${t.sensitive ? ' (private background)' : ''}`);
         });
     }
     const open = reading.openThreads.filter(visible);
@@ -450,6 +454,9 @@ export function oracleBrief(reading, { audience = 'teacher', league = '', ageGro
     if (reading.passions.length) lines.push(`PASSIONS FOUND IN THE NOTES: ${reading.passions.map((p) => p.label).join(', ')}`);
     if (!forParent && reading.gaps.length) lines.push(`NOT IN THE NOTES YET: ${reading.gaps.map((g) => g.label).join(', ')}`);
     if (!forParent && reading.balance !== 'balanced') lines.push(`BALANCE: the notes so far are ${reading.balance === 'only-worries' ? 'only worries, with no strength written down' : 'only praise, with no worry written down'}.`);
+    if (!forParent && reading.notes.some((note) => note.lang && note.lang !== 'en')) {
+        lines.push(`GREEK TEACHER WORDS (the notes mix Greek, English and Greeklish): ${glossaryLine()}`);
+    }
 
     const num = reading.numbers;
     if (num) {
@@ -478,18 +485,13 @@ export function oracleBrief(reading, { audience = 'teacher', league = '', ageGro
     return lines.join('\n');
 }
 
-/** Small stable hash: same records, same key, on any computer. */
-export function hashText(text) {
-    let h = 5381;
-    const s = String(text || '');
-    for (let i = 0; i < s.length; i += 1) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
-    return h.toString(36);
-}
-
-/** Changes whenever a note is added or edited, or the numbers move. */
+/**
+ * Changes whenever a note is added, edited, corrected by the teacher or read by the AI round,
+ * when the numbers move, or when the reader itself is improved (READER_VERSION).
+ */
 export function readingFingerprint(reading, extra = '') {
-    const notes = reading.notes.map((n) => `${n.id || n.ref}:${hashText(n.text)}`).join('|');
+    const notes = reading.notes.map((n) => `${n.id || n.ref}:${hashText(n.text)}${n.aiKey ? `~${n.aiKey}` : ''}${n.fixKey ? `~${hashText(n.fixKey)}` : ''}`).join('|');
     const num = reading.numbers;
     const numKey = num ? [num.trials?.count || 0, Math.round(num.trials?.avg || 0), num.stars?.total || 0, num.absences30 || 0].join('.') : '';
-    return hashText(`${notes}#${numKey}#${extra}`);
+    return hashText(`r${READER_VERSION}#${notes}#${numKey}#${extra}`);
 }

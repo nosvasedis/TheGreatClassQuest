@@ -30,8 +30,9 @@ import { esc } from '../../features/scholarScrollCore.mjs';
 import { oracleMarkdown } from '../../features/scholarFolioCore.mjs';
 import {
     almanacBrief, almanacQuestionTask, classHeadline, dayLabel, PROFILES, PROFILE_ORDER,
-    ALMANAC_COUNSELS, ALMANAC_SYSTEM_PROMPT
+    ALMANAC_COUNSELS, ALMANAC_SYSTEM_PROMPT, spreadDots
 } from '../../features/classGreenhouseCore.mjs';
+import { NOTE_DOMAINS } from '../../features/noteLexicon.mjs';
 import { TECHNIQUES, PLAYBOOK_AREAS, getTechnique } from '../../features/classGreenhousePlaybook.mjs';
 import { findClass, loadRecords, readGreenhouse } from './classGreenhouseData.js';
 import { showAnimatedModal, hideModal } from './base.js';
@@ -46,7 +47,7 @@ const TABS = [
 ];
 // Older links (and the guidebook) used five tabs; they land on the one that holds that content now.
 const TAB_ALIASES = { overview: 'class', heroes: 'class', playbook: 'counsel', almanac: 'counsel' };
-const PROFILE_TONE = { bloom: 'bloom', reaching: 'reaching', roots: 'roots', tending: 'tending', steady: 'steady', planted: 'planted' };
+const PROFILE_TONE = { bloom: 'bloom', reaching: 'reaching', roots: 'roots', wild: 'wild', tending: 'tending', steady: 'steady', planted: 'planted' };
 
 const view = {
     classId: null,
@@ -57,6 +58,7 @@ const view = {
     spotId: null,          // the child the Chronicle sent us to: their dot is lit on the map
     almanacBusy: false,
     almanacLast: null,
+    aiRound: null,         // the weekly AI reading round: { next, pending, read } (Elite), from noteAiReader.js
     asked: new Map(),      // classId → [{ question, content, createdAt }] asked this session
     unsubscribe: null,
     chronicleWatch: null
@@ -113,6 +115,20 @@ export async function openClassGreenhouse(classId, { tab = 'class', studentId = 
     if (view.classId !== classId) return;
     recompute();
     revealSpot();
+    showReadingRound(classId);
+}
+
+/** Elite: when the next deep reading of the notes will run, and how many notes wait for it. No AI call here. */
+function showReadingRound(classId) {
+    if (!canUseFeature('eliteAI')) return;
+    import('./noteAiReader.js')
+        .then((m) => m.readingRoundStatus())
+        .then((st) => {
+            if (!st?.eligible || view.classId !== classId) return;
+            view.aiRound = { next: st.pending ? st.nextLabel : '', pending: st.pending };
+            if (isOpen() && view.tab === 'class') renderPanel({ keepScroll: true });
+        })
+        .catch(() => {});
 }
 
 function closeGreenhouse() {
@@ -357,26 +373,8 @@ function classHtml(g) {
                 <ul class="gh-insights">${rest.map(insightLi).join('')}</ul></details>` : ''}
         </section>
 
-        <section class="gh-card gh-card--kids gh-rise" style="--i:2">
-            <h3 class="gh-h"><i class="fas fa-hand-holding-droplet" aria-hidden="true"></i> Who needs you first</h3>
-            <p class="gh-hint">Tap a hero to open their Chronicle: their notes, their Oracle and their place in this class.</p>
-            ${need.length ? `<div class="gh-kids">${need.map((r, k) => {
-        const why = r.signals.find((s) => s.action && s.action === r.action) || r.signals.find((s) => s.kind === 'act');
-        return `
-                <button type="button" class="gh-kid gh-tone--${PROFILE_TONE[r.profile]}" data-gh-student="${r.id}" style="--k:${k}">
-                    <span class="gh-kid__avatar">${avatarHtml(r)}</span>
-                    <span class="gh-kid__text">
-                        <span class="gh-kid__name font-title">${esc(r.first)}</span>
-                        <span class="gh-kid__why">${esc(why?.text || PROFILES[r.profile].label)}</span>
-                        <span class="gh-kid__next"><i class="fas fa-seedling" aria-hidden="true"></i> ${esc(r.action)}</span>
-                    </span>
-                    <i class="fas fa-book-open gh-kid__open" aria-hidden="true"></i>
-                </button>`;
-    }).join('')}</div>` : '<p class="gh-calm"><i class="fas fa-sun" aria-hidden="true"></i> Nobody urgent this week. A good time to stretch the strongest and notice the quiet ones.</p>'}
-        </section>
-
-        <div class="gh-grid-2">
-            <section class="gh-card gh-card--map gh-rise" style="--i:3">
+        <div class="gh-grid-2 gh-grid-2--map">
+            <section class="gh-card gh-card--map gh-rise" style="--i:2">
                 <h3 class="gh-h"><i class="fas fa-seedling" aria-hidden="true"></i> The growth map</h3>
                 <p class="gh-hint">Every dot is a hero. Across: stars a lesson (effort). Up: papers against the class. Tap a dot to open their Chronicle.</p>
                 ${spotBanner(g)}
@@ -385,8 +383,27 @@ function classHtml(g) {
                     <span class="gh-legend__item gh-tone--${p}" title="${esc(PROFILES[p].meaning)}"><span class="gh-legend__dot" aria-hidden="true"></span>${PROFILES[p].label} <b>${c.profiles[p]}</b></span>`).join('')}
                 </div>
             </section>
-            ${notesCardHtml(g)}
+
+            <section class="gh-card gh-card--kids gh-card--kids-side gh-rise" style="--i:3">
+                <h3 class="gh-h"><i class="fas fa-hand-holding-droplet" aria-hidden="true"></i> Who needs you first</h3>
+                <p class="gh-hint">Tap a hero to open their Chronicle: their notes, their Oracle and their place in this class.</p>
+                ${need.length ? `<div class="gh-kids">${need.map((r, k) => {
+        const why = r.signals.find((s) => s.action && s.action === r.action) || r.signals.find((s) => s.kind === 'act');
+        return `
+                    <button type="button" class="gh-kid gh-tone--${PROFILE_TONE[r.profile]}" data-gh-student="${r.id}" style="--k:${k}">
+                        <span class="gh-kid__avatar">${avatarHtml(r)}</span>
+                        <span class="gh-kid__text">
+                            <span class="gh-kid__name font-title">${esc(r.first)} <small class="gh-kid__profile">${esc(PROFILES[r.profile].label)}</small></span>
+                            <span class="gh-kid__why">${esc(why?.text || PROFILES[r.profile].label)}</span>
+                            <span class="gh-kid__next"><i class="fas fa-seedling" aria-hidden="true"></i> ${esc(r.action)}</span>
+                        </span>
+                        <i class="fas fa-book-open gh-kid__open" aria-hidden="true"></i>
+                    </button>`;
+    }).join('')}</div>` : '<p class="gh-calm"><i class="fas fa-sun" aria-hidden="true"></i> Nobody urgent this week. A good time to stretch the strongest and notice the quiet ones.</p>'}
+            </section>
         </div>
+
+        ${notesCardHtml(g)}
 
         <details class="gh-card gh-more gh-more--numbers gh-rise" style="--i:5">
             <summary><i class="fas fa-chart-simple" aria-hidden="true"></i> Stars and papers in detail</summary>
@@ -404,7 +421,7 @@ function spotBanner(g) {
     return `
         <div class="gh-spot gh-tone--${PROFILE_TONE[r.profile]}">
             <span class="gh-spot__avatar">${avatarHtml(r)}</span>
-            <p><b>${esc(r.first)}</b> is the glowing dot: ${esc(PROFILES[r.profile].label.toLowerCase())}. ${esc(PROFILES[r.profile].meaning)}</p>
+            <p><b>${esc(r.first)}</b> is the glowing dot: ${esc(PROFILES[r.profile].label.toLowerCase())}. ${esc(PROFILES[r.profile].meaning)}${r.profileWhy ? `<small class="gh-spot__why">${esc(r.profileWhy)}</small>` : ''}</p>
             <button type="button" class="gh-btn gh-btn--ghost" data-gh-student="${r.id}"><i class="fas fa-book-open" aria-hidden="true"></i> Back to ${esc(r.first)}'s Chronicle</button>
         </div>`;
 }
@@ -454,34 +471,99 @@ function notesCardHtml(g) {
     const t = ch.tone || {};
     const toneTotal = Math.max(1, (t.worry || 0) + (t.good || 0) + (t.mixed || 0) + (t.neutral || 0));
     const seg = (k, label) => (t[k] ? `<span class="gh-tone-bar__seg gh-tone-bar--${k}" style="flex-grow:${t[k]}" title="${label}: ${t[k]}"></span>` : '');
-    const people = (list, tone) => list.map((x) => `<button type="button" class="gh-name gh-name--${tone}" data-gh-student="${x.id}" title="${esc(x.quote || '')}">${esc(x.first)}</button>`).join('');
-    const rows = ch.clusters.slice().sort((a, b) => (b.open.length + b.strong.length + b.improving.length) - (a.open.length + a.strong.length + a.improving.length));
+    const legend = [['worry', 'Worries'], ['mixed', 'Mixed'], ['good', 'Good news'], ['neutral', 'Plain']]
+        .filter(([k]) => t[k])
+        .map(([k, label]) => `<span class="gh-tone-legend__item"><span class="gh-tone-legend__swatch gh-tone-bar--${k}"></span>${label} <b>${t[k]}</b> <small>${Math.round((t[k] / toneTotal) * 100)}%</small></span>`).join('');
+    const mix = ch.languageMix || {};
+    const langs = [['el', 'Greek'], ['en', 'English'], ['greeklish', 'Greeklish'], ['mixed', 'Mixed']].filter(([k]) => mix[k]).map(([k, label]) => `${label} ${mix[k]}`);
+    const round = view.aiRound;
+    const facts = [
+        langs.length ? `<li><i class="fas fa-language" aria-hidden="true"></i> Read in ${langs.join(' · ')}</li>` : '',
+        ch.aiRead ? `<li class="is-ai"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i> ${ch.aiRead} read more deeply by the Oracle</li>` : '',
+        round?.next && round.pending ? `<li class="is-ai"><i class="fas fa-hourglass-half" aria-hidden="true"></i> Next deep reading ${esc(round.next)} (${round.pending} ${round.pending === 1 ? 'note' : 'notes'} waiting)</li>` : '',
+        ch.corrected ? `<li><i class="fas fa-pen" aria-hidden="true"></i> ${ch.corrected} corrected by you</li>` : ''
+    ].filter(Boolean).join('');
+
+    // Feelings stay in their column: a highlight card is for a small-group move, never a group of anxious children.
+    const shared = ch.clusters.filter((c) => c.kind !== 'context' && c.kind !== 'strength' && c.group !== 'wellbeing' && c.open.length >= 2).slice(0, 3);
+    const byDomain = new Map(NOTE_DOMAINS.map((d) => [d.id, []]));
+    ch.clusters.forEach((c) => byDomain.get(c.domain === 'background' ? 'feelings' : c.domain)?.push(c));
+    const columns = NOTE_DOMAINS.filter((d) => d.id !== 'background' && byDomain.get(d.id).length);
+    const ROWS_SHOWN = 5;
+
     return `
         <section class="gh-card gh-card--notes gh-rise" style="--i:4">
-            <div class="gh-notes-head">
-                <h3 class="gh-h"><i class="fas fa-book-reader" aria-hidden="true"></i> What your notes say</h3>
-                <p class="gh-hint">Read from ${ch.written} Chronicle ${ch.written === 1 ? 'note' : 'notes'}, word by word, on this computer. Tap a name to open that hero's Chronicle.</p>
-                ${ch.recent ? `<div class="gh-tone-bar" role="img" aria-label="Last six weeks: ${t.worry || 0} worries, ${t.good || 0} good news, ${t.mixed || 0} mixed, ${t.neutral || 0} plain">
-                    ${seg('worry', 'Worries')}${seg('mixed', 'Mixed')}${seg('good', 'Good news')}${seg('neutral', 'Plain notes')}
-                </div><p class="gh-tone-legend"><span class="gh-tone-bar--worry"></span>Worries ${Math.round(((t.worry || 0) / toneTotal) * 100)}%<span class="gh-tone-bar--good"></span>Good news ${Math.round(((t.good || 0) / toneTotal) * 100)}%<span class="gh-tone-bar--mixed"></span>Mixed</p>` : ''}
-            </div>
-            ${rows.length ? `<ul class="gh-themes">${rows.map((c) => `
-                <li class="gh-theme">
-                    <span class="gh-theme__name"><i class="fas ${c.icon}" aria-hidden="true"></i>${esc(c.label)}</span>
-                    <span class="gh-theme__who">
-                        ${c.open.length ? `<span class="gh-theme__group"><em>${c.kind === 'context' ? 'background' : 'worry'}</em>${people(c.open, c.kind === 'context' ? 'context' : 'worry')}</span>` : ''}
-                        ${c.improving.length ? `<span class="gh-theme__group"><em>better</em>${people(c.improving, 'better')}</span>` : ''}
-                        ${c.strong.length ? `<span class="gh-theme__group"><em>strength</em>${people(c.strong, 'strength')}</span>` : ''}
-                    </span>
-                </li>`).join('')}</ul>` : '<p class="gh-hint">The notes so far do not name a clear pattern yet.</p>'}
+            <header class="gh-notes-head">
+                <h3 class="gh-h"><i class="fas fa-book-reader" aria-hidden="true"></i> What your notes say <span class="gh-h__count">${ch.written} ${ch.written === 1 ? 'note' : 'notes'}</span></h3>
+                <p class="gh-hint">Your Chronicle notes, read sentence by sentence in Greek, English or Greeklish. Tap a name to open that hero's Chronicle; fix a reading there if it is wrong.</p>
+                <div class="gh-notes-summary">
+                    ${ch.recent ? `<div class="gh-tonebox">
+                        <div class="gh-tone-bar" role="img" aria-label="Last six weeks: ${t.worry || 0} worries, ${t.good || 0} good news, ${t.mixed || 0} mixed, ${t.neutral || 0} plain">
+                            ${seg('worry', 'Worries')}${seg('mixed', 'Mixed')}${seg('good', 'Good news')}${seg('neutral', 'Plain notes')}
+                        </div>
+                        <p class="gh-tone-legend">${legend}</p>
+                    </div>` : ''}
+                    ${facts ? `<ul class="gh-notes-facts">${facts}</ul>` : ''}
+                </div>
+            </header>
+            ${shared.length ? `<div class="gh-patterns">${shared.map((c) => `
+                <article class="gh-pattern">
+                    <p class="gh-pattern__kicker">Shared by ${c.open.length}</p>
+                    <p class="gh-pattern__title"><i class="fas ${c.icon}" aria-hidden="true"></i> ${esc(c.label)}</p>
+                    <div class="gh-pattern__who">${c.open.slice(0, 6).map((x) => kidChip(x, 'worry')).join('')}${c.open.length > 6 ? `<span class="gh-more-count">+${c.open.length - 6}</span>` : ''}</div>
+                    ${c.techniques[0] ? `<div class="gh-chips">${packetChip(c.techniques[0])}</div>` : ''}
+                </article>`).join('')}</div>` : ''}
+            ${columns.length ? `<div class="gh-domains">${columns.map((d) => {
+        const rows = byDomain.get(d.id);
+        const people = rows.reduce((n, c) => n + c.open.length + c.improving.length + c.strong.length, 0);
+        return `
+                <section class="gh-domain gh-domain--${d.id}">
+                    <h4 class="gh-domain__head"><i class="fas ${d.icon}" aria-hidden="true"></i> ${esc(d.label)} <b>${people}</b></h4>
+                    <ul class="gh-trays">${rows.slice(0, ROWS_SHOWN).map(trayHtml).join('')}</ul>
+                    ${rows.length > ROWS_SHOWN ? `<details class="gh-domain__more"><summary>Show ${rows.length - ROWS_SHOWN} more</summary><ul class="gh-trays">${rows.slice(ROWS_SHOWN).map(trayHtml).join('')}</ul></details>` : ''}
+                </section>`;
+    }).join('')}</div>` : '<p class="gh-hint">The notes so far do not name a clear pattern yet.</p>'}
             <div class="gh-notes-foot">
-                ${ch.interests.length ? `<p><b><i class="fas fa-heart" aria-hidden="true"></i> Passions</b>${ch.interests.slice(0, 6).map((i) => `<span class="gh-like">${esc(i.icon || '')} ${esc(i.label)} <small>${i.children.map((x) => esc(x.first)).join(', ')}</small></span>`).join('')}</p>` : ''}
-                ${ch.friction.length ? `<p><b><i class="fas fa-people-arrows" aria-hidden="true"></i> Keep apart</b>${ch.friction.slice(0, 4).map((x) => `<span class="gh-duo gh-duo--apart">${nameBtn({ id: x.a, first: x.aFirst })} &amp; ${nameBtn({ id: x.b, first: x.bFirst })}</span>`).join('')}</p>` : ''}
-                ${ch.warm.length ? `<p><b><i class="fas fa-handshake" aria-hidden="true"></i> Good together</b>${ch.warm.slice(0, 4).map((x) => `<span class="gh-duo">${nameBtn({ id: x.a, first: x.aFirst })} &amp; ${nameBtn({ id: x.b, first: x.bFirst })}</span>`).join('')}</p>` : ''}
-                ${ch.followUps.length ? `<p><b><i class="fas fa-reply" aria-hidden="true"></i> Gone quiet</b>${ch.followUps.map((f) => `<span class="gh-duo">${nameBtn(f)} <small>${esc(f.label.toLowerCase())}, ${f.daysAgo} days ago</small></span>`).join('')}</p>` : ''}
-                ${ch.unwritten.length ? `<p><b><i class="fas fa-feather" aria-hidden="true"></i> No notes yet</b>${ch.unwritten.slice(0, 8).map(nameBtn).join(', ')}${ch.unwritten.length > 8 ? ` +${ch.unwritten.length - 8}` : ''}</p>` : ''}
+                ${ch.interests.length ? `<div class="gh-tagblock"><p class="gh-tagblock__label"><i class="fas fa-heart" aria-hidden="true"></i> Passions</p><p class="gh-tagblock__items">${ch.interests.slice(0, 6).map((i) => `<span class="gh-like">${esc(i.icon || '')} ${esc(i.label)} <small>${i.children.map((x) => esc(x.first)).join(', ')}</small></span>`).join('')}</p></div>` : ''}
+                ${ch.friction.length ? `<div class="gh-tagblock gh-tagblock--apart"><p class="gh-tagblock__label"><i class="fas fa-people-arrows" aria-hidden="true"></i> Keep apart</p><p class="gh-tagblock__items">${ch.friction.slice(0, 4).map((x) => `<span class="gh-duo gh-duo--apart">${nameBtn({ id: x.a, first: x.aFirst })} &amp; ${nameBtn({ id: x.b, first: x.bFirst })}</span>`).join('')}</p></div>` : ''}
+                ${ch.warm.length ? `<div class="gh-tagblock"><p class="gh-tagblock__label"><i class="fas fa-handshake" aria-hidden="true"></i> Good together</p><p class="gh-tagblock__items">${ch.warm.slice(0, 4).map((x) => `<span class="gh-duo">${nameBtn({ id: x.a, first: x.aFirst })} &amp; ${nameBtn({ id: x.b, first: x.bFirst })}</span>`).join('')}</p></div>` : ''}
+                ${ch.followUps.length ? `<div class="gh-tagblock"><p class="gh-tagblock__label"><i class="fas fa-reply" aria-hidden="true"></i> Gone quiet</p><p class="gh-tagblock__items">${ch.followUps.map((f) => `<span class="gh-duo">${nameBtn(f)} <small>${esc(f.label.toLowerCase())}, ${f.daysAgo} days ago</small></span>`).join('')}</p></div>` : ''}
+                ${ch.unwritten.length ? `<div class="gh-tagblock"><p class="gh-tagblock__label"><i class="fas fa-feather" aria-hidden="true"></i> No notes yet</p><p class="gh-tagblock__items">${ch.unwritten.slice(0, 10).map(nameBtn).join('')}${ch.unwritten.length > 10 ? `<span class="gh-more-count">+${ch.unwritten.length - 10}</span>` : ''}</p></div>` : ''}
             </div>
         </section>`;
+}
+
+const TONE_WORD = { worry: 'worry', context: 'background', better: 'getting better', strength: 'strength' };
+
+/** One child on a theme row: coloured by tone, heavier when the note said it strongly. */
+function kidChip(x, tone) {
+    const strong = (x.intensity || 1) >= 2 && tone === 'worry';
+    const when = x.last != null ? ` · ${dayLabel(x.last)}` : '';
+    const by = x.source === 'ai' ? ' · read by the Oracle' : x.source === 'teacher' ? ' · set by you' : '';
+    const title = `${TONE_WORD[tone]}${x.count > 1 ? ` · ${x.count} notes` : ''}${x.pattern === 'trait' ? ' · a pattern' : ''}${when}${by}${x.quote ? `\n“${x.quote}”` : ''}`;
+    return `<button type="button" class="gh-kidchip gh-kidchip--${tone}${strong ? ' is-strong' : ''}" data-gh-student="${x.id}" title="${esc(title)}">${esc(x.first)}${strong ? '<span class="gh-kidchip__mark" aria-label="said strongly">!</span>' : ''}${x.source === 'ai' ? '<i class="fas fa-wand-magic-sparkles gh-kidchip__src" aria-hidden="true"></i>' : x.source === 'teacher' ? '<i class="fas fa-pen gh-kidchip__src" aria-hidden="true"></i>' : ''}</button>`;
+}
+
+/** One theme row in a domain column: label, how many in each tone, then the children. */
+function trayHtml(c) {
+    const openTone = c.kind === 'context' ? 'context' : 'worry';
+    const chips = [
+        ...c.open.map((x) => kidChip(x, openTone)),
+        ...c.improving.map((x) => kidChip(x, 'better')),
+        ...c.strong.map((x) => kidChip(x, 'strength'))
+    ];
+    const SHOWN = 5;
+    const pill = (n, tone, label) => (n ? `<span class="gh-pill gh-pill--${tone}" title="${n} ${label}">${n}</span>` : '');
+    const lead = c.open.length ? openTone : c.improving.length ? 'better' : 'strength';
+    return `
+        <li class="gh-tray gh-tray--${lead}${c.kind === 'context' ? ' is-private' : ''}">
+            <p class="gh-tray__head">
+                <i class="fas ${c.icon}" aria-hidden="true"></i>
+                <span class="gh-tray__label" ${c.labelEl ? `title="${esc(c.labelEl)}"` : ''}>${esc(c.label)}</span>
+                <span class="gh-tray__counts">${pill(c.open.length, openTone, TONE_WORD[openTone])}${pill(c.improving.length, 'better', 'getting better')}${pill(c.strong.length, 'strength', 'strength')}</span>
+            </p>
+            <div class="gh-tray__who">${chips.slice(0, SHOWN).join('')}${chips.length > SHOWN ? `<details class="gh-tray__more"><summary>+${chips.length - SHOWN}</summary>${chips.slice(SHOWN).join('')}</details>` : ''}</div>
+        </li>`;
 }
 
 function virtueMixHtml(mix, readings = []) {
@@ -516,29 +598,23 @@ function bandsHtml(p) {
 }
 
 function growthMapSvg(g) {
-    const W = 640, H = 400, L = 46, R = 16, T = 18, B = 40;
+    const W = 640, H = 420, L = 46, R = 16, T = 18, B = 50;
     const iw = W - L - R, ih = H - T - B;
     const px = (x) => L + x * iw;
     const py = (y) => T + (1 - y) * ih;
-    const placed = [];
-    const spots = g.students.map((r) => {
-        let x = px(r.map.x), y = py(r.map.y);
-        // Nudge overlapping dots apart so every name stays tappable.
-        for (let k = 0; k < 12 && placed.some((p) => Math.hypot(p.x - x, p.y - y) < 30); k += 1) {
-            const a = k * 2.4;
-            x = Math.max(L + 14, Math.min(W - R - 14, x + Math.cos(a) * 14));
-            y = Math.max(T + 14, Math.min(H - B - 14, y + Math.sin(a) * 14));
-        }
-        placed.push({ x, y });
-        return { r, x, y };
-    });
+    // Spread overlapping dots apart (pure maths in classGreenhouseCore), never onto an axis.
+    const pos = spreadDots(g.students.map((r) => ({ x: px(r.map.x), y: py(r.map.y) })), { x0: L + 18, x1: L + iw - 16, y0: T + 16, y1: T + ih - 16 }, 32);
+    const spots = g.students.map((r, i) => ({ r, x: pos[i].x, y: pos[i].y }));
     // Put each name where it touches no other dot or name: below, above, right, then left.
     const qw = (t) => t.length * 7.4;
-    const boxes = [ // the quadrant names stay readable too
+    const axisW = 190;
+    const boxes = [ // the quadrant names and the axis labels stay readable too
         { x0: L + 6, x1: L + 10 + qw(PROFILES.roots.label), y0: T + 2, y1: T + 20 },
         { x0: L + iw - 10 - qw(PROFILES.bloom.label), x1: L + iw - 6, y0: T + 2, y1: T + 20 },
         { x0: L + 6, x1: L + 10 + qw(PROFILES.tending.label), y0: T + ih - 22, y1: T + ih - 4 },
         { x0: L + iw - 10 - qw(PROFILES.reaching.label), x1: L + iw - 6, y0: T + ih - 22, y1: T + ih - 4 },
+        { x0: L + iw / 2 - axisW / 2, x1: L + iw / 2 + axisW / 2, y0: H - 24, y1: H },
+        { x0: 0, x1: 26, y0: T + ih / 2 - 70, y1: T + ih / 2 + 70 }
     ];
     const hits = (b) => boxes.some((o) => b.x0 < o.x1 && b.x1 > o.x0 && b.y0 < o.y1 && b.y1 > o.y0)
         || spots.some((s) => s.x + 13 > b.x0 && s.x - 13 < b.x1 && s.y + 13 > b.y0 && s.y - 13 < b.y1 && !(s.x === b.cx && s.y === b.cy));
@@ -550,7 +626,8 @@ function growthMapSvg(g) {
             { dx: 17, dy: 4, anchor: 'start', x0: x + 15, x1: x + 17 + w, y0: y - 7, y1: y + 7 },
             { dx: -17, dy: 4, anchor: 'end', x0: x - 17 - w, x1: x - 15, y0: y - 7, y1: y + 7 },
         ].map((o) => ({ ...o, cx: x, cy: y }));
-        const pick = options.find((o) => !hits(o) && o.x0 >= 2 && o.x1 <= W - 2 && o.y0 >= 2 && o.y1 <= H - 2) || options[0];
+        const inside = (o) => o.x0 >= 2 && o.x1 <= W - 2 && o.y0 >= 2 && o.y1 <= H - 26;
+        const pick = options.find((o) => !hits(o) && inside(o)) || options.find(inside) || options[1];
         boxes.push(pick);
         return pick;
     });
@@ -558,19 +635,22 @@ function growthMapSvg(g) {
         const lab = labels[index];
         const initials = r.name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase();
         const urgent = r.signals.some((s) => s.sev >= 3);
+        const wild = r.profile === 'wild';
         return `
-            <g class="gh-dot gh-tone--${PROFILE_TONE[r.profile]}${r.map.achKnown ? '' : ' is-unknown'}${urgent ? ' is-urgent' : ''}${r.id === view.spotId ? ' is-spot' : ''}" data-gh-student="${r.id}" role="button" tabindex="0" style="--i:${index}"
+            <g class="gh-dot gh-tone--${PROFILE_TONE[r.profile]}${r.map.achKnown ? '' : ' is-unknown'}${urgent ? ' is-urgent' : ''}${wild ? ' is-wild' : ''}${r.id === view.spotId ? ' is-spot' : ''}" data-gh-student="${r.id}" role="button" tabindex="0" style="--i:${index}"
                 aria-label="${esc(r.name)}: ${PROFILES[r.profile].label}. Open the Hero's Chronicle" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})">
                 ${urgent ? '<circle class="gh-dot__halo" r="19"/>' : ''}
+                ${wild ? '<circle class="gh-dot__spark" r="17"/>' : ''}
                 ${r.id === view.spotId ? '<circle class="gh-dot__spot" r="24"/>' : ''}
                 <circle class="gh-dot__disc" r="13"/>
                 <text class="gh-dot__ini" y="4">${esc(initials)}</text>
                 <text class="gh-dot__name" x="${lab.dx}" y="${lab.dy}" text-anchor="${lab.anchor}">${esc(r.first)}</text>
-                <title>${esc(r.name)} · ${PROFILES[r.profile].label}</title>
+                <title>${esc(r.name)} · ${PROFILES[r.profile].label}${r.profileWhy ? ` · ${esc(r.profileWhy)}` : ''}</title>
             </g>`;
     }).join('');
-    // Shade the map exactly as the profiles are decided: thirds at ±0.35 sd on each axis.
-    const cut = [0, 0.5 - 0.35 / 4, 0.5 + 0.35 / 4, 1];
+    // Shade the map exactly as the profiles are decided: the middle third is ±0.35 sd on each axis
+    // (classGreenhouseCore.mjs#mapScale), so the map is an even 3×3 grid.
+    const cut = [0, 1 / 3, 2 / 3, 1];
     const grid = [ // rows top→bottom (papers high, mid, low); columns left→right (effort low, mid, high)
         ['roots', 'bloom', 'bloom'],
         ['roots', 'steady', 'bloom'],
@@ -626,7 +706,7 @@ function lessonNotesHtml(p, tick, nameBtn) {
                 ${p.followUps.length ? `<div><h4 class="gh-h4">Follow up</h4><p class="gh-hint">You wrote these down, then nothing more. See how it is going, then add a line in the Chronicle.</p>
                     ${p.followUps.map((f) => tick(`follow-${f.id}`, `${nameBtn(f)} <small>${esc(f.label.toLowerCase())}, ${f.daysAgo} days ago</small><q class="gh-quote">${esc(f.quote)}</q>`)).join('')}</div>` : ''}
                 ${p.noteGroups.length ? `<div><h4 class="gh-h4">Small groups, ten minutes with you</h4><p class="gh-hint">Children your notes name for the same skill. While the class works, sit with one group.</p>
-                    ${p.noteGroups.map((gr) => tick(`group-${gr.id}`, `<b><i class="fas ${gr.icon}" aria-hidden="true"></i> ${esc(gr.label)}</b> ${gr.members.map(nameBtn).join(', ')}${gr.technique ? ` <button type="button" class="gh-chip" data-gh-packet="${gr.technique}">${esc(getTechnique(gr.technique)?.title || '')}</button>` : ''}`)).join('')}</div>` : ''}
+                    ${p.noteGroups.map((gr) => tick(`group-${gr.id}`, `<b><i class="fas ${gr.icon}" aria-hidden="true"></i> ${esc(gr.label)}</b> ${gr.members.map((m) => kidChip(m, 'worry')).join('')}${gr.technique ? ` <button type="button" class="gh-chip" data-gh-packet="${gr.technique}">${esc(getTechnique(gr.technique)?.title || '')}</button>` : ''}`)).join('')}</div>` : ''}
                 ${p.buddies.length ? `<div><h4 class="gh-h4">Buddies</h4><p class="gh-hint">A kind helper beside a child who needs one, for pair work.</p>
                     ${p.buddies.map((b) => tick(`buddy-${b.child.id}`, `${nameBtn(b.helper)} <i class="fas fa-hands-holding-child" aria-hidden="true"></i> ${nameBtn(b.child)} <small>${esc(b.helper.why.toLowerCase())} · ${esc(NEED_WORDS[b.child.need] || b.child.need)}</small>`)).join('')}</div>` : ''}
                 ${p.keepApart.length ? `<div><h4 class="gh-h4">Keep apart</h4><p class="gh-hint">Written about together in rough notes. Seat and pair them apart.</p>

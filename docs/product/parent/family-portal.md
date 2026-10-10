@@ -4,7 +4,7 @@ The Family Portal is a **warm window** onto one child, built for a parent's phon
 
 **Pro and Elite.** One login per student, created by the teacher under Teacher Settings → **Family Access** or by the School Office under Admin → **Family Logins**.
 
-**Getting in.** Families scan the school's **Parent sign-in QR** (on the poster or their login slip). It opens the sign-in screen, **The Quest Gate**, straight on the **Parent** door with a "Hello, family!" welcome; they type the username and password from the slip. That phone remembers the Parent door next time. If a detail is wrong, the screen says so in plain words (for example, "That username and password don't match") and **Forgot password?** tells them to ask the teacher or the office for a new one.
+**Getting in.** Families scan the school's **Parent sign-in QR** (on the poster or their login slip). It opens the sign-in screen, **The Quest Gate** (which shows the school’s name on a banner under the keystone; a school with its own code remembers it on that phone, and its sign-in links and QR codes carry the code), straight on the **Parent** door with a "Hello, family!" welcome; they type the username and password from the slip. That phone remembers the Parent door next time. If a detail is wrong, the screen says so in plain words (for example, "That username and password don't match") and **Forgot password?** tells them to ask the teacher or the office for a new one.
 
 If the School Office records that the child has left the school, the login is paused (the records are kept). If the child comes back, the login works again — unless the teacher had already switched it off.
 

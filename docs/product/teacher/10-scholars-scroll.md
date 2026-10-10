@@ -24,7 +24,8 @@ Flying buttons: **Log New Trial** and **View History**.
 
 1. Pick **Dictation** or **Test** from the tabs on top of the sheet (the tabs only appear when the class uses both). It opens on Test when a Quest Board test is due, otherwise on the kind you logged last for this class.
 2. Check the date stamp (it reads **Today** by default; tap it to change). Tests need a **Title**.
-3. Grade each student: tap a stamp (tap it again to clear it), or type the score and press **Enter** to jump to the next student.
+3. Grade each student: tap a stamp (tap it again to clear it), or type the score and press **Enter** to jump to the next student. A score box takes only numbers and one decimal point (a comma becomes a point); letters and signs are ignored. A score higher than the paper’s maximum turns red and wavy, and **Save results** will not go on until you fix it. Only the class’s own grade stamps can be saved.
+   **Could not be marked?** Tap the violet **?** beside the grades, or type **?** or **-** in a score box: the row is stamped *could not be marked* and you move to the next student. It saves with no score, counts as marked in the tally, and any real mark clears it. A **?** never counts in averages, ranks, stars, Starfall, personal bests, seals, reports, certificates or the AI’s readings, and families read it as *could not be marked*.
 4. Tap **Present** to mark someone absent in the same pass. The tally at the bottom shows how many are marked.
 5. **Save results**. A small “personal best” message may pop up for tests.
 
@@ -66,7 +67,7 @@ After a bulk save, the Quest may offer bonus stars:
 | **Dictation** | **Above 85%**, once the student already has **at least 3** high dictation scores this month, and has had fewer than **2** dictation Scholar’s Bonuses this month | Suggests **+0.5** |
 | **🌱 Growth Starfall** (test or dictation) | **15 or more points above the student's own recent average** (their last up to **5** trials of the same type, with **at least 3** earlier trials needed). Not offered when the standard bar above already applies; **once per student per month** | Suggests **+0.5** |
 
-You **confirm** the suggestions together in one window; nothing is given automatically. Growth Starfall rows carry a 🌱 **Growth** chip, and the window shows no scores. Growth Starfall rewards climbing, not only being at the top: a child who moves from around 50% to 70% is exactly who should hear it. It is logged as Scholar's Bonus (so it counts for the Scholar Hero Path) and does not use up the monthly dictation Starfall allowance.
+You **confirm** the suggestions together in one window, a night window where a falling star lands in a glass jar for each scholar (first name and surname, with the bonus on a gold coin, or a green sprout coin for Growth Starfall). **Bestow** sends one star falling into each jar with a chime, then gives the bonus. Nothing is given automatically, and with **reduced motion** turned on the show is skipped. Growth Starfall rows carry a 🌱 **Growth** chip, and the window shows no scores. Growth Starfall rewards climbing, not only being at the top: a child who moves from around 50% to 70% is exactly who should hear it. It is logged as Scholar's Bonus (so it counts for the Scholar Hero Path) and does not use up the monthly dictation Starfall allowance.
 
 **Starfall Catalyst** (Market) doubles that student’s next high-test bonus, then clears.
 

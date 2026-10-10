@@ -16,11 +16,11 @@ Needs a class selected and **stars awarded today**. One page per class per day. 
 | **Write Today’s Page** | Crowned, page still blank | Reopens **Today’s Page** (below). |
 | **Open Today’s Page** | Page written | Scrolls the diary to today’s page and lights it up. |
 
-**Today’s Page.** When you press **Huzzah!**, a card rises with the hero’s portrait on a ribbon, what today holds (stars earned (not for Pre-Junior), the virtues shown most, new words, learning moments) and the question *Shall we write today’s page?*
+**Today’s Page.** When you press **Huzzah!**, a teal **Today’s Page** notice appears at the top right of the screen (under the header on a phone), with the hero’s face and crown, what today holds (stars earned (not for Pre-Junior), the virtues shown most, new words, learning moments) and the question *Shall we write today’s page?* It does not block the app, so you can carry on teaching while it waits. It has no timer and newer notifications never push it away; it leaves only when you choose **Auto**, **Manual** or its small **×** (the page then waits in the diary). It also steps aside by itself if the page gets written another way (from the diary, the Wand or another computer) or if you change the class in the header.
 
-- **Auto** (Elite, key **A**): the AI Chronicler writes the whole page and paints a picture. The card shows *The Chronicler dips the quill…* for a moment, then the page appears in the diary with a **Being written** stamp until it is finished. You can edit it afterwards. On Pro the card is marked **Elite** and explains the plan.
-- **Manual** (key **M**): opens **Write today’s page**, where you write everything yourself (see below).
-- **Later: keep the page blank for now** (or Esc): the crowned page waits in the diary as **A page waiting for its story**, with a **Blank page** stamp, the hero sticker, **Write it myself** and (Elite) **Auto or Manual**. A page left blank on an earlier day reads **This page was never written** and can still be written.
+- **Auto** (Elite): the AI Chronicler writes the whole page and paints a picture. The notice shows the Chronicler’s progress in place (*The Chronicler dips the quill…*), then the page appears in the diary with a **Being written** stamp until it is finished. If the Chronicler cannot start, the notice stays so you can try again or write it yourself. You can edit the page afterwards. On Pro, **Auto** is marked **Elite** and explains the plan.
+- **Manual**: opens **Write today’s page**, where you write everything yourself (see below).
+- **Later: keep the page blank for now** (the notice’s **×**): the crowned page waits in the diary as **A page waiting for its story**, with a **Blank page** stamp, the hero sticker, **Write it myself** and (Elite) **Auto or Manual**. A page left blank on an earlier day reads **This page was never written** and can still be written.
 
 The Campfire lights up only after you have chosen how to write the page, so the Chronicler always starts first.
 
@@ -60,7 +60,7 @@ Buttons at the foot of each page:
 When you choose **Auto**, the Chronicler first gathers a dated picture of the class’s day, including things from tabs you did not open. It sorts that picture into two piles:
 
 - **What happened today** (always on the page): the stars and the actions you recognised, grouped by the virtue you actually gave (it never mentions a virtue nobody received today), Hero’s Boon and Teacher Boon, tests and dictations recorded today (the topic only: no marks, no counts), Quiz of the Week played today, Story Weavers lines, Bounties posted or won, Fortune’s Wheel, Market items, Special Quests running or finished today, a birthday or nameday today, coming back from a holiday, the homework you set today, and the Hero Campfire and Ember Oaths **only if the Campfire was actually finished today**.
-- **Background** (used only when it adds something): the unit the class is working through (its theme and words, never claimed as today’s pages), who was missing, the Team Quest realm, Hero Paths and Familiars, coming days (holidays, tests, Special Quests, birthdays in the next **14 days**) for the closing line, any Festival Stall season, the classroom sky, and recent diary pages so the wording stays fresh.
+- **Background** (used only when it adds something): the unit the class is working through (its theme and words, never claimed as today’s pages), who was missing, the Team Quest journey in plain words (the realm the class is in, how far along the road it is, the next realm, and whether it truly finished this month; the diary uses the same monthly goal as the Team Quest tab and Home, and never claims a finish or an arrival that did not happen), Hero Paths and Familiars, coming days (holidays, tests, Special Quests, birthdays in the next **14 days**) for the closing line, any Festival Stall season, the classroom sky, and recent diary pages so the wording stays fresh.
 
 The page length follows the day: a quiet lesson gets a short page (about 170–250 words), a busy one up to about 440. It opens with a real moment, not the date or a list of names; it uses first names and the children’s own words (stars, homework, our dictation), not menu names; the Hero of the Day is celebrated without a made-up reason (the crown goes round fairly); homework is mentioned once, as something for the next lesson. A prepared Campfire, the next lesson’s Campfire question and anything you did not record never appear.
 
@@ -98,6 +98,8 @@ You do not pick the hero by hand. When you press **Crown Today’s Hero**, the Q
 2. Otherwise the class uses a **fair rotation**: everyone present gets a turn before the cycle repeats; the same child is not immediately repeated when others are still waiting.
 
 If nobody is present, the log can honour “The Class Team.”
+
+The crowning is played to **the Hero’s March**, a recorded anthem that starts loading while you write the page or the draw runs, so the music never stutters, even on a slow classroom computer. If the computer’s sound was asleep, it wakes for the crowning instead of skipping the music. Closing the celebration fades it out.
 
 **Perks (while they reign, plus this school year’s legend)**
 

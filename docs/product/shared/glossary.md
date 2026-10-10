@@ -76,7 +76,19 @@ Use these names exactly, in the classroom and when you talk to parents. Mixing t
 | **Raid Hero** | The child in each class who struck the Realm Raid shield in the most raid lessons; wins one festival treasure when the school wins | Quiz Champion; Prodigy |
 | **Hero Seal** | A wax-seal milestone in a child's Seal Book (Scholar's Folio → Seals, Trophy Room); worth no stars or Gold | Hero Path seals (the stages of a Hero Path); Map Journal stamps |
 | **Class constellation** | The Campfire sky: one star per oath kept this year. The telescope zooms those same stars; each promise kind has its own figure | Team Quest map; Hall of Heroes |
-| **Book atlas** | The built-in list of the school’s books, units, pages and words the Campfire reads from Quest Assignment | Scholar’s Scroll tests; Quiz syllabus chips |
+| **Book atlas** | The built-in list of the school’s books, units, pages and words the Campfire reads from Quest Assignment (and the Showdown’s Book words) | Scholar’s Scroll tests; Quiz syllabus chips |
+| **Class Greenhouse** | Your private view of the whole class: growth map, next-lesson rounds and (Elite) the Gardener’s Almanac. No ranks, never changes a guild | Hero’s Chronicle (one child); Team Quest (class vs class); the Weekly report |
+| **Wild growth** | A Greenhouse stage: few stars, and your notes describe the child as restless, loud or rough | *Hidden roots* (good papers, few stars, no such notes); *Needs tending* (low effort and low papers) |
+| **Hidden roots** | A Greenhouse stage: good papers, few stars; capable but rarely noticed (formerly *Quiet roots*) | *Wild growth*; *Reaching for light* (trying hard, papers low) |
+| **Read as** | The line under each Chronicle note showing what the reading took from it; × and + Add correct it | The Oracle’s counsels (Elite AI pages); *The Oracle hears* (live, while you type) |
+| **Deep reading** | Elite: once a week the Oracle reads the notes the automatic reading was unsure of, and saves the result on the note | The Oracle’s counsels; the Gardener’s Almanac |
+| **Gardener’s Almanac** | Elite AI counsel pages for a class, written once and shared by every computer in the school | The Oracle (one child) |
+| **The Oracle** | In a child’s Chronicle: a reading of your own notes on every plan, plus (Elite) Teaching Plan, Deep Reading, Hero’s Goal and Parent Summary | Gardener’s Almanac; the Oracle’s reading in the Weekly report |
+| **Oath Fire / Oath Forge** | The choosing view for Ember Oaths (the Fire) and the maker of each child’s promises, written for their age group (the Forge) | Campfire (the closing ritual) |
+| **Today’s Page notice** | The teal notice after Huzzah! that asks Auto or Manual | The Today’s Page chooser sheet; the Chronicle’s page |
+| **Keeper’s Parcel** | The wrapped parcel and receipt that close a Market purchase | Trophy Room; Hero of the Day reveal |
+| **Team Forge** | The Wand’s setup page for a Showdown: teams, game, rules and questions | Team Maker (Home tool, kept for the class) |
+| **? (could not be marked)** | A dictation or test row that was not marked; never counts for averages, stars or reports | A zero score; Absent |
 
 ## The three races at a glance
 

@@ -733,8 +733,8 @@ button.qw-fhero:active { transform: scale(0.92); background: var(--team) !import
 .qw-words__legend .qw-wunit { width: 18px; min-height: 18px; border-radius: 6px; }
 
 /* ── Showdown games on the Wand: the Forge's game tiles, Several teams, hearts, ×2, the rope ── */
-.qw-modes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-.qw-mode { min-height: 72px; }
+.qw-forge .qw-modes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.qw-forge .qw-mode { min-height: 72px; }
 .qw-mode--survivor .qw-split__icon { color: #fb7185; }
 .qw-mode--treasure .qw-split__icon { color: #22d3ee; }
 .qw-mode--tug .qw-split__icon { color: #a3e635; }
@@ -765,4 +765,4 @@ button.qw-fhero:active { transform: scale(0.92); background: var(--team) !import
 .qw-show--tug .qw-showhead__round { color: #d9f99d; background: rgba(132, 204, 22, 0.12); box-shadow: inset 0 0 0 1px rgba(163, 230, 53, 0.4); }
 .qw-lite .qw-team__dbl, .qw-lite .qw-pts__multi.is-on { box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { .qw-tug__knot, .qw-teams.is-picking .qw-team__hit { transition: none; } }
-@media (max-width: 360px) { .qw-modes { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 360px) { .qw-forge .qw-modes { grid-template-columns: repeat(2, 1fr); } }

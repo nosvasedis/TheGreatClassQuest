@@ -289,6 +289,8 @@ try {
   await captureExtra('Wand: Training Grounds controls', () => window.__gcqCapture.showWand('controls'), '#capture-quest-remote .qw', 'wand-controls.png');
   await captureExtra('Wand: magic', () => window.__gcqCapture.showWand('magic'), '#capture-quest-remote .qw', 'wand-magic.png');
   await captureExtra('Wand: show', () => window.__gcqCapture.showWand('show'), '#capture-quest-remote .qw', 'wand-show.png');
+  await captureExtra('Wand: lesson', () => window.__gcqCapture.showWand('lesson'), '#capture-quest-remote .qw', 'wand-lesson.png');
+  await captureExtra('Wand: team forge', () => window.__gcqCapture.showWand('forge'), '#capture-quest-remote .qw', 'wand-forge.png');
   await page.evaluate(() => window.__gcqCapture.hideRemote());
 
   console.log('Captured UI chrome into', OUT);

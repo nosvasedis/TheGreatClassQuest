@@ -50,8 +50,9 @@ export function headerToolsHtml() {
     </div>
     <div class="hdr-tools" aria-label="Header buttons">
       <button type="button" class="hdr-btn" data-term="adventurers-guide" title="Adventurer's Guide"><i class="fas fa-info"></i></button>
+      <button type="button" class="hdr-btn" title="Quiet Dragon"><i class="fas fa-dragon"></i></button>
+      <button type="button" class="hdr-btn" data-term="quest-remote" title="Quest Remote"><i class="fas fa-wand-magic-sparkles"></i></button>
       <button type="button" class="hdr-btn hdr-btn--tv" data-term="projector" title="Projector Mode"><i class="fas fa-tv"></i></button>
-      <button type="button" class="hdr-btn" data-term="school-office" title="School Office"><i class="fas fa-building-shield"></i></button>
       <button type="button" class="hdr-btn" title="Teacher Settings"><i class="fas fa-cog"></i></button>
       <button type="button" class="hdr-btn hdr-btn--out" title="Log out"><i class="fas fa-sign-out-alt"></i></button>
     </div>

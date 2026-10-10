@@ -1318,6 +1318,12 @@ function setupAuthListeners() {
                         if (isCurrentSession()) maybeOpenOperatorConsole();
                         if (isCurrentSession() && profile.role !== ROLE_SECRETARY) {
                             import('./ui/questRemoteButton.js').then((m) => m.onTeacherAppReady()).catch(() => {});
+                            // The weekly deep reading of Chronicle notes (Elite): a quiet check, once a day, on idle.
+                            setTimeout(() => {
+                                const run = () => { if (isCurrentSession()) import('./ui/modals/noteAiReader.js').then((m) => m.maybeRunReadingRound()).catch(() => {}); };
+                                if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(run, { timeout: 30000 });
+                                else run();
+                            }, 20000);
                         }
                     }, {
                         role: profile.role,

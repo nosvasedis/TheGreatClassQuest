@@ -4,7 +4,7 @@ The School Office is the **control desk for the school year**. It is not a secon
 
 **Elite.** Teachers may open it from the header shield when this school has Secretary access. Mobile uses the same five tabs in a compact dock.
 
-Header: **School Office** title, **Open Teacher App**, log out. Each tab title sits on its own small sign: a corkboard for School, a report card for Grades, an envelope for Messages, a file folder for Admin.
+Header: **School Office** title and log out. The School Office is its own place: a Secretary account cannot open the Teacher App, and there is no button for it. Each tab title sits on its own small sign: a corkboard for School, a report card for Grades, an envelope for Messages, a file folder for Admin.
 
 ## The five tabs
 
@@ -18,7 +18,7 @@ Header: **School Office** title, **Open Teacher App**, log out. Each tab title s
 
 On plans without the full Elite School Office, Grades and Messages are hidden, the Edit buttons are hidden, and Admin → Grading is not shown. Admin still has Students & Classes (seating returning students and former students), School Year and School Details, but **Open a new class** and **Enrol a new student** carry an Elite lock.
 
-Teacher accounts are created when the school is first set up (together with billing), not in the School Office. The Office **opens the Teacher App** when the secretary also teaches. Create classes here for teachers who already have a Quest Master account.
+Teacher accounts are created when the school is first set up (together with billing), not in the School Office. A secretary who also teaches uses a separate teacher account for that. Create classes here for teachers who already have a Quest Master account.
 
 ## Home — the front desk
 
@@ -142,12 +142,12 @@ Guild Crowns, Hero Path progress and Familiars belong to one school year at a ti
 
 Index cards, one job each:
 
-- School **name** (with **Open Teacher App**)
+- School **name**
 - **Weather location** (Greek cities) — drives teacher Home and Projector skies
 - **Your account** — a staff badge showing who is signed in
 - **Holidays and breaks** (name, start, end, theme: Christmas/Winter, Easter/Spring, generic) — these shade every teacher calendar and **lower Team Quest goals**
 - **Secretary credentials**
-- **Plan and billing**
+- **Plan and billing** (**View plan and billing**; see the Plans chapter)
 - **Helpful shortcuts**: refresh family information, view all grades, answer families, Students & Classes
 
 Teachers’ **My Planning** only sets a class finale date. **You** own the breaks.

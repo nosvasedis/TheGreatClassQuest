@@ -35,7 +35,7 @@ import { showToast } from '../effects.js';
 import '../../styles/hero_oracle.css';
 
 const OUTPUT_ID = 'hero-chronicle-ai-output';
-const PROMPT_VERSION = 'oracle-v2';
+const PROMPT_VERSION = 'oracle-v3';
 const VIRTUE_IDS = ['teamwork', 'creativity', 'respect', 'focus'];
 const OUTCOME = {
     helping: { label: 'Seems to help', tone: 'good', icon: 'fa-seedling' },
@@ -588,8 +588,9 @@ export function quillHears(text) {
     const chips = note.themes.map((t) => {
         const label = themeMeta(t.id).label;
         const tone = t.tone === 'context' ? 'care' : t.tone === 'worry' ? 'worry' : 'good';
-        return `<span class="hc-hears__chip hc-hears__chip--${tone}">${esc(label)}${t.tone === 'better' ? ' ↑' : ''}</span>`;
-    }).join('');
+        const strong = t.tone === 'worry' && (t.intensity || 1) >= 2 ? `${(t.intensity || 1) >= 3 ? 'very strongly: ' : 'strongly: '}` : '';
+        return `<span class="hc-hears__chip hc-hears__chip--${tone}">${esc(strong)}${esc(label)}${t.tone === 'better' ? ' ↑' : ''}${t.pattern === 'incident' ? ' (once)' : t.pattern === 'trait' ? ' (a pattern)' : ''}</span>`;
+    }).join('') + (note.lang === 'greeklish' ? '<span class="hc-hears__chip">Greeklish, read as Greek</span>' : '');
     const tip = !note.themes.length && value.length > 30
         ? 'Tip: name the skill or habit (spelling, speaking, homework…) so the Oracle can follow it.'
         : note.tone === 'worry' && !note.tried.length && value.length > 40

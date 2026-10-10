@@ -96,6 +96,9 @@ export function gatherInputs(classId) {
         category: n.category,
         text: n.noteText || '',
         source: n.source || '',
+        authorRole: n.authorRole || '',
+        aiReading: n.aiReading || null,
+        readingFix: n.readingFix || null,
         createdAtMs: n.createdAt?.toMillis ? n.createdAt.toMillis() : (n.createdAt?.seconds ? n.createdAt.seconds * 1000 : Date.now())
     }));
     return { students, awards, absences, trials, notes, oaths: cached.oaths || [] };

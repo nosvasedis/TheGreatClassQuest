@@ -14,7 +14,7 @@
 //   oaths     [{ studentId, status }]                      optional
 
 import { VIRTUE_TECHNIQUES, getTechnique } from './classGreenhousePlaybook.mjs';
-import { readClassNotes } from './classGreenhouseNotes.mjs';
+import { readClassNotes, READER_VERSION, worryWeight } from './classGreenhouseNotes.mjs';
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 export const WINDOW_DAYS = 42;   // six weeks: the growing season the reading looks at
@@ -37,8 +37,10 @@ export const PROFILES = {
         meaning: 'Working hard and doing well. Keep them challenged so they keep growing.' },
     reaching: { id: 'reaching', label: 'Reaching for light', short: 'Reaching', icon: 'fa-arrow-up-long',
         meaning: 'Trying hard, but the papers do not show it yet. They need scaffolds, not more pressure.' },
-    roots: { id: 'roots', label: 'Quiet roots', short: 'Quiet roots', icon: 'fa-water',
-        meaning: 'Capable, but rarely noticed in lessons. Draw them into the light.' },
+    roots: { id: 'roots', label: 'Hidden roots', short: 'Hidden roots', icon: 'fa-water',
+        meaning: 'Good papers, few stars: capable, but rarely noticed in lessons. Draw them into the light.' },
+    wild: { id: 'wild', label: 'Wild growth', short: 'Wild growth', icon: 'fa-wind',
+        meaning: 'Lots of energy, few stars. Give it a trellis: a clear job, movement and quick wins, not more warnings.' },
     tending: { id: 'tending', label: 'Needs tending', short: 'Tending', icon: 'fa-hand-holding-droplet',
         meaning: 'Low on effort and on results. Small wins and a personal check-in first.' },
     steady: { id: 'steady', label: 'Steady growth', short: 'Steady', icon: 'fa-seedling',
@@ -46,7 +48,53 @@ export const PROFILES = {
     planted: { id: 'planted', label: 'Just planted', short: 'New', icon: 'fa-leaf',
         meaning: 'Not enough records yet to read. Give it a couple of lessons.' }
 };
-export const PROFILE_ORDER = ['tending', 'reaching', 'roots', 'steady', 'bloom', 'planted'];
+export const PROFILE_ORDER = ['tending', 'wild', 'reaching', 'roots', 'steady', 'bloom', 'planted'];
+
+// Notes that make a child with few stars "wild growth" rather than quiet: restless, loud or rough.
+export const WILD_THEMES = new Set(['energetic', 'chatty', 'clowning', 'rules', 'conflict', 'respect', 'bossy']);
+
+/**
+ * Map position 0..1 for a z-score: the middle third holds ±0.35 sd (the "steady" band the
+ * profiles use), the outer thirds reach ±2 sd. The map then reads as an even 3×3 grid.
+ */
+export function mapScale(z) {
+    const x = Math.max(-2, Math.min(2, Number(z) || 0));
+    if (x < -0.35) return ((x + 2) / 1.65) / 3;
+    if (x <= 0.35) return 1 / 3 + ((x + 0.35) / 0.7) / 3;
+    return 2 / 3 + ((x - 0.35) / 1.65) / 3;
+}
+
+/**
+ * Pushes overlapping dots apart (pairwise relaxation) and keeps them inside the plot.
+ * points: [{ x, y }] in pixels; box: { x0, x1, y0, y1 }. Returns new [{ x, y }].
+ */
+export function spreadDots(points, box, minGap = 30, rounds = 60) {
+    const out = points.map((p) => ({ x: p.x, y: p.y }));
+    const clamp = (p) => {
+        p.x = Math.max(box.x0, Math.min(box.x1, p.x));
+        p.y = Math.max(box.y0, Math.min(box.y1, p.y));
+    };
+    out.forEach(clamp);
+    for (let round = 0; round < rounds; round += 1) {
+        let moved = false;
+        for (let i = 0; i < out.length; i += 1) {
+            for (let j = i + 1; j < out.length; j += 1) {
+                const a = out[i], b = out[j];
+                let dx = b.x - a.x, dy = b.y - a.y;
+                let d = Math.hypot(dx, dy);
+                if (d >= minGap) continue;
+                if (d < 0.01) { dx = Math.cos(i * 2.4 + j); dy = Math.sin(i * 2.4 + j); d = 1; }
+                const push = (minGap - d) / 2 + 0.5;
+                a.x -= (dx / d) * push; a.y -= (dy / d) * push;
+                b.x += (dx / d) * push; b.y += (dy / d) * push;
+                clamp(a); clamp(b);
+                moved = true;
+            }
+        }
+        if (!moved) break;
+    }
+    return out;
+}
 
 // ---------------------------------------------------------------- small helpers
 
@@ -143,7 +191,7 @@ export function buildGreenhouse({
     const noteRows = notes
         .map((n) => ({
             id: n.id || '', studentId: n.studentId, day: toDay(n.createdAtMs ?? n.date), category: String(n.category || 'General'),
-            text: String(n.text ?? n.noteText ?? ''), source: n.source || ''
+            text: String(n.text ?? n.noteText ?? ''), source: n.source || '', aiReading: n.aiReading || null, readingFix: n.readingFix || null
         }))
         .filter((n) => ids.has(n.studentId) && n.day != null);
 
@@ -195,12 +243,14 @@ export function buildGreenhouse({
     readings.forEach((r) => { r.chronicle = notesReading.perChild.get(r.id) || null; });
 
     placeOnGrowthMap(readings);
+    readings.forEach((r) => refineProfile(r, today));
     readings.forEach((r) => raiseSignals(r, { today }));
 
     const classReading = readClass(readings, {
         lessonDays, recentLessons, priorLessons, papers: paperList, awards: awardRows, absences: absenceRows,
         today, windowStart, recentStart, notesReading
     });
+    readings.forEach((r) => { r.profileWhy = profileWhy(r, classReading.stars.perChildRecent); });
     const plan = planNextLesson(readings, classReading);
 
     readings.sort((a, b) => b.priority - a.priority || a.name.localeCompare(b.name));
@@ -362,11 +412,47 @@ function placeOnGrowthMap(readings) {
         r.profile = r.hasData ? profileFor(r.zones.effort, r.zones.ach) : 'planted';
         // Map position 0..1 on each axis (clamped at ±2 sd); unknown achievement sits on the middle line.
         r.map = {
-            x: Math.max(0, Math.min(1, 0.5 + ez / 4)),
-            y: r.achZ == null ? 0.5 : Math.max(0, Math.min(1, 0.5 + az / 4)),
+            x: mapScale(ez),
+            y: r.achZ == null ? 0.5 : mapScale(az),
             achKnown: r.achZ != null
         };
     });
+}
+
+/**
+ * A child with few stars whose notes are restless, loud or rough is not "quiet": they are
+ * wild growth, and need structure and a job rather than an invitation to speak up.
+ */
+function refineProfile(r, today) {
+    r.baseProfile = r.profile;
+    if (!r.hasData || r.zones.effort !== 'lo' || !['roots', 'tending'].includes(r.profile)) return;
+    const fresh = (t) => t.last == null || today - t.last <= NOTE_FRESH_DAYS;
+    const wild = (r.chronicle?.worries || []).filter((t) => WILD_THEMES.has(t.id) && fresh(t));
+    if (wild.length) {
+        r.profile = 'wild';
+        r.wildThemes = wild.map((t) => t.id);
+    }
+}
+
+const INTENSITY_WORD = { 2: 'very ', 3: 'very ' };
+
+/** Why a child sits where they do, in one line: stars, papers and what the notes say. */
+export function profileWhy(r, classStarsPerLesson = null) {
+    if (!r.hasData) return 'Not enough records yet.';
+    const bits = [];
+    if (r.stars.perLesson != null) bits.push(`${r.stars.perLesson}★ a lesson${classStarsPerLesson != null ? ` (class ${Math.round(classStarsPerLesson * 10) / 10})` : ''}`);
+    if (r.papers.rel != null && r.papers.count) bits.push(`papers ${r.papers.rel > 0 ? '+' : ''}${r.papers.rel} vs class`);
+    else if (r.papers.avg != null) bits.push(`papers ${r.papers.avg}%`);
+    const ch = r.chronicle;
+    if (ch && ch.written) {
+        const said = [...ch.worries, ...ch.better, ...ch.strengths]
+            .filter((t) => t.theme && t.tone !== 'context')
+            .sort((a, b) => (b.tone === 'worry') - (a.tone === 'worry') || (b.intensity || 1) - (a.intensity || 1) || (b.last ?? 0) - (a.last ?? 0))
+            .slice(0, 2)
+            .map((t) => `${t.tone === 'better' ? 'better at ' : ''}${INTENSITY_WORD[t.intensity] || ''}${t.theme.label.toLowerCase()}${t.pattern === 'trait' && t.tone === 'worry' ? ', a pattern' : ''}`);
+        if (said.length) bits.push(`notes: ${said.join('; ')}`);
+    }
+    return bits.join(' · ');
 }
 
 /**
@@ -442,7 +528,7 @@ function raiseSignals(r, { today }) {
     // At equal weight, what the teacher wrote comes first: it is the most specific thing we know.
     signals.sort((x, y) => y.sev - x.sev || (y.quote ? 1 : 0) - (x.quote ? 1 : 0));
     r.signals = signals;
-    const profileWeight = { tending: 3, reaching: 2, roots: 2, steady: 0, bloom: 0, planted: 0 }[r.profile] || 0;
+    const profileWeight = { tending: 3, wild: r.baseProfile === 'tending' ? 3 : 2, reaching: 2, roots: 2, steady: 0, bloom: 0, planted: 0 }[r.profile] || 0;
     r.priority = signals.reduce((t, x) => t + x.sev, 0) + profileWeight;
     r.summary = studentSummary(r);
     r.techniques = studentTechniques(r);
@@ -472,8 +558,11 @@ function noteSignals(r, add, today) {
         const theme = t.theme;
         let sev = theme.sev || 1;
         if (t.count >= 2 && (age == null || age <= 30)) sev += 1;
+        if ((t.intensity || 1) >= 3 && (age == null || age <= 30)) sev += 1;
+        if (t.pattern === 'incident' && t.count === 1) sev -= 1;
         if (age != null && age > 30) sev -= 1;
-        let text = `Your notes: ${theme.label.toLowerCase()}${t.count > 1 ? ` (${t.count} notes)` : ''}.`;
+        const how = (t.intensity || 1) >= 2 ? 'very ' : '';
+        let text = `Your notes: ${how}${theme.label.toLowerCase()}${t.count > 1 ? ` (${t.count} notes)` : ''}${t.pattern === 'trait' ? ', again and again' : t.pattern === 'incident' && t.count === 1 ? ', once so far' : ''}.`;
         if (theme.group === 'learning' && p.rel != null && p.rel <= -8) {
             text += ` The papers agree: ${Math.abs(p.rel)} points under the class.`;
             sev += 1;
@@ -525,6 +614,7 @@ const PROFILE_TECHNIQUES = {
     bloom: ['must-should-could', 'expert-role', 'extension-question'],
     reaching: ['pre-teach', 'chunk-task', 'sentence-frames'],
     roots: ['name-cards', 'choral-drill', 'expert-role'],
+    wild: ['energy-job', 'precorrection', 'good-behaviour-game'],
     tending: ['two-by-ten', 'success-first', 'check-in'],
     steady: ['specific-praise', 'think-pair-share', 'retrieval-starter'],
     planted: ['welcome-back', 'buddy', 'chronicle-sweep']
@@ -559,6 +649,7 @@ function studentAction(r) {
     if (top && byId[top.id]) return byId[top.id];
     if (r.profile === 'bloom') return `Give ${name} the "could" task or a helper role.`;
     if (r.profile === 'roots') return `Invite ${name} to answer early, after a pair rehearsal.`;
+    if (r.profile === 'wild') return `Give ${name} a moving job early, and name the one rule just before each change of activity.`;
     if (r.profile === 'reaching') return `Praise ${name}'s effort out loud and scaffold the next task.`;
     if (r.profile === 'tending') return `Two minutes of non-school chat with ${name}.`;
     const minor = r.signals.find((s) => s.kind === 'act');
@@ -769,15 +860,23 @@ const names = (list, max = 5) => `${list.slice(0, max).map((x) => x.first).join(
 
 /** The class picture from the notes: shared worries, shared strengths, who with whom, interests, balance. */
 function classChronicle(readings, notesReading, today) {
-    const nr = notesReading || { clusters: [], interests: [], friction: [], warm: [], tone: {}, recentCount: 0, total: 0, unwritten: [], onlyWorries: [] };
+    const nr = notesReading || { clusters: [], interests: [], friction: [], warm: [], tone: {}, recentCount: 0, total: 0, unwritten: [], onlyWorries: [], languageMix: null };
     const fresh = (x, days = NOTE_FRESH_DAYS) => x.last == null || today - x.last <= days;
-    const clusters = nr.clusters.map((c) => ({
-        id: c.theme.id, label: c.theme.label, icon: c.theme.icon, kind: c.theme.kind, group: c.theme.group,
-        techniques: c.theme.techniques.filter((t) => getTechnique(t)),
-        open: c.open.filter((x) => fresh(x, c.theme.kind === 'context' ? CONTEXT_FRESH_DAYS : NOTE_FRESH_DAYS)),
-        strong: c.strong.filter((x) => fresh(x, 120)),
-        improving: c.improving.filter((x) => fresh(x))
-    })).filter((c) => c.open.length || c.strong.length || c.improving.length);
+    const clusters = nr.clusters.map((c) => {
+        const open = c.open.filter((x) => fresh(x, c.theme.kind === 'context' ? CONTEXT_FRESH_DAYS : NOTE_FRESH_DAYS));
+        const strong = c.strong.filter((x) => fresh(x, 120));
+        const improving = c.improving.filter((x) => fresh(x));
+        return {
+            id: c.theme.id, label: c.theme.label, labelEl: c.theme.labelEl || '', icon: c.theme.icon, kind: c.theme.kind, group: c.theme.group,
+            domain: c.theme.domain || 'learning', sev: c.theme.sev || 1,
+            techniques: c.theme.techniques.filter((t) => getTechnique(t)),
+            open, strong, improving,
+            // How much this theme should pull the eye: open worries weighed by how strongly and how often
+            // they were written, then the good news.
+            weight: open.reduce((t, x) => t + (c.theme.kind === 'context' ? 0.5 : worryWeight(c.theme, x)), 0) + improving.length * 0.8 + strong.length * 0.6
+        };
+    }).filter((c) => c.open.length || c.strong.length || c.improving.length)
+        .sort((a, b) => b.weight - a.weight);
     const followUps = readings.filter((r) => r.chronicle?.followUp).map((r) => {
         const f = r.chronicle.followUp;
         return { id: r.id, first: r.first, theme: f.theme, label: clusters.find((c) => c.id === f.theme)?.label || f.theme, quote: f.quote, daysAgo: f.daysAgo };
@@ -792,12 +891,17 @@ function classChronicle(readings, notesReading, today) {
         warm: nr.warm.filter((p) => p.last == null || today - p.last <= 120),
         unwritten: nr.unwritten,
         onlyWorries: nr.onlyWorries,
-        followUps
+        followUps,
+        languageMix: nr.languageMix || { el: 0, en: 0, greeklish: 0, mixed: 0 },
+        aiRead: nr.aiRead || 0,
+        corrected: nr.corrected || 0,
+        unclear: nr.unclear || 0,
+        wild: readings.filter((r) => r.profile === 'wild').map((r) => ({ id: r.id, first: r.first }))
     };
 }
 
 // Wellbeing and background themes are never turned into a named group of children.
-const PRIVATE_THEMES = new Set(['home', 'worry', 'support', 'newcomer', 'temper', 'tired']);
+const PRIVATE_THEMES = new Set(['home', 'worry', 'support', 'newcomer', 'temper', 'tired', 'selftalk', 'isolated']);
 
 function noteInsights(ch, add, n) {
     const open = ch.clusters.filter((c) => c.open.length >= 2 && c.kind !== 'context' && c.kind !== 'strength')
@@ -816,6 +920,11 @@ function noteInsights(ch, add, n) {
                         : `Your notes say the same about ${names(c.open)}. One class routine fixes it for everyone, instead of ${c.open.length} separate warnings.`,
             c.techniques);
     });
+    if (ch.wild.length >= 2) {
+        add('notes-wild', 'idea', `${ch.wild.length} lively children with few stars`,
+            `Your notes describe ${names(ch.wild)} as restless or loud, and they rarely earn stars. A team game with two clear rules and a job for each of them turns that energy into effort.`,
+            ['good-behaviour-game', 'energy-job', 'precorrection']);
+    }
     const support = ch.clusters.find((c) => c.id === 'support');
     if (support && support.open.length >= 2) {
         add('notes-support', 'idea', 'Adjusted copies for several children',
@@ -979,9 +1088,9 @@ function planNextLesson(readings, classReading) {
 /** A short, stable hash of the reading's substance (what the AI saw), for the shared cache. */
 export function fingerprintOf(readings, classReading) {
     const basis = JSON.stringify([
-        classReading.size, classReading.papers.classAvg, classReading.papers.count, classReading.stars.total,
+        READER_VERSION, classReading.size, classReading.papers.classAvg, classReading.papers.count, classReading.stars.total,
         readings.map((r) => [r.id, r.profile, r.signals.map((s) => s.id).join(','), r.papers.count, Math.round(r.stars.window),
-            (r.chronicle?.themes || []).map((t) => `${t.id}:${t.tone}`).sort().join(',')]).sort(),
+            (r.chronicle?.themes || []).map((t) => `${t.id}:${t.tone}:${t.intensity || 1}`).sort().join(',')]).sort(),
         (classReading.chronicle?.interests || []).map((i) => `${i.id}:${i.children.length}`).join(',')
     ]);
     let h = 2166136261;
@@ -996,7 +1105,7 @@ export function fingerprintOf(readings, classReading) {
  * The compact class brief the Almanac's AI reads: numbers, signals and the THEMES of the teacher's
  * notes (labels such as "spelling (worry)"), never the private note text itself.
  */
-const AI_PRIVATE = new Set(['home', 'support', 'worry', 'newcomer']);
+const AI_PRIVATE = new Set(['home', 'support', 'worry', 'newcomer', 'selftalk']);
 
 export function almanacBrief(green, { className = '', level = '' } = {}) {
     const c = green.classReading;
@@ -1012,11 +1121,18 @@ export function almanacBrief(green, { className = '', level = '' } = {}) {
     const ch = c.chronicle;
     if (ch && ch.written) {
         const shared = ch.clusters.filter((x) => x.kind !== 'context' && !AI_PRIVATE.has(x.id) && (x.open.length + x.strong.length) >= 2)
-            .map((x) => `${x.label}${x.open.length ? ` worry ${x.open.length}` : ''}${x.strong.length ? ` strength ${x.strong.length}` : ''}${x.improving.length ? ` improving ${x.improving.length}` : ''}`);
+            .map((x) => {
+                const strong = x.open.filter((o) => (o.intensity || 1) >= 2).length;
+                const habit = x.open.filter((o) => o.pattern === 'trait').length;
+                return `${x.label}${x.open.length ? ` worry ${x.open.length}` : ''}${strong ? ` (${strong} written strongly)` : ''}${habit ? ` (${habit} a repeated pattern)` : ''}${x.strong.length ? ` strength ${x.strong.length}` : ''}${x.improving.length ? ` improving ${x.improving.length}` : ''}`;
+            });
         if (shared.length) lines.push(`Themes in the teacher's notes (children per theme): ${shared.join('; ')}.`);
         if (ch.interests.length) lines.push(`Interests from the notes: ${ch.interests.slice(0, 5).map((i) => `${i.label} (${i.children.map((x) => x.first).join(', ')})`).join('; ')}.`);
         if (ch.friction.length) lines.push(`Keep apart in pair work: ${ch.friction.slice(0, 4).map((p) => `${p.aFirst} & ${p.bFirst}`).join('; ')}.`);
     }
+    const packets = [...new Set([...c.insights.flatMap((i) => i.techniques), ...(ch?.clusters || []).flatMap((x) => x.techniques.slice(0, 1))])]
+        .map((id) => getTechnique(id)?.title).filter(Boolean).slice(0, 10);
+    if (packets.length) lines.push(`Seed packets (techniques) the app already suggests, which you may name: ${packets.join('; ')}.`);
     const p = green.plan;
     const planLines = [];
     if (p.focus.length) planLines.push(`tend first: ${p.focus.map((f) => f.first).join(', ')}`);
@@ -1049,7 +1165,7 @@ export const ALMANAC_COUNSELS = [
         task: 'Write a short, warm letter to the families of this class: what the class is good at, what we are working on together, and two simple ways families can help at home (in Greece, with little English at home). Never name or single out any child, never quote individual numbers, never mention anything private. About 150 words, plain paragraphs, no headings. Sign off as "Your English teacher".' }
 ];
 
-export const ALMANAC_SYSTEM_PROMPT = 'You are a wise, experienced primary ESL teacher, mentor and school counsellor in Greece, coaching a colleague who teaches English to Greek children through a gamified class quest (stars for the virtues Teamwork, Creativity, Respect and Focus; test and dictation papers; permanent guilds that must never be changed). You read a summary of ONE WHOLE CLASS: numbers, signals, the themes of the teacher\'s private notes and the plan the app already made for the next lesson. Your advice is for the whole class: routines, groupings, the climate of the room, differentiation and how the teacher notices children; named children appear only where the plan calls for them, and one child\'s full picture belongs to that child\'s own Oracle, so do not write individual profiles. Ground every suggestion in the data you were given and say briefly which part. Prefer proven classroom practice (retrieval practice, scaffolding and sentence frames, think-pair-share, choral and pair rehearsal before speaking, specific praise, restorative conversations, predictable routines, warm relationships). Be practical, warm and specific; something the teacher can use in the very next lesson. Use the children\'s first names exactly as given. Never invent data, never diagnose, never mention home or health matters. Markdown: "###" headings, short bullets, **bold** sparingly.';
+export const ALMANAC_SYSTEM_PROMPT = 'You are a wise, experienced primary ESL teacher, mentor and school counsellor in Greece, coaching a colleague who teaches English to Greek children through a gamified class quest (stars for the virtues Teamwork, Creativity, Respect and Focus; test and dictation papers; permanent guilds that must never be changed). You read a summary of ONE WHOLE CLASS: numbers, signals, the themes of the teacher\'s private notes and the plan the app already made for the next lesson. Your advice is for the whole class: routines, groupings, the climate of the room, differentiation and how the teacher notices children; named children appear only where the plan calls for them, and one child\'s full picture belongs to that child\'s own Oracle, so do not write individual profiles. Ground every suggestion in the data you were given and say briefly which part. Prefer proven classroom practice (retrieval practice, scaffolding and sentence frames, think-pair-share, choral and pair rehearsal before speaking, specific praise, restorative conversations, predictable routines, warm relationships). Be practical, warm and specific; something the teacher can use in the very next lesson. Use the children\'s first names exactly as given. Never invent data, never diagnose, never mention home or health matters. Markdown: "###" headings, short bullets, **bold** sparingly. Growth profiles in the summary: In full bloom (high effort and good papers), Reaching for light (trying hard, papers low: scaffolds, not pressure), Hidden roots (good papers, few stars: capable but rarely noticed), Wild growth (few stars and notes that describe restless, loud or rough behaviour: structure, a job and movement, not more warnings), Needs tending (low effort and low papers), Steady growth, Just planted (too few records). Evidence-based moves to prefer for behaviour: the Good Behaviour Game (team game with two rules), behaviour-specific praise, saying the expectation just before a tricky moment (precorrection), giving lively children a real job, daily goal cards for the few who need more, restorative chats after incidents.';
 
 /** A free question about the whole class, answered from the same brief. */
 export function almanacQuestionTask(question) {
@@ -1114,6 +1230,7 @@ export function classRoleOf(green, studentId) {
         profileLabel: PROFILES[r.profile].label,
         profileIcon: PROFILES[r.profile].icon,
         meaning: PROFILES[r.profile].meaning,
+        why: r.profileWhy || '',
         summary: r.summary,
         action: r.action,
         priority: r.priority,
@@ -1135,7 +1252,7 @@ export function classRoleOf(green, studentId) {
 /** A short plain-text version for the Oracle's AI brief (no note text, first names only). */
 export function classRoleBrief(role) {
     if (!role) return '';
-    const lines = [`IN THE CLASS (from the Class Greenhouse, ${role.classSize} children): growth profile "${role.profileLabel}" (${role.meaning})`];
+    const lines = [`IN THE CLASS (from the Class Greenhouse, ${role.classSize} children): growth profile "${role.profileLabel}" (${role.meaning})${role.why ? `; why: ${role.why}` : ''}`];
     const n = role.numbers;
     const bits = [];
     if (n.starsPerLesson != null) bits.push(`${n.starsPerLesson} stars a lesson${n.classStarsPerLesson != null ? ` (class ${n.classStarsPerLesson})` : ''}`);

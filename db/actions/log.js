@@ -14,7 +14,8 @@ import {
     serverTimestamp,
     increment,
     orderBy,
-    getDoc
+    getDoc,
+    deleteField
 } from '../../firebase.js';
 import * as state from '../../state.js';
 import { showToast, showPraiseToast } from '../../ui/effects.js';
@@ -53,6 +54,9 @@ export async function addOrUpdateHeroChronicleNote(studentId, noteText, category
     try {
         if (noteId) {
             const noteRef = doc(db, `${PUBLIC_DATA_PATH}/hero_chronicle_notes`, noteId);
+            // Changed words: the saved AI reading belongs to the old text, so the next reading round reads it again.
+            const before = (state.get('allHeroChronicleNotes') || []).find((n) => n.id === noteId);
+            if (before?.aiReading && before.noteText !== noteText) noteData.aiReading = deleteField();
             await updateDoc(noteRef, noteData);
             showToast("Note updated successfully!", "success");
         } else {
@@ -64,6 +68,42 @@ export async function addOrUpdateHeroChronicleNote(studentId, noteText, category
         console.error("Error saving Hero's Chronicle note:", error);
         showToast("Failed to save note.", "error");
     }
+}
+
+/**
+ * The teacher's correction of how a note was read ("not this", "add: lively").
+ * fix = { add: [{ id, tone }], remove: [id], h } (h = hash of the note text it was made for),
+ * or null to go back to the automatic reading. Only the note's own teacher can write it.
+ */
+export async function setChronicleNoteReadingFix(noteId, fix) {
+    if (!noteId) return false;
+    try {
+        const ref = doc(db, `${PUBLIC_DATA_PATH}/hero_chronicle_notes`, noteId);
+        const empty = !fix || (!(fix.add || []).length && !(fix.remove || []).length);
+        await updateDoc(ref, empty
+            ? { readingFix: deleteField() }
+            : { readingFix: { add: (fix.add || []).slice(0, 12), remove: (fix.remove || []).slice(0, 12), h: fix.h || '', at: Date.now() } });
+        return true;
+    } catch (error) {
+        console.error('Could not save the reading correction:', error);
+        showToast('Could not save that change. Try again in a moment.', 'error');
+        return false;
+    }
+}
+
+/**
+ * Saves AI readings on the teacher's own notes in one batch: { [noteId]: { v, h, t } }.
+ * Used by the weekly reading round (ui/modals/noteAiReader.js).
+ */
+export async function saveChronicleNoteAiReadings(readings) {
+    const entries = Object.entries(readings || {});
+    if (!entries.length) return 0;
+    const batch = writeBatch(db);
+    entries.forEach(([noteId, reading]) => {
+        batch.update(doc(db, `${PUBLIC_DATA_PATH}/hero_chronicle_notes`, noteId), { aiReading: { ...reading, at: Date.now() } });
+    });
+    await batch.commit();
+    return entries.length;
 }
 
 export async function deleteHeroChronicleNote(noteId) {

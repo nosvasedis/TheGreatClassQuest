@@ -150,6 +150,18 @@ rulesTest('oath shape, plan, ownership, year and bounded histories are enforced'
   await env.withSecurityRulesDisabled(context => updateDoc(doc(context.firestore(), DATA + '/school_year_state/current'), { activeYearKey:'2027-2028' }));
   await assertFails(updateDoc(ref,{text:'Cannot edit closed year'}));
 });
+rulesTest('a teacher saves reading corrections and AI readings on their own Chronicle notes only', async () => {
+  await seedCampfire();
+  const db = env.authenticatedContext('teacher').firestore(), ref = doc(db, DATA + '/hero_chronicle_notes/read-me');
+  await assertSucceeds(setDoc(ref, { studentId: 'student-1', teacherId: 'teacher', schoolYearKey: '2026-2027', category: 'Behavior', noteText: 'ΠΟΛΥ ΖΩΗΡΟΣ', createdAt: serverTimestamp() }));
+  await assertSucceeds(updateDoc(ref, { readingFix: { add: [{ id: 'energetic', tone: 'worry' }], remove: ['tired'], h: 'abc', at: 1 } }));
+  await assertSucceeds(updateDoc(ref, { aiReading: { v: 1, h: 'abc', t: ['energetic|w|3|0'], at: 1 } }));
+  await assertSucceeds(setDoc(doc(db, DATA + '/daily_cache/note_round_teacher'), { type: 'note_round', teacherId: 'teacher', leaseUntil: 1 }, { merge: true }));
+  await assertFails(updateDoc(ref, { teacherId: 'someone-else' }));
+  const other = env.authenticatedContext('other-teacher').firestore();
+  await assertFails(updateDoc(doc(other, DATA + '/hero_chronicle_notes/read-me'), { readingFix: { add: [], remove: ['energetic'] } }));
+});
+
 rulesTest('keeping an oath writes one chronicle receipt and keepsake without changing gold or stars', async () => {
   await seedCampfire();
   const db=env.authenticatedContext('teacher').firestore(), oath=doc(db,DATA+'/ember_oaths/kept'), score=doc(db,DATA+'/student_scores/student-1'), note=doc(db,DATA+'/hero_chronicle_notes/ember_kept');

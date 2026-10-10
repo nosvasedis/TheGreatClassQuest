@@ -31,7 +31,12 @@ Three index cards side by side:
 
 ### My Classes
 
-Each class is a card: emblem, name, Quest League, days and times. The buttons along the card are **Report** (Elite, the weekly report below), **Edit**, **Students** (the roster, below), **Oaths** (the class’s Ember Oaths board, Pro), and the **trash can**, always last. Deleting a class deletes its students too, so the app asks first.
+Each class is an index card on your desk: emblem, name, Quest League, and the days and times it meets. Under the meeting times sit two pills: **Edit class** (it turns amber and says **Set schedule** when the days or times are missing) and **Delete class** (soft red; deleting a class deletes its students too, so the app asks first). A tray of tools follows, in two groups, and every tool shows its name and a short hint:
+
+- **In class:** **Roster** (with the live student count; the roster is below) and **Ember Oaths** (the class’s Oath Board, Pro).
+- **Insight:** **Greenhouse** (*How they’re growing*, the whole-class view below) and **Weekly report** (Elite, below; on other plans it shows a lock and *Elite plan*).
+
+On a phone the tools sit as two-column tiles.
 
 **Add New Class** opens a **class charter**: a founding page with the class emblem pinned on its ribbon.
 
@@ -51,7 +56,7 @@ Each class is a card: emblem, name, Quest League, days and times. The buttons al
 
 ### Weekly report (Elite)
 
-**Report** on a class card (or on Home) opens **The Week's Scroll** for one Monday–Sunday week. Early in the week, when nothing is logged yet, it opens on last week. The arrows (or ← / →) step back up to three weeks.
+**Weekly report** on a class card (or **Report** on Home) opens **The Week's Scroll** for one Monday–Sunday week. Early in the week, when nothing is logged yet, it opens on last week. The arrows (or ← / →) step back up to three weeks.
 
 - **The week in numbers** — stars earned (with the change against the week before), lessons, heroes recognised (for example 11/13), attendance, and the trial average.
 - **Quick observations** — growth, the virtue that led, a quiet virtue, heroes not yet recognised, and heroes who missed two or more lessons.
@@ -76,6 +81,8 @@ Your **display name** — the Quest Master name on logs, ceremonies, and the Adv
 
 This is the class list you live in. The header has **Classes** (back), **New Student**, and the student count.
 
+The header also has **Greenhouse**, which opens the Class Greenhouse for this class (below).
+
 **New Student** on this roster adds a name to *your* class. The School Office can also **Add a new student** from Admin; that hero is still **yours** to teach.
 
 If returning heroes are still waiting for a class, a gold **Returning adventurers** panel (*Student setup*) sits above the roster with the number waiting. It starts collapsed. Open it to search, tick students (suggestions come first, by last year’s league; each card shows the old class and league), and **Place Selected** — a live count shows how many you ticked. This is the teacher’s seat for last year’s students — not the School Office **Student placement** wizard, and not **Add a new student**.
@@ -85,7 +92,7 @@ Each row shows the avatar, name, Hero Class or title, and a guild chip, then **t
 | Group | Button | What it does |
 |-------|--------|----------------|
 | **Hero path** | **Sort** (wizard hat) | Only for a student with no guild yet: opens the **Sorting Ceremony**, the guild placement quiz (Pro; locked on Starter). Once sorted, the slot shows the guild emblem and is no longer a button — guilds are for life. |
-| | **Class** (shield) | Only if they have no Hero Class yet: opens the **Hero Class** ceremony (Pro). Once chosen, the slot shows the class; changing it stays behind **Edit → Hero path**. |
+| | **Class** (shield) | Opens the **Hero Class** ceremony (Pro). With no class yet it says **Choose**. Once chosen, the slot shows the class emblem and is still a button: tap it to open the **Deck of Paths** and change the class. The same two-changes-a-year rule applies (see the Hero Path chapter); when the path is locked it opens as a read-only shrine. |
 | | **Skills** (sitemap) | Opens the Skill Tree (Pro). **Pulses** when a new branch is waiting. See the Hero Path chapter. |
 | **Records** | **Chronicle** (book) | Hero’s Chronicle, your private notebook for this child (below). |
 | | **Parents** (shield) | Jumps to Family Access for this child (Pro). |
@@ -126,6 +133,8 @@ Elite. Open it from **Avatar** on the roster, or from the Passport. The forge ma
 
 **Chronicle** on the roster (or in the Passport) opens the hero’s own bound book. This is **your** notebook — not the Adventure Log the class hears, and not the Family Portal. Page tabs on the side: **Notes**, **Oaths**, **The Oracle**.
 
+The cover of the book carries a small green ribbon with this child’s place in the class (their growth stage, for example *Reaching for light*). Tap it to see the child’s glowing dot in the Class Greenhouse. The Greenhouse steps back behind the Chronicle and returns when you close it.
+
 **Notes:** **History of Deeds** on the left, a dated timeline. **Write an entry** on the right: choose what it is about, write what happened, **Save Note**. Categories in the app:
 
 - 📓 **General**
@@ -138,9 +147,35 @@ You can edit or delete an entry (**Cancel Editing** leaves an edit). Families ne
 
 **Oaths** (Pro): this child’s Ember Oaths — see the Hero Campfire chapter.
 
-**The Oracle** (Elite): **Ask the Oracle** for Parent Summary, Teacher Strategy, Traits & Trends (strengths / weaknesses), or Hero’s Goal. It reads notes, trial scores, and stars. You still decide what to keep. **Publish to Parent Portal** writes a parent-safe summary that families can read — the only way anything from this book reaches them.
+**The Oracle.** The page opens on **a reading of what you wrote**, made on your computer with no AI, so it works on every plan. It reads your notes sentence by sentence, in English and in Greek, and shows:
 
-**Hero’s Chronicle notes** exist on every subscribed plan. The Oracle is Elite.
+- **In the class:** this child’s growth stage in the class, how their numbers compare with the class, the class plan for the next lesson, and themes shared with classmates.
+- **Threads to pick up:** each worry, with the sentence that said it and how it has moved (a new worry, still there, slipping back, getting better).
+- **Bright spots**, and **background to handle with care** (home, health and similar notes are kept gentle and private).
+- **What you tried** and whether later notes say it helped.
+- Your notes set against the **papers and stars**, the **classmates and passions** named in them, and the **parts of an English learner your notes have not covered yet** (tap one to write about it).
+
+Under every note, a **Read as** line shows what the reading took from it (for example *Lively, hard to settle · worry !!* when you wrote *ΠΟΛΥ ΖΩΗΡΟΣ*). It understands Greek, English and Greeklish (*poly zwhros*), notes typed without accents or in capitals, spelling slips, *not* / *δεν* (“δεν είναι αγενής” is not read as rude), *but* / *αλλά* (a worry and a strength in one sentence), how strongly you wrote it (*πολύ*, *very*, capitals, *!!*) and whether it is a pattern (*always*, *συνέχεια*) or a one-off (*today*, *σήμερα*). If a reading is wrong, tap **×** on it (“not this”) or **+ Add** to choose the right theme and whether it is a worry, getting better or a strength. Your correction wins everywhere: in the Oracle, the Greenhouse and the AI pages. **Undo my changes** goes back to the automatic reading. Notes from the School Office show their reading but cannot be corrected here.
+
+**On Elite**, once a week the Oracle also gives a **deep reading** to the notes the automatic reading was unsure of (nothing named, Greeklish or mixed languages, long mixed notes). It runs quietly in the background, only when such notes are new or edited, at most three short AI requests a round, and the result is saved on the note, so a note is never read twice unless you change its words. Notes about home, health or a diagnosis, and notes you already corrected, are never sent. A reading it added shows a small wand.
+
+**On Elite**, the Oracle also writes four counsels from your own words, citing your notes (tap a reference such as [N3] to open that note): **Teaching Plan**, **Deep Reading**, **Hero’s Goal** (a four-week path and a line for an Ember Oath) and **Parent Summary**. **Ask the Oracle** answers a free question about the child. Each page is kept, so every computer opens the same page without asking again; **Write a fresh…** appears when your notes or the child’s results have changed. While you write a note, **The Oracle hears** shows the themes it picks up, with a tip to name the skill or to add what you tried. **Publish to Parent Portal** reuses the stored Parent Summary and sends it as plain text, the only way anything from this book reaches families. Parent summaries never see notes about home, health, support needs or anxiety, and nothing read from them. You still decide what to keep.
+
+**Hero’s Chronicle notes** and the Oracle’s reading exist on every subscribed plan. The AI counsels are Elite.
+
+## Class Greenhouse
+
+The Chronicle reads one child. The **Class Greenhouse** reads the **whole class**, beside it. Open it from **Greenhouse** on a class card in My Classes, from the roster header, or from the green ribbon on a child’s Chronicle. It uses the last six weeks of stars and virtues, papers against the class, attendance, Chronicle notes and Ember Oaths, and it is worked out on your computer. It shows **no ranks**, and it never changes a guild.
+
+It has three pages:
+
+| Page | What it shows |
+|---|---|
+| **The class** | A one-line reading of the class this week with four numbers (stars a child per lesson, papers average, attendance, children with a recent note). **Three moves** for the class. **Who needs you first.** The **growth map** (an even 3 × 3 grid, every child a dot placed by effort against papers) with a stage: *In full bloom*, *Reaching for light*, *Steady growth*, *Hidden roots* (good papers, few stars: capable but rarely noticed), *Wild growth* (few stars, and your notes describe the child as restless, loud or rough: structure, a job and movement, not more warnings), *Needs tending* or *Just planted*. Tap a dot, or read its tooltip, for why the child sits there (stars a lesson against the class, papers, what your notes say). **Who needs you first** sits beside the map. Below them, **What your notes say** across the class, full width: how your notes read (worries, mixed, good news, plain) and in which languages, the **shared patterns** (the same worry in two or more children, with a seed packet), then columns for **Behaviour**, **Habits**, **Friends & feelings**, **Learning English** and **Strengths**. Each theme shows how many children are a worry, getting better or a strength, and the children as coloured chips (a “!” when you wrote it strongly); long lists fold away. Under them: passions, keep apart, good together, gone quiet and no notes yet. The stars and papers in detail, folded away. |
+| **Next lesson** | The rounds for next lesson: who to tend first, notes to follow up, who to catch shining, welcome-backs and catch-ups, small groups and buddies from your notes, who to keep apart, lesson hooks with words, and **ability crews** (Stretch, Core, Support) and partners for one activity. Ticks are kept on this computer. |
+| **Counsel** | The **Gardener’s Almanac** (Elite): *This week, lesson by lesson*, *Groups, pairs and seating*, *Coach me* and *Letter to the families*, plus an ask box for your own question. Each page is written once per class and shared by every computer in the school; **Write a fresh…** appears when the records change. Below it, the **seed shelf**: 66 classroom techniques for English as a foreign language and for behaviour (among them the Good Behaviour Game, *Say it before, not after*, *A job for the energy*, *A daily goal card*, *Their own tick sheet*, *A planned partner* and *Not yet*), the ones picked for this class first. |
+
+Tap any child’s name and their Chronicle opens on top; the Greenhouse comes back when it closes. The reading uses the same reader as the Chronicle: 46 themes in Greek, English and Greeklish (talks over others, lively and hard to settle, clowns for attention, ignores instructions, homework, careless mistakes, disorganised, working on their own, friction, bossy, alone or left out, gives up, the language skills, falls back on Greek, kind helper, hard-working, curious, keeps trying and more), the tone of each (a worry, getting better, a strength, background), how strongly it was written and whether it is a pattern or a one-off. A worry written strongly or again and again pulls harder; a one-off fades sooner. Worries that went quiet are flagged, learning worries are checked against the papers, and an anxious or home note puts the gentlest move first. Friction pairs are kept apart in partners; warm pairs and helpers become buddies; passions become lesson hooks. The Almanac gets theme labels only, never your notes’ text and nothing about home, health, support needs or anxiety.
 
 ## My Planning
 

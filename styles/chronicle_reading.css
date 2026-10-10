@@ -1,0 +1,125 @@
+/* styles/chronicle_reading.css
+   "Read as" under each Hero's Chronicle note (ui/modals/chronicleNoteReading.js): small chips
+   for how the note was read, an × to say "not this", and a picker to add a missed theme.
+   Loaded with that lazy module, so it never weighs on the first paint. */
+
+.hc-read {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.55rem;
+    padding-top: 0.45rem;
+    border-top: 1px dashed rgba(120, 90, 50, 0.22);
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.7rem;
+}
+
+.hc-read__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #7c3aed;
+}
+
+.hc-read__none { font-style: italic; color: #8a7a9e; }
+
+.hc-read__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.08rem 0.25rem 0.08rem 0.5rem;
+    border-radius: 999px;
+    font-weight: 700;
+    line-height: 1.5;
+}
+.hc-read__chip > span:first-child { font-size: 0.55rem; opacity: 0.75; }
+.hc-read__chip--worry { background: #fef3c7; color: #92400e; }
+.hc-read__chip--better { background: #dbeafe; color: #1e4f8a; }
+.hc-read__chip--strength { background: #d1fae5; color: #047857; }
+.hc-read__chip--context { background: #ede9fe; color: #4c3a8a; }
+.hc-read__dots { font-weight: 900; color: #c2410c; }
+.hc-read__src { font-size: 0.6rem; opacity: 0.7; }
+
+.hc-read__x {
+    display: inline-grid;
+    place-items: center;
+    width: 1.05rem;
+    height: 1.05rem;
+    border-radius: 50%;
+    font-size: 0.6rem;
+    color: inherit;
+    opacity: 0.55;
+    transition: opacity 0.15s ease, background 0.15s ease;
+}
+.hc-read__x:hover, .hc-read__x:focus-visible { opacity: 1; background: rgba(0, 0, 0, 0.08); outline: none; }
+
+.hc-read__add, .hc-read__reset {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.08rem 0.55rem;
+    border-radius: 999px;
+    font-weight: 800;
+    color: #6d28d9;
+    background: transparent;
+    border: 1px dashed rgba(124, 58, 237, 0.45);
+}
+.hc-read__add:hover, .hc-read__add:focus-visible { background: #f5f3ff; outline: none; }
+.hc-read__reset { border-style: solid; border-color: transparent; color: #8a7a9e; text-decoration: underline; }
+
+/* The picker */
+.hc-pick {
+    margin-top: 0.45rem;
+    padding: 0.6rem;
+    border-radius: 0.8rem;
+    background: #fffdf8;
+    border: 1px solid rgba(124, 58, 237, 0.25);
+    box-shadow: 0 12px 28px -18px rgba(46, 36, 69, 0.6);
+    font-family: 'Open Sans', sans-serif;
+}
+.hc-pick__top { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+.hc-pick__search {
+    flex: 1 1 12rem;
+    min-width: 0;
+    padding: 0.35rem 0.6rem;
+    border-radius: 0.55rem;
+    border: 1px solid #ddd3f3;
+    font-size: 0.8rem;
+}
+.hc-pick__tones { display: inline-flex; flex-wrap: wrap; gap: 0.25rem; }
+.hc-pick__tone {
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #6b5b95;
+    background: #f5f3ff;
+    border: 1px solid #e4dcfb;
+}
+.hc-pick__tone.is-on { color: #fff; background: #7c3aed; border-color: #7c3aed; }
+.hc-pick__close { margin-left: auto; width: 1.7rem; height: 1.7rem; border-radius: 50%; color: #6b5b95; }
+.hc-pick__close:hover { background: #f5f3ff; }
+.hc-pick__list { max-height: 15rem; overflow-y: auto; margin-top: 0.45rem; display: grid; gap: 0.45rem; }
+.hc-pick__domain { font-size: 0.66rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; color: #9a6b12; margin-bottom: 0.2rem; }
+.hc-pick__group { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.hc-pick__domain { flex-basis: 100%; }
+.hc-pick__theme {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 0.55rem;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: #2e2445;
+    background: #fff;
+    border: 1px solid #ebe5f7;
+}
+.hc-pick__theme i { color: #8b6fd6; font-size: 0.7rem; }
+.hc-pick__theme small { font-weight: 600; color: #8a7a9e; }
+.hc-pick__theme:hover, .hc-pick__theme:focus-visible { border-color: #7c3aed; background: #faf7ff; outline: none; }
+.hc-pick__theme[hidden], .hc-pick__group[hidden] { display: none; }

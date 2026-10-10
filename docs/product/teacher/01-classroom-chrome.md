@@ -20,7 +20,7 @@ Left to right:
 | **Class selector** | **Follow today’s schedule** is the default when you open the app: it switches to the class in session, and to **General view** when no lesson is on. You can still pick **General view** or a named class by hand — that pauses follow until you tap Follow today’s schedule again. Almost every tab follows this choice. |
 | **Information** (i) | Opens **The Adventurer’s Guide**, a pocket field guide to the Quest (see below). New teachers see it once, on its **Start here** chapter. |
 | **Projector Mode** (TV icon) | Full-screen classroom display. Not available on the phone header. |
-| **School Office** (shield) | Only when this school has Secretary access (Elite). Opens the School Office. |
+| **Quest Remote** (wand) | Pro and Elite. Opens the rune circle that links your phone as a Wand for the projector (see the Quest Remote chapter). Its colour is the Wand’s status light. |
 | **Settings** (cog) | **Teacher Settings** (classes, roster tools, Family Access, Quiz setup, and more). |
 | **Log out** | Signs you out of this device. |
 
@@ -231,7 +231,7 @@ Other quiet treats you will meet elsewhere in this guidebook:
 | Settings cog in the header; section **dropdown** inside Settings | Game Guide (i) and Settings cog in the phone header; Settings sections chosen from a **sheet**, each with its one-line hint |
 | Log out in the header | **Log out** sits at the bottom of the **More** sheet, next to **Game Guide**, so it is never tapped by accident |
 
-**More** opens a sheet of cloud tiles: Mystic Market, Guild Hall, Adventure Log, Scholar’s Scroll, Quest Calendar, Training Grounds, Student Roster, School Office (if allowed), and Settings. While one of those tabs is open, the **More** cloud takes its colour, icon and short name (for example *Market*), with three small dots to say it still opens the sheet.
+**More** opens a sheet of cloud tiles: Mystic Market, Guild Hall, Adventure Log, Scholar’s Scroll, Quest Calendar, Training Grounds, Student Roster, and Settings. Quest Remote has its own tile in **More** on a phone. While one of those tabs is open, the **More** cloud takes its colour, icon and short name (for example *Market*), with three small dots to say it still opens the sheet.
 
 The **class picker** shows each of your classes with its days and time, a **Today** tag when it meets today and an **In session** tag while the lesson is on. **Follow today’s schedule** is a switch at the top; a tick marks the class you are viewing.
 

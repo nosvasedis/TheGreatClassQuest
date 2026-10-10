@@ -236,7 +236,32 @@ export const TECHNIQUES = [
     { id: 'strength-notes', area: 'wellbeing', time: '2 min after class', title: 'Write the good days too',
         how: 'For every worry you write in the Chronicle, add one line about something that went well, for any child.',
         why: 'A Chronicle of only worries hides the progress you need to see, and it is what the next teacher reads.',
-        tool: "Hero's Chronicle" }
+        tool: "Hero's Chronicle" },
+
+    // Read from the Chronicle: lively, restless and discouraged children (evidence-based)
+    { id: 'good-behaviour-game', area: 'routine', time: '10 min', title: 'The Good Behaviour Game',
+        how: 'Split the class into two or three teams for one activity, name two rules ("hand up", "stay in your seat"), and mark a point against a team only when a rule is broken. Every team under three marks wins a star.',
+        why: 'One of the best-researched classroom routines (rated as strong evidence by the US What Works Clearinghouse): lively children manage themselves because the team counts on them.',
+        tool: 'Team Maker' },
+    { id: 'precorrection', area: 'routine', time: '20 sec', title: 'Say it before, not after',
+        how: 'Just before the moments that go wrong (lining up, pair work, a game), say the one expectation calmly ("Walking feet, quiet voices") and look at the child who needs it most. Praise the first ones who do it.',
+        why: 'A reminder before the tricky moment prevents what a warning after it cannot undo.' },
+    { id: 'energy-job', area: 'routine', time: 'Set once', title: 'A job for the energy',
+        how: 'Give a lively child a moving job for the lesson: board writer, handing out books, timekeeper, Fair Picker operator. Change the job each week.',
+        why: 'Energy that has a purpose stops leaking into the lesson, and the child gets a reason to be noticed for the right things.' },
+    { id: 'daily-report-card', area: 'support', time: '1 min a lesson', title: 'A daily goal card',
+        how: 'Agree two simple goals with the child ("I put my hand up", "I finish task one"). At the end of the lesson, tick them together and send the card home or note it for the family.',
+        why: 'Daily report cards are one of the approaches the Education Endowment Foundation recommends for children who need more than the class routine.',
+        tool: 'Parent Portal' },
+    { id: 'self-monitoring', area: 'focus', time: '1 min', title: 'Their own tick sheet',
+        how: 'Give the child a small card with one goal and five boxes. When you give a quiet signal, they tick if they were on task. Count the ticks together at the end.',
+        why: 'Children who learn to notice their own focus need fewer reminders from you.' },
+    { id: 'structured-play', area: 'wellbeing', time: 'Set once', title: 'A planned partner',
+        how: 'For a child who is often alone, choose their partner for pair work and games yourself (a kind, patient one), and give the pair a shared job.',
+        why: 'Children who are left out rarely find a partner on "find a partner". A planned one gives friendship a start.' },
+    { id: 'growth-talk', area: 'wellbeing', time: 'Any time', title: 'Not yet',
+        how: 'When a child says "I can\'t", answer "You can\'t yet" and give the first small step. Praise the trying out loud: "You had a go at the hard one."',
+        why: 'Children who give up quickly need to hear that mistakes are part of learning English, not proof they are bad at it.' }
 ];
 
 const TECHNIQUE_BY_ID = new Map(TECHNIQUES.map((t) => [t.id, t]));

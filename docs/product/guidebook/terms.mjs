@@ -669,10 +669,46 @@ export const TERMS = [
     names: { en: 'Showdown Arena', el: 'Showdown Arena' },
     aliases: ['showdown arena', 'showdown', 'team race', 'garden showdown'],
     def: {
-      en: 'A team race on the projector run from the Wand: you ask out loud and give the point to the team that answered. Optional Teamwork star for the winners (the usual one award a day). Nursery and Pre-Junior grow flowers instead: no numbers, everyone blooms.',
-      el: 'Αγώνας ομάδων στον projector από το Ραβδί: ρωτάτε προφορικά και δίνετε τον πόντο στην ομάδα που απάντησε. Προαιρετικό αστέρι Teamwork για τους νικητές (ο συνηθισμένος κανόνας ενός βραβείου τη μέρα). Στα Nursery και Pre-Junior μεγαλώνουν λουλούδια: χωρίς αριθμούς, ανθίζουν όλοι.'
+      en: 'A team game on the projector run from the Wand. The Team Forge builds the teams (never a guild change) and picks the game: Race, Tug of War, Survivor or Treasure. You ask out loud or let the arena bring past-quiz and book-word questions, then give the point to the team that answered. Optional Teamwork stars for the winners (the usual one award a day). Nursery and Pre-Junior grow flowers instead: no numbers, everyone blooms.',
+      el: 'Παιχνίδι ομάδων στον projector από το Ραβδί. Το Team Forge φτιάχνει τις ομάδες (ποτέ αλλαγή guild) και διαλέγει το παιχνίδι: Race, Tug of War, Survivor ή Treasure. Ρωτάτε προφορικά ή αφήνετε την αρένα να φέρει ερωτήσεις από παλιά quiz και λέξεις βιβλίου, και δίνετε τον πόντο στην ομάδα που απάντησε. Προαιρετικά αστέρια Teamwork για τους νικητές (ο συνηθισμένος κανόνας ενός βραβείου τη μέρα). Στα Nursery και Pre-Junior μεγαλώνουν λουλούδια: χωρίς αριθμούς, ανθίζουν όλοι.'
     },
     confuse: { en: 'Quiz of the Week (Elite, one hero answers at a time); Bounties (class star-vs-timer)', el: 'Quiz of the Week (Elite, ένας ήρωας τη φορά)· Bounties (αστέρια τάξης κόντρα στον χρόνο)' }
+  },
+  {
+    id: 'class-greenhouse',
+    chapter: 'settings',
+    widget: 'none',
+    names: { en: 'Class Greenhouse', el: 'Class Greenhouse' },
+    aliases: ['class greenhouse', 'greenhouse', 'growth map', 'gardener’s almanac', 'gardeners almanac', 'almanac', 'seed shelf'],
+    def: {
+      en: 'Your private view of the whole class, beside each child’s Chronicle: a growth map, who needs you first, the rounds for the next lesson, and (Elite) the Gardener’s Almanac. Worked out on your computer from stars, papers, attendance, Chronicle notes and Ember Oaths. No ranks, and it never changes a guild.',
+      el: 'Η ιδιωτική σου εικόνα ολόκληρου του τμήματος, δίπλα στο Chronicle κάθε παιδιού: growth map, ποιος σε χρειάζεται πρώτος, οι γύροι για το επόμενο μάθημα και (Elite) το Gardener’s Almanac. Υπολογίζεται στον υπολογιστή σου από αστέρια, γραπτά, παρουσίες, σημειώσεις Chronicle και Ember Oaths. Χωρίς κατατάξεις και χωρίς αλλαγή guild.'
+    },
+    confuse: { en: 'Hero’s Chronicle (one child); Team Quest (class vs class); the Weekly report', el: 'Hero’s Chronicle (ένα παιδί)· Team Quest (τμήμα απέναντι σε τμήμα)· Weekly report' }
+  },
+  {
+    id: 'team-forge',
+    chapter: 'quest-remote',
+    widget: 'none',
+    names: { en: 'Team Forge', el: 'Team Forge' },
+    aliases: ['team forge', 'tug of war', 'survivor', 'treasure', 'book words', 'golden question', 'hot seat'],
+    def: {
+      en: 'The setup page the Wand opens before a Showdown: split the class six ways (Fair, Mixed, Luck, Guilds, Today, Dragon), choose the game, the answer clock and the questions. Nothing is saved until the show starts.',
+      el: 'Η σελίδα ρύθμισης που ανοίγει το Ραβδί πριν από ένα Showdown: χωρίστε την τάξη με έξι τρόπους (Fair, Mixed, Luck, Guilds, Today, Dragon) και διαλέξτε παιχνίδι, ρολόι απάντησης και ερωτήσεις. Τίποτα δεν αποθηκεύεται μέχρι να ξεκινήσει το show.'
+    },
+    confuse: { en: 'Team Maker (the Home tool, kept for the class)', el: 'Team Maker (εργαλείο του Home, κρατιέται για το τμήμα)' }
+  },
+  {
+    id: 'keepers-parcel',
+    chapter: 'market',
+    widget: 'none',
+    names: { en: 'Keeper’s Parcel', el: 'Keeper’s Parcel' },
+    aliases: ['keeper’s parcel', 'keepers parcel', 'parcel', 'receipt', 'paid stamp'],
+    def: {
+      en: 'The wrapped parcel, torn receipt and PAID stamp that close a Market purchase. Tap to skip; Esc closes it; reduced motion shows the finished scene.',
+      el: 'Το τυλιγμένο δέμα, η σκισμένη απόδειξη και η σφραγίδα PAID που κλείνουν μια αγορά στο Market. Πάτα για να το προσπεράσεις· το Esc το κλείνει· με μειωμένη κίνηση βλέπεις αμέσως την ολοκληρωμένη σκηνή.'
+    },
+    confuse: { en: 'Trophy Room (where the ware is kept)', el: 'Trophy Room (όπου φυλάσσεται το εμπόρευμα)' }
   },
   {
     id: 'sky-theater',
@@ -717,8 +753,8 @@ export const TERMS = [
     names: { en: "Hero's Chronicle", el: "Hero's Chronicle" },
     aliases: ["hero's chronicle", 'heros chronicle', 'chronicle notes', 'oracle'],
     def: {
-      en: 'The hero’s bound book, opened from Chronicle on Manage Students or the Adventurer’s Passport: private Notes (General, Academic, Behavior, Social, Goals), Oaths, and The Oracle (Elite: Parent Summary, Teacher Strategy, Traits & Trends, Hero’s Goal). Families only see an Oracle summary you publish.',
-      el: 'Το δεμένο βιβλίο του ήρωα, από το Chronicle στο Manage Students ή από το Adventurer’s Passport: ιδιωτικές Notes (General, Academic, Behavior, Social, Goals), Oaths και The Oracle (Elite). Οι οικογένειες βλέπουν μόνο μια σύνοψη Oracle που δημοσιεύεις.'
+      en: 'The hero’s bound book, opened from Chronicle on Manage Students or the Adventurer’s Passport: private Notes (General, Academic, Behavior, Social, Goals), Oaths, and The Oracle (a reading of your own notes on every plan; on Elite also Teaching Plan, Deep Reading, Hero’s Goal and Parent Summary). Its cover ribbon links to the Class Greenhouse. Families only see an Oracle summary you publish.',
+      el: 'Το δεμένο βιβλίο του ήρωα, από το Chronicle στο Manage Students ή από το Adventurer’s Passport: ιδιωτικές Notes (General, Academic, Behavior, Social, Goals), Oaths και The Oracle (ανάγνωση των σημειώσεών σου σε κάθε πλάνο· στο Elite και συμβουλές AI). Η κορδέλα του εξωφύλλου οδηγεί στο Class Greenhouse. Οι οικογένειες βλέπουν μόνο μια σύνοψη Oracle που δημοσιεύεις.'
     },
     confuse: { en: 'Adventure Log (the class story)', el: 'Adventure Log (η ιστορία της τάξης)' }
   },
@@ -889,7 +925,10 @@ export const TERM_ICONS = {
   'hero-campfire': 'fa-fire',
   'ember-oath': 'fa-scroll',
   'quest-remote': 'fa-wand-magic-sparkles',
-  'showdown-arena': 'fa-bolt'
+  'showdown-arena': 'fa-bolt',
+  'class-greenhouse': 'fa-seedling',
+  'team-forge': 'fa-people-group',
+  'keepers-parcel': 'fa-box-open'
 };
 
 /** Icons on Starter / Pro / Elite plan chips (labels may be longer than a single term). */
@@ -968,18 +1007,18 @@ export const CHAPTER_SEARCH = {
   'heros-challenge': ['prodigy', 'trophy', 'hall of prodigies', 'certificate'],
   'ceremony': ['monthly ritual', 'dual', 'teacher boon ribbon', 'co-prodigy', 'league duel', 'hero duel', 'growth festival', 'classic arena', 'golden bloom'],
   'quest-calendar': ['holidays', 'day planner', 'quest event', 'special quest', 'vocabulary vault'],
-  'market': ['gold', 'artifacts', 'familiars', 'eggs', 'mask'],
+  'market': ['gold', 'artifacts', 'familiars', 'eggs', 'mask', 'keeper’s parcel', 'receipt'],
   'guild-hall': ['guild banner', 'anthem', 'guild ceremony', 'great guild ceremony', 'grand guild ceremony', 'wheel', 'glory', 'crown race', 'crowns', 'unity seal', 'guild power', 'fortune ledger'],
   'award-stars': ['boon', 'teacher boon', 'hero boon', 'welcome back', 'virtues', 'heart'],
   'adventure-log': ['hero of the day', 'hall of heroes', 'diary', 'quest board', 'attendance chronicle', 'campfire', 'ember oaths'],
-  'hero-campfire': ['campfire', 'ember oath', 'oath board', 'star-ember', 'word embers', 'gather at the campfire', 'telescope'],
-  'quest-remote': ['quest remote', 'wand', 'showdown', 'timers', 'eyes on me'],
-  'scholars-scroll': ['starfall', 'tests', 'dictation', 'make-up'],
+  'hero-campfire': ['campfire', 'ember oath', 'oath board', 'star-ember', 'word embers', 'gather at the campfire', 'telescope', 'oath fire', 'oath forge', 'moon phase', 'choosing ceremony'],
+  'quest-remote': ['quest remote', 'wand', 'showdown', 'team forge', 'tug of war', 'survivor', 'treasure', 'book words', 'lesson mode', 'sound charms', 'look here', 'spotlight', 'timers', 'eyes on me', 'disconnect'],
+  'scholars-scroll': ['starfall', 'tests', 'dictation', 'make-up', 'could not be marked', 'unmarkable'],
   'story-weavers': ['writing', 'elite'],
-  'settings': ['my classes', 'roster', 'quiz setup', 'manage students', "hero's chronicle", 'oracle', 'passport', 'avatar forge', 'class charter', 'emblem'],
+  'settings': ['my classes', 'roster', 'quiz setup', 'manage students', "hero's chronicle", 'oracle', 'class greenhouse', 'gardener’s almanac', 'growth map', 'passport', 'avatar forge', 'class charter', 'emblem'],
   'hero-path': ['guardian', 'skill tree', 'nomad', 'paladin', 'sage', 'weaver', 'scholar', 'artificer', 'patron', "hero's boon"],
   'school-office': ['secretary', 'holidays', 'school details', 'new student', 'student placement', 'students & classes', 'former students', 'office notes'],
   'family-portal': ['parents', 'family access'],
   'glossary': ['names', 'confuse'],
-  'plans': ['starter', 'pro', 'elite', 'at a glance', 'caps']
+  'plans': ['starter', 'pro', 'elite', 'at a glance', 'caps', 'prices', 'billing', 'yearly', 'monthly', 'vat']
 };

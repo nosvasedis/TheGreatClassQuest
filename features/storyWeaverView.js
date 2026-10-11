@@ -151,3 +151,41 @@ export function readerGridHtml(pages) {
             <span class="sw-reader-card__text">${highlightWord(page.sentence, page.word)}</span>
         </button>`).join('')}</div>`;
 }
+
+// ─── Story Spark + Twist cards (content in trainingGrounds/content/storyContent.mjs) ──
+
+const SPARK_DECKS = {
+    hero: { label: 'Who?', icon: 'fa-user-astronaut' },
+    place: { label: 'Where?', icon: 'fa-map-location-dot' },
+    problem: { label: 'Uh-oh!', icon: 'fa-bolt' },
+    genre: { label: 'What kind of story?', icon: 'fa-masks-theater' }
+};
+
+/** The Story Spark for an empty book: draw-or-reroll cards and the opening line they make. */
+export function storySparkHtml({ spark = {}, decks = [], opening = '', wordLocked = false } = {}) {
+    const cards = decks.map((deck, i) => {
+        const meta = SPARK_DECKS[deck] || { label: deck, icon: 'fa-star' };
+        return `<button type="button" class="sw-spark__card sw-spark__card--${escapeHtml(deck)}" data-spark-deck="${escapeHtml(deck)}" style="--i:${i}" title="Draw another card">
+            <span class="sw-spark__deck"><i class="fas ${meta.icon}" aria-hidden="true"></i> ${escapeHtml(meta.label)}</span>
+            <span class="sw-spark__value">${escapeHtml(spark[deck] || '…')}</span>
+            <span class="sw-spark__reroll" aria-hidden="true"><i class="fas fa-rotate"></i></span>
+        </button>`;
+    }).join('');
+    return `<div class="sw-spark__head">
+            <p class="sw-spark__kicker"><i class="fas fa-wand-sparkles" aria-hidden="true"></i> Story Spark</p>
+            <p class="sw-spark__sub">A blank book! Draw a hero, a place and a problem. Tap a card to draw again.</p>
+        </div>
+        <div class="sw-spark__cards">${cards}</div>
+        ${opening ? `<p class="sw-spark__opening">“${escapeHtml(opening)}”</p>` : ''}
+        <div class="sw-spark__actions">
+            <button type="button" class="sw-ghost-btn" data-spark-all><i class="fas fa-shuffle" aria-hidden="true"></i><span>Draw all again</span></button>
+            <button type="button" class="sw-weave-btn sw-spark__use" data-spark-use${opening ? '' : ' disabled'} title="${wordLocked ? 'Start the first page with this opening' : 'Lock in the Word of the Day first'}"><i class="fas fa-feather-pointed" aria-hidden="true"></i><span>Use this opening</span></button>
+        </div>`;
+}
+
+/** A drawn Twist card for the next page. */
+export function storyTwistHtml(twist) {
+    if (!twist) return '';
+    return `<span class="sw-twist__text"><i class="fas fa-tornado" aria-hidden="true"></i> ${escapeHtml(twist)}</span>
+        <button type="button" class="sw-twist__use" data-twist-use>Use it</button>`;
+}

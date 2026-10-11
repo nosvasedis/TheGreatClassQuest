@@ -2,7 +2,7 @@ import * as state from '../../state.js';
 import { db, doc, collection, query, where, getDocs, getDoc, onSnapshot, runTransaction, serverTimestamp, addDoc, updateDoc } from '../../firebase.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { getLocalIsoDateString as getTodayDateString } from '../../utils.js';
-import { createOathDraft, evaluateOathEvidence, addOathCheckIn, dedupeEvidence, buildOathKeepsake } from '../../features/emberOathCore.mjs';
+import { createOathDraft, evaluateOathEvidence, addOathCheckIn, checkInDay, dedupeEvidence, buildOathKeepsake } from '../../features/emberOathCore.mjs';
 import { cleanCampfireText } from '../../features/heroCampfireCore.mjs';
 import { withSchoolYear } from '../../utils/schoolYear.js';
 import { dataPath } from '../../utils/tenant.mjs';
@@ -40,11 +40,12 @@ export async function createEmberOath(template, options) {
     const ref = await addDoc(collection(db, dataPath('ember_oaths')), { ...draft, createdBy: { uid: c.teacherId }, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
     return { ...draft, id: ref.id };
 }
-export async function checkInEmberOath(id, mood) {
+/** A 🔥 check-in also counts as a "Tried it" moment (derived in emberOathEvidence.mjs, nothing extra stored). */
+export async function checkInEmberOath(id, mood, { date = '' } = {}) {
     const c = oathContext(), ref = doc(db, dataPath('ember_oaths'), id);
     return runTransaction(db, async tx => {
         const snap = await tx.get(ref), oath = snap.data(); ownedOath(oath, c);
-        const checkIns = addOathCheckIn(oath, mood, getTodayDateString());
+        const checkIns = addOathCheckIn(oath, mood, checkInDay(oath, date, getTodayDateString()));
         tx.update(ref, { checkIns, updatedAt: serverTimestamp() });
         return { id, ...oath, checkIns };
     });
@@ -80,7 +81,7 @@ export async function keepEmberOath(id, { confirmed = false, reflection = {} } =
         const fresh = await tx.get(ref), current = { id, ...fresh.data() }; ownedOath(current, c);
         if (current.status === 'kept') return current; // deterministic note and inventory receipt
         const result = evaluateOathEvidence(current, facts);
-        if (!result.ready) throw new Error('This promise needs all its moments and one 🔥 check-in before it can be kept.');
+        if (!result.ready) throw new Error('This promise needs all its embers lit before it can be kept.');
         const scoreRef = doc(db, dataPath('student_scores'), current.studentId);
         const score = await tx.get(scoreRef);
         if (!score.exists() || score.data().activeSchoolYearKey !== c.schoolYearKey) throw new Error('The active-year student record is unavailable.');

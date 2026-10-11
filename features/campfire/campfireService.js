@@ -307,16 +307,17 @@ export async function openCampfire(classId) {
         const { openOathBoard } = await import('../../ui/modals/emberOaths.js'); return openOathBoard(classId, { checkInOnly: true });
     }
     const oaths = await loadEmberOaths(classId);
-    const ready = [];
-    for (const oath of oaths.filter(o => o.status === 'active' && session.script.circle.includes(o.studentId))) {
-        const facts = await getOathFacts(oath);
-        if (evaluateOathEvidence(oath, facts).ready) ready.push(oath.id);
-    }
+    // Every present child with a promise sits at the fire; the same rule as the Oath Board says who is ready.
+    const present = new Set(presentClassStudents(classId).map(s => s.id));
+    const oathFacts = {};
+    await Promise.all(oaths.filter(o => o.status === 'active' && present.has(o.studentId))
+        .map(async oath => { oathFacts[oath.id] = await getOathFacts(oath); }));
+    const ready = Object.keys(oathFacts).filter(id => evaluateOathEvidence(oaths.find(o => o.id === id), oathFacts[id]).ready);
     session = await saveCampfireSession(session, { status: 'lit', script: { ...session.script, readyOathIds: ready } });
     storeQuestion(classId, session.script.question);
     session = { ...session, stars: kindlingSparkCount(classStarsToday(classId)), starsToday: classStarsToday(classId) };
     const { openCampfireScene } = await import('./campfireScene.js');
-    return openCampfireScene({ session, students: presentClassStudents(classId), oaths,
+    return openCampfireScene({ session, students: presentClassStudents(classId), oaths, oathFacts,
         onSave: patch => saveCampfireSession(session, patch),
         onComplete: async patch => {
             const context = oathContext();

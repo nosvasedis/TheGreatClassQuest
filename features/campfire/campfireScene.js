@@ -3,7 +3,7 @@
 import './campfire.css';
 import starEmberUrl from '../../assets/campfire/star-ember.png?url';
 import { CAMPFIRE_STAGES, campfireWordHint } from '../heroCampfireCore.mjs';
-import { evaluateOathEvidence, CATEGORY_META } from '../emberOathCore.mjs';
+import { evaluateOathEvidence, emberStory, CATEGORY_META } from '../emberOathCore.mjs';
 import { campfireScenery, campfireMoon, constellationMarkup, constellationKinds, flameMark, telescopeMark, escapeCampfire as esc } from './campfireArt.js';
 import { detectDevicePerformance } from '../../utils/devicePerformance.mjs';
 import { SKY_ZOOM_REST, SKY_ZOOM_LOOK, zoomSky } from '../campfireSkyCamera.mjs';
@@ -14,12 +14,14 @@ import { checkInEmberOath, keepEmberOath, getOathFacts } from '../../db/actions/
 import { getGuildById } from '../guilds.js';
 
 const MOODS = [['flame', '🔥', 'I tried', 1.35], ['candle', '🕯️', 'Still growing', 0.85], ['moon', '🌙', 'A quiet day', 0.55]];
+// The Oath Circle asks each child one question: "Did you keep your promise today?" Only 🔥 lights an ember.
+const SEAT_MOODS = [['flame', '🔥', 'Yes, I tried'], ['candle', '🕯️', 'A little'], ['moon', '🌙', 'Not today']];
 const EARLY_MOODS = [['flame', '😄', 'Happy', 1.35], ['candle', '🙂', 'Okay', 0.85], ['moon', '😴', 'Sleepy', 0.55]];
 const STAGE_NAMES = { kindling: 'Kindling', words: 'Word Embers', question: 'The Question', glow: 'Class Glow', circle: 'Oath Circle', kept: 'Promises Kept', sleep: 'Embers Sleep' };
 const SPARKLE = '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 0C21.6 12 28 18.4 40 20C28 21.6 21.6 28 20 40C18.4 28 12 21.6 0 20C12 18.4 18.4 12 20 0Z" fill="#fff6d6"/><circle cx="20" cy="20" r="4" fill="#fff"/></svg>';
 let activeClose = null;
 
-export function openCampfireScene({ session, students = [], oaths = [], onSave = async () => {}, onComplete = async () => {}, preview = false, performance = {} }) {
+export function openCampfireScene({ session, students = [], oaths = [], oathFacts = {}, onSave = async () => {}, onComplete = async () => {}, preview = false, performance = {} }) {
     activeClose?.();
     const previousFocus = document.activeElement, app = document.getElementById('app-screen'), oldInert = app?.inert;
     if (app) app.inert = true;
@@ -56,7 +58,14 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
     let selfCheck = session.selfCheck || null, localOaths = [...oaths], wordsBurnt = 0;
     const burntWords = new Set(); // stays burnt when the teacher steps back to Word Embers
     const early = session.band === 'early', script = session.script;
-    const circle = (script.circle || []).map(id => students.find(s => s.id === id)).filter(Boolean).slice(0, 4);
+    // Everyone here tonight who is growing a promise has a seat (Hero of the Day first). Their embers show how far it has come.
+    const factsById = new Map(Object.entries(oathFacts || {}));
+    const resultOf = oath => evaluateOathEvidence(oath, factsById.get(oath.id) || { today: session.date });
+    const activeOathOf = id => localOaths.find(o => o.studentId === id && o.status === 'active');
+    const seated = () => early ? [] : students.filter(s => activeOathOf(s.id))
+        .sort((a, b) => Number(b.id === session.heroStudentId) - Number(a.id === session.heroStudentId));
+    const seatEmbers = (r, fresh = -1) => '<span class="cf-seat-embers" role="img" aria-label="' + Math.min(r.count, r.target) + ' of ' + r.target + ' embers lit">' +
+        Array.from({ length: Math.max(1, Math.min(12, r.target)) }, (_, i) => '<i class="' + (i < r.count ? 'is-lit' : '') + (i === fresh ? ' is-new' : '') + '"></i>').join('') + '</span>';
     const starCount = Math.max(6, Math.min(30, Number(session.stars) || 18));
     const starsToday = Number(session.starsToday) || 0;
     const content = root.querySelector('.cf-content'), seats = root.querySelector('.cf-seats'), fx = root.querySelector('.cf-fx');
@@ -304,6 +313,7 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
 
     // ─── Oath circle seats ───────────────────────────────────────────────────────
     function renderSeats() {
+        const circle = seated();
         const show = step === 4 && !early && circle.length;
         if (!show) {
             seats.classList.remove('is-open');
@@ -313,7 +323,7 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
         }
         const half = Math.ceil(circle.length / 2);
         const seat = (student, i) => {
-            const oath = localOaths.find(o => o.studentId === student.id && o.status === 'active');
+            const oath = activeOathOf(student.id);
             const crowned = student.id === session.heroStudentId;
             const mood = oath?.checkIns?.find(c => c.date === session.date)?.mood || '';
             const guild = getGuildById(student.guildId);
@@ -322,12 +332,15 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
                 '<div class="cf-seat-bubble"><p>' + esc(text) + '</p></div>' +
                 '<div class="cf-seat-avatar">' + avatar(student) + (crowned ? '<i class="cf-crown" aria-label="Hero of the Day">👑</i>' : '') +
                 (mood ? '<b class="cf-seat-mood" aria-hidden="true">' + MOODS.find(m => m[0] === mood)[1] + '</b>' : '') + '</div>' +
-                '<h3 class="cf-seat-name">' + esc(student.name) + '</h3>' +
-                (oath ? '<div class="cf-seat-orbs" role="group" aria-label="' + esc(student.name) + ' check-in">' + MOODS.map(([m, icon, label]) =>
+                '<h3 class="cf-seat-name">' + esc(student.name) + '</h3>' + (oath ? seatEmbers(resultOf(oath)) : '') +
+                (oath ? '<div class="cf-seat-orbs" role="group" aria-label="' + esc(student.name) + ': did you keep your promise today?">' + SEAT_MOODS.map(([m, icon, label]) =>
                     '<button data-mood="' + m + '" data-oath="' + esc(oath.id) + '" class="cf-orb cf-orb--' + m + '" aria-pressed="' + (mood === m) + '" aria-label="' + label + '" title="' + label + '">' + icon + '</button>').join('') + '</div>' : '') +
                 '</article>';
         };
         seats.hidden = false;
+        // A big circle gets smaller seats (and two rows when it is very big), so everyone fits around the fire.
+        seats.classList.toggle('is-crowd', circle.length > 4);
+        seats.classList.toggle('is-crowd-xl', circle.length > 8);
         seats.innerHTML = '<div class="cf-seat-side is-left">' + circle.slice(0, half).map((s, i) => seat(s, i)).join('') + '</div><div class="cf-seat-gap" aria-hidden="true"></div>' +
             '<div class="cf-seat-side is-right">' + circle.slice(half).map((s, i) => seat(s, half - 1 - i)).join('') + '</div>';
         requestAnimationFrame(() => { if (!disposed && step === 4) seats.classList.add('is-open'); });
@@ -371,6 +384,12 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
     // ─── 5 · An ember kept ───────────────────────────────────────────────────────
     const readyOaths = () => early ? [] : localOaths.filter(o => o.status === 'active' && script.readyOathIds?.includes(o.id));
     const keptCount = () => localOaths.filter(o => o.status === 'kept').length;
+    function storyLine(oath) {
+        if (!oath) return '';
+        const day = iso => { const d = new Date(iso + 'T12:00:00'); return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); };
+        const lines = emberStory(evaluateOathEvidence(oath, factsById.get(oath.id) || { today: session.date }).days);
+        return lines.length ? '<p class="cf-moment-story">' + lines.map(l => '<span>' + esc(l.icons) + ' ' + esc(day(l.date)) + '</span>').join('') + '</p>' : '';
+    }
     async function keptMoment(oath) {
         const student = students.find(s => s.id === oath.studentId);
         const keptNow = localOaths.find(o => o.id === oath.id);
@@ -381,6 +400,8 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
             '<div class="cf-moment-text"><div class="cf-moment-avatar">' + avatar(student) + '</div>' +
             '<p class="cf-eyebrow">A PROMISE KEPT</p><h2>' + esc(student?.name || 'A hero') + ' kept a promise!</h2>' +
             '<p class="cf-moment-quote">' + esc('“' + (keptNow?.text || keptNow?.projectorText || '') + '”') + '</p>' +
+            // The days they kept their word, not a score.
+            storyLine(keptNow) +
             '<button class="cf-next cf-moment-continue" data-moment-continue>✦ Place it in our sky</button></div>';
         root.classList.add('has-moment', 'is-sky-featured');
         fire.setIdle(true);
@@ -481,7 +502,7 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
                 '<button class="cf-hands" data-hands>🤲 Warm our hands together</button>';
         } else if (step === 4) {
             setFire(1);
-            content.innerHTML = heading('THE OATH CIRCLE', 'Small promises. Room to grow.', circle.length ? 'How did your promise go?' : 'Our class brings its light together.');
+            content.innerHTML = heading('THE OATH CIRCLE', 'Small promises. Room to grow.', seated().length ? 'Did you keep your promise today? Every 🔥 lights an ember.' : 'Our class brings its light together.');
         } else if (step === 5) {
             setFire(1);
             const ready = readyOaths();
@@ -604,7 +625,7 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
             await keptMoment(kept);
         });
     });
-    // Oath circle check-ins never wait for each other: the teacher can go round all four seats at once.
+    // Oath circle check-ins never wait for each other: the teacher can go round every seat at once.
     // Taps on the same seat queue, so the last mood tapped is the one saved.
     const checkInQueue = new Map(), latestTap = new Map();
     function checkIn(b) {
@@ -619,17 +640,21 @@ export function openCampfireScene({ session, students = [], oaths = [], onSave =
         const tap = {}; latestTap.set(oathId, tap); error.hidden = true;
         const save = async () => {
             const current = localOaths.find(o => o.id === oathId);
-            const oath = preview ? { ...current, checkIns: [{ date: session.date, mood }] } : await checkInEmberOath(oathId, mood);
+            const oath = preview ? { ...current, checkIns: [{ date: session.date, mood }] } : await checkInEmberOath(oathId, mood, { date: session.date });
             if (disposed) return;
             localOaths = localOaths.map(o => o.id === oath.id ? oath : o); checkedInIds.add(oath.studentId);
             if (preview) return;
             const wasReady = script.readyOathIds?.includes(oath.id);
-            if (mood === 'flame' || wasReady) {
-                const ready = evaluateOathEvidence(oath, await getOathFacts(oath)).ready;
+            if (!factsById.has(oath.id)) {
+                try { factsById.set(oath.id, await getOathFacts(oath)); } catch { /* the seat still counts its check-ins */ }
                 if (disposed) return;
-                script.readyOathIds = ready ? [...new Set([...(script.readyOathIds || []), oath.id])] : (script.readyOathIds || []).filter(id => id !== oath.id);
-                if (ready !== Boolean(wasReady) && step === 5 && moment.hidden && !moving) showStage(5, { animate: false });
             }
+            const r = resultOf(oath), litBefore = before ? resultOf(before).count : 0;
+            const seatEl = root.querySelector('.cf-orb[data-oath="' + CSS.escape(oath.id) + '"]')?.closest('.cf-seat');
+            const row = seatEl?.querySelector('.cf-seat-embers');
+            if (row) row.outerHTML = seatEmbers(r, r.count > litBefore ? r.count - 1 : -1);
+            script.readyOathIds = r.ready ? [...new Set([...(script.readyOathIds || []), oath.id])] : (script.readyOathIds || []).filter(id => id !== oath.id);
+            if (r.ready !== Boolean(wasReady) && step === 5 && moment.hidden && !moving) showStage(5, { animate: false });
             await onSave({ checkedInIds: [...checkedInIds], script });
         };
         const run = (checkInQueue.get(oathId) || Promise.resolve()).then(save).catch(e => {

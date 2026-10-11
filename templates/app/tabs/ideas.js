@@ -199,6 +199,7 @@ ${TG_TABS}
                                     <button type="button" id="sw-next-page" class="sw-turn" aria-label="Next page"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
                                 </div>
                                 <div id="sw-milestone" class="sw-milestone"></div>
+                                <div id="sw-spark" class="sw-spark hidden" aria-live="polite"></div>
                             </div>
 
                             <div id="story-weavers-placeholder" class="sw-book-placeholder">
@@ -263,6 +264,12 @@ ${TG_TABS}
                                         <div class="sw-step__body">
                                             <p class="sw-step__title">Weave the next page</p>
                                             <p id="sw-write-hint" class="sw-step__hint">Lock in a word first. Then the class decides what happens next.</p>
+                                            <div id="sw-twist-row" class="sw-twist-row hidden">
+                                                <button type="button" id="sw-twist-btn" class="sw-chip-btn sw-chip-btn--twist" title="Draw a plot twist for the next page" data-remote="Twist!">
+                                                    <i class="fas fa-tornado" aria-hidden="true"></i><span>Twist!</span>
+                                                </button>
+                                                <p id="sw-twist" class="sw-twist hidden" aria-live="polite"></p>
+                                            </div>
                                             <button type="button" id="story-weavers-lock-in-btn" class="sw-weave-btn" disabled>
                                                 <i class="fas fa-feather-pointed" aria-hidden="true"></i>
                                                 <span id="sw-weave-label">Start Story...</span>

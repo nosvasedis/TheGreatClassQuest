@@ -2,8 +2,8 @@ import { getLeagueBand } from './languageScaffolds.mjs';
 import { cleanCampfireText } from './heroCampfireCore.mjs';
 import { buildOathSuggestions, pickDiverseOaths, pageLens } from './oathSuggestCore.mjs';
 // Evidence and readiness live in a tiny module so always-loaded entry points can share them.
-export { oathDate, dedupeEvidence, evaluateOathEvidence } from './emberOathEvidence.mjs';
-import { oathDate } from './emberOathEvidence.mjs';
+export { oathDate, dedupeEvidence, evaluateOathEvidence, isTriedItMoment, emberIcon, emberStory, emberTarget, TRIED_IT_REF, TRIED_IT_LABEL } from './emberOathEvidence.mjs';
+import { oathDate, emberTarget } from './emberOathEvidence.mjs';
 export const OATH_CATEGORIES = ['speak', 'words', 'write', 'read/listen', 'habit', 'virtue'];
 const TEXT = {
     early: ['I try a little word.', 'I show a new word.', 'I draw my idea.', 'I listen to a story.', 'I get ready with a friend.', 'I help with kind hands.'],
@@ -15,8 +15,8 @@ export function oathTemplates(league) {
     const band = getLeagueBand(league);
     return OATH_CATEGORIES.map((category, i) => ({
         id: band + '_' + category.replace('/', '_'), band, category,
-        text: TEXT[band][i], projectorText: TEXT[band][i], weeks: 2,
-        target: { kind: category === 'virtue' ? 'virtue' : 'manual', count: band === 'early' ? 1 : 2, ...(category === 'virtue' ? { reason: 'Teamwork' } : {}) },
+        text: TEXT[band][i], projectorText: TEXT[band][i], weeks: band === 'early' || band === 'junior' ? 1 : 2,
+        target: { kind: category === 'virtue' ? 'virtue' : 'manual', count: emberTarget(band === 'early' || band === 'junior' ? 1 : 2), ...(category === 'virtue' ? { reason: 'Teamwork' } : {}) },
         evidenceRule: category === 'virtue' ? 'virtue' : 'manual'
     }));
 }
@@ -40,7 +40,7 @@ export function suggestOaths(profile = {}, { offset = 0, count = 3, lens = '', a
 }
 export { buildOathSuggestions };
 
-/** One-tap evidence moments per kind of promise (the teacher can still type their own). */
+/** One-tap moments the teacher saw, per kind of promise (or type your own). Each lights that day's ember. */
 export const QUICK_MOMENTS = Object.freeze({
     speak: ['Spoke up in English', 'Asked a question in English', 'Answered in a full sentence'],
     words: ['Used a new word in class', 'Used a new word in writing', 'Explained a word to a friend'],
@@ -72,13 +72,24 @@ export function addOathCheckIn(oath, mood, date) {
     if (oath.status !== 'active') throw new Error('This promise is no longer active.');
     return [...(oath.checkIns || []).filter(c => c.date !== date), { date, mood }].sort((a, b) => a.date.localeCompare(b.date)).slice(-12);
 }
+/**
+ * The day a check-in belongs to. The Campfire passes its lesson day so a circle that runs past
+ * midnight still lands on that lesson (the same day its seats read). Never a future day, never
+ * before the promise began; anything else is today.
+ */
+export function checkInDay(oath, requested, today) {
+    const ok = typeof requested === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(requested) && requested <= today && requested >= String(oath?.startDate || '');
+    return ok ? requested : today;
+}
 export function createOathDraft(template, { studentId, classId, teacherId, schoolYearKey, date, text }) {
-    const due = new Date(date + 'T12:00:00'); due.setDate(due.getDate() + Math.min(8, template.weeks || 2) * 7);
+    const weeks = Math.min(8, template.weeks || 2);
+    const due = new Date(date + 'T12:00:00'); due.setDate(due.getDate() + weeks * 7);
     const body = cleanCampfireText(text || template.text, 240);
     if (!body || !studentId || !classId || !teacherId || !schoolYearKey || Number.isNaN(due.getTime())) throw new Error('Complete the promise before saving.');
     return { studentId, classId, teacherId, schoolYearKey, templateId: template.id || 'custom', text: body,
         projectorText: body, category: template.category || 'habit', band: template.band || 'mid',
-        target: template.target || { kind: 'manual', count: 2 }, evidenceRule: template.evidenceRule || 'manual',
+        // Every new promise follows one ember rule (emberTarget), whatever the suggestion carried.
+        target: { ...(template.target || { kind: 'manual' }), count: emberTarget(weeks) }, evidenceRule: template.evidenceRule || 'manual',
         startDate: date, dueDate: oathDate(due), status: 'active', private: false, // kept false for the stored shape; every promise is shown as written
         checkIns: [], evidence: [],
         reflection: { helped: '', next: '', emoji: '' }, legendLine: '', keptAt: null };

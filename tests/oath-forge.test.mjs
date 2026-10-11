@@ -126,8 +126,8 @@ test('promises are graded by league: easier for the youngest, harder as they gro
     assert.ok(avg[1] < avg[2] && avg[2] < avg[3] && avg[0] < avg[2], 'length should rise: ' + avg.map(n => n.toFixed(1)).join(' · '));
     // Junior writes sentences; Pre-Junior only traces, copies or draws.
     assert.ok(bands[1].some(o => /\bwrite\b.*sentence/.test(o.text)));
-    const counts = bands.map(list => list.find(o => o.target?.kind === 'virtue').target.count);
-    assert.ok(counts[0] === 1 && counts[0] <= counts[1] && counts[1] <= counts[2] && counts[2] < counts[3], 'virtue counts ' + counts);
+    // One simple measure everywhere: an ember per lesson kept, 2 for a 1-week promise, 3 for longer.
+    for (const list of bands) for (const o of list) assert.equal(o.target.count, o.weeks <= 1 ? 2 : 3, o.key);
     assert.match(bands[0].find(o => o.key === 'passion.animals.words').text, /^I learn one animal word: \w+\.$/);
     assert.match(bands[3].find(o => o.key === 'passion.animals.words').text, /five animal words/);
     // Promises written for one age live only in that age.

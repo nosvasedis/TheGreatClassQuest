@@ -1,9 +1,15 @@
 // /features/storyWeaverHelpers.js — Story Weavers writing helpers, loaded on demand by storyWeaver.js.
-// Structure focus + sentence starters (per Quest League), story-input scaffolds, and dialogic
-// reveal prompts. Content lives in languageScaffolds.mjs.
+// Structure focus + sentence starters (per Quest League), story-input scaffolds, dialogic
+// reveal prompts, the Lucky Dip, Story Spark and Twist cards. Content lives in
+// trainingGrounds/content/storyContent.mjs (per league) and languageScaffolds.mjs (reveal prompts).
 import * as state from '../state.js';
 import { showToast } from '../ui/effects.js';
-import { getDialogicPrompts, getSentenceStarters, getStructureHints } from './languageScaffolds.mjs';
+import { getDialogicPrompts } from './languageScaffolds.mjs';
+import {
+    getLeagueStarters as getSentenceStarters, getLeagueStructures as getStructureHints,
+    pickLeagueStoryWords, drawSpark, drawSparkCard, drawTwist, sparkDecks, sparkOpening
+} from './trainingGrounds/content/storyContent.mjs';
+import { storySparkHtml, storyTwistHtml } from './storyWeaverView.js';
 
 function storyWeaverClassId() {
     return state.get('globalSelectedClassId') || '';
@@ -143,6 +149,111 @@ export function ensureStoryHelperListeners({ openStoryInputModal } = {}) {
     document.getElementById('story-reveal-prompts-shuffle')?.addEventListener('click', () => {
         renderRevealPrompts(storyWeaverClassId());
     });
+
+    const startWith = (text) => {
+        if (!text) return;
+        if (document.getElementById('story-weavers-lock-in-btn')?.disabled) {
+            showToast('Lock in the Word of the Day first, then use the card.', 'info');
+            document.getElementById('story-weavers-word-input')?.focus();
+            return;
+        }
+        openStoryInputModal?.({ starter: text });
+    };
+
+    document.getElementById('sw-spark')?.addEventListener('click', (event) => {
+        const classId = storyWeaverClassId();
+        const league = storyWeaverClassData(classId)?.questLevel;
+        if (!classId) return;
+        const deckBtn = event.target.closest('[data-spark-deck]');
+        if (deckBtn) {
+            const spark = readSpark(classId, league);
+            const deck = deckBtn.dataset.sparkDeck;
+            writeSpark(classId, { ...spark, [deck]: drawSparkCard(league, deck, { current: spark[deck] }) });
+            renderStorySpark(classId, 0);
+            return;
+        }
+        if (event.target.closest('[data-spark-all]')) {
+            writeSpark(classId, drawSpark(league));
+            renderStorySpark(classId, 0);
+            return;
+        }
+        if (event.target.closest('[data-spark-use]')) startWith(sparkOpening(league, readSpark(classId, league)));
+    });
+
+    document.getElementById('sw-twist-btn')?.addEventListener('click', () => {
+        const classId = storyWeaverClassId();
+        const box = document.getElementById('sw-twist');
+        if (!classId || !box) return;
+        const twist = drawTwist(storyWeaverClassData(classId)?.questLevel, { current: box.dataset.twist || '' });
+        box.dataset.twist = twist;
+        box.innerHTML = storyTwistHtml(twist);
+        box.classList.remove('hidden');
+    });
+
+    document.getElementById('sw-twist')?.addEventListener('click', (event) => {
+        if (event.target.closest('[data-twist-use]')) startWith(event.currentTarget.dataset.twist || '');
+    });
+}
+
+// ─── Lucky Dip, Story Spark and Twist cards ──────────────────────────────────
+
+/** Three Lucky Dip words for the class's league: a noun, a verb and an adjective. */
+export function pickLuckyWords(league, { exclude = [] } = {}) {
+    return pickLeagueStoryWords(league, { exclude });
+}
+
+const SPARK_KEY = 'gcq_sw_spark_';
+
+function readSpark(classId, league) {
+    try {
+        const saved = JSON.parse(localStorage.getItem(`${SPARK_KEY}${classId}`) || 'null');
+        if (saved?.hero && saved?.place && saved?.problem) return saved;
+    } catch {
+        /* storage unavailable or junk: draw a fresh spark */
+    }
+    const spark = drawSpark(league);
+    writeSpark(classId, spark);
+    return spark;
+}
+
+function writeSpark(classId, spark) {
+    try {
+        localStorage.setItem(`${SPARK_KEY}${classId}`, JSON.stringify(spark));
+    } catch {
+        /* storage unavailable: the spark still shows until the page reloads */
+    }
+}
+
+/**
+ * The Story Spark shows on an empty book; Twist cards take over once the story has pages.
+ * Called by storyWeaver.js whenever the book redraws.
+ */
+export function renderStorySpark(classId, pageCount = 0) {
+    const sparkEl = document.getElementById('sw-spark');
+    const twistRow = document.getElementById('sw-twist-row');
+    const classData = storyWeaverClassData(classId);
+    const empty = Boolean(classData) && pageCount === 0;
+    if (sparkEl) {
+        sparkEl.classList.toggle('hidden', !empty);
+        if (empty) {
+            const league = classData.questLevel;
+            const spark = readSpark(classId, league);
+            const decks = sparkDecks(league).filter((d) => d !== 'genre' || spark.genre);
+            sparkEl.innerHTML = storySparkHtml({
+                spark, decks,
+                opening: sparkOpening(league, spark),
+                wordLocked: !document.getElementById('story-weavers-lock-in-btn')?.disabled
+            });
+        }
+    }
+    if (twistRow) {
+        twistRow.classList.toggle('hidden', !classData || pageCount === 0);
+        if (twistRow.dataset.classId !== classId) {
+            twistRow.dataset.classId = classId || '';
+            const box = document.getElementById('sw-twist');
+            if (box) { box.classList.add('hidden'); box.innerHTML = ''; box.dataset.twist = ''; }
+        }
+    }
 }
 
 export function renderRevealPrompts(classId) {

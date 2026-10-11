@@ -1572,3 +1572,320 @@ button.tg-scrap:hover { transform: rotate(0deg) translateY(-3px); }
 }
 .tg-howto.is-lite .tg-howto__backdrop { backdrop-filter: none; }
 .tg-howto.is-lite .tg-howto__step { animation: none; }
+
+/* ═══ Revamp 2026-10-11: league content, round types, adventures, votes ═════════
+   Shared by The Vanishing Hoard (themes + round types), The Torn Map (story beats,
+   picture scraps, Cross it out), The Round Table (question kinds, picture choices,
+   useful words, Kingdom Vote) and Story Weavers (Story Spark + Twist cards).
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.tg-empty--loading .tg-empty__emblem { animation: tg-loading-bob 1.2s ease-in-out infinite; }
+@keyframes tg-loading-bob { 50% { transform: translateY(-6px); } }
+
+.tg-mode-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-left: 0.35rem;
+    padding: 0.15rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    vertical-align: middle;
+    color: #1e1b4b;
+    background: linear-gradient(135deg, #fde68a, #f59e0b);
+}
+
+/* Hoard: the treasures the dragon touched glow once their card is turned. */
+.tg-treasure.is-answer {
+    box-shadow: 0 0 0 3px #fde68a, 0 0 22px 4px rgba(251, 191, 36, 0.65);
+    transform: translateY(-3px);
+}
+
+/* Game Master pickers: treasure chest + round type, question kinds. */
+.tg-gm__pickers { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1rem; margin-top: 0.7rem; }
+.tg-gm__pick { display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 0.86rem; color: var(--sw-ink); }
+.tg-gm__pick > span i { color: var(--sw-teal); }
+.tg-select {
+    min-height: 2.3rem;
+    padding: 0.3rem 2rem 0.3rem 0.75rem;
+    border-radius: 0.8rem;
+    font: inherit;
+    font-weight: 700;
+    color: var(--sw-ink);
+    background: #fff;
+    border: 2px solid #e6d3a8;
+    cursor: pointer;
+}
+.tg-select:focus-visible { outline: 3px solid color-mix(in srgb, var(--sw-teal) 45%, transparent); outline-offset: 2px; }
+.tg-kinds { display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: center; }
+.tg-gm .tg-kinds { justify-content: flex-start; }
+.tg-kind {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 2.2rem;
+    padding: 0.3rem 0.8rem;
+    border-radius: 9999px;
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: var(--sw-ink);
+    background: #fff;
+    border: 2px solid #e6d3a8;
+    cursor: pointer;
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+.tg-kind:hover { transform: translateY(-2px); }
+.tg-kind.is-on { color: #fff; background: linear-gradient(135deg, var(--sw-teal), var(--sw-ink)); border-color: #fde68a; }
+.tg-play .tg-kind { color: #fff; background: rgba(255, 255, 255, 0.1); border-color: rgba(252, 211, 77, 0.35); }
+.tg-play .tg-kind.is-on { color: #1e1b4b; background: linear-gradient(135deg, #fde68a, #f59e0b); border-color: #fffbeb; }
+.tg-play .tg-kinds { margin-top: 0.9rem; }
+
+/* Torn Map: the adventure trail, story beats and picture scraps. */
+.tg-trail { display: inline-flex; gap: 0.3rem; margin-left: 0.6rem; vertical-align: middle; }
+.tg-trail span { width: 0.6rem; height: 0.6rem; border-radius: 50%; border: 2px solid rgba(252, 211, 77, 0.6); }
+.tg-trail .is-done { background: var(--sw-gold); }
+.tg-trail .is-now { background: #fff; transform: scale(1.25); }
+.tg-beat {
+    max-width: 44rem;
+    margin: 0.2rem auto 0.6rem;
+    font-family: "Lora", Georgia, serif;
+    font-style: italic;
+    font-size: clamp(1rem, 1.8vw, 1.2rem);
+    line-height: 1.5;
+    text-align: center;
+    color: rgba(255, 251, 235, 0.92);
+}
+.tg-beat i { color: var(--sw-gold); margin-right: 0.3rem; }
+.tg-beat--intro { font-style: normal; font-weight: 700; color: #fde68a; }
+.tg-beat--side { font-style: normal; font-size: 0.95rem; color: rgba(255, 255, 255, 0.75); }
+.tg-beat--finale { text-align: left; margin: 0.3rem 0 0.5rem; color: #fde68a; }
+.tg-scrap__body { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; margin: 0; text-align: center; }
+.tg-scrap__pic { display: block; font-size: clamp(1.8rem, 3vw, 2.4rem); line-height: 1.1; }
+.tg-scrap__pic--big { font-size: clamp(3.4rem, 7vw, 5rem); }
+.tg-scrap--slot { padding: 0; }
+.tg-scrap__toggle {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    width: 100%;
+    padding: 1.1rem 1.1rem 0.8rem;
+    text-align: left;
+    color: inherit;
+    background: none;
+    border: 0;
+    cursor: pointer;
+}
+.tg-scrap__toggle:focus-visible { outline: 3px solid #7c3aed; outline-offset: -4px; }
+.tg-scrap__rule {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0 1.1rem 1rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: #9f1239;
+    background: rgba(255, 255, 255, 0.75);
+    border: 1.5px solid rgba(190, 18, 60, 0.45);
+    cursor: pointer;
+}
+.tg-scrap.is-crossed .tg-scrap__text { text-decoration: line-through; text-decoration-color: rgba(190, 18, 60, 0.7); text-decoration-thickness: 2px; }
+.tg-scrap.is-crossed .tg-scrap__rule { color: #3b2412; border-color: rgba(59, 36, 18, 0.35); }
+.tg-option.is-ruled { background: linear-gradient(170deg, #d6cfc0, #b9ad91); border-color: rgba(107, 114, 128, 0.7); }
+.tg-option.is-ruled .tg-option__art,
+.tg-option.is-ruled .tg-option__word { filter: grayscale(1); opacity: 0.4; }
+.tg-option.is-ruled::after {
+    content: "";
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    top: 50%;
+    height: 4px;
+    border-radius: 4px;
+    background: #6b7280;
+    transform: rotate(-12deg);
+    pointer-events: none;
+}
+
+/* Round Table: picture choices, useful words, think-about lines, the Kingdom Vote. */
+.tg-choices {
+    display: grid;
+    grid-template-columns: repeat(var(--n, 2), minmax(0, 9rem));
+    justify-content: center;
+    gap: 0.7rem;
+    margin: 0.4rem auto 0.8rem;
+}
+.tg-choice {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.55rem 0.5rem;
+    border-radius: 1rem;
+    color: #1e1b4b;
+    background: linear-gradient(170deg, #fffbeb, #fde68a);
+    border: 2px solid rgba(252, 211, 77, 0.85);
+    animation: tg-treasure-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    animation-delay: calc(var(--i, 0) * 70ms);
+}
+.tg-choice__art { font-size: 1.8rem; line-height: 1; }
+.tg-choice__label { font-family: "Fredoka", sans-serif; font-weight: 700; font-size: 0.95rem; line-height: 1.15; text-align: center; }
+.tg-choices--big { grid-template-columns: repeat(var(--n, 2), minmax(0, 12rem)); gap: 1rem; }
+.tg-choices--big .tg-choice { padding: 1rem 0.8rem; border-radius: 1.4rem; }
+.tg-choices--big .tg-choice__art { font-size: clamp(3.6rem, 8vw, 5.4rem); }
+.tg-choices--big .tg-choice__label { font-size: 1.25rem; }
+.is-picture-first .tg-council__q { font-size: clamp(1.6rem, 3.4vw, 2.4rem); }
+.tg-qwords { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.4rem; margin: 0.2rem 0 0.4rem; }
+.tg-chip--word { color: #1e1b4b; background: rgba(253, 230, 138, 0.9); border-color: #fffbeb; }
+.tg-think { display: flex; flex-direction: column; gap: 0.25rem; max-width: 40rem; margin: 0.2rem auto 0.4rem; padding: 0; list-style: none; text-align: center; font-size: 0.92rem; color: rgba(255, 255, 255, 0.85); }
+.tg-think i { color: var(--sw-gold); margin-right: 0.3rem; }
+.tg-vote {
+    display: grid;
+    grid-template-columns: repeat(var(--n, 3), minmax(0, 11rem));
+    justify-content: center;
+    gap: 0.8rem;
+    margin: 0.6rem 0 0.4rem;
+}
+.tg-vote__opt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.8rem 0.6rem;
+    border-radius: 1.2rem;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(252, 211, 77, 0.45);
+    animation: tg-treasure-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    animation-delay: calc(var(--i, 0) * 70ms);
+}
+.tg-vote__art { font-size: 2.4rem; line-height: 1; }
+.tg-vote__label { font-weight: 800; text-align: center; }
+.tg-vote__count { display: inline-flex; align-items: center; gap: 0.6rem; }
+.tg-vote__count strong { min-width: 2ch; font-family: "Fredoka One", "Fredoka", sans-serif; font-size: 1.7rem; text-align: center; color: #fde68a; }
+.tg-vote__result {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin: 0.2rem auto 0.4rem;
+    padding: 0.4rem 0.95rem;
+    border-radius: 9999px;
+    font-weight: 700;
+    color: #1e1b4b;
+    background: linear-gradient(135deg, #fde68a, #fcd34d);
+}
+
+/* Pre-Junior (picture-first): bigger art everywhere on the stage. */
+[data-league="prejunior"] .tg-option__art { font-size: clamp(3rem, 6vw, 4.2rem); }
+[data-league="prejunior"] .tg-option__word { font-size: 1.15rem; }
+[data-league="prejunior"] .tg-riddle__ask { font-size: clamp(1.6rem, 3.4vw, 2.3rem); }
+
+/* Story Weavers: the Story Spark on an empty book, Twist cards beside the next page. */
+.sw-spark {
+    position: relative;
+    margin: 1rem auto 0;
+    max-width: 52rem;
+    padding: 1.1rem 1.2rem 1.2rem;
+    border-radius: 1.4rem;
+    color: #fff;
+    background: radial-gradient(120% 90% at 50% 0%, rgba(253, 230, 138, 0.16), transparent 60%), rgba(4, 30, 40, 0.55);
+    border: 1.5px solid rgba(253, 230, 138, 0.35);
+}
+.sw-spark.hidden { display: none; }
+.sw-spark__head { text-align: center; }
+.sw-spark__kicker { font-family: "Fredoka One", "Fredoka", sans-serif; font-size: 1.15rem; color: #fde68a; }
+.sw-spark__kicker i { margin-right: 0.3rem; }
+.sw-spark__sub { margin-top: 0.15rem; font-size: 0.9rem; color: rgba(255, 255, 255, 0.78); }
+.sw-spark__cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr)); gap: 0.8rem; margin-top: 0.9rem; }
+.sw-spark__card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.45rem;
+    min-height: 7.5rem;
+    padding: 0.85rem 0.9rem 1rem;
+    border-radius: 1.1rem;
+    text-align: left;
+    color: #3b2412;
+    background: radial-gradient(110% 80% at 0% 0%, rgba(255, 255, 255, 0.7), transparent 60%), linear-gradient(165deg, #fbf0d4, #e8cf96);
+    border: 2px solid rgba(252, 211, 77, 0.9);
+    box-shadow: 0 14px 22px -14px rgba(0, 0, 0, 0.7);
+    cursor: pointer;
+    animation: tg-treasure-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    animation-delay: calc(var(--i, 0) * 80ms);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.sw-spark__card:hover { transform: translateY(-4px) rotate(-1deg); }
+.sw-spark__card:focus-visible { outline: 3px solid #fde68a; outline-offset: 3px; }
+.sw-spark__deck {
+    padding: 0.12rem 0.6rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #fff;
+    background: linear-gradient(135deg, var(--sw-teal), var(--sw-ink));
+}
+.sw-spark__card--problem .sw-spark__deck { background: linear-gradient(135deg, #e11d48, #9f1239); }
+.sw-spark__card--genre .sw-spark__deck { background: linear-gradient(135deg, #7c3aed, #4338ca); }
+.sw-spark__value { font-family: "Lora", Georgia, serif; font-weight: 700; font-size: 1.05rem; line-height: 1.35; }
+.sw-spark__reroll { position: absolute; right: 0.7rem; bottom: 0.55rem; font-size: 0.8rem; color: rgba(59, 36, 18, 0.45); }
+.sw-spark__opening {
+    margin: 1rem auto 0;
+    max-width: 44rem;
+    font-family: "Lora", Georgia, serif;
+    font-size: clamp(1.05rem, 2vw, 1.3rem);
+    font-style: italic;
+    line-height: 1.5;
+    text-align: center;
+    color: #fffbeb;
+}
+.sw-spark__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-top: 0.9rem; }
+.sw-spark__use { width: auto; }
+.sw-twist-row { display: flex; flex-direction: column; align-items: flex-start; gap: 0.45rem; margin: 0.4rem 0 0.6rem; }
+.sw-twist-row.hidden { display: none; }
+.sw-twist {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0.55rem 0.8rem;
+    border-radius: 0.9rem;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--sw-ink);
+    background: #fffbeb;
+    border: 1.5px dashed #f5b93a;
+}
+.sw-twist.hidden { display: none; }
+.sw-twist__text i { color: #7c3aed; margin-right: 0.25rem; }
+.sw-twist__use {
+    padding: 0.2rem 0.7rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: #fff;
+    background: linear-gradient(135deg, var(--sw-teal), var(--sw-ink));
+    border: 0;
+    cursor: pointer;
+}
+
+@media (max-width: 767px) {
+    .tg-choices, .tg-choices--big { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tg-vote { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tg-gm__pickers { flex-direction: column; align-items: stretch; }
+    .tg-gm__pick { justify-content: space-between; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .tg-empty--loading .tg-empty__emblem, .tg-choice, .tg-vote__opt, .sw-spark__card { animation: none; }
+    .tg-kind, .sw-spark__card { transition: none; }
+}
+.sw--lite .tg-choice, .sw--lite .tg-vote__opt, .sw--lite .sw-spark__card { animation: none; }

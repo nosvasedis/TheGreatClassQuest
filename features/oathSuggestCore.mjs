@@ -21,6 +21,7 @@
  */
 import { getLeagueBand, getClassroomPhrase, getMinimalPair } from './languageScaffolds.mjs';
 import { forgeOaths, passionOaths, detectInterests, detectNeeds, spiritForKey, oathTitle, interestById } from './oathForge.mjs';
+import { emberTarget } from './emberOathEvidence.mjs';
 
 const VIRTUES = ['Teamwork', 'Creativity', 'Respect', 'Focus'];
 const HERO_VIRTUE = { Guardian: 'Respect', Sage: 'Creativity', Paladin: 'Teamwork', Artificer: 'Focus' };
@@ -266,20 +267,21 @@ export function readOathSignals(p = {}) {
  */
 export function buildOathSuggestions(p = {}) {
     const s = readOathSignals(p);
-    // How many times a promise must show: 1 for Pre-Junior, up to 2 for Junior, one more for C/D.
-    const count = n => (s.early ? 1 : s.junior ? Math.min(2, n) : s.band === 'upper' ? Math.min(12, n + 1) : n);
     const out = [];
-    const push = (key, category, text, why, score, target = { kind: 'manual', count: count(2) }, rule = 'manual', weeks, extra = {}) => {
+    // Every promise has the same simple measure: one ember per lesson day it is kept (emberTarget by length).
+    const push = (key, category, text, why, score, target = { kind: 'manual' }, rule = 'manual', weeks, extra = {}) => {
         const body = clean(text, 200);
         if (!body || !why || !(score > 0) || out.some(o => o.key === key || o.text === body)) return;
+        const length = weeks || (s.early || s.junior ? 1 : 2);
+        target = { ...target, count: emberTarget(length) };
         const item = { id: s.band + '_' + key, key, band: s.band, category, text: body, projectorText: body,
-            weeks: weeks || (s.early || s.junior ? 1 : 2), target, evidenceRule: rule, why: clean(why, 120), score,
+            weeks: length, target, evidenceRule: rule, why: clean(why, 120), score,
             spirit: extra.spirit || spiritForKey(key), ...(extra.interest ? { interest: extra.interest } : {}) };
         item.title = extra.title || oathTitle({ key, category, text: body, target, seed: s.seed });
         out.push(item);
     };
     const pushForged = f => {
-        const target = f.target ? { ...f.target, count: count(f.target.count || 2) } : { kind: 'manual', count: count(2) };
+        const target = f.target ? { ...f.target } : { kind: 'manual' };
         push(f.key, f.category, f.text, f.why, f.score, target, f.rule || (target.kind === 'manual' ? 'manual' : target.kind), f.weeks, f);
     };
 
@@ -289,13 +291,13 @@ export function buildOathSuggestions(p = {}) {
             ? (s.counts[s.weakest] === 0 ? 'No ' + s.weakest + ' stars yet this month.' : 'Only ' + s.counts[s.weakest] + ' ' + s.weakest + ' star' + (s.counts[s.weakest] === 1 ? '' : 's') + ' this month.') + ' A gentle stretch.'
             : 'Fills itself every time you award a ' + s.weakest + ' star.',
         s.totalVirtue ? 3 + Math.min(2, (s.counts[s.strongest] - s.counts[s.weakest]) / 2) : 2.2,
-        { kind: 'virtue', count: count(2), reason: s.weakest }, 'virtue');
+        { kind: 'virtue', reason: s.weakest }, 'virtue');
     if (s.counts[s.strongest] >= 3 && !s.early) push('share_' + s.strongest.toLowerCase(), 'virtue', say(s.band, VIRTUE_SHARE[s.strongest]),
         s.counts[s.strongest] + ' ' + s.strongest + ' stars this month. Time to share that strength.', 2.6 + (s.shining ? 0.8 : 0),
-        { kind: 'virtue', count: count(2), reason: s.strongest }, 'virtue');
+        { kind: 'virtue', reason: s.strongest }, 'virtue');
     if (s.heroVirtue && s.heroVirtue !== s.weakest && !s.early) push('hero_' + s.heroVirtue.toLowerCase(), 'virtue', say(s.band, VIRTUE_STRETCH[s.heroVirtue]),
         'A ' + s.heroClass + '’s virtue is ' + s.heroVirtue + '. It fills from their ' + s.heroVirtue + ' stars.', 2.4,
-        { kind: 'virtue', count: count(3), reason: s.heroVirtue }, 'virtue');
+        { kind: 'virtue', reason: s.heroVirtue }, 'virtue');
 
     // The rest of the bank.
     for (const f of BANK) {
@@ -305,7 +307,7 @@ export function buildOathSuggestions(p = {}) {
         if (!(score > 0) || !why) continue;
         let text = '';
         try { const t = typeof f.text === 'function' ? f.text(s) : f.text; text = t ? say(s.band, t) : ''; } catch { text = ''; }
-        const target = f.target ? { ...f.target, count: count(f.target.count || 2) } : { kind: 'manual', count: count(2) };
+        const target = f.target ? { ...f.target } : { kind: 'manual' };
         if (s.early && target.kind === 'virtue') target.reason = target.reason || s.weakest;
         push(f.key, f.category, text, why, score, target, f.rule || 'manual', f.weeks);
     }
@@ -469,5 +471,5 @@ export function acceptOracleIdea(result, shownTexts = [], band = 'mid') {
         const words = contentWords(shown);
         if (words.length >= 3 && words.filter(w => targetWords.has(w)).length / words.length >= 0.6) return null;
     }
-    return { key: 'oracle', band, category: 'speak', text, projectorText: text, why, weeks: 2, target: { kind: 'manual', count: band === 'early' ? 1 : 2 }, evidenceRule: 'manual', score: 4 };
+    return { key: 'oracle', band, category: 'speak', text, projectorText: text, why, weeks: band === 'early' || band === 'junior' ? 1 : 2, target: { kind: 'manual', count: emberTarget(band === 'early' || band === 'junior' ? 1 : 2) }, evidenceRule: 'manual', score: 4 };
 }

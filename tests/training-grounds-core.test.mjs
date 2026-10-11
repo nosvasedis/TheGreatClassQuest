@@ -3,16 +3,17 @@ import assert from 'node:assert/strict';
 import {
     TRAINING_GAMES, TRAINING_GAME_KEYS, TRAINING_REASONS, TRAINING_PATH_KEY, ROUNDS_PER_STAR,
     isTrainingReason, gameForReason, emptyGameState, normalizeGameState, knotsTied, isStarMoment,
-    canCountRound, recordRound, keepsakeName, seededRandom,
-    TREASURE_BANK, hoardSettings, hoardLevel, buildHoard, parseLessonWords,
-    MAP_RIDDLES, MAP_TRIES, pickRiddle, scrapCount, hintScrapIndex,
-    COUNCIL_QUESTIONS, councilSettings, pickCouncilQuestion, councilVerdict, milestoneLine
+    canCountRound, recordRound, keepsakeName, seededRandom, LEAGUE_KEYS,
+    hoardSettings, hoardLevel, hoardModesFor, hoardThemesFor, buildHoard, parseLessonWords,
+    mapAdventure, mapAdventureName, mapRiddleForStep, MAP_TRIES, scrapCount, hintScrapIndex, ruledOutOptions,
+    councilSettings, councilKindsFor, pickCouncilQuestion, councilVerdict, voteSummary, milestoneLine
 } from '../features/trainingGroundsCore.mjs';
+import { HOARD_THEMES, HOARD_RULES, HOARD_MODES } from '../features/trainingGrounds/content/hoardContent.mjs';
+import { MAP_ADVENTURES, MAP_RESERVE } from '../features/trainingGrounds/content/mapContent.mjs';
+import { COUNCIL_QUESTIONS, COUNCIL_RULES, COUNCIL_KINDS, voteOptions } from '../features/trainingGrounds/content/councilContent.mjs';
 import { getHeroReasons, heroClassEarnsFrom, calculateSkillBonus, getOutwardEffects, getHeroReason, HERO_SKILL_TREE } from '../features/heroSkillTree.js';
 import { HERO_CLASSES, calculateHeroGold } from '../features/heroClasses.js';
 import { TRAINING_HERO, isLegacyHeroClass, normalizeHeroClass } from '../features/heroClassNames.mjs';
-
-const BANDS = ['early', 'junior', 'mid', 'upper'];
 
 test('every game has a skill reason, and the reasons are the four Training Grounds reasons', () => {
     assert.deepEqual(TRAINING_GAME_KEYS, ['story', 'hoard', 'map', 'council']);
@@ -96,84 +97,164 @@ test('keepsake names cycle with a numeral after the list runs out', () => {
     assert.equal(keepsakeName('story', 0), '');
 });
 
-test('hoard settings stay within bounds for every band and level', () => {
-    for (const band of BANDS) {
+const HOARD = { themes: HOARD_THEMES, rules: HOARD_RULES, modes: HOARD_MODES };
+const MAP = { adventures: MAP_ADVENTURES, reserve: MAP_RESERVE };
+const COUNCIL = { questions: COUNCIL_QUESTIONS, rules: COUNCIL_RULES, kinds: COUNCIL_KINDS };
+
+test('hoard settings stay within bounds for every league, level and round type', () => {
+    for (const league of LEAGUE_KEYS) {
         let lastCount = 0;
         for (let level = 0; level <= 9; level += 1) {
-            const s = hoardSettings(band, level);
-            assert.ok(s.count >= 4 && s.count <= 12, `${band} ${level} count ${s.count}`);
-            assert.ok(s.vanish >= 1 && s.vanish <= s.count - 2, `${band} ${level} vanish ${s.vanish}`);
+            const s = hoardSettings(HOARD_RULES, league, level);
+            assert.ok(s.count >= 4 && s.count <= 12, `${league} ${level} count ${s.count}`);
+            assert.ok(s.vanish >= 1 && s.vanish <= s.count - 2, `${league} ${level} vanish ${s.vanish}`);
             assert.ok(s.count >= lastCount, 'the hoard never shrinks as it levels');
-            assert.ok(TREASURE_BANK[band].length >= s.count, `${band} bank is big enough`);
             lastCount = s.count;
+            const intruder = hoardSettings(HOARD_RULES, league, level, 'intruder');
+            assert.ok(intruder.answers >= 1 && intruder.answers <= 2);
+            const moved = hoardSettings(HOARD_RULES, league, level, 'moved');
+            assert.ok([2, 4].includes(moved.answers) && moved.answers <= moved.count);
+            assert.equal(moved.shuffle, false, 'a moved round never shuffles');
         }
     }
-    assert.equal(hoardSettings('early', 9).shuffle, false);
-    assert.equal(hoardSettings('upper', 2).shuffle, true);
-    assert.deepEqual(hoardSettings('nope', 0), hoardSettings('mid', 0));
+    assert.equal(hoardSettings(HOARD_RULES, 'prejunior', 9).count, 6);
+    assert.equal(hoardSettings(HOARD_RULES, 'prejunior', 9, 'intruder').answers, 1);
+    assert.equal(hoardSettings(HOARD_RULES, 'prejunior', 9).shuffle, false);
+    assert.equal(hoardSettings(HOARD_RULES, 'd', 9).count, 12);
+    assert.equal(hoardSettings(HOARD_RULES, 'D', 2).shuffle, true);
+    assert.deepEqual(hoardSettings(HOARD_RULES, 'nope', 0), hoardSettings(HOARD_RULES, 'A', 0));
     assert.equal(hoardLevel({ pieces: 50, keepsakeIndex: 5 }), 9);
 });
 
-test('buildHoard deals distinct treasures and takes the right number', () => {
-    for (const band of BANDS) {
-        for (let level = 0; level <= 9; level += 3) {
-            const h = buildHoard(band, level, { rng: seededRandom(level + 7) });
-            assert.equal(h.treasures.length, h.settings.count);
-            assert.equal(new Set(h.treasures.map((t) => t.word)).size, h.treasures.length);
-            assert.equal(h.vanishIds.length, h.settings.vanish);
-            if (h.settings.shuffle) {
-                assert.equal(h.after.length, h.settings.count - h.settings.vanish);
-                assert.ok(h.after.every((t) => !h.vanishIds.includes(t.id)));
-            } else {
-                assert.equal(h.after.length, h.settings.count);
-                assert.equal(h.after.filter((t) => t.gap).length, h.settings.vanish);
+test('round types widen with the league: moved starts at Junior B', () => {
+    assert.deepEqual(hoardModesFor(HOARD_MODES, 'Pre-Junior'), ['vanish', 'intruder']);
+    assert.deepEqual(hoardModesFor(HOARD_MODES, 'Junior A'), ['vanish', 'intruder']);
+    assert.deepEqual(hoardModesFor(HOARD_MODES, 'Junior B'), ['vanish', 'intruder', 'moved']);
+    assert.deepEqual(hoardModesFor(HOARD_MODES, 'D'), ['vanish', 'intruder', 'moved']);
+});
+
+test('buildHoard deals distinct treasures for every round type', () => {
+    for (const league of LEAGUE_KEYS) {
+        for (const mode of hoardModesFor(HOARD_MODES, league)) {
+            for (let level = 0; level <= 9; level += 3) {
+                const h = buildHoard(HOARD, league, level, { mode, rng: seededRandom(level + 7) });
+                const all = [...h.treasures, ...h.extras];
+                assert.equal(h.treasures.length, h.settings.count, `${league} ${mode}`);
+                assert.equal(new Set(all.map((t) => t.word.toLowerCase())).size, all.length, `${league} ${mode} words are distinct`);
+                assert.equal(h.answerIds.length, h.settings.answers, `${league} ${mode} answers`);
+                if (mode === 'vanish') {
+                    assert.deepEqual(h.vanishIds, h.answerIds);
+                    if (h.settings.shuffle) assert.equal(h.after.length, h.settings.count - h.settings.answers);
+                    else assert.equal(h.after.filter((t) => t.gap).length, h.settings.answers);
+                }
+                if (mode === 'intruder') {
+                    assert.equal(h.after.length, h.settings.count + h.extras.length, 'intruders join the hoard');
+                    assert.ok(h.answerIds.every((id) => id.startsWith('x')));
+                }
+                if (mode === 'moved') {
+                    assert.equal(h.after.length, h.settings.count);
+                    const movedIdx = h.after.map((t, i) => (t.id !== h.treasures[i].id ? i : -1)).filter((i) => i >= 0);
+                    assert.equal(movedIdx.length, h.settings.answers, 'exactly the swapped treasures moved');
+                }
             }
         }
     }
 });
 
+test('Pre-Junior only meets its own easy treasures; D meets hard ones first', () => {
+    const pj = buildHoard(HOARD, 'prejunior', 9, { mode: 'vanish', themeId: 'farm', rng: seededRandom(4) });
+    const tierOf = new Map(HOARD_THEMES.flatMap((t) => t.items.map(([, w, tier]) => [w, tier])));
+    assert.ok(pj.treasures.every((t) => tierOf.get(t.word) === 0), 'Pre-Junior words are all tier 0');
+    const d = buildHoard(HOARD, 'd', 0, { themeId: 'museum', rng: seededRandom(5) });
+    assert.ok(d.treasures.filter((t) => tierOf.get(t.word) >= 4).length >= d.treasures.length / 2, 'D sees mostly hard words');
+    assert.ok(hoardThemesFor(HOARD, 'prejunior').length >= 8, 'Pre-Junior has plenty of chests');
+    assert.ok(!hoardThemesFor(HOARD, 'prejunior').some((t) => t.id === 'sports'), 'the sports shed waits for older leagues');
+});
+
 test('lesson words become treasures first', () => {
     const words = parseLessonWords('castle, lantern\nbrave; castle,  ');
     assert.deepEqual(words, ['castle', 'lantern', 'brave']);
-    const h = buildHoard('mid', 0, { rng: seededRandom(3), lessonWords: words });
+    const h = buildHoard(HOARD, 'A', 0, { rng: seededRandom(3), lessonWords: words });
     for (const w of words) assert.ok(h.treasures.some((t) => t.word === w));
 });
 
-test('every torn map riddle has one clue per wrong answer and one answer left', () => {
-    for (const band of BANDS) {
-        const list = MAP_RIDDLES[band];
-        assert.equal(list.length, 8);
-        assert.equal(new Set(list.map((r) => r.id)).size, list.length);
-        for (const r of list) {
-            assert.equal(r.options.length, band === 'early' || band === 'junior' ? 4 : 5, r.id);
-            assert.equal(r.clues.length, r.options.length - 1, r.id);
-            assert.ok(r.answer >= 0 && r.answer < r.options.length, r.id);
-            assert.equal(new Set(r.options.map((o) => o.word)).size, r.options.length, r.id);
-            assert.equal(new Set(r.clues).size, r.clues.length, r.id);
-        }
-        assert.equal(scrapCount(band), list[0].clues.length);
+test('the torn map follows its adventure, then takes a side path after a lost step', () => {
+    let s = emptyGameState('map');
+    const adventure = mapAdventure(MAP, 'Junior A', 0);
+    let pick = mapRiddleForStep(MAP, 'Junior A', s, { rng: seededRandom(1) });
+    assert.equal(pick.riddle.id, adventure.riddles[0].id);
+    assert.equal(pick.fromReserve, false);
+
+    // Lose step one: the story riddle is spoiled, so the retry is a reserve riddle.
+    s = recordRound('map', s, { today: 'd1', success: false, spoil: pick.riddle.id }).next;
+    assert.deepEqual(s.spoiled, [adventure.riddles[0].id]);
+    pick = mapRiddleForStep(MAP, 'Junior A', s, { rng: seededRandom(2) });
+    assert.equal(pick.fromReserve, true);
+    assert.ok(MAP_RESERVE.juniorA.some((r) => r.id === pick.riddle.id));
+
+    // Win it: the next step is the adventure's second story riddle.
+    s = recordRound('map', s, { today: 'd2', success: true, usedId: pick.riddle.id }).next;
+    pick = mapRiddleForStep(MAP, 'Junior A', s);
+    assert.equal(pick.riddle.id, adventure.riddles[1].id);
+
+    // "Take a side path" always gives a reserve riddle.
+    assert.equal(mapRiddleForStep(MAP, 'Junior A', s, { forceReserve: true, rng: seededRandom(3) }).fromReserve, true);
+
+    // Finishing the map clears the spoiled steps and names it after the adventure.
+    let out;
+    for (let i = 0; i < 5; i += 1) {
+        out = recordRound('map', s, { today: `e${i}`, success: true, keepsakeLabel: mapAdventureName(MAP, 'Junior A', s.keepsakeIndex) });
+        s = out.next;
     }
+    assert.equal(out.keepsakeDone.name, adventure.name);
+    assert.deepEqual(s.spoiled, []);
+    assert.equal(mapAdventure(MAP, 'Junior A', s.keepsakeIndex).id, MAP_ADVENTURES.juniorA[1].id);
+    const n = MAP_ADVENTURES.juniorA.length;
+    assert.equal(mapAdventureName(MAP, 'Junior A', n), `${MAP_ADVENTURES.juniorA[0].name} II`);
+});
+
+test('groups and scraps grow with the league', () => {
+    assert.equal(scrapCount(MAP, 'Pre-Junior'), 2);
+    assert.equal(scrapCount(MAP, 'Junior A'), 3);
+    assert.equal(scrapCount(MAP, 'Junior B'), 3);
+    for (const l of ['A', 'B', 'C', 'D']) assert.equal(scrapCount(MAP, l), 4);
     assert.equal(MAP_TRIES, 2);
 });
 
-test('hint scraps open in order and run out', () => {
-    const r = MAP_RIDDLES.junior[0];
+test('hint scraps open in order and crossed scraps rule out their option', () => {
+    const r = MAP_ADVENTURES.juniorA[0].riddles[0];
     assert.equal(hintScrapIndex(r, []), 0);
     assert.equal(hintScrapIndex(r, [0, 2]), 1);
     assert.equal(hintScrapIndex(r, [0, 1, 2]), -1);
+    assert.deepEqual(ruledOutOptions(r, [0]), [r.clues[0].out]);
+    assert.ok(!ruledOutOptions(r, [0, 1, 2]).includes(r.answer), 'crossing every scrap never rules out the answer');
 });
 
-test('fresh picks avoid used riddles and questions until all are used', () => {
-    const used = MAP_RIDDLES.mid.slice(0, 7).map((r) => r.id);
-    assert.equal(pickRiddle('mid', used, seededRandom(1)).id, MAP_RIDDLES.mid[7].id);
-    const all = MAP_RIDDLES.mid.map((r) => r.id);
-    assert.ok(pickRiddle('mid', all, seededRandom(1)));
-    for (const band of BANDS) {
-        assert.equal(COUNCIL_QUESTIONS[band].length, 12);
-        assert.ok(pickCouncilQuestion(band, [], seededRandom(2)).text.endsWith('?'));
-        const s = councilSettings(band);
+test('council questions come fresh, by kind, with league settings', () => {
+    const used = COUNCIL_QUESTIONS.a.slice(0, -1).map((q) => q.id);
+    assert.equal(pickCouncilQuestion(COUNCIL, 'A', used, seededRandom(1)).id, COUNCIL_QUESTIONS.a.at(-1).id);
+    assert.ok(pickCouncilQuestion(COUNCIL, 'A', COUNCIL_QUESTIONS.a.map((q) => q.id), seededRandom(1)));
+    for (const league of LEAGUE_KEYS) {
+        const q = pickCouncilQuestion(COUNCIL, league, [], seededRandom(2), { kind: 'decree' });
+        assert.equal(q.kind, 'decree', league);
+        const s = councilSettings(COUNCIL_RULES, league);
         assert.ok(s.speakers >= 4 && s.seconds >= 30);
+        assert.ok(councilKindsFor(COUNCIL, league).length >= 3, league);
     }
+    assert.ok(councilKindsFor(COUNCIL, 'C').includes('dilemma'));
+    assert.equal(councilSettings(COUNCIL_RULES, 'Pre-Junior').speakers, 4);
+    assert.equal(councilSettings(COUNCIL_RULES, 'D').speakers, 8);
+});
+
+test('the Kingdom Vote uses the question choices or agree / disagree', () => {
+    const wyr = COUNCIL_QUESTIONS.prejunior[0];
+    assert.deepEqual(voteOptions(wyr).map((o) => o.label), wyr.choices.map(([, l]) => l));
+    const open = COUNCIL_QUESTIONS.a.find((q) => q.kind === 'opinion' && !q.choices.length);
+    assert.deepEqual(voteOptions(open).map((o) => o.label), ['agree', 'disagree', 'not sure']);
+    const imagine = COUNCIL_QUESTIONS.c.find((q) => q.kind === 'imagine' && !q.choices.length);
+    assert.deepEqual(voteOptions(imagine), []);
+    assert.equal(voteSummary(voteOptions(wyr), { 0: 5, 1: 3 }), '🐱 cats 5 · 🐶 dogs 3');
+    assert.equal(voteSummary(voteOptions(wyr), {}), '');
 });
 
 test('the council is honoured only when every speaker echoed and nobody interrupted', () => {

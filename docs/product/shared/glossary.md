@@ -27,6 +27,9 @@ Use these names exactly, in the classroom and when you talk to parents. Mixing t
 | **Growth Starfall** | Scholar’s Bonus (+0.5) for a jump of 15+ points above a student’s own recent average; once a month | Classic Starfall (≥ 95% tests) |
 | **What we learned today** | Adventure Log strip gathered automatically from the day’s quiz, story, quests, trials and homework | Quest Assignment (next lesson’s homework) |
 | **Training Grounds stars** | Class bonus from a Training Grounds milestone (Story Weavers, Vanishing Hoard, Torn Map, Round Table) | Five-Sentence Saga (calendar event) |
+| **Story Spark** | Story Weavers cards (hero, place, problem) that start an empty book | Twist card (mid-story); Word of the Day |
+| **Kingdom Vote** | Optional hand count after a Round Table council; never changes the verdict | The council verdict (honoured or not) |
+| **Side path** | A reserve riddle on the Torn Map when a story step was lost or skipped | A new map adventure |
 | **Mystic Market** | Own tab: artifacts, Festival Stall, seasonal shelf, eggs | A panel inside Hero’s Challenge |
 | **Festival Stall** | Timed holiday shelf (Halloween, Christmas, Orthodox Easter, Carnival) | Seasonal Treasures (the monthly classroom stall) |
 | **Market Manager** | Teacher Settings repair for Seasonal Treasures and Festival Stall (new picture, copies, text) | Restock (fresh monthly stall); Coin Purse |

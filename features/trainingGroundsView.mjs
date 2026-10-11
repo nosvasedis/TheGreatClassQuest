@@ -1,9 +1,7 @@
 // /features/trainingGroundsView.mjs — Training Grounds markup builders.
 // Pure: no Firestore, no state. trainingGrounds.js feeds it data, and previews can too.
 
-import {
-    TRAINING_GAMES, knotsTied, milestoneLine, MAP_FRAMES, COUNCIL_FRAMES
-} from './trainingGroundsCore.mjs';
+import { TRAINING_GAMES, knotsTied, milestoneLine, ruledOutOptions } from './trainingGroundsCore.mjs';
 
 export function esc(value) {
     return String(value ?? '')
@@ -47,6 +45,15 @@ export function noClassHtml(gameKey) {
         <span class="tg-empty__emblem" aria-hidden="true">${game.emoji}</span>
         <p class="tg-empty__title">Choose a class from the header to open ${esc(game.name)}.</p>
         <p class="tg-empty__sub">Each class keeps its own ${game.keepsake === 'vault' ? 'vault' : game.keepsake === 'map' ? 'map' : 'banner'} and its own Star knots.</p>
+    </div>`;
+}
+
+/** Shown for a moment while the league's content chest loads. */
+export function loadingStageHtml(gameKey) {
+    const game = TRAINING_GAMES[gameKey];
+    return `<div class="tg-empty tg-empty--loading" role="status">
+        <span class="tg-empty__emblem" aria-hidden="true">${game.emoji}</span>
+        <p class="tg-empty__title">Unpacking the training chest…</p>
     </div>`;
 }
 
@@ -242,31 +249,59 @@ export function bannerSvg(sigils = 0, { newest = -1, name = '' } = {}) {
 
 // ─── The Vanishing Hoard ─────────────────────────────────────────────────────
 
-function treasureHtml(t, i, { flip = false } = {}) {
+function treasureHtml(t, i, { flip = false, answer = false } = {}) {
     if (t.gap) return `<div class="tg-treasure tg-treasure--gap" style="--i:${i}" aria-label="An empty space"><span class="tg-treasure__smoke" aria-hidden="true"></span><span class="tg-treasure__q">?</span></div>`;
     const art = t.emoji ? `<span class="tg-treasure__art" aria-hidden="true">${t.emoji}</span>` : '<span class="tg-treasure__art tg-treasure__art--gem" aria-hidden="true"><i class="fas fa-gem"></i></span>';
-    return `<div class="tg-treasure${flip ? ' is-flipping' : ''}" style="--i:${i}">${art}<span class="tg-treasure__word">${esc(t.word)}</span></div>`;
+    return `<div class="tg-treasure${flip ? ' is-flipping' : ''}${answer ? ' is-answer' : ''}" style="--i:${i}">${art}<span class="tg-treasure__word">${esc(t.word)}</span></div>`;
 }
 
-const HOARD_FRAMES = {
-    early: ['The … is missing!', 'Where is the …?'],
-    junior: ['The … has gone!', 'I can’t see the …'],
-    mid: ['I think the dragon took the …', 'The … isn’t there any more.'],
-    upper: ['Unless I’m mistaken, the … has vanished.', 'The dragon must have taken the …']
+const HOARD_COPY = {
+    vanish: {
+        watch: 'The dragon is asleep. Watch the hoard!',
+        card: 'Stolen treasure',
+        ask: (n) => `The dragon stole ${n === 1 ? 'one treasure' : `${n} treasures`}! What is missing?`,
+        reveal: 'Turn the cards over. Did the class name every stolen treasure?',
+        missed: 'Missed'
+    },
+    intruder: {
+        watch: 'Watch the hoard! Something may sneak in…',
+        card: 'Intruder',
+        ask: (n) => `${n === 1 ? 'Something has' : `${n} things have`} sneaked into the hoard! What is new?`,
+        reveal: 'Turn the cards over. Did the class spot every intruder?',
+        missed: 'Not spotted'
+    },
+    moved: {
+        watch: 'Watch where every treasure sits!',
+        card: 'Moved treasure',
+        ask: (n) => `The dragon swapped ${n === 2 ? 'two treasures' : `${n} treasures`}! What moved?`,
+        reveal: 'Turn the cards over. Did the class name every treasure that moved?',
+        missed: 'Missed'
+    }
 };
+
+function hoardCopy(mode) {
+    return HOARD_COPY[mode] || HOARD_COPY.vanish;
+}
+
+function modeBadge(v) {
+    const m = (v.modes || []).find((x) => x.id === (v.hoard?.mode || v.mode));
+    return m ? `<span class="tg-mode-badge"><i class="fas ${m.icon}" aria-hidden="true"></i> ${esc(m.label)}</span>` : '';
+}
 
 export function hoardStageHtml(v) {
     const s = v.settings || {};
     switch (v.phase) {
-        case 'watch':
+        case 'watch': {
+            const copy = hoardCopy(v.hoard.mode);
             return `<div class="tg-play tg-play--watch">
                 <div class="tg-play__head">
                     <div class="tg-timer" style="--secs:${v.seconds || s.watchSeconds}s" aria-hidden="true"><svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="19"/><circle class="tg-timer__run" cx="22" cy="22" r="19"/></svg><span data-tg-countdown>${v.seconds || s.watchSeconds}</span></div>
-                    <div><p class="tg-play__title">The dragon is asleep. Watch the hoard!</p><p class="tg-play__sub">Silent eyes only. Remember every treasure.</p></div>
+                    <div><p class="tg-play__title">${copy.watch}</p><p class="tg-play__sub">Silent eyes only. Remember every treasure${v.hoard.mode === 'moved' ? ' and where it sits' : ''}. ${modeBadge(v)}</p></div>
                 </div>
                 <div class="tg-hoard-grid" style="--cols:${gridCols(v.hoard.treasures.length)}">${v.hoard.treasures.map((t, i) => treasureHtml(t, i)).join('')}</div>
                 <div class="tg-play__foot">${ghost('The class is ready', 'hoard-sweep', 'fa-forward')}</div>
             </div>`;
+        }
         case 'sweep':
             return `<div class="tg-play tg-play--sweep">
                 <div class="tg-hoard-grid" style="--cols:${gridCols(v.hoard.treasures.length)}">${v.hoard.treasures.map((t, i) => treasureHtml(t, i)).join('')}</div>
@@ -275,52 +310,68 @@ export function hoardStageHtml(v) {
             </div>`;
         case 'recall':
         case 'reveal': {
-            const stolen = v.hoard.treasures.filter((t) => v.hoard.vanishIds.includes(t.id));
+            const copy = hoardCopy(v.hoard.mode);
+            const byId = new Map((v.hoard.all || v.hoard.treasures).map((t) => [t.id, t]));
+            const answers = (v.hoard.answerIds || v.hoard.vanishIds).map((id) => byId.get(id)).filter(Boolean);
             const marks = v.marks || {};
-            const cards = stolen.map((t, i) => {
+            const flippedIds = v.phase === 'reveal' ? (v.flipped || []) : [];
+            const cards = answers.map((t, i) => {
                 const mark = marks[t.id];
-                const flipped = v.phase === 'reveal' && (v.flipped || []).includes(t.id);
+                const flipped = flippedIds.includes(t.id);
                 if (!flipped) {
-                    return `<button type="button" class="tg-stolen" style="--i:${i}" ${v.phase === 'reveal' ? `data-tg-action="hoard-flip" data-id="${t.id}"` : 'disabled'} aria-label="Stolen treasure ${i + 1}">
+                    return `<button type="button" class="tg-stolen" style="--i:${i}" ${v.phase === 'reveal' ? `data-tg-action="hoard-flip" data-id="${t.id}"` : 'disabled'} aria-label="${copy.card} ${i + 1}">
                         <span class="tg-stolen__seal" aria-hidden="true"><i class="fas fa-dragon"></i></span><span class="tg-stolen__n">${i + 1}</span></button>`;
                 }
                 return `<div class="tg-stolen is-flipped${mark ? ` is-${mark}` : ''}" style="--i:${i}">
                     ${treasureHtml(t, i)}
-                    ${mark ? `<span class="tg-stolen__verdict">${mark === 'found' ? '<i class="fas fa-check"></i> Named!' : '<i class="fas fa-xmark"></i> Missed'}</span>`
+                    ${mark ? `<span class="tg-stolen__verdict">${mark === 'found' ? '<i class="fas fa-check"></i> Named!' : `<i class="fas fa-xmark"></i> ${copy.missed}`}</span>`
                         : `<span class="tg-stolen__ask"><button type="button" class="tg-mark tg-mark--yes" data-tg-action="hoard-mark" data-id="${t.id}" data-mark="found"><i class="fas fa-check"></i> We said it</button>
-                           <button type="button" class="tg-mark tg-mark--no" data-tg-action="hoard-mark" data-id="${t.id}" data-mark="missed"><i class="fas fa-xmark"></i> Missed</button></span>`}
+                           <button type="button" class="tg-mark tg-mark--no" data-tg-action="hoard-mark" data-id="${t.id}" data-mark="missed"><i class="fas fa-xmark"></i> ${copy.missed}</button></span>`}
                 </div>`;
             }).join('');
-            const frames = HOARD_FRAMES[v.band] || HOARD_FRAMES.mid;
-            return `<div class="tg-play tg-play--recall">
-                <p class="tg-play__title">The dragon stole ${stolen.length === 1 ? 'one treasure' : `${stolen.length} treasures`}! ${v.phase === 'recall' ? 'What is missing?' : 'Turn the cards over.'}</p>
-                <p class="tg-play__sub">${v.phase === 'recall' ? (s.shuffle ? 'The dragon shuffled the hoard too. Talk together, then agree.' : 'Talk together and agree on your answer.') : 'Tap each card. Did the class name it?'}</p>
-                <div class="tg-hoard-grid tg-hoard-grid--after" style="--cols:${gridCols(v.hoard.after.length)}">${v.hoard.after.map((t, i) => treasureHtml(t, i)).join('')}</div>
+            const frames = v.frames || [];
+            const sub = v.phase === 'recall'
+                ? (s.shuffle ? 'The dragon shuffled the hoard too. Talk together, then agree.' : 'Talk together and agree on your answer.')
+                : copy.reveal;
+            return `<div class="tg-play tg-play--recall tg-play--${esc(v.hoard.mode)}">
+                <p class="tg-play__title">${copy.ask(answers.length)}</p>
+                <p class="tg-play__sub">${sub}</p>
+                <div class="tg-hoard-grid tg-hoard-grid--after" style="--cols:${gridCols(v.hoard.after.length)}">${v.hoard.after.map((t, i) => treasureHtml(t, i, { answer: flippedIds.includes(t.id) && v.hoard.mode !== 'vanish' })).join('')}</div>
                 <div class="tg-stolen-row">${cards}</div>
-                ${v.phase === 'recall' ? `${chips(frames.map(esc))}<div class="tg-play__foot">${cta('Check our answers', 'hoard-check', { icon: 'fa-dragon' })}</div>` : ''}
+                ${v.phase === 'recall' ? `${chips(frames.map(esc))}<div class="tg-play__foot">${cta('Check our answers', 'hoard-check', { icon: 'fa-dragon', extra: ' data-remote="Check our answers" data-remote-primary' })}</div>` : ''}
             </div>`;
         }
         case 'result': {
             const ok = v.result?.success;
+            const copy = hoardCopy(v.hoard?.mode);
+            const done = { vanish: 'Every stolen treasure was named.', intruder: 'Every intruder was caught.', moved: 'Every moved treasure was spotted.' }[v.hoard?.mode] || 'Every treasure was named.';
             return `<div class="tg-play tg-play--result ${ok ? 'is-win' : 'is-lose'}">
                 <div class="tg-result-art">${vaultSvg(v.lit, { newest: ok ? v.lit - 1 : -1, open: ok })}</div>
                 <div class="tg-result-copy">
                     <p class="tg-result__kicker">${ok ? 'Hoard sealed' : 'The dragon wins this time'}</p>
                     <p class="tg-result__title">${ok ? (v.result.keepsakeDone ? `${esc(v.result.keepsakeDone.name)} is complete!` : 'A new rune glows on the vault!') : 'The dragon keeps its treasure.'}</p>
-                    <p class="tg-result__sub">${resultNote(v.result, ok ? 'Every stolen treasure was named.' : `Missed: ${esc(v.result.missed.join(', '))}. Try a fresh hoard!`)}</p>
+                    <p class="tg-result__sub">${resultNote(v.result, ok ? done : `${copy.missed}: ${esc(v.result.missed.join(', '))}. Try a fresh hoard!`)}</p>
                     <div class="tg-play__foot">${cta(ok ? 'Back to the vault' : 'Try a new hoard', ok ? 'hoard-home' : 'hoard-start', { icon: ok ? 'fa-dungeon' : 'fa-rotate' })}</div>
                 </div>
             </div>`;
         }
         default: {
+            const theme = (v.themes || []).find((t) => t.id === v.themeId);
+            const mode = (v.modes || []).find((m) => m.id === v.mode);
             return `<div class="tg-home">
                 <div class="tg-home__art">${vaultSvg(v.lit, { label: v.vaultName })}</div>
                 <div class="tg-home__copy">
                     <p class="tg-home__kicker">Vault ${v.vaultNo} · ${esc(v.vaultName)}</p>
                     <p class="tg-home__title">${v.lit} of 8 runes lit</p>
                     <p class="tg-home__sub">Each hoard you seal lights a rune. Light all eight to seal the vault for the shelf.</p>
-                    ${chips([`<i class="fas fa-gem"></i> ${s.count} treasures`, `<i class="fas fa-dragon"></i> ${s.vanish} ${s.vanish === 1 ? 'vanishes' : 'vanish'}`, `<i class="fas fa-hourglass-half"></i> ${s.watchSeconds}s to watch`, ...(s.shuffle ? ['<i class="fas fa-shuffle"></i> the hoard shuffles'] : [])])}
-                    <div class="tg-play__foot">${cta('Gather the hoard', 'hoard-start', { icon: 'fa-gem' })}</div>
+                    ${chips([
+                        `<span aria-hidden="true">${theme ? theme.icon : '🎲'}</span> ${theme ? esc(theme.name) : 'Mixed treasure'}`,
+                        `<i class="fas ${mode ? mode.icon : 'fa-dice'}"></i> ${mode ? esc(mode.label) : 'Dragon’s choice'}`,
+                        `<i class="fas fa-gem"></i> ${s.count} treasures`,
+                        `<i class="fas fa-hourglass-half"></i> ${s.watchSeconds}s to watch`,
+                        ...(s.shuffle ? ['<i class="fas fa-shuffle"></i> the hoard shuffles'] : [])
+                    ])}
+                    <div class="tg-play__foot">${cta('Gather the hoard', 'hoard-start', { icon: 'fa-gem', extra: ' data-remote="Gather the hoard" data-remote-primary' })}</div>
                 </div>
             </div>`;
         }
@@ -345,13 +396,34 @@ function resultNote(result, line) {
 
 // ─── The Torn Map ────────────────────────────────────────────────────────────
 
-function optionCards(riddle, { out = [], chosen = -1, interactive = false, correct = -1 } = {}) {
+function optionCards(riddle, { out = [], ruled = [], interactive = false, correct = -1 } = {}) {
     return `<div class="tg-options" style="--n:${riddle.options.length}">${riddle.options.map((o, i) => {
-        const state = i === correct ? ' is-correct' : out.includes(i) ? ' is-out' : i === chosen ? ' is-chosen' : '';
-        const tag = interactive && !out.includes(i) ? 'button' : 'div';
-        return `<${tag}${tag === 'button' ? ` type="button" data-tg-action="map-choose" data-i="${i}"` : ''} class="tg-option${state}" style="--i:${i}">
+        const gone = out.includes(i) || ruled.includes(i);
+        const state = i === correct ? ' is-correct' : out.includes(i) ? ' is-out' : ruled.includes(i) ? ' is-ruled' : '';
+        const tag = interactive && !gone ? 'button' : 'div';
+        return `<${tag}${tag === 'button' ? ` type="button" data-tg-action="map-choose" data-i="${i}" data-remote="${esc(o.word)}"` : ''} class="tg-option${state}" style="--i:${i}">
             <span class="tg-option__art" aria-hidden="true">${o.emoji}</span><span class="tg-option__word">${esc(o.word)}</span></${tag}>`;
     }).join('')}</div>`;
+}
+
+function stepTrail(v) {
+    const total = v.adventure?.riddles?.length || 6;
+    const at = Math.min(v.restored || 0, total - 1);
+    return `<span class="tg-trail" aria-label="Step ${at + 1} of ${total}">${Array.from({ length: total }, (_, i) =>
+        `<span class="${i < at ? 'is-done' : i === at ? 'is-now' : ''}"></span>`).join('')}</span>`;
+}
+
+function beatHtml(v) {
+    if (v.fromReserve) {
+        return '<p class="tg-beat tg-beat--side"><i class="fas fa-signs-post" aria-hidden="true"></i> The story path is blocked, so the class takes a side path.</p>';
+    }
+    const intro = (v.restored || 0) === 0 && v.adventure?.intro ? `<p class="tg-beat tg-beat--intro">${esc(v.adventure.intro)}</p>` : '';
+    return `${intro}${v.riddle?.beat ? `<p class="tg-beat"><i class="fas fa-feather" aria-hidden="true"></i> ${esc(v.riddle.beat)}</p>` : ''}`;
+}
+
+function scrapBody(c, { big = false } = {}) {
+    const pic = c.pic ? `<span class="tg-scrap__pic${big ? ' tg-scrap__pic--big' : ''}" aria-hidden="true">${c.pic}</span>` : '';
+    return `${pic}<span class="tg-scrap__text">${esc(c.text)}</span>`;
 }
 
 export function mapStageHtml(v) {
@@ -359,11 +431,12 @@ export function mapStageHtml(v) {
     switch (v.phase) {
         case 'riddle':
             return `<div class="tg-play tg-play--riddle">
-                <p class="tg-riddle__kicker"><i class="fas fa-scroll" aria-hidden="true"></i> The riddle on the map</p>
+                <p class="tg-riddle__kicker"><i class="fas fa-scroll" aria-hidden="true"></i> ${esc(v.mapName || 'The riddle on the map')} ${stepTrail(v)}</p>
+                ${beatHtml(v)}
                 <p class="tg-riddle__ask">${esc(r.ask)}</p>
                 ${optionCards(r)}
                 <p class="tg-play__sub">Every group gets one scrap of the map. Only together can you rule out the wrong answers.</p>
-                <div class="tg-play__foot">${cta('Deal the scraps', 'map-deal', { icon: 'fa-hand-holding' })}</div>
+                <div class="tg-play__foot">${cta('Deal the scraps', 'map-deal', { icon: 'fa-hand-holding', extra: ' data-remote="Deal the scraps" data-remote-primary' })}</div>
             </div>`;
         case 'deal': {
             const i = v.dealIndex || 0;
@@ -374,38 +447,46 @@ export function mapStageHtml(v) {
                 <div class="tg-scrap-stage">
                     <div class="tg-scrap tg-scrap--big${shown ? ' is-shown' : ''}" style="--r:${(i % 2 ? 1.6 : -1.4)}deg">
                         <span class="tg-scrap__group">Group ${i + 1}</span>
-                        ${shown ? `<p class="tg-scrap__text">${esc(r.clues[i])}</p>` : `<p class="tg-scrap__cover"><i class="fas fa-eye-slash" aria-hidden="true"></i> Group ${i + 1}, come and look. Everyone else, eyes closed!</p>`}
+                        ${shown ? `<p class="tg-scrap__body">${scrapBody(r.clues[i], { big: true })}</p>` : `<p class="tg-scrap__cover"><i class="fas fa-eye-slash" aria-hidden="true"></i> Group ${i + 1}, come and look. Everyone else, eyes closed!</p>`}
                     </div>
                     <div class="tg-scrap-dots" aria-hidden="true">${r.clues.map((_, k) => `<span class="${k < i ? 'is-done' : k === i ? 'is-now' : ''}"></span>`).join('')}</div>
                 </div>
                 <div class="tg-play__foot">${shown
-                    ? cta(last ? 'Hide it and pool the clues' : `Hide it, next group`, last ? 'map-pool' : 'map-next-scrap', { icon: last ? 'fa-people-group' : 'fa-arrow-right' })
+                    ? cta(last ? 'Hide it and pool the clues' : 'Hide it, next group', last ? 'map-pool' : 'map-next-scrap', { icon: last ? 'fa-people-group' : 'fa-arrow-right' })
                     : cta(`Show Group ${i + 1}’s scrap`, 'map-show-scrap', { icon: 'fa-eye' })}</div>
             </div>`;
         }
-        case 'pool':
+        case 'pool': {
+            const ruled = ruledOutOptions(r, v.ruled || []);
             return `<div class="tg-play tg-play--pool">
                 <p class="tg-riddle__ask">${esc(r.ask)}</p>
-                ${optionCards(r, { out: v.out || [], interactive: true })}
-                ${v.wrongNote ? `<p class="tg-pool__note" role="status"><i class="fas fa-wind" aria-hidden="true"></i> ${esc(v.wrongNote)}</p>` : '<p class="tg-play__sub">Each group reads its scrap aloud. Rule out options together, then tap the class’s answer.</p>'}
+                ${optionCards(r, { out: v.out || [], ruled, interactive: true })}
+                ${v.wrongNote ? `<p class="tg-pool__note" role="status"><i class="fas fa-wind" aria-hidden="true"></i> ${esc(v.wrongNote)}</p>` : '<p class="tg-play__sub">Each group reads its scrap aloud. Cross out what it rules out, then tap the class’s answer.</p>'}
                 <div class="tg-scrap-row">${r.clues.map((c, k) => {
                     const open = (v.openScraps || []).includes(k);
-                    return `<button type="button" class="tg-scrap${open ? ' is-shown' : ''}" data-tg-action="map-toggle-scrap" data-i="${k}" style="--r:${(k % 2 ? 1.2 : -1.2)}deg" aria-pressed="${open}">
-                        <span class="tg-scrap__group">Group ${k + 1}</span>
-                        ${open ? `<span class="tg-scrap__text">${esc(c)}</span>` : '<span class="tg-scrap__cover"><i class="fas fa-scroll"></i> Tap to show</span>'}
-                    </button>`;
+                    const crossed = (v.ruled || []).includes(k);
+                    return `<div class="tg-scrap tg-scrap--slot${open ? ' is-shown' : ''}${crossed ? ' is-crossed' : ''}" style="--r:${(k % 2 ? 1.2 : -1.2)}deg">
+                        <button type="button" class="tg-scrap__toggle" data-tg-action="map-toggle-scrap" data-i="${k}" aria-pressed="${open}">
+                            <span class="tg-scrap__group">Group ${k + 1}</span>
+                            ${open ? scrapBody(c) : '<span class="tg-scrap__cover"><i class="fas fa-scroll"></i> Tap to show</span>'}
+                        </button>
+                        ${open ? `<button type="button" class="tg-scrap__rule" data-tg-action="map-ruleout" data-i="${k}" aria-pressed="${crossed}"><i class="fas ${crossed ? 'fa-rotate-left' : 'fa-xmark'}" aria-hidden="true"></i> ${crossed ? 'Undo' : 'Cross it out'}</button>` : ''}
+                    </div>`;
                 }).join('')}</div>
-                ${chips((MAP_FRAMES[v.band] || MAP_FRAMES.mid).map(esc))}
+                ${chips((v.frames || []).map(esc))}
             </div>`;
+        }
         case 'solved': {
             const ok = v.result?.success !== false;
+            const done = v.result?.keepsakeDone;
             return `<div class="tg-play tg-play--result ${ok ? 'is-win' : 'is-lose'}">
                 <div class="tg-result-art tg-result-art--map">${mapSvg(v.restored, { newest: ok ? v.restored - 1 : -1 })}</div>
                 <div class="tg-result-copy">
                     <p class="tg-result__kicker">${ok ? `Riddle solved: ${esc(r.options[r.answer].word)}` : 'The map stays torn'}</p>
-                    <p class="tg-result__title">${ok ? (v.result?.keepsakeDone ? `${esc(v.result.keepsakeDone.name)} is whole again!` : 'A piece of the map is back!') : `It was the ${esc(r.options[r.answer].word)}.`}</p>
-                    <p class="tg-result__sub">${resultNote(v.result, ok ? ((v.attempts || 1) === 1 ? 'Solved on the first try. Every scrap mattered.' : 'Solved on the second try. Good thinking together.') : 'Read every scrap aloud before you choose. Try a new riddle!')}</p>
-                    <div class="tg-play__foot">${cta(ok ? 'Back to the map' : 'Try a new riddle', ok ? 'map-home' : 'map-start', { icon: ok ? 'fa-map' : 'fa-scroll' })}</div>
+                    <p class="tg-result__title">${ok ? (done ? `${esc(done.name)} is whole again!` : 'A piece of the map is back!') : `It was the ${esc(r.options[r.answer].word)}.`}</p>
+                    ${ok && done && v.finale ? `<p class="tg-beat tg-beat--finale"><i class="fas fa-crown" aria-hidden="true"></i> ${esc(v.finale)}</p>` : ''}
+                    <p class="tg-result__sub">${resultNote(v.result, ok ? ((v.attempts || 1) === 1 ? 'Solved on the first try. Every scrap mattered.' : 'Solved on the second try. Good thinking together.') : 'Read every scrap aloud before you choose. The next try takes a side path.')}</p>
+                    <div class="tg-play__foot">${cta(ok ? 'Back to the map' : 'Try again', ok ? 'map-home' : 'map-start', { icon: ok ? 'fa-map' : 'fa-scroll' })}</div>
                 </div>
             </div>`;
         }
@@ -415,9 +496,9 @@ export function mapStageHtml(v) {
                 <div class="tg-home__copy">
                     <p class="tg-home__kicker">Map ${v.mapNo} · ${esc(v.mapName)}</p>
                     <p class="tg-home__title">${v.restored} of 6 pieces restored</p>
-                    <p class="tg-home__sub">Solve a riddle together to bring back a piece. Restore all six to find the treasure.</p>
+                    <p class="tg-home__sub">${v.adventureIntro && !v.restored ? esc(v.adventureIntro) : 'Solve the next riddle together to bring back a piece. Six riddles tell the whole adventure.'}</p>
                     ${chips([`<i class="fas fa-people-group"></i> ${v.scraps} groups, one scrap each`, `<i class="fas fa-list-check"></i> ${v.scraps + 1} answers to choose from`, '<i class="fas fa-hand-pointer"></i> Two tries to find it'])}
-                    <div class="tg-play__foot">${cta('Unroll a riddle', 'map-start', { icon: 'fa-scroll' })}</div>
+                    <div class="tg-play__foot">${cta(v.restored ? 'Continue the adventure' : 'Unroll the first riddle', 'map-start', { icon: 'fa-scroll', extra: ' data-remote="Unroll a riddle" data-remote-primary' })}</div>
                 </div>
             </div>`;
     }
@@ -425,26 +506,72 @@ export function mapStageHtml(v) {
 
 // ─── The Round Table ─────────────────────────────────────────────────────────
 
-function framesBlock(band) {
-    const f = COUNCIL_FRAMES[band] || COUNCIL_FRAMES.mid;
+function framesBlock(frames) {
+    const f = frames || { speak: [], echo: [], kind: [] };
     const row = (icon, title, items) => `<div class="tg-frames__row"><span class="tg-frames__label"><i class="fas ${icon}" aria-hidden="true"></i> ${title}</span>${items.map((t) => `<span class="tg-chip">${esc(t)}</span>`).join('')}</div>`;
     return `<div class="tg-frames">${row('fa-comment', 'Say', f.speak)}${row('fa-repeat', 'Echo', f.echo)}${row('fa-heart', 'Kindly', f.kind)}</div>`;
 }
 
+function choicesHtml(q, { big = false } = {}) {
+    if (!q?.choices?.length) return '';
+    return `<div class="tg-choices${big ? ' tg-choices--big' : ''}" style="--n:${q.choices.length}">${q.choices.map(([emoji, label], i) =>
+        `<span class="tg-choice" style="--i:${i}"><span class="tg-choice__art" aria-hidden="true">${emoji}</span><span class="tg-choice__label">${esc(label)}</span></span>`).join('')}</div>`;
+}
+
+function kindChip(v) {
+    const meta = v.kindMeta?.[v.question?.kind];
+    return meta ? `<span class="tg-mode-badge"><i class="fas ${meta.icon}" aria-hidden="true"></i> ${esc(meta.label)}</span>` : '';
+}
+
+function kindFilter(v) {
+    const kinds = v.kinds || [];
+    if (kinds.length < 2) return '';
+    const btn = (id, label, icon) => `<button type="button" class="tg-kind${(v.kind || 'any') === id ? ' is-on' : ''}" data-tg-action="council-kind" data-kind="${id}" aria-pressed="${(v.kind || 'any') === id}"><i class="fas ${icon}" aria-hidden="true"></i> ${esc(label)}</button>`;
+    return `<div class="tg-kinds" role="group" aria-label="Question type">${btn('any', 'Any', 'fa-shuffle')}${kinds.map((k) => btn(k, v.kindMeta[k].label, v.kindMeta[k].icon)).join('')}</div>`;
+}
+
+function helpersHtml(q) {
+    const words = q?.words?.length ? `<div class="tg-qwords"><span class="tg-frames__label"><i class="fas fa-key" aria-hidden="true"></i> Useful words</span>${q.words.map((w) => `<span class="tg-chip tg-chip--word">${esc(w)}</span>`).join('')}</div>` : '';
+    const think = q?.think?.length ? `<ul class="tg-think">${q.think.map((t) => `<li><i class="fas fa-lightbulb" aria-hidden="true"></i> ${esc(t)}</li>`).join('')}</ul>` : '';
+    return words + think;
+}
+
+function voteHtml(v) {
+    const opts = v.voteOptions || [];
+    const counts = v.votes || {};
+    return `<div class="tg-play tg-play--vote">
+        <p class="tg-riddle__kicker"><i class="fas fa-hand" aria-hidden="true"></i> The Kingdom Vote</p>
+        <p class="tg-council__q tg-council__q--small">${esc(v.question.text)}</p>
+        <p class="tg-play__sub">Hands up for each answer. Every vote counts the same, and every choice is respected.</p>
+        <div class="tg-vote" style="--n:${opts.length}">${opts.map((o, i) => `<div class="tg-vote__opt" style="--i:${i}">
+            <span class="tg-vote__art" aria-hidden="true">${o.emoji}</span>
+            <span class="tg-vote__label">${esc(o.label)}</span>
+            <span class="tg-vote__count"><button type="button" class="tg-step" data-tg-action="council-vote-step" data-i="${i}" data-d="-1" aria-label="One fewer vote for ${esc(o.label)}"${(counts[i] || 0) <= 0 ? ' disabled' : ''}><i class="fas fa-minus"></i></button>
+                <strong>${counts[i] || 0}</strong>
+                <button type="button" class="tg-step" data-tg-action="council-vote-step" data-i="${i}" data-d="1" aria-label="One more vote for ${esc(o.label)}"><i class="fas fa-plus"></i></button></span>
+        </div>`).join('')}</div>
+        <div class="tg-play__foot">${cta('Record the vote', 'council-vote-done', { icon: 'fa-check' })}</div>
+    </div>`;
+}
+
 export function councilStageHtml(v) {
+    const pictureFirst = v.league === 'prejunior';
     switch (v.phase) {
         case 'question':
-            return `<div class="tg-play tg-play--question">
-                <p class="tg-riddle__kicker"><i class="fas fa-crown" aria-hidden="true"></i> The kingdom asks the council</p>
+            return `<div class="tg-play tg-play--question${pictureFirst ? ' is-picture-first' : ''}">
+                <p class="tg-riddle__kicker"><i class="fas fa-crown" aria-hidden="true"></i> The kingdom asks the council ${kindChip(v)}</p>
                 <p class="tg-council__q">${esc(v.question.text)}</p>
-                ${framesBlock(v.band)}
+                ${choicesHtml(v.question, { big: pictureFirst })}
+                ${helpersHtml(v.question)}
+                ${framesBlock(v.frames)}
+                ${kindFilter(v)}
                 <div class="tg-speakers">
                     <span>Speakers</span>
                     <button type="button" class="tg-step" data-tg-action="council-speakers" data-d="-1" aria-label="Fewer speakers"${v.speakers <= 2 ? ' disabled' : ''}><i class="fas fa-minus"></i></button>
                     <strong>${v.speakers}</strong>
                     <button type="button" class="tg-step" data-tg-action="council-speakers" data-d="1" aria-label="More speakers"${v.speakers >= 12 ? ' disabled' : ''}><i class="fas fa-plus"></i></button>
                 </div>
-                <div class="tg-play__foot">${ghost('Another question', 'council-another', 'fa-shuffle')}${cta('Pass the stone to the first speaker', 'council-begin', { icon: 'fa-gem' })}</div>
+                <div class="tg-play__foot">${ghost('Another question', 'council-another', 'fa-shuffle')}${cta('Pass the stone to the first speaker', 'council-begin', { icon: 'fa-gem', extra: ' data-remote="Pass the stone" data-remote-primary' })}</div>
             </div>`;
         case 'speaking': {
             const k = v.speaker;
@@ -453,6 +580,7 @@ export function councilStageHtml(v) {
             const echoed = (v.echoed || []).includes(k);
             return `<div class="tg-play tg-play--speaking">
                 <p class="tg-council__q tg-council__q--small">${esc(v.question.text)}</p>
+                ${choicesHtml(v.question)}
                 <div class="tg-speaker">
                     <div class="tg-speaker__stone">
                         <div class="tg-timer tg-timer--stone" style="--secs:${v.seconds}s" aria-hidden="true"><svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="19"/><circle class="tg-timer__run" cx="22" cy="22" r="19"/></svg></div>
@@ -468,9 +596,11 @@ export function councilStageHtml(v) {
                     <button type="button" class="tg-toggle tg-toggle--warn" data-tg-action="council-interrupt"><i class="fas fa-hand"></i> Interrupted${v.interruptions ? ` <b>${v.interruptions}</b>` : ''}</button>
                 </div>
                 <div class="tg-council-tally">${Array.from({ length: v.speakers }, (_, i) => `<span class="${i + 1 < k ? 'is-done' : i + 1 === k ? 'is-now' : ''}${(v.echoed || []).includes(i + 1) ? ' is-echo' : ''}"></span>`).join('')}</div>
-                <div class="tg-play__foot">${cta(last ? 'Close the council' : 'Pass the stone', last ? 'council-close' : 'council-pass', { icon: last ? 'fa-gavel' : 'fa-arrow-right' })}</div>
+                <div class="tg-play__foot">${cta(last ? 'Close the council' : 'Pass the stone', last ? 'council-close' : 'council-pass', { icon: last ? 'fa-gavel' : 'fa-arrow-right', extra: ` data-remote="${last ? 'Close the council' : 'Pass the stone'}" data-remote-primary` })}</div>
             </div>`;
         }
+        case 'vote':
+            return voteHtml(v);
         case 'verdict': {
             const vd = v.verdict;
             return `<div class="tg-play tg-play--verdict">
@@ -480,8 +610,9 @@ export function councilStageHtml(v) {
                     <div class="tg-verdict__item${vd.peaceful ? ' is-good' : ''}"><strong>${v.interruptions}</strong><span>interruptions</span></div>
                     <div class="tg-verdict__item is-good"><strong>${v.speakers}</strong><span>voices heard</span></div>
                 </div>
+                ${v.voteLine ? `<p class="tg-vote__result"><i class="fas fa-hand" aria-hidden="true"></i> The Kingdom voted: ${esc(v.voteLine)}</p>` : ''}
                 <p class="tg-play__sub">${vd.honoured ? 'Every voice was echoed and nobody interrupted. This council looks honoured.' : 'Some rules slipped. You decide: was it still a council of respect?'}</p>
-                <div class="tg-play__foot">${ghost('Hold it again next lesson', 'council-fail', 'fa-clock-rotate-left')}${cta('The council was honoured', 'council-honour', { icon: 'fa-fire-flame-curved', tone: vd.honoured ? '' : 'soft' })}</div>
+                <div class="tg-play__foot">${(v.voteOptions || []).length ? ghost(v.voteLine ? 'Vote again' : 'Hold a Kingdom Vote', 'council-vote', 'fa-hand') : ''}${ghost('Hold it again next lesson', 'council-fail', 'fa-clock-rotate-left')}${cta('The council was honoured', 'council-honour', { icon: 'fa-fire-flame-curved', tone: vd.honoured ? '' : 'soft' })}</div>
             </div>`;
         }
         case 'result': {
@@ -507,7 +638,7 @@ export function councilStageHtml(v) {
                         <li><i class="fas fa-repeat" aria-hidden="true"></i> The Echo Rule: first say one thing the last speaker said.</li>
                         <li><i class="fas fa-hand" aria-hidden="true"></i> Nobody interrupts. Wait for the stone.</li>
                     </ul>
-                    <div class="tg-play__foot">${cta('Call the council', 'council-start', { icon: 'fa-bell' })}</div>
+                    <div class="tg-play__foot">${cta('Call the council', 'council-start', { icon: 'fa-bell', extra: ' data-remote="Call the council" data-remote-primary' })}</div>
                 </div>
             </div>`;
     }
@@ -517,21 +648,35 @@ export function councilStageHtml(v) {
 
 const STEPS = {
     hoard: [
-        { phases: ['vault'], title: 'Gather the hoard', hint: 'Treasures come from your league’s word bank, or from this lesson’s words.' },
-        { phases: ['watch', 'sweep', 'recall'], title: 'Watch, then remember', hint: 'Silent watching while the dragon sleeps. Then the class agrees what vanished.' },
-        { phases: ['reveal', 'result'], title: 'Check the vault', hint: 'Turn each stolen card. All named means the hoard is sealed.' }
+        { phases: ['vault'], title: 'Gather the hoard', hint: 'Choose a treasure chest and a round type, or let the dragon choose. Treasures match the class’s league; this lesson’s words can join them.' },
+        { phases: ['watch', 'sweep', 'recall'], title: 'Watch, then remember', hint: 'Silent watching while the dragon sleeps. Then the class agrees what vanished, what sneaked in, or what moved.' },
+        { phases: ['reveal', 'result'], title: 'Check the vault', hint: 'Turn each card. All named means the hoard is sealed.' }
     ],
     map: [
-        { phases: ['map', 'riddle'], title: 'Unroll a riddle', hint: 'Everyone sees the question and the possible answers.' },
+        { phases: ['map', 'riddle'], title: 'Unroll a riddle', hint: 'Read the story line aloud, then the question and the possible answers. Six riddles tell one adventure.' },
         { phases: ['deal'], title: 'Deal the scraps', hint: 'Each group sees only its own scrap. You can print them as cards instead.' },
-        { phases: ['pool', 'solved'], title: 'Pool the clues', hint: 'Groups read their scraps aloud and rule out options together.' }
+        { phases: ['pool', 'solved'], title: 'Pool the clues', hint: 'Groups read their scraps aloud. Cross out each scrap once the class agrees what it rules out.' }
     ],
     council: [
-        { phases: ['table', 'question'], title: 'Bring a question', hint: 'A question with no right answer, matched to the league.' },
+        { phases: ['table', 'question'], title: 'Bring a question', hint: 'A question with no right answer, matched to the league. Choose a type, or take any.' },
         { phases: ['speaking'], title: 'Pass the Speaking Stone', hint: 'Each speaker echoes the last one before sharing. Tap when they do.' },
-        { phases: ['verdict', 'result'], title: 'Honour the council', hint: 'You have the last word on whether the council kept the rules.' }
+        { phases: ['verdict', 'vote', 'result'], title: 'Honour the council', hint: 'Hold a Kingdom Vote if you like. You have the last word on whether the council kept the rules.' }
     ]
 };
+
+function hoardPickers(v) {
+    const themes = v.themes || [];
+    const modes = v.modes || [];
+    const modeBtn = (id, label, icon) => `<button type="button" class="tg-kind${(v.mode || 'auto') === id ? ' is-on' : ''}" data-tg-action="hoard-mode" data-mode="${id}" aria-pressed="${(v.mode || 'auto') === id}"><i class="fas ${icon}" aria-hidden="true"></i> ${esc(label)}</button>`;
+    return `<div class="tg-gm__pickers">
+        <label class="tg-gm__pick"><span><i class="fas fa-box-open" aria-hidden="true"></i> Treasure chest</span>
+            <select class="tg-select" data-tg-input="hoard-theme" aria-label="Treasure chest">
+                <option value=""${v.themeId ? '' : ' selected'}>🎲 Mixed treasure</option>
+                ${themes.map((t) => `<option value="${esc(t.id)}"${t.id === v.themeId ? ' selected' : ''}>${t.icon} ${esc(t.name)}</option>`).join('')}
+            </select></label>
+        <div class="tg-kinds" role="group" aria-label="Round type">${modeBtn('auto', 'Dragon’s choice', 'fa-dice')}${modes.map((m) => modeBtn(m.id, m.label, m.icon)).join('')}</div>
+    </div>`;
+}
 
 /** The Game Master bar under the board: where the round is, what to do now, and the tools for it. */
 export function controlsHtml(gameKey, v) {
@@ -542,12 +687,12 @@ export function controlsHtml(gameKey, v) {
     let drawer = '';
     if (gameKey === 'hoard' && v.phase === 'vault') {
         tools.push(`<label class="tg-switch"><input type="checkbox" data-tg-input="hoard-use-words"${v.useWords ? ' checked' : ''}><span></span> Use this lesson’s words</label>`);
-        drawer = `<div class="tg-gm__drawer${v.useWords ? '' : ' hidden'}" data-tg-words-drawer>
+        drawer = `${hoardPickers(v)}<div class="tg-gm__drawer${v.useWords ? '' : ' hidden'}" data-tg-words-drawer>
             <textarea data-tg-input="hoard-words" class="tg-textarea" rows="2" placeholder="castle, lantern, brave…" aria-label="Lesson words, separated by commas">${esc(v.wordsText || '')}</textarea>
             <p class="tg-gm__note">Separate words with commas. They join the hoard as treasures.</p>
         </div>`;
     }
-    if (gameKey === 'map' && v.phase === 'riddle') tools.push(ghost('Another riddle', 'map-another', 'fa-shuffle'));
+    if (gameKey === 'map' && v.phase === 'riddle') tools.push(ghost('Take a side path', 'map-another', 'fa-signs-post'));
     if (gameKey === 'map' && v.riddle && ['riddle', 'deal', 'pool'].includes(v.phase)) tools.push(ghost('Print the scraps', 'map-print', 'fa-print'));
     if (busy) tools.push(ghost('Stop this round', `${gameKey}-abandon`, 'fa-xmark'));
     const stepper = steps.map((s, i) => {
@@ -609,7 +754,7 @@ export function shelfHtml(gameKey, shelf = [], hasClass = true) {
 }
 
 /** Printable scrap cards for The Torn Map. */
-export function printableScrapsHtml(riddle, className = '') {
+export function printableScrapsHtml(riddle, className = '', { mapName = '' } = {}) {
     return `<!doctype html><html><head><meta charset="utf-8"><title>Torn Map scraps</title>
     <style>
         body{font-family:Georgia,serif;margin:24px;color:#3b2412}
@@ -618,11 +763,14 @@ export function printableScrapsHtml(riddle, className = '') {
         .scrap{border:2px dashed #a16207;border-radius:14px;padding:22px 20px;min-height:120px;background:#fdf5e2;page-break-inside:avoid}
         .scrap b{display:block;font-family:sans-serif;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#a16207;margin-bottom:10px}
         .scrap span{font-size:24px;line-height:1.35}
+        .scrap i{display:block;font-style:normal;font-size:56px;line-height:1.1;margin-bottom:8px}
+        p.beat{font-style:italic;font-size:17px;margin:0 0 8px;color:#6b4423}
         .opts{margin-top:22px;font-size:18px}
     </style></head><body>
-    <h1>The Torn Map${className ? ` · ${esc(className)}` : ''}</h1>
+    <h1>The Torn Map${mapName ? ` · ${esc(mapName)}` : ''}${className ? ` · ${esc(className)}` : ''}</h1>
+    ${riddle.beat ? `<p class="beat">${esc(riddle.beat)}</p>` : ''}
     <p class="q">${esc(riddle.ask)}</p>
-    <div class="grid">${riddle.clues.map((c, i) => `<div class="scrap"><b>Group ${i + 1}</b><span>${esc(c)}</span></div>`).join('')}</div>
+    <div class="grid">${riddle.clues.map((c, i) => `<div class="scrap"><b>Group ${i + 1}</b>${c.pic ? `<i>${c.pic}</i>` : ''}<span>${esc(c.text ?? c)}</span></div>`).join('')}</div>
     <p class="opts">Answers: ${riddle.options.map((o) => `${o.emoji} ${esc(o.word)}`).join(' · ')}</p>
     <script>window.onload=()=>window.print()</script></body></html>`;
 }
@@ -635,48 +783,48 @@ const HOW_TO = {
         steps: [
             { scene: '🔤 ✨', title: 'Pick the Word of the Day', line: 'Choose a word and lock it in. Every new sentence must use it.' },
             { scene: '🙋 💬', title: 'Say the next sentence', line: 'One hero says what happens next in the story, using the word.' },
-            { scene: '✍️ 🎨', title: 'Add the page', line: 'Type it in with Continue. On Elite, a picture is painted for the page.' },
+            { scene: '✍️ 🎨', title: 'Add the page', line: 'Type it in with Continue. Stuck? Draw a Twist card. On Elite, a picture is painted for the page.' },
             { scene: '📖 👀', title: 'Reveal and talk', line: 'Show the page to the class and talk about the three questions.' }
         ],
         win: 'Every second page you add is a star moment.',
         keepsake: { art: '📚', line: 'Press The End and the book goes to the Archive. You can print it or hear it read aloud.' },
-        tip: 'Lock the word before anyone writes, so it is a fun challenge and not a trap at the end. Let a different hero own each sentence.'
+        tip: 'A new book? Draw a Story Spark (a hero, a place and a problem) for the first page. Lock the word before anyone writes, and let a different hero own each sentence.'
     },
     hoard: {
-        goal: 'Remember the dragon’s treasure, then name what it stole.',
+        goal: 'Remember the dragon’s treasure, then spot what changed.',
         steps: [
             { scene: '🤫 👀 💎', title: 'Watch in silence', line: 'Look at every treasure while the timer runs. No talking!' },
-            { scene: '🐉 💨', title: 'Whoosh!', line: 'The dragon’s wing sweeps past and steals some treasure.' },
-            { scene: '🧠 🗣️', title: 'What is missing?', line: 'Talk together and agree. Use the sentence starters to say it in English.' },
-            { scene: '🃏 ✅', title: 'Turn the cards', line: 'Name every stolen treasure and the hoard is sealed.' }
+            { scene: '🐉 💨', title: 'Whoosh!', line: 'The dragon’s wing sweeps past. It steals treasure, slips a new one in, or swaps two around.' },
+            { scene: '🧠 🗣️', title: 'What changed?', line: 'Talk together and agree. Use the sentence starters to say it in English.' },
+            { scene: '🃏 ✅', title: 'Turn the cards', line: 'Name every treasure the dragon touched and the hoard is sealed.' }
         ],
-        win: 'Name every stolen treasure to light a rune on the vault.',
+        win: 'Name everything the dragon changed to light a rune on the vault.',
         keepsake: { art: 'vault', line: 'Eight runes seal the vault. Then a new, harder vault opens.' },
-        tip: 'Turn on “Use this lesson’s words” to hide your vocabulary in the hoard. As the vault fills, more treasures appear and more vanish.'
+        tip: 'Pick a treasure chest that matches your unit (the farm, the kitchen, space…) or turn on “Use this lesson’s words”. Three round types: What vanished?, Who sneaked in? and, from Junior B, What moved? As the vault fills, the hoard grows.'
     },
     map: {
         goal: 'Every group holds one clue. Only together can you find the answer.',
         steps: [
-            { scene: '📜 ❓', title: 'Read the riddle', line: 'Everyone sees the question and the possible answers.' },
+            { scene: '📜 ❓', title: 'Read the riddle', line: 'Read the story line aloud. Everyone sees the question and the possible answers.' },
             { scene: '🤐 🧩', title: 'Get your scrap', line: 'Each group secretly reads its own clue. Keep it in your group!' },
             { scene: '🗣️ 🤝', title: 'Share the clues', line: '“Our clue says… So it isn’t the…” Each clue rules out one answer.' },
             { scene: '👉 🗺️', title: 'Choose together', line: 'Pick the one answer left. You have two tries.' }
         ],
         win: 'The right answer brings back a piece of the map.',
-        keepsake: { art: 'map', line: 'Six pieces make the whole map. It goes to the Map Chest.' },
-        tip: 'Ask one speaker per group to share the clue. If you prefer cards, use Print the scraps and hand one to each group.'
+        keepsake: { art: 'map', line: 'Six riddles tell one adventure and restore the whole map. It goes to the Map Chest.' },
+        tip: 'Ask one speaker per group to share the clue, then tap Cross it out. A lost riddle is not wasted: the next try takes a side path. For Pre-Junior, every scrap has a picture to read aloud. Prefer cards? Print the scraps.'
     },
     council: {
         goal: 'Share your ideas, listen well, and let every voice be heard.',
         steps: [
-            { scene: '👑 ❓', title: 'Hear the question', line: 'The kingdom asks the council a question. There is no wrong answer.' },
+            { scene: '👑 ❓', title: 'Hear the question', line: 'Would you rather, a dilemma, a royal decree… There is no wrong answer.' },
             { scene: '💎 ✋', title: 'Hold the Speaking Stone', line: 'Only the hero holding the stone speaks. Everyone else listens.' },
             { scene: '🔁 💬', title: 'Echo, then share', line: 'First say one thing the last speaker said. Then give your idea.' },
             { scene: '🤫 ➡️', title: 'No interrupting', line: 'Wait for the stone. When you finish, pass it on.' }
         ],
         win: 'Everyone echoed and nobody interrupted? A candle is lit.',
         keepsake: { art: 'table', line: 'Six candles make a banner for the Hall of Banners.' },
-        tip: 'A real object makes a great Speaking Stone. Tap Echoed! for each echo and Interrupted if someone speaks out of turn. You always have the last word.'
+        tip: 'A real object makes a great Speaking Stone. Tap Echoed! for each echo and Interrupted if someone speaks out of turn. End with a Kingdom Vote if you like. You always have the last word.'
     }
 };
 

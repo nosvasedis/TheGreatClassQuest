@@ -8,7 +8,7 @@ import { canUseFeature } from '../../utils/subscription.js';
 import { getLocalIsoDateString as isoToday } from '../../utils.js';
 import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
 import { getLeagueBand } from '../../features/languageScaffolds.mjs';
-import { suggestOaths, buildOathSuggestions, oathTemplates, evaluateOathEvidence, oathDate, CATEGORY_META, QUICK_MOMENTS, CLASS_PROMISES, nextChildWithoutOath } from '../../features/emberOathCore.mjs';
+import { suggestOaths, buildOathSuggestions, oathTemplates, evaluateOathEvidence, emberStory, emberTarget, oathDate, CATEGORY_META, QUICK_MOMENTS, CLASS_PROMISES, nextChildWithoutOath } from '../../features/emberOathCore.mjs';
 import { emberSigns, LENS_KINDS, matchesLens } from '../../features/oathSuggestCore.mjs';
 import { INTERESTS, SPIRITS, oathTitle, spiritForKey, detectInterests } from '../../features/oathForge.mjs';
 import { cleanCampfireText } from '../../features/heroCampfireCore.mjs';
@@ -21,9 +21,10 @@ import { showToast } from '../effects.js';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 
 const MODAL_ID = 'ember-oaths-modal';
-const MOODS = [['flame', '🔥', 'Tried it'], ['candle', '🕯️', 'Growing'], ['moon', '🌙', 'Quiet day']];
+// Today's check-in answers one question: "Did you keep your promise today?" Only 🔥 lights an ember; the others never take one away.
+const CHECK_IN_QUESTION = 'Did you keep your promise today?';
+const MOODS = [['flame', '🔥', 'I tried'], ['candle', '🕯️', 'A little'], ['moon', '🌙', 'Not today']];
 const FEELINGS = [['🌱', 'Growing'], ['✨', 'Proud'], ['💪', 'Stronger'], ['😊', 'Happy']];
-const EVIDENCE_ICON = { virtue: '⭐', practice: '📜', quiz: '❓', manual: '✍️' };
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const prettyDate = iso => { const d = new Date(String(iso) + 'T12:00:00'); return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); };
 const HUES = ['#f97316', '#8b5cf6', '#0ea5e9', '#10b981', '#ec4899', '#f59e0b', '#6366f1', '#14b8a6'];
@@ -62,9 +63,15 @@ function spiritRibbon(spirit) {
     const meta = SPIRITS[spirit] || OWN_SPIRIT;
     return '<span class="eo-ribbon eo-ribbon--' + meta.tone + '" title="' + esc(meta.hint) + '"><span aria-hidden="true">' + meta.icon + '</span>' + esc(meta.label) + '</span>';
 }
+/** The days a promise was kept, newest first (story) or oldest first (kept celebration). */
+function storyList(days, newestFirst, empty) {
+    const lines = emberStory(days);
+    if (!lines.length) return empty ? '<ol class="eo-timeline"><li class="eo-tl-empty">' + empty + '</li></ol>' : '';
+    return '<ol class="eo-timeline">' + (newestFirst ? lines.reverse() : lines).map(l => '<li><span class="eo-tl-icon" aria-hidden="true">' + esc(l.icons) + '</span><span class="eo-tl-text">' + esc(l.text) + '</span><time>' + esc(prettyDate(l.date)) + '</time></li>').join('') + '</ol>';
+}
 function emberRow(count, target, big = false) {
     const total = Math.max(1, Math.min(12, target));
-    return '<span class="eo-embers' + (big ? ' is-big' : '') + '" role="img" aria-label="' + Math.min(count, total) + ' of ' + total + ' moments">' +
+    return '<span class="eo-embers' + (big ? ' is-big' : '') + '" role="img" aria-label="' + Math.min(count, total) + ' of ' + total + ' embers lit">' +
         Array.from({ length: total }, (_, i) => '<i class="' + (i < count ? 'is-lit' : '') + '" style="--i:' + i + '"></i>').join('') + '</span>';
 }
 /** The header's ring: how much of the class is growing a promise. */
@@ -159,7 +166,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
     // ─── Board ────────────────────────────────────────────────────────────────
     function moodButtons(oath, big = false) {
         const selected = oath.checkIns?.find(ci => ci.date === isoToday())?.mood;
-        return '<div class="eo-moods' + (big ? ' is-big' : '') + (selected ? ' is-done' : '') + '" role="group" aria-label="Today’s check-in">' + MOODS.map(([m, icon, label]) =>
+        return '<div class="eo-moods' + (big ? ' is-big' : '') + (selected ? ' is-done' : '') + '" role="group" aria-label="' + CHECK_IN_QUESTION + '">' + MOODS.map(([m, icon, label]) =>
             '<button type="button" data-check="' + esc(oath.id) + '" data-mood="' + m + '" aria-pressed="' + (selected === m) + '" title="' + label + '"><span aria-hidden="true">' + icon + '</span><small>' + label + '</small></button>').join('') + '</div>';
     }
     function studentCard(student, i) {
@@ -179,6 +186,18 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
             '<div class="eo-card-progress">' + emberRow(r.count, r.target) + '<span class="eo-card-due' + (due <= 1 ? ' is-soon' : '') + '">' + esc(dueLabel(oath)) + '</span></div>' +
             moodButtons(oath) + '</article>';
     }
+    /** A 🔥 check-in lights (or a changed mood dims) a moment: update that card in place, keeping its place and the tap's pop. */
+    function refreshCard(oath) {
+        const card = view.querySelector('.eo-card-open[data-open="' + CSS.escape(oath.id) + '"]')?.closest('.eo-card');
+        if (!card) return;
+        const r = resultFor(oath);
+        const row = card.querySelector('.eo-card-progress .eo-embers');
+        if (row) row.outerHTML = emberRow(r.count, r.target);
+        card.classList.toggle('is-ready', r.ready);
+        const flag = card.querySelector('.eo-ready-flag');
+        if (r.ready && !flag) card.insertAdjacentHTML('afterbegin', '<span class="eo-ready-flag">✨ Ready to keep</span>');
+        else if (!r.ready) flag?.remove();
+    }
     function classPromiseBlock() {
         const current = c.classOath?.text || '';
         const custom = current && !CLASS_PROMISES.some(p => p.text === current);
@@ -196,7 +215,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
     function focusBar(waiting, ready, toCheck) {
         const items = [];
         if (ready.length) items.push('<button type="button" class="eo-focus eo-focus--ready" data-open="' + esc(activeFor(ready[0].id).id) + '"><span class="eo-focus-icon" aria-hidden="true">⭐</span><span><b>' + (ready.length === 1 ? esc(ready[0].name) + '’s promise is ready' : ready.length + ' promises are ready') + '</b><small>Keep it and a Star-Ember rises</small></span></button>');
-        if (toCheck.length && !early) items.push('<button type="button" class="eo-focus eo-focus--check" data-filter="check"><span class="eo-focus-icon" aria-hidden="true">🔥</span><span><b>' + toCheck.length + ' to check in today</b><small>Tried it, growing or a quiet day</small></span></button>');
+        if (toCheck.length && !early) items.push('<button type="button" class="eo-focus eo-focus--check" data-filter="check"><span class="eo-focus-icon" aria-hidden="true">🔥</span><span><b>' + toCheck.length + ' to check in today</b><small>Did they keep their promise today?</small></span></button>');
         if (waiting.length && !checkInOnly) items.push('<button type="button" class="eo-focus eo-focus--ceremony" data-ceremony><span class="eo-focus-icon" aria-hidden="true">' + FLAME + '</span>' +
             '<span class="eo-focus-body"><b>The Choosing Ceremony</b><small>' + (waiting.length === 1 ? esc(waiting[0].name) + ' is waiting for a promise' : waiting.length + ' heroes are waiting for a promise') + '</small>' +
             '<span class="eo-focus-faces" aria-hidden="true">' + waiting.slice(0, 5).map(s => avatarHtml(s, 'sm')).join('') + (waiting.length > 5 ? '<em>+' + (waiting.length - 5) + '</em>' : '') + '</span></span>' +
@@ -270,14 +289,14 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
     }
     function oathCardHtml(t, i) {
         const meta = CATEGORY_META[t.category] || { icon: '✨', label: 'Promise', hue: 'amber' };
-        const n = Math.max(1, Math.min(6, Number(t.target?.count) || 1)), weeks = Number(t.weeks) || 1;
+        const weeks = Number(t.weeks) || 1, n = emberTarget(weeks);
         return '<button type="button" class="eo-oath eo-oath--' + meta.hue + '" data-pick="' + i + '" style="--i:' + i + '" aria-pressed="' + (choosing.selected === i) + '">' +
             spiritRibbon(t.spirit) + '<span class="eo-oath-seal" aria-hidden="true"><span>' + meta.icon + '</span></span>' +
             '<span class="eo-oath-title">' + esc(t.title || meta.label) + '</span>' +
             '<span class="eo-oath-text font-title">' + esc(t.text) + '</span>' +
             '<span class="eo-oath-why"><span aria-hidden="true">💡</span>' + esc(t.why || '') + '</span>' +
-            '<span class="eo-oath-foot"><span class="eo-oath-kind">' + esc(meta.label) + '</span><span class="eo-oath-measure" title="' + n + ' moment' + (n > 1 ? 's' : '') + ' and one 🔥 check-in">' +
-                '<span class="eo-oath-dots" aria-hidden="true">' + '<i></i>'.repeat(n) + '</span>' + n + (n > 1 ? ' moments' : ' moment') + ' · ' + weeks + (weeks > 1 ? ' weeks' : ' week') + '</span></span>' +
+            '<span class="eo-oath-foot"><span class="eo-oath-kind">' + esc(meta.label) + '</span><span class="eo-oath-measure" title="One ember for each lesson they keep it: ' + n + ' to light">' +
+                '<span class="eo-oath-dots" aria-hidden="true">' + '<i></i>'.repeat(n) + '</span>' + n + ' embers · ' + weeks + (weeks > 1 ? ' weeks' : ' week') + '</span></span>' +
             '<span class="eo-option-check" aria-hidden="true">✓</span></button>';
     }
     function optionsHtml() {
@@ -413,9 +432,9 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
         const oath = local.find(o => o.id === focusId); if (!oath) return renderBoard();
         const student = roster.find(s => s.id === oath.studentId);
         const r = resultFor(oath), meta = CATEGORY_META[oath.category] || CATEGORY_META.virtue;
-        const missing = r.count < r.target ? (r.target - r.count) + ' more moment' + (r.target - r.count > 1 ? 's' : '') : '';
-        const needsFlame = !r.hasFlame;
-        const moments = ['Kept their word today', ...(QUICK_MOMENTS[oath.category] || QUICK_MOMENTS.habit)];
+        const left = r.target - r.count;
+        const moments = QUICK_MOMENTS[oath.category] || QUICK_MOMENTS.habit;
+        const litToday = r.days.some(d => d.date === isoToday());
         const kept = keptFor(oath.studentId).length;
         setView('<div class="eo-story eo-story--' + meta.hue + (r.ready ? ' is-ready' : '') + '">' +
             '<div class="eo-choose-top"><button type="button" class="eo-back" data-back>← Board</button><span class="eo-pill">🗓️ ' + esc(dueLabel(oath)) + ' · until ' + esc(prettyDate(oath.dueDate)) + '</span></div>' +
@@ -423,19 +442,19 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
                 '<div class="eo-story-hero">' + avatarHtml(student, 'lg') + '<div><h3 class="font-title">' + esc(student?.name) + '</h3><div class="eo-story-tags">' + categoryChip(oath.category) + (kept ? '<span class="eo-chip eo-chip--gold">⭐ ' + kept + ' kept before</span>' : '') + '</div></div></div>' +
                 '<div class="eo-story-name">' + spiritRibbon(oathName(oath).spirit) + '<span class="eo-story-title">' + esc(oathName(oath).title) + '</span></div>' +
                 '<blockquote class="eo-story-oath font-title"><span class="eo-quote" aria-hidden="true">“</span>' + esc(oath.text) + '</blockquote>' +
-                '<div class="eo-story-progress">' + emberRow(r.count, r.target, true) + '<p>' + (r.ready ? '<b>Ready to keep!</b> Every ember is glowing.' : 'Growing: ' + [missing, needsFlame ? 'one 🔥 check-in' : ''].filter(Boolean).join(' and ') + ' to go.') + '</p></div>' +
+                '<div class="eo-story-progress">' + emberRow(r.count, r.target, true) + '<p>' + (r.ready ? '<b>Ready to keep!</b> Every ember is lit.' : '<b>' + r.count + ' of ' + r.target + ' embers lit.</b> ' + left + ' more lesson' + (left > 1 ? 's' : '') + ' keeping it to go.') + '</p></div>' +
                 (r.ready ? '<section class="eo-keep"><h4 class="font-title">✨ Keep the Ember</h4><p>How does ' + esc(student?.name) + ' feel about it?</p><div class="eo-feelings">' +
                     FEELINGS.map(([e, label], i) => '<button type="button" data-feeling="' + e + '" aria-pressed="' + (i === 0) + '"><span aria-hidden="true">' + e + '</span><small>' + label + '</small></button>').join('') + '</div>' +
                     '<input class="eo-helped" maxlength="200" placeholder="What helped? (optional)" aria-label="What helped">' +
                     '<button type="button" class="eo-primary is-wide is-gold" data-keep><span aria-hidden="true">⭐</span> Keep the promise</button></section>' : '') +
             '</section><div class="eo-story-side">' +
-                '<section class="eo-panel"><h4>Today</h4>' + moodButtons(oath, true) +
-                    ((oath.checkIns || []).length ? '<div class="eo-checkin-strip" aria-label="Recent check-ins">' + oath.checkIns.slice(-8).map(ci => '<span title="' + esc(prettyDate(ci.date)) + '">' + (MOODS.find(m => m[0] === ci.mood)?.[1] || '·') + '<small>' + esc(prettyDate(ci.date)) + '</small></span>').join('') + '</div>' : '') + '</section>' +
-                '<section class="eo-panel"><h4>Moments</h4><div class="eo-quick">' + moments.map(m => '<button type="button" data-moment="' + esc(m) + '"><span aria-hidden="true">＋</span>' + esc(m) + '</button>').join('') +
+                '<section class="eo-panel"><h4>' + CHECK_IN_QUESTION + '</h4>' + moodButtons(oath, true) +
+                    '<p class="eo-muted eo-panel-note">' + (litToday ? '🔥 Today’s ember is lit.' : '🔥 lights today’s ember. 🕯️ and 🌙 are fine and never take one away.') + '</p></section>' +
+                '<section class="eo-panel"><h4>Or something you saw today</h4><div class="eo-quick">' + moments.map(m => '<button type="button" data-moment="' + esc(m) + '"><span aria-hidden="true">＋</span>' + esc(m) + '</button>').join('') +
                     '<button type="button" data-moment-own><span aria-hidden="true">✏️</span>Something else…</button></div>' +
-                    '<form class="eo-moment-form" hidden><input maxlength="160" placeholder="What did you notice?" aria-label="Describe the moment"><button class="eo-primary is-small">Add</button></form>' +
-                    '<ol class="eo-timeline">' + (r.evidence.length ? [...r.evidence].reverse().map(e => '<li><span class="eo-tl-icon" aria-hidden="true">' + (EVIDENCE_ICON[e.kind] || '✨') + '</span><span class="eo-tl-text">' + esc(e.label) + '</span><time>' + esc(prettyDate(e.date)) + '</time></li>').join('')
-                        : '<li class="eo-tl-empty">Moments appear here, some by themselves' + (oath.evidenceRule === 'virtue' ? ' as you award ' + esc(oath.target?.reason || '') + ' stars' : '') + '.</li>') + '</ol></section>' +
+                    '<form class="eo-moment-form" hidden><input maxlength="160" placeholder="What did you notice?" aria-label="Describe what you saw"><button class="eo-primary is-small">Add</button></form></section>' +
+                '<section class="eo-panel"><h4>The embers so far</h4>' + storyList(r.days, true,
+                    'Each lesson they keep it lights one ember: a 🔥 I tried (here or at the Campfire), something you saw' + (oath.evidenceRule === 'virtue' ? ', or a ' + esc(oath.target?.reason || '') + ' star' : '') + '.') + '</section>' +
                 '<button type="button" class="eo-release" data-release>Let this promise go</button>' +
             '</div></div></div>', 'story');
     }
@@ -444,6 +463,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
         setView('<div class="eo-kept"><div class="eo-kept-rays" aria-hidden="true"></div><div class="eo-kept-burst" aria-hidden="true">' + Array.from({ length: 14 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</div>' +
             '<div class="eo-kept-star" aria-hidden="true">🌟</div>' + avatarHtml(student, 'lg') +
             '<p class="eo-kept-eyebrow">' + esc(oathName(oath).title) + ' · kept</p><h3 class="font-title">' + esc(student?.name) + ' kept a promise!</h3><p class="eo-kept-quote font-title">“' + esc(oath.text) + '”</p>' +
+            storyList(evaluateOathEvidence(oath, { today: isoToday() }).days, false, '') +
             '<p class="eo-muted">A Star-Ember is in their Trophy Room, and a new star shines in the Campfire sky.</p>' +
             '<div class="eo-kept-actions">' + (canUseFeature('parentAccess') ? '<button type="button" class="eo-secondary" data-share="' + esc(oath.id) + '"><span aria-hidden="true">💌</span> Share with family</button>' : '') +
             '<button type="button" class="eo-secondary" data-new-for="' + esc(oath.studentId) + '"><span aria-hidden="true">✨</span> Choose the next promise</button>' +
@@ -541,7 +561,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
             group?.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
             group?.classList.add('is-done');
             b.classList.remove('is-popping'); void b.offsetWidth; b.classList.add('is-popping');
-            if (screen === 'story') renderOath(); else renderStats();
+            if (screen === 'story') renderOath(); else { refreshCard(updated); renderStats(); }
         });
         if (b.dataset.moment) return work(async () => {
             await api.addEmberEvidence(focusId, b.dataset.moment);
@@ -664,7 +684,9 @@ export async function renderChronicleOaths(studentId) {
                 const status = o.status === 'kept' ? '<span class="eo-status is-kept">⭐ Kept</span>' : o.status === 'released' ? '<span class="eo-status is-released">🍃 Released</span>' : '<span class="eo-status is-active">🔥 Growing</span>';
                 return '<article class="eo-chron-item is-' + o.status + '" style="--i:' + i + '"><div class="eo-chron-item-top">' + categoryChip(o.category) + status + '</div>' +
                     '<p class="eo-card-title">' + esc(oathName(o).title) + '</p><p class="eo-chron-text">' + esc(o.text) + '</p>' +
-                    (r ? '<div class="eo-card-progress">' + emberRow(r.count, r.target) + '<span class="eo-muted">' + Math.min(r.count, r.target) + '/' + r.target + ' · until ' + esc(prettyDate(o.dueDate)) + '</span></div>' : '') +
+                    (r ? '<div class="eo-card-progress">' + emberRow(r.count, r.target) + '<span class="eo-muted">' + Math.min(r.count, r.target) + ' of ' + r.target + ' embers · until ' + esc(prettyDate(o.dueDate)) + '</span></div>' : '') +
+                    (o.status === 'kept' ? (() => { const lines = emberStory(evaluateOathEvidence(o, { today: isoToday() }).days);
+                        return lines.length ? '<p class="eo-chron-story">' + lines.map(l => esc(l.icons + ' ' + prettyDate(l.date))).join(' · ') + '</p>' : ''; })() : '') +
                     (o.status === 'kept' && (o.reflection?.helped || o.reflection?.emoji) ? '<p class="eo-chron-reflection">' + esc(o.reflection.emoji || '') + ' ' + esc(o.reflection.helped || '') + '</p>' : '') + '</article>';
             }).join('') + '</div>'
                 : '<div class="eo-empty-state is-light"><span aria-hidden="true">🌱</span><p>No promise yet. A small one is the best start.</p></div>') + '</div>';

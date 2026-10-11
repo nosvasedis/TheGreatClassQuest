@@ -5,13 +5,13 @@ The Training Grounds tab holds **four class games, one for each hero skill**. Pi
 | Game | Skill | In one line |
 |------|-------|-------------|
 | ✒️ **Story Weavers** | Creativity | The class writes one storybook, a sentence at a time, around a Word of the Day |
-| 🐉 **The Vanishing Hoard** | Focus | Watch the dragon's treasures, then name what vanished |
-| 🗺️ **The Torn Map** | Teamwork | Every group holds one scrap of a riddle; only together can the class read it |
+| 🐉 **The Vanishing Hoard** | Focus | Watch the dragon's treasures, then spot what vanished, what sneaked in or what moved |
+| 🗺️ **The Torn Map** | Teamwork | Six riddles tell one map adventure; every group holds one scrap, and only together can the class read it |
 | 🕯️ **The Round Table** | Respect | Pass the Speaking Stone, echo the last speaker, and let nobody interrupt |
 
 The three new games share one rhythm. A round only counts when the class wins it, and only **one round per class per lesson day** ties a knot (extra rounds are free practice). Every **second** knot is a **star moment**: the Quest asks whether to give the **whole class +0.5 stars** of that skill. These are bonus stars, logged under the game's own name, so they never use up a child's daily skill award. Story Weavers keeps its own rhythm (every second page), with the same +0.5. Every game also grows a **keepsake** across lessons (a storybook, a dragon's vault, a restored map, a council banner), and finished keepsakes stay on a shelf under the game.
 
-Content follows the class's **Quest League**: Pre-Junior gets pictures and the simplest words, Junior A and B short sentences, A and B a little more, and C and D longer riddles and harder questions.
+Content follows the class's **Quest League**, and each of the seven leagues has its own: the words, riddles, questions and story cards are written for that league's age and grammar (Junior A: *has got*, *can*, present simple; Junior B: *was / were* and the past; A: comparatives; B: past continuous and *going to*; C: present perfect, the 1st conditional, relative clauses; D: past perfect, the 2nd conditional, the passive, *unless*). **Pre-Junior is picture-first**: big pictures on every card and very short lines for you to read aloud, because most children do not read yet.
 
 ## Purpose
 
@@ -27,8 +27,14 @@ Select the class in the header. The tab opens as a **storybook**: the latest ill
 
 **Writing Helpers** match the class's Quest League:
 
-- **Structure focus**: two or three sentence patterns for this league (for example past continuous with *when* in B, the 1st conditional in C, the passive voice in D), each with an example. Tap one to make it the focus for the next page; tap again to clear it. The focus is shown in the sentence box.
+- **Structure focus**: six sentence patterns for this league (for example past continuous with *when* in B, the 1st conditional in C, the passive voice in D), each with an example. Tap one to make it the focus for the next page; tap again to clear it. The focus is shown in the sentence box.
 - **Sentence starters**: tap one to open the next page with it already started (lock in the Word of the Day first). The sentence box also shows today's word and a short row of starters to tap.
+
+**Story Spark** (an empty book): three cards, **Who?**, **Where?** and **Uh-oh!**, give the class a hero, a place and a problem for its league (C and D also draw **What kind of story?**: mystery, legend, science fiction…). Tap a card to draw another, or **Draw all again**. The cards make an opening line in the league's grammar; **Use this opening** starts the first page with it (lock in the Word of the Day first). The spark is kept on this device for each class.
+
+**Twist!** (once the story has pages): draws a plot twist for the next page, from *Suddenly, it starts to snow.* in Junior A to *Little did they suspect that they had been followed from the start.* in D. **Use it** starts the next page with the twist.
+
+**Lucky dip** gives one noun, one verb and one adjective from the league's own word bank (40+ words per league).
 
 Until you choose a class, the tab shows a placeholder.
 
@@ -56,34 +62,47 @@ This tab is separate from **Five-Sentence Saga** (a one-day Calendar event) and 
 
 ## The Vanishing Hoard (Focus)
 
-A sleeping dragon guards a hoard. The class studies the treasures (pictures with their English words), the dragon sweeps its tail, and one or more treasures are gone. The class names what vanished, then the hoard is revealed.
+A sleeping dragon guards a hoard. The class studies the treasures (pictures with their English words), the dragon sweeps its wing, and something changes. The class says what changed, then the cards are turned.
+
+Before you start, the **Game Master** bar offers:
+
+- **Treasure chest**: 18 themed chests (Dragon's Lair, Toy Box, The Farm, Jungle & Zoo, The Kitchen, Clothes Chest, School Bag, Around the House, Under the Sea, Space Station, Weather & Nature, Sports Shed, Music Room, Town & Jobs, Wizard's Workshop, Pirate Ship, Museum of Wonders, Explorer's Pack) or **Mixed treasure**. Each treasure belongs to a league, so Pre-Junior only meets words like *cat*, *ball* and *apple*, while D meets *thermometer*, *amphora* and *compass*. A chest only appears when the league has enough words in it.
+- **Round type**: **What vanished?** (treasures are stolen), **Who sneaked in?** (a new treasure appears) and, from Junior B, **What moved?** (two treasures swap places; four in bigger hoards). **Dragon's choice** picks one at random.
+- **Use this lesson’s words**: add this week's vocabulary as treasures; they come first.
 
 1. **Gather the hoard**, then let the class watch in silence while the countdown runs (or press **The class is ready**).
-2. The dragon's wing sweeps across and takes the stolen treasures; from A upward the rest may also shuffle places.
-3. The class looks at what is left, talks it over with the sentence frames and agrees on what is missing, then **Check our answers**.
-4. Turn each stolen card over and mark **We said it** or **Missed**. Naming every stolen treasure seals the hoard and lights a rune.
+2. The dragon's wing sweeps across. Depending on the round, treasures vanish, an intruder slips in, or treasures swap; from A upward the hoard may also shuffle.
+3. The class looks, talks it over with the sentence frames for its league and round (*Where is the…? It isn't here!* in Junior A, *The … has been stolen.* in D), then **Check our answers**.
+4. Turn each card over and mark **We said it** or **Missed**. Naming everything the dragon changed seals the hoard and lights a rune.
 
-The hoard grows with every rune lit on the vault: more treasures and more vanishing, and in A to D the treasures start to shuffle places (C and D sooner). Turn on **Use this lesson’s words** to add this week's vocabulary as treasures. Eight lit runes seal a vault and start the next one.
+The hoard grows with every rune lit on the vault (Pre-Junior 4 to 6 treasures, D up to 12), and in A to D the treasures start to shuffle (C and D sooner). Eight lit runes seal a vault and start the next one.
 
 ## The Torn Map (Teamwork)
 
-A treasure map is torn into scraps. The board shows a riddle and its possible answers. Each **group** gets one scrap with one clue, and each clue rules out exactly one wrong answer, so no group can solve it alone.
+A treasure map is torn into scraps. Each map is a **mini-adventure of six riddles** with its own story (Teddy's Picnic Meadow in Pre-Junior, The Runaway Robot in Junior B, The Library of Lost Words in C, Beneath Knossos in D…). Every league has **five adventures**, written for its age and grammar. Each riddle has a short story line, a question and its possible answers. Each **group** gets one scrap with one clue, and each clue rules out exactly one wrong answer, so no group can solve it alone.
 
-1. **Unroll a riddle** so everyone sees the question and answers.
+1. **Unroll the riddle**: read the story line aloud, then the question and answers. The dots beside the map's name show which of the six steps the class is on.
 2. **Deal the scraps**: one group at a time comes to look at its scrap while the others close their eyes, or use **Print the scraps** to hand out cards.
 3. **Pool the clues**: groups share their clue aloud, using the sentence frames (*Our clue says… So it isn't the…*), and rule out answers together.
-4. Pick the last answer standing. The class has **two tries**: a wrong pick opens one more scrap to help, a second wrong pick loses the round, and the right answer restores a piece of the map.
+4. As each group reads its scrap, tap **Cross it out** on that scrap once the class agrees: the answer it rules out greys out on the board.
+5. Pick the last answer standing. The class has **two tries**: a wrong pick opens one more scrap to help, a second wrong pick loses the round, and the right answer restores a piece of the map.
 
-Pre-Junior and Junior A/B get four answers and three groups; A and up get five answers and four groups. Six restored pieces make the whole map, which joins the **Map Chest**.
+A lost riddle is not wasted: the class now knows its answer, so the next try at that step takes a **side path** (a fresh riddle from the league's reserve) and the story carries on. **Take a side path** in the Game Master bar does the same on purpose.
+
+Pre-Junior gets three picture answers and two groups, and every scrap has a big picture (for example 🕊️ 🚫 for *It can't fly.*). Junior A and B get four answers and three groups; A and up get five answers and four groups. Six restored pieces end the adventure (its last line is read on the board) and the whole map joins the **Map Chest**. **Print the scraps** prints the story line and the pictures too.
 
 ## The Round Table (Respect)
 
 The kingdom asks the council a question. Only the child holding the **Speaking Stone** speaks, and the **Echo Rule** says each speaker first repeats one thing the last speaker said.
 
-1. **Call the council** and read the question. Sentence frames help children say, echo and be kind.
+Every league has 30+ questions of five kinds: **Would you rather**, **What do you think?**, **Dilemma** (from Junior B), **Imagine** and **Royal decree** (*The King's new law: …*). Questions show **useful words** to borrow, and C and D add **Think about…** angles. Pre-Junior questions are **picture choices** (🐱 or 🐶?) so every child can answer. The frames grow with the league too: *Me too!* in Pre-Junior, *I agree with [Name] because…* in A, *Building on what [Name] has said…* in C.
+
+1. **Call the council** and read the question. Tap a question type to choose the kind of question, or **Another question**. Sentence frames help children say, echo and be kind.
 2. Set how many **speakers** take part, then pass the stone to the first.
 3. For each speaker, tap **Echoed!** when they echo the last speaker, and **Interrupted** if someone speaks out of turn, then **Pass the stone**. Each speaker has a gentle timer ring.
-4. **Close the council** after the last speaker. The Quest suggests a **verdict**: the council is honoured when every speaker echoed and nobody interrupted. You have the last word: **The council was honoured** or **Hold it again next lesson**.
+4. **Close the council** after the last speaker. The Quest suggests a **verdict**: the council is honoured when every speaker echoed and nobody interrupted.
+5. Optionally, **Hold a Kingdom Vote**: count the hands for each choice (or *agree / disagree / not sure*). The result is saved with the round; it never changes the verdict.
+6. You have the last word: **The council was honoured** or **Hold it again next lesson**.
 
 Each honoured council lights a candle; six candles finish a banner for the **Hall of Banners**.
 

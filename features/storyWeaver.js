@@ -15,7 +15,6 @@ import { awardStoryWeaverBonusStarToClass, handleDeleteCompletedStory } from '..
 import { isSpeaking, speakText, stopSpeech, isTtsSupported } from './tts.js';
 import { loadPdfTools } from '../utils/lazyLibraries.js';
 import { detectLowPowerTier } from '../utils/devicePerformance.mjs';
-import { pickStoryWords } from './languageScaffolds.mjs';
 import {
     countWords, deriveStoryPages, escapeHtml, highlightWord, milestoneHtml, sentenceUsesWord,
     shelfBookHtml, shelfEmptyHtml, storyThreadHtml
@@ -210,6 +209,11 @@ function renderStoryWeaversUI(classId) {
     if (readBtn) readBtn.disabled = !page || !isTtsSupported();
     const redrawBtn = document.getElementById('story-weavers-redraw-btn');
     if (redrawBtn) redrawBtn.disabled = !page || !isLatest || sw.weaving || sw.redrawing;
+
+    // Story Spark on an empty book, Twist cards once it has pages (lazy helpers module).
+    loadStoryHelpers()
+        .then((helpers) => { if (sw.classId === classId) helpers.renderStorySpark(classId, pages.length); })
+        .catch(() => {});
 }
 
 /** Puts one page into the open book, turning the leaf when the page changes. */
@@ -425,7 +429,9 @@ function handleLuckyDip() {
     }
     playSound('click');
     const shown = Array.from(document.querySelectorAll('[data-word-choice]')).map((b) => b.dataset.wordChoice);
-    renderWordChoices(pickStoryWords(classData.questLevel, { exclude: shown }), { source: 'bank' });
+    loadStoryHelpers()
+        .then((helpers) => renderWordChoices(helpers.pickLuckyWords(classData.questLevel, { exclude: shown }), { source: 'bank' }))
+        .catch((error) => console.warn('Lucky dip failed:', error));
 }
 
 // --- READ ALOUD & REDRAW ---

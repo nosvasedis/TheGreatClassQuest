@@ -349,6 +349,8 @@ button.eo-focus:hover{transform:translateY(-2px)}
 .eo-story-side{display:flex;flex-direction:column;gap:.9rem}
 .eo-panel{padding:1rem 1.1rem;border-radius:1.4rem;background:#fff;border:1.5px solid var(--eo-line);box-shadow:0 8px 20px -14px #7c2d1240}
 .eo-panel h4{margin:0 0 .7rem;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:#c2410c;font-weight:900}
+.eo-panel-note{margin:.6rem 0 0;font-size:.82rem;line-height:1.4}
+.eo-chron-story{margin:.4rem 0 0;font-size:.82rem;color:#9a3412;line-height:1.5}
 .eo-quick{display:flex;flex-wrap:wrap;gap:.45rem}
 .eo-quick button{display:inline-flex;align-items:center;gap:.35rem;border:1.5px solid #f6dcc0;background:#fffaf5;color:#7c2d12;border-radius:999px;padding:.45rem .85rem;font-weight:700;font-size:.84rem;transition:background .2s,transform .15s}
 .eo-quick button:hover{background:#ffedd5;transform:translateY(-1px)}

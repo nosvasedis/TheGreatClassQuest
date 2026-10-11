@@ -269,13 +269,13 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'campfire', icon: 'fa-fire', name: 'Hero Campfire', tier: 'pro',
                     where: 'Adventure Log, after the Hero of the Day', go: 'tab:adventure-log-tab',
-                    text: `Gather at the Campfire opens a two-minute reflection on the projector: today's stars light the fire, practised words glow as embers, one question to talk about, a class glow, and a check-in on a few Ember Oaths. No ranks and no Gold. It never opens by itself.`,
+                    text: `Gather at the Campfire opens a two-minute reflection on the projector: today's stars light the fire, practised words glow as embers, one question to talk about, a class glow, and a check-in for every child with an Ember Oath. No ranks and no Gold. It never opens by itself.`,
                     keys: 'campfire reflection embers words question'
                 },
                 {
                     id: 'ember-oaths', icon: 'fa-hand-sparkles', name: 'Ember Oaths', tier: 'pro',
                     where: 'Adventure Log, Ember Oaths button', go: 'tab:adventure-log-tab',
-                    text: `Small personal promises each child picks in a Choosing ceremony. Evidence fills itself from stars and trials. Once it glows and the child has checked in with 🔥, keep the promise: a Star-Ember keepsake goes to the Trophy Room and a star joins the class sky.`,
+                    text: `Small personal promises each child picks in a Choosing ceremony. Each lesson they keep it lights one ember: a 🔥 "I tried" at the Campfire or on the board, something you saw, or a matching star. All embers lit = keep the promise: a Star-Ember keepsake goes to the Trophy Room and a star joins the class sky.`,
                     keys: 'oaths promises goals star-ember choosing ceremony'
                 },
                 {
@@ -314,7 +314,7 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'training-grounds', icon: 'fa-bullseye', name: 'Training Grounds', tier: 'elite',
                     where: 'Training Grounds tab', go: 'tab:reward-ideas-tab',
-                    text: `Four class games, one for each hero skill, matched to the class's Quest League. Story Weavers (Creativity): the class writes a storybook a sentence at a time around a Word of the Day, and Elite paints each page. The Vanishing Hoard (Focus): watch the dragon's treasures, then spot what vanished. The Torn Map (Teamwork): every group holds one clue, and only by sharing them can the class find the answer. The Round Table (Respect): pass the Speaking Stone, echo the last speaker and let nobody interrupt. One round per lesson counts, and every second round won can give the whole class +0.5 stars of that skill.`,
+                    text: `Four class games, one for each hero skill, with their own content for each of the seven Quest Leagues (Pre-Junior is picture-first). Story Weavers (Creativity): the class writes a storybook a sentence at a time around a Word of the Day, starting from a Story Spark and stirring it with Twist cards; Elite paints each page. The Vanishing Hoard (Focus): watch a themed treasure chest, then spot what vanished, what sneaked in or what moved. The Torn Map (Teamwork): six riddles tell one map adventure; every group holds one clue, and only by sharing them can the class find the answer. The Round Table (Respect): would-you-rather questions, dilemmas and royal decrees; pass the Speaking Stone, echo the last speaker, let nobody interrupt, then hold a Kingdom Vote. One round per lesson counts, and every second round won can give the whole class +0.5 stars of that skill.`,
                     keys: 'training grounds story weavers word of the day creative writing storybook pdf vanishing hoard memory focus torn map clues groups teamwork round table speaking stone respect listening'
                 },
                 {
@@ -601,7 +601,7 @@ export const GUIDE_CHAPTERS = {
                 },
                 {
                     id: 'training-grounds', icon: 'fa-bullseye', name: 'Training Grounds', tier: 'elite',
-                    text: `Four class games: write a storybook together, spot the treasure that vanished from the dragon's hoard, share your group's clue to mend the torn map, and pass the Speaking Stone at the Round Table. Win two rounds and the whole class earns a star!`,
+                    text: `Four class games: write a storybook together, spot what the dragon changed in its hoard, share your group's clue to finish a map adventure, and pass the Speaking Stone at the Round Table. Win two rounds and the whole class earns a star!`,
                     keys: 'training grounds story word of the day hoard map round table'
                 },
                 {

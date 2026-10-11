@@ -252,6 +252,30 @@
 .cf-orb--flame[aria-pressed=true]{background:radial-gradient(circle,#ff9d4a,#b8361a);border-color:#ffb070;box-shadow:0 0 24px #ff7a2acc;transform:scale(1.12)}
 .cf-orb--candle[aria-pressed=true]{background:radial-gradient(circle,#fff0bf,#d9a441);border-color:#ffe3a3;box-shadow:0 0 24px #ffd26a99;transform:scale(1.12)}
 .cf-orb--moon[aria-pressed=true]{background:radial-gradient(circle,#b3c8ff,#3f519f);border-color:#b9ccff;box-shadow:0 0 24px #7e9cffaa;transform:scale(1.12)}
+.cf-moment-story{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:4px 0 14px}
+.cf-moment-story span{padding:5px 12px;border-radius:999px;background:#ffffff14;border:1px solid #ffd9a044;color:#ffe9c2;font-size:clamp(13px,1vw,16px);font-weight:600}
+/* A seat's embers: one per lesson the promise is kept. A 🔥 lights the next one in place. */
+.cf-seat-embers{display:flex;gap:6px;margin-top:6px}
+.cf-seat-embers i{width:12px;height:12px;border-radius:50%;background:#2a2f44;border:1.5px solid #f2d5a544;transition:background .5s,box-shadow .5s,border-color .5s}
+.cf-seat-embers i.is-lit{background:radial-gradient(circle at 50% 60%,#fff3c4,#ff9a3d 55%,#c2410c);border-color:#ffc07a;box-shadow:0 0 10px #ff8a3dcc}
+.cf-seat-embers i.is-new{animation:cf-ember-light .9s cubic-bezier(.34,1.56,.64,1)}
+@keyframes cf-ember-light{0%{transform:scale(.4);box-shadow:0 0 0 #ff8a3d00}55%{transform:scale(1.7);box-shadow:0 0 22px #ffb35cff}100%{transform:none}}
+.cf-still .cf-seat-embers i.is-new{animation:none}
+/* Everyone with a promise has a seat: more than four get smaller seats, more than eight two rows. */
+.cf-seats.is-crowd .cf-seat-side{gap:clamp(8px,1vw,16px)}
+.cf-seats.is-crowd .cf-seat-gap{width:calc(240px * var(--cf-scale))}
+.cf-seats.is-crowd .cf-seat{width:clamp(112px,9vw,150px);transform:translateY(calc(var(--seat) * -16px))}
+.cf-seats.is-crowd .cf-seat-bubble{padding:7px 9px;margin-bottom:9px;border-radius:14px}
+.cf-seats.is-crowd .cf-seat-bubble p{font-size:clamp(11px,.8vw,13px);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.cf-seats.is-crowd .cf-seat-avatar{width:clamp(56px,4.4vw,72px)}
+.cf-seats.is-crowd .cf-seat-avatar img,.cf-seats.is-crowd .cf-seat-avatar>span{font-size:1.5rem}
+.cf-seats.is-crowd .cf-seat-name{margin-top:6px!important;font-size:clamp(14px,1vw,17px)}
+.cf-seats.is-crowd .cf-seat-orbs{gap:5px;margin-top:6px}
+.cf-seats.is-crowd .cf-orb{width:clamp(30px,2.3vw,38px);font-size:clamp(14px,1.1vw,18px)}
+.cf-seats.is-crowd .cf-seat-embers{gap:4px}.cf-seats.is-crowd .cf-seat-embers i{width:9px;height:9px}
+.cf-seats.is-crowd-xl .cf-seat-side{flex-wrap:wrap-reverse;row-gap:10px}
+.cf-seats.is-crowd-xl .cf-seat{width:clamp(100px,7.6vw,128px);transform:none}
+.cf-seats.is-crowd-xl .cf-seat-bubble p{-webkit-line-clamp:2}
 
 /* Early years: class promise */
 .cf-hands{margin-top:30px;border:2px solid #f2c178;background:radial-gradient(ellipse at 50% 120%,#ff9b45,#8a3a24 70%);color:#fff2d6;border-radius:999px;padding:18px 34px;font-family:"Fredoka One",sans-serif;font-size:1.3rem;box-shadow:0 0 44px #ff8a3d55}

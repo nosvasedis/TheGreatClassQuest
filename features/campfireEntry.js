@@ -5,6 +5,7 @@ import { canUseFeature } from '../utils/subscription.js';
 import { getTodayDateString, getLocalIsoDateString } from '../utils.js';
 import { showToast } from '../ui/effects.js';
 import { evaluateOathEvidence } from './emberOathEvidence.mjs';
+import { showCampfireVeil } from './campfire/campfireVeil.js';
 
 const FLAME = '<svg class="campfire-flame" viewBox="0 0 48 64" aria-hidden="true">' +
     '<path class="campfire-flame__outer" fill="#fa7844" d="M25 1C38 20 47 29 43 43 39 60 13 65 5 47-2 30 16 23 16 12c6 5 8 9 7 14C30 17 30 9 25 1Z"/>' +
@@ -12,6 +13,7 @@ const FLAME = '<svg class="campfire-flame" viewBox="0 0 48 64" aria-hidden="true
     '<path class="campfire-flame__core" fill="#fff5c8" d="M24 37c4 7 10 11 5 16-5 6-13 1-11-5 1-4 5-6 6-11Z"/></svg>';
 const completed = new Set();
 const igniting = new Set();
+const synced = new Set();
 const dismissKey = classId => 'gcq_campfire_dismissed_' + classId + '_' + getLocalIsoDateString();
 const isDismissed = classId => { try { return localStorage.getItem(dismissKey(classId)) === '1'; } catch { return false; } };
 
@@ -53,6 +55,18 @@ export function oathsButtonMarkup({ ready = 0, variant = 'log', disabled = false
     return '<button type="button" data-campfire-oaths class="al-primary-btn al-primary-btn--oaths bubbly-button"' + off + '><i class="fas fa-fire-alt"></i><span>Ember Oaths</span>' + badge + '</button>';
 }
 
+/** Warm the scene and its service before the tap, so opening only waits for today's lesson. */
+let prefetched = null;
+function prefetchCampfire() {
+    prefetched ||= Promise.all([import('./campfire/campfireService.js'), import('./campfire/campfireScene.js')]).catch(() => { prefetched = null; });
+    return prefetched;
+}
+function idlePrefetch() {
+    if (prefetched) return;
+    const run = () => prefetchCampfire();
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(run, { timeout: 4000 }); else setTimeout(run, 2000);
+}
+
 function todaysLog(classId) {
     return (state.get('allAdventureLogs') || []).find(l => l.classId === classId && l.date === getTodayDateString());
 }
@@ -80,6 +94,13 @@ export function mountCampfireEntry(host, classId, { oathsOnly = false, home = fa
     const celebrationClosed = document.getElementById('hero-celebration-modal')?.classList.contains('hidden') !== false;
     const key = classId + '_' + getTodayDateString();
     const held = completed.has(key);
+    // A fire held on another laptop (school vs home) is only known to the database: ask once per class and day.
+    if (!oathsOnly && !held && log && !synced.has(key)) {
+        synced.add(key);
+        import('./campfire/campfireService.js').then(m => m.syncCampfireStatus(classId))
+            .then(session => { if (session?.status === 'completed' || session?.status === 'skipped') window.dispatchEvent(new CustomEvent('gcq:campfire-updated', { detail: { classId } })); })
+            .catch(() => synced.delete(key));
+    }
     const ready = !oathsOnly && c.campfireEnabled !== false && log && celebrationClosed && !isDismissed(classId);
     if (home && !ready) { existing?.remove(); return; }
     const entry = document.createElement('div');
@@ -91,12 +112,20 @@ export function mountCampfireEntry(host, classId, { oathsOnly = false, home = fa
             : campfireChipMarkup({ held, igniting: igniting.has(key), ready: readyCount(classId) }));
         igniting.delete(key);
         const button = entry.querySelector('[data-campfire-open]');
+        // The fire is on its way the moment Gather is tapped: the veil covers the loading, then lifts over the scene.
+        button.onpointerenter = button.onfocus = prefetchCampfire;
         button.onclick = async () => {
+            if (button.disabled) return;
             button.disabled = true;
-            try { const m = await import('./campfire/campfireService.js'); await m.openCampfire(classId); }
+            const veil = showCampfireVeil({ held });
+            try {
+                const m = await import('./campfire/campfireService.js');
+                if (!veil.cancelled) await m.openCampfire(classId, { onStep: key => veil.step(key), isCancelled: () => veil.cancelled });
+            }
             catch (e) { showToast(e.message || 'Could not open Campfire.', 'error'); }
-            finally { button.disabled = false; }
+            finally { veil.lift(); button.disabled = false; }
         };
+        idlePrefetch();
         const later = entry.querySelector('[data-campfire-later]');
         if (later) later.onclick = () => { try { localStorage.setItem(dismissKey(classId), '1'); } catch {} refreshEntries(); showToast('The Campfire will wait until the next lesson. 🌙', 'info'); };
     } else if (!home) {
@@ -165,7 +194,7 @@ window.addEventListener('gcq:hero-crowned', event => {
     refreshEntries();
     import('./campfire/campfireService.js').then(m => m.igniteCampfire(event.detail)).catch(e => showToast('Campfire preparation: ' + e.message, 'error'));
 });
-window.addEventListener('gcq:campfire-reset', () => { completed.clear(); igniting.clear(); document.querySelectorAll('.campfire-entry').forEach(e => e.remove()); });
+window.addEventListener('gcq:campfire-reset', () => { completed.clear(); igniting.clear(); synced.clear(); document.querySelectorAll('.campfire-entry').forEach(e => e.remove()); });
 window.addEventListener('gcq:campfire-error', e => showToast(e.detail, 'error'));
 document.addEventListener('home:rendered', () => {
     // The badge sits first among the greeting card's reminder badges.

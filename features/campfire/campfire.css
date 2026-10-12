@@ -4,6 +4,7 @@
 .cf-scene *{box-sizing:border-box}:where(.cf-scene) button{font:inherit;cursor:pointer}
 .cf-scene button:focus-visible{outline:3px solid #ffe6a8;outline-offset:4px}.cf-scene button:disabled{cursor:default}
 .cf-scene h1,.cf-scene h2,.cf-scene h3{margin:0}
+.cf-scene.is-closing{opacity:0;pointer-events:none;transition:opacity .45s ease}
 
 /* Sky and land. The landscape is one static SVG; only whole roots and small HTML layers move. */
 .cf-sky{position:absolute;inset:0;z-index:-5;background:linear-gradient(#050817 0%,#0f1433 30%,#1d1d44 56%,#2c2547 78%,#35283f 100%);transform-origin:50% 100%;transition:transform 1.15s cubic-bezier(.22,.8,.28,1)}

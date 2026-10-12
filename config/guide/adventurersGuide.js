@@ -269,7 +269,7 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'campfire', icon: 'fa-fire', name: 'Hero Campfire', tier: 'pro',
                     where: 'Adventure Log, after the Hero of the Day', go: 'tab:adventure-log-tab',
-                    text: `Gather at the Campfire opens a two-minute reflection on the projector: today's stars light the fire, practised words glow as embers, one question to talk about, a class glow, and a check-in for every child with an Ember Oath. No ranks and no Gold. It never opens by itself.`,
+                    text: `Gather at the Campfire opens a two-minute reflection on the projector: today's stars light the fire, practised words glow as embers, one question to talk about, a class glow, and a check-in for every child with an Ember Oath. No ranks and no Gold. It never opens by itself. A night sky with a little flame shows at once while it gets ready; once held, it shows as held on every laptop.`,
                     keys: 'campfire reflection embers words question'
                 },
                 {

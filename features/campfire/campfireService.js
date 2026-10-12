@@ -37,6 +37,23 @@ export function getCachedCampfire(classId) {
     } catch {}
     return null;
 }
+/**
+ * Today's session as the database has it. Another laptop may have finished (or rested) the fire,
+ * and this laptop only remembers sessions it ran itself; adopt the further-along state.
+ */
+export async function syncCampfireStatus(classId) {
+    const context = oathContext();
+    if (!classId || !context.teacherId || !context.schoolYearKey) return null;
+    const id = campfireSessionId(classId, getTodayDateString());
+    const snap = await getDoc(doc(db, dataPath('campfire_sessions'), id));
+    if (!snap.exists() || !currentContext(context)) return getCachedCampfire(classId);
+    const remote = { id, ...snap.data() }, local = getCachedCampfire(classId);
+    const order = ['kindled', 'lit', 'skipped', 'completed'];
+    if (local && order.indexOf(remote.status) <= order.indexOf(local.status)) return local;
+    // Keep this laptop's fuller script (word examples) if it has one.
+    cache(local ? { ...local, ...remote, script: { ...local.script, ...remote.script } } : remote, context);
+    return getCachedCampfire(classId);
+}
 export function presentClassStudents(classId) {
     const absent = new Set((state.get('allAttendanceRecords') || []).filter(a => a.classId === classId && oathDate(a.date) === getTodayDateString()).map(a => a.studentId));
     return state.get('allStudents').filter(s => s.classId === classId && !absent.has(s.id));
@@ -191,24 +208,37 @@ async function forgeExampleFor(cls, lesson, date) {
     } catch (_) { return ''; }
 }
 
-export async function kindleCampfire(classId, { ai = false, learnedToday = null, refresh = false, logId = null, heroStudentId = null } = {}) {
+const STATUS_ORDER = ['kindled', 'lit', 'skipped', 'completed'];
+const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * Prepare today's session. Opening passes `aiBudgetMs` (the Oracle may polish the question only if it
+ * answers quickly; the bank script is always complete) and `persist: false` (opening saves once itself).
+ */
+export async function kindleCampfire(classId, { ai = false, aiBudgetMs = 0, persist = true, oathsPromise = null, learnedToday = null, refresh = false, logId = null, heroStudentId = null } = {}) {
     const context = oathContext(), token = generation;
     const c = state.get('allTeachersClasses').find(c => c.id === classId);
     if (!c || c.campfireEnabled === false) return null;
     const date = getTodayDateString(), id = campfireSessionId(classId, date), key = mapKey(context, id);
     if (inFlight.has(key)) {
-        const existing = await inFlight.get(key);
-        return refresh ? kindleCampfire(classId, { ai, learnedToday, refresh, logId, heroStudentId }) : existing;
+        const pending = inFlight.get(key);
+        if (!refresh) return pending;
+        if (!aiBudgetMs) { await pending; return kindleCampfire(classId, { ai, persist, oathsPromise, learnedToday, refresh, logId, heroStudentId }); }
+        // Opening never waits long for a background preparation (usually the Oracle polishing after the Hero
+        // was crowned): give it the same short budget, then go on with what is ready.
+        const settled = await Promise.race([pending.then(() => true, () => true), pause(aiBudgetMs).then(() => false)]);
+        if (!settled) ai = false;
     }
     const task = (async () => {
         let session = getCachedCampfire(classId);
         try { const snap = await getDoc(doc(db, dataPath('campfire_sessions'), id)); if (snap.exists()) session = { id, ...snap.data() }; }
         catch (error) { if (!session) console.warn('Campfire will use the local question bank.', error.code); }
         if (session && !refresh) { cache(session, context); return session; }
+        const startedStatus = session?.status || 'kindled';
         const learned = learnedToday || await import('../learnedToday.js').then(m => m.gatherLearnedToday(classId)).catch(() => ({}));
         const lesson = await lessonContext(classId, learned, date);
         const presentIds = presentClassStudents(classId).map(s => s.id);
-        const oaths = await loadEmberOaths(classId);
+        const oaths = await (oathsPromise || loadEmberOaths(classId)).catch(() => []);
         const priorityIds = oaths.filter(o => o.status === 'active' && (o.dueDate <= date || !(o.checkIns || []).some(c => c.date === date))).map(o => o.studentId);
         const fallback = buildCampfireScript({ league: c.questLevel, date, learnedToday: learned, words: lesson.words, lessonTarget: lesson.lessonTarget,
             next: lesson.next, presentIds, rotation: c.campfireRotation, priorityIds, recentQuestionKeys: recentQuestionKeys(classId),
@@ -234,21 +264,25 @@ export async function kindleCampfire(classId, { ai = false, learnedToday = null,
                 selfCheck: null, checkedInIds: [], keptOathIds: [], logId, heroStudentId };
             if (pack) clearPrep(context, classId);
         }
+        let polished = false;
         if (ai && canUseFeature('eliteAI') && token === generation && session.source !== 'ai' && session.status !== 'completed') {
-            try {
-                session.script = await polishScript(session.script, lesson, session.band, token);
-                session.source = 'ai';
-            } catch { /* the complete bank script is always available */ }
+            const asking = polishScript(session.script, lesson, session.band, token).then(script => ({ script }), () => null);
+            const answer = aiBudgetMs ? await Promise.race([asking, pause(aiBudgetMs).then(() => null)]) : await asking;
+            if (answer) { session.script = answer.script; session.source = 'ai'; polished = true; }
         }
         if (token !== generation || !currentContext(context)) return null;
+        // The class may have gathered while the Oracle was thinking: never swap the question under them.
+        const latest = getCachedCampfire(classId);
+        if (polished && latest && STATUS_ORDER.indexOf(latest.status) > STATUS_ORDER.indexOf(startedStatus)) return latest;
         cache(session, context);
         if (session.script?.embellishments?.some(e => e.depict)) {
             import('./campfireWordArt.js').then(m => m.prepareCampfireWordImages(classId, session.script.embellishments)).catch(() => {});
         }
+        if (!persist) return session;
         return saveCampfireSession(session, { script: session.script, source: session.source, logId: session.logId, heroStudentId: session.heroStudentId });
     })();
     inFlight.set(key, task);
-    try { return await task; } finally { inFlight.delete(key); }
+    try { return await task; } finally { if (inFlight.get(key) === task) inFlight.delete(key); }
 }
 
 /**
@@ -306,30 +340,49 @@ export async function igniteCampfire(detail) {
     await kindleCampfire(detail.classId, { refresh: true, ai: true, learnedToday: detail.learnedToday, logId: detail.logId, heroStudentId: detail.studentId });
     window.dispatchEvent(new CustomEvent('gcq:campfire-updated', { detail }));
 }
-export async function openCampfire(classId) {
+/** How long opening lets the Oracle polish tonight's question before the bank script is used. */
+const OPEN_AI_BUDGET_MS = 2500;
+
+export async function openCampfire(classId, { onStep = () => {}, isCancelled = () => false } = {}) {
     const c = state.get('allTeachersClasses').find(c => c.id === classId);
     if (!c || c.campfireEnabled === false) return;
     const log = (state.get('allAdventureLogs') || []).find(l => l.classId === classId && oathDate(l.date) === getTodayDateString());
     const cached = getCachedCampfire(classId);
     if (!log && !cached?.logId) throw new Error('Crown today’s Hero in the Adventure Log first.');
-    let session = await kindleCampfire(classId, { refresh: true, ai: true, learnedToday: log?.learnedToday, logId: log?.id || cached?.logId, heroStudentId: log?.heroStudentId || cached?.heroStudentId });
-    if (!session) return;
+    const phone = matchMedia('(max-width: 1023px)').matches;
+    // Everything that does not depend on the session starts now, side by side.
+    const scene = phone ? null : import('./campfireScene.js');
+    scene?.catch(() => {}); // awaited below; this only keeps an early failure from being reported twice
     ensureEmberOathsListener();
-    if (matchMedia('(max-width: 1023px)').matches) {
+    const oathsPromise = loadEmberOaths(classId);
+    onStep('words');
+    const logId = log?.id || cached?.logId, heroStudentId = log?.heroStudentId || cached?.heroStudentId;
+    let session = await kindleCampfire(classId, { refresh: true, ai: true, aiBudgetMs: OPEN_AI_BUDGET_MS, persist: false, oathsPromise,
+        learnedToday: log?.learnedToday, logId, heroStudentId });
+    if (!session || isCancelled()) return;
+    const identity = { source: session.source, logId: session.logId || null, heroStudentId: session.heroStudentId || null };
+    if (phone) {
+        await saveCampfireSession(session, { script: session.script, ...identity });
         const { openOathBoard } = await import('../../ui/modals/emberOaths.js'); return openOathBoard(classId, { checkInOnly: true });
     }
-    const oaths = await loadEmberOaths(classId);
+    onStep('seats');
+    const oaths = await oathsPromise;
     // Every present child with a promise sits at the fire; the same rule as the Oath Board says who is ready.
+    // The fire opens on this term's records already in memory; the full year's evidence follows in the background.
     const present = new Set(presentClassStudents(classId).map(s => s.id));
-    const oathFacts = {};
-    await Promise.all(oaths.filter(o => o.status === 'active' && present.has(o.studentId))
-        .map(async oath => { oathFacts[oath.id] = await getOathFacts(oath); }));
-    const ready = Object.keys(oathFacts).filter(id => evaluateOathEvidence(oaths.find(o => o.id === id), oathFacts[id]).ready);
-    session = await saveCampfireSession(session, { status: 'lit', script: { ...session.script, readyOathIds: ready } });
+    const seated = oaths.filter(o => o.status === 'active' && present.has(o.studentId));
+    const quickFacts = { awards: state.get('allAwardLogs') || [], writtenScores: state.get('allWrittenScores') || [], today: getTodayDateString() };
+    const ready = seated.filter(o => evaluateOathEvidence(o, quickFacts).ready).map(o => o.id);
+    session = await saveCampfireSession(session, { status: 'lit', script: { ...session.script, readyOathIds: ready }, ...identity });
+    if (isCancelled()) return;
     storeQuestion(classId, session.script.question);
+    onStep('fire');
+    const oathFacts = {};
+    const factsReady = Promise.all(seated.map(oath => getOathFacts(oath).then(facts => { oathFacts[oath.id] = facts; }, () => {}))).then(() => oathFacts);
     session = { ...session, stars: kindlingSparkCount(classStarsToday(classId)), starsToday: classStarsToday(classId) };
-    const { openCampfireScene } = await import('./campfireScene.js');
-    return openCampfireScene({ session, students: presentClassStudents(classId), oaths, oathFacts,
+    const { openCampfireScene } = await scene;
+    if (isCancelled()) return;
+    return openCampfireScene({ session, students: presentClassStudents(classId), oaths, factsReady,
         onSave: patch => saveCampfireSession(session, patch),
         onComplete: async patch => {
             const context = oathContext();

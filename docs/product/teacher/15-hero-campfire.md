@@ -11,7 +11,8 @@ Stars recognise actions. The Campfire adds the two habits the rest of the Quest 
 - The Campfire prepares itself in the background. When you save a Quest Assignment it starts getting the next lesson’s campfire ready, and in the last 15 minutes of a lesson (or after half the lesson, once stars have been awarded) it finishes today’s. You never have to wait for it. On **Elite**, AI may polish the reflection question and closing lines, and may reorder or trim the word list, but it never invents a word.
 - When you close the Hero of the Day celebration (**Huzzah!**) and choose how to write today’s page (Auto, Manual or Later), **Gather at the Campfire** lights up in the Adventure Log, under Crown Today’s Hero and Hall of Heroes, where the Ember Oaths button usually sits. A small **Hero Campfire** badge also appears first among the reminder badges in the Home greeting card; tap it to gather there. The Campfire button sits where the **🔥 Ember Oaths** button usually is, and carries a small **Oaths** chip (with a **ready** badge when promises can be kept) that opens the Oath Board.
 - It never opens by itself. The small **×** on it (in the Adventure Log and on the Home badge) means “not today” and hides both until tomorrow. It is on for every class; there is nothing to switch on.
-- After the ritual the button rests as **Campfire held · Relight**.
+- After the ritual the button rests as **Campfire held · Relight**, on every laptop you use: a fire held at school also shows as held at home.
+- Pressing **Gather** shows a night sky with a little flame straight away (**Gather round…**) while tonight's words and seats are made ready, then lifts away onto the fire. **Not now** (or Esc) stops it. If the AI question is not ready within a couple of seconds, the Campfire opens with the prepared question instead of making the class wait.
 
 ## What the class sees (seven moments)
 

@@ -21,7 +21,7 @@ const STAGE_NAMES = { kindling: 'Kindling', words: 'Word Embers', question: 'The
 const SPARKLE = '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 0C21.6 12 28 18.4 40 20C28 21.6 21.6 28 20 40C18.4 28 12 21.6 0 20C12 18.4 18.4 12 20 0Z" fill="#fff6d6"/><circle cx="20" cy="20" r="4" fill="#fff"/></svg>';
 let activeClose = null;
 
-export function openCampfireScene({ session, students = [], oaths = [], oathFacts = {}, onSave = async () => {}, onComplete = async () => {}, preview = false, performance = {} }) {
+export function openCampfireScene({ session, students = [], oaths = [], oathFacts = {}, factsReady = null, onSave = async () => {}, onComplete = async () => {}, preview = false, performance = {} }) {
     activeClose?.();
     const previousFocus = document.activeElement, app = document.getElementById('app-screen'), oldInert = app?.inert;
     if (app) app.inert = true;
@@ -558,7 +558,10 @@ export function openCampfireScene({ session, students = [], oaths = [], oathFact
         window.removeEventListener('gcq:campfire-art', onArt);
         removeEventListener('resize', fitHearth);
         if (document.fullscreenElement === root) document.exitFullscreen?.().catch(() => {});
-        root.remove(); if (app) app.inert = oldInert;
+        if (app) app.inert = oldInert;
+        // The night fades back into the classroom instead of vanishing.
+        if (reducedMotion) root.remove();
+        else { root.removeAttribute('id'); root.inert = true; root.classList.add('is-closing'); setTimeout(() => root.remove(), 480); }
         if (previousFocus?.isConnected) previousFocus.focus();
         if (activeClose === close) activeClose = null;
     }
@@ -739,6 +742,22 @@ export function openCampfireScene({ session, students = [], oaths = [], oathFact
     skyEl.addEventListener('pointerup', endPan);
     skyEl.addEventListener('pointercancel', endPan);
     skyEl.addEventListener('pointerleave', hidePeek);
+    // The year's evidence for each promise arrives a moment after the fire opens: refresh the embers
+    // under the seats and who is ready to rise, without disturbing whatever moment is on screen.
+    factsReady?.then(facts => {
+        if (disposed || !facts) return;
+        Object.entries(facts).forEach(([id, value]) => factsById.set(id, value));
+        const before = (script.readyOathIds || []).join();
+        script.readyOathIds = localOaths.filter(o => o.status === 'active' && (factsById.has(o.id) ? resultOf(o).ready : script.readyOathIds?.includes(o.id))).map(o => o.id);
+        root.querySelectorAll('.cf-seat').forEach(seatEl => {
+            const oath = localOaths.find(o => o.id === seatEl.querySelector('[data-oath]')?.dataset.oath);
+            const row = seatEl.querySelector('.cf-seat-embers');
+            if (oath && row) row.outerHTML = seatEmbers(resultOf(oath));
+        });
+        if (before === script.readyOathIds.join()) return;
+        if (step === 5 && moment.hidden && !moving) showStage(5, { animate: false });
+        if (!preview) onSave({ script }).catch(() => {});
+    }).catch(() => {});
     activeClose = close; paint();
     if (!reducedMotion) content.classList.add('is-entering');
     root.tabIndex = -1; root.focus();

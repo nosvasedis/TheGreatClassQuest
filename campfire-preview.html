@@ -42,6 +42,7 @@ body{background:linear-gradient(#ecfeff,#f8fafc);margin:0;font-family:'Open Sans
 <section><h2>PROJECTOR SCENE</h2><form id="preview-form" class="row">
 <label>Class band<select id="band"><option value="Pre-Junior">Early years · shared promise</option><option value="Junior A">Junior</option><option value="A" selected>Middle</option><option value="D">Upper</option></select></label>
 <label>Rendering<select id="tier"><option value="auto">Automatic</option><option value="low">Low · 50 particles / 30 fps</option><option value="mid">Mid · 90</option><option value="high">High · 140</option><option value="reduced">Reduced motion</option></select></label>
+<label>Opening<select id="opening"><option value="veil">Gathering veil, then the fire</option><option value="hold">Gathering veil only (stays)</option><option value="none">Straight to the fire</option></select></label>
 <button class="go">Gather at the Campfire →</button></form></section>
 </main>
 <script type="module">
@@ -50,6 +51,7 @@ import { openCampfireScene } from './features/campfire/campfireScene.js';
 import { buildCampfireScript } from './features/heroCampfireCore.mjs';
 import { getLeagueBand } from './features/languageScaffolds.mjs';
 import { campfireChipMarkup, oathsButtonMarkup } from './features/campfireEntry.js';
+import { showCampfireVeil } from './features/campfire/campfireVeil.js';
 import { createOathDraft, addOathCheckIn } from './features/emberOathCore.mjs';
 
 const face = (emoji, bg) => 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="' + bg + '"/><text x="32" y="44" font-size="36" text-anchor="middle">' + emoji + '</text></svg>');
@@ -117,8 +119,16 @@ document.getElementById('open-board').onclick = async () => {
 };
 
 // ─── Projector scene ───
-document.getElementById('preview-form').onsubmit = e => {
-  e.preventDefault(); const league = document.getElementById('band').value, tier = document.getElementById('tier').value, date = '2026-09-27';
+document.getElementById('preview-form').onsubmit = async e => {
+  e.preventDefault();
+  const opening = document.getElementById('opening').value;
+  const veil = opening === 'none' ? null : showCampfireVeil();
+  if (veil) {
+    const pause = ms => new Promise(r => setTimeout(r, ms));
+    await pause(700); veil.step('seats'); await pause(700); veil.step('fire');
+    if (opening === 'hold' || veil.cancelled) return;
+    await pause(500);
+  } const league = document.getElementById('band').value, tier = document.getElementById('tier').value, date = '2026-09-27';
   const script = buildCampfireScript({ league, date, presentIds: students.slice(0, 4).map(s => s.id), recentQuestionKeys: [], random: () => 0,
     words: ['family', 'home', 'friend', 'lion'],
     atlasWords: [
@@ -147,6 +157,8 @@ document.getElementById('preview-form').onsubmit = e => {
   );
   script.readyOathIds = ['o0'];
   const performance = tier === 'auto' ? {} : tier === 'reduced' ? { tier: 'low', particles: 50, fps: 30, dpr: 1, reducedMotion: true } : { tier, particles: { low: 50, mid: 90, high: 140 }[tier], fps: tier === 'low' ? 30 : 60, dpr: tier === 'low' ? 1 : 1.5 };
-  openCampfireScene({ session: { id: 'preview', classId: 'preview', date, stars: 22, starsToday: 22, league, band: getLeagueBand(league), status: 'lit', script, heroStudentId: 'a' }, students: students.slice(0, 4), oaths, preview: true, performance });
+  const scene = openCampfireScene({ session: { id: 'preview', classId: 'preview', date, stars: 22, starsToday: 22, league, band: getLeagueBand(league), status: 'lit', script, heroStudentId: 'a' }, students: students.slice(0, 4), oaths, preview: true, performance });
+  veil?.lift();
+  window.__campfireScene = scene;
 };
 </script></body></html>

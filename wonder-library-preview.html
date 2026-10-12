@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wonder Library preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Fredoka+One&family=Open+Sans:wght@400;600;700&family=Lora:ital@0;1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    html, body { margin: 0; min-height: 100%; background: linear-gradient(180deg, #1e3a8a, #0f172a); }
+    .wl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 22px; padding: 22px; }
+    .wl-grid .wallpaper-float-card { position: relative !important; opacity: 1 !important; transform: none !important; left: auto !important; top: auto !important; width: auto !important; }
+    .wl-head { color: #fff; font: 700 18px 'Fredoka', system-ui; padding: 18px 22px 0; }
+    .wl-head a { color: #93c5fd; margin-right: 10px; }
+  </style>
+</head>
+<body>
+  <div class="wl-head" id="wl-head"></div>
+  <div class="wl-grid" id="wl-grid"></div>
+  <script type="module" src="/wonder-library-preview.js"></script>
+</body>
+</html>

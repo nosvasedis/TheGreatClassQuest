@@ -41,6 +41,7 @@ import { playPortalOpen, playPortalClose, enterFullscreen, leaveFullscreen } fro
 import { openQuietDragonFrom } from './quietDragonButton.js';
 import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 import { namedaysOn, orthodoxSeasonOn } from '../features/namedayCalendar.mjs';
+import { WONDER_CARD_TYPES, WONDER_FOR_AI_CARD, hydrateWonderCard } from './wallpaperWonderCards.js';
 
 // Proper Fisher-Yates shuffle for true variety
 function shuffleDeck(array) {
@@ -68,7 +69,7 @@ const AI_CARD_TYPES = new Set([
 ]);
 
 const CARD_FEATURE_REQUIREMENTS = {
-    ...Object.fromEntries([...AI_CARD_TYPES].map((type) => [type, 'eliteAI'])),
+    // The AI cards work on every plan: without Elite AI they draw from the Wonder Library.
     school_upcoming_event: 'calendar',
     class_test_luck: 'scholarScroll',
     upcoming_test_countdown: 'scholarScroll',
@@ -1396,6 +1397,12 @@ async function hydrateCard(type, classId, capabilities = getWallpaperCapabilitie
     else if (SKY_CARD_TYPES.includes(baseType)) content = hydrateSkyCard(baseType, classId, questLevel);
     else if (ATLAS_CARD_TYPES.includes(baseType)) content = hydrateAtlasCard(baseType, classId, questLevel);
     else if (QUEST_CARD_TYPES.includes(baseType)) content = await hydrateQuestCard(baseType, classId);
+    else if (WONDER_CARD_TYPES.includes(baseType)) content = await hydrateWonderCard(baseType, questLevel);
+    else if (WONDER_FOR_AI_CARD[baseType]) {
+        // Elite: today's AI item first; otherwise (or when the AI has none) the Wonder Library.
+        content = (canUseFeature('eliteAI') ? await getAIFromDB(baseType.slice(3)) : null)
+            || await hydrateWonderCard(baseType, questLevel);
+    }
     else if (baseType === 'bday') content = getBirthdayCard(dataId);
     else if (baseType === 'name') content = getNamedayCard(dataId);
     else if (baseType === 'stu_spotlight') content = getStudentSpotlightCard(dataId, questLevel);
@@ -1430,25 +1437,8 @@ async function hydrateCard(type, classId, capabilities = getWallpaperCapabilitie
             case 'pre_holiday_hype': content = getPreHolidayHypeCard(); break;
 
             // --- AI-generated knowledge cards ---
-            case 'ai_fact_science': content = await getAIFromDB('fact_science'); break;
-            case 'ai_fact_history': content = await getAIFromDB('fact_history'); break;
-            case 'ai_fact_nature': content = await getAIFromDB('fact_nature'); break;
-            case 'ai_fact_geography': content = await getAIFromDB('fact_geography'); break;
-            case 'ai_fact_math': content = await getAIFromDB('fact_math'); break;
-            case 'ai_did_you_know': content = await getAIFromDB('did_you_know'); break;
-            case 'ai_joke': content = await getAIFromDB('joke'); break;
-            case 'ai_riddle': content = await getAIFromDB('riddle'); break;
-            case 'ai_brain_teaser': content = await getAIFromDB('brain_teaser'); break;
-            case 'ai_word': content = await getAIFromDB('word'); break;
-            case 'ai_idiom': content = await getAIFromDB('idiom'); break;
-            case 'ai_tongue_twister': content = await getAIFromDB('tongue_twister'); break;
 
             // --- Hardcoded knowledge & trivia ---
-            case 'this_day_history': content = getThisDayInHistoryCard(questLevel); break;
-            case 'world_record': content = getWorldRecordCard(questLevel); break;
-            case 'study_tip': content = getStudyTipCard(questLevel); break;
-            case 'thought_experiment': content = getThoughtExperimentCard(questLevel); break;
-            case 'emoji_riddle': content = getEmojiRiddleCard(questLevel); break;
             case 'math_challenge': content = getMathChallengeCard(questLevel); break;
             case 'greek_nameday_today': content = getGreekNamedayCard(); break;
             case 'orthodox_calendar': content = getOrthodoxCalendarCard(); break;
@@ -1484,22 +1474,11 @@ async function hydrateCard(type, classId, capabilities = getWallpaperCapabilitie
             case 'class_season_snapshot': content = getClassSeasonSnapshotCard(classId); break;
             // New global cards
             case 'guild_leaderboard': content = getGuildLeaderboardCard(); break;
-            case 'fun_english_phrase': content = getFunEnglishPhraseCard(questLevel); break;
-            case 'word_of_the_day': content = getWordOfTheDayCard(questLevel); break;
             case 'daily_challenge': content = getDailyChallengeCard(questLevel); break;
-            case 'mythology_moment': content = getMythologyMomentCard(questLevel); break;
-            case 'healthy_habit': content = getHealthyHabitCard(); break;
-            case 'book_recommendation': content = getBookRecommendationCard(questLevel); break;
-            case 'language_origin': content = getLanguageOriginCard(); break;
-            case 'historical_figure_spotlight': content = getHistoricalFigureSpotlightCard(questLevel); break;
-            case 'creative_prompt': content = getCreativePromptCard(questLevel); break;
             case 'math_magic': content = getMathMagicCard(); break;
             case 'puzzle_of_the_day': content = getPuzzleOfTheDayCard(questLevel); break;
-            case 'eco_hero_tip': content = getEcoHeroTipCard(); break;
             case 'class_mood_check': content = getClassMoodCheckCard(); break;
             case 'teacher_shoutout': content = getTeacherShoutoutCard(); break;
-            case 'science_demo': content = getScienceDemoCard(questLevel); break;
-            case 'on_this_day_science': content = getOnThisDayScienceCard(); break;
 
             default: content = getSchoolPulseCard();
         }
@@ -1551,45 +1530,6 @@ function getGuildLeaderboardCard() {
             ${rows}
         </div>`,
         css: 'float-card-purple'
-    };
-}
-
-// ─── Fun English Phrase ───────────────────────────────────────────────────────
-function getFunEnglishPhraseCard(questLevel) {
-    const tier = getLevelTier(questLevel);
-    const phrases = {
-        junior: [
-            { phrase: 'Break a leg!', meaning: 'Good luck! (We say this to wish someone well before a performance.)' },
-            { phrase: 'It\'s raining cats and dogs!', meaning: 'It\'s raining very heavily!' },
-            { phrase: 'You\'re on fire!', meaning: 'You\'re doing an amazing job!' },
-            { phrase: 'Hit the books!', meaning: 'Time to study!' },
-            { phrase: 'Piece of cake!', meaning: 'It\'s very easy!' },
-        ],
-        mid: [
-            { phrase: 'Bite the bullet!', meaning: 'Do something difficult or unpleasant that cannot be avoided.' },
-            { phrase: 'Beat around the bush.', meaning: 'Avoid talking about something directly.' },
-            { phrase: 'Kill two birds with one stone.', meaning: 'Solve two problems with one action.' },
-            { phrase: 'The ball is in your court.', meaning: 'It\'s your turn to take action or make a decision.' },
-            { phrase: 'Costs an arm and a leg.', meaning: 'Very expensive.' },
-        ],
-        senior: [
-            { phrase: 'Bite off more than you can chew.', meaning: 'Take on more responsibility than you can handle.' },
-            { phrase: 'Burn the midnight oil.', meaning: 'Work late into the night.' },
-            { phrase: 'The devil is in the details.', meaning: 'Small details are actually the most important things.' },
-            { phrase: 'A blessing in disguise.', meaning: 'Something that seems bad at first but turns out to be beneficial.' },
-            { phrase: 'Cut corners.', meaning: 'Do something the easy way, but with lower quality results.' },
-        ],
-    };
-    const pool = phrases[tier] || phrases.mid;
-    const item = pool[Math.floor(Math.random() * pool.length)];
-    return {
-        html: `<div class="text-center w-full">
-            <div class="badge-pill bg-teal-100 text-teal-800">🗣️ English Phrase</div>
-            <div class="text-6xl my-4">💬</div>
-            <h3 class="font-title text-4xl text-teal-900 mb-3">"${item.phrase}"</h3>
-            <p class="font-serif text-lg text-teal-700 italic leading-relaxed px-2">${item.meaning}</p>
-        </div>`,
-        css: 'float-card-cyan'
     };
 }
 
@@ -1995,163 +1935,6 @@ function getLessonMilestoneCard(classId) {
     };
 }
 
-// ─── Study Tip (age-aware) ────────────────────────────────────────────────────
-function getStudyTipCard(questLevel) {
-    const tier = getLevelTier(questLevel);
-    const tips = {
-        junior: [
-            '📏 Read each question TWICE before answering!',
-            '✏️ If you don\'t know, draw a picture to help you think!',
-            '🌟 Work slowly – slow and steady wins the race!',
-            '🤫 When you\'re stuck, take a big breath and try again!',
-            '👀 Check your work before you say you\'re done!'
-        ],
-        mid: [
-            '🧠 Read the whole question before writing anything.',
-            '⏰ In a test: do the easy ones first, then come back to the hard ones!',
-            '📝 Underline KEY words in the question.',
-            '🔁 Repeat new words out loud 3 times to remember them better.',
-            '💡 Stuck? Skip it and come back – your brain keeps working!'
-        ],
-        senior: [
-            '🎯 Active recall beats re-reading: cover the notes and quiz yourself.',
-            '⏱️ The Pomodoro method: 25 min focus, 5 min break. Repeat.',
-            '🗂️ Teach what you\'ve learned to someone – if you can explain it, you know it.',
-            '📊 Spaced repetition: review yesterday\'s material before today\'s.',
-            '🧩 Connect new knowledge to things you already know.'
-        ]
-    };
-    const pool = tips[tier] || tips.mid;
-    const tip = pool[Math.floor(Math.random() * pool.length)];
-    return {
-        html: `<div class="text-center w-full">
-            <div class="badge-pill bg-sky-100 text-sky-800">Study Tip</div>
-            <div class="text-7xl my-4">📚</div>
-            <p class="font-serif text-2xl text-sky-900 italic leading-relaxed px-2">${tip}</p>
-        </div>`,
-        css: 'float-card-blue'
-    };
-}
-
-// ─── Thought Experiment (age-aware) ───────────────────────────────────────────
-function getThoughtExperimentCard(questLevel) {
-    const tier = getLevelTier(questLevel);
-    const questions = {
-        junior: [
-            'If you could talk to any animal, which would you pick? 🐘',
-            'What superpower would make school more fun? 🦸',
-            'If you could fly anywhere right now, where would you go? ✈️',
-            'What would you invent to help your friends? 🔧',
-            'If your pet could talk, what do you think it would say? 🐶'
-        ],
-        mid: [
-            'If you could live in any time period of history, when would it be and why?',
-            'You can master any skill instantly – what do you choose?',
-            'If animals could vote, which animal would win an election? 🗳️',
-            'What would the world look like if everyone was kind all the time?',
-            'If you could change one school rule, what would it be?'
-        ],
-        senior: [
-            'If you had to explain colours to someone born blind, how would you do it?',
-            'Would you rather be the best at something nobody cares about, or average at something everybody loves?',
-            'If history could be rewritten by AI, should it be? Why or why not?',
-            'If you could only keep 3 things from modern technology, what would they be?',
-            'Is it ever right to break a rule? Defend your answer.'
-        ]
-    };
-    const pool = questions[tier] || questions.mid;
-    const q = pool[Math.floor(Math.random() * pool.length)];
-    return {
-        html: `<div class="text-center w-full">
-            <div class="badge-pill bg-violet-100 text-violet-800">Thought Experiment</div>
-            <div class="text-7xl my-4">🤔</div>
-            <p class="font-serif text-2xl text-violet-900 italic leading-relaxed px-2">"${q}"</p>
-            <p class="text-violet-500 font-bold text-sm mt-4">(Discuss with a friend!)</p>
-        </div>`,
-        css: 'float-card-purple'
-    };
-}
-
-// ─── World Records (age-aware) ────────────────────────────────────────────────
-function getWorldRecordCard(questLevel) {
-    const tier = getLevelTier(questLevel);
-    const records = {
-        junior: [
-            { fact: 'The longest pizza ever made was 1,930 metres long! 🍕', icon: '🍕' },
-            { fact: 'The tallest sandcastle was over 17 metres high – taller than a 5-floor building! 🏰', icon: '🏖️' },
-            { fact: 'The fastest ever sneeze was recorded at 166 km/h! Bless you! 🤧', icon: '🤧' },
-            { fact: 'The world\'s biggest lego tower used 500,000 bricks! 🧱', icon: '🧱' },
-            { fact: 'A dog named Pal earned more in one movie than most actors at the time! 🐕', icon: '🎬' }
-        ],
-        mid: [
-            { fact: 'The Olympic flame has been burning continuously since 1936 at times! 🔥', icon: '🏅' },
-            { fact: 'The Eiffel Tower grows 15cm taller in summer due to heat! 🗼', icon: '🗼' },
-            { fact: 'A bolt of lightning contains enough energy to toast 100,000 slices of bread! ⚡', icon: '⚡' },
-            { fact: 'The world\'s deepest lake (Baikal, Russia) holds 20% of all fresh water on Earth! 🌊', icon: '💧' },
-            { fact: 'The UK has the world\'s oldest working public railway – opened in 1825! 🚂', icon: '🚂' }
-        ],
-        senior: [
-            { fact: 'Oxford University (UK) is older than the Aztec Empire by two centuries! 🎓', icon: '🏛️' },
-            { fact: 'If you removed all empty space from atoms, all humans would fit in a sugar cube! ⚛️', icon: '⚛️' },
-            { fact: 'The USA has the world\'s largest economy, yet ranks 27th in maths education globally. 📊', icon: '📊' },
-            { fact: 'The Great Wall of China took over 1,000 years and multiple dynasties to build! 🏯', icon: '🏯' },
-            { fact: 'Cleopatra lived closer in time to the Moon landing than to the building of the Great Pyramid! 🌙', icon: '🌙' }
-        ]
-    };
-    const pool = records[tier] || records.mid;
-    const rec = pool[Math.floor(Math.random() * pool.length)];
-    return {
-        html: `<div class="text-center w-full">
-            <div class="badge-pill bg-orange-100 text-orange-800">🏅 World Record</div>
-            <div class="text-8xl my-4">${rec.icon}</div>
-            <p class="font-serif text-2xl text-orange-900 italic leading-relaxed px-2">${rec.fact}</p>
-        </div>`,
-        css: 'float-card-orange'
-    };
-}
-
-// ─── This Day in History (age-aware) ──────────────────────────────────────────
-function getThisDayInHistoryCard(questLevel) {
-    const now = new Date();
-    const mmdd = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const tier = getLevelTier(questLevel);
-
-    const events = {
-        '01-15': { icon: '✏️', junior: 'Martin Luther King Jr. was born today in 1929 – he fought for everyone to be treated the same!', mid: 'MLK Jr. born 1929 – civil rights hero who changed the USA forever.', senior: 'MLK Jr. born 1929: his "I Have a Dream" speech is one of the most important in US history.' },
-        '01-25': { icon: '💡', junior: 'Thomas Edison made the first phone call today in 1915 – across the whole USA!', mid: 'First transcontinental telephone call made (1915) – NYC to San Francisco!', senior: 'First transcontinental telephone call, 1915: Alexander Graham Bell spoke to his assistant Watson across the USA.' },
-        '02-12': { icon: '🔬', junior: "Charles Darwin was born today in 1809 – he discovered how animals change over a really long time!", mid: 'Darwin born 1809 – his theory of evolution changed science forever.', senior: 'Darwin born 1809 – published On the Origin of Species in 1859, revolutionising biology.' },
-        '02-14': { icon: '💌', junior: "It's Valentine's Day! People have been sending love notes since the 1400s! 💝", mid: "Valentine's Day origins trace to the Middle Ages – Chaucer linked it to romantic love!", senior: "The earliest known Valentine's letter was written by Charles, Duke of Orleans, in 1415 from the Tower of London." },
-        '03-06': { icon: '🌍', junior: 'Ghana became a free country today in 1957 – the first African country to win independence!', mid: 'Ghana gained independence 1957 – first sub-Saharan African country to do so.', senior: 'Ghana\'s independence 1957 sparked a wave of African decolonisation throughout the continent.' },
-        '03-25': { icon: '🇬🇷', junior: "Today is Greek Independence Day! In 1821, Greece started fighting to be free!", mid: "25 March 1821: Greece began the War of Independence from the Ottoman Empire!", senior: "25 March 1821: The Greek Revolution began – after nearly 400 years of Ottoman rule, Greece reclaimed independence." },
-        '04-23': { icon: '✍️', junior: 'William Shakespeare was born today in 1564 – he wrote amazing plays and stories!', mid: 'Shakespeare born 1564 – wrote 37 plays and 154 sonnets!', senior: 'Shakespeare born 1564 in Stratford-upon-Avon; his works shaped the English language itself.' },
-        '05-06': { icon: '🏃', junior: 'Roger Bannister ran a mile in under 4 minutes today in 1954 – people thought it was impossible!', mid: 'Roger Bannister broke the 4-minute mile (1954) – once thought physically impossible.', senior: 'Bannister\'s 1954 sub-4-minute mile inspired a psychological breakthrough: within a year, others did it too.' },
-        '07-04': { icon: '🇺🇸', junior: 'Happy 4th of July! Today in 1776, the USA declared it was a free country!', mid: 'US Independence Day 1776 – the Declaration of Independence was signed.', senior: 'US Declaration of Independence, 1776 – drafted mainly by Thomas Jefferson, it inspired revolutions worldwide.' },
-        '09-05': { icon: '🌌', junior: 'Voyager 1 launched today in 1977 – it\'s now the farthest man-made object in space!', mid: 'Voyager 1 launched 1977 – it entered interstellar space in 2012!', senior: 'Voyager 1 (1977) carries a Golden Record with sounds of Earth for any extraterrestrial life.' },
-        '10-12': { icon: '⛵', junior: 'Columbus sailed to America today in 1492 – he was looking for a shortcut to India!', mid: 'Columbus reached the Americas in 1492, changing world history forever.', senior: 'Columbus\'s 1492 voyage connected two worlds – but also began the era of colonialism.' },
-        '11-09': { icon: '🧱', junior: 'The Berlin Wall came down today in 1989 – families were finally allowed to be together again!', mid: 'Berlin Wall fell 1989 – East and West Germany reunited after 28 years.', senior: 'The fall of the Berlin Wall (1989) symbolised the end of the Cold War era.' },
-        '12-17': { icon: '✈️', junior: 'The Wright brothers flew the first airplane today in 1903 – for just 12 seconds!', mid: 'Wright Brothers\' first powered flight, 1903 – only 12 seconds, but it changed everything!', senior: 'First powered flight 1903 – just 59 years later, humans were in orbit around the Earth.' },
-    };
-
-    const entry = events[mmdd];
-    if (!entry) {
-        // Fallback: random pick
-        const all = Object.values(events);
-        const fallback = all[Math.floor(Math.random() * all.length)];
-        return {
-            html: `<div class="text-center w-full"><div class="badge-pill bg-rose-100 text-rose-800">This Day in History</div><div class="text-7xl my-4">${fallback.icon}</div><p class="font-serif text-2xl text-rose-900 italic leading-relaxed px-2">${fallback[tier] || fallback.mid}</p></div>`,
-            css: 'float-card-red'
-        };
-    }
-    return {
-        html: `<div class="text-center w-full">
-            <div class="badge-pill bg-rose-100 text-rose-800">📅 This Day in History</div>
-            <div class="text-7xl my-4">${entry.icon}</div>
-            <p class="font-serif text-2xl text-rose-900 italic leading-relaxed px-2">${entry[tier] || entry.mid}</p>
-        </div>`,
-        css: 'float-card-red'
-    };
-}
-
 // ─── Greek Orthodox Nameday ────────────────────────────────────────────────────
 function getGreekNamedayCard() {
     const feasts = namedaysOn(new Date());
@@ -2187,48 +1970,6 @@ function getOrthodoxCalendarCard() {
             <p class="text-indigo-600 font-bold text-xl mt-2">${season.info}</p>
         </div>`,
         css: 'float-card-indigo'
-    };
-}
-
-// ─── Emoji Riddle ─────────────────────────────────────────────────────────────
-function getEmojiRiddleCard(questLevel) {
-    const tier = getLevelTier(questLevel);
-    const riddles = {
-        junior: [
-            { q: '🐱 + 🏠 = ?', a: 'Cat House / Cathouse' },
-            { q: '🌧️ + 🌈 = ?', a: 'Rainbows come after rain!' },
-            { q: '🐝 + 🌸 = ?', a: 'A bee on a flower – making honey!' },
-            { q: '🔑 + 🚪 = ?', a: 'Open the door!' },
-            { q: '🌙 + ⭐ = ?', a: 'Night sky!' }
-        ],
-        mid: [
-            { q: '🌍 + 🌊 + ☀️ = ?', a: 'Earth: land, sea, and sun – our planet!' },
-            { q: '📚 + 🧠 = ?', a: 'Learning = Knowledge!' },
-            { q: '🍎 + ⚡ + 💡 = ?', a: 'Apple + Electricity = Edison? Or iPhone!', },
-            { q: '🏃 + 🏁 + 🥇 = ?', a: 'Win the race!' },
-            { q: '🦁 + 👑 = ?', a: 'The Lion King!' }
-        ],
-        senior: [
-            { q: '🧬 + 🔬 + 💊 = ?', a: 'DNA research → medicine' },
-            { q: '🌍 + 🔥 + 💧 = ?', a: 'Climate change: Earth + heat + water crisis' },
-            { q: '📱 + 🌐 + 👥 = ?', a: 'Social media connecting the world' },
-            { q: '⚖️ + 🏛️ + 👨‍⚖️ = ?', a: 'Justice system / Democracy' },
-            { q: '🚀 + 🌕 + 🇺🇸 = ?', a: 'NASA Moon landing 1969' }
-        ]
-    };
-    const pool = riddles[tier] || riddles.mid;
-    const r = pool[Math.floor(Math.random() * pool.length)];
-    return {
-        html: `<div class="text-center w-full">
-            <div class="badge-pill bg-pink-100 text-pink-800">Emoji Riddle</div>
-            <div class="text-5xl my-6 tracking-widest">${r.q}</div>
-            <div class="wallpaper-card-answer-blur mt-4 pt-4 border-t border-pink-200">
-                <div class="text-xs font-bold text-pink-400 uppercase tracking-widest mb-1">Answer</div>
-                <p class="text-2xl font-bold text-pink-700">${r.a}</p>
-            </div>
-        </div>`,
-        css: 'float-card-pink',
-        timedBlurAnswer: true
     };
 }
 
@@ -2988,39 +2729,6 @@ function getSchoolAttendanceCard() {
 
 // ─── 15 NEW CARD FACTORIES (Wallpaper V3) ───────────────────────────────────
 
-function getWordOfTheDayCard(questLevel) {
-    const tier = getLevelTier(questLevel);
-    const pool = {
-        junior: [
-            { word: 'Glimmer', def: 'Shine with a faint, unsteady light.', ex: 'The stars began to glimmer in the dark sky.' },
-            { word: 'Breeze', def: 'A gentle wind.', ex: 'A cool breeze blew through the open window.' },
-            { word: 'Flutter', def: 'To wave or move quickly.', ex: 'The butterfly wings flutter softly.' },
-            { word: 'Munch', def: 'To eat something steadily and often noisily.', ex: 'The rabbit likes to munch on carrots.' },
-            { word: 'Sparkle', def: 'Shine brightly with flashes of light.', ex: 'Her eyes sparkle when she laughs.' }
-        ],
-        mid: [
-            { word: 'Vivid', def: 'Producing powerful feelings or strong, clear images in the mind.', ex: 'She has a vivid imagination.' },
-            { word: 'Calm', def: 'Not showing or feeling nervousness, anger, or other emotions.', ex: 'He remained calm during the test.' },
-            { word: 'Journey', def: 'An act of traveling from one place to another.', ex: 'The long journey finally ended.' },
-            { word: 'Fierce', def: 'Having or displaying an intense or ferocious aggressiveness.', ex: 'The dragon was fierce but noble.' },
-            { word: 'Ancient', def: 'Belonging to the very distant past.', ex: 'We visited an ancient castle.' }
-        ],
-        senior: [
-            { word: 'Ephemeral', def: 'Lasting for a very short time.', ex: 'Fame in the internet age can be ephemeral.' },
-            { word: 'Resilient', def: 'Able to withstand or recover quickly from difficult conditions.', ex: 'She is a resilient student who never gives up.' },
-            { word: 'Serendipity', def: 'The occurrence of events by chance in a happy way.', ex: 'Finding that book was pure serendipity.' },
-            { word: 'Eloquent', def: 'Fluent or persuasive in speaking or writing.', ex: 'He gave an eloquent speech.' },
-            { word: 'Ubiquitous', def: 'Present, appearing, or found everywhere.', ex: 'Smartphones are ubiquitous nowadays.' }
-        ]
-    };
-    const items = pool[tier] || pool.mid;
-    const item = items[Math.floor(Math.random() * items.length)];
-    return {
-        html: `<div class="text-center w-full"><div class="badge-pill bg-blue-100 text-blue-800">Word of the Day</div><div class="text-7xl my-4">📖</div><h3 class="font-title text-5xl text-blue-900 mb-2">${item.word}</h3><p class="text-blue-700 text-lg font-bold mb-3">${item.def}</p><p class="text-blue-600 italic font-serif">"${item.ex}"</p></div>`,
-        css: 'float-card-blue'
-    };
-}
-
 function getDailyChallengeCard(questLevel) {
     const tier = getLevelTier(questLevel);
     const challenges = {
@@ -3048,151 +2756,6 @@ function getDailyChallengeCard(questLevel) {
     return {
         html: `<div class="text-center w-full"><div class="badge-pill bg-amber-100 text-amber-800">Daily Challenge</div><div class="text-7xl my-4">🎯</div><h3 class="font-title text-3xl text-amber-900 mb-4 leading-snug">"${challenge}"</h3><p class="text-amber-600 font-bold uppercase tracking-widest text-xs">Can you complete it?</p></div>`,
         css: 'float-card-gold'
-    };
-}
-
-function getMythologyMomentCard(questLevel) {
-    const tier = getLevelTier(questLevel);
-    const myths = {
-        junior: [
-            { title: 'Pegasus', text: 'A magical white horse with wings! He could fly high above the clouds and his hoof stamped created a fresh spring of water.' },
-            { title: 'The Golden Apple', text: 'A shiny apple marked "To the Fairest" caused a big argument between three goddesses. A young prince had to choose who was the most beautiful!' },
-            { title: 'Cyclops', text: 'A giant with one big eye in the middle of his forehead. He lived in a cave and was very strong, but not very clever.' }
-        ],
-        mid: [
-            { title: 'Theseus & the Minotaur', text: 'Theseus entered a maze to defeat the half-man, half-bull Minotaur. Luckily, Princess Ariadne gave him a ball of thread to find his way back out.' },
-            { title: 'Medusa', text: 'Medusa had snakes for hair and turned anyone who looked at her into stone. A brave hero named Perseus defeated her using a shiny shield as a mirror.' },
-            { title: 'Pandora\'s Box', text: 'Pandora was given a box and told never to open it. Curiosity got the better of her, and when she opened it, all the troubles of the world flew out!' }
-        ],
-        senior: [
-            { title: 'The Trojan Horse', text: 'After ten years of war, the Greeks built a giant wooden horse as a "gift." Hidden soldiers inside snuck out at night and opened the city gates. Never trust a gift from your enemy!' },
-            { title: 'The Labours of Heracles', text: 'Heracles had to complete twelve impossible tasks, from slaying a lion with an impenetrable hide to cleaning enormous stables in a single day. Strength and wit together!' },
-            { title: 'Orpheus and Eurydice', text: 'The musician Orpheus journeyed to the underworld to bring back his love. He charmed everyone with his lyre, but looking back too soon cost him everything.' }
-        ]
-    };
-    const pool = myths[tier] || myths.mid;
-    const myth = pool[Math.floor(Math.random() * pool.length)];
-    return {
-        html: `<div class="text-center w-full"><div class="badge-pill bg-purple-100 text-purple-800">Mythology Moment</div><div class="text-6xl my-3">⚔️</div><h3 class="font-title text-4xl text-purple-900 mb-3">${myth.title}</h3><p class="text-purple-700 text-lg leading-relaxed px-2">${myth.text}</p></div>`,
-        css: 'float-card-purple'
-    };
-}
-
-function getHealthyHabitCard() {
-    const tips = [
-        { emoji: '💧', text: 'Drink a glass of water before every lesson to keep your brain sharp!' },
-        { emoji: '👁️', text: 'Every 20 minutes, look at something 20 feet away for 20 seconds. The 20-20-20 rule!' },
-        { emoji: '🧘', text: 'Sit up tall! Imagine a string pulling the top of your head toward the ceiling.' },
-        { emoji: '🍎', text: 'Swap one sugary snack for a fruit today. Your energy levels will thank you!' },
-        { emoji: '🦶', text: 'Take a 2-minute walking break between lessons to boost blood flow to your brain.' },
-        { emoji: '😴', text: 'Aim for 8-10 hours of sleep. Your memory works best when you are well-rested!' },
-        { emoji: '🌞', text: 'Get 10 minutes of daylight today. Vitamin D helps you stay focused and happy.' }
-    ];
-    const tip = tips[Math.floor(Math.random() * tips.length)];
-    return {
-        html: `<div class="text-center w-full"><div class="badge-pill bg-green-100 text-green-800">Healthy Hero</div><div class="text-7xl my-4">${tip.emoji}</div><h3 class="font-title text-3xl text-green-900 mb-4 leading-snug">${tip.text}</h3></div>`,
-        css: 'float-card-green'
-    };
-}
-
-function getBookRecommendationCard(questLevel) {
-    const tier = getLevelTier(questLevel);
-    const books = {
-        junior: [
-            { title: 'The Gruffalo', author: 'Julia Donaldson', why: 'A brave little mouse outsmarts everyone with her clever stories. Great for learning rhymes!' },
-            { title: 'Charlotte\'s Web', author: 'E.B. White', why: 'A spider and a pig become best friends. It teaches kindness and big vocabulary.' },
-            { title: 'The Magic Tree House', author: 'Mary Pope Osborne', why: 'Travel through time and history with Jack and Annie. Adventure on every page!' }
-        ],
-        mid: [
-            { title: 'Harry Potter', author: 'J.K. Rowling', why: 'A world of magic, friendship, and courage. Perfect for expanding imagination and vocabulary.' },
-            { title: 'Percy Jackson', author: 'Rick Riordan', why: 'Greek gods in modern New York! Funny, fast, and full of ancient myths.' },
-            { title: 'Wonder', author: 'R.J. Palacio', why: 'A heartwarming story about acceptance and bravery. Teaches empathy and resilience.' }
-        ],
-        senior: [
-            { title: '1984', author: 'George Orwell', why: 'A powerful classic about language, truth, and freedom. Essential for critical thinking.' },
-            { title: 'The Hobbit', author: 'J.R.R. Tolkien', why: 'An epic journey with rich language and world-building. A masterclass in descriptive writing.' },
-            { title: 'To Kill a Mockingbird', author: 'Harper Lee', why: 'Explores justice and morality through the eyes of a child. A timeless piece of literature.' }
-        ]
-    };
-    const pool = books[tier] || books.mid;
-    const book = pool[Math.floor(Math.random() * pool.length)];
-    return {
-        html: `<div class="text-center w-full"><div class="badge-pill bg-indigo-100 text-indigo-800">Book Nook</div><div class="text-7xl my-3">📚</div><h3 class="font-title text-3xl text-indigo-900 mb-1">"${book.title}"</h3><p class="text-indigo-600 font-bold mb-3">by ${book.author}</p><p class="text-indigo-700 italic font-serif px-2">${book.why}</p></div>`,
-        css: 'float-card-indigo'
-    };
-}
-
-function getLanguageOriginCard() {
-    const origins = [
-        { word: 'Disaster', from: 'Italian', story: 'From "disastro" — meaning "bad star". Ancient people blamed unfortunate events on the position of stars!' },
-        { word: 'Salary', from: 'Latin', story: 'From "salarium" — the money Roman soldiers were paid to buy salt, which was extremely valuable.' },
-        { word: 'Muscle', from: 'Latin', story: 'From "musculus" meaning "little mouse". Romans thought muscles moving under skin looked like mice!' },
-        { word: 'Robot', from: 'Czech', story: 'From "robota" meaning forced labour. It first appeared in a 1920 play about mechanical workers.' },
-        { word: 'Shampoo', from: 'Hindi', story: 'From "chāmpo" — a head massage. It travelled from India to England in the 1700s.' },
-        { word: 'Orange', from: 'Sanskrit', story: 'The fruit gave its name to the colour, not the other way around! The word travelled through Persian and Arabic.' },
-        { word: 'Paradise', from: 'Persian', story: 'From "pairidaēza" meaning "walled garden". It described the perfect, enclosed heaven.' }
-    ];
-    const item = origins[Math.floor(Math.random() * origins.length)];
-    return {
-        html: `<div class="text-center w-full"><div class="badge-pill bg-cyan-100 text-cyan-800">Word Origin</div><div class="text-6xl my-3">🌍</div><h3 class="font-title text-4xl text-cyan-900 mb-2">${item.word}</h3><p class="text-cyan-600 font-bold uppercase tracking-widest text-xs mb-3">From ${item.from}</p><p class="text-cyan-800 text-lg leading-relaxed px-2">${item.story}</p></div>`,
-        css: 'float-card-cyan'
-    };
-}
-
-function getHistoricalFigureSpotlightCard(questLevel) {
-    const tier = getLevelTier(questLevel);
-    const figures = {
-        junior: [
-            { name: 'Marie Curie', emoji: '🔬', fact: 'She was the first woman to win a Nobel Prize and discovered two new elements: polonium and radium!' },
-            { name: 'Leonardo da Vinci', emoji: '🎨', fact: 'He painted the Mona Lisa and also designed flying machines hundreds of years before airplanes existed!' },
-            { name: 'Helen Keller', emoji: '✋', fact: 'She could not see or hear, yet she learned to read, write, and speak, becoming a famous author and activist.' }
-        ],
-        mid: [
-            { name: 'Ada Lovelace', emoji: '💻', fact: 'She wrote the world\'s first computer algorithm in the 1800s — before computers even existed!' },
-            { name: 'Nelson Mandela', emoji: '🕊️', fact: 'He spent 27 years in prison and then became president, choosing forgiveness over revenge.' },
-            { name: 'Amelia Earhart', emoji: '✈️', fact: 'She was the first female aviator to fly solo across the Atlantic Ocean. A true pioneer!' }
-        ],
-        senior: [
-            { name: 'Alan Turing', emoji: '🧠', fact: 'He cracked the Nazi Enigma code and laid the foundations of modern computing and artificial intelligence.' },
-            { name: 'Rosa Parks', emoji: '🚌', fact: 'Her refusal to give up her bus seat became a pivotal moment in the fight against racial segregation.' },
-            { name: 'Nikola Tesla', emoji: '⚡', fact: 'He envisioned wireless communication and renewable energy long before they became reality.' }
-        ]
-    };
-    const pool = figures[tier] || figures.mid;
-    const fig = pool[Math.floor(Math.random() * pool.length)];
-    return {
-        html: `<div class="text-center w-full"><div class="badge-pill bg-red-100 text-red-800">Historical Hero</div><div class="text-7xl my-3">${fig.emoji}</div><h3 class="font-title text-4xl text-red-900 mb-3">${fig.name}</h3><p class="text-red-700 text-lg leading-relaxed px-2">${fig.fact}</p></div>`,
-        css: 'float-card-red'
-    };
-}
-
-function getCreativePromptCard(questLevel) {
-    const tier = getLevelTier(questLevel);
-    const prompts = {
-        junior: [
-            'Draw a house where the roof is made of candy and the windows are giant eyes!',
-            'Write a 4-sentence story about a cat who thinks it is a dog.',
-            'Invent a new colour and describe what it looks and sounds like.',
-            'Draw your teacher as a superhero. What is their superpower?'
-        ],
-        mid: [
-            'Write a diary entry from the perspective of your school backpack.',
-            'Design a board game set inside a volcano. What are the rules?',
-            'Describe a secret door in your classroom. Where does it lead?',
-            'Write a conversation between the Moon and the Sun.'
-        ],
-        senior: [
-            'Write a news article from the year 3025 about a archaeological discovery: a smartphone.',
-            'Describe a world where everyone can read minds. What problems arise?',
-            'Create a villain who is terrifying because they are extremely polite.',
-            'Write the opening paragraph of a mystery novel set in this very classroom.'
-        ]
-    };
-    const pool = prompts[tier] || prompts.mid;
-    const prompt = pool[Math.floor(Math.random() * pool.length)];
-    return {
-        html: `<div class="text-center w-full"><div class="badge-pill bg-pink-100 text-pink-800">Creative Spark</div><div class="text-7xl my-3">🎨</div><h3 class="font-title text-3xl text-pink-900 mb-4 leading-snug">"${prompt}"</h3></div>`,
-        css: 'float-card-pink'
     };
 }
 
@@ -3239,22 +2802,6 @@ function getPuzzleOfTheDayCard(questLevel) {
     };
 }
 
-function getEcoHeroTipCard() {
-    const tips = [
-        { emoji: '🌱', text: 'Turn off the tap while brushing your teeth. You can save up to 25 litres of water every day!' },
-        { emoji: '🚲', text: 'Walk or cycle for short trips instead of asking for a car ride. Less pollution, more exercise!' },
-        { emoji: '♻️', text: 'Reuse the back of printed paper for notes before recycling it. Every sheet counts!' },
-        { emoji: '💡', text: 'Switch off lights when you leave a room. It is one of the easiest ways to save energy.' },
-        { emoji: '🌊', text: 'Use a reusable water bottle instead of single-use plastic. One bottle can replace hundreds of cups!' },
-        { emoji: '🌳', text: 'Plant something green — even a small herb on your windowsill helps the planet breathe.' }
-    ];
-    const tip = tips[Math.floor(Math.random() * tips.length)];
-    return {
-        html: `<div class="text-center w-full"><div class="badge-pill bg-green-100 text-green-800">Eco Hero Tip</div><div class="text-7xl my-4">${tip.emoji}</div><h3 class="font-title text-3xl text-green-900 mb-4 leading-snug">${tip.text}</h3></div>`,
-        css: 'float-card-green'
-    };
-}
-
 function getClassMoodCheckCard() {
     const moods = [
         { emoji: '🌈', q: 'If your energy today was a weather forecast, what would it be?' },
@@ -3283,59 +2830,6 @@ function getTeacherShoutoutCard() {
     return {
         html: `<div class="text-center w-full"><div class="badge-pill bg-orange-100 text-orange-800">Teacher Shoutout</div><div class="text-7xl my-4">${item.emoji}</div><h3 class="font-title text-3xl text-orange-900 mb-4 leading-snug">"${item.text}"</h3></div>`,
         css: 'float-card-orange'
-    };
-}
-
-function getScienceDemoCard(questLevel) {
-    const tier = getLevelTier(questLevel);
-    const demos = {
-        junior: [
-            { title: 'The Dancing Raisin', text: 'Drop raisins into fizzy water. They sink, then float, then sink again because bubbles stick to them like tiny life jackets!' },
-            { title: 'Invisible Ink', text: 'Write with lemon juice on paper. When you heat it gently, the writing turns brown. Acids react to heat!' },
-            { title: 'Static Butterfly', text: 'Rub a balloon on your hair and hold it over small pieces of paper. They jump up! Static electricity is magic.' }
-        ],
-        mid: [
-            { title: 'The Egg in a Bottle', text: 'Peel a hard-boiled egg. Light a small piece of paper in a bottle, place the egg on top, and watch it get sucked in as the air cools!' },
-            { title: 'Dancing Oobleck', text: 'Mix cornflour and water. It acts like a liquid when you move slowly, but a solid when you hit it. A non-Newtonian fluid!' },
-            { title: 'Rainbow Density', text: 'Layer honey, washing-up liquid, water, and oil in a glass. They separate into layers because of different densities.' }
-        ],
-        senior: [
-            { title: 'The Cartesian Diver', text: 'Fill a bottle with water and add a small floating packet. When you squeeze the bottle, the packet sinks. Pascal\'s principle in action!' },
-            { title: 'Homemade pH Indicator', text: 'Boil red cabbage and use the water to test liquids. Acids turn pink, bases turn green. Chemistry at home!' },
-            { title: 'Balloon Rocket', text: 'Thread a string through a straw, tape a balloon to the straw, and let go. Newton\'s Third Law pushes it forward!' }
-        ]
-    };
-    const pool = demos[tier] || demos.mid;
-    const demo = pool[Math.floor(Math.random() * pool.length)];
-    return {
-        html: `<div class="text-center w-full"><div class="badge-pill bg-cyan-100 text-cyan-800">Science Demo</div><div class="text-6xl my-3">🧪</div><h3 class="font-title text-3xl text-cyan-900 mb-3">${demo.title}</h3><p class="text-cyan-700 text-lg leading-relaxed px-2">${demo.text}</p></div>`,
-        css: 'float-card-cyan'
-    };
-}
-
-function getOnThisDayScienceCard() {
-    const month = new Date().getMonth();
-    const day = new Date().getDate();
-    const seed = month * 31 + day;
-    const events = [
-        { year: '1665', text: 'The first scientific journal, Philosophical Transactions, was published by the Royal Society in London.' },
-        { year: '1879', text: 'Thomas Edison successfully tested the first practical incandescent light bulb.' },
-        { year: '1903', text: 'The Wright brothers achieved the first powered, controlled, and sustained heavier-than-air human flight.' },
-        { year: '1953', text: 'James Watson and Francis Crick discovered the double-helix structure of DNA.' },
-        { year: '1969', text: 'Neil Armstrong became the first human to walk on the Moon.' },
-        { year: '1989', text: 'Tim Berners-Lee invented the World Wide Web, changing how humanity shares information forever.' },
-        { year: '1996', text: 'Dolly the sheep became the first mammal cloned from an adult somatic cell.' },
-        { year: '2012', text: 'The Higgs boson particle was discovered at CERN, confirming how particles acquire mass.' },
-        { year: '1543', text: 'Copernicus published his theory that the Earth revolves around the Sun.' },
-        { year: '1928', text: 'Alexander Fleming discovered penicillin, the world\'s first true antibiotic.' },
-        { year: '1831', text: 'Michael Faraday discovered electromagnetic induction, the foundation of electric generators.' },
-        { year: '1977', text: 'The Voyager 1 spacecraft was launched. It is now the most distant human-made object from Earth.' }
-    ];
-    const idx = seed % events.length;
-    const ev = events[idx];
-    return {
-        html: `<div class="text-center w-full"><div class="badge-pill bg-blue-100 text-blue-800">On This Day in Science</div><div class="text-6xl my-3">🔭</div><h3 class="font-title text-5xl text-blue-900 mb-3">${ev.year}</h3><p class="text-blue-700 text-lg leading-relaxed px-2">${ev.text}</p></div>`,
-        css: 'float-card-blue'
     };
 }
 

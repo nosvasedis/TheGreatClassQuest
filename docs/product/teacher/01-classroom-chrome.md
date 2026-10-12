@@ -95,6 +95,8 @@ Every card has the same shape, so children learn to read it at a glance: a **cre
 
 The Director has about **160 kinds of card** across the nine families. Cards that read your class’s data only appear when there is something real to show, so a new class sees more games and wonders until its first stars arrive.
 
+The facts, words, idioms, riddles, jokes, myths, people, book tips, study and eco tips, and the **On This Day** cards come from the **Wonder Library**, a checked bank of about 830 items and a calendar of around 150 real dates, written separately for Pre-Junior, Junior A–B, A–B and C–D. On This Day only appears on days that have an event. Every plan gets these cards; on Elite the daily AI cards still come first and the library fills in when the AI has nothing for today.
+
 Cards with an answer (riddles, True or False, Odd one out, Spell it right, Quiz rewind, Word scramble, the word games and the new puzzles) keep it **blurred** and say **Answer in 0:38** in the corner. The blur clears slowly and the answer is sharp for the last 10 seconds. Click the card, or press **R**, to reveal it sooner.
 
 ### The projector remote

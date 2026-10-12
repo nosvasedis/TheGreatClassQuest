@@ -67,8 +67,8 @@ function avatarHtml(student, cls = 'fwx-avatar') {
  * @returns {Promise<boolean>} true when the guild (or the hero) succeeded
  */
 async function trialStep(cardEl, opts) {
-    const { family = 'trial', kicker, emoji, title, win, lose, kind = 'riddle', band, hero = null, sfx, sound, guild } = opts;
-    let challenge = drawChallenge(kind, band);
+    const { family = 'trial', kicker, emoji, title, win, lose, kind = 'riddle', band, extra = [], hero = null, sfx, sound, guild } = opts;
+    let challenge = drawChallenge(kind, band, { extra });
     const R = 20;
     const C = 2 * Math.PI * R;
 
@@ -117,7 +117,7 @@ async function trialStep(cardEl, opts) {
         }
         if (act === 'another') {
             stopClock();
-            challenge = drawChallenge(kind, band, { previous: challenge });
+            challenge = drawChallenge(kind, band, { previous: challenge, extra });
             render();
             try { sound?.('quiz_question_in'); } catch (_) { /* optional */ }
             continue;
@@ -175,7 +175,7 @@ async function stormStage(cardEl, opts) {
     if (act !== 'brave') return { braved: false, attempted: false };
     const passed = await trialStep(cardEl, {
         family: 'storm', kicker: 'Brave the storm', emoji: '🛡️', title: segment.label,
-        win: 'The storm passes you by', lose: 'The storm breaks through', kind: 'riddle', band, sfx, sound, guild,
+        win: 'The storm passes you by', lose: 'The storm breaks through', kind: 'riddle', band, extra: opts.extra, sfx, sound, guild,
     });
     return { braved: passed, attempted: true };
 }
@@ -378,11 +378,11 @@ export async function runStage(kind, opts) {
     if (kind === 'whirlwind') return whirlwindStage(cardEl, opts);
     if (kind === 'trickster') return tricksterStage(cardEl, opts);
     if (kind === 'trial') {
-        const { segment, guild, band, sfx, sound } = opts;
+        const { segment, guild, band, extra, sfx, sound } = opts;
         const passed = await trialStep(cardEl, {
             family: 'trial', kicker: `Trial · ${segment.trial === 'lightning' ? 'Lightning Round' : 'answer together'}`,
             emoji: segment.emoji, title: segment.label, win: segment.win, lose: segment.lose,
-            kind: segment.trial || 'riddle', band, sfx, sound, guild,
+            kind: segment.trial || 'riddle', band, extra, sfx, sound, guild,
         });
         return { passed };
     }

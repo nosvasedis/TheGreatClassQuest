@@ -187,6 +187,23 @@ export async function getQuizParticipationHistory(classId, limitCount = 8) {
 // =============================================================================
 
 /**
+ * Grammar Forge anchors for the week's grammar (model sentences, typical slips); null when there
+ * is no grammar or the Forge cannot load.
+ */
+async function grammarAnchors(curriculum, questLevel) {
+    const points = curriculum?.lessonFocus?.grammarPoints;
+    if (!Array.isArray(points) || !points.length) return null;
+    try {
+        const forge = await import('../../features/grammarForge/index.mjs');
+        const anchors = forge.forgeAnchors(points, forge.forgeBand(questLevel));
+        return anchors.rules.length ? anchors : null;
+    } catch (error) {
+        console.warn('Quiz: grammar anchors', error);
+        return null;
+    }
+}
+
+/**
  * Ask the AI for fresh questions in parts (rules in features/quizWriterCore.mjs).
  */
 async function writeFreshQuestions({ curriculum, questLevel, freshCount, avoid = [], onProgress }) {
@@ -194,6 +211,7 @@ async function writeFreshQuestions({ curriculum, questLevel, freshCount, avoid =
         curriculum,
         freshCount,
         avoid,
+        anchors: await grammarAnchors(curriculum, questLevel),
         onProgress,
         band: quizAgeBand(getAgeCategoryForLeague(questLevel)),
         ageDesc: getLeagueAiAudience(questLevel),

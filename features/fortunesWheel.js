@@ -3,7 +3,7 @@
 import * as state from '../state.js';
 import { db, doc, updateDoc } from '../firebase.js';
 import { GUILD_IDS, getGuildById, getGuildEmblemUrl } from './guilds.js';
-import { WHEEL_RARITY_WEIGHTS, WHEEL_PRISMATIC_CONFIG, JUNIOR_LEAGUES, getRarityPalette } from '../constants.js';
+import { WHEEL_RARITY_WEIGHTS, WHEEL_PRISMATIC_CONFIG, getRarityPalette } from '../constants.js';
 import { saveFortuneWheelResult, hasSpunThisWeek } from '../db/actions/guilds.js';
 import { getISOWeekKey, updateGuildScores, awardGloryToStudents, takeGloryFromStudents, getGuildMemberCounts } from './guildScoring.js';
 import { chapterKeyFor } from './guildScoringCore.js';
@@ -1405,10 +1405,31 @@ async function _evaluateAndRender(classId, leagueLevel) {
         rotationAngle: 0,
     };
 
+    _loadForgeRiddles(classId, leagueLevel);
+
     // Generate first guild's segments
     invalidateWheelCache();
     _prepareGuildWheel();
     _renderWheelPhase();
+}
+
+/**
+ * Trial questions from the Grammar Forge for the grammar this class has met in its books
+ * (loaded in the background; until then, and for classes with no book plan, the general bank).
+ */
+async function _loadForgeRiddles(classId, leagueLevel) {
+    try {
+        const [{ getClassBookPlan }, { BOOK_ATLAS }, forge] = await Promise.all([
+            import('./bookProgress.js'), import('./bookAtlas.data.mjs'), import('./grammarForge/index.mjs')]);
+        const band = challengeBand(leagueLevel);
+        const { recent, covered } = forge.classGrammarLines(getClassBookPlan(classId), BOOK_ATLAS);
+        // the newest units' grammar twice over, so it comes up most
+        const riddles = band === 'e' ? forge.forgeRiddles([], 'e')
+            : [...forge.forgeRiddles(recent, band), ...forge.forgeRiddles(recent, band), ...forge.forgeRiddles(covered, band)];
+        if (_wheelState.classId === classId) _wheelState.forgeRiddles = riddles;
+    } catch (err) {
+        console.warn('Wheel: grammar questions', err);
+    }
 }
 
 /**
@@ -1595,7 +1616,8 @@ function _stageOptions(seg, cardEl) {
         cardEl,
         segment: seg,
         guild: { id: guildId, name: guildDef?.name || guildId, primary: guildDef?.primary, emblemUrl: getGuildEmblemUrl(guildId) },
-        band: challengeBand(_wheelState.leagueLevel, JUNIOR_LEAGUES),
+        band: challengeBand(_wheelState.leagueLevel),
+        extra: _wheelState.forgeRiddles || [],
         students,
         otherGuilds,
         favored: Boolean(_wheelState.favored),

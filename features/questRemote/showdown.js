@@ -152,6 +152,7 @@ async function loadDeck(classId, cls, source, wordChoice = null) {
                     pool.push(...list.map((w) => ({ ...w, src })));
                 }
                 words = wordDeckCards(pool, { kinds: choice.kinds, young, max: 30 });
+                words = await withForgeGrammar(words, { classId, cls, choice, atlas });
                 if (words.length) {
                     const book = atlas.BOOK_ATLAS.find((b) => b.id === choice.book);
                     const u = choice.units;
@@ -163,6 +164,26 @@ async function loadDeck(classId, cls, source, wordChoice = null) {
         } catch (error) { console.warn('Showdown deck: book words', error); }
     }
     return { cards: buildShowdownDeck(source, { quiz, words }), label: labels.join(' · ') };
+}
+
+/**
+ * Grammar cards from the Grammar Forge for the units the show draws its words from (and the
+ * class's newest grammar-book units), mixed in among the word cards. Not for Pre-Junior.
+ */
+async function withForgeGrammar(words, { classId, cls, choice, atlas }) {
+    try {
+        const [forge, { withGrammarCards }, { getClassBookPlan }] = await Promise.all([
+            import('../grammarForge/index.mjs'), import('./showdownDeck.mjs'), import('../bookProgress.js')]);
+        const band = forge.forgeBand(cls?.questLevel);
+        if (band === 'e') return words;
+        const lines = choice.units.map((u) => atlas.describeUnit(atlas.BOOK_ATLAS, choice.book, u)?.grammar).filter(Boolean);
+        lines.push(...forge.classGrammarLines(getClassBookPlan(classId), atlas.BOOK_ATLAS).recent);
+        const items = forge.forgeShowdownItems(lines, band, { max: Math.max(Math.ceil(words.length / 3), 4) });
+        return withGrammarCards(words, items, { max: 30 });
+    } catch (error) {
+        console.warn('Showdown deck: grammar', error);
+        return words;
+    }
 }
 
 /** The card of question `round` as the projector draws it (null past the end of the deck). */

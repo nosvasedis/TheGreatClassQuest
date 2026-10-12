@@ -93,7 +93,10 @@ const isRateLimit = (error) => error?.isRateLimited || error?.status === 429 || 
  *           askAi:(systemPrompt:string, userPrompt:string) => Promise<string>, onProgress?:Function, random?:Function }} input
  * @returns {Promise<{ questions:object[], mix:object }>} questions with their right answers spread over A to D.
  */
-export async function writeQuizQuestions({ curriculum = {}, freshCount = 7, band = 'mid', ageDesc = 'primary learners', avoid = [], askAi, onProgress, random = Math.random } = {}) {
+export async function writeQuizQuestions({ curriculum = {}, freshCount = 7, band = 'mid', ageDesc = 'primary learners', avoid = [], anchors = null, askAi, onProgress, random = Math.random } = {}) {
+    // a question whose "right" answer is a known slip (Grammar Forge) is dropped
+    const slipKey = (text) => String(text || '').toLowerCase().replace(/[’']/g, "'").replace(/[^a-z' ]+/g, ' ').replace(/\s+/g, ' ').trim();
+    const knownWrong = new Set((Array.isArray(anchors?.wrong) ? anchors.wrong : []).map(slipKey).filter(Boolean));
     const mix = quizKindMix({ count: freshCount, band, type: curriculum?.type });
     const batches = planQuizBatches(mix);
     const systemPrompt = buildQuizSystemPrompt();
@@ -103,7 +106,7 @@ export async function writeQuizQuestions({ curriculum = {}, freshCount = 7, band
     const failures = [];
 
     const runPart = async (partMix) => {
-        const userPrompt = buildQuizGenerationUserPrompt({ curriculum, ageDesc, band, mix: partMix, avoid: askedFor });
+        const userPrompt = buildQuizGenerationUserPrompt({ curriculum, ageDesc, band, mix: partMix, avoid: askedFor, anchors });
         const aiText = await askAi(systemPrompt, userPrompt);
         const wanted = mixTotal(partMix);
         // When the AI leaves out "format", read the questions in the order they were asked for.
@@ -113,6 +116,10 @@ export async function writeQuizQuestions({ curriculum = {}, freshCount = 7, band
             if (added >= wanted) return;
             const question = normalizeAiQuestion(raw, { id: `n${kept.length + 1}`, fallbackKind: askedKinds[index] || 'choice' });
             if (!question) return;
+            if (knownWrong.has(slipKey(question.correctAnswer))) {
+                console.warn('Quiz: dropped a question whose answer is a known mistake:', question.question);
+                return;
+            }
             const key = questionKey(question);
             if (seen.has(key)) return;
             seen.add(key);

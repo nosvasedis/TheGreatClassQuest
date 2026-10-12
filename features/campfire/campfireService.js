@@ -181,6 +181,16 @@ function consumePrep(context, classId, practised, today) {
     return overlap >= 2 || (!practised?.assignmentId && pack.date < today) ? pack : null;
 }
 
+/** A model sentence for the lesson's grammar from the Grammar Forge ('' when it has none). */
+async function forgeExampleFor(cls, lesson, date) {
+    const grammar = lesson?.lessonTarget?.grammar;
+    if (!grammar || !lesson.preferGrammar) return '';
+    try {
+        const forge = await import('../grammarForge/index.mjs');
+        return forge.forgeExample(grammar, forge.forgeBand(cls?.questLevel), date);
+    } catch (_) { return ''; }
+}
+
 export async function kindleCampfire(classId, { ai = false, learnedToday = null, refresh = false, logId = null, heroStudentId = null } = {}) {
     const context = oathContext(), token = generation;
     const c = state.get('allTeachersClasses').find(c => c.id === classId);
@@ -202,7 +212,8 @@ export async function kindleCampfire(classId, { ai = false, learnedToday = null,
         const priorityIds = oaths.filter(o => o.status === 'active' && (o.dueDate <= date || !(o.checkIns || []).some(c => c.date === date))).map(o => o.studentId);
         const fallback = buildCampfireScript({ league: c.questLevel, date, learnedToday: learned, words: lesson.words, lessonTarget: lesson.lessonTarget,
             next: lesson.next, presentIds, rotation: c.campfireRotation, priorityIds, recentQuestionKeys: recentQuestionKeys(classId),
-            continuity: lesson.continuity, preferGrammar: lesson.preferGrammar, atlasWords: lesson.atlasWords });
+            continuity: lesson.continuity, preferGrammar: lesson.preferGrammar, atlasWords: lesson.atlasWords,
+            grammarExample: await forgeExampleFor(c, lesson, date) });
         fallback.classPromise = c.classOath?.text || fallback.classPromise;
         const pack = consumePrep(context, classId, lesson.practised, date);
         if (session) {
@@ -263,7 +274,8 @@ export async function prepareCampfireFromAssignment(classId) {
     const fallback = buildCampfireScript({
         league: c.questLevel, date, words: nextLesson.words, lessonTarget: nextLesson.lessonTarget, next: nextLesson.next,
         presentIds: [], recentQuestionKeys: recentQuestionKeys(classId),
-        continuity: nextLesson.continuity, preferGrammar: nextLesson.preferGrammar, atlasWords: nextLesson.atlasWords
+        continuity: nextLesson.continuity, preferGrammar: nextLesson.preferGrammar, atlasWords: nextLesson.atlasWords,
+        grammarExample: await forgeExampleFor(c, nextLesson, date)
     });
     let script = fallback, source = 'bank';
     if (canUseFeature('eliteAI')) {

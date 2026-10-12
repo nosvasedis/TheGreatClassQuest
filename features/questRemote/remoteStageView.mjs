@@ -245,7 +245,7 @@ export function deckCardHtml(card) {
         return `<li class="qr-card__opt qr-card__opt--${i}${state}" style="--i:${i}"><span class="qr-card__mark" aria-hidden="true">${CARD_MARKS[i]}</span><b>${String.fromCharCode(65 + i)}</b><span class="qr-card__text">${esc(t)}</span></li>`;
     }).join('');
     return `<div class="qr-card__inner">
-        <p class="qr-card__src"><i class="fas fa-${card.tag === 'quiz' ? 'scroll' : 'book-open'}" aria-hidden="true"></i> ${esc(card.src || 'Question')}${card.total ? ` · ${card.n} of ${card.total}` : ''}</p>
+        <p class="qr-card__src"><i class="fas fa-${card.tag === 'quiz' ? 'scroll' : card.tag === 'grammar' ? 'hammer' : 'book-open'}" aria-hidden="true"></i> ${esc(card.src || 'Question')}${card.total ? ` · ${card.n} of ${card.total}` : ''}</p>
         <p class="qr-card__q">${esc(card.q)}</p>
         <ol class="qr-card__opts" style="--n:${Math.min(4, (card.opts || []).length)}">${opts}</ol>
         <p class="qr-card__why"${card.revealed && card.why ? '' : ' hidden'}><i class="fas fa-lightbulb" aria-hidden="true"></i> ${esc(card.why || '')}</p>

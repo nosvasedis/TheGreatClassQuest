@@ -391,9 +391,10 @@ export function shouldKindleCampfire({ visible = true, enabled = true, existing 
 
 /**
  * The complete offline script. AI (Elite) may only polish its wording afterwards.
+ * grammarExample: a model sentence for the lesson's grammar from the Grammar Forge (Elite AI may replace it).
  */
 export function buildCampfireScript({ league, date = '', learnedToday = {}, words = [], lessonTarget = null, presentIds = [], rotation = {}, priorityIds = [],
-    recentQuestionKeys = [], next = {}, random, continuity = 'unknown', preferGrammar = false, atlasWords = [] } = {}) {
+    recentQuestionKeys = [], next = {}, random, continuity = 'unknown', preferGrammar = false, atlasWords = [], grammarExample = '' } = {}) {
     const band = getLeagueBand(league);
     const allWords = curateCampfireWords([words, learnedToday.words], band);
     const sources = [...new Set((learnedToday.items || []).map(item => item.source))];
@@ -404,7 +405,7 @@ export function buildCampfireScript({ league, date = '', learnedToday = {}, word
     });
     const circle = pickFairRotation({ presentIds, cycleIds: rotation?.cycleIds, lastIds: rotation?.lastIds, priorityIds, count: 4, random });
     const pattern = preferGrammar && lessonTarget?.grammar && !allWords.length
-        ? { label: cleanCampfireText(lessonTarget.grammar, 60), example: '' } : undefined;
+        ? { label: cleanCampfireText(lessonTarget.grammar, 60), example: cleanCampfireText(grammarExample, 140) } : undefined;
     return {
         question: picked.question, followUp: picked.followUp, starters: picked.starters.slice(0, 3),
         words: allWords,

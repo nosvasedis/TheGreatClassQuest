@@ -389,10 +389,27 @@ export function formatQuizFocusForPrompt(focus = {}) {
 }
 
 /**
+ * Grammar Forge anchors for the prompt (features/grammarForge: forgeAnchors): the rule in a line,
+ * model sentences to match in level, and the slips Greek-speaking children make, as wrong options.
+ */
+export function formatGrammarAnchors(anchors) {
+    if (!anchors) return '';
+    const list = (key, n) => (Array.isArray(anchors[key]) ? anchors[key] : []).map((t) => cleanCampfireText(t, 200)).filter(Boolean).slice(0, n);
+    const rules = list('rules', 3);
+    const examples = list('examples', 6);
+    const slips = list('slips', 6);
+    const lines = [];
+    if (rules.length) lines.push(`Grammar rules as the class learns them: ${rules.join(' / ')}`);
+    if (examples.length) lines.push(`Model sentences at the right level: ${examples.join(' ')}`);
+    if (slips.length) lines.push(`Typical mistakes of Greek-speaking learners (good wrong options, never right answers): ${slips.join('; ')}.`);
+    return lines.join('\n');
+}
+
+/**
  * The user prompt for one AI request. `mix` says how many of each question kind to write
  * (see features/quizKindsCore.mjs); without it the request is all classic choice questions.
  */
-export function buildQuizGenerationUserPrompt({ curriculum = {}, ageDesc = 'primary learners', questionCount = 7, band = 'mid', mix = null, avoid = [] } = {}) {
+export function buildQuizGenerationUserPrompt({ curriculum = {}, ageDesc = 'primary learners', questionCount = 7, band = 'mid', mix = null, avoid = [], anchors = null } = {}) {
     const subject = curriculum.type === 'grammar' ? 'English grammar'
         : curriculum.type === 'vocabulary' ? 'English vocabulary'
             : 'English (grammar and vocabulary mixed)';
@@ -404,6 +421,7 @@ export function buildQuizGenerationUserPrompt({ curriculum = {}, ageDesc = 'prim
             (curriculum.categories || []).length ? `Topics: ${(curriculum.categories || []).join(', ')}.` : '',
             curriculum.keywords ? `Specific focus: "${curriculum.keywords}".` : ''
         ].filter(Boolean).join('\n');
+    const anchorBlock = curriculum.type === 'vocabulary' ? '' : formatGrammarAnchors(anchors);
     const groundingRules = grounded
         ? `- Vocabulary questions test only the listed words. Never invent a vocabulary item that is not in that list.
 - Grammar questions test the listed grammar, using the listed words in sentences and answers when you can.
@@ -411,7 +429,7 @@ export function buildQuizGenerationUserPrompt({ curriculum = {}, ageDesc = 'prim
         : '- Every question is directly about the topics and focus listed above.';
     return buildKindsPromptBody({
         subject,
-        focusBlock,
+        focusBlock: [focusBlock, anchorBlock].filter(Boolean).join('\n'),
         groundingRules,
         ageDesc,
         band,

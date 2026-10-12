@@ -138,7 +138,7 @@ A weekly ritual, not a slot machine to mash every lesson. It lives on this tab b
   - **Robin Hood**: takes 1 Glory from each guildmate here and gives +1 to each member here of the guild that is last this month. If the spinning guild is last, Robin helps it instead.
   - **Mirror of Fates**: copies exactly what the guild before got, good or bad.
   - **Trickster**: a fake legendary jackpot that cracks and flips: nothing won, nothing lost.
-- **Trial** (teal, rings), 2 per wheel: a short English challenge in front of the class. Press **Start the clock**; you judge with **Correct!** or **Not this time**. **Another one** draws a new question, and **Answer (for the teacher)** shows the answer to you. Questions come in two bands: Pre-Junior and Junior A/B get simpler ones.
+- **Trial** (teal, rings), 2 per wheel: a short English challenge in front of the class. Press **Start the clock**; you judge with **Correct!** or **Not this time**. **Another one** draws a new question, and **Answer (for the teacher)** shows the answer to you. Questions come in four bands (Pre-Junior, Junior A/B, A/B, C/D). Pre-Junior only says, sings and points. From Junior A up, about two questions in three come from the **Grammar Forge**: the grammar of the units the class has reached in its books, most often the newest ones (choose the right word, or say a wrong sentence right).
   - **Sphinx's Riddle** (20 seconds): right +3 Glory each, wrong −1 each.
   - **Lightning Round** (30 seconds): name words before the clock runs out. +2 Glory each, or nothing.
   - **Hero's Dare**: a spotlight hops across the guild and picks one child for a dare. +1 star and +10 Gold, or +5 Gold for a brave try.

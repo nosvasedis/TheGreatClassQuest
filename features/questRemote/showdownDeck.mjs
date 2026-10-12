@@ -219,6 +219,24 @@ export function wordDeckCards(words = [], { kinds = KIND_KEYS, src = 'Book words
     return cards;
 }
 
+/**
+ * Grammar cards (from the Grammar Forge) slipped in among the word cards: one after every `every`
+ * word cards, up to `max` in all. items: { q, opts (right first), correct, why, src }.
+ */
+export function withGrammarCards(words = [], items = [], { every = 3, rng = Math.random, max = DECK_MAX } = {}) {
+    const grammar = (items || []).map((it) => makeCard({ ...it, tag: 'grammar' }, rng)).filter(Boolean);
+    if (!grammar.length) return words.slice(0, max);
+    const out = [];
+    let g = 0;
+    words.forEach((w, i) => {
+        out.push(w);
+        if ((i + 1) % every === 0 && g < grammar.length) out.push(grammar[g++]);
+    });
+    // a short word list still gets a few grammar cards
+    while (g < grammar.length && out.length < Math.max(words.length + 3, 6)) out.push(grammar[g++]);
+    return out.slice(0, max);
+}
+
 /** The deck for a show: one source, or both shuffled together (quiz questions and words taking turns). */
 export function buildShowdownDeck(source, { quiz = [], words = [], max = DECK_MAX } = {}) {
     if (source === 'quiz') return quiz.slice(0, max);

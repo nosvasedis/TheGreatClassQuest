@@ -154,31 +154,49 @@ test('a storm takes only Glory earned this month, so no child goes below 0', () 
 
 // ─── Challenges ───
 
-test('challenges: young and older bands, a fresh one on "Another one"', async () => {
-  const { drawChallenge, challengeBand, challengeBank, CHALLENGE_SECONDS } = await loadChallenges();
-  assert.equal(challengeBand('Junior A', ['Pre-Junior', 'Junior A', 'Junior B']), 'young');
-  assert.equal(challengeBand('C', ['Pre-Junior', 'Junior A', 'Junior B']), 'older');
+test('challenges: four league bands, a fresh one on "Another one"', async () => {
+  const { drawChallenge, challengeBand, challengeBank, CHALLENGE_SECONDS, CHALLENGE_BANDS } = await loadChallenges();
+  assert.equal(challengeBand('Pre-Junior'), 'e');
+  assert.equal(challengeBand('Junior A'), 'j');
+  assert.equal(challengeBand('B'), 'm');
+  assert.equal(challengeBand('D'), 'u');
 
   const bank = challengeBank();
-  for (const band of ['young', 'older']) {
-    assert.ok(bank.riddles[band].length >= 10);
-    assert.ok(bank.dares[band].length >= 10);
-    assert.ok(bank.lightning[band].length >= 8);
+  for (const band of CHALLENGE_BANDS) {
+    assert.ok(bank.riddles[band].length >= 10, `riddles ${band}`);
+    assert.ok(bank.dares[band].length >= 10, `dares ${band}`);
+    assert.ok(bank.lightning[band].length >= 8, `lightning ${band}`);
     bank.riddles[band].forEach((r) => assert.ok(r.q && r.a, 'every riddle has an answer for the teacher'));
   }
 
-  const riddle = drawChallenge('riddle', 'young');
+  const riddle = drawChallenge('riddle', 'j');
   assert.equal(riddle.kind, 'riddle');
   assert.ok(riddle.answer);
   assert.equal(riddle.seconds, CHALLENGE_SECONDS.riddle);
-  assert.ok(bank.riddles.young.some((r) => r.q === riddle.text));
+  assert.ok(bank.riddles.j.some((r) => r.q === riddle.text));
+  // older callers' band names still work
+  assert.ok(bank.riddles.j.some((r) => r.q === drawChallenge('riddle', 'young').text));
 
   for (let i = 0; i < 50; i += 1) {
-    assert.notEqual(drawChallenge('riddle', 'older', { previous: riddle }).text, riddle.text);
-    const dare = drawChallenge('dare', 'older');
-    assert.notEqual(drawChallenge('dare', 'older', { previous: dare }).text, dare.text);
-    const flash = drawChallenge('lightning', 'young');
+    assert.notEqual(drawChallenge('riddle', 'm', { previous: riddle }).text, riddle.text);
+    const dare = drawChallenge('dare', 'u');
+    assert.notEqual(drawChallenge('dare', 'u', { previous: dare }).text, dare.text);
+    const flash = drawChallenge('lightning', 'e');
     assert.match(flash.text, /^Name \d+ .+ before the time runs out!$/);
-    assert.notEqual(drawChallenge('lightning', 'young', { previous: flash }).text, flash.text);
+    assert.notEqual(drawChallenge('lightning', 'e', { previous: flash }).text, flash.text);
   }
+});
+
+test('challenges: the class\'s grammar questions make up most riddles', async () => {
+  const { drawChallenge } = await loadChallenges();
+  const extra = [{ q: 'She ___ to school. (goes / go)', a: 'goes' }, { q: 'Say it right: "He play."', a: 'He plays.' }];
+  let fromForge = 0;
+  for (let i = 0; i < 300; i += 1) {
+    const c = drawChallenge('riddle', 'm', { extra });
+    if (c.forge) { fromForge += 1; assert.ok(extra.some((x) => x.q === c.text && x.a === c.answer)); }
+  }
+  assert.ok(fromForge > 150 && fromForge < 260, String(fromForge));
+  const prev = drawChallenge('riddle', 'm', { extra: [extra[0]], rng: () => 0 });
+  assert.equal(prev.text, extra[0].q);
+  assert.notEqual(drawChallenge('riddle', 'm', { extra: [extra[0]], previous: prev, rng: () => 0 }).text, extra[0].q);
 });

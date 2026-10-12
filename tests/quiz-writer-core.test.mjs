@@ -42,7 +42,7 @@ test('a reply cut off mid-way still gives back the finished questions', () => {
     assert.equal(extractPartialQuestions(JSON.stringify([{ ...choice(4), question: 'Odd {brace} here ___' }])).length, 1);
 });
 
-test('a long quiz is written in parts that each stay small, with the mix the league needs', async () => {
+test('a long quiz is written in parts at the same time, each small, with the mix the league needs', async () => {
     const ai = fakeAi();
     const progress = [];
     const { questions, mix } = await writeQuizQuestions({
@@ -58,9 +58,9 @@ test('a long quiz is written in parts that each stay small, with the mix the lea
     const kinds = questions.reduce((acc, q) => ({ ...acc, [q.kind]: (acc[q.kind] || 0) + 1 }), {});
     assert.deepEqual(kinds, Object.fromEntries(Object.entries(mix).filter(([, n]) => n > 0)));
     assert.equal(mixTotal(mix), 15);
-    // Later parts are told what is already in the quiz.
-    assert.match(ai.prompts[1], /do not ask again: right1|do not ask again: .*right1/);
-    assert.deepEqual(progress.map((p) => p.done), [0, 1, 2]);
+    // The parts run together, so each is told it is one part of several.
+    ai.prompts.forEach((prompt, i) => assert.match(prompt, /This is part \d of 3, written alongside the others/));
+    assert.deepEqual(progress.map((p) => p.done), [0, 1, 2, 3]);
     // Right answers are spread over A to D.
     const positions = new Set(questions.map((q) => q.correctIndex));
     assert.equal(positions.size, 4);
@@ -95,4 +95,14 @@ test('never more than four picture questions, even when the AI writes more', asy
     const res = await writeQuizQuestions({ freshCount: 12, band: 'early', askAi: ask });
     assert.ok(res.questions.filter((q) => q.kind === 'picture').length <= 4);
     assert.ok(res.questions.filter((q) => q.kind === 'listen').every((q) => q.listen));
+});
+
+test('parallel parts share out the words so they do not repeat each other', async () => {
+    const ai = fakeAi();
+    await writeQuizQuestions({
+        curriculum: { type: 'vocabulary', lessonFocus: { source: 'book-pages', words: ['cat', 'dog', 'cow', 'hen', 'pig', 'fox'] } },
+        freshCount: 10, band: 'mid', askAi: ai.ask
+    });
+    assert.match(ai.prompts[0], /mainly on: cat, cow, pig\./);
+    assert.match(ai.prompts[1], /mainly on: dog, hen, fox\./);
 });

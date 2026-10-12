@@ -43,7 +43,7 @@ Starter schools see a locked hat. **Pro** and **Elite** run the quiz.
 
 ## Glory and the Crown Race
 
-Every positive star adds **Guild Glory**, at **2 Glory per star**, plus a little from Fortune’s Wheel and a few Mystic Market relics. Quiz of the Week pays its Glory through the stars it gives. The only chance that takes Glory away is a small Fortune’s Wheel storm or twist, and only from Glory earned this month. Otherwise only an undone star or a teacher’s correction removes it.
+Every positive star adds **Guild Glory**, at **2 Glory per star**, plus a little from Fortune’s Wheel and a few Mystic Market relics. Quiz of the Week pays its Glory through the star it gives the top of the show. The only chance that takes Glory away is a small Fortune’s Wheel storm or twist, and only from Glory earned this month. Otherwise only an undone star or a teacher’s correction removes it.
 
 **Chapters.** Each school month is a **Chapter**. On the 1st every guild starts the Chapter at 0. The Chapter is won by the guild whose members earned the **most Glory each, on average**: the Glory its current members earned that month, divided by how many members it has. A house of eight who all play beats a house of twenty where four children carry the banner.
 
@@ -164,7 +164,7 @@ History of what the Wheel actually did **this school year**: who gained Glory, w
 |-------|----------------|
 | Award Stars | 2 Glory per star, for this Chapter and the year |
 | Hero’s Boon (+0.5) | Glory for the receiver’s house |
-| Quiz of the Week | Glory from the stars each child earns with their own answers |
+| Quiz of the Week | Glory from the star of the top of the show |
 | Fortune’s Wheel | Small Glory for each guildmate in the class, plus perks; a storm or twist can take a little back |
 | Mystic Market | Banner of Glory, Chalice of Unity, Guild Standard, Fortune’s Favor |
 | Pathfinder / Quest bonuses | Team Quest, not the Crown Race directly. Wheel perks can add both |

@@ -421,12 +421,23 @@ export const optionsTabHTML = `
                                                 <!-- 1. What it covers -->
                                                 <section class="qwk-part">
                                                     <h4 class="qwk-part__title"><span class="qwk-part__num">1</span> What should it cover?</h4>
+                                                    <div id="qwk-source" class="qwk-source" role="tablist" aria-label="Where the questions come from"></div>
 
                                                     <div id="qwk-lesson" class="qwk-lesson hidden">
                                                         <div class="qwk-lesson__head">
                                                             <span class="qwk-lesson__badge"><i class="fas fa-book-open"></i> From your lessons</span>
                                                             <span id="qwk-lesson-window" class="qwk-lesson__window"></span>
                                                         </div>
+                                                    </div>
+
+                                                    <div id="qwk-book" class="qwk-book hidden">
+                                                        <p class="qwk-book__lede">Pick the book and the pages the class worked on. A unit fills in its pages; pages find their unit.</p>
+                                                        <div id="qwk-book-rows" class="qwk-book__rows"></div>
+                                                        <button type="button" id="qwk-book-add" class="qwk-link qwk-book__add"><i class="fas fa-plus"></i> Add another book</button>
+                                                        <p id="qwk-book-status" class="qwk-book__status hidden" aria-live="polite"></p>
+                                                    </div>
+
+                                                    <div id="qwk-focus" class="qwk-focus hidden">
                                                         <div id="qwk-lesson-units" class="qwk-lesson__units"></div>
                                                         <div id="qwk-lesson-grammar" class="qwk-lesson__grammar"></div>
                                                         <div id="qwk-words-block" class="qwk-words">
@@ -439,13 +450,13 @@ export const optionsTabHTML = `
                                                             </div>
                                                             <div id="qwk-lesson-words" class="qwk-chips"></div>
                                                         </div>
-                                                        <button type="button" id="qwk-own-topics-btn" class="qwk-link qwk-lesson__switch"><i class="fas fa-shuffle"></i> Use my own topics instead</button>
                                                     </div>
 
-                                                    <div id="qwk-topics" class="qwk-topics">
+                                                    <div id="qwk-topics" class="qwk-topics hidden">
+                                                        <label class="qwk-label" for="quiz-cover">What should the quiz cover? <span class="qwk-label__need">needed</span></label>
+                                                        <textarea id="quiz-cover" class="ts-input qwk-note qwk-cover" rows="3" maxlength="400" placeholder="e.g. Unit 3 animals (wings, fur, claws), can / can't for abilities, and the past of be: was / were"></textarea>
                                                         <div class="qwk-topics__bar">
-                                                            <span class="qwk-label" id="qwk-topics-label">Pick the topics you covered</span>
-                                                            <button type="button" id="qwk-back-to-lessons-btn" class="qwk-link hidden"><i class="fas fa-book-open"></i> Back to the lessons</button>
+                                                            <span class="qwk-label" id="qwk-topics-label">Or tap a few topics <span class="qwk-label__hint">(optional)</span></span>
                                                         </div>
                                                         <div id="quiz-categories-chips" class="qwk-chips"></div>
                                                     </div>
@@ -456,7 +467,7 @@ export const optionsTabHTML = `
                                                     <h4 class="qwk-part__title"><span class="qwk-part__num">2</span> What kind of questions?</h4>
                                                     <div id="qwk-type" class="qwk-type" role="radiogroup" aria-label="Question style"></div>
                                                     <label class="qwk-label qwk-note-label" for="quiz-keywords">Note for the quiz writer <span class="qwk-label__hint">(optional)</span></label>
-                                                    <textarea id="quiz-keywords" class="ts-input qwk-note" rows="2" placeholder="e.g. keep sentences short, include was / were"></textarea>
+                                                    <textarea id="quiz-keywords" class="ts-input qwk-note" rows="2" maxlength="240" placeholder="e.g. keep sentences short, no questions about spelling"></textarea>
                                                 </section>
 
                                                 <!-- 3. Extras -->

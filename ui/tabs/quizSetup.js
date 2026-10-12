@@ -22,12 +22,22 @@ import {
 } from '../../features/quizCurriculumCore.mjs';
 import { describeKindMix, quizAgeBand, quizKindMix } from '../../features/quizKindsCore.mjs';
 import {
+    QUIZ_BOOK_PICK_CAP,
+    bookPickLabel,
+    bookPickTargets,
+    cleanBookPick,
+    defaultBookPick,
+    quizBookOptions
+} from '../../features/quizBookPicks.mjs';
+import { BOOK_ATLAS, PART_LABELS, bookPartOptions, syncLessonRow } from '../../features/bookAtlas.mjs';
+import {
     QUIZ_TYPES,
     describeQuizWeek,
     escapeQuizText,
     expectedQuestionCount,
     planSummaryText,
     quizFactsHtml,
+    quizSourceTabsHtml,
     quizHistoryHtml,
     quizTrackHtml,
     weekRangeLabel
@@ -316,7 +326,13 @@ function getCategoriesForType(type, level) {
 let listenersBound = false;
 let renderToken = 0;
 let lessonFocus = null;
-let useOwnTopics = false;
+// Where the questions come from: 'lessons' (since the last quiz), 'book' (chosen pages) or 'own' (described).
+let source = 'own';
+let bookRows = [];
+let bookFocus = null;
+let bookToken = 0;
+let bookTimer = null;
+let bookSavedWords = null;
 let planOpen = true;
 let currentQuiz = null;
 let generatingClassId = null;
@@ -366,12 +382,51 @@ function nextLessonThisWeek(classData) {
     return null;
 }
 
+/**
+ * Words, units and grammar for a list of book places ({ bookId, unit, component, pages }).
+ * Every wordlist is read at once, so the card fills in quickly.
+ */
+async function focusFromTargets(targets, windowMeta = null) {
+    const { BOOK_ATLAS: atlas, describeUnit, getUnitWords } = await import('../../features/bookAtlas.mjs');
+    const loads = new Map();
+    const units = [];
+    const seenUnits = new Set();
+    for (const target of targets) {
+        if (!target?.bookId || target.unit == null) continue;
+        const pages = Array.isArray(target.pages) ? target.pages : [];
+        const key = `${target.bookId}:${Number(target.unit)}:${target.component || 'sb'}:${pages.join(',')}:${target.lessonCode || ''}`;
+        if (!loads.has(key)) {
+            loads.set(key, getUnitWords(target.bookId, target.unit, {
+                component: target.component || 'sb',
+                pages,
+                lessonCode: target.lessonCode || null,
+                limit: 24
+            }).catch(() => []));
+        }
+        const unitKey = `${target.bookId}:${Number(target.unit)}`;
+        if (seenUnits.has(unitKey)) continue;
+        seenUnits.add(unitKey);
+        const book = atlas.find((item) => item.id === target.bookId);
+        const unit = describeUnit(atlas, target.bookId, target.unit);
+        units.push({
+            bookId: target.bookId,
+            unit: Number(target.unit),
+            title: unit?.title || '',
+            theme: unit?.theme || '',
+            grammar: unit?.grammar || '',
+            kind: book?.kind || 'coursebook',
+            bookTitle: book?.title || ''
+        });
+    }
+    const atlasWords = (await Promise.all(loads.values())).flat();
+    return { units, atlasWords, windowMeta };
+}
+
 // ── Lesson focus: what the class practised since the last finished quiz ──
 async function loadLessonFocus(classId) {
     if (!classId) return null;
     try {
         const { getClassBookPlan } = await import('../../features/bookProgress.js');
-        const { BOOK_ATLAS, describeUnit, getUnitWords } = await import('../../features/bookAtlas.mjs');
         const { getQuizHistory } = await quizActions();
         const today = utils.getLocalIsoDateString();
         const monday = targetWeekMonday(today);
@@ -385,37 +440,16 @@ async function loadLessonFocus(classId) {
             targetWeekMonday: monday,
             lastWeekKey: previous?.weekKey || ''
         });
-        const units = [];
-        const atlasWords = [];
-        const seen = new Set();
-        for (const entry of window.entries) {
-            if (entry.unconfirmed || !entry.bookId || entry.unit == null) continue;
-            const loadKey = `${entry.bookId}:${Number(entry.unit)}:${entry.component || 'sb'}`;
-            const pages = Array.isArray(entry.pages) && entry.pages.length ? entry.pages : (entry.page ? [entry.page] : []);
-            if (!seen.has(loadKey)) {
-                seen.add(loadKey);
-                const loaded = await getUnitWords(entry.bookId, entry.unit, {
-                    component: entry.component || 'sb',
-                    pages,
-                    lessonCode: entry.lessonCode || null,
-                    limit: 24
-                }).catch(() => []);
-                atlasWords.push(...loaded);
-            }
-            if (seen.has(`unit:${entry.bookId}:${Number(entry.unit)}`)) continue;
-            seen.add(`unit:${entry.bookId}:${Number(entry.unit)}`);
-            const book = BOOK_ATLAS.find((item) => item.id === entry.bookId);
-            const unit = describeUnit(BOOK_ATLAS, entry.bookId, entry.unit);
-            units.push({
+        const targets = window.entries
+            .filter((entry) => !entry.unconfirmed && entry.bookId && entry.unit != null)
+            .map((entry) => ({
                 bookId: entry.bookId,
-                unit: Number(entry.unit),
-                title: unit?.title || '',
-                theme: unit?.theme || '',
-                grammar: unit?.grammar || '',
-                kind: book?.kind || 'coursebook',
-                bookTitle: book?.title || ''
-            });
-        }
+                unit: entry.unit,
+                component: entry.component || 'sb',
+                pages: Array.isArray(entry.pages) && entry.pages.length ? entry.pages : (entry.page ? [entry.page] : []),
+                lessonCode: entry.lessonCode || null
+            }));
+        const { units, atlasWords } = await focusFromTargets(targets);
         const focus = buildQuizLessonFocus({ entries: window.entries, units, atlasWords, window });
         return hasUsableLessonFocus(focus) ? focus : null;
     } catch (error) {
@@ -424,7 +458,144 @@ async function loadLessonFocus(classId) {
     }
 }
 
-// ── Remembered per-class choices for the two switches ──
+// ── Book pages chosen by the teacher ──
+function classBookContext() {
+    const classData = selectedClass();
+    return { bookPlan: classData?.bookPlan || {}, league: classData?.questLevel || '' };
+}
+
+function rowFromPick(pick) {
+    const clean = cleanBookPick(pick || {});
+    if (!clean) return null;
+    return { bookId: clean.bookId, component: clean.component, unit: clean.unit ? String(clean.unit) : '', pageText: clean.pageText, unitAuto: false, pagesAuto: false };
+}
+
+function freshBookRow() {
+    return rowFromPick(defaultBookPick(classBookContext())) || { bookId: BOOK_ATLAS[0]?.id || '', component: 'sb', unit: '', pageText: '', unitAuto: false, pagesAuto: false };
+}
+
+function bookRowHtml(row, index) {
+    const options = quizBookOptions(classBookContext());
+    const suggested = options.filter((o) => o.suggested);
+    const others = options.filter((o) => !o.suggested);
+    const opt = (o) => `<option value="${escapeQuizText(o.id)}"${o.id === row.bookId ? ' selected' : ''}>${escapeQuizText(o.title)}${o.kind === 'grammar' ? ' (grammar)' : ''}</option>`;
+    const bookSelect = suggested.length && others.length
+        ? `<optgroup label="This class's books">${suggested.map(opt).join('')}</optgroup><optgroup label="Other books">${others.map(opt).join('')}</optgroup>`
+        : options.map(opt).join('');
+    const book = BOOK_ATLAS.find((b) => b.id === row.bookId);
+    const parts = bookPartOptions(book || null);
+    const units = book?.units || [];
+    const label = bookPickLabel(row);
+    const complete = bookPickTargets(row).length > 0;
+    return `
+        <div class="qwk-bookrow" data-row="${index}">
+            <label class="qwk-bookrow__field qwk-bookrow__field--book"><span>Book</span>
+                <select class="ts-input" data-field="bookId" aria-label="Book">${bookSelect}</select></label>
+            ${parts.length > 1 ? `<label class="qwk-bookrow__field qwk-bookrow__field--part"><span>Part</span>
+                <select class="ts-input" data-field="component" aria-label="Part of the book">${parts.map((part) => `<option value="${part}"${part === row.component ? ' selected' : ''}>${escapeQuizText(PART_LABELS[part] || part)}</option>`).join('')}</select></label>` : ''}
+            <label class="qwk-bookrow__field qwk-bookrow__field--unit"><span>Unit</span>
+                <select class="ts-input" data-field="unit" aria-label="Unit"><option value="">Pages only</option>${units.map((unit) => `<option value="${unit.n}"${String(unit.n) === String(row.unit) ? ' selected' : ''}>${unit.n}${unit.title ? ` · ${escapeQuizText(unit.title)}` : ''}</option>`).join('')}</select></label>
+            <label class="qwk-bookrow__field qwk-bookrow__field--pages"><span>Pages</span>
+                <input class="ts-input" data-field="pageText" inputmode="numeric" autocomplete="off" placeholder="e.g. 30-35" value="${escapeQuizText(row.pageText)}" aria-label="Pages"></label>
+            ${bookRows.length > 1 ? `<button type="button" class="qwk-bookrow__remove" data-remove-row="${index}" title="Remove this book" aria-label="Remove this book"><i class="fas fa-xmark"></i></button>` : ''}
+            <p class="qwk-bookrow__hint${complete ? '' : ' is-empty'}"><i class="fas ${complete ? 'fa-bookmark' : 'fa-circle-info'}" aria-hidden="true"></i> ${complete ? escapeQuizText(label) : 'Choose a unit, or type the pages (for example 30-35).'}</p>
+        </div>`;
+}
+
+function renderBookRows() {
+    const wrap = $('qwk-book-rows');
+    if (!wrap) return;
+    wrap.innerHTML = bookRows.map(bookRowHtml).join('');
+    show($('qwk-book-add'), bookRows.length < QUIZ_BOOK_PICK_CAP);
+}
+
+function bookPicks() {
+    return bookRows
+        .map((row) => cleanBookPick(row))
+        .filter((pick) => pick && bookPickTargets(pick).length)
+        .map((pick) => ({ ...pick, label: bookPickLabel(pick) }));
+}
+
+/** Read the chosen pages again (after a short pause in typing) and show their words and grammar. */
+function queueBookFocus({ delay = 300 } = {}) {
+    clearTimeout(bookTimer);
+    bookTimer = setTimeout(refreshBookFocus, delay);
+}
+
+async function refreshBookFocus() {
+    const token = ++bookToken;
+    const picks = bookPicks();
+    const status = $('qwk-book-status');
+    if (!picks.length) {
+        bookFocus = null;
+        if (source === 'book') renderFocusCard(null);
+        if (status) status.textContent = '';
+        show(status, false);
+        updateGoSummary();
+        return;
+    }
+    if (status) status.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Reading those pages…';
+    show(status, true);
+    const targets = picks.flatMap((pick) => bookPickTargets(pick));
+    const { units, atlasWords } = await focusFromTargets(targets);
+    if (token !== bookToken) return;
+    const focus = buildQuizLessonFocus({
+        entries: targets.map((target) => ({ bookId: target.bookId, unit: target.unit })),
+        units,
+        atlasWords,
+        window: null
+    });
+    focus.source = 'book-pages';
+    focus.picks = picks;
+    bookFocus = focus;
+    const usable = hasUsableLessonFocus(focus);
+    if (status) {
+        status.innerHTML = usable
+            ? ''
+            : '<i class="fas fa-circle-info" aria-hidden="true"></i> This book has no word list in the app. Write what to practise in the note below, and the quiz writer uses the pages and their grammar.';
+    }
+    show(status, !usable);
+    if (source === 'book') {
+        // A saved plan brings back its ticks; otherwise words the teacher unticked stay unticked.
+        const unticked = new Set([...document.querySelectorAll('#qwk-lesson-words .qwk-lesson-word')]
+            .filter((input) => !input.checked).map((input) => input.value.toLowerCase()));
+        const keep = bookSavedWords || focus.words.filter((word) => !unticked.has(String(word).toLowerCase()));
+        bookSavedWords = null;
+        renderFocusCard(focus, keep);
+    }
+    updateGoSummary();
+}
+
+function onBookRowChange(event) {
+    const field = event.target.closest('[data-field]');
+    const rowEl = event.target.closest('.qwk-bookrow');
+    if (!field || !rowEl) return;
+    const index = Number(rowEl.dataset.row);
+    const row = bookRows[index];
+    if (!row) return;
+    const key = field.dataset.field;
+    row[key] = field.value;
+    let change = key === 'pageText' ? 'pages' : key === 'component' ? 'part' : key;
+    if (key === 'bookId') {
+        const book = BOOK_ATLAS.find((b) => b.id === row.bookId);
+        row.component = bookPartOptions(book || null)[0] || 'sb';
+        row.unit = '';
+        row.pageText = '';
+        row.unitAuto = false;
+        row.pagesAuto = false;
+        change = 'book';
+    }
+    Object.assign(row, syncLessonRow(row, change));
+    // Re-draw the row only once the teacher has finished with a field, never mid-typing.
+    if (event.type === 'change') {
+        renderBookRows();
+        queueBookFocus({ delay: 0 });
+    } else {
+        queueBookFocus();
+    }
+}
+
+// ── Remembered per-class choices// ── Remembered per-class choices for the two switches ──
 const QOW_PREF_PREFIX = 'gcq_qow_pref_';
 
 function readQuizPref(classId, key) {
@@ -472,10 +643,19 @@ function renderCategories(savedCategories = null) {
         </label>`).join('');
 }
 
-function renderLessonCard(focus, preselectedWords = null) {
+/** The focus the plan uses now: the lessons since the last quiz, the chosen pages, or none (described). */
+function activeFocus() {
+    if (source === 'lessons') return lessonFocus;
+    if (source === 'book') return bookFocus;
+    return null;
+}
+
+/** Units, grammar and word chips of a focus (shared by "Since the last quiz" and "Choose book pages"). */
+function renderFocusCard(focus, preselectedWords = null) {
     const units = $('qwk-lesson-units');
     const grammar = $('qwk-lesson-grammar');
     const words = $('qwk-lesson-words');
+    show($('qwk-focus'), Boolean(focus) && (source === 'lessons' || source === 'book'));
     if (!focus) {
         if (units) units.innerHTML = '';
         if (grammar) grammar.innerHTML = '';
@@ -483,11 +663,12 @@ function renderLessonCard(focus, preselectedWords = null) {
         return;
     }
     const windowEl = $('qwk-lesson-window');
-    if (windowEl) windowEl.textContent = lessonFocusSummary(focus);
+    if (windowEl && source === 'lessons') windowEl.textContent = lessonFocusSummary(focus);
     if (units) {
         units.innerHTML = (focus.units || []).map((unit) => (
             `<p class="qwk-lesson__unit"><i class="fas fa-bookmark" aria-hidden="true"></i> ${escapeQuizText(unitDisplayLine(unit))}</p>`
         )).join('');
+        show(units, source === 'lessons');
     }
     if (grammar) {
         grammar.innerHTML = (focus.grammarPoints || []).map((point) => (
@@ -504,32 +685,51 @@ function renderLessonCard(focus, preselectedWords = null) {
             </label>`).join('');
     }
     show($('qwk-words-block'), (focus.words || []).length > 0);
+    updateGoSummary();
 }
 
 function selectedLessonWords() {
+    const focus = activeFocus();
     const boxes = document.querySelectorAll('#qwk-lesson-words .qwk-lesson-word');
-    if (!boxes.length) return applyWordSelection(lessonFocus, null);
-    return applyWordSelection(lessonFocus, [...boxes].filter((input) => input.checked).map((input) => input.value));
+    if (!boxes.length) return applyWordSelection(focus, null);
+    return applyWordSelection(focus, [...boxes].filter((input) => input.checked).map((input) => input.value));
 }
 
 function selectedCategories() {
     return [...document.querySelectorAll('.quiz-category-checkbox:checked')].map((cb) => cb.value);
 }
 
-function renderSourceMode() {
-    const hasFocus = hasUsableLessonFocus(lessonFocus);
-    const own = useOwnTopics || !hasFocus;
-    show($('qwk-lesson'), hasFocus && !own);
-    show($('qwk-topics'), own);
-    show($('qwk-back-to-lessons-btn'), hasFocus && own);
-    const label = $('qwk-topics-label');
-    if (label) label.textContent = hasFocus ? 'Your own topics' : 'Pick the topics you covered';
+function renderSourceMode({ preselectedWords = null } = {}) {
+    const lessonsReady = hasUsableLessonFocus(lessonFocus);
+    if (source === 'lessons' && !lessonsReady) source = 'book';
+    const tabs = $('qwk-source');
+    if (tabs) tabs.innerHTML = quizSourceTabsHtml(source, { lessonsReady });
+    show($('qwk-lesson'), source === 'lessons');
+    show($('qwk-book'), source === 'book');
+    show($('qwk-topics'), source === 'own');
+    if (source === 'book') {
+        if (!bookRows.length) {
+            const row = freshBookRow();
+            if (row) bookRows = [row];
+        }
+        renderBookRows();
+        if (bookFocus) renderFocusCard(bookFocus, preselectedWords);
+        else {
+            renderFocusCard(null);
+            queueBookFocus({ delay: 0 });
+        }
+    } else if (source === 'lessons') {
+        renderFocusCard(lessonFocus, preselectedWords);
+    } else {
+        renderFocusCard(null);
+    }
     const note = $('quiz-keywords');
     if (note) {
-        note.placeholder = own
-            ? 'e.g. ordinal numbers 1st–10th, was / were in past sentences'
-            : 'e.g. keep sentences short, include was / were';
+        note.placeholder = source === 'own'
+            ? 'e.g. keep sentences short, no spelling questions'
+            : 'e.g. include was / were, keep the sentences short';
     }
+    updateGoSummary();
 }
 
 // ── Last week's missed questions (optional) ──
@@ -688,12 +888,15 @@ function updateGoSummary() {
     const classData = selectedClass();
     if (!el || !classData) return;
     const count = expectedQuestionCount(enrolledCount(classData.id));
-    const own = useOwnTopics || !hasUsableLessonFocus(lessonFocus);
     const parts = [`About ${count} questions`, QUIZ_TYPES.find((t) => t.id === selectedType())?.label || ''];
-    if (own) {
+    if (source === 'own') {
         const n = selectedCategories().length;
         if (n) parts.push(`${n} topic${n === 1 ? '' : 's'}`);
     } else {
+        if (source === 'book') {
+            const picks = bookPicks();
+            if (picks.length) parts.push(picks.length === 1 ? picks[0].label : `${picks.length} books`);
+        }
         const n = selectedLessonWords().length;
         if (n) parts.push(`${n} word${n === 1 ? '' : 's'}`);
     }
@@ -709,7 +912,8 @@ function updateGoSummary() {
     if (formats) parts.push(formats);
     el.textContent = parts.filter(Boolean).join(' · ');
     const words = $('qwk-words-count');
-    if (words && lessonFocus) words.textContent = `${selectedLessonWords().length} of ${(lessonFocus.words || []).length}`;
+    const focus = activeFocus();
+    if (words && focus) words.textContent = `${selectedLessonWords().length} of ${(focus.words || []).length}`;
 }
 
 async function renderHistory(classId) {
@@ -778,14 +982,33 @@ async function syncToHeaderClass() {
     currentQuiz = quiz;
 
     const c = quiz?.curriculum || null;
-    const hasFocus = hasUsableLessonFocus(focus);
-    useOwnTopics = !hasFocus || Boolean(c && (!c.lessonFocus || c.lessonFocus.source === 'manual'));
+    const saved = c?.lessonFocus || null;
+    const lessonsReady = hasUsableLessonFocus(focus);
+    // A saved plan reopens as it was made; a new one starts from the lessons, then the class book.
+    bookRows = [];
+    bookFocus = null;
+    bookSavedWords = null;
+    let preselected = null;
+    if (saved?.source === 'book-pages') {
+        source = 'book';
+        bookRows = (saved.picks || []).map(rowFromPick).filter(Boolean);
+        bookSavedWords = saved.words || null;
+    } else if (saved?.source === 'book-atlas' && lessonsReady) {
+        source = 'lessons';
+        preselected = saved.words || null;
+    } else if (c) {
+        source = 'own';
+    } else {
+        source = lessonsReady ? 'lessons' : (classData.bookPlan?.currentBookId ? 'book' : 'own');
+    }
     renderTypePicker(c?.type || focus?.type || 'mix');
-    renderLessonCard(hasFocus ? focus : null, c?.lessonFocus?.source === 'book-atlas' ? c.lessonFocus.words : null);
+    const cover = $('quiz-cover');
+    // Older described plans kept what to cover in `keywords`.
+    if (cover) cover.value = c && !saved ? (c.cover ?? c.keywords ?? '') : (c?.cover || '');
     const note = $('quiz-keywords');
-    if (note) note.value = c ? (c.lessonFocus ? (c.lessonFocus.note || '') : (c.keywords || '')) : '';
+    if (note) note.value = c ? (saved ? (saved.note || '') : (c.cover != null ? (c.note || '') : '')) : '';
     renderCategories(c?.categories || []);
-    renderSourceMode();
+    renderSourceMode({ preselectedWords: preselected });
 
     // This week's saved choice wins, otherwise the teacher's last choice for this class.
     const savedCarry = Array.isArray(quiz?.carryForward) ? quiz.carryForward : null;
@@ -817,25 +1040,33 @@ async function generate() {
     if (!classData || generatingClassId) return;
     const classId = classData.id;
     const type = selectedType();
-    const categories = selectedCategories();
+    const categories = source === 'own' ? selectedCategories() : [];
     const note = $('quiz-keywords')?.value?.trim() || '';
+    const cover = $('quiz-cover')?.value?.trim() || '';
     const carryForward = selectedCarryQuestions();
     const reviewBeforeLive = Boolean($('quiz-review-toggle')?.checked);
-    const hasFocus = hasUsableLessonFocus(lessonFocus);
-    const manualOverride = !hasFocus || useOwnTopics;
+    const manualOverride = source === 'own';
+    const focus = activeFocus();
     const selectedWords = selectedLessonWords();
-    const curriculum = hasFocus
-        ? curriculumFromFocus(lessonFocus, { type, note, selectedWords, categories: manualOverride ? categories : [], manualOverride })
-        : { type, categories, keywords: note, lessonFocus: null };
+    if (source === 'book' && !focus) {
+        const warnEl = $('quiz-validation-msg');
+        if (warnEl) warnEl.textContent = bookPicks().length ? 'Still reading those pages. Try again in a moment.' : 'Choose a unit or type the pages the quiz should cover.';
+        show(warnEl, true);
+        return;
+    }
+    const curriculum = manualOverride
+        ? { type, categories, keywords: cover, cover, note, lessonFocus: null }
+        : curriculumFromFocus(focus, { type, note, selectedWords });
 
     const warn = $('quiz-validation-msg');
-    if (!canGenerateQuiz({ focus: lessonFocus, selectedWords, categories, keywords: note, carryCount: carryForward.length, manualOverride })) {
+    if (!canGenerateQuiz({ focus, selectedWords, categories, keywords: note, cover, carryCount: carryForward.length, manualOverride })) {
         if (warn) {
             warn.textContent = manualOverride
-                ? 'Tick at least one topic or write a note so the quiz has something to ask about.'
+                ? 'Write what the quiz should cover, or tap at least one topic.'
                 : 'Keep at least one word or write a note so the quiz has something to ask about.';
         }
         show(warn, true);
+        if (manualOverride) $('quiz-cover')?.focus();
         return;
     }
     show(warn, false);
@@ -856,6 +1087,8 @@ async function generate() {
             type: curriculum.type,
             categories: curriculum.categories,
             keywords: curriculum.keywords,
+            cover: manualOverride ? curriculum.cover : null,
+            note: manualOverride ? curriculum.note : '',
             lessonFocus: curriculum.lessonFocus,
             questLevel: classData.questLevel || 'A',
             reviewBeforeLive,
@@ -888,7 +1121,7 @@ function showGenProgress({ stage, done = 0, total = 0 } = {}) {
     setGenStep(step);
     const el = document.querySelector(`#qwk-gen [data-gen-step="${step}"]`);
     if (!el) return;
-    if (stage === 'writing' && total > 1) el.textContent = `Writing questions (part ${Math.min(done + 1, total)} of ${total})`;
+    if (stage === 'writing' && total > 1) el.textContent = `Writing questions (${Math.min(done, total)} of ${total} parts done)`;
     else if (stage === 'pictures' && total) el.textContent = `Drawing pictures ${done} of ${total}`;
 }
 
@@ -956,8 +1189,43 @@ function bindListeners() {
         document.querySelectorAll('#qwk-lesson-words .qwk-lesson-word').forEach((input) => { input.checked = bulk.dataset.words === 'all'; });
         updateGoSummary();
     });
-    $('qwk-own-topics-btn')?.addEventListener('click', () => { useOwnTopics = true; renderSourceMode(); updateGoSummary(); });
-    $('qwk-back-to-lessons-btn')?.addEventListener('click', () => { useOwnTopics = false; renderSourceMode(); updateGoSummary(); });
+    $('qwk-source')?.addEventListener('click', (e) => {
+        const tab = e.target.closest('.qwk-source__tab');
+        if (!tab || tab.disabled || tab.dataset.source === source) return;
+        source = tab.dataset.source;
+        show($('quiz-validation-msg'), false);
+        renderSourceMode();
+        if (source === 'own') $('quiz-cover')?.focus();
+    });
+    $('qwk-source')?.addEventListener('keydown', (e) => {
+        if (!['ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+        const tabs = [...$('qwk-source').querySelectorAll('.qwk-source__tab:not([disabled])')];
+        const i = tabs.findIndex((t) => t.dataset.source === source);
+        const next = tabs[(i + (e.key === 'ArrowLeft' ? tabs.length - 1 : 1)) % tabs.length];
+        e.preventDefault();
+        next?.click();
+        $('qwk-source')?.querySelector(`[data-source="${source}"]`)?.focus();
+    });
+    $('qwk-book-rows')?.addEventListener('change', onBookRowChange);
+    $('qwk-book-rows')?.addEventListener('input', (e) => { if (e.target.matches('[data-field="pageText"]')) onBookRowChange(e); });
+    $('qwk-book-rows')?.addEventListener('click', (e) => {
+        const remove = e.target.closest('[data-remove-row]');
+        if (!remove) return;
+        bookRows.splice(Number(remove.dataset.removeRow), 1);
+        renderBookRows();
+        queueBookFocus({ delay: 0 });
+    });
+    $('qwk-book-add')?.addEventListener('click', () => {
+        if (bookRows.length >= QUIZ_BOOK_PICK_CAP) return;
+        // A second book is most often the class's grammar book.
+        const used = new Set(bookRows.map((row) => row.bookId));
+        const next = quizBookOptions(classBookContext()).find((o) => o.suggested && !used.has(o.id))
+            || quizBookOptions(classBookContext()).find((o) => !used.has(o.id));
+        bookRows.push(rowFromPick({ bookId: next?.id || BOOK_ATLAS[0].id }) || freshBookRow());
+        renderBookRows();
+        $('qwk-book-rows')?.querySelector(`[data-row="${bookRows.length - 1}"] [data-field="unit"]`)?.focus();
+    });
+    $('quiz-cover')?.addEventListener('input', () => show($('quiz-validation-msg'), false));
 
     $('quiz-review-toggle')?.addEventListener('change', (e) => {
         const classId = state.get('globalSelectedClassId');

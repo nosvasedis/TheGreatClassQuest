@@ -1150,8 +1150,25 @@ function setQuizFooter(footer, html, classId) {
     footer.innerHTML = html;
     footer.dataset.quizKey = key;
     if (!html) return;
-    footer.querySelector('#quiz-week-trigger-btn')?.addEventListener('click', () => {
-        import('../ui/modals.js').then(m => m.openQuizModal(classId));
+    const btn = footer.querySelector('#quiz-week-trigger-btn');
+    // Fetch the stage while the teacher is still reading the card, so the press opens it at once.
+    const loadStage = () => import('../ui/modals/quizOfTheWeek.js');
+    if ('requestIdleCallback' in window) window.requestIdleCallback(() => loadStage().catch(() => {}), { timeout: 4000 });
+    btn?.addEventListener('pointerenter', () => loadStage().catch(() => {}), { once: true });
+    btn?.addEventListener('click', () => {
+        if (btn.classList.contains('is-opening')) return;
+        btn.classList.add('is-opening');
+        btn.setAttribute('aria-busy', 'true');
+        loadStage()
+            .then((m) => m.openQuizModal(classId))
+            .catch((error) => {
+                console.error('Quiz stage could not load:', error);
+                import('../ui/effects.js').then((fx) => fx.showToast('The Quiz of the Week could not open. Please try again.', 'error')).catch(() => {});
+            })
+            .finally(() => {
+                btn.classList.remove('is-opening');
+                btn.removeAttribute('aria-busy');
+            });
     });
 }
 

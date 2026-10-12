@@ -12,7 +12,7 @@ import {
     finalizeQuiz,
     getQuizState
 } from '../../features/quizOfTheWeek.js';
-import { getQuizForClass } from '../../db/actions/quizOfTheWeek.js';
+import { getQuizForClass, getQuizParticipationHistory } from '../../db/actions/quizOfTheWeek.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { getAgeCategoryForLeague } from '../../utils.js';
 import { prefetchSpeech, speakText, stopSpeech } from '../../features/tts.js';
@@ -22,6 +22,8 @@ import {
     computeQuizTier,
     computeQuizTrail,
     quizIntroHtml,
+    quizLoadErrorHtml,
+    quizLoadingHtml,
     quizPauseCardHtml,
     quizResultsHtml,
     quizStageShellHtml,
@@ -224,6 +226,7 @@ function renderIntroScreen(quiz, qs, { resume = false } = {}) {
         speakText(`Ready, Quest Heroes? I'm ${voice.name}. Listen carefully!`, {
             rate: speechRate(),
             voice: voice.id,
+            boost: true,
             onStart: (info) => { heard = info?.speaker || ''; },
             onEnd: () => done(heard ? `Sound is working: ${heard} spoke` : 'Sound is working'),
             onError: () => done('No sound: check the speakers')
@@ -261,6 +264,7 @@ function speakListen(question) {
     const started = speakText(question.listen, {
         rate: speechRate(),
         voice: questionVoice(question).id,
+        boost: true,
         onStart: (info) => {
             btn?.classList.remove('is-loading');
             btn?.classList.add('is-speaking');
@@ -340,6 +344,9 @@ function renderTurn(turn) {
     const stage = contentEl();
     stage.querySelectorAll('.qs-answer').forEach((btn) => btn.addEventListener('click', () => handleMcqAnswer(btn, q)));
     document.getElementById('quiz-skip-btn')?.addEventListener('click', handleSkip);
+    // The next spoken question is fetched while this one plays.
+    const nextListen = (qs.remainingQuestions || []).find((other) => other !== q && questionKind(other) === 'listen' && other.listen);
+    if (nextListen) prefetchSpeech(nextListen.listen, { voice: questionVoice(nextListen).id });
     if (questionKind(q) === 'listen') {
         prefetchSpeech(q.listen, { voice: questionVoice(q).id });
         document.getElementById('quiz-listen-btn')?.addEventListener('click', () => {
@@ -685,39 +692,98 @@ function onKeydown(e) {
 // MODAL OPEN / CLOSE
 // =============================================================================
 
+const LOAD_FAILURES = {
+    no_questions: 'This week\u2019s quiz has no questions yet. Create it in Settings \u203a Quiz.',
+    no_students: 'This class has no students yet.',
+    all_absent: 'Everyone is marked absent today, so there is nobody to call to the stage.'
+};
+
+let openToken = 0;
+
+/** Tick the opening curtain's steps (0 = fetching questions, 3 = all ready). */
+function setLoadingStep(done) {
+    document.querySelectorAll('.qs-loading__step').forEach((el, i) => {
+        const state = i < done ? 'done' : i === done ? 'now' : 'next';
+        if (el.classList.contains(`is-${state}`)) return;
+        el.className = `qs-loading__step is-${state}`;
+        if (state === 'done') el.querySelector('.qs-loading__dot i')?.setAttribute('class', 'fas fa-check');
+    });
+}
+
+function showLoadError(classId, message) {
+    if (!setScreen(quizLoadErrorHtml(message), 'error')) return;
+    document.getElementById('quiz-retry-btn')?.addEventListener('click', () => openQuizModal(classId), { once: true });
+}
+
+/** Fetch the first spoken question before the curtain rises, so the first Listen turn starts at once. */
+function warmFirstVoices(qs) {
+    const listens = (qs?.remainingQuestions || []).filter((q) => questionKind(q) === 'listen' && q.listen).slice(0, 2);
+    listens.forEach((q) => prefetchSpeech(q.listen, { voice: questionVoice(q).id }));
+}
+
 export async function openQuizModal(classId) {
+    const token = ++openToken;
+    const stale = () => token !== openToken || currentClassId !== classId;
     currentClassId = classId;
     _justCompleted = false;
     busy = false;
     clearTimers();
+    closePauseCard();
     ensureModalInDOM();
     // Opened by a tap, so the browser lets the show's sounds start now.
     ensureAudioReady().then((ok) => { if (ok) warmQuizShowAudio(); }).catch(() => {});
 
+    // The stage opens at once with a curtain that says what is happening; the fetching follows.
     const triggerBtn = document.getElementById('quiz-week-trigger-btn');
-    const quiz = await getQuizForClass(classId);
+    const resumable = hasResumableQuiz(classId);
+    if (document.getElementById(MODAL_ID)?.classList.contains('hidden')) showStage(triggerBtn);
+    setScreen(quizLoadingHtml({ done: resumable ? 2 : 0 }), 'loading');
+
+    // Everything the stage needs is asked for together.
+    const participation = resumable ? null : getQuizParticipationHistory(classId, 10).catch(() => []);
+    let quiz;
+    try {
+        quiz = await getQuizForClass(classId);
+    } catch (error) {
+        console.error('Quiz stage: could not fetch the quiz', error);
+        if (!stale()) showLoadError(classId, 'The quiz could not be fetched. Please check the connection and try again.');
+        return;
+    }
+    if (stale()) return;
 
     // Finished this week: reopen the curtain call as it stood.
     if (quiz?.status === 'completed' && quiz.results) {
-        showStage(triggerBtn);
         renderResultsScreen(quiz.results, { replay: true });
         return;
     }
 
     // Paused earlier in this page session: offer to carry on.
-    if (hasResumableQuiz(classId)) {
-        showStage(triggerBtn);
+    if (resumable) {
         renderIntroScreen(quiz, getQuizState(classId), { resume: true });
         return;
     }
 
-    const loaded = await loadQuizForClass(classId);
-    if (!loaded) {
-        console.error('Failed to load quiz for class:', classId);
+    setLoadingStep(1);
+    let loaded;
+    try {
+        loaded = await loadQuizForClass(classId, { quiz, participationHistory: participation });
+    } catch (error) {
+        console.error('Quiz stage: could not set up the show', error);
+        loaded = 'error';
+    }
+    if (stale()) return;
+    if (loaded !== true) {
+        showLoadError(classId, LOAD_FAILURES[loaded] || 'The show could not be set up. Please try again.');
         return;
     }
-    showStage(triggerBtn);
-    renderIntroScreen(quiz, getQuizState(classId));
+    setLoadingStep(2);
+    const qs = getQuizState(classId);
+    warmFirstVoices(qs);
+    // A beat for the lights, so the curtain never flickers past on a fast connection.
+    await new Promise((resolve) => setTimeout(resolve, reducedMotion() ? 0 : 250));
+    if (stale()) return;
+    setLoadingStep(3);
+    renderIntroScreen(quiz, qs);
 }
 
 function showStage(triggerBtn) {

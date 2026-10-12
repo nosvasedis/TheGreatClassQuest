@@ -1,9 +1,10 @@
 // Quiz of the Week question kinds preview: the real stage markup and styles with sample questions.
 // The four pictures here are hand-drawn stand-ins; in the app they are drawn by the Elite image AI
 // once, when the quiz is generated.
-// /quiz-kinds-preview.html?view=intro|listen|listen-speaking|listen-heard|picture|picture-wrong|picture-solved|fix|fix-solved|choice|results[&shot=1]
-import { quizIntroHtml, quizResultsHtml, quizStageShellHtml, quizTurnHtml, quizVerdictHtml } from './ui/modals/quizStageMarkup.js';
+// /quiz-kinds-preview.html?view=loading|loading-error|intro|listen|listen-speaking|listen-heard|picture|picture-wrong|picture-solved|fix|fix-solved|choice|results|curtain-call[&shot=1]
+import { quizIntroHtml, quizLoadErrorHtml, quizLoadingHtml, quizResultsHtml, quizStageShellHtml, quizTurnHtml, quizVerdictHtml } from './ui/modals/quizStageMarkup.js';
 import { computeQuestionStats } from './features/quizReviewCore.mjs';
+import { computeHeroRewards } from './features/quizRewardsCore.mjs';
 
 const params = new URLSearchParams(location.search);
 const view = params.get('view') || 'listen';
@@ -55,7 +56,7 @@ modal.classList.remove('hidden');
 document.body.appendChild(modal);
 const content = document.getElementById('quiz-modal-content');
 
-const links = ['intro', 'listen', 'listen-speaking', 'listen-heard', 'picture', 'picture-wrong', 'picture-solved', 'fix', 'fix-solved', 'choice', 'results'];
+const links = ['loading', 'loading-error', 'intro', 'listen', 'listen-speaking', 'listen-heard', 'picture', 'picture-wrong', 'picture-solved', 'fix', 'fix-solved', 'choice', 'results', 'curtain-call'];
 document.getElementById('pv-toolbar').innerHTML = links.map((v) => `<a href="?view=${v}">${v}</a>`).join('');
 
 function turn(kind, opts = {}) {
@@ -81,7 +82,38 @@ function pick(index, cls) {
     btn.classList.add('is-picked', cls);
 }
 
-if (view === 'intro') {
+if (view === 'loading') {
+    content.dataset.screen = 'loading';
+    content.innerHTML = quizLoadingHtml({ done: Number(params.get('done') || 1) });
+} else if (view === 'loading-error') {
+    content.dataset.screen = 'error';
+    content.innerHTML = quizLoadErrorHtml('Everyone is marked absent today, so there is nobody to call to the stage.');
+} else if (view === 'curtain-call') {
+    content.dataset.screen = 'results';
+    const names = { s1: 'Maria', s2: 'Nikos', s3: 'Eleni', s4: 'Kostas', s5: 'Sofia', s6: 'Giorgos' };
+    const attempts = [
+        { questionId: 'q1', studentId: 's1', correct: true, attemptNumber: 1 },
+        { questionId: 'q2', studentId: 's2', correct: false, attemptNumber: 1 },
+        { questionId: 'q2', studentId: 's1', correct: true, attemptNumber: 2 },
+        { questionId: 'q3', studentId: 's3', correct: true, attemptNumber: 1 },
+        { questionId: 'q4', studentId: 's4', correct: true, attemptNumber: 1 },
+        { questionId: 'q5', studentId: 's5', correct: false, attemptNumber: 1 },
+        { questionId: 'q5', studentId: 's6', correct: true, attemptNumber: 2 }
+    ];
+    const rewards = computeHeroRewards(attempts);
+    const details = rewards.map((r) => ({
+        id: r.studentId, name: names[r.studentId], firstTry: r.firstTry, rescues: r.rescues, brave: r.brave, top: r.top,
+        correctCount: r.correct, awardedStars: r.stars, awardedGold: r.gold
+    })).sort((a, b) => (b.awardedStars - a.awardedStars) || (b.awardedGold - a.awardedGold));
+    content.innerHTML = quizResultsHtml({
+        totalQuestions: 5, correctFirstTry: 3, firstTryCorrectPct: 60,
+        rewards: {
+            tier: 'rare', questBonus: 1, studentRewards: rewards, correctStudentDetails: details,
+            guildDetails: [{ guildId: 'g', name: 'Dragon Flame', emoji: '🐉', primary: '#ef4444', glory: 2, contributors: [{ name: 'Maria' }] }],
+            prize: { kind: 'treasure', studentId: 's1', item: { name: 'Lantern of Hope', icon: '🏮', description: 'A warm light for dark nights.' } }
+        }
+    });
+} else if (view === 'intro') {
     content.dataset.screen = 'intro';
     const names = ['Maria', 'Nikos', 'Eleni', 'Kostas', 'Sofia', 'Giorgos', 'Anna', 'Dimitris', 'Katerina', 'Yannis', 'Ioanna', 'Petros'];
     content.innerHTML = quizIntroHtml({

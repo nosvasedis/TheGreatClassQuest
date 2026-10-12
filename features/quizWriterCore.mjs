@@ -105,8 +105,8 @@ export async function writeQuizQuestions({ curriculum = {}, freshCount = 7, band
     const askedFor = [...avoid];
     const failures = [];
 
-    const runPart = async (partMix) => {
-        const userPrompt = buildQuizGenerationUserPrompt({ curriculum, ageDesc, band, mix: partMix, avoid: askedFor, anchors });
+    const runPart = async (partMix, share = '') => {
+        const userPrompt = buildQuizGenerationUserPrompt({ curriculum, ageDesc, band, mix: partMix, avoid: askedFor, anchors, share });
         const aiText = await askAi(systemPrompt, userPrompt);
         const wanted = mixTotal(partMix);
         // When the AI leaves out "format", read the questions in the order they were asked for.
@@ -130,17 +130,29 @@ export async function writeQuizQuestions({ curriculum = {}, freshCount = 7, band
         if (!added) console.warn('Quiz: an AI part gave no usable questions. Raw reply:', aiText);
     };
 
-    for (let i = 0; i < batches.length; i++) {
-        onProgress?.({ stage: 'writing', done: i, total: batches.length });
+    // Every part is written at the same time; each leads with its own share of the words,
+    // so the parts do not ask the same thing twice.
+    const words = Array.isArray(curriculum?.lessonFocus?.words) ? curriculum.lessonFocus.words.filter(Boolean) : [];
+    const shareFor = (i) => {
+        if (batches.length < 2) return '';
+        const mine = words.filter((_, w) => w % batches.length === i);
+        return mine.length
+            ? `This is part ${i + 1} of ${batches.length}, written alongside the others. Build these questions mainly on: ${mine.join(', ')}.`
+            : `This is part ${i + 1} of ${batches.length}, written alongside the others. Choose different items and sentences from the ones a first guess would give.`;
+    };
+    let finished = 0;
+    onProgress?.({ stage: 'writing', done: 0, total: batches.length });
+    await Promise.all(batches.map(async (batch, i) => {
         try {
-            await runPart(batches[i]);
+            await runPart(batch, shareFor(i));
         } catch (error) {
             failures.push(error);
             console.warn('Quiz: an AI part failed:', error);
-            // A rate limit or an open circuit fails every later part the same way.
-            if (isRateLimit(error)) break;
+        } finally {
+            finished += 1;
+            onProgress?.({ stage: 'writing', done: finished, total: batches.length });
         }
-    }
+    }));
 
     // One more request for what is still missing, kind by kind.
     let short = freshCount - kept.length;

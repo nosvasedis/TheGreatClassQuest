@@ -107,12 +107,15 @@ Quiz of the Week is a **live game-show review**, not a paper test. It does not r
 The page opens on a **This week** ticket: where the quiz stands (Plan, Create, Check, Play), the class's next lesson, and the one button that matters now (**Check & approve**, **Open the quiz show** or **See the results**). Below it is the plan, which folds away once questions exist (**Change the plan** opens it) and locks once the quiz has been played.
 
 1. Select the class in the header.
-2. If you have been saving Quest Assignments for this class, part 1 of the plan already shows **this week’s lessons**: the units, grammar and words practised since the last finished Quiz of the Week (or last week, if this class has never played). Untick a word to drop it, switch between Grammar / Mix / Vocabulary if you want, or add a short note. **Generate from this week's lessons** writes the questions from that list, and the AI keeps to those words. For the grammar, the **Grammar Forge** gives the AI the rule as the class learns it, model sentences at the class's level and the mistakes Greek-speaking children really make (used as wrong answers); a question whose "right" answer is one of those mistakes is thrown away.
-3. If there is no book history yet, you still pick **grammar**, **vocabulary**, or a **mix**, plus topic chips and optional keywords, then Generate.
+2. Part 1, **What should it cover?**, has three ways in. The app remembers which one you used for each class.
+   - **Since the last quiz.** If you have been saving Quest Assignments for this class, this shows **this week’s lessons**: the units, grammar and words practised since the last finished Quiz of the Week (or last week, if this class has never played). It is greyed out when nothing is saved yet.
+   - **Choose book pages.** Pick a book (the class's own books come first), its part (Student's Book, Workbook…), a unit and/or pages, for example `50-70`. A unit fills in its pages; pages find their own unit. **Add another book** takes up to three books, for example the course book and the grammar book. The quiz is written from exactly those pages.
+   - **Describe it.** Type what the quiz should cover in your own words, for example "animals, can / can't, was / were". This box is needed in this mode. Topic chips are optional extras.
+   With lessons or book pages, the units, grammar and words appear in a box below: untick a word to drop it, and the AI keeps to the rest. For the grammar, the **Grammar Forge** gives the AI the rule as the class learns it, model sentences at the class's level and the mistakes Greek-speaking children really make (used as wrong answers); a question whose "right" answer is one of those mistakes is thrown away.
+3. Part 2: choose **Mix**, **Vocabulary** or **Grammar**. The **note for the quiz writer** is always optional, for example "keep sentences short".
 4. The number of questions scales with class size (about three-quarters of the roster, at least 5, at most 15). The line beside **Create the quiz** shows how many of each kind of question the class will get (see **Four kinds of question** below).
 5. You can reset and generate again if the set is wrong for this week.
-6. **Use my own topics instead** opens the general topic chips for when you want to choose the focus yourself.
-7. **Before it goes live** (part 3, both off unless you tick them; the app remembers your choice per class):
+6. **Before it goes live** (part 3, both off unless you tick them; the app remembers your choice per class):
    - **Let me check the questions first.** The quiz waits as **In review** and the play button stays hidden until you press **Approve & make live**. In the review window you can edit any question, its four answers, the correct answer and the short explanation, or delete a question (a quiz keeps at least 3). A Listen and choose question also shows the words the class will hear, which you can change and play with the speaker button; a Fix the sentence question shows the sentence with the mistake. A quiz that is already ready can also be opened with **Review & edit questions** at any time before it is played.
    - **Bring back questions they missed.** The app lists every question from the last finished quiz that was wrong on the first try or skipped, with the answer most children chose. Tick the ones to return: they take the first places in the new quiz (their answers are shuffled), and the AI writes only the rest. A question comes back as the same kind, pictures included. This is spaced review of real weak spots.
 
@@ -129,7 +132,8 @@ Every question is still answered with A, B, C or D, so the show plays the same w
 
 - **Younger leagues hear and see more.** Pre-Junior quizzes are mostly Listen and Picture questions and never Fix the sentence; Junior A and B get a good share of both; A to D get more Fix the sentence. A Grammar quiz leans towards Fix the sentence, a Vocabulary quiz towards pictures.
 - A quiz has **at most four picture questions**. If a picture cannot be drawn, that question becomes Listen and choose, so the class never sees a half-drawn question.
-- The app checks every question before it is saved: four different answers, exactly one marked right, and the right answers spread fairly over A, B, C and D. Long quizzes are written in a few parts, so this can take a minute or two.
+- The app checks every question before it is saved: four different answers, exactly one marked right, and the right answers spread fairly over A, B, C and D. Long quizzes are written in a few parts at the same time, each leading with its own share of the words, so a quiz is usually ready in under a minute.
+- **The voices** are calm, clear storyteller voices made for young listeners, read a little slower than normal speech (slower still for Pre-Junior and Junior) and boosted so they carry across the room. Each Listen question has its own narrator. A voice that has been heard once is kept, so replays start at once.
 - **Test the sound** on the first screen of the show checks the projector's speakers. If the sound does not play during a question, press **L** to try again, or **show the words** and read them aloud yourself.
 - Quizzes made before these kinds existed play exactly as before.
 
@@ -147,7 +151,7 @@ If the quiz is already **completed**, the ticket turns green and reads **See the
 
 ### How play feels
 
-The quiz opens as a **quiz-show stage** made for the projector. The first screen shows how many questions there are, the heroes on stage today (children marked absent are left out), and the three rules. Press **Raise the curtain** to start.
+The quiz opens as a **quiz-show stage** made for the projector. The stage appears at once with a short **Raising the curtain** screen while the questions, the heroes and the first voices are made ready. If something stops the show (no questions, nobody on the roster, everyone absent, no connection), it says why and offers **Try again**. The first screen shows how many questions there are, the heroes on stage today (children marked absent are left out), and the three rules. Press **Raise the curtain** to start.
 
 - **The spotlight picks a hero** for each question. The names flicker for a moment, then land on one child. The choice is fair, not luck: children who have not answered in recent quizzes are called first, and nobody gets a second turn until everyone present has had one.
 - **Answer A, B, C or D.** You can click, or press the keys **1** to **4**; **Enter** moves on. On a Listen and choose question, the speaker button or **L** plays the words again.
@@ -156,22 +160,24 @@ The quiz opens as a **quiz-show stage** made for the projector. The first screen
 - The **lights at the top** show how each question went: gold for right on the first try, green for solved after a pass, red when nobody got it. The star counter beside them counts the first tries.
 - **Pause** (the button top right, or **Esc**) keeps the show where it is. Open the quiz again from Home to carry on; reloading the page starts it over.
 
-At the end the judges tally up, and the **curtain call** shows the class’s tier medal, first-try accuracy, stars granted and the Team Quest bonus, the **stars of the show** with what each earned, **Glory for the guilds**, the **Quiz Champion** and their treasure, and a **recap of every question** with its answer. Tapping the curtain call skips the reveal. For the rest of the week, **See the results** on Home opens the same curtain call again.
+At the end the judges tally up, and the **curtain call** shows the class’s tier medal, first-try accuracy, Gold earned, the star for the top hero and the Team Quest bonus, the **heroes of the show** with what each earned (the top hero is marked **Top of the show**), **Glory for the guilds**, the **Quiz Champion** and their treasure, and a **recap of every question** with its answer. Tapping the curtain call skips the reveal. For the rest of the week, **See the results** on Home opens the same curtain call again.
 
 Rewards land automatically, once, when the show ends. Every kind of question earns exactly the same. Each child is rewarded for **their own answers**, never for how the rest of the class did:
 
 | What happened | Reward |
 |---------------|--------|
-| Right on the first try | **1 star** |
-| Rescued a question someone else missed | **½ star** |
+| Right on the first try | **+2 Gold** |
+| Rescued a question someone else missed | **+1 Gold** |
 | Took a turn, nothing landed | **+1 Gold** for being brave |
+| Top of the show | **1 star** |
 | Never called this week | Nothing this time; the spotlight calls them first next week |
 
-- **At most 2 stars from one quiz**, so a child who happened to be called more often cannot run away with it.
-- **Every star pays 1 Gold** and **2 Guild Glory**, the same as any other star. There is no extra Glory on top.
+- **At most 6 Gold from one quiz**, so a child who happened to be called more often cannot run away with it.
+- **Only the top of the show wins a star.** The top hero has the most points (2 for each first try, 1 for each rescue) and at least one first-try answer; between equal points, fewer wrong answers wins. Children who are still level each get a star.
+- That star pays **2 Guild Glory**, the same as any other star. Gold-only heroes add no Glory.
 - The class's **first-try accuracy** sets the tier and a **Team Quest bonus** for the whole class: Legendary (100%) +3, Epic (80%+) +2, Rare (60%+) +1, Common (40%+) +½, Heroic (below 40%) none.
 
-**One Quiz Champion** wins **one treasure from the Mystic Market** for free. The champion is the child with the most points (2 for each first try, 1 for each rescue) and needs at least one first-try answer. A tie goes to the child who has won the fewest quiz prizes this year, then to the one with fewer wrong answers. The treasure is taken from **this month's stall of the class's league** (or its festival stall) and leaves its stock, exactly like a purchase: the last copy leaves the shelf. It is a common treasure, or a rare one when the class reached Epic or Legendary. If the stall has nothing in stock, the champion gets **10 Gold** instead.
+**One Quiz Champion** wins **one treasure from the Mystic Market** for free. The champion is always a top hero. When several children share the top, it goes to the one who has won the fewest quiz prizes this year, then by chance. The treasure is taken from **this month's stall of the class's league** (or its festival stall) and leaves its stock, exactly like a purchase: the last copy leaves the shelf. It is a common treasure, or a rare one when the class reached Epic or Legendary. If the stall has nothing in stock, the champion gets **10 Gold** instead.
 
 Configure in Settings; **play on Home**. Do not hunt for a Quiz tab in the cloud dock — there is none.
 

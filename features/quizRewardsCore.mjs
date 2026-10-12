@@ -4,18 +4,22 @@
  * Covered by tests/quiz-rewards-core.test.mjs.
  *
  * The rules, in words a class understands:
- * - Your own answers earn your stars. Right on the first try: 1 star. Rescuing a question
- *   someone else missed: ½ star. At most 2 stars from one quiz, so a hero who happened to be
- *   called more often cannot run away with it. Every star pays 1 Gold, as everywhere else.
+ * - Your own answers earn your Gold. Right on the first try: 2 Gold. Rescuing a question
+ *   someone else missed: 1 Gold. At most 6 Gold from one quiz, so a hero who happened to be
+ *   called more often cannot run away with it.
+ * - Stars are rare: only the top of the show earns one. Top = most points (first try 2,
+ *   rescue 1, at least one first try), then fewer wrong answers. Heroes still tied all get one.
  * - Took a turn but nothing landed: +1 Gold for being brave. Every week, whatever the class score.
  * - The class score (first-try accuracy) sets the tier and the Team Quest bonus for everyone.
  * - One Quiz Champion wins one treasure from the league's Mystic Market stall, taken out of
  *   its stock. Ties go to the hero who has won the fewest quiz prizes this year.
  */
 
-export const QUIZ_STAR_FIRST_TRY = 1;
-export const QUIZ_STAR_RESCUE = 0.5;
-export const QUIZ_STAR_CAP = 2;
+export const QUIZ_GOLD_FIRST_TRY = 2;
+export const QUIZ_GOLD_RESCUE = 1;
+export const QUIZ_GOLD_CAP = 6;
+/** Stars for each hero at the top of the show (ties all get it). */
+export const QUIZ_TOP_STAR = 1;
 export const QUIZ_BRAVE_GOLD = 1;
 /** Paid to the champion instead of a treasure when the stall has nothing in stock. */
 export const QUIZ_PRIZE_FALLBACK_GOLD = 10;
@@ -40,8 +44,6 @@ export function computeQuizRewardTier(firstTryCorrectPct) {
     return 'heroic';
 }
 
-const half = (n) => Math.round(n * 2) / 2;
-
 /**
  * Per-hero tally from the logged attempts. A first-try answer is attemptNumber 1 on that
  * question; a rescue is a right answer after someone else missed it.
@@ -63,40 +65,54 @@ export function tallyQuizHeroes(attempts = []) {
     return [...byStudent.values()];
 }
 
-/** Stars and Gold for each hero who took a turn. */
+/** Show points: a first try counts double a rescue. */
+export const quizPoints = (hero) => (Number(hero?.firstTry) || 0) * 2 + (Number(hero?.rescues) || 0);
+
+/**
+ * The heroes at the top of the show: most points, then fewest wrong answers. A hero needs at
+ * least one first-try answer to be there. Every hero still level at the top is included.
+ */
+export function quizTopHeroes(tally = []) {
+    const eligible = tally.filter((hero) => hero.firstTry > 0);
+    if (!eligible.length) return [];
+    const best = Math.max(...eligible.map(quizPoints));
+    const level = eligible.filter((hero) => quizPoints(hero) === best);
+    const fewestWrong = Math.min(...level.map((hero) => hero.wrong || 0));
+    return level.filter((hero) => (hero.wrong || 0) === fewestWrong).map((hero) => hero.studentId);
+}
+
+/** Gold for every hero who took a turn, and a star for the top of the show. */
 export function computeHeroRewards(attempts = []) {
-    return tallyQuizHeroes(attempts).map((row) => {
-        const earned = row.firstTry * QUIZ_STAR_FIRST_TRY + row.rescues * QUIZ_STAR_RESCUE;
-        const stars = half(Math.min(QUIZ_STAR_CAP, earned));
-        const brave = stars === 0 && row.turns > 0;
+    const tally = tallyQuizHeroes(attempts);
+    const top = new Set(quizTopHeroes(tally));
+    return tally.map((row) => {
+        const earned = row.firstTry * QUIZ_GOLD_FIRST_TRY + row.rescues * QUIZ_GOLD_RESCUE;
+        const brave = earned === 0 && row.turns > 0;
         return {
             ...row,
             correct: row.firstTry + row.rescues,
-            stars,
-            gold: brave ? QUIZ_BRAVE_GOLD : stars,
+            points: quizPoints(row),
+            top: top.has(row.studentId),
+            stars: top.has(row.studentId) ? QUIZ_TOP_STAR : 0,
+            gold: brave ? QUIZ_BRAVE_GOLD : Math.min(QUIZ_GOLD_CAP, earned),
             brave
         };
     });
 }
 
 /**
- * The one Quiz Champion: needs at least one first-try answer. Ranked by points (first try 2,
- * rescue 1), then fewer quiz prizes already won this year, then fewer wrong answers.
- * A remaining tie is settled by `random` (injectable for tests).
+ * The one Quiz Champion, always one of the top of the show (so the champion also holds a star):
+ * fewest quiz prizes already won this year, then a draw by `random` (injectable for tests).
  */
 export function pickQuizChampion(heroRewards = [], { prizeWins = {}, random = Math.random } = {}) {
-    const eligible = heroRewards.filter((hero) => hero.firstTry > 0);
-    if (!eligible.length) return null;
-    const ranked = eligible
-        .map((hero) => ({
-            hero,
-            points: hero.firstTry * 2 + hero.rescues,
-            wins: Number(prizeWins[hero.studentId]) || 0,
-            wrong: hero.wrong || 0,
-            roll: random()
-        }))
-        .sort((a, b) => (b.points - a.points) || (a.wins - b.wins) || (a.wrong - b.wrong) || (a.roll - b.roll));
-    return ranked[0].hero.studentId;
+    const top = new Set(heroRewards.some((hero) => 'top' in hero)
+        ? heroRewards.filter((hero) => hero.top).map((hero) => hero.studentId)
+        : quizTopHeroes(heroRewards));
+    const ranked = heroRewards
+        .filter((hero) => top.has(hero.studentId))
+        .map((hero) => ({ hero, wins: Number(prizeWins[hero.studentId]) || 0, roll: random() }))
+        .sort((a, b) => (a.wins - b.wins) || (a.roll - b.roll));
+    return ranked[0]?.hero.studentId || null;
 }
 
 /** How many quiz prizes each student has already won, from earlier finished quizzes. */

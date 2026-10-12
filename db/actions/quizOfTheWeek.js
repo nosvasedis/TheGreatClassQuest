@@ -73,7 +73,7 @@ export async function getQuizForClass(classId) {
     return { id: snap.id, ...data };
 }
 
-export async function saveQuizCurriculum(classId, { type, categories, keywords, lessonFocus = null, questLevel, reviewBeforeLive = false, carryForward = [] }) {
+export async function saveQuizCurriculum(classId, { type, categories, keywords, cover = null, note = '', lessonFocus = null, questLevel, reviewBeforeLive = false, carryForward = [] }) {
     const wk = weekKey();
     const docId = quizDocId(classId);
     const ref = doc(db, `${PUBLIC_DATA_PATH}/quiz_of_the_week`, docId);
@@ -86,6 +86,11 @@ export async function saveQuizCurriculum(classId, { type, categories, keywords, 
         keywords,
         lessonFocus: lessonFocus ? sanitizeLessonFocus(lessonFocus) : null
     };
+    // A quiz the teacher described in their own words: what it covers, and an optional note.
+    if (cover != null) {
+        curriculum.cover = String(cover).trim().slice(0, 400);
+        curriculum.note = String(note || '').trim().slice(0, 240);
+    }
 
     await setDoc(ref, withSchoolYear({
         classId,
@@ -504,7 +509,7 @@ export async function distributeQuizRewards(classId, results, { attempts = [] } 
                         stars: hero.stars,
                         appliedStarCredit: hero.stars,
                         reason: 'quiz_of_the_week',
-                        note: `Quiz of the Week: ${parts}`,
+                        note: `Quiz of the Week: top of the show (${parts})`,
                         date: getTodayDateString(),
                         createdAt: serverTimestamp(),
                         createdBy: teacher
@@ -514,7 +519,7 @@ export async function distributeQuizRewards(classId, results, { attempts = [] } 
             transaction.set(quizDocRef(classId), { rewardsPaidAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true });
         });
 
-        // ── Glory comes from the stars, the same as any other star ──
+        // ── Glory comes from the stars (only the top of the show), the same as any other star ──
         const guildGloryByGuild = {};
         for (const hero of heroRewards) {
             if (!(hero.stars > 0)) continue;
@@ -558,6 +563,8 @@ export async function distributeQuizRewards(classId, results, { attempts = [] } 
                 correctCount: hero.correct,
                 firstTry: hero.firstTry,
                 rescues: hero.rescues,
+                points: hero.points,
+                top: Boolean(hero.top),
                 stars: hero.stars,
                 gold: hero.gold,
                 brave: hero.brave

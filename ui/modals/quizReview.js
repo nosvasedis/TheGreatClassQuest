@@ -181,7 +181,7 @@ export async function openQuizReviewEditor(classId, { onSaved, quiz: preloadedQu
         if (hear) {
             const text = hear.closest('[data-review-card]')?.querySelector('[data-field="listen"]')?.value || '';
             const voice = hear.dataset.voice || '';
-            import('../../features/tts.js').then(({ speakText }) => speakText(text, { rate: quizSpeechRate(band), voice })).catch(() => {});
+            import('../../features/tts.js').then(({ speakText }) => speakText(text, { rate: quizSpeechRate(band), voice, boost: true })).catch(() => {});
             return;
         }
         const deleteBtn = event.target.closest('[data-review-delete]');

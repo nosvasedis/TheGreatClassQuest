@@ -8,7 +8,7 @@ const pendingAudio = new Map();
 const MAX_CACHE_BYTES = 12 * 1024 * 1024;
 let cacheBytes = 0;
 // MeloTTS reads quickly for young language learners; its audio plays a little slower
-// (pitch kept). Named voices already speak at a natural pace.
+// (pitch kept). Named voices play at the pace the caller asks for.
 const MELO_PACE = 0.88;
 
 function cacheKey(chunk, voice) { return voice ? `${voice}|${chunk}` : chunk; }
@@ -96,15 +96,74 @@ export function prefetchSpeech(text, { voice = '' } = {}) {
 
 function alive(job) { return activeSpeech === job && !job.controller.signal.aborted; }
 
+// Loud and even: a narrator asked to `boost` (the quiz) plays through a gain and a limiter, so a
+// projector's small speakers carry every word to the back of the room without crackling.
+// The narration element can be captured by Web Audio only once; when the audio context cannot
+// run (no tap yet), the line plays plainly instead of silently.
+let boostChain = null;
+
+function boostContext() {
+    if (boostChain) return boostChain;
+    const Ctx = typeof window !== 'undefined' ? (window.AudioContext || window.webkitAudioContext) : null;
+    if (!Ctx) return null;
+    try {
+        const ctx = new Ctx();
+        const gain = ctx.createGain();
+        const limiter = ctx.createDynamicsCompressor();
+        gain.connect(limiter).connect(ctx.destination);
+        boostChain = { ctx, gain, limiter, element: null };
+    } catch (_) {
+        boostChain = null;
+    }
+    return boostChain;
+}
+
+function setBoost(chain, on) {
+    const t = chain.ctx.currentTime;
+    chain.gain.gain.setValueAtTime(on ? 2.2 : 1, t);
+    chain.limiter.threshold.setValueAtTime(on ? -10 : 0, t);
+    chain.limiter.knee.setValueAtTime(on ? 6 : 0, t);
+    chain.limiter.ratio.setValueAtTime(on ? 12 : 1, t);
+    chain.limiter.attack.setValueAtTime(0.002, t);
+    chain.limiter.release.setValueAtTime(0.2, t);
+}
+
+async function contextRunning(chain) {
+    if (chain.ctx.state === 'running') return true;
+    try { await Promise.race([chain.ctx.resume(), new Promise((resolve) => setTimeout(resolve, 400))]); } catch (_) { /* stays suspended */ }
+    return chain.ctx.state === 'running';
+}
+
+/** The element to play on: the shared one (boosted or plain), or a fresh plain one when Web Audio is stuck. */
+async function playbackElement(job, boost) {
+    const audio = job.audio;
+    const chain = boost ? boostContext() : boostChain;
+    if (!chain) return audio;
+    if (chain.element === audio) {
+        if (!(await contextRunning(chain))) return new Audio();
+        setBoost(chain, boost);
+        return audio;
+    }
+    if (!boost || !(await contextRunning(chain))) return audio;
+    try {
+        chain.ctx.createMediaElementSource(audio).connect(chain.gain);
+        chain.element = audio;
+        setBoost(chain, true);
+    } catch (_) { /* already captured elsewhere: play plainly */ }
+    return audio;
+}
+
 function start(job, info = {}) {
     if (!alive(job) || job.started) return;
     job.started = true;
     job.opts.onStart?.(info);
 }
 
-function playAudio(job, blob) {
+async function playAudio(job, blob) {
+    const audio = await playbackElement(job, Boolean(job.opts.boost));
+    if (!alive(job)) return;
+    if (audio !== job.audio) job.audio = audio;
     return new Promise((resolve, reject) => {
-        const audio = job.audio;
         job.url = URL.createObjectURL(blob);
         let finished = false;
         const finish = (error) => {

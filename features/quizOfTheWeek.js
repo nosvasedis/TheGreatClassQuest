@@ -267,12 +267,17 @@ export function getQuizState(classId) {
     return quizState[classId] || null;
 }
 
-export async function loadQuizForClass(classId) {
-    const quiz = await getQuizForClass(classId);
-    if (!quiz || !quiz.questions || quiz.questions.length === 0) return false;
+/**
+ * Set up the show. `quiz` (already fetched) and `participationHistory` (a promise is fine) let the
+ * stage fetch everything at once. Returns true, or why the show cannot start:
+ * 'no_questions' | 'no_students' | 'all_absent'.
+ */
+export async function loadQuizForClass(classId, { quiz: knownQuiz = null, participationHistory = null } = {}) {
+    const quiz = knownQuiz || await getQuizForClass(classId);
+    if (!quiz || !quiz.questions || quiz.questions.length === 0) return 'no_questions';
 
     const students = state.get('allStudents')?.filter(s => s.classId === classId) || [];
-    if (students.length === 0) return false;
+    if (students.length === 0) return 'no_students';
 
     // Filter out absent students for today's session
     const absentIds = new Set(
@@ -281,13 +286,13 @@ export async function loadQuizForClass(classId) {
             .map(r => r.studentId)
     );
     const presentStudents = students.filter(s => !absentIds.has(s.id));
-    if (presentStudents.length === 0) return false;
+    if (presentStudents.length === 0) return 'all_absent';
 
     const qs = initQuiz(classId);
     // Every kind (choice, Listen and choose, Picture question, Fix the sentence) plays as four gems.
     // Typed-answer questions from very old quizzes are left out of the live show.
     qs.questions = [...quiz.questions].filter((q) => q.type === 'mcq' && Array.isArray(q.options) && q.options.length >= 2);
-    if (qs.questions.length === 0) return false;
+    if (qs.questions.length === 0) return 'no_questions';
     // Fetch every picture now, so no picture pops in late on the projector.
     qs.preloadedPictures = qs.questions.flatMap((q) => (Array.isArray(q.optionImages) ? q.optionImages : []))
         .filter(Boolean)
@@ -309,14 +314,14 @@ export async function loadQuizForClass(classId) {
     }
     qs.remainingQuestions = [...qs.questions];
 
-    let participationHistory = [];
+    let history = [];
     try {
-        participationHistory = await getQuizParticipationHistory(classId, 10);
+        history = await (participationHistory || getQuizParticipationHistory(classId, 10)) || [];
     } catch (error) {
         console.warn('Failed to load quiz participation history, falling back to current roster shuffle:', classId, error);
     }
 
-    qs.priorityStudentOrder = buildPriorityStudentOrder(presentStudents, participationHistory);
+    qs.priorityStudentOrder = buildPriorityStudentOrder(presentStudents, history);
     qs.studentPool = [...qs.priorityStudentOrder];
 
     return true;
@@ -392,11 +397,9 @@ export async function handleAnswer(classId, selectedAnswer, correct) {
     };
     qs.attempts.push(attempt);
 
-    try {
-        await logQuizAttempt(classId, attempt);
-    } catch (e) {
-        console.warn('Failed to log quiz attempt:', e);
-    }
+    // Saved in the background: the verdict appears at once, even on a slow connection.
+    // The rewards are paid from the attempts kept here, not from this log.
+    logQuizAttempt(classId, attempt).catch((e) => console.warn('Failed to log quiz attempt:', e));
 
     let questionPassedToNextStudent = false;
     let questionResolved = false;
@@ -557,12 +560,13 @@ export async function finalizeQuiz(classId) {
                 firstTry: reward.firstTry || 0,
                 rescues: reward.rescues || 0,
                 brave: Boolean(reward.brave),
+                top: Boolean(reward.top),
                 solvedAnswers: perf.solvedAnswers,
                 awardedStars: reward.stars || 0,
                 awardedGold: reward.gold || 0
             } : null;
         }).filter(Boolean)
-            .sort((a, b) => (b.awardedStars - a.awardedStars) || (b.firstTry - a.firstTry) || String(a.name).localeCompare(String(b.name)));
+            .sort((a, b) => (b.awardedStars - a.awardedStars) || (b.awardedGold - a.awardedGold) || (b.firstTry - a.firstTry) || String(a.name).localeCompare(String(b.name)));
 
         const guildContributors = correctStudentDetails.reduce((acc, student) => {
             if (!student.guildId || !(student.awardedStars > 0)) return acc;

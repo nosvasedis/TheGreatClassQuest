@@ -229,18 +229,18 @@ function memoryKv() {
     return { store, async get(key) { return store.get(key) ?? null; }, async put(key, value) { store.set(key, value); } };
 }
 
-test('a named quiz voice uses Aura with that speaker and reports who spoke', async () => {
+test('an Aura-1 voice name still uses Aura-1 with that speaker and reports who spoke', async () => {
     const worker = await workerModule();
     const env = { ...environment(async (model, input, options) => {
         assert.equal(model, '@cf/deepgram/aura-1');
-        assert.deepEqual(input, { text: 'The cat is under the table.', speaker: 'luna', encoding: 'mp3' });
+        assert.deepEqual(input, { text: 'The cat is under the table.', speaker: 'stella', encoding: 'mp3' });
         assert.deepEqual(options, { returnRawResponse: true });
         return new Response(mp3);
     }), QUOTE_CACHE: memoryKv() };
-    const response = await worker.fetch(request({ text: 'The cat is under the table.', voice: 'Luna' }), env, {});
+    const response = await worker.fetch(request({ text: 'The cat is under the table.', voice: 'Stella' }), env, {});
     assert.equal(response.status, 200);
     assert.equal(response.headers.get('Content-Type'), 'audio/mpeg');
-    assert.equal(response.headers.get('X-GCQ-AI-Provider'), '@cf/deepgram/aura-1:luna');
+    assert.equal(response.headers.get('X-GCQ-AI-Provider'), '@cf/deepgram/aura-1:stella');
     assert.equal(response.headers.get('Access-Control-Allow-Origin'), 'http://localhost:3000');
     assert.deepEqual(new Uint8Array(await response.arrayBuffer()), mp3);
 });
@@ -260,7 +260,7 @@ test('MeloTTS speaks when a voice is unknown, fails, is too long, or the daily v
         const response = await worker.fetch(request({ text, voice: scenario === 'unknown' ? 'robot' : 'orion' }), env, {});
         assert.equal(response.status, 200, scenario);
         assert.equal(response.headers.get('X-GCQ-AI-Provider'), '@cf/myshell-ai/melotts', scenario);
-        assert.deepEqual(models, scenario === 'fails' ? ['@cf/deepgram/aura-1', '@cf/myshell-ai/melotts'] : ['@cf/myshell-ai/melotts'], scenario);
+        assert.deepEqual(models, scenario === 'fails' ? ['@cf/deepgram/aura-2-en', '@cf/deepgram/aura-1', '@cf/myshell-ai/melotts'] : ['@cf/myshell-ai/melotts'], scenario);
     }
 });
 
@@ -270,9 +270,44 @@ test('named voices count their characters against the daily budget', async () =>
     const env = { ...environment(async () => new Response(mp3)), QUOTE_CACHE: kv, SPEECH_VOICE_DAILY_CHARS: '30' };
     const first = await worker.fetch(request({ text: 'Twenty characters!!!', voice: 'stella' }), env, {});
     assert.equal(first.headers.get('X-GCQ-AI-Provider'), '@cf/deepgram/aura-1:stella');
-    const second = await worker.fetch(request({ text: 'Twenty characters!!!', voice: 'stella' }), env, {});
+    const second = await worker.fetch(request({ text: 'Other twenty chars!!', voice: 'stella' }), env, {});
     assert.equal(second.headers.get('X-GCQ-AI-Provider'), '@cf/myshell-ai/melotts');
-    assert.equal([...kv.store.values()][0], '20');
+    assert.equal(kv.store.get(`voice-chars:${new Date().toISOString().slice(0, 10)}`), '20');
+});
+
+test('Aura-2 speaks the quiz cast, counts double, and hands over to the nearest Aura-1 voice', async () => {
+    const worker = await workerModule();
+    const kv = memoryKv();
+    const models = [];
+    const env = { ...environment(async (model, input) => { models.push(`${model}:${input.speaker}`); return new Response(mp3); }), QUOTE_CACHE: kv, SPEECH_VOICE_DAILY_CHARS: '50' };
+    const first = await worker.fetch(request({ text: 'Twenty characters!!!', voice: 'thalia' }), env, {});
+    assert.equal(first.headers.get('X-GCQ-AI-Provider'), '@cf/deepgram/aura-2-en:thalia');
+    assert.equal(kv.store.get(`voice-chars:${new Date().toISOString().slice(0, 10)}`), '40');
+    // 10 left: Aura-2 (40) does not fit and Aura-1 (20) does not either, so MeloTTS answers.
+    const second = await worker.fetch(request({ text: 'Other twenty chars!!', voice: 'thalia' }), env, {});
+    assert.equal(second.headers.get('X-GCQ-AI-Provider'), '@cf/myshell-ai/melotts');
+    kv.store.set(`voice-chars:${new Date().toISOString().slice(0, 10)}`, '25');
+    const third = await worker.fetch(request({ text: 'Third twenty chars!!', voice: 'thalia' }), env, {});
+    assert.equal(third.headers.get('X-GCQ-AI-Provider'), '@cf/deepgram/aura-1:asteria');
+    assert.deepEqual(models.filter((m) => m.includes('aura')), ['@cf/deepgram/aura-2-en:thalia', '@cf/deepgram/aura-1:asteria']);
+});
+
+test('a line already spoken in that voice comes from the cache and costs nothing', async () => {
+    const worker = await workerModule();
+    const kv = memoryKv();
+    let runs = 0;
+    const env = { ...environment(async () => { runs++; return new Response(mp3); }), QUOTE_CACHE: kv };
+    const waits = [];
+    const ctx = { waitUntil(p) { waits.push(p); } };
+    await worker.fetch(request({ text: 'Listen to the cat.', voice: 'arcas' }), env, ctx);
+    await Promise.all(waits);
+    const budgetKey = `voice-chars:${new Date().toISOString().slice(0, 10)}`;
+    const spent = kv.store.get(budgetKey);
+    const again = await worker.fetch(request({ text: 'Listen to the cat.', voice: 'arcas' }), env, ctx);
+    assert.equal(again.headers.get('X-GCQ-AI-Provider'), '@cf/deepgram/aura-2-en:arcas');
+    assert.deepEqual(new Uint8Array(await again.arrayBuffer()), mp3);
+    assert.equal(runs, 1);
+    assert.equal(kv.store.get(budgetKey), spent);
 });
 
 test('quiz voices cache apart, name the speaker, and MeloTTS plays slower than a named voice', async t => {

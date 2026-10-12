@@ -107,6 +107,60 @@ export function quizStageShellHtml(modalId = 'quiz-of-week-modal') {
 </div>`;
 }
 
+// ─── Opening: shown the moment the ticket is pressed ───────────────────────
+
+export const QUIZ_LOADING_STEPS = [
+    { id: 'questions', icon: 'fa-scroll', label: 'Fetching this week\u2019s questions' },
+    { id: 'heroes', icon: 'fa-users', label: 'Calling the heroes to the stage' },
+    { id: 'lights', icon: 'fa-lightbulb', label: 'Warming up the lights and voices' }
+];
+
+/**
+ * The stage opens at once with this curtain, so a slow connection never leaves the class
+ * staring at nothing. `done` is how many steps have finished.
+ */
+export function quizLoadingHtml({ done = 0, replay = false } = {}) {
+    const steps = QUIZ_LOADING_STEPS.map((step, i) => {
+        const state = i < done ? 'done' : i === done ? 'now' : 'next';
+        return `<li class="qs-loading__step is-${state}" data-loading-step="${step.id}">
+                    <span class="qs-loading__dot" aria-hidden="true"><i class="fas ${state === 'done' ? 'fa-check' : step.icon}"></i></span>
+                    <span>${esc(step.label)}</span>
+                </li>`;
+    }).join('');
+    return `
+        ${topBarHtml({ sub: replay ? "This week's show" : 'Tonight\u2019s show' })}
+        <div class="qs-body qs-body--loading" role="status" aria-live="polite">
+            <div class="qs-loading">
+                <div class="qs-loading__marquee" aria-hidden="true">
+                    <span class="qs-loading__glow"></span>
+                    <span class="qs-loading__gems">
+                        ${GEMS.map((gem, i) => `<span class="qs-loading__gem qs-gem--${gem}" style="--g:${i}">${GEM_LETTERS[i]}</span>`).join('')}
+                    </span>
+                </div>
+                <h3 class="qs-loading__title">${replay ? 'Opening the curtain call\u2026' : 'Raising the curtain\u2026'}</h3>
+                <ol class="qs-loading__steps">${replay ? '' : steps}</ol>
+                <span class="qs-loading__bar" aria-hidden="true"><span></span></span>
+            </div>
+        </div>`;
+}
+
+/** When the stage cannot load (offline, no questions): say so plainly and offer another try. */
+export function quizLoadErrorHtml(message = '') {
+    return `
+        ${topBarHtml({ sub: 'Backstage' })}
+        <div class="qs-body qs-body--loading">
+            <div class="qs-loading qs-loading--error">
+                <span class="qs-loading__oops" aria-hidden="true"><i class="fas fa-masks-theater"></i></span>
+                <h3 class="qs-loading__title">The show could not start</h3>
+                <p class="qs-loading__msg">${esc(message || 'Please check the connection and try again.')}</p>
+            </div>
+        </div>
+        <footer class="qs-foot">
+            <span class="qs-keys" aria-hidden="true"></span>
+            <button type="button" class="qs-btn qs-btn--go" id="quiz-retry-btn"><i class="fas fa-rotate-right"></i><span>Try again</span></button>
+        </footer>`;
+}
+
 // ─── Intro ──────────────────────────────────────────────────────────────────
 
 /**
@@ -161,8 +215,8 @@ export function quizIntroHtml({ questionCount = 0, contestants = [], absentCount
                 <ol class="qs-rules">
                     <li><span class="qs-rules__icon"><i class="fas fa-lightbulb"></i></span><span>The spotlight picks a hero for each question.</span></li>
                     <li><span class="qs-rules__icon"><i class="fas fa-people-arrows"></i></span><span>A wrong answer passes the question to someone new.</span></li>
-                    <li><span class="qs-rules__icon"><i class="fas fa-star"></i></span><span>Right first time: 1 star. Rescue a passed question: ½ star.</span></li>
-                    <li><span class="qs-rules__icon"><i class="fas fa-crown"></i></span><span>The Quiz Champion wins a treasure from the Mystic Market.</span></li>
+                    <li><span class="qs-rules__icon"><i class="fas fa-coins"></i></span><span>Right first time: 2 Gold. Rescue a passed question: 1 Gold.</span></li>
+                    <li><span class="qs-rules__icon"><i class="fas fa-star"></i></span><span>Only the top of the show wins a star, and the Quiz Champion a Market treasure.</span></li>
                 </ol>`}
             </section>
         </div>
@@ -370,6 +424,9 @@ export function quizResultsHtml(results = {}, { replay = false } = {}) {
     const artifacts = rewards.awardedArtifacts || [];
     const stats = Array.isArray(results.questionStats) ? results.questionStats : [];
     const starsGranted = (rewards.studentRewards || []).reduce((sum, reward) => sum + (Number(reward.stars) || 0), 0);
+    const goldGranted = (rewards.studentRewards || []).reduce((sum, reward) => sum + (Number(reward.gold) || 0), 0);
+    // Quizzes from before the top-of-the-show rule gave stars per answer.
+    const topRule = (rewards.studentRewards || []).some((reward) => 'top' in reward);
     const total = Number(results.totalQuestions) || stats.length || 0;
     const firstTry = Number(results.correctFirstTry) || 0;
     let step = 0;
@@ -385,7 +442,8 @@ export function quizResultsHtml(results = {}, { replay = false } = {}) {
                 <span class="qs-stat__label">first-try accuracy</span>
             </div>
             <div class="qs-stat"><span class="qs-stat__value"><span data-count-to="${firstTry}">${firstTry}</span><small>/${total}</small></span><span class="qs-stat__label">right first time</span></div>
-            <div class="qs-stat"><span class="qs-stat__value"><i class="fas fa-star"></i><span data-count-to="${fmt(starsGranted)}">${fmt(starsGranted)}</span></span><span class="qs-stat__label">stars granted</span></div>
+            ${goldGranted > 0 ? `<div class="qs-stat"><span class="qs-stat__value"><i class="fas fa-coins"></i><span data-count-to="${fmt(goldGranted)}">${fmt(goldGranted)}</span></span><span class="qs-stat__label">Gold earned</span></div>` : ''}
+            <div class="qs-stat"><span class="qs-stat__value"><i class="fas fa-star"></i><span data-count-to="${fmt(starsGranted)}">${fmt(starsGranted)}</span></span><span class="qs-stat__label">${topRule ? (starsGranted === 1 ? 'star for the top hero' : 'stars for the top heroes') : 'stars granted'}</span></div>
             ${rewards.questBonus ? `<div class="qs-stat"><span class="qs-stat__value">+<span data-count-to="${fmt(rewards.questBonus)}">${fmt(rewards.questBonus)}</span></span><span class="qs-stat__label">Team Quest bonus</span></div>` : ''}
         </div>`;
 
@@ -402,13 +460,13 @@ export function quizResultsHtml(results = {}, { replay = false } = {}) {
     };
     const heroesHtml = heroes.length ? `
         <section class="qs-section" style="--i:${next()}">
-            <h4 class="qs-section__title"><i class="fas fa-medal"></i> Stars of the show</h4>
+            <h4 class="qs-section__title"><i class="fas fa-medal"></i> Heroes of the show</h4>
             <ul class="qs-heroes">
                 ${heroes.map((hero, i) => {
                     const won = prizeFor.get(hero.id);
                     const champion = prize?.studentId === hero.id;
                     return `
-                    <li class="qs-hero${champion ? ' is-champion' : ''}" style="--j:${i}">
+                    <li class="qs-hero${champion ? ' is-champion' : ''}${hero.top ? ' is-top' : ''}" style="--j:${i}">
                         ${quizAvatarHtml(hero, 'qs-hero__avatar')}
                         <span class="qs-hero__copy">
                             <span class="qs-hero__line">
@@ -416,6 +474,7 @@ export function quizResultsHtml(results = {}, { replay = false } = {}) {
                                 <span class="qs-hero__meta">${esc(heroMeta(hero))}</span>
                             </span>
                             <span class="qs-hero__loot">
+                                ${hero.top ? '<span class="qs-loot qs-loot--top"><i class="fas fa-trophy" aria-hidden="true"></i> Top of the show</span>' : ''}
                                 ${(hero.awardedStars || 0) > 0 ? `<span class="qs-loot qs-loot--star">+${fmt(hero.awardedStars)} <i class="fas fa-star"></i></span>` : ''}
                                 ${(hero.awardedGold || 0) > 0 ? `<span class="qs-loot qs-loot--gold">+${fmt(hero.awardedGold)} <i class="fas fa-coins"></i></span>` : ''}
                                 ${won ? `<span class="qs-loot qs-loot--relic" title="${esc(won.name || 'Treasure')}">${won.icon ? esc(won.icon) : '🎁'} ${esc(won.name || '')}</span>` : ''}

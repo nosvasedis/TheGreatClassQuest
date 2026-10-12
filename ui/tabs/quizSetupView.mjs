@@ -86,7 +86,7 @@ export function describeQuizWeek({ quiz = null, nextLesson = null, generating = 
     const base = { status, facts, count, actions: [] };
     switch (status) {
         case 'generating':
-            return { ...base, phase: 2, tone: 'busy', icon: '🪄', title: 'Writing the questions…', sub: 'The questions are written in a few parts and the pictures are drawn once. This can take a minute or two.' };
+            return { ...base, phase: 2, tone: 'busy', icon: '🪄', title: 'Writing the questions…', sub: 'The questions are written in parts at the same time, then the pictures are drawn once. This usually takes under a minute.' };
         case 'error':
             return { ...base, phase: 2, tone: 'error', icon: '⚠️', title: 'The questions could not be made', sub: error || 'Please try again in a moment.' };
         case 'pending':
@@ -161,18 +161,43 @@ export function planSummaryText(curriculum) {
     const focus = curriculum.lessonFocus;
     const type = QUIZ_TYPES.find((t) => t.id === curriculum.type)?.label || '';
     const parts = [type];
-    if (focus && focus.source !== 'manual') {
+    if (focus && focus.source === 'book-pages') {
+        const picks = (focus.picks || []).map((pick) => pick.label).filter(Boolean);
+        if (picks.length) parts.push(picks[0] + (picks.length > 1 ? ` +${picks.length - 1}` : ''));
+        const words = focus.words || [];
+        if (words.length) parts.push(words.slice(0, 3).join(', ') + (words.length > 3 ? ` +${words.length - 3}` : ''));
+    } else if (focus && focus.source !== 'manual') {
         const unit = (focus.units || [])[0];
         if (unit?.unit != null) parts.push(`Unit ${unit.unit}`);
         const words = focus.words || [];
         if (words.length) parts.push(words.slice(0, 3).join(', ') + (words.length > 3 ? ` +${words.length - 3}` : ''));
         else if ((focus.grammarPoints || []).length) parts.push(focus.grammarPoints[0]);
     } else {
+        const cover = String(curriculum.cover ?? '').trim();
         const cats = curriculum.categories || [];
-        if (cats.length) parts.push(cats.slice(0, 2).join(', ') + (cats.length > 2 ? ` +${cats.length - 2}` : ''));
+        if (cover) parts.push(cover.length > 60 ? `${cover.slice(0, 58)}…` : cover);
+        else if (cats.length) parts.push(cats.slice(0, 2).join(', ') + (cats.length > 2 ? ` +${cats.length - 2}` : ''));
         else if (curriculum.keywords) parts.push(String(curriculum.keywords).slice(0, 60));
     }
     return parts.filter(Boolean).join(' · ');
+}
+
+/** The three ways to say what the quiz covers. */
+export const QUIZ_SOURCES = [
+    { id: 'lessons', icon: 'fa-clock-rotate-left', label: 'Since the last quiz', hint: 'From your Quest Assignments' },
+    { id: 'book', icon: 'fa-book-open', label: 'Choose book pages', hint: 'Any book, unit or pages' },
+    { id: 'own', icon: 'fa-pen-nib', label: 'Describe it', hint: 'In your own words' }
+];
+
+export function quizSourceTabsHtml(active = 'own', { lessonsReady = false } = {}) {
+    return QUIZ_SOURCES.map((source) => {
+        const off = source.id === 'lessons' && !lessonsReady;
+        return `<button type="button" role="tab" class="qwk-source__tab" data-source="${source.id}" aria-selected="${source.id === active}"${off ? ' disabled aria-disabled="true" title="No Quest Assignments saved since the last quiz"' : ''}>
+            <i class="fas ${source.icon}" aria-hidden="true"></i>
+            <span class="qwk-source__label">${source.label}</span>
+            <span class="qwk-source__hint">${off ? 'Nothing saved yet' : source.hint}</span>
+        </button>`;
+    }).join('');
 }
 
 export function quizHistoryHtml(history = []) {

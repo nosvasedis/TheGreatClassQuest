@@ -299,8 +299,16 @@ export function sanitizeLessonFocus(raw = {}) {
         sinceWeekKey: String(raw.window.sinceWeekKey || '').slice(0, 12),
         lessonCount: Number(raw.window.lessonCount) || 0
     } : { from: '', to: '', sinceWeekKey: '', lessonCount: 0 };
-    const source = raw.source === 'manual' ? 'manual' : 'book-atlas';
+    const source = ['manual', 'book-pages'].includes(raw.source) ? raw.source : 'book-atlas';
     const note = cleanCampfireText(raw.note, 240);
+    // Book pages the teacher chose by hand (features/quizBookPicks.mjs), with a readable label.
+    const picks = (Array.isArray(raw.picks) ? raw.picks : []).slice(0, 3).map((pick) => ({
+        bookId: cleanCampfireText(pick?.bookId, 80),
+        component: cleanCampfireText(pick?.component, 40) || 'sb',
+        unit: Number(pick?.unit) || null,
+        pageText: cleanCampfireText(pick?.pageText, 40),
+        label: cleanCampfireText(pick?.label, 160)
+    })).filter((pick) => pick.bookId);
     const payload = {
         source,
         window: windowMeta,
@@ -317,6 +325,7 @@ export function sanitizeLessonFocus(raw = {}) {
         keywords: words.join(', '),
         note
     };
+    if (source === 'book-pages') payload.picks = picks;
     return payload;
 }
 
@@ -340,7 +349,7 @@ export function curriculumFromFocus(focus, {
     }
     const next = sanitizeLessonFocus({
         ...focus,
-        source: 'book-atlas',
+        source: focus?.source === 'book-pages' ? 'book-pages' : 'book-atlas',
         words,
         note: trimmedNote,
         type: chosenType,
@@ -354,17 +363,23 @@ export function curriculumFromFocus(focus, {
     };
 }
 
+/**
+ * Whether the plan says enough to write a quiz. From lessons or book pages: at least one word or
+ * grammar point (or a note). Described by the teacher: what it should cover, or a topic chip;
+ * the note for the quiz writer never counts there, it stays optional.
+ */
 export function canGenerateQuiz({
     focus = null,
     selectedWords = null,
     categories = [],
     keywords = '',
+    cover = '',
     carryCount = 0,
     manualOverride = false
 } = {}) {
     if (Number(carryCount) > 0) return true;
+    if (manualOverride) return uniqueStrings(categories).length > 0 || Boolean(cleanCampfireText(cover, 400));
     const note = cleanCampfireText(keywords, 240);
-    if (manualOverride) return uniqueStrings(categories).length > 0 || Boolean(note);
     const words = applyWordSelection(focus, selectedWords);
     const grammar = Array.isArray(focus?.grammarPoints) ? focus.grammarPoints.filter(Boolean) : [];
     return words.length > 0 || grammar.length > 0 || Boolean(note);
@@ -377,7 +392,9 @@ export function formatQuizFocusForPrompt(focus = {}) {
         .map((unit) => unit.bigQuestion || unit.theme || unit.title));
     const examples = (Array.isArray(focus.examples) ? focus.examples : []).slice(0, QUIZ_EXAMPLE_CAP);
     const note = cleanCampfireText(focus.note, 240);
+    const picks = (Array.isArray(focus.picks) ? focus.picks : []).map((pick) => cleanCampfireText(pick?.label, 160)).filter(Boolean);
     const lines = [];
+    if (picks.length) lines.push(`Book pages the class worked on: ${picks.join('; ')}.`);
     if (themes.length) lines.push(`Lesson theme: ${themes.join('; ')}.`);
     if (grammar.length) lines.push(`Grammar: ${grammar.join('; ')}.`);
     if (words.length) lines.push(`Words the class practised (USE THESE, do not add others): ${words.join(', ')}.`);
@@ -409,28 +426,32 @@ export function formatGrammarAnchors(anchors) {
  * The user prompt for one AI request. `mix` says how many of each question kind to write
  * (see features/quizKindsCore.mjs); without it the request is all classic choice questions.
  */
-export function buildQuizGenerationUserPrompt({ curriculum = {}, ageDesc = 'primary learners', questionCount = 7, band = 'mid', mix = null, avoid = [], anchors = null } = {}) {
+export function buildQuizGenerationUserPrompt({ curriculum = {}, ageDesc = 'primary learners', questionCount = 7, band = 'mid', mix = null, avoid = [], anchors = null, share = '' } = {}) {
     const subject = curriculum.type === 'grammar' ? 'English grammar'
         : curriculum.type === 'vocabulary' ? 'English vocabulary'
             : 'English (grammar and vocabulary mixed)';
     const focus = curriculum.lessonFocus;
-    const grounded = focus && focus.source === 'book-atlas' && (hasUsableLessonFocus(focus) || focus.note);
+    const grounded = focus && ['book-atlas', 'book-pages'].includes(focus.source) && (hasUsableLessonFocus(focus) || focus.note);
+    // A described quiz: what the teacher wants covered leads; older plans kept it in `keywords`.
+    const cover = cleanCampfireText(curriculum.cover ?? curriculum.keywords ?? '', 400);
+    const note = curriculum.cover != null ? cleanCampfireText(curriculum.note, 240) : '';
     const focusBlock = grounded
         ? formatQuizFocusForPrompt({ ...focus, note: focus.note || '' })
         : [
+            cover ? `The teacher wants this quiz to cover: "${cover}".` : '',
             (curriculum.categories || []).length ? `Topics: ${(curriculum.categories || []).join(', ')}.` : '',
-            curriculum.keywords ? `Specific focus: "${curriculum.keywords}".` : ''
+            note ? `Teacher note: ${note}.` : ''
         ].filter(Boolean).join('\n');
     const anchorBlock = curriculum.type === 'vocabulary' ? '' : formatGrammarAnchors(anchors);
     const groundingRules = grounded
         ? `- Vocabulary questions test only the listed words. Never invent a vocabulary item that is not in that list.
 - Grammar questions test the listed grammar, using the listed words in sentences and answers when you can.
 - Do not drift into unrelated topics.`
-        : '- Every question is directly about the topics and focus listed above.';
+        : '- Every question tests exactly what the teacher asked the quiz to cover (and the listed topics). Nothing else.';
     return buildKindsPromptBody({
         subject,
         focusBlock: [focusBlock, anchorBlock].filter(Boolean).join('\n'),
-        groundingRules,
+        groundingRules: share ? `${groundingRules}\n- ${share}` : groundingRules,
         ageDesc,
         band,
         mix: mix && mixTotal(mix) > 0 ? mix : { choice: Math.max(1, Number(questionCount) || 7) },

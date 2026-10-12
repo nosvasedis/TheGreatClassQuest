@@ -467,8 +467,61 @@
 #options-tab .qwk-label__count,
 #options-tab .qwk-label__hint { font-weight: 600; color: var(--ts-ink-soft); }
 
-/* From your lessons */
-#options-tab .qwk-lesson {
+/* Where the questions come from: three tabs */
+#options-tab .qwk-source {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+}
+
+#options-tab .qwk-source__tab {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    column-gap: 0.55rem;
+    align-items: center;
+    padding: 0.65rem 0.8rem;
+    text-align: left;
+    background: #fff;
+    border: 2px solid var(--ts-line);
+    border-radius: 0.95rem;
+    box-shadow: 0 3px 0 var(--ts-line-soft);
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+}
+
+#options-tab .qwk-source__tab i {
+    grid-row: 1 / 3;
+    display: grid;
+    place-items: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    font-size: 0.95rem;
+    color: var(--accent-deep);
+    background: var(--accent-soft);
+    border-radius: 0.7rem;
+}
+
+#options-tab .qwk-source__label { font-size: 0.9rem; font-weight: 800; color: var(--ts-ink); line-height: 1.15; }
+#options-tab .qwk-source__hint { font-size: 0.72rem; font-weight: 600; color: var(--ts-ink-soft); line-height: 1.2; }
+#options-tab .qwk-source__tab:hover:not(:disabled) { border-color: var(--accent-soft-2); }
+#options-tab .qwk-source__tab:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--ts-line-soft); }
+#options-tab .qwk-source__tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+#options-tab .qwk-source__tab[aria-selected="true"] {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    box-shadow: 0 3px 0 var(--accent-deep);
+}
+
+#options-tab .qwk-source__tab[aria-selected="true"] i { color: #fff; background: var(--accent); }
+#options-tab .qwk-source__tab:disabled { cursor: not-allowed; opacity: 0.55; box-shadow: none; }
+
+/* From your lessons: a one-line header above the shared focus card */
+#options-tab .qwk-lesson { display: flex; flex-direction: column; gap: 0.5rem; }
+
+/* The words and grammar the quiz will use (lessons or chosen pages) */
+#options-tab .qwk-focus {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
@@ -477,6 +530,81 @@
     border: 1.5px solid var(--accent-soft-2);
     border-radius: 1rem;
 }
+
+#options-tab .qwk-focus.hidden { display: none; }
+
+/* Choose book pages */
+#options-tab .qwk-book { display: flex; flex-direction: column; gap: 0.6rem; }
+#options-tab .qwk-book.hidden { display: none; }
+#options-tab .qwk-book__lede { margin: 0; font-size: 0.84rem; font-weight: 600; color: var(--ts-ink-soft); }
+#options-tab .qwk-book__rows { display: flex; flex-direction: column; gap: 0.6rem; }
+
+#options-tab .qwk-bookrow {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.3fr) minmax(0, 1.8fr) minmax(0, 1fr);
+    gap: 0.5rem;
+    padding: 0.8rem 0.85rem 0.7rem;
+    background: #fff;
+    border: 1.5px solid var(--ts-line);
+    border-radius: 1rem;
+}
+
+#options-tab .qwk-bookrow:not(:has(.qwk-bookrow__field--part)) { grid-template-columns: minmax(0, 2.4fr) minmax(0, 2fr) minmax(0, 1fr); }
+#options-tab .qwk-bookrow:has(.qwk-bookrow__remove) { padding-right: 2.6rem; }
+
+#options-tab .qwk-bookrow__field { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
+#options-tab .qwk-bookrow__field > span { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ts-ink-soft); }
+#options-tab .qwk-bookrow .ts-input { min-height: 2.6rem; padding-top: 0.45rem; padding-bottom: 0.45rem; font-size: 0.88rem; }
+#options-tab .qwk-bookrow select.ts-input { text-overflow: ellipsis; }
+
+#options-tab .qwk-bookrow__hint {
+    grid-column: 1 / -1;
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--accent-deep);
+}
+
+#options-tab .qwk-bookrow__hint i { margin-right: 0.2rem; }
+#options-tab .qwk-bookrow__hint.is-empty { color: var(--ts-ink-soft); font-weight: 600; }
+
+#options-tab .qwk-bookrow__remove {
+    position: absolute;
+    top: 0.55rem;
+    right: 0.55rem;
+    display: grid;
+    place-items: center;
+    width: 1.8rem;
+    height: 1.8rem;
+    color: var(--ts-ink-soft);
+    background: transparent;
+    border: 0;
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+#options-tab .qwk-bookrow__remove:hover { color: #b91c1c; background: #fef2f2; }
+#options-tab .qwk-book__add { align-self: flex-start; }
+#options-tab .qwk-book__status { margin: 0; font-size: 0.82rem; font-weight: 600; color: var(--ts-ink-soft); }
+#options-tab .qwk-book__status.hidden { display: none; }
+
+/* Describe it */
+#options-tab .qwk-label__need {
+    margin-left: 0.3rem;
+    padding: 0.05rem 0.45rem;
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--accent-deep);
+    background: var(--accent-soft);
+    border-radius: 999px;
+}
+
+#options-tab .qwk-cover { min-height: 5.2rem; }
+#options-tab .qwk-topics.hidden,
+#options-tab .qwk-lesson.hidden { display: none; }
 
 #options-tab .qwk-lesson__head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; }
 
@@ -853,6 +981,10 @@
     #options-tab .qwk-type { gap: 0.4rem; }
     #options-tab .qwk-type__opt { padding: 0.65rem 0.3rem; }
     #options-tab .qwk-type__hint { display: none; }
+    #options-tab .qwk-source { grid-template-columns: 1fr; }
+    #options-tab .qwk-bookrow,
+    #options-tab .qwk-bookrow:not(:has(.qwk-bookrow__field--part)) { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    #options-tab .qwk-bookrow__field--book { grid-column: 1 / -1; }
     #options-tab .qwk-go__btn { width: 100%; }
     #options-tab .qwk-past { grid-template-columns: auto minmax(0, 1fr); }
     #options-tab .qwk-past__score { grid-column: 1 / -1; }

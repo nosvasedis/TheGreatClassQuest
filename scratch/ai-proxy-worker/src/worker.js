@@ -6,15 +6,31 @@ const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const OPENROUTER_FALLBACK_MODEL = 'google/gemini-3.1-flash-lite';
 const OPENROUTER_TIMEOUT_MS = 20_000;
 const SPEECH_MODEL = '@cf/myshell-ai/melotts';
-// Named voices for short lines (the quiz cast). MeloTTS answers whenever a voice is
-// unavailable or today's character budget is spent, so narration never stops.
+// Named voices for short lines (the quiz cast). Deepgram Aura-2 speaks clearest; Aura-1 takes
+// over when today's budget cannot fit Aura-2, and MeloTTS answers when neither can, so
+// narration never stops.
+const VOICE2_MODEL = '@cf/deepgram/aura-2-en';
+const VOICE2_SPEAKERS = new Set(['amalthea', 'andromeda', 'apollo', 'arcas', 'aries', 'asteria', 'athena', 'atlas', 'aurora',
+  'callista', 'cora', 'cordelia', 'delia', 'draco', 'electra', 'harmonia', 'helena', 'hera', 'hermes', 'hyperion', 'iris',
+  'janus', 'juno', 'jupiter', 'luna', 'mars', 'minerva', 'neptune', 'odysseus', 'ophelia', 'orion', 'orpheus', 'pandora',
+  'phoebe', 'pluto', 'saturn', 'thalia', 'theia', 'vesta', 'zeus']);
 const VOICE_MODEL = '@cf/deepgram/aura-1';
 const VOICE_SPEAKERS = new Set(['angus', 'asteria', 'arcas', 'orion', 'orpheus', 'athena', 'luna', 'zeus', 'perseus', 'helios', 'hera', 'stella']);
+// The nearest Aura-1 speaker for an Aura-2 voice, used when only Aura-1 fits today's budget.
+const VOICE_AURA1_STAND_IN = {
+  thalia: 'asteria', harmonia: 'athena', callista: 'stella', mars: 'orion', draco: 'helios', amalthea: 'luna',
+  andromeda: 'luna', helena: 'hera', cora: 'athena', pandora: 'athena', apollo: 'perseus', aries: 'arcas',
+  hermes: 'orpheus', neptune: 'orion', odysseus: 'orion', jupiter: 'zeus', saturn: 'zeus', pluto: 'zeus', atlas: 'arcas',
+};
 const VOICE_MAX_TEXT = 400;
-// Aura-1 costs about 1,364 neurons per 1,000 characters; the default 4,000 characters
-// keeps named voices to roughly half of the free 10,000 neurons a day, leaving pictures room.
+// Budget in Aura-1 characters a day. Aura-1 costs about 1,364 neurons per 1,000 characters and
+// Aura-2 twice that, so an Aura-2 line counts double. The default 4,000 keeps named voices to
+// roughly half of the free 10,000 neurons a day, leaving pictures room. Replays and repeats
+// come from the audio cache and cost nothing.
 const VOICE_DAILY_CHARS = 4_000;
+const VOICE2_COST = 2;
 const VOICE_TIMEOUT_MS = 12_000;
+const VOICE_CACHE_TTL = 30 * 86_400;
 // FLUX.2 [klein] 4B paints every image; the unmetered SDXL betas take over when FLUX
 // fails, e.g. once the day's free Workers AI neurons are spent on a Free plan.
 const IMAGE_MODEL = '@cf/black-forest-labs/flux-2-klein-4b';
@@ -915,29 +931,54 @@ async function reserveVoiceChars(env, length) {
   return true;
 }
 
-/** A named Aura voice for a short line, or null so MeloTTS speaks instead. */
-async function namedVoice(payload, text, env, corsHeaders) {
+async function runVoice(env, model, speaker, text) {
+  return withDeadline((async () => {
+    const result = await env.AI.run(model, { text, speaker, encoding: 'mp3' }, { returnRawResponse: true });
+    if (result instanceof Response && !result.ok) throw new Error(`Voice inference failed (${result.status}).`);
+    const encoded = result?.audio ?? result?.result?.audio;
+    if (typeof encoded === 'string') return Uint8Array.from(atob(encoded), char => char.charCodeAt(0));
+    if (!(result instanceof Response || result instanceof ReadableStream || result instanceof Blob
+      || result instanceof ArrayBuffer || ArrayBuffer.isView(result))) throw new Error('Invalid voice result.');
+    return new Uint8Array(await (result instanceof Response ? result : new Response(result)).arrayBuffer());
+  })(), VOICE_TIMEOUT_MS, model);
+}
+/**
+ * A named voice for a short line, or null so MeloTTS speaks instead. The same line in the same
+ * voice is kept for a month, so a replay, a second class or tomorrow's review is free and instant.
+ */
+async function namedVoice(payload, text, env, ctx, corsHeaders) {
   const speaker = String(payload.voice || '').toLowerCase();
-  if (!VOICE_SPEAKERS.has(speaker) || text.length > VOICE_MAX_TEXT) return null;
-  try {
-    if (!(await reserveVoiceChars(env, text.length))) return null;
-    const bytes = await withDeadline((async () => {
-      const result = await env.AI.run(VOICE_MODEL, { text, speaker, encoding: 'mp3' }, { returnRawResponse: true });
-      if (result instanceof Response && !result.ok) throw new Error(`Voice inference failed (${result.status}).`);
-      const encoded = result?.audio ?? result?.result?.audio;
-      if (typeof encoded === 'string') return Uint8Array.from(atob(encoded), char => char.charCodeAt(0));
-      if (!(result instanceof Response || result instanceof ReadableStream || result instanceof Blob
-        || result instanceof ArrayBuffer || ArrayBuffer.isView(result))) throw new Error('Invalid voice result.');
-      return new Uint8Array(await (result instanceof Response ? result : new Response(result)).arrayBuffer());
-    })(), VOICE_TIMEOUT_MS, VOICE_MODEL);
-    return speechAudioResponse(bytes, `${VOICE_MODEL}:${speaker}`, corsHeaders);
-  } catch (error) {
-    console.warn(JSON.stringify({ event: 'gcq_voice_fallback', speaker, reason: describeAiError(error) }));
-    return null;
+  const aura2 = VOICE2_SPEAKERS.has(speaker);
+  if (!(aura2 || VOICE_SPEAKERS.has(speaker)) || text.length > VOICE_MAX_TEXT) return null;
+  const attempts = [];
+  if (aura2) attempts.push({ model: VOICE2_MODEL, speaker, cost: text.length * VOICE2_COST });
+  const stand = aura2 ? VOICE_AURA1_STAND_IN[speaker] || (VOICE_SPEAKERS.has(speaker) ? speaker : null) : speaker;
+  if (stand) attempts.push({ model: VOICE_MODEL, speaker: stand, cost: text.length });
+  for (const attempt of attempts) {
+    const cacheKey = env.QUOTE_CACHE ? `voice-audio:v1:${attempt.model.split('/').pop()}:${attempt.speaker}:${await sha256Hex(text)}` : '';
+    try {
+      if (cacheKey) {
+        const cached = await env.QUOTE_CACHE.get(cacheKey, { type: 'arrayBuffer' });
+        if (cached && cached.byteLength > 32) {
+          return speechAudioResponse(new Uint8Array(cached), `${attempt.model}:${attempt.speaker}`, corsHeaders);
+        }
+      }
+      if (!(await reserveVoiceChars(env, attempt.cost))) continue;
+      const bytes = await runVoice(env, attempt.model, attempt.speaker, text);
+      const response = speechAudioResponse(bytes, `${attempt.model}:${attempt.speaker}`, corsHeaders);
+      if (cacheKey) {
+        const save = env.QUOTE_CACHE.put(cacheKey, bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), { expirationTtl: VOICE_CACHE_TTL }).catch(() => {});
+        if (ctx?.waitUntil) ctx.waitUntil(save);
+      }
+      return response;
+    } catch (error) {
+      console.warn(JSON.stringify({ event: 'gcq_voice_fallback', model: attempt.model, speaker: attempt.speaker, reason: describeAiError(error) }));
+    }
   }
+  return null;
 }
 
-async function handleSpeech(payload, env, corsHeaders) {
+async function handleSpeech(payload, env, ctx, corsHeaders) {
   // Fail closed until this account's Workers Free plan has been verified.
   // Free accounts stop inference at the shared daily allowance; Paid accounts bill overages.
   if (env.SPEECH_FREE_PLAN_CONFIRMED !== 'true' || !env.AI?.run) {
@@ -950,7 +991,7 @@ async function handleSpeech(payload, env, corsHeaders) {
   if (String(payload.lang || 'en').toLowerCase() !== 'en') {
     return json({ error: 'This narration language needs a device voice.' }, 400, corsHeaders);
   }
-  const voiced = await namedVoice(payload, text, env, corsHeaders);
+  const voiced = await namedVoice(payload, text, env, ctx, corsHeaders);
   if (voiced) return voiced;
   try {
     const bytes = await withDeadline((async () => {
@@ -978,7 +1019,7 @@ async function processRequest(request, env, ctx, corsHeaders, identity, payload,
   if (!rate.allowed) return json({ error: 'Too many requests.' }, 429, corsHeaders, { 'Retry-After': String(rate.retryAfter) });
   if (route === 'chat') return handleChat(payload, env, ctx, corsHeaders);
   if (route === 'image') return handleImage(payload, env, corsHeaders);
-  if (route === 'speech') return handleSpeech(payload, env, corsHeaders);
+  if (route === 'speech') return handleSpeech(payload, env, ctx, corsHeaders);
   return json({ error: 'Invalid payload.' }, 400, corsHeaders, { 'X-GCQ-Request-ID': requestId });
 }
 

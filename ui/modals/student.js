@@ -358,12 +358,11 @@ export function openEditStudentModal(studentId, options = {}) {
         };
     }
 
-    // Nameday AI Lookup Button State
-    const eliteAiEnabled = canUseFeature('eliteAI');
+    // Name-day lookup: the Greek calendar ships with the app, so every plan can use it.
     const namedayLookupBtn = document.getElementById('lookup-nameday-btn');
     if (namedayLookupBtn) {
-        namedayLookupBtn.classList.toggle('sp-lookup--locked', !eliteAiEnabled);
-        namedayLookupBtn.title = eliteAiEnabled ? 'AI Nameday Lookup (Greek Orthodox calendar)' : 'Elite plan: AI Nameday Lookup';
+        namedayLookupBtn.classList.remove('sp-lookup--locked');
+        namedayLookupBtn.title = 'Find the name day from the Greek calendar';
         namedayLookupBtn.setAttribute('aria-label', namedayLookupBtn.title);
     }
 

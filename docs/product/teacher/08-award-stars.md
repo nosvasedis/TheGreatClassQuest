@@ -60,7 +60,7 @@ On the **first star click** of that student’s special day (when it matches the
 - **Happy Birthday!** → **+2.5** stars  
 - **Happy Nameday!** → **+1.5** stars  
 
-These are recorded as a bonus named after the occasion. Set dates on the student profile (AI Nameday Lookup on Elite for the Greek Orthodox calendar). Home reminder pills and Projector cards also announce the day.
+These are recorded as a bonus named after the occasion. Set dates on the student profile (**Find from name** fills the name day from the Greek calendar on every plan; moving feasts follow Easter each year). Home reminder pills and Projector cards also announce the day.
 
 ## Hero’s Boon (peer gift)
 

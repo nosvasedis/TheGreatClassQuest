@@ -24,6 +24,7 @@ import { getUpgradeMessage } from '../../config/tiers/features.js';
 import { withActiveScoreYear, withActiveStudentYear } from '../../utils/schoolYear.js';
 import { allocateReturningStudents, purgeStudent } from '../../utils/adminRuntime.js';
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
+import { findNameday, namedayToStore } from '../../features/namedayCalendar.mjs';
 
 
 const SCORE_DEFAULTS = {
@@ -69,7 +70,8 @@ export async function createStudent(data = {}, options = {}) {
     }
     const owner = normalizeCreatedBy(data.createdBy);
     const birthday = occasionDate(data.birthday);
-    const nameday = occasionDate(data.nameday);
+    // An empty name day is filled from the Greek calendar when the name is in it.
+    const { nameday, namedayRule } = namedayToStore(name, occasionDate(data.nameday));
     const activeYearKey = state.getActiveSchoolYearKey();
 
     const studentId = await runTransaction(db, async (transaction) => {
@@ -80,7 +82,8 @@ export async function createStudent(data = {}, options = {}) {
             createdBy: owner,
             createdAt: serverTimestamp(),
             ...(birthday ? { birthday } : {}),
-            ...(nameday ? { nameday } : {})
+            ...(nameday ? { nameday } : {}),
+            ...(namedayRule ? { namedayRule } : {})
         }, activeYearKey);
         transaction.set(newStudentRef, studentData);
         transaction.set(doc(db, `${PUBLIC_DATA_PATH}/student_scores`, newStudentRef.id), withActiveScoreYear({
@@ -205,7 +208,10 @@ export async function handleSaveStudentDetails() {
 
     const nMonth = document.getElementById('edit-student-nameday-month').value;
     const nDay = document.getElementById('edit-student-nameday-day').value;
-    const nameday = (nMonth && nDay) ? `0000-${String(nMonth).padStart(2, '0')}-${String(nDay).padStart(2, '0')}` : null;
+    const chosenNameday = (nMonth && nDay) ? `0000-${String(nMonth).padStart(2, '0')}-${String(nDay).padStart(2, '0')}` : null;
+    // A chosen date that is this year's date of a moving feast (Saint George, Thomas Sunday…) keeps moving.
+    const { namedayRule } = chosenNameday ? namedayToStore(newName, chosenNameday) : { namedayRule: null };
+    const nameday = chosenNameday;
 
     if (!newName) {
         showToast('Name cannot be empty.', 'error');
@@ -221,7 +227,8 @@ export async function handleSaveStudentDetails() {
         await updateDoc(studentRef, {
             name: newName,
             birthday: birthday,
-            nameday: nameday
+            nameday: nameday,
+            namedayRule: namedayRule || null
         });
         showToast('Student details updated!', 'success');
         modals.hideModal('edit-student-modal');
@@ -234,19 +241,37 @@ export async function handleSaveStudentDetails() {
     }
 }
 
-export async function handleLookupNameday() {
-    if (!canUseFeature('eliteAI')) {
-        showUpgradePrompt({
-            feature: 'AI Nameday Lookup',
-            tier: 'Elite',
-            message: getUpgradeMessage('Elite')
-        });
-        return;
-    }
+function applyNamedayToForm(month, day) {
+    const monthSelect = document.getElementById('edit-student-nameday-month');
+    const daySelect = document.getElementById('edit-student-nameday-day');
+    if (!monthSelect || !daySelect) return;
+    monthSelect.value = Number(month);
+    daySelect.value = Number(day);
+    monthSelect.dispatchEvent(new Event('change', { bubbles: true }));
+}
 
+/** Name day from the Greek calendar that ships with the app; Elite asks the AI only for names it does not hold. */
+export async function handleLookupNameday() {
     const studentName = document.getElementById('edit-student-name-input-full').value.trim();
     if (!studentName) {
         showToast('Please enter a name first.', 'info');
+        return;
+    }
+    const firstName = studentName.split(/\s+/)[0];
+
+    const found = findNameday(studentName);
+    if (found) {
+        const [month, day] = found.date.split('-').map(Number);
+        applyNamedayToForm(month, day);
+        const when = new Date(2000, month - 1, day).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' });
+        showToast(found.movable
+            ? `${firstName} celebrates on ${found.feast}, which is ${when} this year. It moves with Easter, and the app follows it every year.`
+            : `${firstName} celebrates on ${when} (${found.feast}).`, 'success');
+        return;
+    }
+
+    if (!canUseFeature('eliteAI')) {
+        showToast(`"${firstName}" is not in the name-day calendar. Please pick the date by hand.`, 'info');
         return;
     }
 
@@ -262,16 +287,14 @@ export async function handleLookupNameday() {
         const result = await callGeminiApi(systemPrompt, userPrompt);
         if (result && result.match(/^\d{4}-\d{2}-\d{2}$/)) {
             const [_year, month, day] = result.split('-').map(Number);
-            document.getElementById('edit-student-nameday-month').value = month;
-            document.getElementById('edit-student-nameday-day').value = day;
-            document.getElementById('edit-student-nameday-month').dispatchEvent(new Event('change', { bubbles: true }));
-            showToast(`Suggested nameday for ${studentName} found!`, 'success');
+            applyNamedayToForm(month, day);
+            showToast(`"${firstName}" is not in the calendar, so this date is the AI's suggestion. Please check it.`, 'info');
         } else {
-            showToast(`Could not automatically find a nameday for "${studentName}".`, 'info');
+            showToast(`Could not find a name day for "${firstName}". Please pick the date by hand.`, 'info');
         }
     } catch (error) {
         console.error("Nameday lookup failed:", error);
-        showToast("AI lookup failed. Please enter the date manually.", "error");
+        showToast("The lookup failed. Please enter the date manually.", "error");
     } finally {
         btn.disabled = false;
         btn.innerHTML = idleHtml;

@@ -297,7 +297,7 @@ function renderDateChips(kind, month, day) {
                 <strong>${kind === 'birthday' ? 'Birthday' : 'Nameday'}</strong>
                 <button type="button" class="student-desk-date-clear" data-student-desk-clear-${kind}>Clear</button>
             </div>
-            <p class="student-desk-date-card__hint">${kind === 'birthday' ? 'Optional. Celebrated during attendance.' : 'Optional. Greek Orthodox nameday.'}</p>
+            <p class="student-desk-date-card__hint">${kind === 'birthday' ? 'Optional. Celebrated during attendance.' : 'Optional. Left empty, it is filled from the Greek name-day calendar.'}</p>
             <div class="class-desk-days" role="group" aria-label="${kind} month">
                 ${MONTHS.map((item) => `
                     <button type="button"

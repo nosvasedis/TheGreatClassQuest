@@ -44,7 +44,7 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'special-days', icon: 'fa-cake-candles', name: 'Birthdays and name days', tier: 'starter',
                     where: 'Dates live in the Adventurer\'s Passport', go: 'options:classes',
-                    text: `Set a Birthday and a Name day on the student's Passport (Elite can find the name day from the name). On the day, the first star adds a gift: +2.5 stars for a birthday, +1.5 for a name day. Home and the projector announce it as well.`,
+                    text: `Set a Birthday and a Name day on the student's Passport (Find from name fills the name day from the Greek calendar, and moving feasts follow Easter every year). On the day, the first star adds a gift: +2.5 stars for a birthday, +1.5 for a name day. Home and the projector announce it as well.`,
                     keys: 'birthday nameday name day celebration bonus'
                 },
                 {

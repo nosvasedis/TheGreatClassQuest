@@ -215,8 +215,8 @@ export const studentModalsHTML = `
                                     </div>
                                     <div class="sp-stamp__foot">
                                         <span class="sp-stamp__date" data-stamp-date="nameday">Not set yet</span>
-                                        <button type="button" id="lookup-nameday-btn" class="sp-lookup bubbly-button" title="AI Nameday Lookup (Greek Orthodox calendar)">
-                                            <i class="fas fa-magic" aria-hidden="true"></i>
+                                        <button type="button" id="lookup-nameday-btn" class="sp-lookup bubbly-button" title="Find the name day from the Greek calendar">
+                                            <i class="fas fa-calendar-day" aria-hidden="true"></i>
                                             <span>Find from name</span>
                                         </button>
                                     </div>

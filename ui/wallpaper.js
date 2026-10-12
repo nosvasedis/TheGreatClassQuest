@@ -40,6 +40,7 @@ import {
 import { playPortalOpen, playPortalClose, enterFullscreen, leaveFullscreen } from './wallpaperPortal.js';
 import { openQuietDragonFrom } from './quietDragonButton.js';
 import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
+import { namedaysOn, orthodoxSeasonOn } from '../features/namedayCalendar.mjs';
 
 // Proper Fisher-Yates shuffle for true variety
 function shuffleDeck(array) {
@@ -2153,69 +2154,37 @@ function getThisDayInHistoryCard(questLevel) {
 
 // ─── Greek Orthodox Nameday ────────────────────────────────────────────────────
 function getGreekNamedayCard() {
-    const now = new Date();
-    const mmdd = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const NAMEDAYS = {
-        '01-01': ['Vassilis', 'Vassiliki'], '01-06': ['Fotis', 'Fotini'], '01-07': ['Ioannis', 'Giannis', 'Ioanna'],
-        '01-17': ['Antonis', 'Antonia'], '01-18': ['Athanasios', 'Nassos', 'Nassia'],
-        '02-02': ['Ypapanti'], '02-10': ['Charalampos', 'Chara'], '02-11': ['Theodora'],
-        '03-04': ['Gerasimos'], '03-17': ['Alexios'], '03-25': ['Annunciation', 'Evangelia', 'Vangelis'],
-        '04-23': ['Georgios', 'Giorgis', 'Georgia'], '04-25': ['Markos'],
-        '05-01': ['May Day'], '05-05': ['Irene'], '05-21': ['Konstantinos', 'Eleni', 'Nikos'],
-        '06-11': ['Barnabas'], '06-24': ['John the Baptist', 'Giannis'],
-        '06-29': ['Petros', 'Pavlos'],
-        '07-17': ['Marina'], '07-20': ['Elias', 'Elianna'], '07-22': ['Mary Magdalene'],
-        '07-26': ['Paraskevi'], '07-27': ['Panteleimon'],
-        '08-06': ['Sotiris', 'Sotiria'], '08-15': ['Holy Mary', 'Maria', 'Panagiotis'],
-        '09-08': ['Maria', 'Nativity'], '09-14': ['Stavros', 'Stavroula'],
-        '10-18': ['Loukas'], '10-26': ['Dimitrios', 'Dimitra', 'Mitsos'],
-        '11-08': ['Archangels'], '11-14': ['Philippos'], '11-25': ['Aikaterini', 'Katerina'],
-        '11-30': ['Andreas'],
-        '12-04': ['Varvara'], '12-05': ['Savvas'], '12-06': ['Nikolaos', 'Nikos', 'Nikoleta'],
-        '12-09': ['Anna'], '12-12': ['Spyridon', 'Spyros'], '12-17': ['Dionysios'],
-        '12-25': ['Christmas'], '12-27': ['Stefanos', 'Stefania']
-    };
-    const names = NAMEDAYS[mmdd];
-    if (!names || names.length === 0) return null;
-    const nameList = names.join(' & ');
+    const feasts = namedaysOn(new Date());
+    if (!feasts.length) return null;
+    const names = [...new Set(feasts.flatMap((f) => f.names))];
+    const shown = names.slice(0, 8);
+    const more = names.length - shown.length;
+    const feastLine = feasts.map((f) => f.feast).join(' · ');
     return {
         html: `<div class="text-center relative">
             <div class="absolute -top-4 left-1/2 -translate-x-1/2 text-5xl animate-bounce">✨</div>
-            <div class="badge-pill bg-green-100 text-green-700 mt-4">Greek Nameday</div>
-            <div class="text-8xl my-4">🎈</div>
-            <h2 class="font-title text-4xl text-green-900">${nameList}</h2>
-            <p class="font-serif italic text-2xl text-green-600 mt-3">Happy Nameday! 🎉</p>
-            <p class="text-green-500 text-sm mt-1">Today is the nameday of ${nameList}!</p>
+            <div class="badge-pill bg-green-100 text-green-700 mt-4">Χρόνια πολλά! · Name day</div>
+            <div class="text-7xl my-3">🎈</div>
+            <h2 class="font-title text-4xl text-green-900 leading-tight">${shown.join(' · ')}${more > 0 ? ` <span class="text-2xl text-green-600">+${more}</span>` : ''}</h2>
+            <p class="font-serif italic text-2xl text-green-600 mt-3">${feastLine}</p>
+            <p class="text-green-500 text-sm mt-1">Do you know someone with one of these names? Say “Happy name day!”</p>
         </div>`,
         css: 'float-card-green'
     };
 }
 
 // ─── Orthodox Calendar Card ────────────────────────────────────────────────────
+// Fixed feasts plus the ones that move with Orthodox Easter, worked out for this year.
 function getOrthodoxCalendarCard() {
     const now = new Date();
-    const mmdd = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    // Key Orthodox events/fasting periods (approximate fixed dates)
-    const events = [
-        { start: '11-15', end: '12-24', name: 'Nativity Fast', icon: '⛪', info: 'Fasting season before Christmas' },
-        { start: '01-07', end: '01-07', name: 'After Christmas', icon: '✝️', info: 'Orthodox Christmas celebrations' },
-        { start: '03-25', end: '03-25', name: 'Annunciation', icon: '🇬🇷', info: 'National & religious celebration!' },
-        { start: '04-01', end: '04-15', name: 'Great Lent', icon: '🕊️', info: 'Holy Week approaching – big celebrations ahead!' },
-        { start: '04-16', end: '04-22', name: 'Holy Week', icon: '🕯️', info: 'The most sacred week of the Orthodox year' },
-        { start: '08-01', end: '08-14', name: 'Dormition Fast', icon: '🌸', info: 'Fasting before the feast of the Virgin Mary (Aug 15)' },
-        { start: '08-15', end: '08-15', name: 'Dormition of the Theotokos', icon: '🌹', info: 'Major feast day – Best wishes to all Marias!' },
-        { start: '09-14', end: '09-14', name: 'Holy Cross Day', icon: '✝️', info: 'Feast of the Exaltation of the Holy Cross' },
-    ];
-    const toNum = s => parseInt(s.replace('-', ''), 10);
-    const todayNum = toNum(mmdd);
-    const current = events.find(e => todayNum >= toNum(e.start) && todayNum <= toNum(e.end));
-    if (!current) return null;
+    const season = orthodoxSeasonOn(now);
+    if (!season) return null;
     return {
         html: `<div class="text-center w-full">
-            <div class="badge-pill bg-indigo-100 text-indigo-800">Orthodox Calendar</div>
-            <div class="text-8xl my-4">${current.icon}</div>
-            <h3 class="font-title text-4xl text-indigo-900">${current.name}</h3>
-            <p class="text-indigo-600 font-bold text-xl mt-2">${current.info}</p>
+            <div class="badge-pill bg-indigo-100 text-indigo-800">Greek Calendar</div>
+            <div class="text-8xl my-4">${season.icon}</div>
+            <h3 class="font-title text-4xl text-indigo-900">${season.name}</h3>
+            <p class="text-indigo-600 font-bold text-xl mt-2">${season.info}</p>
         </div>`,
         css: 'float-card-indigo'
     };

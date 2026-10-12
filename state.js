@@ -6,6 +6,7 @@ import {
     normalizeSchoolYearState
 } from "./utils/schoolYear.js";
 import { setSchoolYearOpeningDay } from "./utils/schoolYearOpening.mjs";
+import { applyMovableNamedays } from "./features/namedayCalendar.mjs";
 
 // --- Internal State Store ---
 let state = {};
@@ -373,7 +374,7 @@ export function setAllSchoolClasses(classes) {
     _notify("allSchoolClasses");
 }
 export function setAllStudents(students) {
-    state.allStudents = withSafeNames(students);
+    state.allStudents = applyMovableNamedays(withSafeNames(students));
     updateReigningHero();
     _notify("allStudents");
 }

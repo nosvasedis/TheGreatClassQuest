@@ -20,6 +20,7 @@ import {
     TOKEN_LANE_GAP,
     WORLD_H,
     WORLD_W,
+    realmStates,
     resolveSceneTier,
     routeSegments
 } from './questWorld/worldGeometry.mjs';
@@ -466,6 +467,8 @@ export function generateLeagueMapHtml(classes, options = {}) {
                         <span class="tq-route-finish__glow" aria-hidden="true"></span>
                         <img class="tq-portal-vortex tq-portal-vortex--outer" src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" decoding="async" aria-hidden="true">
                         <img class="tq-portal-vortex tq-portal-vortex--inner" src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" decoding="async" aria-hidden="true">
+                        <span class="tq-portal-veil" aria-hidden="true">${[1, 2, 0].map((cloud, i) => `<span class="tq-portal-veil__cloud" style="--i:${i}"><img src="${PAINTED_PROPS.clouds[cloud]}" alt="" draggable="false" decoding="async"></span>`).join('')}</span>
+                        <span class="tq-portal-shine" aria-hidden="true"><span></span></span>
                     </button>
                 </span>
                 <div class="tq-world-front" data-quest-world-front aria-hidden="true"></div>
@@ -656,6 +659,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
     const routeSegments = toSegments('[data-route-segment]');
     if (!root || !frame || routeSegments.length === 0) return null;
     const fogSegments = toSegments('[data-fog-segment]');
+    const portalFinish = root.querySelector('.tq-route-finish');
 
     const listeners = new AbortController();
     const on = (target, type, handler, options = {}) => target.addEventListener(type, handler, { ...options, signal: listeners.signal });
@@ -859,6 +863,8 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
     // The road beyond the furthest party is still unexplored: washed out under a veil of parchment.
     const updateExploration = (explored, { animate = false } = {}) => {
         lastExplored = explored;
+        // The Portal hides behind the clouds, shining through, until a party reaches the Crystal Realm.
+        if (portalFinish) portalFinish.dataset.veil = { asleep: 'deep', waking: 'thin' }[realmStates(explored).crystal] || 'clear';
         scene?.setExplored(explored, { animate });
         magic?.setExplored(explored, { animate });
         const rect = frame.getBoundingClientRect();

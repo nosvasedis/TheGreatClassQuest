@@ -57,3 +57,18 @@ that the road climbs the painted stair and passes in front of the citadel.
 - `lights-1600.webp`: the night glow (windows, lamps, the stair, the Portal), added over any season after dusk.
 - `sketch-1280.webp`: the ink sketch shown while the scroll unrolls.
 - `cloud-0..3.webp`, `seal.webp`, `ribbon.webp`: the sky clouds and realm mists, plus the scroll's seal and ribbon.
+
+## Turning windmills (after the bake)
+
+The village windmills' sails were lifted out of the land so they can turn.
+Each windmill was cut from `land-<season>-2560.webp` as a 384 px square (centres in
+`WINDMILLS` of `free_windmills.py`), upscaled to 768 and repainted without its
+sails (`google/gemini-3.1-flash-image`, 1K, 1:1; eight calls):
+
+> Edit this painting: remove the four windmill sails (the wooden lattice blades in an X shape) completely. Keep the windmill tower, its conical roof and a small round wooden hub at the front of the cap. Repaint whatever was behind the sails (the roof, the trees, the water, the houses, the ground) seamlessly in the same painted style. Change NOTHING else: same framing, same position of every object, same colours and lighting, same size.
+
+Then `python3 tools/team-quest-map/free_windmills.py <folder with <season>-<k>.png and e-<season>-<k>.png>`
+pastes the repainted pixels where the sails were (at 2560 and 1600) and writes
+`sails.webp`: one painted blade repeated round a wooden hub. `worldArt.mjs#WINDMILLS`
+turns it in front of both windmills. Run it after every rebake, since the bake
+writes the land with its sails again.

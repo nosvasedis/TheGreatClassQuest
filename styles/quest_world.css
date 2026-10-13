@@ -464,6 +464,141 @@
 .tq-sp--fireflies span:nth-child(9) { left: 56%; top: 86%; animation-delay: -3.8s, -0.9s; }
 .tq-sp--fireflies span:nth-child(10) { left: 92%; top: 30%; animation-delay: -6.6s, -1.7s; }
 
+/* The windmills turn their sails (faster in a wind). The far one turns in a
+   plane through its hub, so its sails sweep an ellipse as the painting sees it. */
+.tq-sp__plane,
+.tq-sp__spin { position: absolute; inset: 0; display: block; }
+.tq-sp__spin { animation: tqw-sails calc(20s / var(--tq-wind, 1)) linear infinite; animation-delay: var(--d, 0s); }
+.tq-sp--sails img { transform-origin: 50% 50%; }
+.tq-world[data-tier='lite'] .tq-sp__spin { animation-duration: calc(28s / var(--tq-wind, 1)); }
+
+/* Banners on the spires stream the way the wind blows. */
+.tq-sp--banner { transform-origin: 7% 100%; transform: scaleX(var(--tq-wind-dir, 1)); }
+.tq-sp--banner > svg { position: absolute; inset: 0; }
+.tq-sp__cloth {
+    position: absolute;
+    left: 7%;
+    top: 4%;
+    width: 86%;
+    height: 44%;
+    transform-origin: 0 50%;
+    animation: tqw-banner calc(1.6s / var(--tq-wind, 1)) ease-in-out infinite alternate;
+    animation-delay: var(--d, 0s);
+}
+
+.tq-sp__cloth svg { filter: drop-shadow(0 1px 0 rgba(60, 30, 10, 0.25)); }
+
+/* The season in the air: leaves in autumn, blossom in spring, seeds in
+   summer, sparkles of frost in winter. Each one travels from its own spot. */
+.tq-sp--drift { overflow: visible; }
+.tq-sp--drift span {
+    position: absolute;
+    width: 0.62%;
+    aspect-ratio: 1.5;
+    border-radius: 0 80% 0 80%;
+    background: linear-gradient(135deg, #f6b13c, #c2461c);
+    opacity: 0;
+    animation: tqw-season-drift 16s linear infinite;
+}
+
+.tq-world[data-season='spring'] .tq-sp--drift span { aspect-ratio: 1.2; border-radius: 70% 0 70% 0; background: linear-gradient(135deg, #fff1f7, #f7a3c6); }
+.tq-world[data-season='summer'] .tq-sp--drift span { width: 0.42%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(closest-side, #fffef0, rgba(255, 252, 220, 0.7) 45%, rgba(255, 252, 220, 0)); }
+.tq-world[data-season='winter'] .tq-sp--drift span { width: 0.4%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(closest-side, #ffffff, rgba(225, 240, 255, 0.75) 45%, rgba(225, 240, 255, 0)); }
+.tq-sp--drift span:nth-child(1) { left: 4%; top: 6%; animation-duration: 15s; }
+.tq-sp--drift span:nth-child(2) { left: 16%; top: 30%; animation-duration: 18s; animation-delay: -6s; }
+.tq-sp--drift span:nth-child(3) { left: 28%; top: 2%; animation-duration: 14s; animation-delay: -11s; }
+.tq-sp--drift span:nth-child(4) { left: 41%; top: 36%; animation-duration: 17s; animation-delay: -3s; }
+.tq-sp--drift span:nth-child(5) { left: 52%; top: 12%; animation-duration: 19s; animation-delay: -9s; }
+.tq-sp--drift span:nth-child(6) { left: 63%; top: 44%; animation-duration: 15.5s; animation-delay: -13s; }
+.tq-sp--drift span:nth-child(7) { left: 72%; top: 20%; animation-duration: 16.5s; animation-delay: -5s; }
+.tq-sp--drift span:nth-child(8) { left: 10%; top: 58%; animation-duration: 18.5s; animation-delay: -15s; }
+.tq-sp--drift span:nth-child(9) { left: 46%; top: 62%; animation-duration: 14.5s; animation-delay: -1s; }
+.tq-world:is([data-light='twilight'], [data-light='night']):not([data-season='winter']) .tq-sp--drift,
+.tq-world:is([data-tone='rain'], [data-tone='storm']) .tq-sp--drift { display: none; }
+
+/* Rings spread on the calm lake. */
+.tq-sp--ripple span {
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    border-radius: 50%;
+    opacity: 0;
+    animation: tqw-ripple 5.2s ease-out infinite;
+    animation-delay: var(--d, 0s);
+}
+
+.tq-sp--ripple span:nth-child(2) { animation-delay: calc(var(--d, 0s) - 0.7s); }
+.tq-world[data-night='1'] .tq-sp--ripple span { border-color: rgba(200, 220, 255, 0.4); }
+
+/* Now and then a fish leaps out of the lake and splashes back. */
+.tq-sp--fish.is-flipped { transform: scaleX(-1); }
+.tq-sp__leap {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 34%;
+    height: 34%;
+    opacity: 0;
+    animation: tqw-fish 11s linear infinite;
+    animation-delay: var(--d, 0s);
+}
+
+.tq-sp__splash {
+    position: absolute;
+    left: -6%;
+    bottom: -6%;
+    width: 46%;
+    height: 22%;
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    border-radius: 50%;
+    opacity: 0;
+    animation: tqw-splash 11s ease-out infinite;
+    animation-delay: var(--d, 0s);
+}
+
+.tq-sp__splash + .tq-sp__splash { left: 64%; animation-name: tqw-splash-back; }
+.tq-world:is([data-night='1'], [data-season='winter']) .tq-sp--fish { display: none; }
+
+/* A little rainbow hangs in the waterfall's spray when the sun is out. */
+.tq-sp--fall-rainbow { display: none; }
+.tq-world[data-sun='1'][data-tone='fair']:is([data-light='day'], [data-light='golden']) .tq-sp--fall-rainbow { display: block; }
+.tq-sp--fall-rainbow span {
+    position: absolute;
+    inset: 0;
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+    background: radial-gradient(ellipse 50% 100% at 50% 100%, transparent 58%, rgba(170, 120, 255, 0.5) 62%, rgba(90, 170, 255, 0.5) 67%, rgba(110, 230, 140, 0.5) 72%, rgba(255, 236, 110, 0.5) 77%, rgba(255, 150, 90, 0.5) 82%, transparent 86%);
+    animation: tqw-rainbow-breathe 7s ease-in-out infinite alternate;
+}
+
+/* Butterflies wander the meadows on a fair day. */
+.tq-sp--butterfly { display: none; }
+.tq-world[data-tone='fair']:is([data-light='day'], [data-light='golden']):not([data-season='winter']) .tq-sp--butterfly { display: block; }
+.tq-sp__wander {
+    position: absolute;
+    left: 40%;
+    top: 40%;
+    width: 16%;
+    aspect-ratio: 1.25;
+    animation: tqw-wander 13s ease-in-out infinite alternate;
+    animation-delay: var(--d, 0s);
+}
+
+.tq-sp__wings { display: block; width: 100%; height: 100%; animation: tqw-wings 0.22s ease-in-out infinite alternate; }
+
+/* An eagle circles the castle on Silver Peaks. */
+.tq-sp--eagle { display: none; }
+.tq-world:is([data-light='day'], [data-light='golden'], [data-light='dawn']):not([data-tone='storm']) .tq-sp--eagle { display: block; }
+.tq-sp__orbit {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 12%;
+    height: 30%;
+    animation: tqw-orbit-x 9s ease-in-out infinite alternate;
+}
+
+.tq-sp__soar { display: block; width: 100%; height: 100%; animation: tqw-orbit-y 9s ease-in-out infinite alternate; animation-delay: -4.5s; }
+
 /* ── Clouds over the realms nobody has reached yet ───────────────────── */
 .tq-mist {
     position: absolute;
@@ -819,6 +954,82 @@
 }
 
 .tq-route-finish__button:is(:hover, .is-hovered, :focus-visible)::after { opacity: 1; transform: scale(1); }
+
+/* ── The Portal behind the clouds ─────────────────────────────────────────
+   Until a party reaches the Crystal Realm the Portal hides in its clouds:
+   the vortex turns blurred and dim behind three painted clouds, their edges
+   lit from behind, and its light breaks through in slow rays and a glow
+   that swells and fades. Pointing at it parts the clouds a little for a
+   peek. When the realm wakes they thin; once it is reached they drift away. */
+.tq-portal-veil,
+.tq-portal-shine { position: absolute; display: block; pointer-events: none; }
+.tq-portal-veil { z-index: 2; inset: -70%; }
+.tq-portal-shine { z-index: 3; inset: -120%; }
+
+.tq-portal-veil__cloud {
+    position: absolute;
+    display: block;
+    opacity: 0;
+    transition: transform 1.8s cubic-bezier(0.2, 0.7, 0.2, 1), opacity 1.8s ease;
+}
+
+.tq-portal-veil__cloud img { display: block; width: 100%; height: auto; user-select: none; }
+.tq-portal-veil__cloud:nth-child(1) { left: -20%; top: 34%; width: 62%; --px: -34%; --py: -6%; transform: translate(-60%, -10%); }
+.tq-portal-veil__cloud:nth-child(2) { right: -18%; top: 8%; width: 58%; --px: 32%; --py: -14%; transform: translate(60%, -20%); }
+.tq-portal-veil__cloud:nth-child(3) { left: 22%; top: 60%; width: 66%; --px: 6%; --py: 30%; transform: translate(10%, 60%); }
+
+.tq-route-finish:is([data-veil='deep'], [data-veil='thin']) .tq-portal-veil__cloud { opacity: 0.8; transform: none; }
+.tq-route-finish[data-veil='thin'] .tq-portal-veil__cloud { opacity: 0.72; transform: translate(calc(var(--px) * 0.6), calc(var(--py) * 0.6)); }
+.tq-route-finish[data-veil='deep'] .tq-route-finish__button:is(:hover, .is-hovered, :focus-visible) .tq-portal-veil__cloud,
+.tq-route-finish[data-veil='thin'] .tq-route-finish__button:is(:hover, .is-hovered, :focus-visible) .tq-portal-veil__cloud {
+    opacity: 0.6;
+    transform: translate(var(--px), var(--py));
+    transition-duration: 0.9s;
+}
+
+/* Their edges are lit from behind (a silver lining in the Portal's colours). */
+.tq-living-map[data-fx='full'] .tq-portal-veil__cloud img { filter: drop-shadow(0 0 3px rgba(222, 196, 255, 0.95)) drop-shadow(0 0 7px rgba(150, 220, 255, 0.55)); }
+.tq-living-map[data-fx='full'][data-night='1'] .tq-portal-veil__cloud img { filter: brightness(0.6) saturate(0.75) hue-rotate(190deg) drop-shadow(0 0 3px rgba(222, 196, 255, 1)) drop-shadow(0 0 9px rgba(160, 130, 255, 0.8)); }
+.tq-living-map:not([data-fx='full'])[data-night='1'] .tq-portal-veil__cloud img { filter: brightness(0.6) saturate(0.75) hue-rotate(190deg); }
+
+/* The clouds drift and breathe, so now and then the vortex shows through. */
+.tq-living-map[data-fx='full'] .tq-portal-veil__cloud img { animation: tqw-veil-drift 12s ease-in-out infinite alternate; animation-delay: calc(var(--i) * -4.3s); }
+
+/* The vortex behind them: dim and soft while hidden, sharp once the clouds go. */
+.tq-route-finish .tq-portal-vortex { transition: opacity 1.8s ease, filter 1.8s ease; }
+.tq-route-finish[data-veil='deep'] .tq-portal-vortex { opacity: 0.9; filter: blur(1.5px) saturate(1.4); }
+.tq-route-finish[data-veil='thin'] .tq-portal-vortex { opacity: 0.8; filter: blur(0.8px) saturate(1.2); }
+.tq-living-map:not([data-fx='full']) .tq-route-finish:is([data-veil='deep'], [data-veil='thin']) .tq-portal-vortex { filter: none; }
+.tq-route-finish:is([data-veil='deep'], [data-veil='thin']) .tq-route-finish__button:is(:hover, .is-hovered, :focus-visible) .tq-portal-vortex { opacity: 0.9; filter: blur(0.5px) saturate(1.2); transition-duration: 0.9s; }
+
+/* Its light breaks through: rays turning slowly, a glow swelling over the clouds. */
+.tq-portal-shine span,
+.tq-portal-shine::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 1.8s ease;
+}
+
+.tq-portal-shine span {
+    background: repeating-conic-gradient(from 8deg, rgba(206, 166, 255, 0.75) 0deg 3deg, rgba(190, 240, 255, 0) 3deg 17deg, rgba(120, 214, 255, 0.6) 17deg 19deg, rgba(190, 240, 255, 0) 19deg 31deg);
+    -webkit-mask-image: radial-gradient(closest-side, transparent 12%, #000 22%, rgba(0, 0, 0, 0.35) 48%, transparent 76%);
+    mask-image: radial-gradient(closest-side, transparent 12%, #000 22%, rgba(0, 0, 0, 0.35) 48%, transparent 76%);
+}
+
+.tq-portal-shine::before { inset: 26%; background: radial-gradient(closest-side, rgba(226, 200, 255, 0.2) 12%, rgba(200, 156, 255, 0.72) 34%, rgba(120, 206, 255, 0.32) 62%, rgba(120, 206, 255, 0)); }
+
+.tq-route-finish[data-veil='deep'] .tq-portal-shine span { opacity: 0.85; }
+.tq-route-finish[data-veil='thin'] .tq-portal-shine span { opacity: 0.6; }
+.tq-route-finish:is([data-veil='deep'], [data-veil='thin']) .tq-portal-shine::before { opacity: 0.7; }
+.tq-living-map[data-night='1'] .tq-route-finish[data-veil='deep'] .tq-portal-shine span { opacity: 1; }
+.tq-living-map[data-fx='full'] .tq-route-finish:is([data-veil='deep'], [data-veil='thin']) .tq-portal-shine span { animation: tqw-shine-turn 70s linear infinite; }
+.tq-living-map[data-fx='full'] .tq-route-finish:is([data-veil='deep'], [data-veil='thin']) .tq-portal-shine::before { animation: tqw-shine-swell 4.6s ease-in-out infinite alternate; }
+
+/* While hidden, a hover glows softly instead of drawing a hard ring over the clouds. */
+.tq-route-finish:is([data-veil='deep'], [data-veil='thin']) .tq-route-finish__button::after { border-color: transparent; box-shadow: 0 0 1.6rem rgba(var(--place-glow), 0.8); }
 
 /* ── The place card: one shared tooltip, a little gilded page of the atlas ── */
 .tq-tip {
@@ -1423,6 +1634,14 @@
 .tq-idle-note i { margin-right: 0.35rem; color: #b7791f; }
 .tq-living-map:not([data-scroll='rolled']) .tq-idle-note { display: none; }
 
+/* ── Parties breathe while they wait ─────────────────────────────────────
+   On a strong computer each token floats a hair up and down, its shadow
+   answering, out of step with its neighbours. */
+.tq-living-map[data-fx='full'] .tq-token:not(.is-travelling) .tq-token__disc { animation: tqw-token-float 3.6s ease-in-out infinite alternate; }
+.tq-living-map[data-fx='full'] .tq-token:not(.is-travelling, :hover, :focus-visible, .is-selected) .tq-token__shadow { animation: tqw-token-shadow 3.6s ease-in-out infinite alternate; }
+.tq-living-map[data-fx='full'] .tq-token:nth-child(2n) :is(.tq-token__disc, .tq-token__shadow) { animation-delay: -1.3s; }
+.tq-living-map[data-fx='full'] .tq-token:nth-child(3n) :is(.tq-token__disc, .tq-token__shadow) { animation-delay: -2.4s; animation-duration: 4.2s; }
+
 /* ── Still and paused ──────────────────────────────────────────────────── */
 .tq-living-map.is-motion-paused .tq-stage *,
 .tq-living-map.is-motion-paused .tq-stage *::before,
@@ -1448,6 +1667,12 @@
     .tq-trail,
     .tq-living-map .tq-token__body { transition: none !important; }
     .tq-magic *,
+    .tq-portal-veil *,
+    .tq-portal-shine,
+    .tq-portal-shine *,
+    .tq-portal-shine::before,
+    .tq-living-map .tq-token__disc,
+    .tq-living-map .tq-token__shadow,
     .tq-trail,
     .tq-token__ring,
     .tq-idle-note,
@@ -1458,6 +1683,8 @@
     .tq-world__paint,
     .tq-world__canvas,
     .tq-mist__puff,
+    .tq-portal-veil__cloud,
+    .tq-portal-vortex,
     .tq-lantern__glow { transition-duration: 0.01ms !important; }
 }
 
@@ -1490,6 +1717,49 @@
 @keyframes tqw-spray-mist { 0% { opacity: 0; transform: translate3d(0, 0, 0) scale(0.8); } 30% { opacity: 0.55; } 100% { opacity: 0; transform: translate3d(0, -60%, 0) scale(1.5); } }
 @keyframes tqw-wave { from { transform: scaleX(0.84) skewY(-5deg); } to { transform: scaleX(1) skewY(5deg); } }
 @keyframes tqw-bob { from { transform: translate3d(0, -4px, 0); } to { transform: translate3d(0, 6px, 0); } }
+@keyframes tqw-token-float { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(0, -5%, 0); } }
+@keyframes tqw-token-shadow { from { opacity: 1; transform: scale(1); } to { opacity: 0.7; transform: scale(0.88); } }
+@keyframes tqw-veil-drift { from { opacity: 1; transform: translate3d(-7%, 0, 0); } to { opacity: 0.78; transform: translate3d(7%, -3%, 0); } }
+@keyframes tqw-shine-turn { to { transform: rotate(360deg); } }
+@keyframes tqw-shine-swell { from { opacity: 0.5; transform: scale(0.86); } to { opacity: 0.95; transform: scale(1.14); } }
+@keyframes tqw-sails { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+@keyframes tqw-banner {
+    0% { transform: scaleX(0.82) skewY(-6deg); }
+    50% { transform: scaleX(0.95) skewY(3deg); }
+    100% { transform: scaleX(1) skewY(-2deg); }
+}
+@keyframes tqw-season-drift {
+    0% { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+    8% { opacity: 0.95; }
+    25% { transform: translate(calc(var(--tq-wind-dir, 1) * 700%), 420%) rotate(140deg); }
+    50% { transform: translate(calc(var(--tq-wind-dir, 1) * 1150%), 1050%) rotate(260deg); }
+    75% { transform: translate(calc(var(--tq-wind-dir, 1) * 1900%), 1500%) rotate(420deg); }
+    90% { opacity: 0.9; }
+    100% { opacity: 0; transform: translate(calc(var(--tq-wind-dir, 1) * 2500%), 2100%) rotate(560deg); }
+}
+@keyframes tqw-ripple { 0% { opacity: 0; transform: scale(0.15); } 12% { opacity: 0.85; } 100% { opacity: 0; transform: scale(1.5); } }
+@keyframes tqw-fish {
+    0% { opacity: 0; transform: translate(0, 60%) rotate(-58deg); }
+    1% { opacity: 1; }
+    3% { transform: translate(55%, -60%) rotate(-38deg); }
+    5% { transform: translate(110%, -105%) rotate(-8deg); }
+    7% { transform: translate(160%, -80%) rotate(26deg); }
+    9% { opacity: 1; transform: translate(205%, 40%) rotate(58deg); }
+    10%, 100% { opacity: 0; transform: translate(215%, 80%) rotate(64deg); }
+}
+@keyframes tqw-splash { 0% { opacity: 0.9; transform: scale(0.2); } 9% { opacity: 0; transform: scale(1.4); } 100% { opacity: 0; transform: scale(1.4); } }
+@keyframes tqw-splash-back { 0%, 8.6% { opacity: 0; transform: scale(0.2); } 9% { opacity: 0.95; transform: scale(0.3); } 20% { opacity: 0; transform: scale(1.6); } 100% { opacity: 0; transform: scale(1.6); } }
+@keyframes tqw-rainbow-breathe { from { opacity: 0.25; transform: scale(0.96); } to { opacity: 0.7; transform: scale(1.04); } }
+@keyframes tqw-wander {
+    0% { transform: translate(-150%, 40%) rotate(-8deg); }
+    20% { transform: translate(-60%, -90%) rotate(10deg); }
+    45% { transform: translate(80%, -20%) rotate(-12deg); }
+    70% { transform: translate(150%, -110%) rotate(6deg); }
+    100% { transform: translate(40%, 70%) rotate(-4deg); }
+}
+@keyframes tqw-wings { from { transform: scaleX(1); } to { transform: scaleX(0.25); } }
+@keyframes tqw-orbit-x { from { transform: translateX(0); } to { transform: translateX(733%); } }
+@keyframes tqw-orbit-y { from { transform: translateY(0) rotate(-6deg); } to { transform: translateY(233%) rotate(6deg); } }
 @keyframes tqw-twinkle-star { 0%, 100% { opacity: 0; transform: scale(0.3) rotate(0deg); } 45% { opacity: 1; transform: scale(1) rotate(20deg); } 60% { opacity: 0.8; transform: scale(0.85) rotate(28deg); } }
 @keyframes tqw-mote { 0% { opacity: 0; transform: translate3d(0, 0, 0) scale(0.5); } 20% { opacity: 1; } 100% { opacity: 0; transform: translate3d(10px, -260%, 0) scale(1.1); } }
 @keyframes tqw-firefly {

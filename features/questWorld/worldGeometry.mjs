@@ -247,7 +247,7 @@ export function furthestRealm(explored) {
 // parallax and the diorama tilt. Hard caps keep a weak laptop smooth.
 export const SCENE_TIERS = Object.freeze({
     lite: Object.freeze({ maxSprites: 14, parallax: false, tilt: 0 }),
-    full: Object.freeze({ maxSprites: 64, parallax: true, tilt: 6 }),
+    full: Object.freeze({ maxSprites: 80, parallax: true, tilt: 6 }),
     still: Object.freeze({ maxSprites: 14, parallax: false, tilt: 0 })
 });
 

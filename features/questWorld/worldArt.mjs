@@ -13,7 +13,7 @@ import { PORTAL, lanternPositions, REALM_LANDMARKS } from './worldGeometry.mjs';
 
 export const WORLD_SEED = 20261013;
 /** Bump when the pictures change, so devices drop the old ones. */
-export const ART_VERSION = 6;
+export const ART_VERSION = 7;
 
 const asset = (name) => new URL(`../../assets/team-quest-map/painted/${name}`, import.meta.url).href;
 
@@ -39,7 +39,8 @@ export const PAINTED_PROPS = Object.freeze({
     seal: asset('seal.webp'),
     ribbon: asset('ribbon.webp'),
     sketch: asset('sketch-1280.webp'),
-    lights: asset('lights-1600.webp')
+    lights: asset('lights-1600.webp'),
+    sails: asset('sails.webp')
 });
 
 export const SEASONS = Object.freeze(['spring', 'summer', 'autumn', 'winter']);
@@ -49,6 +50,39 @@ const ISLET_BOXES = Object.freeze([
     { x: 1220.9, y: 155.3, w: 51.7, h: 81.4 },
     { x: 1475.6, y: 251.4, w: 58.1, h: 85.5 }
 ]);
+
+/**
+ * The village windmills. Their sails were lifted out of the painting
+ * (tools/team-quest-map/free_windmills.py) and turn on the hub here. `rest`
+ * is the angle the painting had them at; the far windmill is seen from the
+ * side, so its sails turn in a plane through its hub (a 2D matrix).
+ */
+export const WINDMILLS = Object.freeze([
+    Object.freeze({ x: 313.1, y: 523.1, size: 115, rest: 26.4, plane: null }),
+    Object.freeze({ x: 144.4, y: 738.1, size: 115, rest: 0, plane: Object.freeze([0.729, 0.444, -0.424, 1.035]) })
+]);
+
+// Spire and tower tops that fly a banner: the Golden Citadel and the castle on Silver Peaks.
+const BANNERS = Object.freeze([
+    [1146, 188, 'gold'], [1183, 256, 'crimson'], [1079, 290, 'crimson'], [1221, 298, 'gold'], [1275, 352, 'crimson'], [1038, 345, 'gold'],
+    [630, 78, 'silver'], [550, 97, 'azure'], [685, 105, 'azure']
+]);
+const BANNER_COLOURS = { gold: ['#f6c343', '#b9771a'], crimson: ['#d8433b', '#8e1f26'], silver: ['#f2f6ff', '#8aa3c9'], azure: ['#3f7fd8', '#1d4690'] };
+const BANNER = (kind) => {
+    const [cloth, edge] = BANNER_COLOURS[kind];
+    return `<svg viewBox="0 0 24 28" aria-hidden="true"><path d="M1.6 27 V1.5" stroke="#5b3b1f" stroke-width="1.4" stroke-linecap="round"/><circle cx="1.6" cy="1.4" r="1.2" fill="#f3d27a"/></svg>`
+        + `<span class="tq-sp__cloth"><svg viewBox="0 0 22 12" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0 H22 L16 6 L22 12 H0 Z" fill="${cloth}" stroke="${edge}" stroke-width="1"/></svg></span>`;
+};
+
+// Where the lake is wide and calm enough for a fish to leap and rings to spread.
+const RIPPLES = Object.freeze([[881, 851], [985, 782], [1099, 810], [764, 822]]);
+const FISH = Object.freeze([[910, 812], [1040, 790]]);
+// Meadows and gardens where butterflies wander on a fair day.
+const MEADOWS = Object.freeze([[598, 612], [1262, 602], [236, 812]]);
+
+const FISH_SVG = '<svg viewBox="0 0 30 14" aria-hidden="true"><path d="M2 7 Q10 0 20 5 L28 1 L26 7 L28 13 L20 9 Q10 14 2 7 Z" fill="#f2a24a" stroke="#9a5320" stroke-width="0.8"/><circle cx="7" cy="6" r="1" fill="#2b1a0e"/></svg>';
+const BUTTERFLY = (a, b) => `<svg viewBox="0 0 20 16" aria-hidden="true"><path d="M10 8 C6 0 0 1 1 6 C2 9 7 9 10 8 Z M10 8 C7 10 3 14 5 15 C8 16 9 12 10 8 Z" fill="${a}" stroke="${b}" stroke-width="0.6"/><path d="M10 8 C14 0 20 1 19 6 C18 9 13 9 10 8 Z M10 8 C13 10 17 14 15 15 C12 16 11 12 10 8 Z" fill="${a}" stroke="${b}" stroke-width="0.6"/><path d="M10 4 V13" stroke="#3a2614" stroke-width="1.2" stroke-linecap="round"/></svg>`;
+const EAGLE = '<svg viewBox="0 0 40 14" aria-hidden="true"><path d="M1 6 Q10 1 18 6 L20 8 L22 6 Q30 1 39 6 Q30 4 23 9 L20 12 L17 9 Q10 4 1 6 Z" fill="#3b2d24"/></svg>';
 
 // Chimney tops in the village, where the painted smoke rises from.
 const CHIMNEYS = Object.freeze([[137, 565], [205, 542], [372, 532], [485, 567], [390, 780]]);
@@ -83,6 +117,14 @@ export function buildWorldSprites(season = 'autumn') {
     const push = (sprite) => sprites.push({ slot: 'mid', tier: 'full', ...sprite });
     const islets = ISLETS[season] || ISLETS.autumn;
 
+    // The windmills turn first: the painting no longer has sails of its own.
+    WINDMILLS.forEach((mill, i) => {
+        const half = mill.size / 2;
+        const plane = mill.plane ? ` style="transform:matrix(${mill.plane.join(',')},0,0)"` : '';
+        push({ id: `sails-${i}`, kind: 'sails', tier: 'lite', x: mill.x - half, y: mill.y - half, w: mill.size, h: mill.size, delay: -i * 3.7,
+            html: `<span class="tq-sp__plane"${plane}><span class="tq-sp__spin"><img src="${PAINTED_PROPS.sails}" alt="" draggable="false" decoding="async" style="transform:rotate(${mill.rest}deg)"></span></span>` });
+    });
+
     // The islets drift in the sky and the great waterfall falls (the Portal's
     // vortex turns in the map's own Portal button, features/worldMap.js).
     ISLET_BOXES.forEach((box, i) => {
@@ -116,6 +158,30 @@ export function buildWorldSprites(season = 'autumn') {
     push({ id: 'birds-0', kind: 'birds', slot: 'back', x: 240, y: 170, w: 60, h: 30, html: `<span class="tq-sp__flap">${BIRDS}</span>` });
     push({ id: 'birds-1', kind: 'birds', slot: 'back', x: 860, y: 120, w: 44, h: 22, html: `<span class="tq-sp__flap">${BIRDS}</span>`, delay: -11 });
     push({ id: 'fireflies', kind: 'fireflies', x: 40, y: 480, w: 1000, h: 380, html: spans(10) });
+
+    // Banners on the citadel spires and the mountain castle, streaming with the wind.
+    BANNERS.forEach(([x, y, kind], i) => {
+        push({ id: `banner-${i}`, kind: 'banner', x: x - 1.6, y: y - 25, w: 22, h: 26, delay: -i * 0.37, html: BANNER(kind) });
+    });
+    // The season in the air: falling leaves, blossom, summer seeds or winter sparkles.
+    push({ id: 'drift', kind: 'drift', x: 0, y: 140, w: 1600, h: 760, html: spans(9) });
+    // Rings on the lake, now and then a leaping fish, a little rainbow in the waterfall's spray.
+    RIPPLES.forEach(([x, y], i) => {
+        push({ id: `ripple-${i}`, kind: 'ripple', x: x - 16, y: y - 6, w: 32, h: 12, delay: -i * 1.9, html: spans(2) });
+    });
+    FISH.forEach(([x, y], i) => {
+        push({ id: `fish-${i}`, kind: 'fish', x: x - 20, y: y - 22, w: 40, h: 28, delay: -i * 6.5, flip: i % 2 === 1,
+            html: `<span class="tq-sp__leap">${FISH_SVG}</span><span class="tq-sp__splash"></span><span class="tq-sp__splash"></span>` });
+    });
+    push({ id: 'fall-rainbow', kind: 'fall-rainbow', x: 912, y: 438, w: 78, h: 44, html: '<span></span>' });
+    // Butterflies in the meadows by day, and an eagle circling the castle on Silver Peaks.
+    MEADOWS.forEach(([x, y], i) => {
+        const [a, b] = [['#ffb547', '#8a4a10'], ['#8fd3ff', '#2d5f8a'], ['#ffd9f2', '#a0507a']][i % 3];
+        push({ id: `butterfly-${i}`, kind: 'butterfly', x: x - 40, y: y - 26, w: 80, h: 52, delay: -i * 4.1,
+            html: `<span class="tq-sp__wander"><span class="tq-sp__wings">${BUTTERFLY(a, b)}</span></span>` });
+    });
+    push({ id: 'eagle', kind: 'eagle', slot: 'back', x: 520, y: 14, w: 230, h: 70,
+        html: `<span class="tq-sp__orbit"><span class="tq-sp__soar">${EAGLE}</span></span>` });
 
     return [...sprites.filter((sprite) => sprite.tier === 'lite'), ...sprites.filter((sprite) => sprite.tier !== 'lite')];
 }

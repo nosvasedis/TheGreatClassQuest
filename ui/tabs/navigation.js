@@ -256,7 +256,9 @@ export async function applyTabPrimaryRefresh(tabId, opts = {}) {
         updateCeremonyStatus(tabId);
     }
 
-    if (tabId === 'class-leaderboard-tab') await renderClassLeaderboardTab({ freshVisit: true });
+    // A header class change is not a fresh visit: the map rolls up to the general
+    // view, unrolls for another league, or glides to the new class in place.
+    if (tabId === 'class-leaderboard-tab') await renderClassLeaderboardTab({ freshVisit: !opts.classChange });
     if (tabId === 'student-leaderboard-tab') await renderStudentLeaderboardTab({ freshVisit: true });
     if (tabId === 'guilds-tab') await renderGuildsTab();
     if (tabId === 'manage-students-tab') renderManageStudentsTab();
@@ -332,7 +334,7 @@ function patchOptionsTabForClassChange() {
 export async function refreshVisibleTabForGlobalClassChange() {
     const visible = document.querySelector('.app-tab:not(.hidden)');
     const tabId = visible?.id || localStorage.getItem('quest_last_active_tab') || 'about-tab';
-    await applyTabPrimaryRefresh(tabId);
+    await applyTabPrimaryRefresh(tabId, { classChange: true });
     if (tabId === 'reward-ideas-tab') {
         renderIdeasTabSelects();
     }

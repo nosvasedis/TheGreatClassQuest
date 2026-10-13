@@ -675,9 +675,11 @@ function setIdleNote(root, note) {
 export function rollUpLivingQuestMap({ note = '' } = {}) {
     const controller = activeLivingMapController;
     if (!controller) return Promise.resolve(false);
-    return controller.rollUp({ note }).then(() => {
-        if (activeLivingMapController === controller) controller.destroy();
-        return true;
+    return controller.rollUp({ note }).then((sealed) => {
+        // Only a scroll that finished rolling up is done with; one interrupted by
+        // a newer request stays with whoever took it over.
+        if (sealed && activeLivingMapController === controller) controller.destroy();
+        return sealed;
     });
 }
 
@@ -694,7 +696,8 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
     const frame = root?.querySelector('.tq-living-map__frame');
     if (root) {
         setIdleNote(root, '');
-        root.classList.remove('is-idle');
+        // A map that was rolling up when this one took over leaves no pose behind.
+        root.classList.remove('is-idle', 'is-furling', 'is-resealing');
     }
     const toSegments = (selector) => [...(root?.querySelectorAll?.(selector) || [])].map((path) => ({
         path,
@@ -822,21 +825,33 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
     };
     const setScrollPose = (pose) => {
         cancelAnimationFrame(scrollFrame);
+        settleScroll?.(false);
         root.style.removeProperty('--tq-open');
         root.dataset.scroll = pose;
         if (pose === 'rolled') root.classList.remove('is-unsealing', 'is-blooming');
     };
+    // The motion in flight. Ending it early (a newer motion, a pose, or destroy)
+    // settles its promise with false, so whatever waited on it does not carry on.
+    let settleScroll = null;
+    let rollingUp = null;
     const moveScroll = (to, duration, ease) => {
         cancelAnimationFrame(scrollFrame);
+        settleScroll?.(false);
         const from = scrollOpenness();
-        return new Promise((resolve) => {
+        return new Promise((done) => {
+            const resolve = (finished = true) => {
+                if (settleScroll !== resolve) return;
+                settleScroll = null;
+                done(finished && !destroyed);
+            };
+            settleScroll = resolve;
             if (Math.abs(to - from) < 0.001) { resolve(); return; }
             root.style.setProperty('--tq-open', from.toFixed(4));
             root.dataset.scroll = 'moving';
             const span = duration * Math.abs(to - from);
             let start = 0;
             const step = (now) => {
-                if (destroyed) { resolve(); return; }
+                if (destroyed) { resolve(false); return; }
                 start ||= now;
                 const t = Math.min(1, (now - start) / span);
                 root.style.setProperty('--tq-open', (from + (to - from) * ease(t)).toFixed(4));
@@ -852,7 +867,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         // An open map in view rolls itself up first; one out of sight simply waits rolled.
         const rect = root.getBoundingClientRect();
         const inView = !document.hidden && rect.width > 0 && rect.bottom > 0 && rect.top < window.innerHeight;
-        if (inView) scrollMotion = moveScroll(0, SCROLL_FURL_MS, easeInCubic).then(() => { if (!destroyed) setScrollPose('rolled'); });
+        if (inView) scrollMotion = moveScroll(0, SCROLL_FURL_MS, easeInCubic).then((finished) => { if (finished) setScrollPose('rolled'); });
         else setScrollPose('rolled');
     }
 
@@ -875,9 +890,9 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             root.classList.add('is-unsealing');
             later(() => {
                 if (destroyed) { resolve(); return; }
-                moveScroll(1, SCROLL_UNROLL_MS, easeUnroll).then(() => {
+                moveScroll(1, SCROLL_UNROLL_MS, easeUnroll).then((finished) => {
                     root.classList.remove('is-unsealing');
-                    if (destroyed) { resolve(); return; }
+                    if (destroyed || !finished) { resolve(); return; }
                     setScrollPose('open');
                     bloomInk();
                     later(resolve, 260);
@@ -1532,6 +1547,11 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
          * general view, or to another league). Resolves once it is sealed.
          */
         rollUp({ note = '' } = {}) {
+            // Asked again while rolling up (the header moved on twice): the same motion carries on.
+            if (rollingUp) {
+                setIdleNote(root, note);
+                return rollingUp;
+            }
             closePopover();
             hideTip({ now: true });
             magic?.focusParty(null);
@@ -1542,21 +1562,23 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             const inView = !document.hidden && rect.width > 0 && rect.bottom > 0 && rect.top < window.innerHeight;
             if (reducedMotionQuery.matches || !inView || root.dataset.scroll === 'rolled') {
                 setScrollPose('rolled');
-                return Promise.resolve();
+                return Promise.resolve(true);
             }
             root.classList.add('is-furling');
-            return moveScroll(0, SCROLL_ROLL_UP_MS, easeFurl).then(() => new Promise((resolve) => {
+            rollingUp = moveScroll(0, SCROLL_ROLL_UP_MS, easeFurl).then((finished) => new Promise((resolve) => {
                 root.classList.remove('is-furling');
                 // A newer map took over while this one rolled up: leave the scroll to it.
-                if (destroyed) { resolve(); return; }
+                if (destroyed || !finished) { rollingUp = null; resolve(false); return; }
                 setScrollPose('rolled');
                 // The seal is pressed back on.
                 root.classList.add('is-resealing');
                 setTimeout(() => {
                     root.classList.remove('is-resealing');
-                    resolve();
+                    rollingUp = null;
+                    resolve(true);
                 }, 520);
             }));
+            return rollingUp;
         },
         destroy() {
             destroyed = true;
@@ -1567,6 +1589,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             timers.clear();
             cancelAnimationFrame(resizeFrame);
             cancelAnimationFrame(scrollFrame);
+            settleScroll?.(false);
             listeners.abort();
             intersectionObserver.disconnect();
             resizeObserver.disconnect();

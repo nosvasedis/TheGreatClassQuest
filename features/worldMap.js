@@ -576,7 +576,15 @@ export function renderSealedLeagueMapInto(slot, note = '') {
     let root = slot.querySelector('[data-living-quest-map]');
     if (!root) {
         slot.innerHTML = generateLeagueMapHtml([], {});
-        root = arrive(slot.querySelector('[data-living-quest-map]'));
+        root = slot.querySelector('[data-living-quest-map]');
+        // The scroll's own styles come with the world (worldScene.js); with no
+        // map started yet, fetch them here and show the scroll once they apply.
+        root.dataset.styling = 'pending';
+        const shown = root;
+        import('../styles/quest_world.css').catch(() => {}).then(() => {
+            delete shown.dataset.styling;
+            arrive(shown);
+        });
     }
     root.classList.add('is-idle');
     setIdleNote(root, note);

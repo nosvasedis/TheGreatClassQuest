@@ -82,6 +82,8 @@
    which line up at any size.
    Poses: rolled → moving → open (the ordinary resting map). */
 .tq-living-map { --tq-open: 1; }
+/* Waiting for its stylesheet (features/worldMap.js#renderSealedLeagueMapInto). */
+.tq-living-map[data-styling='pending'] { visibility: hidden; }
 .tq-living-map[data-scroll='rolled'] { --tq-open: 0; }
 
 .tq-unroll {
@@ -135,8 +137,25 @@
     height: 100%;
     object-fit: fill;
     user-select: none;
-    filter: drop-shadow(0 1.2rem 1.25rem rgba(74, 42, 13, 0.3));
 }
+
+/* Each rod's soft shadow is a painted glow under it, not a filter: a
+   drop-shadow on the cropped picture fills its whole crop strip as a grey
+   box, and one on the moving side would be redrawn every frame. */
+.tq-unroll__side::before {
+    content: '';
+    position: absolute;
+    top: 9%;
+    bottom: 3%;
+    width: 6%;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(74, 42, 13, 0.3), rgba(74, 42, 13, 0.12) 60%, rgba(74, 42, 13, 0));
+    transform: translateY(1.2rem);
+    pointer-events: none;
+}
+
+.tq-unroll__side--left::before { left: -0.6%; }
+.tq-unroll__side--right::before { right: -0.6%; }
 
 .tq-unroll__side--left .tq-unroll__roll { clip-path: inset(0 95.17% 0 0); }
 .tq-unroll__side--right .tq-unroll__roll { clip-path: inset(0 0 0 95.17%); }

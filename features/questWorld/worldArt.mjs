@@ -13,7 +13,7 @@ import { PORTAL, lanternPositions, REALM_LANDMARKS } from './worldGeometry.mjs';
 
 export const WORLD_SEED = 20261013;
 /** Bump when the pictures change, so devices drop the old ones. */
-export const ART_VERSION = 9;
+export const ART_VERSION = 10;
 
 const asset = (name) => new URL(`../../assets/team-quest-map/painted/${name}`, import.meta.url).href;
 

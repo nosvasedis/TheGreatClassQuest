@@ -1711,7 +1711,8 @@
 
 .tq-idle-note {
     position: absolute;
-    bottom: 9%;
+    /* Just under the sealed scroll's lower finial, clear of the rods. */
+    top: calc(100% + 0.5rem);
     left: 50%;
     z-index: 5;
     margin: 0;

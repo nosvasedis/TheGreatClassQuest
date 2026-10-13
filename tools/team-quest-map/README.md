@@ -87,3 +87,12 @@ same offset so the body stays put), `balloon.webp` and `kite.webp`:
 `build_place_sounds.py` mixes the short sound each place plays when its card
 opens (`assets/team-quest-map/sounds/`): CC0 recordings from BigSoundBank plus a
 synthesised crystal shimmer and Portal swell. The ids are in the script.
+
+## The road branch below the citadel
+
+The painting had a second road running from the citadel square down off the
+bottom edge, edged with a cream kerb that read as a white line beside the
+route. `remove_road_branch.py` pastes repaints of that corner (prompt: remove
+the road that curves down from the square, its cream edge line, walls and lamp
+post, and paint the surrounding trees, grass and cliff in their place) and
+`remove_square_kerb.py` takes the kerb off the square's edge.

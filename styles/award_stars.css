@@ -14,16 +14,16 @@
 }
 
 /* ───────────────────────── Today's star roll ─────────────────────────
- * One slim strip above the clouds: a sky ledger with a cloud-scalloped top.
- * Left: the sun dial and today's count. Right: three pill lanes, still waiting
- * (named, tappable), shining (gold faces) and away today (faded, rain).
- * Static gradients only; the dial ring is one small SVG stroke.
+ * One slim row above the clouds: the count, today's stars, and a bead per hero.
+ * Gold beads shine, open sky rings still wait (tap one to find the cloud),
+ * little rain clouds are away today. Static gradients only.
  */
 
 .aw-sky-summary {
-    max-width: 60rem;
-    margin: -0.5rem auto 0.9rem;
-    padding-top: 9px;
+    max-width: 58rem;
+    margin: -0.5rem auto 1rem;
+    display: flex;
+    justify-content: center;
 }
 
 .aw-sky-summary.hidden { display: none; }
@@ -31,143 +31,63 @@
 .aw-roll {
     --roll-ink: #1e3a8a;
     --roll-soft: #64748b;
-    --roll-panel-top: #ffffff;
-    --roll-panel-bot: #eef6ff;
-    position: relative;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.45rem 1rem;
-    padding: 0.45rem 0.8rem;
-    border-radius: 1.3rem;
+    justify-content: center;
+    gap: 0.35rem 0.7rem;
+    max-width: 100%;
+    padding: 0.4rem 1rem 0.4rem 0.45rem;
+    border-radius: 999px;
     background:
-        radial-gradient(60% 140% at 0% 0%, rgba(254, 243, 199, 0.65), transparent 60%),
-        linear-gradient(180deg, var(--roll-panel-top), var(--roll-panel-bot));
+        radial-gradient(70% 160% at 0% 0%, rgba(254, 243, 199, 0.7), transparent 60%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(239, 246, 255, 0.9));
     border: 1.5px solid rgba(255, 255, 255, 0.95);
-    box-shadow: 0 8px 20px rgba(30, 64, 175, 0.12), inset 0 -2px 0 rgba(191, 219, 254, 0.6);
+    box-shadow: 0 8px 20px rgba(30, 64, 175, 0.12), inset 0 -2px 0 rgba(191, 219, 254, 0.55);
     color: var(--roll-ink);
     font-family: 'Fredoka', sans-serif;
-}
-
-/* Cloud puffs along the top edge. */
-.aw-roll::before {
-    content: '';
-    position: absolute;
-    left: 1.3rem;
-    right: 1.3rem;
-    top: -8px;
-    height: 10px;
-    background: radial-gradient(circle at 50% 100%, var(--roll-panel-top) 7.5px, transparent 8px) 0 0 / 18px 10px;
-    background-repeat: round no-repeat;
-    pointer-events: none;
-}
-
-.aw-roll__head {
-    flex: 0 1 auto;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-}
-
-.aw-roll__dial {
-    position: relative;
-    flex: none;
-    width: 2.6rem;
-    height: 2.6rem;
-}
-
-.aw-roll__dial svg {
-    width: 100%;
-    height: 100%;
-    transform: rotate(-90deg);
-    overflow: visible;
-}
-
-.aw-roll__dial-track { fill: #fff; stroke: rgba(148, 163, 184, 0.28); stroke-width: 6; }
-.aw-roll__dial-fill {
-    fill: none;
-    stroke: #f59e0b;
-    stroke-width: 6;
-    stroke-linecap: round;
-    transition: stroke-dashoffset 0.7s cubic-bezier(0.34, 1.2, 0.64, 1);
-}
-
-.aw-roll__dial-num {
-    position: absolute;
-    inset: 0;
-    display: grid;
-    place-content: center;
-    grid-auto-flow: column;
-    align-items: baseline;
-    line-height: 1;
-}
-
-.aw-roll__dial-num b {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
-    font-size: 0.95rem;
-    color: #b45309;
-}
-
-.aw-roll__dial-num--rain { font-size: 0.95rem; color: #60a5fa; }
-
-.aw-roll__dial-num small { font-size: 0.6rem; font-weight: 700; color: var(--roll-soft); }
-
-.aw-roll__titles {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-}
-
-.aw-roll__kicker {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
-}
-
-.aw-roll__headline {
-    font-size: 0.92rem;
+    font-size: 0.88rem;
     font-weight: 600;
-    line-height: 1.15;
     white-space: nowrap;
 }
 
-.aw-roll__headline b {
+.aw-roll__sigil {
+    flex: none;
+    width: 1.75rem;
+    height: 1.75rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 0.78rem;
+    background: radial-gradient(circle at 35% 30%, #fef3c7, #fbbf24 48%, #d97706);
+    box-shadow: 0 2px 0 #b45309, 0 3px 8px rgba(217, 119, 6, 0.3);
+}
+
+.aw-roll.is-empty .aw-roll__sigil {
+    background: radial-gradient(circle at 35% 30%, #f1f5f9, #94a3b8 60%, #64748b);
+    box-shadow: 0 2px 0 #475569;
+}
+
+.aw-roll__count b,
+.aw-roll__stars b {
     font-family: 'Fredoka One', 'Fredoka', sans-serif;
     font-size: 1.05rem;
     color: #1d4ed8;
 }
 
-.aw-roll__sub {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.25rem 0.35rem;
-}
+.aw-roll__stars { display: inline-flex; align-items: baseline; gap: 0.25rem; color: var(--roll-soft); }
+.aw-roll__stars b { color: #b45309; }
+.aw-roll__stars .fa-star { color: #f59e0b; font-size: 0.75rem; }
 
-.aw-roll__stars,
-.aw-roll__away-count,
 .aw-roll__mod {
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
-    padding: 0.05rem 0.45rem;
+    padding: 0.05rem 0.5rem;
     border-radius: 999px;
-    font-size: 0.68rem;
+    font-size: 0.7rem;
     font-weight: 700;
-    white-space: nowrap;
-}
-
-.aw-roll__stars { color: #92400e; background: #fef3c7; border: 1.5px solid #fcd34d; }
-.aw-roll__stars .fa-star { color: #f59e0b; }
-.aw-roll__away-count { color: #475569; background: #f1f5f9; border: 1.5px solid #cbd5e1; }
-.aw-roll__away-count .fa-cloud-rain { color: #60a5fa; }
-
-.aw-roll__mod {
     color: #6d28d9;
     background: linear-gradient(135deg, #f5f3ff, #ede9fe);
     border: 1.5px solid rgba(139, 92, 246, 0.35);
@@ -179,206 +99,94 @@
     border-color: rgba(249, 115, 22, 0.45);
 }
 
-/* Lanes: pills that sit side by side and wrap. */
-.aw-roll__lanes {
-    flex: 1 1 18rem;
-    min-width: 0;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.35rem 0.4rem;
-}
-
-.aw-roll__lane {
-    min-width: 0;
+/* The beads: one per hero, shining first, then waiting, then away. */
+.aw-roll__beads {
     display: inline-flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.25rem 0.4rem;
-    padding: 0.2rem 0.5rem 0.2rem 0.4rem;
-    border-radius: 1rem;
-    border: 1.5px solid transparent;
-}
-
-.aw-roll__lane--waiting {
-    background: linear-gradient(180deg, #f0f9ff, #e0f2fe);
-    border: 1.5px dashed #7dd3fc;
-}
-
-.aw-roll__lane--shining {
-    background:
-        radial-gradient(70% 120% at 100% 0%, rgba(253, 230, 138, 0.7), transparent 70%),
-        linear-gradient(180deg, #fffbeb, #fef3c7);
-    border-color: #fcd34d;
-}
-
-.aw-roll__lane--away {
-    background:
-        repeating-linear-gradient(105deg, transparent 0 7px, rgba(96, 165, 250, 0.18) 7px 8.5px),
-        linear-gradient(180deg, #f8fafc, #e2e8f0);
-    border-color: #cbd5e1;
-}
-
-.aw-roll__lane-title {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    margin: 0;
-    font-size: 0.66rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    white-space: nowrap;
-}
-
-.aw-roll__lane--waiting .aw-roll__lane-title { color: #0369a1; }
-.aw-roll__lane--shining .aw-roll__lane-title { color: #b45309; }
-.aw-roll__lane--away .aw-roll__lane-title { color: #475569; }
-.aw-roll__lane--away .aw-roll__lane-title .fa-cloud-rain { color: #60a5fa; }
-
-.aw-roll__lane-count {
-    min-width: 1.15rem;
-    padding: 0 0.3rem;
+    justify-content: center;
+    gap: 4px;
+    padding: 0.3rem 0.5rem;
     border-radius: 999px;
-    text-align: center;
-    font-size: 0.66rem;
-    letter-spacing: 0;
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(219, 234, 254, 0.55);
+    box-shadow: inset 0 1px 2px rgba(30, 64, 175, 0.1);
+    white-space: normal;
 }
 
-.aw-roll__heroes {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.2rem 0.25rem;
-}
-
-/* One hero on the roll */
-.aw-roll__hero {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0;
-    border: 0;
-    background: none;
-    font: inherit;
-    color: inherit;
-}
-
-.aw-roll__face {
+.aw-roll__bead {
     flex: none;
-    width: 1.6rem;
-    height: 1.6rem;
+    width: 12px;
+    height: 12px;
+    padding: 0;
     display: grid;
     place-items: center;
-    overflow: hidden;
     border-radius: 50%;
-    background: #fff;
-    border: 2px solid #fff;
-    box-shadow: 0 1px 4px rgba(30, 64, 175, 0.16);
+    border: 0;
+    font-size: 0;
 }
 
-.aw-roll__face img { width: 100%; height: 100%; object-fit: cover; }
-
-.aw-roll__initial {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
-    font-size: 0.72rem;
-    color: #4338ca;
+.aw-roll__bead.is-shining {
+    background: radial-gradient(circle at 35% 30%, #fffbeb, #fbbf24 55%, #f59e0b);
+    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.22), 0 0 6px rgba(251, 191, 36, 0.55);
 }
 
-.aw-roll__name {
-    max-width: 5.5rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 0.72rem;
-    font-weight: 600;
-    line-height: 1;
-}
-
-/* Waiting heroes are named, tappable chips. */
-button.aw-roll__hero {
-    padding: 0.08rem 0.45rem 0.08rem 0.08rem;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.92);
-    box-shadow: 0 1px 3px rgba(14, 116, 144, 0.14);
+button.aw-roll__bead {
     cursor: pointer;
+    background: #fff;
+    box-shadow: inset 0 0 0 2px #38bdf8;
     transition: transform 0.18s ease;
 }
-button.aw-roll__hero:hover { transform: translateY(-1px); }
-button.aw-roll__hero:active { transform: translateY(1px); }
-button.aw-roll__hero:focus-visible { outline: 2px solid #0ea5e9; outline-offset: 1px; }
+button.aw-roll__bead.is-returning { box-shadow: inset 0 0 0 2px #f59e0b; }
+button.aw-roll__bead:hover { transform: scale(1.3); }
+button.aw-roll__bead:focus-visible { outline: 2px solid #0ea5e9; outline-offset: 2px; }
 
-.aw-roll__hero.is-waiting .aw-roll__face { border: 2px dashed #38bdf8; box-shadow: none; }
-.aw-roll__hero.is-waiting .aw-roll__name { color: #075985; }
+.aw-roll__bead.is-away {
+    width: 15px;
+    color: #94a3b8;
+    font-size: 11px;
+    border-radius: 0;
+    background: none;
+}
 
-/* Back from an absence, waiting on the welcome desk. */
-.aw-roll__hero.is-returning .aw-roll__face { border: 2px dashed #f59e0b; box-shadow: none; }
-.aw-roll__hero.is-returning .aw-roll__name { color: #92400e; }
-.aw-roll__hero.is-returning .aw-roll__badge {
+.aw-roll__note {
     display: inline-flex;
-    order: 3;
-    font-size: 0.6rem;
-    color: #f59e0b;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.74rem;
+    font-weight: 700;
 }
 
-/* Shining and away heroes are a row of faces; their names and stars are in the tooltip. */
-.aw-roll__hero.is-shining,
-.aw-roll__hero.is-away { margin-right: -0.4rem; }
-.aw-roll__hero.is-shining .aw-roll__name,
-.aw-roll__hero.is-away .aw-roll__name,
-.aw-roll__badge { display: none; }
-.aw-roll__heroes:has(.is-shining, .is-away) { padding-right: 0.4rem; }
+.aw-roll__note--waiting { color: #0369a1; }
+.aw-roll__note--away { color: #64748b; }
+.aw-roll__note--away .fa-cloud-rain { color: #60a5fa; }
+.aw-roll__note--full { color: #b45309; }
+.aw-roll__note--full .fa-sun { color: #f59e0b; }
 
-.aw-roll__hero.is-shining .aw-roll__face {
-    border-color: #fbbf24;
-    box-shadow: 0 0 0 1.5px #fff, 0 1px 5px rgba(217, 119, 6, 0.35);
-}
-
-.aw-roll__hero.is-away .aw-roll__face { background: #e2e8f0; border-color: #cbd5e1; box-shadow: 0 0 0 1.5px #f8fafc; }
-.aw-roll__hero.is-away .aw-roll__face img,
-.aw-roll__hero.is-away .aw-roll__initial { opacity: 0.45; }
-.aw-roll__hero.is-away .aw-roll__initial { color: #475569; }
-
-/* The whole room shines. */
 .aw-roll.is-complete {
-    --roll-panel-bot: #fff7db;
-    box-shadow: 0 12px 30px rgba(217, 119, 6, 0.18), inset 0 -3px 0 rgba(252, 211, 77, 0.6);
+    background:
+        radial-gradient(70% 160% at 0% 0%, rgba(253, 230, 138, 0.8), transparent 60%),
+        linear-gradient(180deg, #fffdf5, #fef3c7);
+    box-shadow: 0 8px 22px rgba(217, 119, 6, 0.18), inset 0 -2px 0 rgba(252, 211, 77, 0.6);
 }
-.aw-roll.is-complete .aw-roll__headline { color: #b45309; }
 
 /* Night sky */
 #app-screen.header-night .aw-roll {
     --roll-ink: #e0e7ff;
-    --roll-soft: #a5b4fc;
-    --roll-panel-top: #26235f;
-    --roll-panel-bot: #312e81;
+    --roll-soft: #c7d2fe;
     background:
-        radial-gradient(90% 120% at 0% 0%, rgba(99, 102, 241, 0.35), transparent 55%),
-        linear-gradient(180deg, var(--roll-panel-top), var(--roll-panel-bot));
+        radial-gradient(70% 160% at 0% 0%, rgba(99, 102, 241, 0.35), transparent 60%),
+        linear-gradient(180deg, rgba(30, 27, 75, 0.9), rgba(49, 46, 129, 0.86));
     border-color: rgba(165, 180, 252, 0.35);
-    box-shadow: 0 12px 28px rgba(2, 6, 23, 0.35), inset 0 -3px 0 rgba(129, 140, 248, 0.25);
+    box-shadow: 0 8px 20px rgba(2, 6, 23, 0.35), inset 0 -2px 0 rgba(129, 140, 248, 0.25);
 }
-#app-screen.header-night .aw-roll__headline b,
-#app-screen.header-night .aw-roll__dial-num b { color: #fde68a; }
-#app-screen.header-night .aw-roll__dial-track { fill: rgba(30, 27, 75, 0.9); stroke: rgba(165, 180, 252, 0.25); }
-#app-screen.header-night .aw-roll__lane--waiting { background: rgba(12, 74, 110, 0.45); border-color: rgba(125, 211, 252, 0.55); }
-#app-screen.header-night .aw-roll__lane--shining { background: rgba(120, 53, 15, 0.45); border-color: rgba(252, 211, 77, 0.5); }
-#app-screen.header-night .aw-roll__lane--away {
-    background: repeating-linear-gradient(105deg, transparent 0 11px, rgba(147, 197, 253, 0.12) 11px 12.5px), rgba(30, 41, 59, 0.6);
-    border-color: rgba(148, 163, 184, 0.45);
-}
-#app-screen.header-night .aw-roll__lane--waiting .aw-roll__lane-title,
-#app-screen.header-night .aw-roll__hero.is-waiting .aw-roll__name { color: #bae6fd; }
-#app-screen.header-night .aw-roll__lane--shining .aw-roll__lane-title,
-#app-screen.header-night .aw-roll__hero.is-shining .aw-roll__name,
-#app-screen.header-night .aw-roll__hero.is-returning .aw-roll__name { color: #fde68a; }
-#app-screen.header-night .aw-roll__lane--away .aw-roll__lane-title,
-#app-screen.header-night .aw-roll__hero.is-away .aw-roll__name { color: #cbd5e1; }
-#app-screen.header-night .aw-roll__lane-count { background: rgba(255, 255, 255, 0.14); }
-#app-screen.header-night .aw-roll.is-complete .aw-roll__headline { color: #fde68a; }
-#app-screen.header-night button.aw-roll__hero { background: rgba(255, 255, 255, 0.12); box-shadow: none; }
+#app-screen.header-night .aw-roll__count b,
+#app-screen.header-night .aw-roll__stars b { color: #fde68a; }
+#app-screen.header-night .aw-roll__beads { background: rgba(15, 23, 42, 0.4); }
+#app-screen.header-night button.aw-roll__bead { background: rgba(224, 242, 254, 0.15); box-shadow: inset 0 0 0 2px #7dd3fc; }
+#app-screen.header-night button.aw-roll__bead.is-returning { box-shadow: inset 0 0 0 2px #fbbf24; }
+#app-screen.header-night .aw-roll__note--waiting { color: #bae6fd; }
+#app-screen.header-night .aw-roll__note--away { color: #cbd5e1; }
+#app-screen.header-night .aw-roll__note--full { color: #fde68a; }
 
 /* A tap on the roll: the hero's cloud glows sky blue (halo opacity only). */
 .aw-card.aw-beckon .aw-cloud__halo {
@@ -1700,15 +1508,9 @@ body.gcq-mobile .aw-sky-grid {
 }
 
 body.gcq-mobile .aw-sky-grid > .award-card-mount { margin-top: 0 !important; }
-body.gcq-mobile .aw-sky-summary { margin: 0 0.75rem 0.4rem; }
-body.gcq-mobile .aw-roll { padding: 0.45rem 0.6rem; gap: 0.4rem; }
-body.gcq-mobile .aw-roll__lanes { flex-basis: 100%; }
-body.gcq-mobile .aw-roll__lane--shining .aw-roll__lane-label,
-body.gcq-mobile .aw-roll__lane--away .aw-roll__lane-label { display: none; }
-body.gcq-mobile .aw-roll__lane--waiting { padding: 0.3rem 0.4rem; }
-body.gcq-mobile .aw-roll__face { width: 1.4rem; height: 1.4rem; }
-body.gcq-mobile .aw-roll__name { font-size: 0.68rem; }
-body.gcq-mobile .aw-roll__heroes { gap: 0.2rem; }
+body.gcq-mobile .aw-sky-summary { margin: 0 0.75rem 0.5rem; }
+body.gcq-mobile .aw-roll { border-radius: 1.2rem; padding: 0.4rem 0.7rem; gap: 0.3rem 0.55rem; }
+body.gcq-mobile .aw-roll__beads { border-radius: 0.9rem; }
 body.gcq-mobile .aw-card { padding: 0.4rem 1.05rem 1.9rem; }
 body.gcq-mobile .aw-card__corner--left { left: 0.7rem; }
 body.gcq-mobile .aw-card__corner--right { right: 0.7rem; }

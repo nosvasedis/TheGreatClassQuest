@@ -330,95 +330,61 @@ export function resolveAwardRollStatus({ starsToday = 0, isMarkedAbsentToday = f
     return attendanceMode === 'returning' ? 'returning' : 'waiting';
 }
 
-const ROLL_LANES = [
-    { key: 'waiting', label: 'Waiting', icon: 'fa-cloud' },
-    { key: 'shining', label: 'Shining', icon: 'fa-star' },
-    { key: 'away', label: 'Away today', icon: 'fa-cloud-rain' }
-];
+const ROLL_ORDER = { shining: 0, waiting: 1, returning: 1, away: 2 };
 
-function rollHeroHtml(hero) {
-    const first = hero.firstName || String(hero.name || '').split(' ')[0] || '?';
-    const face = hero.avatar
-        ? `<img src="${esc(hero.avatar)}" alt="" loading="lazy" decoding="async">`
-        : `<span class="aw-roll__initial">${esc(first.charAt(0))}</span>`;
+/** One bead on the star roll: gold when shining, an open ring while waiting, a rain cloud when away. */
+function rollBeadHtml(hero) {
     const status = hero.status;
-    const badge = status === 'shining'
-        ? `<span class="aw-roll__badge"><i class="fas fa-star" aria-hidden="true"></i>${esc(formatAwardStars(hero.stars))}</span>`
-        : status === 'away'
-            ? '<span class="aw-roll__badge"><i class="fas fa-cloud-rain" aria-hidden="true"></i></span>'
-            : status === 'returning'
-                ? '<span class="aw-roll__badge"><i class="fas fa-cloud-sun" aria-hidden="true"></i></span>'
-                : '';
     const said = status === 'shining'
         ? `${hero.name}: ${formatAwardStars(hero.stars)} star${Number(hero.stars) === 1 ? '' : 's'} today`
         : status === 'away'
             ? `${hero.name}: away today`
             : status === 'returning'
-                ? `${hero.name}: away last lesson, waiting for a welcome back`
-                : `${hero.name}: still waiting for a star`;
-    const tag = status === 'waiting' || status === 'returning' ? 'button' : 'span';
-    const attrs = tag === 'button' ? ` type="button" data-roll-student="${esc(hero.id)}"` : '';
-    return `<${tag} class="aw-roll__hero is-${esc(status)}"${attrs} title="${esc(said)}" aria-label="${esc(said)}">`
-        + `<span class="aw-roll__face" aria-hidden="true">${face}</span>${badge}`
-        + `<span class="aw-roll__name" aria-hidden="true">${esc(first)}</span></${tag}>`;
+                ? `${hero.name}: away last lesson, waiting for a welcome back. Tap to find their cloud`
+                : `${hero.name}: still waiting for a star. Tap to find their cloud`;
+    const inner = status === 'away' ? '<i class="fas fa-cloud-rain" aria-hidden="true"></i>' : '';
+    if (status === 'waiting' || status === 'returning') {
+        return `<button type="button" class="aw-roll__bead is-${esc(status)}" data-roll-student="${esc(hero.id)}" title="${esc(said)}" aria-label="${esc(said)}"></button>`;
+    }
+    return `<span class="aw-roll__bead is-${esc(status)}" title="${esc(said)}" role="img" aria-label="${esc(said)}">${inner}</span>`;
 }
 
 /**
- * Today's star roll above the clouds: who shines, who still waits, who is away today.
- * heroes: [{ id, name, firstName, avatar, status: 'shining'|'waiting'|'returning'|'away', stars }]
+ * Today's star roll above the clouds, one slim row: how many heroes in the room shine,
+ * today's stars, and a bead per hero (shining, still waiting, away today).
+ * heroes: [{ id, name, avatar, status: 'shining'|'waiting'|'returning'|'away', stars }]
  * Away heroes never count as waiting, and the class total is the heroes in the room.
  */
 export function buildAwardSkySummaryHtml({ heroes = [], starsToday = 0, modifier = null } = {}) {
-    const byName = (a, b) => String(a.name || '').localeCompare(String(b.name || ''));
-    const lanes = { waiting: [], shining: [], away: [] };
-    for (const hero of heroes) {
-        const lane = hero.status === 'returning' ? 'waiting' : hero.status;
-        (lanes[lane] || lanes.waiting).push(hero);
-    }
-    Object.values(lanes).forEach((list) => list.sort(byName));
-    const here = lanes.waiting.length + lanes.shining.length;
-    const shining = lanes.shining.length;
-    const pct = here > 0 ? shining / here : 0;
-    const allShining = here > 0 && shining === here;
-    const nobodyHere = heroes.length > 0 && here === 0;
+    const sorted = [...heroes].sort((a, b) => (ROLL_ORDER[a.status] ?? 1) - (ROLL_ORDER[b.status] ?? 1)
+        || String(a.name || '').localeCompare(String(b.name || '')));
+    const away = sorted.filter((h) => h.status === 'away').length;
+    const shining = sorted.filter((h) => h.status === 'shining').length;
+    const here = sorted.length - away;
+    const waiting = here - shining;
+    const allShining = here > 0 && waiting === 0;
+    const nobodyHere = sorted.length > 0 && here === 0;
 
     const mod = modifier?.type === 'double'
-        ? '<span class="aw-roll__mod aw-roll__mod--double" title="Every award counts twice today"><i class="fas fa-bolt" aria-hidden="true"></i>2× Star Day</span>'
+        ? '<span class="aw-roll__mod aw-roll__mod--double" title="Every award counts twice today"><i class="fas fa-bolt" aria-hidden="true"></i>2×</span>'
         : modifier?.type === 'reason' && VIRTUE_NAMES[modifier.reason]
-            ? `<span class="aw-roll__mod" title="${esc(VIRTUE_NAMES[modifier.reason])} awards get +1 star today"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>${esc(VIRTUE_NAMES[modifier.reason])} Bonus Day</span>`
+            ? `<span class="aw-roll__mod" title="${esc(VIRTUE_NAMES[modifier.reason])} awards get +1 star today"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>${esc(VIRTUE_NAMES[modifier.reason])}</span>`
             : '';
-
-    // The sun dial: a ring that fills as the heroes in the room shine.
-    const r = 22;
-    const c = 2 * Math.PI * r;
-    const dial = `<span class="aw-roll__dial" role="img" aria-label="${nobodyHere ? 'Every hero is away today' : `${shining} of ${here} heroes in class have a star today`}">`
-        + `<svg viewBox="0 0 56 56" aria-hidden="true"><circle class="aw-roll__dial-track" cx="28" cy="28" r="${r}"/>`
-        + `<circle class="aw-roll__dial-fill" cx="28" cy="28" r="${r}" stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${(c * (1 - pct)).toFixed(2)}"/></svg>`
-        + (nobodyHere
-            ? '<span class="aw-roll__dial-num aw-roll__dial-num--rain"><i class="fas fa-cloud-rain"></i></span></span>'
-            : `<span class="aw-roll__dial-num"><b>${shining}</b><small>/${here}</small></span></span>`);
-
-    const headline = nobodyHere
-        ? 'Every hero is away today'
-        : allShining
-            ? 'Everyone is shining!'
-            : `<b>${shining}</b> of ${here} shining`;
-    const sub = [
-        `<span class="aw-roll__stars"><i class="fas fa-star" aria-hidden="true"></i><b>${esc(formatAwardStars(starsToday))}</b> today</span>`,
-        lanes.away.length ? `<span class="aw-roll__away-count"><i class="fas fa-cloud-rain" aria-hidden="true"></i>${lanes.away.length} away</span>` : '',
-        mod
+    const count = nobodyHere
+        ? '<span class="aw-roll__count">Everyone is away today</span>'
+        : `<span class="aw-roll__count"><b>${shining}</b> of ${here} shining</span>`;
+    const notes = [
+        allShining ? '<span class="aw-roll__note aw-roll__note--full"><i class="fas fa-sun" aria-hidden="true"></i>Everyone shines!</span>' : '',
+        !allShining && waiting > 0 ? `<span class="aw-roll__note aw-roll__note--waiting">${waiting} waiting</span>` : '',
+        away > 0 ? `<span class="aw-roll__note aw-roll__note--away"><i class="fas fa-cloud-rain" aria-hidden="true"></i>${away} away</span>` : ''
     ].filter(Boolean).join('');
 
-    const lanesHtml = ROLL_LANES.map((lane) => {
-        const list = lanes[lane.key];
-        if (!list.length) return '';
-        return `<section class="aw-roll__lane aw-roll__lane--${lane.key}">`
-            + `<h4 class="aw-roll__lane-title"><i class="fas ${lane.icon}" aria-hidden="true"></i><span class="aw-roll__lane-label">${lane.label}</span><span class="aw-roll__lane-count">${list.length}</span></h4>`
-            + `<div class="aw-roll__heroes">${list.map(rollHeroHtml).join('')}</div></section>`;
-    }).join('');
-
-    return `<div class="aw-roll${allShining ? ' is-complete' : ''}">`
-        + `<div class="aw-roll__head">${dial}<div class="aw-roll__titles"><span class="aw-roll__kicker">Today's star roll</span>`
-        + `<span class="aw-roll__headline">${headline}</span><span class="aw-roll__sub">${sub}</span></div></div>`
-        + `<div class="aw-roll__lanes">${lanesHtml}</div></div>`;
+    return `<div class="aw-roll${allShining ? ' is-complete' : ''}${nobodyHere ? ' is-empty' : ''}">`
+        + `<span class="aw-roll__sigil" aria-hidden="true"><i class="fas ${nobodyHere ? 'fa-cloud-rain' : 'fa-star'}"></i></span>`
+        + count
+        + `<span class="aw-roll__stars"><b>${esc(formatAwardStars(starsToday))}</b><i class="fas fa-star" aria-hidden="true"></i>today</span>`
+        + mod
+        + `<span class="aw-roll__beads">${sorted.map(rollBeadHtml).join('')}</span>`
+        + notes
+        + `</div>`;
 }

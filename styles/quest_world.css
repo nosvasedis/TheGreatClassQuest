@@ -1578,6 +1578,9 @@
 .tq-map-camera__btn.tq-map-replay { width: 2.45rem; height: 2.45rem; font-size: 0.85rem; }
 .tq-map-camera__btn[hidden] { display: none; }
 .tq-map-camera__btn:disabled { opacity: 0.45; cursor: default; filter: grayscale(0.4); transform: none; }
+/* The wand: full magic (lit) or the lighter map (dimmed, the sparkles greyed). */
+.tq-map-wand { margin-top: 0.35rem; }
+.tq-map-wand.is-light i { opacity: 0.55; filter: grayscale(0.7); }
 
 .tq-map-hint {
     position: absolute;

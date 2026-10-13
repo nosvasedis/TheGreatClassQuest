@@ -5,7 +5,7 @@ import './styles/team_quest_map_living.css';
 import { getActiveLivingQuestMap, initializeLivingQuestMap, renderLeagueMapInto, rollUpLivingQuestMap } from './features/worldMap.js';
 import { applySkyReading, getSkyScene } from './features/skyWeatherStage.js';
 
-const FX_KEY = 'gcq-team-quest-map-fx';
+const FX_KEY = 'gcq-team-quest-map-fx-choice';
 const params = new URLSearchParams(location.search);
 const slot = document.getElementById('pv-slot');
 const leaderInput = document.getElementById('pv-leader');

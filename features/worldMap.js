@@ -151,7 +151,7 @@ const ROAD_STOP_BADGE = {
 
 const TIER_BY_RANK = ['gold', 'silver', 'bronze'];
 const RANK_WORDS = ['Quest leader', '2nd place', '3rd place'];
-const LITE_FX_STORAGE_KEY = 'gcq-team-quest-map-fx';
+const LITE_FX_STORAGE_KEY = 'gcq-team-quest-map-fx'; // retired, cleared on load
 
 let activeLivingMapController = null;
 // How long the map takes to unroll, and to roll up before unrolling again.
@@ -196,33 +196,37 @@ function escapeMapHtml(value) {
         .replaceAll("'", '&#039;');
 }
 
+// The teacher's own choice from the map's wand button, kept for this tab.
+// (A new key: the old one also held the automatic step-downs, which stuck.)
+const FX_CHOICE_STORAGE_KEY = 'gcq-team-quest-map-fx-choice';
+try { sessionStorage.removeItem(LITE_FX_STORAGE_KEY); sessionStorage.removeItem('gcq-team-quest-map-calm'); } catch { /* private mode */ }
+
 function readStoredFxPreference() {
-    try { return sessionStorage.getItem(LITE_FX_STORAGE_KEY); } catch { return null; }
-}
-
-const CALM_FX_STORAGE_KEY = 'gcq-team-quest-map-calm';
-function readCalmPreference() {
-    try { return sessionStorage.getItem(CALM_FX_STORAGE_KEY) === '1'; } catch { return false; }
-}
-
-function storeCalmPreference() {
-    try { sessionStorage.setItem(CALM_FX_STORAGE_KEY, '1'); } catch { /* private mode */ }
+    try { return sessionStorage.getItem(FX_CHOICE_STORAGE_KEY); } catch { return null; }
 }
 
 function storeFxPreference(value) {
-    try { sessionStorage.setItem(LITE_FX_STORAGE_KEY, value); } catch { /* private mode */ }
+    try { sessionStorage.setItem(FX_CHOICE_STORAGE_KEY, value); } catch { /* private mode */ }
 }
 
-/** Modest machines keep the world, the road and the parties, but drop the small creatures, parallax and tilt. */
+// What the frame-rate check decided on this page load only, so a reload
+// (or a laptop plugged back in) tries the full world again.
+const autoFx = { lite: false, calm: false };
+function readCalmPreference() {
+    return autoFx.calm && readStoredFxPreference() !== 'full';
+}
+
+/** Only genuinely weak machines start in lite; everything else starts full and lets the frame-rate check decide. */
 function shouldUseLiteMapFx() {
     const stored = readStoredFxPreference();
     if (stored === 'lite') return true;
     if (stored === 'full') return false;
+    if (autoFx.lite) return true;
     try {
         const nav = navigator;
         if (nav.connection?.saveData) return true;
-        if (Number(nav.deviceMemory) > 0 && Number(nav.deviceMemory) <= 4) return true;
-        if (Number(nav.hardwareConcurrency) > 0 && Number(nav.hardwareConcurrency) <= 4) return true;
+        if (Number(nav.deviceMemory) > 0 && Number(nav.deviceMemory) <= 2) return true;
+        if (Number(nav.hardwareConcurrency) > 0 && Number(nav.hardwareConcurrency) <= 2) return true;
     } catch { /* not available */ }
     return false;
 }
@@ -750,6 +754,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             if (destroyed || !scene) return;
             magic = mountMapMagic({ root, scene, parties: partiesNow, tier: sceneTier });
             if (!magic) return;
+            mountWand();
             magic.setExplored(lastExplored);
             magic.setPaused(root.classList.contains('is-motion-paused'));
             if (openToken) magic.focusParty(openToken.dataset.tokenKey);
@@ -1034,36 +1039,83 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         }));
     };
 
-    // Watch the frame rate once the parties have settled: a slow machine steps
-    // down to lite (no parallax, tilt or lantern), and if even that is slow, to
-    // calm (the small creatures and drifting pieces rest; the world, the
-    // windmills, the waterfall and the Portal still move).
+    const applyFx = (fx) => {
+        if (root.dataset.fx === fx) return;
+        root.dataset.fx = fx;
+        syncTilt();
+        scene?.setTier(sceneTier());
+        magic?.setTier();
+        positionTokens();
+        syncWand();
+    };
+
+    // The wand among the camera buttons: the full world or the lighter map,
+    // for this tab. Choosing either stops the automatic check.
+    let wand = null;
+    const syncWand = () => {
+        if (!wand) return;
+        const full = root.dataset.fx === 'full' && root.dataset.calm !== '1';
+        wand.setAttribute('aria-pressed', String(full));
+        wand.classList.toggle('is-light', !full);
+        const label = full ? 'Full magic is on: switch to the lighter map' : 'Lighter map: switch on full magic';
+        wand.title = label;
+        wand.setAttribute('aria-label', label);
+    };
+    const mountWand = () => {
+        const bar = root.querySelector('.tq-map-camera');
+        if (!bar || wand) return;
+        wand = document.createElement('button');
+        wand.type = 'button';
+        wand.className = 'tq-map-replay tq-map-camera__btn tq-map-wand';
+        wand.dataset.mapFx = '';
+        wand.innerHTML = '<i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>';
+        bar.append(wand);
+        wand.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const goFull = wand.classList.contains('is-light');
+            storeFxPreference(goFull ? 'full' : 'lite');
+            autoFx.lite = false;
+            autoFx.calm = false;
+            delete root.dataset.calm;
+            applyFx(goFull ? 'full' : 'lite');
+            syncWand();
+        });
+        syncWand();
+    };
+
+    // Watch the frame rate once the parties have settled. Only a machine that
+    // stays slow over two samples steps down: full to lite (no parallax, tilt or
+    // lantern), then lite to calm (the small creatures rest; the world, the
+    // windmills, the waterfall and the Portal still move). A battery saver that
+    // holds the screen at 30 frames a second is smooth enough and never counts.
+    let slowSamples = 0;
     const probeFrameRate = () => {
         if (destroyed || reducedMotionQuery.matches || root.dataset.calm === '1') return;
-        // 'full' stored for the session means someone chose the full world: never downgrade it.
-        if (root.dataset.fx === 'full' && readStoredFxPreference() === 'full') return;
+        if (readStoredFxPreference()) return; // the teacher chose with the wand
         let frames = 0;
+        let total = 0;
         let last = performance.now();
-        let slow = 0;
         const tick = (now) => {
             if (destroyed) return;
-            const delta = now - last;
+            // A single long pause (a save, a tab switch) is not the map being slow.
+            total += Math.min(now - last, 120);
             last = now;
-            if (delta > 34) slow += 1;
             frames += 1;
-            if (frames < 60) { requestAnimationFrame(tick); return; }
-            if (slow <= 24 || offscreen || pageHidden) return;
+            if (frames < 90) { requestAnimationFrame(tick); return; }
+            if (offscreen || pageHidden) { later(probeFrameRate, 3000); return; }
+            const fps = 1000 / (total / frames);
+            if (fps >= 22) { slowSamples = 0; return; }
+            slowSamples += 1;
+            if (slowSamples < 2) { later(probeFrameRate, 1200); return; }
+            slowSamples = 0;
             if (root.dataset.fx !== 'lite') {
-                root.dataset.fx = 'lite';
-                storeFxPreference('lite');
-                syncTilt();
-                scene?.setTier(sceneTier());
-                magic?.setTier();
-                positionTokens();
+                autoFx.lite = true;
+                applyFx('lite');
                 later(probeFrameRate, 2500);
             } else {
+                autoFx.calm = true;
                 root.dataset.calm = '1';
-                storeCalmPreference();
+                syncWand();
             }
         };
         requestAnimationFrame(tick);

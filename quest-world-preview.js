@@ -2,7 +2,7 @@
 // driven by the app's real sky pipeline (skyWeatherStage) with a chosen weather and time.
 import './styles/sky_weather.css';
 import './styles/team_quest_map_living.css';
-import { getActiveLivingQuestMap, initializeLivingQuestMap, renderLeagueMapInto } from './features/worldMap.js';
+import { getActiveLivingQuestMap, initializeLivingQuestMap, renderLeagueMapInto, rollUpLivingQuestMap } from './features/worldMap.js';
 import { applySkyReading, getSkyScene } from './features/skyWeatherStage.js';
 
 const FX_KEY = 'gcq-team-quest-map-fx';
@@ -106,6 +106,19 @@ leaderInput.addEventListener('change', () => draw());
 timeSelect.addEventListener('change', applySky);
 weatherSelect.addEventListener('change', applySky);
 document.getElementById('pv-find').addEventListener('click', () => getActiveLivingQuestMap()?.focusClass('books'));
+// What the header's general view does: the map rolls up and waits; a class unrolls it again.
+const generalButton = document.getElementById('pv-general');
+generalButton.addEventListener('click', async () => {
+    if (generalButton.dataset.idle === 'true') {
+        delete generalButton.dataset.idle;
+        generalButton.textContent = 'General view';
+        draw({ replay: true });
+        return;
+    }
+    generalButton.dataset.idle = 'true';
+    generalButton.textContent = 'Pick a class';
+    await rollUpLivingQuestMap({ note: '<i class="fas fa-compass" aria-hidden="true"></i> Choose a class or a Quest League to unroll the map' });
+});
 
 // A simple frames-per-second readout.
 const fpsOut = document.getElementById('pv-fps');
@@ -122,4 +135,4 @@ let since = performance.now();
 }(performance.now()));
 
 draw({ replay: true });
-window.__questWorldPreview = { draw, league, applySky };
+window.__questWorldPreview = { draw, league, applySky, rollUp: rollUpLivingQuestMap };

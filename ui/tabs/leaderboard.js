@@ -13,7 +13,7 @@ import { getEggAlertState } from '../../features/familiarProgression.mjs';
 import { wrapAvatarWithLevelUpIndicator } from '../core/avatar.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
-import { getActiveLivingQuestMap, initializeLivingQuestMap, QUEST_MAP_ZONES, renderLeagueMapInto } from '../../features/worldMap.js';
+import { getActiveLivingQuestMap, initializeLivingQuestMap, QUEST_MAP_ZONES, renderLeagueMapInto, rollUpLivingQuestMap } from '../../features/worldMap.js';
 import { getQuestNextStop } from '../../features/teamQuestRace.mjs';
 import { renderQuestChroniclesHtml } from './teamQuestChronicles.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
@@ -298,9 +298,14 @@ function syncHeroChallengeHalls() {
 
 // --- TAB CONTENT RENDERERS ---
 
+// Each render takes a ticket; a render that waited (the map rolling up) stops if a newer one began.
+let teamQuestRenderTicket = 0;
+const IDLE_MAP_NOTE = '<i class="fas fa-compass" aria-hidden="true"></i> Choose a class or a Quest League to unroll the map';
+
 export async function renderClassLeaderboardTab({ freshVisit = false } = {}) {
     const list = document.getElementById('class-leaderboard-list');
     if (!list) return;
+    const ticket = ++teamQuestRenderTicket;
     bindTeacherQuestCompactViewportListener();
     const useCompactTeacherRaceView = isCompactTeacherQuestViewport();
 
@@ -312,6 +317,17 @@ export async function renderClassLeaderboardTab({ freshVisit = false } = {}) {
     }
 
     const league = getLeaderboardEffectiveLeague();
+    const existingBoard = list.querySelector(':scope > [data-tq-board]');
+    if (!league && !freshVisit && existingBoard?.dataset.mode === 'map' && existingBoard.querySelector('[data-living-quest-map]')) {
+        // The header went to the general view: the map rolls itself up and waits, sealed.
+        list.__tqSignature = null;
+        if (existingBoard.dataset.idle !== 'true') {
+            existingBoard.dataset.idle = 'true';
+            setChroniclesOpen(existingBoard, false);
+            await rollUpLivingQuestMap({ note: IDLE_MAP_NOTE });
+        }
+        return;
+    }
     if (!league) {
         teardownTeamQuestBoard();
         list.__tqSignature = null;
@@ -496,8 +512,18 @@ export async function renderClassLeaderboardTab({ freshVisit = false } = {}) {
     ]);
 
     let board = list.querySelector(':scope > [data-tq-board]');
-    if (!freshVisit && board && board.dataset.mode === mode && list.__tqSignature === signature) return;
+    if (!freshVisit && board && board.dataset.mode === mode && list.__tqSignature === signature && board.dataset.idle !== 'true') return;
     list.__tqSignature = signature;
+
+    // Coming back from the general view, or moving to another league: the map
+    // unrolls afresh (after rolling the old league up, when one is showing).
+    const wasIdle = board?.dataset.idle === 'true';
+    const leagueChanged = Boolean(board?.dataset.league) && board.dataset.league !== league;
+    if (mode === 'map' && board?.dataset.mode === 'map' && leagueChanged && !wasIdle && !freshVisit) {
+        await rollUpLivingQuestMap();
+        if (ticket !== teamQuestRenderTicket) return;
+    }
+    if (board) delete board.dataset.idle;
 
     if (freshVisit || !board || board.dataset.league !== league) {
         teamQuestUi.chroniclesOpen = false;
@@ -515,7 +541,7 @@ export async function renderClassLeaderboardTab({ freshVisit = false } = {}) {
     const mapSlot = board.querySelector('[data-tq-map-slot]');
     if (mode === 'map') {
         renderLeagueMapInto(mapSlot, classScores, { activeClassId });
-        initializeLivingQuestMap(mapSlot, { leagueKey: league, replay: freshVisit });
+        initializeLivingQuestMap(mapSlot, { leagueKey: league, replay: freshVisit || wasIdle || leagueChanged });
     } else {
         initializeLivingQuestMap(null);
         mapSlot.innerHTML = generateTeacherMobileRaceHtml(classScores, activeClassId);

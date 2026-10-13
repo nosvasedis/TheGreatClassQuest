@@ -16,10 +16,14 @@
     position: absolute;
     inset: 0;
     z-index: 1;
-    transform-origin: 50% 55%;
+    /* The scene writes the whole transform from the corner (worldScene.js#writeStage). */
+    transform-origin: 0 0;
 }
 
-.tq-living-map[data-fx='full'] .tq-stage { will-change: transform; }
+/* A layer hint while it moves; dropped once the camera settles so a zoomed
+   stage is redrawn sharp at its new size. */
+.tq-living-map[data-fx='full']:not(.is-zoomed) .tq-stage,
+.tq-living-map.is-cam-moving .tq-stage { will-change: transform; }
 .tq-living-map:not([data-tilt='0']) .tq-living-map__frame { perspective: 1600px; perspective-origin: 50% 30%; }
 
 /* Parallax: the scene writes a new target a few times a second and these
@@ -27,11 +31,22 @@
 .tq-living-map[data-fx='full'] .tq-stage,
 .tq-living-map[data-fx='full'] .tq-world__depth { transition: transform 620ms cubic-bezier(0.2, 0.7, 0.3, 1); }
 
-.tq-living-map .tq-stage.is-gliding {
-    transition:
-        transform 720ms cubic-bezier(0.22, 0.76, 0.25, 1),
-        transform-origin 720ms cubic-bezier(0.22, 0.76, 0.25, 1);
-}
+/* The camera's glides: a flight, a wheel nudge, the coast after a flick; a drag follows the hand. */
+.tq-living-map .tq-stage[data-cam='fly'] { transition: transform 860ms cubic-bezier(0.22, 0.76, 0.25, 1); }
+.tq-living-map .tq-stage[data-cam='wheel'] { transition: transform 200ms cubic-bezier(0.2, 0.7, 0.3, 1); }
+.tq-living-map .tq-stage[data-cam='coast'] { transition: transform 560ms cubic-bezier(0.15, 0.7, 0.3, 1); }
+.tq-living-map .tq-stage[data-cam='drag'] { transition: none; }
+
+.tq-living-map__frame { touch-action: pan-y; }
+.tq-living-map.is-zoomed .tq-living-map__frame { touch-action: none; cursor: grab; }
+.tq-living-map.is-dragging .tq-living-map__frame,
+.tq-living-map.is-dragging .tq-living-map__frame * { cursor: grabbing !important; }
+.tq-living-map.is-dragging .tq-living-map__frame { user-select: none; }
+
+/* Cards step aside while the camera moves and return where their party now stands. */
+.tq-living-map .tq-popover,
+.tq-living-map .tq-tip { transition: opacity 160ms ease; }
+.tq-living-map.is-cam-moving :is(.tq-popover, .tq-tip) { opacity: 0; }
 
 .tq-world,
 .tq-world-front {
@@ -728,23 +743,27 @@
 
 .tq-place__glow {
     inset: -6%;
-    background: radial-gradient(closest-side, rgba(var(--place-glow), 0.5), rgba(var(--place-glow), 0.2) 52%, rgba(var(--place-glow), 0) 76%);
+    /* Soft light: the landmark brightens and warms rather than turning a colour. */
+    background: radial-gradient(closest-side, rgba(255, 252, 236, 0.85), rgba(var(--place-glow), 0.5) 48%, rgba(var(--place-glow), 0) 76%);
+    mix-blend-mode: soft-light;
     opacity: 0;
+    visibility: hidden;
     transform: scale(0.9);
-    transition: opacity 320ms ease, transform 420ms cubic-bezier(0.22, 0.76, 0.25, 1);
+    transition: opacity 320ms ease, transform 420ms cubic-bezier(0.22, 0.76, 0.25, 1), visibility 0s linear 320ms;
 }
 
-/* An aura ring on the ground under the place. */
+/* A rune circle on the ground under the place, turning slowly. */
 .tq-place__ring {
-    left: 10%;
-    right: 10%;
-    bottom: 4%;
-    height: 24%;
-    border: 2px solid rgba(255, 255, 255, 0.85);
-    box-shadow: 0 0 0.9rem rgba(var(--place-glow), 0.9), inset 0 0 0.7rem rgba(var(--place-glow), 0.65);
+    top: 82%;
+    left: 50%;
+    width: 92%;
+    aspect-ratio: 1;
+    border-radius: 0;
+    background: var(--tq-rune) center / contain no-repeat;
+    filter: drop-shadow(0 0 0.35rem rgba(var(--place-glow), 0.95)) drop-shadow(0 0 0.1rem rgba(var(--place-glow), 1));
     opacity: 0;
-    transform: scale(0.7);
-    transition: opacity 260ms ease, transform 380ms cubic-bezier(0.3, 1.5, 0.5, 1);
+    transform: translate(-50%, -50%) rotateX(68deg);
+    transition: opacity 320ms ease;
 }
 
 /* Two motes of light rise from the place while it is hovered. */
@@ -764,8 +783,14 @@
 .tq-place::before { left: 30%; }
 .tq-place::after { right: 28%; width: 5%; }
 
-.tq-place:is(:hover, .is-hovered, :focus-visible) .tq-place__glow { opacity: 1; transform: scale(1); animation: tqw-place-breathe 2.6s ease-in-out infinite alternate; }
-.tq-place:is(:hover, .is-hovered, :focus-visible) .tq-place__ring { opacity: 1; transform: scale(1); }
+.tq-place:is(:hover, .is-hovered, :focus-visible) .tq-place__glow { opacity: 1; visibility: visible; transform: scale(1); transition: opacity 320ms ease, transform 420ms cubic-bezier(0.22, 0.76, 0.25, 1), visibility 0s; animation: tqw-place-breathe 2.6s ease-in-out infinite alternate; }
+.tq-place.is-pressed .tq-place__glow { visibility: visible; }
+/* Lite: a plain halo and a still rune (no blending, no turning). */
+.tq-living-map:not([data-fx='full']) .tq-place__glow { mix-blend-mode: normal; background: radial-gradient(closest-side, rgba(var(--place-glow), 0.42), rgba(var(--place-glow), 0.16) 52%, rgba(var(--place-glow), 0) 76%); }
+.tq-living-map:not([data-fx='full']) .tq-place:is(:hover, .is-hovered, :focus-visible) .tq-place__glow,
+.tq-living-map:not([data-fx='full']) .tq-place:is(:hover, .is-hovered, :focus-visible) .tq-place__ring { animation: none; }
+.tq-living-map:not([data-fx='full']) .tq-place__ring { filter: none; }
+.tq-place:is(:hover, .is-hovered, :focus-visible) .tq-place__ring { opacity: 0.95; animation: tqw-rune-spin 18s linear infinite; }
 .tq-place:is(:hover, .is-hovered, :focus-visible)::before { animation: tqw-place-twinkle 1.8s ease-out infinite; }
 .tq-place:is(:hover, .is-hovered, :focus-visible)::after { animation: tqw-place-twinkle 1.8s ease-out infinite 0.9s; }
 .tq-place:not(.is-reached) .tq-place__glow { filter: saturate(0.6); }
@@ -1056,6 +1081,348 @@
 
 .tq-living-map[data-fx='full'].is-blooming :is(.tq-world, .tq-world-front) { animation: tqw-world-settle 1.6s cubic-bezier(0.2, 0.7, 0.2, 1); }
 
+
+/* ── Map magic (features/questWorld/mapMagic.js) ───────────────────────── */
+.tq-living-map { --tq-rune: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><g fill='none' stroke='#fff'><circle cx='50' cy='50' r='47' stroke-width='2.2'/><circle cx='50' cy='50' r='40.5' stroke-width='1' stroke-dasharray='1.6 3.4'/><circle cx='50' cy='50' r='33' stroke-width='1.5' opacity='.8'/></g><g fill='#fff'><path d='M93.7 47.4L95.5 50.0L93.7 52.6L91.9 50.0Z' transform='rotate%280 93.7 50.0%29'/><path d='M80.9 78.3L82.7 80.9L80.9 83.5L79.1 80.9Z' transform='rotate%2845 80.9 80.9%29'/><path d='M50.0 91.1L51.8 93.7L50.0 96.3L48.2 93.7Z' transform='rotate%2890 50.0 93.7%29'/><path d='M19.1 78.3L20.9 80.9L19.1 83.5L17.3 80.9Z' transform='rotate%28135 19.1 80.9%29'/><path d='M6.3 47.4L8.1 50.0L6.3 52.6L4.5 50.0Z' transform='rotate%28180 6.3 50.0%29'/><path d='M19.1 16.5L20.9 19.1L19.1 21.7L17.3 19.1Z' transform='rotate%28225 19.1 19.1%29'/><path d='M50.0 3.7L51.8 6.3L50.0 8.9L48.2 6.3Z' transform='rotate%28270 50.0 6.3%29'/><path d='M80.9 16.5L82.7 19.1L80.9 21.7L79.1 19.1Z' transform='rotate%28315 80.9 19.1%29'/><path d='M82.4 56.4L86.3 57.2' stroke='#fff' stroke-width='1.1' opacity='.75'/><path d='M77.4 68.3L80.8 70.6' stroke='#fff' stroke-width='1.1' opacity='.75'/><path d='M68.3 77.4L70.6 80.8' stroke='#fff' stroke-width='1.1' opacity='.75'/><path d='M56.4 82.4L57.2 86.3' stroke='#fff' stroke-width='1.1' opacity='.75'/><path d='M43.6 82.4L42.8 86.3' stroke='#fff' stroke-width='1.1' opacity='.75'/><path d='M31.7 77.4L29.4 80.8' stroke='#fff' stroke-width='1.1' opacity='.75'/><path d='M22.6 68.3L19.2 70.6' stroke='#fff' stroke-width='1.1' opacity='.75'/><path d='M17.6 56.4L13.7 57.2' stroke='#fff' stroke-width='1.1' opacity='.75'/><path d='M17.6 43.6L13.7 42.8' stroke='#fff' stroke-width='1.1' opacity='.75'/><path d='M22.6 31.7L19.2 29.4' stroke='#fff' stroke-width='1.1' opacity='.75'/><path d='M31.7 22.6L29.4 19.2' stroke='#fff' stroke-width='1.1' opacity='.75'/><path d='M43.6 17.6L42.8 13.7' stroke='#fff' stroke-width='1.1' opacity='.75'/><path d='M56.4 17.6L57.2 13.7' stroke='#fff' stroke-width='1.1' opacity='.75'/><path d='M68.3 22.6L70.6 19.2' stroke='#fff' stroke-width='1.1' opacity='.75'/><path d='M77.4 31.7L80.8 29.4' stroke='#fff' stroke-width='1.1' opacity='.75'/><path d='M82.4 43.6L86.3 42.8' stroke='#fff' stroke-width='1.1' opacity='.75'/></g></svg>"); }
+
+/* The road: the explored stretch glows with dots of light, the uncharted
+   stretch is dotted ink, a hovered party's journey burns bright. */
+.tq-trail { fill: none; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+.tq-trail--lit-glow { stroke: rgba(255, 228, 150, 0.2); stroke-width: 20px; transition: stroke-dashoffset 1500ms cubic-bezier(0.45, 0, 0.2, 1); }
+.tq-trail--lit { stroke: rgba(255, 250, 222, 0.85); stroke-width: 4px; stroke-dasharray: 0.1 15; }
+.tq-trail--uncharted { stroke: rgba(86, 56, 26, 0.6); stroke-width: 2.6px; stroke-dasharray: 0.1 9; }
+.tq-living-map[data-night='1'] .tq-trail--uncharted { stroke: rgba(236, 226, 255, 0.5); }
+.tq-living-map[data-night='1'] .tq-trail--lit-glow { stroke: rgba(255, 210, 120, 0.3); }
+.tq-trail--focus-glow { stroke: rgba(255, 206, 84, 0.5); stroke-width: 18px; transition: stroke-dashoffset 900ms cubic-bezier(0.3, 0.1, 0.2, 1); }
+.tq-trail--focus { stroke: rgba(255, 252, 232, 0.96); stroke-width: 4.5px; transition: stroke-dashoffset 900ms cubic-bezier(0.3, 0.1, 0.2, 1); }
+.tq-trail--ahead { stroke: rgba(255, 252, 236, 0.95); stroke-width: 3.5px; stroke-dasharray: 0.1 11; animation: tqw-ahead 1.4s ease-in-out infinite alternate; }
+
+/* The shade that falls round a hovered party or realm. */
+.tq-focus {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(var(--fw, 20%) var(--fh, 30%) at var(--fx, 50%) var(--fy, 50%), rgba(12, 10, 30, 0) 0, rgba(12, 10, 30, 0) 42%, rgba(12, 10, 30, 0.36) 100%);
+    transition: opacity 420ms ease;
+}
+
+.tq-focus.is-on { opacity: 1; }
+/* Its own layer, so the fade runs on the compositor; lite skips the shade altogether. */
+.tq-living-map[data-fx='full'] .tq-focus { will-change: opacity; }
+.tq-living-map:not([data-fx='full']) .tq-focus { display: none; }
+.tq-living-map.is-party-focus .tq-token:not(.is-focus) { opacity: 0.42 !important; }
+
+/* World-sized boxes (1600 × 900 px) scaled to the stage, for things placed in world units. */
+.tq-magic {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1600px;
+    height: 900px;
+    transform: scale(var(--tq-k, 1));
+    transform-origin: 0 0;
+    pointer-events: none;
+}
+
+.tq-magic--low { z-index: 7; }
+.tq-magic--high { z-index: 25; }
+.tq-magic__wisps,
+.tq-magic__steps { position: absolute; inset: 0; }
+
+.tq-wisp {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 22px;
+    height: 22px;
+    margin: -11px 0 0 -11px;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, #fffef4, rgba(255, 232, 150, 0.85) 30%, rgba(255, 196, 80, 0.3) 60%, rgba(255, 196, 80, 0));
+    opacity: 0;
+}
+
+.tq-step {
+    position: absolute;
+    width: 8px;
+    height: 4.5px;
+    margin: -2.25px 0 0 -4px;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(255, 250, 225, 0.95), rgba(255, 214, 120, 0.55) 60%, rgba(255, 214, 120, 0));
+    transform: rotate(var(--a, 0deg));
+    opacity: 0;
+}
+
+/* Realm gates on the road: a crest on a stone that lights once a party reaches it. */
+.tq-gate {
+    position: absolute;
+    width: 2.3rem;
+    height: 2.3rem;
+    margin: -1.15rem 0 0 -1.15rem;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    cursor: zoom-in;
+    pointer-events: auto;
+    scale: calc(var(--tq-counter, 1) / max(var(--tq-k, 1), 0.75));
+    transition: scale 700ms cubic-bezier(0.22, 0.76, 0.25, 1);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.tq-gate img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    filter: saturate(0.3) brightness(1.04) drop-shadow(0 0.15rem 0.2rem rgba(30, 18, 6, 0.5));
+    opacity: 0.88;
+    transition: transform 260ms cubic-bezier(0.3, 1.5, 0.5, 1), opacity 300ms ease;
+}
+
+.tq-gate.is-reached img { filter: drop-shadow(0 0.15rem 0.25rem rgba(30, 18, 6, 0.5)); opacity: 1; }
+.tq-gate:is(:hover, :focus-visible) img { transform: translateY(-0.2rem) scale(1.18); opacity: 1; }
+.tq-gate:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+.tq-gate__glow,
+.tq-gate__ring { position: absolute; border-radius: 50%; pointer-events: none; }
+.tq-gate__glow { inset: -45%; background: radial-gradient(closest-side, rgba(255, 236, 170, 0.75), rgba(255, 210, 110, 0)); opacity: 0; }
+.tq-gate.is-reached .tq-gate__glow { opacity: 0.55; }
+.tq-living-map[data-fx='full'] .tq-gate.is-reached .tq-gate__glow { animation: tqw-gate-glow 3.2s ease-in-out infinite alternate; }
+.tq-gate__ring { inset: -30%; border: 2px solid rgba(255, 246, 210, 0.95); opacity: 0; }
+.tq-gate.is-flaring .tq-gate__ring { animation: tqw-gate-flare 1.4s ease-out; }
+.tq-gate.is-flaring .tq-gate__glow { animation: tqw-gate-flash 1.4s ease-out; }
+
+/* The road pin: where a spot on the road is, and how far a party is from it. */
+.tq-road-pin,
+.tq-next-pin {
+    position: absolute;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    scale: calc(var(--tq-counter, 1) / max(var(--tq-k, 1), 0.75));
+    transition: opacity 160ms ease;
+}
+
+.tq-road-pin.is-on,
+.tq-next-pin.is-on { opacity: 1; }
+
+.tq-road-pin__ring,
+.tq-road-pin__dot { position: absolute; left: 0; top: 0; border-radius: 50%; }
+.tq-road-pin__ring {
+    width: 3rem;
+    height: 3rem;
+    margin: -1.5rem 0 0 -1.5rem;
+    background:
+        var(--tq-rune) center / contain no-repeat,
+        radial-gradient(closest-side, rgba(255, 220, 120, 0.55), rgba(255, 200, 90, 0.18) 70%, rgba(255, 200, 90, 0));
+    filter: drop-shadow(0 0 1px #9a5a0c) drop-shadow(0 0 0.35rem rgba(255, 196, 70, 0.95));
+    animation: tqw-pin-spin 7s linear infinite;
+}
+
+.tq-road-pin__dot {
+    width: 0.62rem;
+    height: 0.62rem;
+    margin: -0.31rem 0 0 -0.31rem;
+    background: radial-gradient(circle at 35% 35%, #fff, #ffd76a 60%, #e09a1c);
+    box-shadow: 0 0 0.7rem rgba(255, 220, 120, 0.95);
+}
+
+.tq-road-pin__label,
+.tq-next-pin__label {
+    position: absolute;
+    left: 0;
+    bottom: 1.5rem;
+    display: grid;
+    justify-items: center;
+    padding: 0.36rem 0.7rem 0.4rem;
+    border: 1.5px solid rgba(160, 108, 44, 0.65);
+    border-radius: 0.8rem;
+    color: #4b2c10;
+    background: linear-gradient(180deg, #fffaf0, #f6e6c2);
+    box-shadow: 0 0.4rem 1rem rgba(40, 24, 8, 0.35);
+    font-size: 0.74rem;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+    transform: translateX(-50%);
+}
+
+.tq-road-pin__label::after,
+.tq-next-pin__label::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -0.36rem;
+    width: 0.62rem;
+    height: 0.62rem;
+    border-right: 1.5px solid rgba(160, 108, 44, 0.65);
+    border-bottom: 1.5px solid rgba(160, 108, 44, 0.65);
+    background: #f6e6c2;
+    transform: translateX(-50%) rotate(45deg);
+}
+
+.tq-road-pin.is-below .tq-road-pin__label::after,
+.tq-next-pin.is-below .tq-next-pin__label::after { top: -0.36rem; bottom: auto; background: #fffaf0; transform: translateX(-50%) rotate(225deg); }
+
+.tq-road-pin__label strong { color: #b2560f; font-size: 1.05rem; font-weight: 900; line-height: 1; }
+.tq-road-pin__label span { color: #6b4720; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+.tq-road-pin__label small { margin-top: 0.15rem; color: #3b2a1a; font-size: 0.72rem; font-weight: 700; }
+.tq-road-pin__label small b { color: #2f64c8; }
+.tq-road-pin__label small i { color: #2f8a4a; }
+.tq-road-pin[data-zone='silver'] .tq-road-pin__label strong { color: #2f6fb0; }
+.tq-road-pin[data-zone='gold'] .tq-road-pin__label strong { color: #b2560f; }
+.tq-road-pin[data-zone='crystal'] .tq-road-pin__label strong,
+.tq-road-pin[data-zone='diamond'] .tq-road-pin__label strong { color: #7a3fc0; }
+.tq-road-pin.is-below .tq-road-pin__label,
+.tq-next-pin.is-below .tq-next-pin__label { top: 1.5rem; bottom: auto; }
+
+/* The next stop of a hovered party: a little flag on the road. */
+.tq-next-pin__flag {
+    position: absolute;
+    left: -0.2rem;
+    bottom: -0.1rem;
+    color: #fff3c4;
+    font-size: 1.05rem;
+    filter: drop-shadow(0 0 0.35rem rgba(255, 200, 80, 0.95)) drop-shadow(0 0.1rem 0.1rem rgba(40, 20, 6, 0.6));
+    transform-origin: 10% 100%;
+}
+
+.tq-next-pin.is-on .tq-next-pin__flag { animation: tqw-flag-plant 520ms cubic-bezier(0.3, 1.6, 0.5, 1); }
+.tq-next-pin__label { bottom: 1.9rem; }
+.tq-next-pin__label b { color: #8a3c0c; font-size: 0.78rem; }
+.tq-next-pin__label small { color: #2f64c8; font-size: 0.7rem; font-weight: 800; }
+
+/* A lantern of warm light held over the map, and the dust in the pointer's wake. */
+.tq-lantern-light {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2;
+    width: 30%;
+    aspect-ratio: 1;
+    margin: -15% 0 0 -15%;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(255, 246, 214, 0.55), rgba(255, 232, 170, 0.22) 45%, rgba(255, 220, 150, 0));
+    mix-blend-mode: soft-light;
+    opacity: 0;
+    pointer-events: none;
+    /* Hidden (not just clear) while off: a blended layer costs every frame even when invisible. */
+    visibility: hidden;
+    transition: opacity 420ms ease, visibility 0s linear 420ms;
+}
+
+.tq-living-map:not([data-fx='full']) .tq-lantern-light { display: none; }
+.tq-living-map[data-fx='full'] .tq-lantern-light { will-change: transform, opacity; }
+.tq-lantern-light.is-on { opacity: 1; visibility: visible; transition: opacity 420ms ease, visibility 0s; }
+.tq-living-map[data-night='1'] .tq-lantern-light {
+    background: radial-gradient(closest-side, rgba(255, 206, 130, 0.42), rgba(255, 170, 80, 0.16) 45%, rgba(255, 160, 70, 0));
+    mix-blend-mode: screen;
+}
+
+.tq-dust {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 9px;
+    height: 9px;
+    margin: -4.5px 0 0 -4.5px;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, #fff, rgba(255, 228, 140, 0.9) 45%, rgba(255, 210, 110, 0));
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* A party's rune ring on the ground under it, while it is hovered or chosen. */
+.tq-token__ring {
+    position: absolute;
+    left: 50%;
+    bottom: -14%;
+    width: 150%;
+    aspect-ratio: 1;
+    background: var(--tq-rune) center / contain no-repeat;
+    filter: drop-shadow(0 0 0.25rem rgba(var(--tq-glow), 0.95));
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, 50%) rotateX(68deg);
+    transition: opacity 260ms ease;
+    scale: var(--tq-counter, 1);
+}
+
+.tq-token:is(:hover, :focus-visible, .is-selected, .is-focus) .tq-token__ring { opacity: 0.9; animation: tqw-ground-spin 9s linear infinite; }
+.tq-living-map .tq-token__body,
+.tq-living-map .tq-token__shadow { scale: var(--tq-counter, 1); }
+.tq-living-map .tq-token__body { transition: transform 240ms cubic-bezier(0.3, 1.5, 0.5, 1), scale 760ms cubic-bezier(0.22, 0.76, 0.25, 1); }
+
+/* The camera buttons and the first-visit hint. */
+.tq-map-camera {
+    position: absolute;
+    top: 50%;
+    right: 1.05rem;
+    z-index: 26;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    transform: translateY(-50%);
+}
+
+.tq-map-camera__btn.tq-map-replay { width: 2.45rem; height: 2.45rem; font-size: 0.85rem; }
+.tq-map-camera__btn[hidden] { display: none; }
+.tq-map-camera__btn:disabled { opacity: 0.45; cursor: default; filter: grayscale(0.4); transform: none; }
+
+.tq-map-hint {
+    position: absolute;
+    bottom: 1.1rem;
+    left: 50%;
+    z-index: 26;
+    display: flex;
+    gap: 1rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid rgba(255, 230, 170, 0.45);
+    border-radius: 999px;
+    color: #fff4d6;
+    background: rgba(44, 28, 12, 0.8);
+    box-shadow: 0 0.5rem 1.2rem rgba(20, 10, 2, 0.35);
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, 0.6rem);
+    transition: opacity 360ms ease, transform 360ms cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+.tq-map-hint.is-on { opacity: 1; transform: translate(-50%, 0); }
+.tq-map-hint i { margin-right: 0.3rem; color: #ffd76a; }
+
+/* Rolling up for the general view: the colours drain back to ink, the scroll
+   rolls onto its rods, the ribbon is tied and the seal pressed on again. */
+.tq-living-map.is-furling .tq-living-map__ink { animation: tqw-ink-return 480ms ease-out both; }
+.tq-living-map.is-resealing .tq-unroll__ribbon { animation: tqw-ribbon-tie 420ms cubic-bezier(0.3, 1.4, 0.5, 1) both; }
+
+.tq-idle-note {
+    position: absolute;
+    bottom: 9%;
+    left: 50%;
+    z-index: 5;
+    margin: 0;
+    padding: 0.55rem 1.1rem;
+    border: 1.5px solid rgba(150, 100, 40, 0.5);
+    border-radius: 999px;
+    color: #5b3419;
+    background: linear-gradient(180deg, #fffaf0, #f3e2bc);
+    box-shadow: 0 0.4rem 1rem rgba(60, 36, 12, 0.18);
+    font-size: 0.9rem;
+    font-weight: 700;
+    white-space: nowrap;
+    transform: translateX(-50%);
+    animation: tqw-note-in 600ms ease-out 700ms both;
+}
+
+.tq-idle-note i { margin-right: 0.35rem; color: #b7791f; }
+.tq-living-map:not([data-scroll='rolled']) .tq-idle-note { display: none; }
+
 /* ── Still and paused ──────────────────────────────────────────────────── */
 .tq-living-map.is-motion-paused .tq-stage *,
 .tq-living-map.is-motion-paused .tq-stage *::before,
@@ -1076,8 +1443,18 @@
     .tq-world *::before,
     .tq-world-front * { animation: none !important; }
     .tq-living-map .tq-stage,
-    .tq-living-map .tq-stage.is-gliding,
-    .tq-living-map .tq-world__depth { transition: none !important; }
+    .tq-living-map .tq-stage[data-cam],
+    .tq-living-map .tq-world__depth,
+    .tq-trail,
+    .tq-living-map .tq-token__body { transition: none !important; }
+    .tq-magic *,
+    .tq-trail,
+    .tq-token__ring,
+    .tq-idle-note,
+    .tq-living-map.is-furling .tq-living-map__ink,
+    .tq-living-map.is-resealing .tq-unroll__ribbon { animation: none !important; }
+    .tq-lantern-light,
+    .tq-dust { display: none; }
     .tq-world__paint,
     .tq-world__canvas,
     .tq-mist__puff,
@@ -1168,4 +1545,15 @@
 @keyframes tqw-ink-bloom { 0%, 10% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes tqw-sweep { from { transform: translate3d(-100%, 0, 0); } to { transform: translate3d(100%, 0, 0); } }
 @keyframes tqw-world-settle { from { transform: scale(1.035); } to { transform: none; } }
+@keyframes tqw-ahead { from { opacity: 0.55; } to { opacity: 1; } }
+@keyframes tqw-gate-glow { from { opacity: 0.35; transform: scale(0.9); } to { opacity: 0.85; transform: scale(1.08); } }
+@keyframes tqw-gate-flare { 0% { opacity: 1; transform: scale(0.6); } 100% { opacity: 0; transform: scale(2.4); } }
+@keyframes tqw-gate-flash { 0% { opacity: 0; transform: scale(0.6); } 25% { opacity: 1; transform: scale(1.3); } 100% { opacity: 0.5; transform: scale(1); } }
+@keyframes tqw-pin-spin { to { transform: rotate(360deg); } }
+@keyframes tqw-flag-plant { 0% { opacity: 0; transform: translateY(-0.8rem) rotate(-18deg) scale(0.6); } 100% { opacity: 1; transform: none; } }
+@keyframes tqw-ground-spin { from { transform: translate(-50%, 50%) rotateX(68deg) rotate(0deg); } to { transform: translate(-50%, 50%) rotateX(68deg) rotate(360deg); } }
+@keyframes tqw-rune-spin { from { transform: translate(-50%, -50%) rotateX(68deg) rotate(0deg); } to { transform: translate(-50%, -50%) rotateX(68deg) rotate(360deg); } }
+@keyframes tqw-ink-return { from { opacity: 0; } to { opacity: 1; } }
+@keyframes tqw-ribbon-tie { from { opacity: 0; transform: translate(-50%, -50%) scaleX(0.4); } to { opacity: 1; transform: translate(-50%, -50%); } }
+@keyframes tqw-note-in { from { opacity: 0; transform: translate(-50%, 0.5rem); } to { opacity: 1; transform: translate(-50%, 0); } }
 @keyframes tqw-flash { 0% { opacity: 0; } 6% { opacity: 1; } 14% { opacity: 0.2; } 20% { opacity: 0.85; } 100% { opacity: 0; } }

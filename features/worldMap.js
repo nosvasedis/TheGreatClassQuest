@@ -155,6 +155,8 @@ let activeLivingMapController = null;
 // How long the map takes to unroll, and to roll up before unrolling again.
 const SCROLL_UNROLL_MS = 1300;
 const SCROLL_FURL_MS = 380;
+// Rolling up for good (the header left this league): slower, so the class sees it go.
+const SCROLL_ROLL_UP_MS = 900;
 // The wax seal cracks and the ribbon falls before the rods part; then the ink
 // sketch on the paper blooms into the painted world.
 const SEAL_BREAK_MS = 560;
@@ -176,9 +178,12 @@ function cubicBezier(x1, y1, x2, y2) {
 }
 // A quick flick off the rods that slows as the paper flattens out.
 const easeUnroll = cubicBezier(0.3, 0.02, 0.16, 1);
+// The parties' walk (the same curve as their travel animation), for the footsteps.
+const easeTravel = cubicBezier(0.37, 0.08, 0.22, 1);
+const easeFurl = cubicBezier(0.55, 0, 0.35, 1);
 // Where each party was last drawn, so live updates walk tokens forward from
 // there instead of replaying the whole journey from the start of the road.
-const mapMemory = { leagueKey: null, tokens: new Map(), pinnedKey: null };
+const mapMemory = { leagueKey: null, tokens: new Map(), pinnedKey: null, mineKey: null };
 
 function escapeMapHtml(value) {
     return String(value ?? '')
@@ -285,6 +290,7 @@ function renderMapToken(item) {
                 data-class-id="${escapeMapHtml(c.id || '')}"
                 data-progress="${pct}"
                 data-stars="${Number(liveMonthlyStars) || 0}"
+                data-goal="${Number(goal) || 0}"
                 data-logo="${safeLogo}"
                 data-name="${safeName}"
                 data-lane="${lane}"
@@ -292,6 +298,7 @@ function renderMapToken(item) {
                 aria-haspopup="dialog"
                 aria-expanded="false">
             <span class="tq-token__shadow" aria-hidden="true"></span>
+            <span class="tq-token__ring" aria-hidden="true"></span>
             <span class="tq-token__body" aria-hidden="true">
                 <span class="tq-token__aura"></span>
                 <span class="tq-token__disc">
@@ -600,6 +607,34 @@ function sampleTokenJourney(routeSegments, fromProgress, toProgress, fromLane, t
     return frames;
 }
 
+/** The short line shown under a rolled-up map ("pick a class to unroll it"). */
+function setIdleNote(root, note) {
+    let el = root.querySelector('.tq-idle-note');
+    if (!note) {
+        el?.remove();
+        return;
+    }
+    if (!el) {
+        el = document.createElement('p');
+        el.className = 'tq-idle-note';
+        root.appendChild(el);
+    }
+    el.innerHTML = note;
+}
+
+/**
+ * Rolls the map on screen up and seals it, then lets it go (no controller is
+ * left to unroll it again). Resolves at once when there is no map.
+ */
+export function rollUpLivingQuestMap({ note = '' } = {}) {
+    const controller = activeLivingMapController;
+    if (!controller) return Promise.resolve(false);
+    return controller.rollUp({ note }).then(() => {
+        if (activeLivingMapController === controller) controller.destroy();
+        return true;
+    });
+}
+
 /** The living map controller for the map currently on screen (null when none). */
 export function getActiveLivingQuestMap() {
     return activeLivingMapController;
@@ -611,6 +646,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
 
     const root = scope?.querySelector?.('[data-living-quest-map]');
     const frame = root?.querySelector('.tq-living-map__frame');
+    if (root) setIdleNote(root, '');
     const toSegments = (selector) => [...(root?.querySelectorAll?.(selector) || [])].map((path) => ({
         path,
         minProgress: Number(path.dataset.progressMin) || 0,
@@ -668,6 +704,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
                 scene.setExplored(lastExplored);
                 syncLeader();
                 updateMotionState();
+                mountMagic();
             }
             return scene;
         })
@@ -677,6 +714,33 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             return null;
         });
 
+    // --- Map magic (features/questWorld/mapMagic.js): trails, pins, gates, the camera ---
+    let magic = null;
+    const partiesNow = () => tokens.map((token) => {
+        const s = tokenState(token);
+        return {
+            key: s.key,
+            el: token,
+            progress: s.progress,
+            stars: s.stars,
+            goal: Number(token.dataset.goal) || 0,
+            name: token.dataset.name,
+            logo: token.dataset.logo,
+            isMine: token.classList.contains('is-mine'),
+            isLeader: token.classList.contains('is-leader')
+        };
+    });
+    const mountMagic = () => {
+        import('./questWorld/mapMagic.js').then(({ mountMapMagic }) => {
+            if (destroyed || !scene) return;
+            magic = mountMapMagic({ root, scene, parties: partiesNow, tier: sceneTier });
+            if (!magic) return;
+            magic.setExplored(lastExplored);
+            magic.setPaused(root.classList.contains('is-motion-paused'));
+            if (openToken) magic.focusParty(openToken.dataset.tokenKey);
+        }).catch((error) => console.warn('Quest map magic could not load.', error));
+    };
+
     const tokenState = (token) => ({
         key: token.dataset.tokenKey,
         progress: Math.min(100, Math.max(0, Number(token.dataset.progress) || 0)),
@@ -685,6 +749,9 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
     });
 
     // Remember where everyone ends up, whatever happens to this controller.
+    const mineToken = tokens.find((token) => token.classList.contains('is-mine'));
+    const mineChanged = continuing && Boolean(mineToken) && mapMemory.mineKey !== mineToken.dataset.tokenKey;
+    mapMemory.mineKey = mineToken?.dataset.tokenKey || null;
     mapMemory.leagueKey = leagueKey || null;
     mapMemory.tokens = new Map(tokens.map((token) => {
         const s = tokenState(token);
@@ -793,6 +860,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
     const updateExploration = (explored, { animate = false } = {}) => {
         lastExplored = explored;
         scene?.setExplored(explored, { animate });
+        magic?.setExplored(explored, { animate });
         const rect = frame.getBoundingClientRect();
         const unitsPerPixel = rect.width ? MAP_VIEWBOX_WIDTH / rect.width : 1;
         fogSegments.forEach((segment) => {
@@ -843,6 +911,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         waypoint.classList.add('is-celebrating');
         later(() => waypoint.classList.remove('is-celebrating'), 1800);
         scene?.celebrateRealm(progress);
+        magic?.flareGate(progress);
     };
 
     const placeToken = (token, rect) => {
@@ -886,6 +955,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             sampleTokenJourney(routeSegments, from, to, fromLane, toLane, rect, fadeIn),
             { duration, delay, easing: 'cubic-bezier(0.37, 0.08, 0.22, 1)', fill: 'backwards' }
         );
+        if (to > from) magic?.walk({ from, to, delay, duration, ease: easeTravel });
         activeAnimations.add(animation);
         later(() => token.classList.add('is-travelling'), delay);
         const settle = () => {
@@ -965,6 +1035,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
                 storeFxPreference('lite');
                 syncTilt();
                 scene?.setTier(sceneTier());
+                magic?.setTier();
                 positionTokens();
             }
         };
@@ -987,6 +1058,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         root.classList.toggle('is-motion-paused', suspended);
         root.classList.toggle('is-reduced-motion', reduced);
         scene?.setPaused(suspended);
+        magic?.setPaused(suspended);
         activeAnimations.forEach((animation) => {
             if (suspended) animation.pause();
             else animation.play();
@@ -1033,6 +1105,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         mapMemory.pinnedKey = null;
         popover.dataset.state = 'closed';
         popover.dataset.pinned = 'false';
+        magic?.focusParty(null);
         scene?.release();
         // Its own timer: a later hover-out must not cancel the card actually going away.
         clearTimeout(collapseTimer);
@@ -1066,6 +1139,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         if (pinned) mapMemory.pinnedKey = token.dataset.tokenKey;
         token.classList.add('is-selected');
         token.setAttribute('aria-expanded', 'true');
+        magic?.focusParty(token.dataset.tokenKey);
         popover.hidden = false;
         positionPopover();
         requestAnimationFrame(() => {
@@ -1147,12 +1221,11 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
     let tipShowTimer = 0;
     let tipHideTimer = 0;
 
-    const partiesNow = () => tokens.map((token) => ({
-        progress: tokenState(token).progress,
-        name: token.dataset.name,
-        logo: token.dataset.logo,
-        isMine: token.classList.contains('is-mine')
-    }));
+    let hoveredPlace = null;
+    let roadActive = false;
+    const placeGeometry = (id) => (id === 'portal'
+        ? { x: PORTAL.x, y: PORTAL.y, rx: 70, ry: 70 }
+        : REALM_PLACES.find((place) => place.id === id) || null);
 
     const positionTip = () => {
         if (!tipFor || !tip || tip.hidden) return;
@@ -1180,6 +1253,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         clearTimeout(tipHideTimer);
         const id = el.dataset.place;
         const info = describePlace(id, partiesNow());
+        magic?.focusPlace(placeGeometry(id));
         tipBody.innerHTML = placeTipHtml(info, { badge: ZONE_BADGE_BY_ID[id === 'portal' ? 'crystal' : id] });
         tip.dataset.place = id;
         tip.style.setProperty('--place-glow', PLACE_GLOW[id] || PLACE_GLOW.gold);
@@ -1199,6 +1273,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             tipFor?.classList.remove('is-hovered');
             tipFor?.removeAttribute('aria-describedby');
             tipFor = null;
+            magic?.focusPlace(null);
             tip.dataset.state = 'closed';
             later(() => { if (!tipFor) tip.hidden = true; }, 160);
         };
@@ -1223,12 +1298,15 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
     placeEls.forEach((el) => {
         on(el, 'pointerenter', (event) => {
             if (event.pointerType !== 'mouse') return;
+            hoveredPlace = el;
+            if (roadActive) return;
             clearTimeout(tipHideTimer);
             clearTimeout(tipShowTimer);
             tipShowTimer = later(() => showTip(el), tipFor ? 0 : 90);
         });
         on(el, 'pointerleave', (event) => {
             if (event.pointerType !== 'mouse') return;
+            if (hoveredPlace === el) hoveredPlace = null;
             clearTimeout(tipShowTimer);
             hideTip();
         });
@@ -1249,6 +1327,19 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         if (root.dataset.fx === 'lite') return;
         if (event.target.closest('[data-place], [data-map-token], .tq-map-controls, .tq-route-finish, button, a')) return;
         sparkAt(event.clientX, event.clientY, '255, 236, 170');
+    });
+
+    // The road pin and a realm's card never show at once: the road wins while the pointer is on it.
+    on(root, 'tq:road', (event) => {
+        roadActive = Boolean(event.detail?.active);
+        if (roadActive) hideTip({ now: true });
+        else if (hoveredPlace && !openToken) showTip(hoveredPlace);
+    });
+    // Cards fade while the camera moves and come back where their party now stands.
+    on(root, 'tq:camera', (event) => {
+        if (event.detail?.phase !== 'settled') return;
+        positionPopover();
+        positionTip();
     });
 
     if (replayButton) {
@@ -1308,6 +1399,8 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
     const resizeObserver = new ResizeObserver(() => {
         cancelAnimationFrame(resizeFrame);
         resizeFrame = requestAnimationFrame(() => {
+            magic?.refresh();
+            if (scene?.camera && scene.camera.state.zoom > 1.001) scene.camera.home('drag');
             positionStaticElements();
             positionTokens();
             updateExploration(leaderProgress());
@@ -1323,6 +1416,14 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
     syncLeader();
     if (continuing) root.dataset.mapReady = 'true';
     else delete root.dataset.mapReady;
+    // The header switched to another class of this league: its party lights up where it stands.
+    if (mineChanged && !reducedMotionQuery.matches) {
+        requestAnimationFrame(() => {
+            if (destroyed) return;
+            mineToken.classList.add('is-beacon');
+            later(() => mineToken.classList.remove('is-beacon'), 2600);
+        });
+    }
 
     // A live update redraws the parties; keep the card the teacher pinned open.
     if (pinnedKeyToRestore) {
@@ -1352,8 +1453,41 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             }, 520);
             return true;
         },
+        /**
+         * Rolls the map back up onto its rods and seals it (the header went to the
+         * general view, or to another league). Resolves once it is sealed.
+         */
+        rollUp({ note = '' } = {}) {
+            closePopover();
+            hideTip({ now: true });
+            magic?.focusParty(null);
+            [...activeAnimations].forEach((animation) => animation.cancel());
+            if (scene?.camera && scene.camera.state.zoom > 1.001) scene.camera.home('drag');
+            setIdleNote(root, note);
+            const rect = root.getBoundingClientRect();
+            const inView = !document.hidden && rect.width > 0 && rect.bottom > 0 && rect.top < window.innerHeight;
+            if (reducedMotionQuery.matches || !inView || root.dataset.scroll === 'rolled') {
+                setScrollPose('rolled');
+                return Promise.resolve();
+            }
+            root.classList.add('is-furling');
+            return moveScroll(0, SCROLL_ROLL_UP_MS, easeFurl).then(() => new Promise((resolve) => {
+                root.classList.remove('is-furling');
+                // A newer map took over while this one rolled up: leave the scroll to it.
+                if (destroyed) { resolve(); return; }
+                setScrollPose('rolled');
+                // The seal is pressed back on.
+                root.classList.add('is-resealing');
+                setTimeout(() => {
+                    root.classList.remove('is-resealing');
+                    resolve();
+                }, 520);
+            }));
+        },
         destroy() {
             destroyed = true;
+            magic?.destroy();
+            magic = null;
             [...activeAnimations].forEach((animation) => animation.cancel());
             timers.forEach((id) => clearTimeout(id));
             timers.clear();

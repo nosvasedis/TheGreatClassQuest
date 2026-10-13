@@ -34,6 +34,7 @@ import {
     seasonFor
 } from './worldGeometry.mjs';
 import { QUEST_MAP_ZONES } from '../questMapZones.mjs';
+import { CAMERA_LIMITS, cameraOn, clampCamera, zoomAround } from './mapJourney.mjs';
 import { applySkyScene, computeSkyScene, getSkyScene, getLastSkyReading } from '../skyWeatherStage.js';
 import { BOLT_PATHS } from '../skyWeatherArt.js';
 import { seededRandom } from '../skyWeather.mjs';
@@ -305,6 +306,7 @@ export function mountQuestWorld(root, { tier = 'full' } = {}) {
         d.wx = scene.condition;
         d.intensity = scene.intensity || 'normal';
         d.night = scene.isNight ? '1' : '0';
+        root.dataset.night = d.night;
         d.sun = scene.sun ? '1' : '0';
         d.moon = scene.moon ? '1' : '0';
         d.stars = !scene.stars ? '0' : scene.shootingStars ? '2' : '1';
@@ -415,7 +417,13 @@ export function mountQuestWorld(root, { tier = 'full' } = {}) {
         later(() => burst.remove(), 2200);
     };
 
-    // ── The diorama: tilt, pointer parallax and the camera glide ─────────
+    // ── The diorama: tilt, pointer parallax and the camera ───────────────
+    // The stage is one transform from its top-left corner:
+    //   translate(t) · [about the centre: rotateX(tilt) · scale(s)]
+    // At rest it leans back (tilt) and sways with the pointer (parallax). The
+    // camera zooms and pans it (tilt off, so pointer maths stay exact). Both
+    // write the same list of functions, so moving between them interpolates
+    // smoothly on the compositor.
     const depthEls = {
         sky: world.querySelector('.tq-world__depth--sky'),
         far: world.querySelector('.tq-world__depth--far')
@@ -427,41 +435,109 @@ export function mountQuestWorld(root, { tier = 'full' } = {}) {
     // the layers glides between targets on the compositor (quest_world.css),
     // so the main thread does almost nothing while the mouse moves.
     const PARALLAX_STEP_MS = 110;
+    const CAMERA_MS = { fly: 860, wheel: 200, coast: 560, drag: 0 };
     const pointer = { x: 0, y: 0 };
     let parallaxTimer = 0;
     let frameRect = null;
-    let glide = null;
+    let camera = { x: 0, y: 0, zoom: 1 };
+    // Set when the camera moved to show a party card, so closing the card takes it home again.
+    let cameraFocus = false;
+    let settleTimer = 0;
+    let sharpening = null;
 
     const settings = () => SCENE_TIERS[currentTier] || SCENE_TIERS.lite;
     const tiltDeg = () => Number(root.dataset.tilt) || 0;
+    const stageSize = () => ({ width: stage.clientWidth || 1, height: stage.clientHeight || 1 });
+    const maxZoom = () => (currentTier === 'full' ? CAMERA_LIMITS.max : CAMERA_LIMITS.liteMax);
+    const zoomed = () => camera.zoom > 1.001;
 
     const writeStage = () => {
-        const tilt = tiltDeg();
+        const { width, height } = stageSize();
+        const cx = width * 0.5;
+        const cy = height * 0.55;
+        const tilt = zoomed() ? 0 : tiltDeg();
         const { parallax } = settings();
-        if (!tilt && !parallax && !glide) {
+        root.classList.toggle('is-zoomed', zoomed());
+        root.style.setProperty('--tq-cam-zoom', camera.zoom.toFixed(3));
+        root.style.setProperty('--tq-counter', (1 / camera.zoom ** 0.72).toFixed(3));
+        if (!zoomed() && !tilt && !parallax) {
             stage.style.transform = '';
             Object.values(depthEls).forEach((el) => { el.style.transform = ''; });
             return;
         }
-        const scale = (tilt ? 1.05 : 1.02) * (glide ? glide.zoom : 1);
-        const sx = glide ? 0 : -SWAY_X * DEPTH.stage * pointer.x;
-        const sy = glide ? 0 : -SWAY_Y * DEPTH.stage * pointer.y;
-        stage.style.transform = `translate3d(${sx.toFixed(2)}px, ${sy.toFixed(2)}px, 0)${tilt ? ` rotateX(${tilt}deg)` : ''} scale(${scale.toFixed(4)})`;
+        let tx;
+        let ty;
+        let scale;
+        if (zoomed()) {
+            scale = camera.zoom;
+            tx = camera.x - cx * (1 - scale);
+            ty = camera.y - cy * (1 - scale);
+        } else {
+            scale = tilt ? 1.05 : 1.02;
+            tx = -SWAY_X * DEPTH.stage * pointer.x;
+            ty = -SWAY_Y * DEPTH.stage * pointer.y;
+        }
+        stage.style.transform = `translate3d(${tx.toFixed(2)}px, ${ty.toFixed(2)}px, 0) translate(${cx.toFixed(1)}px, ${cy.toFixed(1)}px) rotateX(${tilt}deg) scale(${scale.toFixed(4)}) translate(${(-cx).toFixed(1)}px, ${(-cy).toFixed(1)}px)`;
         Object.entries(depthEls).forEach(([layer, el]) => {
+            if (zoomed() || !parallax) { el.style.transform = ''; return; }
             const k = DEPTH[layer] - DEPTH.stage;
-            const dx = glide ? 0 : -SWAY_X * k * pointer.x;
-            const dy = glide ? 0 : -SWAY_Y * k * pointer.y;
-            el.style.transform = `translate3d(${dx.toFixed(2)}px, ${dy.toFixed(2)}px, 0)`;
+            el.style.transform = `translate3d(${(-SWAY_X * k * pointer.x).toFixed(2)}px, ${(-SWAY_Y * k * pointer.y).toFixed(2)}px, 0)`;
         });
     };
 
     const flushParallax = () => {
         parallaxTimer = 0;
-        if (destroyed || paused || glide) return;
+        if (destroyed || paused || zoomed()) return;
         writeStage();
     };
     const queueParallax = () => {
-        if (!parallaxTimer && settings().parallax) parallaxTimer = setTimeout(flushParallax, PARALLAX_STEP_MS);
+        if (!parallaxTimer && settings().parallax && !zoomed()) parallaxTimer = setTimeout(flushParallax, PARALLAX_STEP_MS);
+    };
+
+    /** A closer look loads the big picture of the land (once), so it stays sharp. */
+    const sharpen = () => {
+        if (sharpening || !bake || bake.width >= 2560) return;
+        if (currentTier === 'still' || (currentTier === 'lite' && camera.zoom < 1.5)) return;
+        sharpening = getBake(art, 2560).then((pictures) => {
+            if (destroyed) return;
+            bake = pictures;
+            world.dataset.paint = `${pictures.width}:zoom`;
+            gradeKey = '';
+            gradeLayers({ fade: false });
+        }).catch(() => { sharpening = null; });
+    };
+
+    const announceCamera = (phase) => {
+        root.dispatchEvent(new CustomEvent('tq:camera', { detail: { phase, camera: { ...camera } } }));
+    };
+
+    /** Moves the camera; `mode` picks the glide (fly, wheel, coast) or none (drag). */
+    const setCamera = (next, mode = 'fly') => {
+        const { width, height } = stageSize();
+        const target = clampCamera(next, width, height, maxZoom());
+        const still = currentTier === 'still' || mode === 'drag';
+        const duration = still ? 0 : CAMERA_MS[mode] ?? CAMERA_MS.fly;
+        camera = target.zoom <= 1.001 ? { x: 0, y: 0, zoom: 1 } : target;
+        if (zoomed()) {
+            clearTimeout(parallaxTimer);
+            parallaxTimer = 0;
+            pointer.x = 0;
+            pointer.y = 0;
+        }
+        stage.dataset.cam = still ? 'drag' : mode;
+        root.classList.add('is-cam-moving');
+        writeStage();
+        announceCamera('move');
+        clearTimeout(settleTimer);
+        settleTimer = setTimeout(() => {
+            if (destroyed) return;
+            // Dropping the layer hint lets the browser redraw the stage sharp at its new size.
+            root.classList.remove('is-cam-moving');
+            if (!zoomed()) delete stage.dataset.cam;
+            announceCamera('settled');
+            if (zoomed()) sharpen();
+        }, duration + 60);
+        return { ...camera };
     };
 
     const listeners = new AbortController();
@@ -469,7 +545,7 @@ export function mountQuestWorld(root, { tier = 'full' } = {}) {
         frameRect = root.getBoundingClientRect();
     }, { passive: true, signal: listeners.signal });
     root.addEventListener('pointermove', (event) => {
-        if (event.pointerType !== 'mouse' || !settings().parallax) return;
+        if (event.pointerType !== 'mouse' || !settings().parallax || zoomed()) return;
         frameRect ||= root.getBoundingClientRect();
         if (!frameRect.width) return;
         pointer.x = Math.max(-1, Math.min(1, ((event.clientX - frameRect.left) / frameRect.width - 0.5) * 2));
@@ -484,23 +560,43 @@ export function mountQuestWorld(root, { tier = 'full' } = {}) {
     }, { signal: listeners.signal });
     window.addEventListener('gcq:sky-scene', (event) => applySky(event.detail?.scene), { signal: listeners.signal });
 
-    /** Zooms gently toward a world point; resolves once the camera has settled. */
+    const cameraApi = {
+        get state() { return { ...camera }; },
+        get maxZoom() { return maxZoom(); },
+        set: (next, mode) => { cameraFocus = false; return setCamera(next, mode); },
+        zoomAt(factor, px, py, mode = 'wheel') {
+            cameraFocus = false;
+            const { width, height } = stageSize();
+            return setCamera(zoomAround(camera, factor, px, py, width, height, maxZoom()), mode);
+        },
+        panBy(dx, dy, mode = 'drag') {
+            if (!zoomed()) return { ...camera };
+            cameraFocus = false;
+            return setCamera({ ...camera, x: camera.x + dx, y: camera.y + dy }, mode);
+        },
+        flyToWorld(wx, wy, zoom = 1.6, mode = 'fly') {
+            const { width, height } = stageSize();
+            return setCamera(cameraOn(wx, wy, zoom, width, height, maxZoom()), mode);
+        },
+        home(mode = 'fly') {
+            cameraFocus = false;
+            return setCamera({ x: 0, y: 0, zoom: 1 }, mode);
+        }
+    };
+
+    /** Flies in toward a world point to show a party; resolves once the camera has settled. */
     const glideTo = (x, y) => new Promise((resolve) => {
-        if (currentTier !== 'full') { resolve(); return; }
-        glide = { zoom: 1.14 };
-        clearTimeout(parallaxTimer);
-        parallaxTimer = 0;
-        stage.classList.add('is-gliding');
-        stage.style.transformOrigin = `${pct(x, WORLD_W)} ${pct(y, WORLD_H)}`;
-        writeStage();
-        later(resolve, 760);
+        if (currentTier === 'still') { resolve(); return; }
+        const wasHome = !zoomed();
+        cameraApi.flyToWorld(x, y, Math.max(camera.zoom, 1.45));
+        cameraFocus = wasHome;
+        later(resolve, CAMERA_MS.fly + 40);
     });
+    /** A card closed: if the camera only moved to show it, it goes home. */
     const release = () => {
-        if (!glide) return;
-        glide = null;
-        stage.style.transformOrigin = '';
-        writeStage();
-        later(() => { if (!glide) stage.classList.remove('is-gliding'); }, 760);
+        if (!cameraFocus) return;
+        cameraFocus = false;
+        setCamera({ x: 0, y: 0, zoom: 1 }, 'fly');
     };
 
     // Sun and moon walk their arcs; the app's own minute tick moves the light.
@@ -517,7 +613,7 @@ export function mountQuestWorld(root, { tier = 'full' } = {}) {
             if (destroyed || !next || next === currentTier) return;
             currentTier = next;
             if (!settings().parallax) { pointer.x = 0; pointer.y = 0; }
-            if (currentTier !== 'full') release();
+            if (camera.zoom > maxZoom()) setCamera(camera, 'fly');
             renderSprites();
             cloudsKey = '';
             if (sky) applySky(sky);
@@ -548,6 +644,7 @@ export function mountQuestWorld(root, { tier = 'full' } = {}) {
         },
         glideTo,
         release,
+        camera: cameraApi,
         refreshStage: writeStage,
         destroy() {
             if (destroyed) return;
@@ -556,6 +653,7 @@ export function mountQuestWorld(root, { tier = 'full' } = {}) {
             timers.forEach((id) => clearTimeout(id));
             timers.clear();
             clearTimeout(parallaxTimer);
+            clearTimeout(settleTimer);
             listeners.abort();
             if (world.__questScene === scene) world.__questScene = null;
         }

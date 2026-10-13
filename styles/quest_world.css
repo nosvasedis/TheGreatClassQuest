@@ -138,7 +138,7 @@
 }
 
 .tq-sky__shooting { display: none; }
-.tq-world[data-stars='2'][data-tier='full'] .tq-sky__shooting { display: block; }
+.tq-world[data-stars='2'] .tq-sky__shooting { display: block; }
 
 .tq-sky__shooting span {
     position: absolute;
@@ -266,13 +266,14 @@
 .tq-cloud-shadows span:nth-child(3) { top: 40%; width: 20%; animation-delay: -100s; }
 
 /* ── Sprites ───────────────────────────────────────────────────────────── */
-/* Sprites take the light of the moment like the painted land does (one
-   colour filter on each sprite layer, set only when the light changes). */
-.tq-world[data-light='dawn'] .tq-world__sprites { filter: sepia(0.15) saturate(1.05) brightness(0.98); }
-.tq-world[data-light='golden'] .tq-world__sprites { filter: sepia(0.28) saturate(1.1) brightness(0.96); }
-.tq-world[data-light='twilight'] .tq-world__sprites { filter: brightness(0.8) saturate(0.84) hue-rotate(-8deg); }
-.tq-world[data-light='night'] .tq-world__sprites { filter: brightness(0.66) saturate(0.74); }
-.tq-world:is([data-tone='rain'], [data-tone='storm']):not([data-light='night']) .tq-world__sprites { filter: brightness(0.82) saturate(0.72); }
+/* Sprites take the light of the moment like the painted land does: one
+   colour filter on each small sprite, set only when the light changes (never
+   on a big box whose children move: that would redraw the filter every frame). */
+.tq-world[data-light='dawn'] .tq-world__sprites > .tq-sp:not(.tq-sp--fireflies, .tq-sp--aura, .tq-sp--glint, .tq-sp--drift, .tq-sp--sunbeams, .tq-sp--stair, .tq-sp--motes) { filter: sepia(0.15) saturate(1.05) brightness(0.98); }
+.tq-world[data-light='golden'] .tq-world__sprites > .tq-sp:not(.tq-sp--fireflies, .tq-sp--aura, .tq-sp--glint, .tq-sp--drift, .tq-sp--sunbeams, .tq-sp--stair, .tq-sp--motes) { filter: sepia(0.28) saturate(1.1) brightness(0.96); }
+.tq-world[data-light='twilight'] .tq-world__sprites > .tq-sp:not(.tq-sp--fireflies, .tq-sp--aura, .tq-sp--glint, .tq-sp--drift, .tq-sp--sunbeams, .tq-sp--stair, .tq-sp--motes) { filter: brightness(0.8) saturate(0.84) hue-rotate(-8deg); }
+.tq-world[data-light='night'] .tq-world__sprites > .tq-sp:not(.tq-sp--fireflies, .tq-sp--aura, .tq-sp--glint, .tq-sp--drift, .tq-sp--sunbeams, .tq-sp--stair, .tq-sp--motes) { filter: brightness(0.66) saturate(0.74); }
+.tq-world:is([data-tone='rain'], [data-tone='storm']):not([data-light='night']) .tq-world__sprites > .tq-sp:not(.tq-sp--fireflies, .tq-sp--aura, .tq-sp--glint, .tq-sp--drift, .tq-sp--sunbeams, .tq-sp--stair, .tq-sp--motes) { filter: brightness(0.82) saturate(0.72); }
 
 .tq-sp {
     position: absolute;
@@ -369,7 +370,7 @@
 .tq-sp--fountain span:nth-child(3) { --jx: 160%; animation-delay: -1s; }
 
 .tq-sp--glint { opacity: 0; animation: tqw-twinkle-star 3.4s ease-in-out infinite; animation-delay: var(--d, 0s); }
-.tq-sp--glint svg { filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.9)); }
+.tq-world[data-tier='full'] .tq-sp--glint svg { filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.9)); }
 
 /* The Portal: slow rays fan out behind its ring and motes of light rise
    around it (the vortex itself turns in the map's Portal button). */
@@ -464,13 +465,33 @@
 .tq-sp--fireflies span:nth-child(9) { left: 56%; top: 86%; animation-delay: -3.8s, -0.9s; }
 .tq-sp--fireflies span:nth-child(10) { left: 92%; top: 30%; animation-delay: -6.6s, -1.7s; }
 
+/* Each reached realm glows in its own colour: copper meadows, ice-blue
+   peaks, a golden citadel, violet isles (a realm still in its clouds stays dark). */
+.tq-sp--aura span {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(var(--aura), 0.3), rgba(var(--aura), 0.12) 55%, rgba(var(--aura), 0));
+}
+
+/* A slow breath on a strong computer (big soft layers cost fill on a weak one). */
+.tq-world[data-tier='full'] .tq-sp--aura span { animation: tqw-aura 9s ease-in-out infinite alternate; animation-delay: var(--d, 0s); }
+
+.tq-sp--aura[data-sprite='aura-bronze'] { --aura: 255, 170, 80; }
+.tq-sp--aura[data-sprite='aura-silver'] { --aura: 120, 200, 255; }
+.tq-sp--aura[data-sprite='aura-gold'] { --aura: 255, 210, 70; }
+.tq-sp--aura[data-sprite='aura-crystal'] { --aura: 196, 120, 255; }
+.tq-world:has(.tq-mist[data-realm='silver'][data-state='asleep']) .tq-sp--aura[data-sprite='aura-silver'],
+.tq-world:has(.tq-mist[data-realm='gold'][data-state='asleep']) .tq-sp--aura[data-sprite='aura-gold'],
+.tq-world:has(.tq-mist[data-realm='crystal'][data-state='asleep']) .tq-sp--aura[data-sprite='aura-crystal'] { display: none; }
+.tq-world[data-tier='full'][data-night='1'] .tq-sp--aura span { animation-name: tqw-aura-night; }
+
 /* The windmills turn their sails (faster in a wind). The far one turns in a
    plane through its hub, so its sails sweep an ellipse as the painting sees it. */
 .tq-sp__plane,
 .tq-sp__spin { position: absolute; inset: 0; display: block; }
 .tq-sp__spin { animation: tqw-sails calc(20s / var(--tq-wind, 1)) linear infinite; animation-delay: var(--d, 0s); }
 .tq-sp--sails img { transform-origin: 50% 50%; }
-.tq-world[data-tier='lite'] .tq-sp__spin { animation-duration: calc(28s / var(--tq-wind, 1)); }
 
 /* Banners on the spires stream the way the wind blows. */
 .tq-sp--banner { transform-origin: 7% 100%; transform: scaleX(var(--tq-wind-dir, 1)); }
@@ -486,7 +507,7 @@
     animation-delay: var(--d, 0s);
 }
 
-.tq-sp__cloth svg { filter: drop-shadow(0 1px 0 rgba(60, 30, 10, 0.25)); }
+.tq-world[data-tier='full'] .tq-sp__cloth svg { filter: drop-shadow(0 1px 0 rgba(60, 30, 10, 0.25)); }
 
 /* The season in the air: leaves in autumn, blossom in spring, seeds in
    summer, sparkles of frost in winter. Each one travels from its own spot. */
@@ -626,8 +647,8 @@
 
 .tq-mist[data-state='asleep'] .tq-mist__puff { opacity: 0.9; transform: translate(-50%, -50%) scale(1); }
 .tq-mist[data-state='waking'] .tq-mist__puff { opacity: 0.62; transform: translate(-50%, -50%) translate3d(calc(var(--part) * 18%), 0, 0) scale(0.92); }
-.tq-world[data-tier='full'] .tq-mist[data-state='asleep'] .tq-mist__puff img,
-.tq-world[data-tier='full'] .tq-mist[data-state='waking'] .tq-mist__puff img { animation: tqw-puff 9s ease-in-out infinite alternate; animation-delay: calc(var(--i) * -2.1s); }
+.tq-world .tq-mist[data-state='asleep'] .tq-mist__puff img,
+.tq-world .tq-mist[data-state='waking'] .tq-mist__puff img { animation: tqw-puff 9s ease-in-out infinite alternate; animation-delay: calc(var(--i) * -2.1s); }
 
 /* ── Lanterns: a flame kindles beside the road up to the furthest party ─ */
 .tq-lantern { position: absolute; }
@@ -661,8 +682,8 @@
 .tq-lantern.is-lit .tq-lantern__glow { opacity: 0.38; transform: translate(-50%, -50%) scale(0.7); }
 .tq-world:is([data-light='golden'], [data-tone='storm'], [data-tone='rain']) .tq-lantern.is-lit .tq-lantern__glow { opacity: 0.7; transform: translate(-50%, -50%) scale(0.9); }
 .tq-world:is([data-light='twilight'], [data-light='night']) .tq-lantern.is-lit .tq-lantern__glow { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
-.tq-world[data-tier='full'] .tq-lantern.is-lit .tq-lantern__flame { animation: tqw-flicker 1.6s ease-in-out infinite alternate; }
-.tq-world[data-tier='full'][data-night='1'] .tq-lantern.is-lit .tq-lantern__glow { animation: tqw-flicker 2.4s ease-in-out infinite alternate; }
+.tq-world .tq-lantern.is-lit .tq-lantern__flame { animation: tqw-flicker 1.6s ease-in-out infinite alternate; }
+.tq-world[data-night='1'] .tq-lantern.is-lit .tq-lantern__glow { animation: tqw-flicker 2.4s ease-in-out infinite alternate; }
 
 /* ── The leader's pennant, realm bursts and the Portal's beam ─────────── */
 .tq-pennant { position: absolute; }
@@ -704,7 +725,7 @@
     transform-origin: 0 50%;
 }
 
-.tq-world[data-tier='full'] .tq-pennant__cloth { animation: tqw-wave calc(2.2s / var(--tq-wind, 1)) ease-in-out infinite alternate; }
+.tq-world .tq-pennant__cloth { animation: tqw-wave calc(2.2s / var(--tq-wind, 1)) ease-in-out infinite alternate; }
 
 .tq-pennant__logo {
     font-size: clamp(0.62rem, 1.15vw, 1rem);
@@ -990,17 +1011,22 @@
 /* Their edges are lit from behind (a silver lining in the Portal's colours). */
 .tq-living-map[data-fx='full'] .tq-portal-veil__cloud img { filter: drop-shadow(0 0 3px rgba(222, 196, 255, 0.95)) drop-shadow(0 0 7px rgba(150, 220, 255, 0.55)); }
 .tq-living-map[data-fx='full'][data-night='1'] .tq-portal-veil__cloud img { filter: brightness(0.6) saturate(0.75) hue-rotate(190deg) drop-shadow(0 0 3px rgba(222, 196, 255, 1)) drop-shadow(0 0 9px rgba(160, 130, 255, 0.8)); }
+
 .tq-living-map:not([data-fx='full'])[data-night='1'] .tq-portal-veil__cloud img { filter: brightness(0.6) saturate(0.75) hue-rotate(190deg); }
 
 /* The clouds drift and breathe, so now and then the vortex shows through. */
-.tq-living-map[data-fx='full'] .tq-portal-veil__cloud img { animation: tqw-veil-drift 12s ease-in-out infinite alternate; animation-delay: calc(var(--i) * -4.3s); }
+.tq-living-map .tq-portal-veil__cloud img { animation: tqw-veil-drift 12s ease-in-out infinite alternate; animation-delay: calc(var(--i) * -4.3s); }
 
-/* The vortex behind them: dim and soft while hidden, sharp once the clouds go. */
-.tq-route-finish .tq-portal-vortex { transition: opacity 1.8s ease, filter 1.8s ease; }
-.tq-route-finish[data-veil='deep'] .tq-portal-vortex { opacity: 0.9; filter: blur(1.5px) saturate(1.4); }
-.tq-route-finish[data-veil='thin'] .tq-portal-vortex { opacity: 0.8; filter: blur(0.8px) saturate(1.2); }
-.tq-living-map:not([data-fx='full']) .tq-route-finish:is([data-veil='deep'], [data-veil='thin']) .tq-portal-vortex { filter: none; }
-.tq-route-finish:is([data-veil='deep'], [data-veil='thin']) .tq-route-finish__button:is(:hover, .is-hovered, :focus-visible) .tq-portal-vortex { opacity: 0.9; filter: blur(0.5px) saturate(1.2); transition-duration: 0.9s; }
+/* The vortex behind them: a soft, blurred swirl while hidden (a pre-blurred
+   picture, so it costs nothing to draw), sharp once the clouds go. */
+.tq-route-finish .tq-portal-vortex { transition: opacity 1.8s ease; }
+.tq-portal-vortex--veiled { inset: -8.34%; width: 116.7%; height: 116.7%; opacity: 0; animation: tqw-shine-turn 13s linear infinite; }
+.tq-route-finish[data-veil='deep'] .tq-portal-vortex:not(.tq-portal-vortex--veiled) { opacity: 0.18; }
+.tq-route-finish[data-veil='deep'] .tq-portal-vortex--veiled { opacity: 1; }
+.tq-route-finish[data-veil='thin'] .tq-portal-vortex:not(.tq-portal-vortex--veiled) { opacity: 0.55; }
+.tq-route-finish[data-veil='thin'] .tq-portal-vortex--veiled { opacity: 0.75; }
+.tq-route-finish:is([data-veil='deep'], [data-veil='thin']) .tq-route-finish__button:is(:hover, .is-hovered, :focus-visible) .tq-portal-vortex:not(.tq-portal-vortex--veiled) { opacity: 0.8; transition-duration: 0.9s; }
+.tq-route-finish:is([data-veil='deep'], [data-veil='thin']) .tq-route-finish__button:is(:hover, .is-hovered, :focus-visible) .tq-portal-vortex--veiled { opacity: 0.45; transition-duration: 0.9s; }
 
 /* Its light breaks through: rays turning slowly, a glow swelling over the clouds. */
 .tq-portal-shine span,
@@ -1026,7 +1052,7 @@
 .tq-route-finish:is([data-veil='deep'], [data-veil='thin']) .tq-portal-shine::before { opacity: 0.7; }
 .tq-living-map[data-night='1'] .tq-route-finish[data-veil='deep'] .tq-portal-shine span { opacity: 1; }
 .tq-living-map[data-fx='full'] .tq-route-finish:is([data-veil='deep'], [data-veil='thin']) .tq-portal-shine span { animation: tqw-shine-turn 70s linear infinite; }
-.tq-living-map[data-fx='full'] .tq-route-finish:is([data-veil='deep'], [data-veil='thin']) .tq-portal-shine::before { animation: tqw-shine-swell 4.6s ease-in-out infinite alternate; }
+.tq-living-map .tq-route-finish:is([data-veil='deep'], [data-veil='thin']) .tq-portal-shine::before { animation: tqw-shine-swell 4.6s ease-in-out infinite alternate; }
 
 /* While hidden, a hover glows softly instead of drawing a hard ring over the clouds. */
 .tq-route-finish:is([data-veil='deep'], [data-veil='thin']) .tq-route-finish__button::after { border-color: transparent; box-shadow: 0 0 1.6rem rgba(var(--place-glow), 0.8); }
@@ -1299,14 +1325,25 @@
 /* The road: the explored stretch glows with dots of light, the uncharted
    stretch is dotted ink, a hovered party's journey burns bright. */
 .tq-trail { fill: none; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
-.tq-trail--lit-glow { stroke: rgba(255, 228, 150, 0.2); stroke-width: 20px; transition: stroke-dashoffset 1500ms cubic-bezier(0.45, 0, 0.2, 1); }
-.tq-trail--lit { stroke: rgba(255, 250, 222, 0.85); stroke-width: 4px; stroke-dasharray: 0.1 15; }
-.tq-trail--uncharted { stroke: rgba(86, 56, 26, 0.6); stroke-width: 2.6px; stroke-dasharray: 0.1 9; }
-.tq-living-map[data-night='1'] .tq-trail--uncharted { stroke: rgba(236, 226, 255, 0.5); }
-.tq-living-map[data-night='1'] .tq-trail--lit-glow { stroke: rgba(255, 210, 120, 0.3); }
-.tq-trail--focus-glow { stroke: rgba(255, 206, 84, 0.5); stroke-width: 18px; transition: stroke-dashoffset 900ms cubic-bezier(0.3, 0.1, 0.2, 1); }
-.tq-trail--focus { stroke: rgba(255, 252, 232, 0.96); stroke-width: 4.5px; transition: stroke-dashoffset 900ms cubic-bezier(0.3, 0.1, 0.2, 1); }
-.tq-trail--ahead { stroke: rgba(255, 252, 236, 0.95); stroke-width: 3.5px; stroke-dasharray: 0.1 11; animation: tqw-ahead 1.4s ease-in-out infinite alternate; }
+.tq-trail--lit-glow { stroke-width: 15px; opacity: 0.55; }
+.tq-trail--lit { stroke-width: 5.6px; stroke-dasharray: 0.1 13; opacity: 1; }
+.tq-trail--uncharted { stroke-width: 2.8px; stroke-dasharray: 0.1 9; opacity: 0.7; }
+.tq-living-map[data-night='1'] .tq-trail--lit-glow { opacity: 0.66; }
+.tq-living-map[data-night='1'] .tq-trail--uncharted { opacity: 0.55; stroke: rgba(236, 226, 255, 0.85); }
+.tq-living-map[data-night='1'] .tq-trail--uncharted path { stroke: inherit; }
+.tq-trail--focus-glow { stroke-width: 20px; opacity: 0.62; }
+.tq-trail--focus { stroke-width: 6px; opacity: 0.95; }
+.tq-trail--focus-core { stroke: rgba(255, 255, 248, 0.92); stroke-width: 1.8px; }
+.tq-trail--focus-core path { transition: stroke-dashoffset 900ms cubic-bezier(0.3, 0.1, 0.2, 1); }
+.tq-trail--lit-draw { stroke: rgba(255, 248, 220, 0.9); stroke-width: 6px; }
+.tq-trail--lit-draw path { transition: stroke-dashoffset 1500ms cubic-bezier(0.45, 0, 0.2, 1); }
+.tq-trail--ahead { stroke-width: 4px; stroke-dasharray: 0.1 11; }
+/* Only while it shows: an animation inside the SVG repaints the whole road layer. */
+.tq-trail--ahead:not(:empty) { animation: tqw-ahead 1.4s ease-in-out infinite alternate; }
+.tq-trail--flare path { fill: none; stroke-width: 16px; stroke-linecap: round; }
+/* While a party is in focus the explored road steps back so its own journey sings. */
+.tq-living-map.is-party-focus :is(.tq-trail--lit-glow, .tq-trail--lit) { opacity: 0.35; transition: opacity 300ms ease; }
+.tq-trail--lit-glow, .tq-trail--lit { transition: opacity 300ms ease; }
 
 /* The shade that falls round a hovered party or realm. */
 .tq-focus {
@@ -1364,46 +1401,6 @@
     transform: rotate(var(--a, 0deg));
     opacity: 0;
 }
-
-/* Realm gates on the road: a crest on a stone that lights once a party reaches it. */
-.tq-gate {
-    position: absolute;
-    width: 2.3rem;
-    height: 2.3rem;
-    margin: -1.15rem 0 0 -1.15rem;
-    padding: 0;
-    border: 0;
-    border-radius: 50%;
-    background: transparent;
-    cursor: zoom-in;
-    pointer-events: auto;
-    scale: calc(var(--tq-counter, 1) / max(var(--tq-k, 1), 0.75));
-    transition: scale 700ms cubic-bezier(0.22, 0.76, 0.25, 1);
-    -webkit-tap-highlight-color: transparent;
-}
-
-.tq-gate img {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    filter: saturate(0.3) brightness(1.04) drop-shadow(0 0.15rem 0.2rem rgba(30, 18, 6, 0.5));
-    opacity: 0.88;
-    transition: transform 260ms cubic-bezier(0.3, 1.5, 0.5, 1), opacity 300ms ease;
-}
-
-.tq-gate.is-reached img { filter: drop-shadow(0 0.15rem 0.25rem rgba(30, 18, 6, 0.5)); opacity: 1; }
-.tq-gate:is(:hover, :focus-visible) img { transform: translateY(-0.2rem) scale(1.18); opacity: 1; }
-.tq-gate:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
-
-.tq-gate__glow,
-.tq-gate__ring { position: absolute; border-radius: 50%; pointer-events: none; }
-.tq-gate__glow { inset: -45%; background: radial-gradient(closest-side, rgba(255, 236, 170, 0.75), rgba(255, 210, 110, 0)); opacity: 0; }
-.tq-gate.is-reached .tq-gate__glow { opacity: 0.55; }
-.tq-living-map[data-fx='full'] .tq-gate.is-reached .tq-gate__glow { animation: tqw-gate-glow 3.2s ease-in-out infinite alternate; }
-.tq-gate__ring { inset: -30%; border: 2px solid rgba(255, 246, 210, 0.95); opacity: 0; }
-.tq-gate.is-flaring .tq-gate__ring { animation: tqw-gate-flare 1.4s ease-out; }
-.tq-gate.is-flaring .tq-gate__glow { animation: tqw-gate-flash 1.4s ease-out; }
 
 /* The road pin: where a spot on the road is, and how far a party is from it. */
 .tq-road-pin,
@@ -1637,10 +1634,16 @@
 /* ── Parties breathe while they wait ─────────────────────────────────────
    On a strong computer each token floats a hair up and down, its shadow
    answering, out of step with its neighbours. */
-.tq-living-map[data-fx='full'] .tq-token:not(.is-travelling) .tq-token__disc { animation: tqw-token-float 3.6s ease-in-out infinite alternate; }
-.tq-living-map[data-fx='full'] .tq-token:not(.is-travelling, :hover, :focus-visible, .is-selected) .tq-token__shadow { animation: tqw-token-shadow 3.6s ease-in-out infinite alternate; }
-.tq-living-map[data-fx='full'] .tq-token:nth-child(2n) :is(.tq-token__disc, .tq-token__shadow) { animation-delay: -1.3s; }
-.tq-living-map[data-fx='full'] .tq-token:nth-child(3n) :is(.tq-token__disc, .tq-token__shadow) { animation-delay: -2.4s; animation-duration: 4.2s; }
+.tq-living-map .tq-token:not(.is-travelling) .tq-token__disc { animation: tqw-token-float 3.6s ease-in-out infinite alternate; }
+.tq-living-map .tq-token:not(.is-travelling, :hover, :focus-visible, .is-selected) .tq-token__shadow { animation: tqw-token-shadow 3.6s ease-in-out infinite alternate; }
+.tq-living-map .tq-token:nth-child(2n) :is(.tq-token__disc, .tq-token__shadow) { animation-delay: -1.3s; }
+.tq-living-map .tq-token:nth-child(3n) :is(.tq-token__disc, .tq-token__shadow) { animation-delay: -2.4s; animation-duration: 4.2s; }
+
+/* Calm: a machine too slow even for lite rests the small drifting pieces
+   (features/worldMap.js#probeFrameRate). The world, the windmills, the
+   waterfall, the smoke and the Portal keep moving. */
+.tq-living-map[data-calm='1'] :is(.tq-sp--drift, .tq-sp--ripple, .tq-sp--fish, .tq-sp--butterfly, .tq-sp--eagle, .tq-sp--aura, .tq-sp--fireflies, .tq-sp--motes) { display: none; }
+.tq-living-map[data-calm='1'] :is(.tq-sp__cloth, .tq-token__disc, .tq-token__shadow, .tq-mist__puff img, .tq-portal-veil__cloud img, .tq-portal-shine::before) { animation: none !important; }
 
 /* ── Still and paused ──────────────────────────────────────────────────── */
 .tq-living-map.is-motion-paused .tq-stage *,
@@ -1717,6 +1720,8 @@
 @keyframes tqw-spray-mist { 0% { opacity: 0; transform: translate3d(0, 0, 0) scale(0.8); } 30% { opacity: 0.55; } 100% { opacity: 0; transform: translate3d(0, -60%, 0) scale(1.5); } }
 @keyframes tqw-wave { from { transform: scaleX(0.84) skewY(-5deg); } to { transform: scaleX(1) skewY(5deg); } }
 @keyframes tqw-bob { from { transform: translate3d(0, -4px, 0); } to { transform: translate3d(0, 6px, 0); } }
+@keyframes tqw-aura { from { opacity: 0.55; transform: scale(0.96); } to { opacity: 1; transform: scale(1.04); } }
+@keyframes tqw-aura-night { from { opacity: 0.8; transform: scale(0.96); } to { opacity: 1; transform: scale(1.05); } }
 @keyframes tqw-token-float { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(0, -5%, 0); } }
 @keyframes tqw-token-shadow { from { opacity: 1; transform: scale(1); } to { opacity: 0.7; transform: scale(0.88); } }
 @keyframes tqw-veil-drift { from { opacity: 1; transform: translate3d(-7%, 0, 0); } to { opacity: 0.78; transform: translate3d(7%, -3%, 0); } }
@@ -1816,9 +1821,6 @@
 @keyframes tqw-sweep { from { transform: translate3d(-100%, 0, 0); } to { transform: translate3d(100%, 0, 0); } }
 @keyframes tqw-world-settle { from { transform: scale(1.035); } to { transform: none; } }
 @keyframes tqw-ahead { from { opacity: 0.55; } to { opacity: 1; } }
-@keyframes tqw-gate-glow { from { opacity: 0.35; transform: scale(0.9); } to { opacity: 0.85; transform: scale(1.08); } }
-@keyframes tqw-gate-flare { 0% { opacity: 1; transform: scale(0.6); } 100% { opacity: 0; transform: scale(2.4); } }
-@keyframes tqw-gate-flash { 0% { opacity: 0; transform: scale(0.6); } 25% { opacity: 1; transform: scale(1.3); } 100% { opacity: 0.5; transform: scale(1); } }
 @keyframes tqw-pin-spin { to { transform: rotate(360deg); } }
 @keyframes tqw-flag-plant { 0% { opacity: 0; transform: translateY(-0.8rem) rotate(-18deg) scale(0.6); } 100% { opacity: 1; transform: none; } }
 @keyframes tqw-ground-spin { from { transform: translate(-50%, 50%) rotateX(68deg) rotate(0deg); } to { transform: translate(-50%, 50%) rotateX(68deg) rotate(360deg); } }

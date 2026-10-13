@@ -13,7 +13,7 @@ import { PORTAL, lanternPositions, REALM_LANDMARKS } from './worldGeometry.mjs';
 
 export const WORLD_SEED = 20261013;
 /** Bump when the pictures change, so devices drop the old ones. */
-export const ART_VERSION = 7;
+export const ART_VERSION = 8;
 
 const asset = (name) => new URL(`../../assets/team-quest-map/painted/${name}`, import.meta.url).href;
 
@@ -84,6 +84,14 @@ const FISH_SVG = '<svg viewBox="0 0 30 14" aria-hidden="true"><path d="M2 7 Q10 
 const BUTTERFLY = (a, b) => `<svg viewBox="0 0 20 16" aria-hidden="true"><path d="M10 8 C6 0 0 1 1 6 C2 9 7 9 10 8 Z M10 8 C7 10 3 14 5 15 C8 16 9 12 10 8 Z" fill="${a}" stroke="${b}" stroke-width="0.6"/><path d="M10 8 C14 0 20 1 19 6 C18 9 13 9 10 8 Z M10 8 C13 10 17 14 15 15 C12 16 11 12 10 8 Z" fill="${a}" stroke="${b}" stroke-width="0.6"/><path d="M10 4 V13" stroke="#3a2614" stroke-width="1.2" stroke-linecap="round"/></svg>`;
 const EAGLE = '<svg viewBox="0 0 40 14" aria-hidden="true"><path d="M1 6 Q10 1 18 6 L20 8 L22 6 Q30 1 39 6 Q30 4 23 9 L20 12 L17 9 Q10 4 1 6 Z" fill="#3b2d24"/></svg>';
 
+// A soft pool of each realm's colour over its land (shown once the realm is reached).
+const AURAS = Object.freeze([
+    { realm: 'bronze', x: 300, y: 640, w: 640, h: 420 },
+    { realm: 'silver', x: 620, y: 230, w: 520, h: 420 },
+    { realm: 'gold', x: 1150, y: 400, w: 520, h: 520 },
+    { realm: 'crystal', x: 1400, y: 220, w: 420, h: 420 }
+]);
+
 // Chimney tops in the village, where the painted smoke rises from.
 const CHIMNEYS = Object.freeze([[137, 565], [205, 542], [372, 532], [485, 567], [390, 780]]);
 
@@ -114,8 +122,14 @@ const spans = (count) => Array.from({ length: count }, () => '<span></span>').jo
  */
 export function buildWorldSprites(season = 'autumn') {
     const sprites = [];
-    const push = (sprite) => sprites.push({ slot: 'mid', tier: 'full', ...sprite });
+    // Everything runs on every machine except the few big, costly layers marked full.
+    const push = (sprite) => sprites.push({ slot: 'mid', tier: 'lite', ...sprite });
     const islets = ISLETS[season] || ISLETS.autumn;
+
+    // Each reached realm glows softly in its own colour, so the land reads as four realms.
+    AURAS.forEach(({ realm, x, y, w, h }, i) => {
+        push({ id: `aura-${realm}`, kind: 'aura', slot: 'mid', x: x - w / 2, y: y - h / 2, w, h, delay: -i * 2.3, html: '<span></span>' });
+    });
 
     // The windmills turn first: the painting no longer has sails of its own.
     WINDMILLS.forEach((mill, i) => {
@@ -149,12 +163,12 @@ export function buildWorldSprites(season = 'autumn') {
     });
     push({ id: 'fountain', kind: 'fountain', x: 1260, y: 522, w: 20, h: 22, html: spans(3) });
     WATER_GLINTS.slice(6).forEach(([x, y], i) => {
-        push({ id: `glint-${i + 6}`, kind: 'glint', x: x - 7, y: y - 7, w: 14, h: 14, html: SPARKLE('#ffffff'), delay: -(i + 6) * 0.47 });
+        push({ id: `glint-${i + 6}`, kind: 'glint', tier: 'full', x: x - 7, y: y - 7, w: 14, h: 14, html: SPARKLE('#ffffff'), delay: -(i + 6) * 0.47 });
     });
     CRYSTAL_GLINTS.slice(3).forEach(([x, y], i) => {
-        push({ id: `crystal-${i + 3}`, kind: 'glint', x: x - 8, y: y - 8, w: 16, h: 16, html: SPARKLE(i % 2 ? '#c8f6ff' : '#f2d2ff'), delay: -(i + 3) * 0.7 });
+        push({ id: `crystal-${i + 3}`, kind: 'glint', tier: 'full', x: x - 8, y: y - 8, w: 16, h: 16, html: SPARKLE(i % 2 ? '#c8f6ff' : '#f2d2ff'), delay: -(i + 3) * 0.7 });
     });
-    push({ id: 'sunbeams', kind: 'sunbeams', slot: 'mid', x: 0, y: 0, w: 1600, h: 900, html: spans(4) });
+    push({ id: 'sunbeams', kind: 'sunbeams', tier: 'full', slot: 'mid', x: 0, y: 0, w: 1600, h: 900, html: spans(4) });
     push({ id: 'birds-0', kind: 'birds', slot: 'back', x: 240, y: 170, w: 60, h: 30, html: `<span class="tq-sp__flap">${BIRDS}</span>` });
     push({ id: 'birds-1', kind: 'birds', slot: 'back', x: 860, y: 120, w: 44, h: 22, html: `<span class="tq-sp__flap">${BIRDS}</span>`, delay: -11 });
     push({ id: 'fireflies', kind: 'fireflies', x: 40, y: 480, w: 1000, h: 380, html: spans(10) });

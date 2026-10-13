@@ -151,3 +151,51 @@ export function worldToFrame(wx, wy, camera, width, height) {
         y: camera.y + (wy / WORLD_H) * height * camera.zoom
     };
 }
+
+// ── Realm colours on the road ────────────────────────────────────────────
+// Each realm tints its stretch of road: warm copper through the meadows, ice
+// blue up Silver Peaks, gold through the Citadel, violet on the Crystal
+// stair. `light` is the glowing tint, `ink` the darker one for dotted road.
+export const REALM_HUES = Object.freeze({
+    bronze: Object.freeze({ light: [255, 172, 92], ink: [138, 78, 28] }),
+    silver: Object.freeze({ light: [128, 214, 255], ink: [44, 104, 160] }),
+    gold: Object.freeze({ light: [255, 190, 30], ink: [150, 100, 0] }),
+    crystal: Object.freeze({ light: [206, 140, 255], ink: [110, 58, 176] })
+});
+const REALM_ORDER = Object.freeze([['bronze', 0], ['silver', 30], ['gold', 60], ['crystal', 85]]);
+const BAND = 3; // half-width (progress) of the blend between two realms
+const rgb = ([r, g, b]) => `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+const mixRgb = (a, b, t) => a.map((value, i) => value + (b[i] - value) * t);
+
+/** The realm a spot on the road belongs to. */
+export function realmAt(progress) {
+    const safe = clamp(Number(progress) || 0, 0, 100);
+    return REALM_ORDER.reduce((current, [id, start]) => (safe >= start ? id : current), 'bronze');
+}
+
+/**
+ * The whole road as coloured pieces, for drawing it in its realms' tints:
+ * one long piece per realm, and short pieces where two realms blend.
+ * Each piece is { from, to, realm, light, ink } with CSS colours.
+ */
+export function realmRoadPieces({ step = 0.5 } = {}) {
+    const pieces = [];
+    const push = (from, to, light, ink, realm) => {
+        if (to - from > 0.01) pieces.push({ from, to, realm, light: rgb(light), ink: rgb(ink) });
+    };
+    REALM_ORDER.forEach(([id, start], i) => {
+        const end = REALM_ORDER[i + 1]?.[1] ?? 100;
+        const hue = REALM_HUES[id];
+        const solidFrom = i === 0 ? 0 : start + BAND;
+        const solidTo = i === REALM_ORDER.length - 1 ? 100 : end - BAND;
+        push(solidFrom, solidTo, hue.light, hue.ink, id);
+        if (i < REALM_ORDER.length - 1) {
+            const next = REALM_HUES[REALM_ORDER[i + 1][0]];
+            for (let p = solidTo; p < end + BAND - 1e-6; p += step) {
+                const t = (p + step / 2 - solidTo) / (2 * BAND);
+                push(p, Math.min(end + BAND, p + step), mixRgb(hue.light, next.light, t), mixRgb(hue.ink, next.ink, t), realmAt(p + step / 2));
+            }
+        }
+    });
+    return pieces;
+}

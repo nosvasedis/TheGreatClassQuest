@@ -109,3 +109,18 @@ test('the camera can centre a place, as far as the edges allow', () => {
     const corner = cameraOn(0, 0, 2, w, h);
     assert.deepEqual({ x: corner.x, y: corner.y }, { x: 0, y: 0 }, 'a corner stays a corner');
 });
+
+test('the road is tinted by realm, blending where two realms meet', async () => {
+    const { realmAt, realmRoadPieces, REALM_HUES } = await import('../features/questWorld/mapJourney.mjs');
+    assert.equal(realmAt(10), 'bronze');
+    assert.equal(realmAt(30), 'silver');
+    assert.equal(realmAt(72), 'gold');
+    assert.equal(realmAt(99), 'crystal');
+    const pieces = realmRoadPieces();
+    assert.equal(pieces[0].from, 0);
+    assert.equal(pieces[pieces.length - 1].to, 100);
+    for (let i = 1; i < pieces.length; i += 1) assert.ok(Math.abs(pieces[i].from - pieces[i - 1].to) < 1e-6, 'pieces join without gaps');
+    const middle = (realm) => pieces.find((piece) => piece.realm === realm && piece.to - piece.from > 5);
+    assert.equal(middle('silver').light, `rgb(${REALM_HUES.silver.light.join(', ')})`);
+    assert.equal(middle('crystal').ink, `rgb(${REALM_HUES.crystal.ink.join(', ')})`);
+});

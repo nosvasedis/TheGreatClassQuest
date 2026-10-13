@@ -110,6 +110,7 @@ const LIVING_MAP_ASSETS = {
     badgeCrystal: new URL('../assets/team-quest-map/living-atlas/badge-crystal.webp', import.meta.url).href,
     scrollMap: new URL('../assets/team-quest-map/living-atlas/scroll-map-integrated.webp', import.meta.url).href,
     portalVortex: new URL('../assets/team-quest-map/living-atlas/portal-vortex.webp', import.meta.url).href,
+    portalVortexVeiled: new URL('../assets/team-quest-map/living-atlas/portal-vortex-veiled.webp', import.meta.url).href,
     tokenGold: new URL('../assets/team-quest-map/living-atlas/token-gold.webp', import.meta.url).href,
     tokenSilver: new URL('../assets/team-quest-map/living-atlas/token-silver.webp', import.meta.url).href,
     tokenBronze: new URL('../assets/team-quest-map/living-atlas/token-bronze.webp', import.meta.url).href,
@@ -197,6 +198,15 @@ function escapeMapHtml(value) {
 
 function readStoredFxPreference() {
     try { return sessionStorage.getItem(LITE_FX_STORAGE_KEY); } catch { return null; }
+}
+
+const CALM_FX_STORAGE_KEY = 'gcq-team-quest-map-calm';
+function readCalmPreference() {
+    try { return sessionStorage.getItem(CALM_FX_STORAGE_KEY) === '1'; } catch { return false; }
+}
+
+function storeCalmPreference() {
+    try { sessionStorage.setItem(CALM_FX_STORAGE_KEY, '1'); } catch { /* private mode */ }
 }
 
 function storeFxPreference(value) {
@@ -449,7 +459,7 @@ export function generateLeagueMapHtml(classes, options = {}) {
     const tilt = fx === 'full' ? SCENE_TIERS.full.tilt : 0;
 
     return `
-    <div class="tq-living-map" role="region" aria-label="League quest map" data-living-quest-map data-fx="${fx}" data-tilt="${tilt}" data-scroll="rolled">
+    <div class="tq-living-map" role="region" aria-label="League quest map" data-living-quest-map data-fx="${fx}"${readCalmPreference() ? ' data-calm="1"' : ''} data-tilt="${tilt}" data-scroll="rolled">
         <img class="tq-living-map__parchment-backing" src="${LIVING_MAP_ASSETS.parchmentBacking}" alt="" draggable="false" decoding="async" aria-hidden="true">
         <div class="tq-living-map__frame">
             <div class="tq-stage" data-quest-stage>
@@ -467,6 +477,7 @@ export function generateLeagueMapHtml(classes, options = {}) {
                         <span class="tq-route-finish__glow" aria-hidden="true"></span>
                         <img class="tq-portal-vortex tq-portal-vortex--outer" src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" decoding="async" aria-hidden="true">
                         <img class="tq-portal-vortex tq-portal-vortex--inner" src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" decoding="async" aria-hidden="true">
+                        <img class="tq-portal-vortex tq-portal-vortex--veiled" src="${LIVING_MAP_ASSETS.portalVortexVeiled}" alt="" draggable="false" decoding="async" aria-hidden="true">
                         <span class="tq-portal-veil" aria-hidden="true">${[1, 2, 0].map((cloud, i) => `<span class="tq-portal-veil__cloud" style="--i:${i}"><img src="${PAINTED_PROPS.clouds[cloud]}" alt="" draggable="false" decoding="async"></span>`).join('')}</span>
                         <span class="tq-portal-shine" aria-hidden="true"><span></span></span>
                     </button>
@@ -1023,9 +1034,14 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         }));
     };
 
+    // Watch the frame rate once the parties have settled: a slow machine steps
+    // down to lite (no parallax, tilt or lantern), and if even that is slow, to
+    // calm (the small creatures and drifting pieces rest; the world, the
+    // windmills, the waterfall and the Portal still move).
     const probeFrameRate = () => {
+        if (destroyed || reducedMotionQuery.matches || root.dataset.calm === '1') return;
         // 'full' stored for the session means someone chose the full world: never downgrade it.
-        if (root.dataset.fx === 'lite' || reducedMotionQuery.matches || readStoredFxPreference() === 'full') return;
+        if (root.dataset.fx === 'full' && readStoredFxPreference() === 'full') return;
         let frames = 0;
         let last = performance.now();
         let slow = 0;
@@ -1035,14 +1051,19 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             last = now;
             if (delta > 34) slow += 1;
             frames += 1;
-            if (frames < 60) requestAnimationFrame(tick);
-            else if (slow > 24) {
+            if (frames < 60) { requestAnimationFrame(tick); return; }
+            if (slow <= 24 || offscreen || pageHidden) return;
+            if (root.dataset.fx !== 'lite') {
                 root.dataset.fx = 'lite';
                 storeFxPreference('lite');
                 syncTilt();
                 scene?.setTier(sceneTier());
                 magic?.setTier();
                 positionTokens();
+                later(probeFrameRate, 2500);
+            } else {
+                root.dataset.calm = '1';
+                storeCalmPreference();
             }
         };
         requestAnimationFrame(tick);
@@ -1055,7 +1076,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         updateWaypointStates();
         playJourney();
         updateMotionState();
-        if (!continuing) probeFrameRate();
+        if (!continuing) later(probeFrameRate, 2600);
     };
 
     const updateMotionState = () => {

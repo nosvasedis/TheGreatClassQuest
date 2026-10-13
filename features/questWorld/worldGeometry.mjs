@@ -9,6 +9,7 @@
 
 import { QUEST_MAP_ZONES } from '../questMapZones.mjs';
 import { resolveDayPart, defaultSolarTimes } from '../../utils/dayPart.mjs';
+import { getSeasonInfo } from '../../ui/wallpaperDeck.mjs';
 
 export const WORLD_W = 1600;
 export const WORLD_H = 900;
@@ -242,13 +243,13 @@ export function furthestRealm(explored) {
     return QUEST_MAP_ZONES.reduce((current, zone) => (safe >= zone.minPercent ? zone.id : current), 'bronze');
 }
 
-// What runs on each kind of machine. Lite keeps the world, the water, the
-// banners and the day; full adds the small creatures, the realm weather,
-// parallax and the diorama tilt. Hard caps keep a weak laptop smooth.
+// What runs on each kind of machine. Every small living piece runs everywhere
+// (they are tiny transform/opacity layers); full adds the big costly layers
+// (sunbeams, the lantern light), parallax and the diorama tilt.
 export const SCENE_TIERS = Object.freeze({
-    lite: Object.freeze({ maxSprites: 14, parallax: false, tilt: 0 }),
-    full: Object.freeze({ maxSprites: 80, parallax: true, tilt: 6 }),
-    still: Object.freeze({ maxSprites: 14, parallax: false, tilt: 0 })
+    lite: Object.freeze({ maxSprites: 84, parallax: false, tilt: 0 }),
+    full: Object.freeze({ maxSprites: 90, parallax: true, tilt: 6 }),
+    still: Object.freeze({ maxSprites: 84, parallax: false, tilt: 0 })
 });
 
 /** Which tier a map runs: reduced motion is always still, a slow machine lite. */
@@ -265,16 +266,12 @@ export function scenePlan(tier, sprites = []) {
 }
 
 /**
- * The season the land is painted in (Greece, northern hemisphere): fresh
- * blossom in spring, deep green in summer, gold and russet in autumn, frost
- * and snow-capped roofs in winter.
+ * The season the land is painted in: the app's own season (the Home and
+ * projector season cards, ui/wallpaperDeck.mjs), so spring starts on 20 March,
+ * summer on 21 June, autumn on 22 September and winter on 21 December.
  */
 export function seasonFor(time = Date.now()) {
-    const month = new Date(time instanceof Date ? time.getTime() : Number(time)).getMonth();
-    if (month >= 2 && month <= 4) return 'spring';
-    if (month >= 5 && month <= 7) return 'summer';
-    if (month >= 8 && month <= 10) return 'autumn';
-    return 'winter';
+    return getSeasonInfo(new Date(time instanceof Date ? time.getTime() : Number(time))).key;
 }
 
 /**
@@ -286,19 +283,20 @@ export function seasonFor(time = Date.now()) {
  */
 const LIGHT_GRADES = {
     dawn: { tint: '#ffcfc0', tintAlpha: 0.32, glow: '#ffb38a', glowAlpha: 0.22, glowFrom: 'left', saturate: 0.98, brightness: 1, lights: 0.25 },
-    day: { tint: '#ffffff', tintAlpha: 0, glow: '#fff3cf', glowAlpha: 0.1, glowFrom: 'left', saturate: 1.04, brightness: 1.02, lights: 0 },
+    day: { tint: '#ffffff', tintAlpha: 0, glow: '#fff3cf', glowAlpha: 0.1, glowFrom: 'left', saturate: 1.06, brightness: 1.02, lights: 0 },
     golden: { tint: '#ffc78a', tintAlpha: 0.34, glow: '#ff9d4d', glowAlpha: 0.26, glowFrom: 'right', saturate: 1.06, brightness: 0.98, lights: 0.35 },
     twilight: { tint: '#7d6fc4', tintAlpha: 0.5, glow: '#ff8fb0', glowAlpha: 0.16, glowFrom: 'right', saturate: 0.84, brightness: 0.9, lights: 0.75 },
-    night: { tint: '#33427f', tintAlpha: 0.62, glow: '#9fb4ff', glowAlpha: 0.08, glowFrom: 'top', saturate: 0.72, brightness: 0.88, lights: 1 }
+    night: { tint: '#33427f', tintAlpha: 0.58, glow: '#9fb4ff', glowAlpha: 0.08, glowFrom: 'top', saturate: 0.8, brightness: 0.88, lights: 1 }
 };
+// A grey sky softens the land but never drains it: the realms keep their colour.
 const TONE_GRADES = {
-    fair: { saturate: 1, brightness: 1, tint: null, tintAlpha: 0 },
-    grey: { saturate: 0.78, brightness: 0.95, tint: '#aab6c6', tintAlpha: 0.22 },
-    rain: { saturate: 0.7, brightness: 0.88, tint: '#8796ab', tintAlpha: 0.3 },
-    storm: { saturate: 0.6, brightness: 0.76, tint: '#5c667a', tintAlpha: 0.4 },
-    snow: { saturate: 0.7, brightness: 1.04, tint: '#dfe7f2', tintAlpha: 0.26 },
-    fog: { saturate: 0.62, brightness: 1.02, tint: '#e6e9ee', tintAlpha: 0.32 },
-    ice: { saturate: 0.68, brightness: 0.97, tint: '#c6d6ea', tintAlpha: 0.3 }
+    fair: { saturate: 1.08, brightness: 1, tint: null, tintAlpha: 0 },
+    grey: { saturate: 0.96, brightness: 0.97, tint: '#b4c0d0', tintAlpha: 0.12 },
+    rain: { saturate: 0.88, brightness: 0.9, tint: '#8f9db2', tintAlpha: 0.2 },
+    storm: { saturate: 0.76, brightness: 0.78, tint: '#5c667a', tintAlpha: 0.32 },
+    snow: { saturate: 0.86, brightness: 1.03, tint: '#dfe7f2', tintAlpha: 0.18 },
+    fog: { saturate: 0.8, brightness: 1.01, tint: '#e6e9ee', tintAlpha: 0.22 },
+    ice: { saturate: 0.84, brightness: 0.98, tint: '#c6d6ea', tintAlpha: 0.2 }
 };
 export function landGrade(light = 'day', tone = 'fair') {
     const l = LIGHT_GRADES[light] || LIGHT_GRADES.day;

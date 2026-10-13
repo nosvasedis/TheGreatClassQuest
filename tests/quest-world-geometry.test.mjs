@@ -185,12 +185,16 @@ test('the Crystal Realm stands clear of the citadel', () => {
 });
 
 test('the land follows the season', () => {
-    const at = (month) => new Date(2026, month, 15).getTime();
+    // The same season as the rest of the app (ui/wallpaperDeck.mjs#getSeasonInfo).
+    const at = (month, day = 15) => new Date(2026, month, day).getTime();
     assert.equal(seasonFor(at(9)), 'autumn');
     assert.equal(seasonFor(at(0)), 'winter');
     assert.equal(seasonFor(at(3)), 'spring');
     assert.equal(seasonFor(at(6)), 'summer');
-    assert.equal(seasonFor(at(11)), 'winter');
+    assert.equal(seasonFor(at(11, 15)), 'autumn');
+    assert.equal(seasonFor(at(11, 22)), 'winter');
+    assert.equal(seasonFor(at(2, 19)), 'winter');
+    assert.equal(seasonFor(at(2, 21)), 'spring');
 });
 
 test('the land is graded for the light and the weather of the shared sky', () => {

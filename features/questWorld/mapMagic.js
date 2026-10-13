@@ -5,8 +5,8 @@
  * is there). It adds, on top of the painted world:
  * - the living road: the explored road glows faintly, wisps of light run up
  *   it to the leading party, the uncharted road beyond is dotted like ink;
- * - realm gates on the road (Silver Peaks, Golden Citadel, Crystal Realm):
- *   lit once reached, and a click flies the camera there;
+ * - the road wears its realms' colours (copper meadows, ice-blue peaks,
+ *   gold citadel, violet stair), and flares as a party crosses into a realm;
  * - hover a party: its whole journey lights up, the way to its next stop is
  *   marked with a flag, and the rest of the map steps back into shade;
  * - hover the road: a pin says where that spot is and how many stars your
@@ -18,23 +18,15 @@
  * - footsteps where parties walk (full only).
  *
  * Every moving thing animates transform or opacity, so the compositor does
- * the work. Lite keeps the useful parts (trails, pins, gates, camera) and
+ * the work. Lite keeps the useful parts (trails, pins, camera) and
  * drops the purely decorative ones; reduced motion keeps them still.
  */
 
 import { QUEST_ROAD_STOPS } from '../teamQuestRace.mjs';
 import { WORLD_H, WORLD_W, pointAtProgress } from './worldGeometry.mjs';
-import { describeRoadSpot, footstepPlan, measureTrail, nearestOnRoad, trailPath, trailPoints } from './mapJourney.mjs';
+import { REALM_HUES, describeRoadSpot, footstepPlan, measureTrail, nearestOnRoad, realmAt, realmRoadPieces, trailPath, trailPoints } from './mapJourney.mjs';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
-const badge = (name) => new URL(`../../assets/team-quest-map/living-atlas/badge-${name}.webp`, import.meta.url).href;
-const GATES = QUEST_ROAD_STOPS.filter((stop) => stop.progress < 100).map((stop) => ({
-    ...stop,
-    badge: badge(stop.id),
-    // Which side of the road the gate stone stands on (clear of the painted buildings).
-    side: { silver: -1, gold: 1, crystal: -1 }[stop.id] || 1
-}));
-const GATE_SIDE_STEP = 30;
 const ROAD_NEAR = 18;
 const ROAD_FAR = 26;
 const HINT_KEY = 'gcq-team-quest-map-hint';
@@ -102,19 +94,37 @@ export function mountMapMagic({ root, scene, parties, tier }) {
         return el;
     };
 
+    // Every trail wears its realms' colours (copper, ice blue, gold, violet,
+    // blending where two realms meet): each is the stretch of road it covers,
+    // cut into coloured pieces. A plain bright line draws itself in first and
+    // the colours bloom in behind it.
+    const pieces = realmRoadPieces();
+    const piecesHtml = (from, to, tone) => pieces
+        .filter((piece) => piece.to > from && piece.from < to)
+        .map((piece) => `<path d="${trailPath(Math.max(from, piece.from), Math.min(to, piece.to), 0.5)}" stroke="${piece[tone]}"/>`)
+        .join('');
     const trails = document.createElementNS(SVG_NS, 'g');
     trails.setAttribute('class', 'tq-trails');
     trails.dataset.magic = '';
-    const path = {
-        litGlow: svgPath('tq-trail tq-trail--lit-glow'),
-        lit: svgPath('tq-trail tq-trail--lit'),
-        uncharted: svgPath('tq-trail tq-trail--uncharted'),
-        focusGlow: svgPath('tq-trail tq-trail--focus-glow'),
-        focus: svgPath('tq-trail tq-trail--focus'),
-        ahead: svgPath('tq-trail tq-trail--ahead')
+    trails.innerHTML = ['lit-glow', 'lit-draw', 'lit', 'uncharted', 'focus-glow', 'focus', 'focus-core', 'ahead', 'flare']
+        .map((name) => `<g class="tq-trail tq-trail--${name}"></g>`).join('');
+    const group = (name) => trails.querySelector(`.tq-trail--${name}`);
+    const layer = {
+        litGlow: group('lit-glow'), lit: group('lit'), uncharted: group('uncharted'),
+        focusGlow: group('focus-glow'), focus: group('focus'), ahead: group('ahead')
     };
-    Object.values(path).forEach((p) => trails.appendChild(p));
+    const litDraw = svgPath('');
+    group('lit-draw').appendChild(litDraw);
+    const focusCore = svgPath('');
+    group('focus-core').appendChild(focusCore);
+    const flareLayer = group('flare');
     svg.insertBefore(trails, svg.firstChild);
+    /** Fills a trail layer with the coloured road from `from` to `to` (fading in when asked). */
+    const paint = (el, from, to, tone, { bloom = false, delay = 0 } = {}) => {
+        el.innerHTML = to - from > 0.2 ? piecesHtml(from, to, tone) : '';
+        el.getAnimations?.().forEach((animation) => animation.cancel());
+        if (bloom && el.innerHTML) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 700, delay, easing: 'ease-out', fill: 'backwards' });
+    };
 
     // The shade that falls round a hovered party or realm.
     const focusShade = make('div', 'tq-focus', stage);
@@ -124,22 +134,6 @@ export function mountMapMagic({ root, scene, parties, tier }) {
     const high = make('div', 'tq-magic tq-magic--high', stage);
     const wispLayer = make('div', 'tq-magic__wisps', low);
     const stepLayer = make('div', 'tq-magic__steps', low);
-
-    const gateEls = GATES.map((gate) => {
-        const point = pointAtProgress(gate.progress);
-        const x = point.x + point.normalX * GATE_SIDE_STEP * gate.side;
-        const y = point.y + point.normalY * GATE_SIDE_STEP * gate.side;
-        const el = document.createElement('button');
-        el.type = 'button';
-        el.className = `tq-gate tq-gate--${gate.id}`;
-        el.dataset.gateProgress = String(gate.progress);
-        el.style.left = `${x.toFixed(1)}px`;
-        el.style.top = `${y.toFixed(1)}px`;
-        el.setAttribute('aria-label', `${gate.label} gate, at ${gate.progress}% of the monthly goal: look closer`);
-        el.innerHTML = `<span class="tq-gate__glow"></span><span class="tq-gate__ring"></span><img src="${gate.badge}" alt="" draggable="false" decoding="async">`;
-        low.appendChild(el);
-        return { ...gate, el, x, y, roadX: point.x, roadY: point.y };
-    });
 
     const roadPin = make('div', 'tq-road-pin', high, '<span class="tq-road-pin__ring"></span><span class="tq-road-pin__dot"></span><span class="tq-road-pin__label"></span>');
     const nextPin = make('div', 'tq-next-pin', high, '<span class="tq-next-pin__flag"><i class="fas fa-flag" aria-hidden="true"></i></span><span class="tq-next-pin__label"></span>');
@@ -211,14 +205,15 @@ export function mountMapMagic({ root, scene, parties, tier }) {
         const next = Math.min(100, Math.max(0, Number(value) || 0));
         const grew = next > explored + 0.2;
         explored = next;
-        const lit = explored > 0.5 ? trailPath(0, explored) : '';
+        const to = explored > 0.5 ? explored : 0;
         const withDraw = animate && grew && tier() !== 'still';
-        path.lit.setAttribute('d', lit);
-        drawIn(path.litGlow, lit, { animate: withDraw });
+        drawIn(litDraw, withDraw ? trailPath(0, to) : '', { animate: withDraw });
+        if (withDraw) litDraw.animate([{ opacity: 1 }, { opacity: 1, offset: 0.6 }, { opacity: 0 }], { duration: 2400, fill: 'forwards' });
+        paint(layer.litGlow, 0, to, 'light', { bloom: withDraw, delay: 1100 });
+        paint(layer.lit, 0, to, 'light', { bloom: withDraw, delay: 1100 });
         // The uncharted road is dotted up to the next realm; beyond, the clouds still hide it.
         const nextBreak = QUEST_ROAD_STOPS.find((stop) => stop.progress > explored + 0.5);
-        path.uncharted.setAttribute('d', nextBreak ? trailPath(explored, nextBreak.progress) : '');
-        gateEls.forEach((gate) => gate.el.classList.toggle('is-reached', explored >= gate.progress));
+        paint(layer.uncharted, explored, nextBreak ? nextBreak.progress : explored, 'ink');
         buildWisps();
     };
 
@@ -283,20 +278,20 @@ export function mountMapMagic({ root, scene, parties, tier }) {
         parties().forEach((candidate) => candidate.el.classList.toggle('is-focus', Boolean(party) && candidate.key === key));
         root.classList.toggle('is-party-focus', Boolean(party));
         if (!party) {
-            path.focus.setAttribute('d', '');
-            path.focusGlow.setAttribute('d', '');
-            path.ahead.setAttribute('d', '');
+            [layer.focus, layer.focusGlow, layer.ahead].forEach((el) => { el.innerHTML = ''; });
+            focusCore.setAttribute('d', '');
             nextPin.classList.remove('is-on');
             if (!placeFocused) clearShade();
             return;
         }
         hideRoadPin();
-        const journey = party.progress > 0.5 ? trailPath(0, party.progress) : '';
+        const reach = party.progress > 0.5 ? party.progress : 0;
         const draw = tier() !== 'still';
-        drawIn(path.focus, journey, { animate: draw });
-        drawIn(path.focusGlow, journey, { animate: draw });
+        drawIn(focusCore, reach ? trailPath(0, reach) : '', { animate: draw });
+        paint(layer.focusGlow, 0, reach, 'light', { bloom: draw, delay: 250 });
+        paint(layer.focus, 0, reach, 'light', { bloom: draw, delay: 250 });
         const stop = placeNextPin(party);
-        path.ahead.setAttribute('d', stop ? trailPath(party.progress, stop.progress) : '');
+        paint(layer.ahead, party.progress, stop ? stop.progress : party.progress, 'light');
         const point = pointAtProgress(party.progress);
         shadeAt(point.x, point.y, 300, 240);
     };
@@ -318,7 +313,7 @@ export function mountMapMagic({ root, scene, parties, tier }) {
         if (pinProgress === null) return;
         pinProgress = null;
         roadPin.classList.remove('is-on');
-        if (!focusedKey) path.ahead.setAttribute('d', '');
+        if (!focusedKey) layer.ahead.innerHTML = '';
         root.dispatchEvent(new CustomEvent('tq:road', { detail: { active: false } }));
     }
     const guidePartyNow = () => {
@@ -338,13 +333,13 @@ export function mountMapMagic({ root, scene, parties, tier }) {
         roadPin.querySelector('.tq-road-pin__label').innerHTML = `<strong>${spot.percent}%</strong><span>${escapeHtml(spot.realm)}</span>${partyLine}`;
         roadPin.classList.add('is-on');
         const guide = guidePartyNow();
-        path.ahead.setAttribute('d', guide && !spot.passed ? trailPath(guide.progress, spot.progress) : '');
+        paint(layer.ahead, guide && !spot.passed ? guide.progress : 0, guide && !spot.passed ? spot.progress : 0, 'light');
         if (pinProgress === null) root.dispatchEvent(new CustomEvent('tq:road', { detail: { active: true } }));
         pinProgress = spot.progress;
     };
 
     // ── Pointer: road hover, the lantern and the dust ────────────────────
-    const blocked = (target) => Boolean(target?.closest?.('[data-map-token], .tq-popover, .tq-tip, .tq-map-controls, .tq-map-camera, .tq-route-finish, .tq-map-title, .tq-gate'));
+    const blocked = (target) => Boolean(target?.closest?.('[data-map-token], .tq-popover, .tq-tip, .tq-map-controls, .tq-map-camera, .tq-route-finish, .tq-map-title'));
     let moveFrame = 0;
     let lastMove = null;
     let lastRoadCheck = 0;
@@ -418,18 +413,6 @@ export function mountMapMagic({ root, scene, parties, tier }) {
         clearTimeout(roadTimer);
         lantern.classList.remove('is-on');
         hideRoadPin();
-    });
-
-    // ── Gates ────────────────────────────────────────────────────────────
-    gateEls.forEach((gate) => {
-        on(gate.el, 'pointerenter', () => { if (!focusedKey) showRoadPin(gate.progress); });
-        on(gate.el, 'pointerleave', () => hideRoadPin());
-        on(gate.el, 'focus', () => { if (gate.el.matches(':focus-visible')) showRoadPin(gate.progress); });
-        on(gate.el, 'blur', () => hideRoadPin());
-        on(gate.el, 'click', (event) => {
-            event.stopPropagation();
-            camera.flyToWorld(gate.roadX, gate.roadY, Math.max(1.8, camera.state.zoom));
-        });
     });
 
     // ── The camera ───────────────────────────────────────────────────────
@@ -630,14 +613,24 @@ export function mountMapMagic({ root, scene, parties, tier }) {
         });
     };
 
-    /** A gate flares as the first party passes it. */
+    /** The road flares in the realm's colour as the first party crosses into it. */
     const flareGate = (progress) => {
-        const gate = gateEls.find((candidate) => candidate.progress === Number(progress));
-        if (!gate || tier() === 'still') return;
-        gate.el.classList.remove('is-flaring');
-        void gate.el.offsetWidth;
-        gate.el.classList.add('is-flaring');
-        later(() => gate.el.classList.remove('is-flaring'), 1600);
+        const at = Number(progress);
+        if (!(at > 0 && at < 100) || tier() === 'still') return;
+        const hue = REALM_HUES[realmAt(at)];
+        if (!hue) return;
+        const el = document.createElementNS(SVG_NS, 'path');
+        el.setAttribute('d', trailPath(Math.max(0, at - 6), Math.min(100, at + 4), 0.25));
+        el.setAttribute('stroke', `rgb(${hue.light.join(', ')})`);
+        flareLayer.appendChild(el);
+        const length = el.getTotalLength();
+        const animation = el.animate([
+            { strokeDasharray: `0 ${length}`, opacity: 0 },
+            { strokeDasharray: `${length} 0`, opacity: 1, offset: 0.35 },
+            { strokeDasharray: `${length} 0`, opacity: 0 }
+        ], { duration: 1800, easing: 'ease-out' });
+        animation.addEventListener('finish', () => el.remove(), { once: true });
+        animation.addEventListener('cancel', () => el.remove(), { once: true });
     };
 
     const magic = {

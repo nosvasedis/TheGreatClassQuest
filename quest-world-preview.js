@@ -12,6 +12,7 @@ const leaderInput = document.getElementById('pv-leader');
 const leaderOut = document.getElementById('pv-leader-out');
 const timeSelect = document.getElementById('pv-time');
 const weatherSelect = document.getElementById('pv-weather');
+const leagueSelect = document.getElementById('pv-league');
 
 const PARTIES = [
     { id: 'owls', name: 'Junior A', logo: '🦉', share: 1 },
@@ -83,7 +84,7 @@ function applySky() {
 
 function draw({ replay = false } = {}) {
     renderLeagueMapInto(slot, league(Number(leaderInput.value)), { activeClassId: 'books' });
-    initializeLivingQuestMap(slot, { leagueKey: 'Preview', replay });
+    initializeLivingQuestMap(slot, { leagueKey: leagueSelect.value, replay });
     applySky();
 }
 
@@ -100,11 +101,13 @@ document.querySelectorAll('[data-tier]').forEach((button) => {
 if (params.get('leader')) leaderInput.value = params.get('leader');
 if (params.get('time')) timeSelect.value = params.get('time');
 if (params.get('weather')) weatherSelect.value = params.get('weather');
+if (params.get('league')) leagueSelect.value = params.get('league');
 leaderOut.textContent = `${leaderInput.value}%`;
 leaderInput.addEventListener('input', () => { leaderOut.textContent = `${leaderInput.value}%`; });
 leaderInput.addEventListener('change', () => draw());
 timeSelect.addEventListener('change', applySky);
 weatherSelect.addEventListener('change', applySky);
+leagueSelect.addEventListener('change', () => draw());
 document.getElementById('pv-find').addEventListener('click', () => getActiveLivingQuestMap()?.focusClass('books'));
 // What the header's general view does: the map rolls up and waits; a class unrolls it again.
 const generalButton = document.getElementById('pv-general');

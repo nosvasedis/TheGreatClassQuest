@@ -96,3 +96,17 @@ route. `remove_road_branch.py` pastes repaints of that corner (prompt: remove
 the road that curves down from the square, its cream edge line, walls and lamp
 post, and paint the surrounding trees, grass and cliff in their place) and
 `remove_square_kerb.py` takes the kerb off the square's edge.
+
+## The route kerb and the ink sketch
+
+`remove_route_kerb.py write` takes the cream kerb stripe off the road in all
+four seasons (it read as a white line drawn on the map) and dims it in the
+night lights. Run `bake_sketch.py` after any change to the land: it redraws
+the ink sketch the scroll shows while it unrolls from the land as it is now,
+with the islets and windmill sails in place.
+
+## League touches
+
+`features/questWorld/leagueTouches.mjs` draws a few pieces per league in
+plain SVG and CSS (no images), matched to the children's age: ducks and
+bubbles for Pre-Junior up to a sea serpent and a star dragon for D.

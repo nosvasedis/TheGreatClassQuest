@@ -21,6 +21,7 @@
 
 import '../../styles/quest_world.css';
 import { PAINTED_PROPS, WORLD_SEED, buildWorldArt } from './worldArt.mjs';
+import { leagueTouchKey, leagueTouchSprites } from './leagueTouches.mjs';
 import { bakeWidthFor, bakeWorld, gradeInto } from './worldPainter.js';
 import {
     WORLD_H,
@@ -195,6 +196,8 @@ export function mountQuestWorld(root, { tier = 'full' } = {}) {
         <div class="tq-world__sprites" data-sprites="mid"></div>
         <div class="tq-cloud-shadows"><span></span><span></span><span></span></div>
         <div class="tq-world__mists">${art.mists.map(mistHtml).join('')}</div>
+        <div class="tq-world__sprites tq-world__league" data-sprites="league-back"></div>
+        <div class="tq-world__sprites tq-world__league" data-sprites="league"></div>
         <div class="tq-world__lanterns">${art.lanterns.map(lanternHtml).join('')}</div>
         <div class="tq-world__marks">
             <div class="tq-portal-beam" aria-hidden="true"><span></span></div>
@@ -267,6 +270,20 @@ export function mountQuestWorld(root, { tier = 'full' } = {}) {
         front.dataset.tier = currentTier;
     };
     renderSprites();
+
+    // ── The league's own touches (leagueTouches.mjs) ─────────────────────
+    let leagueKey = '';
+    const renderLeague = (next) => {
+        const key = leagueTouchKey(next);
+        if (key === leagueKey) return;
+        leagueKey = key;
+        const html = { back: '', mid: '' };
+        leagueTouchSprites(key).forEach((sprite) => { html[sprite.slot] += spriteHtml(sprite); });
+        world.querySelector('[data-sprites="league-back"]').innerHTML = html.back;
+        world.querySelector('[data-sprites="league"]').innerHTML = html.mid;
+        if (key) world.dataset.league = key;
+        else delete world.dataset.league;
+    };
 
     // ── The sky: the app's live scene ────────────────────────────────────
     const sunEl = world.querySelector('.tq-sky__sun');
@@ -638,6 +655,10 @@ export function mountQuestWorld(root, { tier = 'full' } = {}) {
         },
         setExplored,
         celebrateRealm,
+        /** Draws the touches that make the map this league's own (none for an unknown league). */
+        setLeague(next) {
+            if (!destroyed) renderLeague(next);
+        },
         setLeader(next) {
             leader = next && (next.logo || next.name) ? { logo: next.logo, name: next.name } : null;
             placePennant();

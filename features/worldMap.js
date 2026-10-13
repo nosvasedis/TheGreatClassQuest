@@ -751,6 +751,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             if (destroyed) return null;
             scene = mountQuestWorld(root, { tier: sceneTier() });
             if (scene) {
+                scene.setLeague(leagueKey);
                 scene.setExplored(lastExplored);
                 syncLeader();
                 updateMotionState();

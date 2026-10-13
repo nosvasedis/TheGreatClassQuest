@@ -11,6 +11,19 @@ import {
     formatQuestStars,
     getQuestNextStop
 } from './teamQuestRace.mjs';
+import {
+    PORTAL,
+    REALM_PLACES,
+    ROUTE_POINTS,
+    SCENE_TIERS,
+    TOKEN_EDGE_MARGIN,
+    TOKEN_LANE_GAP,
+    WORLD_H,
+    WORLD_W,
+    resolveSceneTier,
+    routeSegments
+} from './questWorld/worldGeometry.mjs';
+import { describePlace, placeTipHtml } from './questWorld/placeTips.mjs';
 
 /** League map HTML path: use tab-precomputed stars/goal when present (avoids re-scanning students/scores). */
 function resolveLeagueMapMetrics(c) {
@@ -78,49 +91,23 @@ export function getClassQuestProgressData(classroom, students = null, allScores 
     };
 }
 
-const MAP_VIEWBOX_WIDTH = 1200;
-const MAP_VIEWBOX_HEIGHT = 675;
-const QUEST_ROUTE_SEGMENTS = [
-    {
-        id: 'bronze', minProgress: 0, maxProgress: 30,
-        d: 'M 60 612 C 82 590 122 568 158 542 C 185 522 199 495 190 476 C 178 450 125 457 131 431 C 135 413 155 401 153 382 C 151 363 125 354 132 335 C 142 306 185 289 220 273 C 268 252 322 242 350 212 C 372 190 376 165 397 151 C 406 145 414 140 421 136'
-    },
-    {
-        id: 'silver', minProgress: 30, maxProgress: 60,
-        d: 'M 421 136 C 445 177 414 224 442 256 C 469 286 442 326 471 345 C 504 366 519 343 548 356 C 592 377 649 381 691 396 C 734 412 762 420 790 398'
-    },
-    {
-        id: 'gold', minProgress: 60, maxProgress: 85,
-        d: 'M 790 398 C 824 362 851 340 876 330 C 901 316 896 282 920 268 C 944 253 937 238 951 224'
-    },
-    {
-        id: 'crystal', minProgress: 85, maxProgress: 100,
-        d: 'M 951 224 C 972 224 989 217 1000 209 C 1021 194 1032 176 1048 164 C 1062 154 1072 146 1079 136 C 1084 131 1087 127 1088 125'
-    }
-];
-const MAP_LANE_GAP = 54;
-const MAP_TOKEN_EDGE_MARGIN = 44;
+// The road and the world share one geometry (features/questWorld/worldGeometry.mjs).
+const MAP_VIEWBOX_WIDTH = WORLD_W;
+const MAP_VIEWBOX_HEIGHT = WORLD_H;
+const QUEST_ROUTE_SEGMENTS = routeSegments();
+const MAP_LANE_GAP = TOKEN_LANE_GAP;
+const MAP_TOKEN_EDGE_MARGIN = TOKEN_EDGE_MARGIN;
+// Width of the parchment veil over the unexplored road, in screen pixels.
+const ROAD_FOG_PX = 24;
 
 const LIVING_MAP_ASSETS = {
-    background: new URL('../assets/team-quest-map/living-atlas/map-background-v2.webp', import.meta.url).href,
     parchmentBacking: new URL('../assets/team-quest-map/living-atlas/map-parchment-backing.webp', import.meta.url).href,
-    cloudMist: new URL('../assets/team-quest-map/living-atlas/cloud-mist.webp', import.meta.url).href,
-    crystalAura: new URL('../assets/team-quest-map/living-atlas/crystal-aura.webp', import.meta.url).href,
     badgeBronze: new URL('../assets/team-quest-map/living-atlas/badge-bronze.webp', import.meta.url).href,
     badgeSilver: new URL('../assets/team-quest-map/living-atlas/badge-silver.webp', import.meta.url).href,
     badgeGold: new URL('../assets/team-quest-map/living-atlas/badge-gold.webp', import.meta.url).href,
     badgeCrystal: new URL('../assets/team-quest-map/living-atlas/badge-crystal.webp', import.meta.url).href,
-    scrollBronze: new URL('../assets/team-quest-map/living-atlas/scroll-bronze.webp', import.meta.url).href,
-    scrollSilver: new URL('../assets/team-quest-map/living-atlas/scroll-silver.webp', import.meta.url).href,
-    scrollGold: new URL('../assets/team-quest-map/living-atlas/scroll-gold.webp', import.meta.url).href,
-    scrollCrystal: new URL('../assets/team-quest-map/living-atlas/scroll-crystal.webp', import.meta.url).href,
     scrollMap: new URL('../assets/team-quest-map/living-atlas/scroll-map-integrated.webp', import.meta.url).href,
     portalVortex: new URL('../assets/team-quest-map/living-atlas/portal-vortex.webp', import.meta.url).href,
-    ambientWaterRipple: new URL('../assets/team-quest-map/living-atlas/ambient-water-ripple.webp', import.meta.url).href,
-    ambientSnowFlurry: new URL('../assets/team-quest-map/living-atlas/ambient-snow-flurry.webp', import.meta.url).href,
-    ambientMountainWind: new URL('../assets/team-quest-map/living-atlas/ambient-mountain-wind.webp', import.meta.url).href,
-    ambientCitySparks: new URL('../assets/team-quest-map/living-atlas/ambient-city-sparks.webp', import.meta.url).href,
-    ambientCrystalStardust: new URL('../assets/team-quest-map/living-atlas/ambient-crystal-stardust.webp', import.meta.url).href,
     tokenGold: new URL('../assets/team-quest-map/living-atlas/token-gold.webp', import.meta.url).href,
     tokenSilver: new URL('../assets/team-quest-map/living-atlas/token-silver.webp', import.meta.url).href,
     tokenBronze: new URL('../assets/team-quest-map/living-atlas/token-bronze.webp', import.meta.url).href,
@@ -142,12 +129,13 @@ const ZONE_BADGE_BY_ID = {
     diamond: LIVING_MAP_ASSETS.badgeCrystal
 };
 
-const ZONE_SCROLL_BY_ID = {
-    bronze: LIVING_MAP_ASSETS.scrollBronze,
-    silver: LIVING_MAP_ASSETS.scrollSilver,
-    gold: LIVING_MAP_ASSETS.scrollGold,
-    crystal: LIVING_MAP_ASSETS.scrollCrystal,
-    diamond: LIVING_MAP_ASSETS.scrollCrystal
+/** Each place's colour of light (hover glow, click sparkle). */
+const PLACE_GLOW = {
+    bronze: '146, 232, 104',
+    silver: '149, 224, 255',
+    gold: '255, 211, 86',
+    crystal: '218, 139, 255',
+    portal: '190, 160, 255'
 };
 
 
@@ -203,9 +191,11 @@ function storeFxPreference(value) {
     try { sessionStorage.setItem(LITE_FX_STORAGE_KEY, value); } catch { /* private mode */ }
 }
 
-/** Modest machines keep the map, the road and the parties, but drop the large drifting art layers. */
+/** Modest machines keep the world, the road and the parties, but drop the small creatures, parallax and tilt. */
 function shouldUseLiteMapFx() {
-    if (readStoredFxPreference() === 'lite') return true;
+    const stored = readStoredFxPreference();
+    if (stored === 'lite') return true;
+    if (stored === 'full') return false;
     try {
         const nav = navigator;
         if (nav.connection?.saveData) return true;
@@ -289,6 +279,8 @@ function renderMapToken(item) {
                 data-class-id="${escapeMapHtml(c.id || '')}"
                 data-progress="${pct}"
                 data-stars="${Number(liveMonthlyStars) || 0}"
+                data-logo="${safeLogo}"
+                data-name="${safeName}"
                 data-lane="${lane}"
                 aria-label="${ariaLabel}"
                 aria-haspopup="dialog"
@@ -395,26 +387,27 @@ function buildLeagueMapParts(classes, options = {}) {
     };
 }
 
-function renderWaypoint({ id, label, progress, className }) {
+/**
+ * A realm's landmark on the map (the village, the gate, the citadel, the isle):
+ * an invisible, ellipse-shaped button over the painting that glows on hover,
+ * shows the place card and opens the Realm Overview.
+ */
+function renderPlace(place) {
+    const pct = (value, total) => `${((value / total) * 100).toFixed(3)}%`;
+    const style = `left:${pct(place.x - place.rx, MAP_VIEWBOX_WIDTH)};top:${pct(place.y - place.ry, MAP_VIEWBOX_HEIGHT)};`
+        + `width:${pct(place.rx * 2, MAP_VIEWBOX_WIDTH)};height:${pct(place.ry * 2, MAP_VIEWBOX_HEIGHT)};--place-glow:${PLACE_GLOW[place.id]}`;
     return `
-        <span class="tq-waypoint tq-waypoint--${className}"
-                data-route-progress="${progress}"
-                data-waypoint-progress="${progress}">
-            <img class="tq-waypoint__scroll"
-                 src="${ZONE_SCROLL_BY_ID[id]}"
-                 alt=""
-                 draggable="false"
-                 decoding="async"
-                 aria-hidden="true">
-            <button type="button"
-                    class="tq-waypoint__button zone-trigger"
-                    data-zone="${id}"
-                    aria-label="Open ${label} region overview">
-                <span class="tq-waypoint__halo" aria-hidden="true"></span>
-                <span class="tq-waypoint__burst" aria-hidden="true"></span>
-                <img class="tq-waypoint__badge" src="${ZONE_BADGE_BY_ID[id]}" alt="" draggable="false" decoding="async" aria-hidden="true">
-            </button>
-        </span>`;
+        <button type="button"
+                class="tq-place tq-place--${place.id} zone-trigger"
+                data-zone="${place.zone}"
+                data-place="${place.id}"
+                data-waypoint-progress="${place.progress}"
+                style="${style}"
+                aria-label="${escapeMapHtml(place.label)}: ${escapeMapHtml(place.kind)}. Open the realm overview">
+            <span class="tq-place__glow" aria-hidden="true"></span>
+            <span class="tq-place__ring" aria-hidden="true"></span>
+            <span class="tq-place__burst" aria-hidden="true"></span>
+        </button>`;
 }
 
 function renderChronicleButton(count) {
@@ -433,94 +426,42 @@ function renderChronicleButton(count) {
 export function generateLeagueMapHtml(classes, options = {}) {
     const parts = buildLeagueMapParts(classes, options);
 
-    const waypoints = [
-        { id: 'bronze', label: 'Bronze Meadows', progress: 0, className: 'bronze' },
-        { id: 'silver', label: 'Silver Peaks', progress: 30, className: 'silver' },
-        { id: 'gold', label: 'Golden Citadel', progress: 60, className: 'gold' },
-        { id: 'diamond', label: 'Crystal Realm', progress: 85, className: 'crystal' }
-    ].map(renderWaypoint).join('');
+    const places = REALM_PLACES.map(renderPlace).join('');
 
-    const pathsFor = (className, extra = () => '') => QUEST_ROUTE_SEGMENTS.map((segment) => (
-        `<path class="${className}${className === 'tq-route__segment' ? ` tq-route__segment--${segment.id}` : ''}" d="${segment.d}"${extra(segment)}></path>`
+    const routePaths = (className, extra = () => '') => QUEST_ROUTE_SEGMENTS.map((segment) => (
+        `<path class="${className}" d="${segment.d}"${extra(segment)}></path>`
     )).join('');
+    const fx = shouldUseLiteMapFx() ? 'lite' : 'full';
+    const tilt = fx === 'full' ? SCENE_TIERS.full.tilt : 0;
 
     return `
-    <div class="tq-living-map" role="region" aria-label="League quest map" data-living-quest-map data-fx="${shouldUseLiteMapFx() ? 'lite' : 'full'}" data-scroll="rolled">
+    <div class="tq-living-map" role="region" aria-label="League quest map" data-living-quest-map data-fx="${fx}" data-tilt="${tilt}" data-scroll="rolled">
         <img class="tq-living-map__parchment-backing" src="${LIVING_MAP_ASSETS.parchmentBacking}" alt="" draggable="false" decoding="async" aria-hidden="true">
         <div class="tq-living-map__frame">
-            <img class="tq-living-map__background" src="${LIVING_MAP_ASSETS.background}" alt="" draggable="false" decoding="async" fetchpriority="high">
-            <img class="tq-living-map__crystal-aura" src="${LIVING_MAP_ASSETS.crystalAura}" alt="" draggable="false" decoding="async" aria-hidden="true">
-            <img class="tq-living-map__mist tq-living-map__mist--near tq-fx-heavy" src="${LIVING_MAP_ASSETS.cloudMist}" alt="" draggable="false" decoding="async" aria-hidden="true">
-            <img class="tq-living-map__mist tq-living-map__mist--far tq-fx-heavy" src="${LIVING_MAP_ASSETS.cloudMist}" alt="" draggable="false" decoding="async" aria-hidden="true">
+            <div class="tq-stage" data-quest-stage>
+                <div class="tq-world" data-quest-world aria-hidden="true"></div>
 
-            <svg class="tq-route" viewBox="0 0 ${MAP_VIEWBOX_WIDTH} ${MAP_VIEWBOX_HEIGHT}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-                <defs>
-                    <linearGradient id="tqBronzeRoad" x1="0" y1="1" x2="1" y2="0">
-                        <stop offset="0%" stop-color="#5fcf6a"></stop>
-                        <stop offset="52%" stop-color="#f4c852"></stop>
-                        <stop offset="100%" stop-color="#91d879"></stop>
-                    </linearGradient>
-                    <linearGradient id="tqSilverRoad" x1="0" y1="1" x2="1" y2="0">
-                        <stop offset="0%" stop-color="#8ad7ff"></stop>
-                        <stop offset="50%" stop-color="#f4fbff"></stop>
-                        <stop offset="100%" stop-color="#779de0"></stop>
-                    </linearGradient>
-                    <linearGradient id="tqGoldRoad" x1="0" y1="1" x2="1" y2="0">
-                        <stop offset="0%" stop-color="#ef9a2e"></stop>
-                        <stop offset="52%" stop-color="#ffe375"></stop>
-                        <stop offset="100%" stop-color="#e64f3c"></stop>
-                    </linearGradient>
-                    <linearGradient id="tqCrystalRoad" x1="0" y1="1" x2="1" y2="0">
-                        <stop offset="0%" stop-color="#ab6cff"></stop>
-                        <stop offset="52%" stop-color="#65e8ff"></stop>
-                        <stop offset="100%" stop-color="#f193ff"></stop>
-                    </linearGradient>
-                </defs>
-                ${pathsFor('tq-route__shadow')}
-                ${pathsFor('tq-route__edge')}
-                ${pathsFor('tq-route__segment', (segment) => ` data-route-segment data-progress-min="${segment.minProgress}" data-progress-max="${segment.maxProgress}"`)}
-                ${pathsFor('tq-route__gleam')}
-                ${pathsFor('tq-route__fog', (segment) => ` data-fog-segment data-progress-min="${segment.minProgress}" data-progress-max="${segment.maxProgress}"`)}
-                <g class="tq-route__connectors">${parts.connectorsHtml}</g>
-            </svg>
+                <svg class="tq-route" viewBox="0 0 ${MAP_VIEWBOX_WIDTH} ${MAP_VIEWBOX_HEIGHT}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                    ${routePaths('tq-route__segment', (segment) => ` data-route-segment data-progress-min="${segment.minProgress}" data-progress-max="${segment.maxProgress}"`)}
+                    ${routePaths('tq-route__fog', (segment) => ` data-fog-segment data-progress-min="${segment.minProgress}" data-progress-max="${segment.maxProgress}"`)}
+                    <g class="tq-route__connectors">${parts.connectorsHtml}</g>
+                </svg>
+
+                ${places}
+                <span class="tq-route-finish" data-route-progress="100" data-offset-x="${PORTAL.x - ROUTE_POINTS[ROUTE_POINTS.length - 1][0]}" data-offset-y="${PORTAL.y - ROUTE_POINTS[ROUTE_POINTS.length - 1][1]}">
+                    <button type="button" class="tq-route-finish__button portal-trigger" data-place="portal" style="--place-glow:${PLACE_GLOW.portal}" aria-label="The Crystal Portal: open it">
+                        <span class="tq-route-finish__glow" aria-hidden="true"></span>
+                        <img class="tq-portal-vortex tq-portal-vortex--outer" src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" decoding="async" aria-hidden="true">
+                        <img class="tq-portal-vortex tq-portal-vortex--inner" src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" decoding="async" aria-hidden="true">
+                    </button>
+                </span>
+                <div class="tq-world-front" data-quest-world-front aria-hidden="true"></div>
+                <div class="tq-class-token-layer">${parts.tokensHtml}</div>
+            </div>
 
             <div class="tq-map-title" aria-hidden="true">
                 <img class="tq-map-title__scroll" src="${LIVING_MAP_ASSETS.scrollMap}" alt="" draggable="false" decoding="async">
             </div>
-
-            <div class="tq-map-ambient" aria-hidden="true">
-                <span class="tq-ambient tq-ambient--butterfly-one">🦋</span>
-                <span class="tq-ambient tq-ambient--butterfly-two">🦋</span>
-                <i class="fas fa-dove tq-ambient tq-ambient--bird-one"></i>
-                <i class="fas fa-dove tq-ambient tq-ambient--bird-two"></i>
-                <i class="fas fa-flag tq-ambient tq-ambient--silver-flag"></i>
-                <i class="fas fa-flag tq-ambient tq-ambient--gold-flag"></i>
-                <span class="tq-ambient tq-ambient--crystal-spark-one">✦</span>
-                <span class="tq-ambient tq-ambient--crystal-spark-two">✧</span>
-                <span class="tq-ambient tq-ambient--crystal-spark-three">✦</span>
-                <img class="tq-ambient tq-water-ripple tq-water-ripple--one" src="${LIVING_MAP_ASSETS.ambientWaterRipple}" alt="" draggable="false" decoding="async">
-                <img class="tq-ambient tq-water-ripple tq-water-ripple--two" src="${LIVING_MAP_ASSETS.ambientWaterRipple}" alt="" draggable="false" decoding="async">
-                <img class="tq-ambient tq-water-ripple tq-water-ripple--three tq-fx-heavy" src="${LIVING_MAP_ASSETS.ambientWaterRipple}" alt="" draggable="false" decoding="async">
-                <img class="tq-ambient tq-snow-flurry tq-snow-flurry--one tq-fx-heavy" src="${LIVING_MAP_ASSETS.ambientSnowFlurry}" alt="" draggable="false" decoding="async">
-                <img class="tq-ambient tq-snow-flurry tq-snow-flurry--two tq-fx-heavy" src="${LIVING_MAP_ASSETS.ambientSnowFlurry}" alt="" draggable="false" decoding="async">
-                <img class="tq-ambient tq-mountain-wind tq-mountain-wind--one tq-fx-heavy" src="${LIVING_MAP_ASSETS.ambientMountainWind}" alt="" draggable="false" decoding="async">
-                <img class="tq-ambient tq-mountain-wind tq-mountain-wind--two tq-fx-heavy" src="${LIVING_MAP_ASSETS.ambientMountainWind}" alt="" draggable="false" decoding="async">
-                <img class="tq-ambient tq-city-sparks tq-city-sparks--one" src="${LIVING_MAP_ASSETS.ambientCitySparks}" alt="" draggable="false" decoding="async">
-                <img class="tq-ambient tq-city-sparks tq-city-sparks--two tq-fx-heavy" src="${LIVING_MAP_ASSETS.ambientCitySparks}" alt="" draggable="false" decoding="async">
-                <img class="tq-ambient tq-crystal-stardust tq-crystal-stardust--one tq-fx-heavy" src="${LIVING_MAP_ASSETS.ambientCrystalStardust}" alt="" draggable="false" decoding="async">
-                <img class="tq-ambient tq-crystal-stardust tq-crystal-stardust--two tq-fx-heavy" src="${LIVING_MAP_ASSETS.ambientCrystalStardust}" alt="" draggable="false" decoding="async">
-            </div>
-
-            ${waypoints}
-            <span class="tq-route-finish" data-route-progress="100" data-offset-x="9" data-offset-y="-46">
-                <button type="button" class="tq-route-finish__button portal-trigger" aria-label="Open the Crystal Portal" title="The Crystal Portal">
-                    <span class="tq-route-finish__glow" aria-hidden="true"></span>
-                    <img class="tq-portal-vortex tq-portal-vortex--outer" src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" decoding="async" aria-hidden="true">
-                    <img class="tq-portal-vortex tq-portal-vortex--inner" src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" decoding="async" aria-hidden="true">
-                    <span class="tq-route-finish__label" aria-hidden="true">The Portal</span>
-                </button>
-            </span>
-            <div class="tq-class-token-layer">${parts.tokensHtml}</div>
 
             <div class="tq-map-controls">
                 <button type="button" class="tq-map-replay" data-map-replay title="Replay the journey" aria-label="Replay the journey">
@@ -537,6 +478,11 @@ export function generateLeagueMapHtml(classes, options = {}) {
                 <img class="tq-unroll__roll" src="${LIVING_MAP_ASSETS.parchmentBacking}" alt="" draggable="false" decoding="async">
             </span>
             <span class="tq-unroll__seal"><span class="tq-unroll__seal-mark">✦</span></span>
+        </div>
+        <div class="tq-sparks" data-map-sparks aria-hidden="true"></div>
+        <div class="tq-tip" data-map-tip role="tooltip" id="tq-place-tip" hidden>
+            <div class="tq-tip__inner" data-map-tip-body></div>
+            <span class="tq-tip__arrow" aria-hidden="true"></span>
         </div>
         <div class="tq-popover" data-map-popover role="dialog" aria-label="Quest party details" hidden>
             <div class="tq-popover__inner" data-map-popover-body></div>
@@ -684,6 +630,33 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
     let journeyPlayed = false;
     let destroyed = false;
 
+    // --- The living world (features/questWorld/*), mounted lazily -------------
+    // It outlives this controller: live updates re-create the controller but keep
+    // the world, so its animations never restart under the teacher's eyes.
+    const sceneTier = () => resolveSceneTier({ fx: root.dataset.fx, reducedMotion: reducedMotionQuery.matches });
+    const syncTilt = () => {
+        root.dataset.tilt = String(sceneTier() === 'full' ? SCENE_TIERS.full.tilt : 0);
+    };
+    syncTilt();
+    let scene = null;
+    let lastExplored = 0;
+    const scenePromise = import('./questWorld/worldScene.js')
+        .then(({ mountQuestWorld }) => {
+            if (destroyed) return null;
+            scene = mountQuestWorld(root, { tier: sceneTier() });
+            if (scene) {
+                scene.setExplored(lastExplored);
+                syncLeader();
+                updateMotionState();
+            }
+            return scene;
+        })
+        .catch((error) => {
+            console.warn('Quest World could not load; the map keeps its road and parties.', error);
+            root.classList.add('is-world-missing');
+            return null;
+        });
+
     const tokenState = (token) => ({
         key: token.dataset.tokenKey,
         progress: Math.min(100, Math.max(0, Number(token.dataset.progress) || 0)),
@@ -760,6 +733,14 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
 
     const leaderProgress = () => Math.max(0, ...tokens.map((token) => tokenState(token).progress));
 
+    /** The leading party flies its banner over the furthest realm reached. */
+    const syncLeader = () => {
+        if (!scene) return;
+        const lead = tokens.find((token) => token.classList.contains('is-leader'));
+        const moving = lead && tokenState(lead).progress > 0;
+        scene.setLeader(moving ? { logo: lead.dataset.logo, name: lead.dataset.name } : null);
+    };
+
     const positionStaticElements = () => {
         routeAnchors.forEach((element) => {
             const point = getRoutePoint(routeSegments, element.dataset.routeProgress);
@@ -772,6 +753,8 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
 
     // The road beyond the furthest party is still unexplored: washed out under a veil of parchment.
     const updateExploration = (explored, { animate = false } = {}) => {
+        lastExplored = explored;
+        scene?.setExplored(explored, { animate });
         const rect = frame.getBoundingClientRect();
         const unitsPerPixel = rect.width ? MAP_VIEWBOX_WIDTH / rect.width : 1;
         fogSegments.forEach((segment) => {
@@ -779,7 +762,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             const ratio = Math.min(1, Math.max(0, (explored - segment.minProgress) / range));
             const exploredLength = segment.totalLength * ratio;
             const rest = Math.max(0, segment.totalLength - exploredLength);
-            segment.path.style.strokeWidth = (17 * unitsPerPixel).toFixed(2);
+            segment.path.style.strokeWidth = (ROAD_FOG_PX * unitsPerPixel).toFixed(2);
             segment.path.style.transitionDelay = animate
                 ? `${Math.round((segment.minProgress / Math.max(1, explored)) * 1200)}ms`
                 : '0ms';
@@ -821,6 +804,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         void waypoint.offsetWidth;
         waypoint.classList.add('is-celebrating');
         later(() => waypoint.classList.remove('is-celebrating'), 1800);
+        scene?.celebrateRealm(progress);
     };
 
     const placeToken = (token, rect) => {
@@ -926,7 +910,8 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
     };
 
     const probeFrameRate = () => {
-        if (root.dataset.fx === 'lite' || reducedMotionQuery.matches) return;
+        // 'full' stored for the session means someone chose the full world: never downgrade it.
+        if (root.dataset.fx === 'lite' || reducedMotionQuery.matches || readStoredFxPreference() === 'full') return;
         let frames = 0;
         let last = performance.now();
         let slow = 0;
@@ -940,6 +925,9 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             else if (slow > 24) {
                 root.dataset.fx = 'lite';
                 storeFxPreference('lite');
+                syncTilt();
+                scene?.setTier(sceneTier());
+                positionTokens();
             }
         };
         requestAnimationFrame(tick);
@@ -960,6 +948,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         const suspended = reduced || offscreen || pageHidden;
         root.classList.toggle('is-motion-paused', suspended);
         root.classList.toggle('is-reduced-motion', reduced);
+        scene?.setPaused(suspended);
         activeAnimations.forEach((animation) => {
             if (suspended) animation.pause();
             else animation.play();
@@ -1006,6 +995,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         mapMemory.pinnedKey = null;
         popover.dataset.state = 'closed';
         popover.dataset.pinned = 'false';
+        scene?.release();
         // Its own timer: a later hover-out must not cancel the card actually going away.
         clearTimeout(collapseTimer);
         collapseTimer = later(() => {
@@ -1020,6 +1010,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
 
     const openPopover = (token, { pin = false } = {}) => {
         if (!popover || !popoverBody) return;
+        if (typeof hideTip === 'function') hideTip({ now: true });
         clearTimeout(hideTimer);
         clearTimeout(showTimer);
         clearTimeout(collapseTimer);
@@ -1109,6 +1100,119 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         closePopover();
     }, { capture: true });
 
+    // --- Places: the realms' landmarks and the Portal answer a hover or a click ---
+    const placeEls = [...root.querySelectorAll('[data-place]')];
+    const tip = root.querySelector('[data-map-tip]');
+    const tipBody = root.querySelector('[data-map-tip-body]');
+    const sparks = root.querySelector('[data-map-sparks]');
+    let tipFor = null;
+    let tipShowTimer = 0;
+    let tipHideTimer = 0;
+
+    const partiesNow = () => tokens.map((token) => ({
+        progress: tokenState(token).progress,
+        name: token.dataset.name,
+        logo: token.dataset.logo,
+        isMine: token.classList.contains('is-mine')
+    }));
+
+    const positionTip = () => {
+        if (!tipFor || !tip || tip.hidden) return;
+        const rootRect = root.getBoundingClientRect();
+        const target = tipFor.getBoundingClientRect();
+        const width = tip.offsetWidth;
+        const height = tip.offsetHeight;
+        const centerX = target.left + target.width / 2 - rootRect.left;
+        // Over the place's upper part (big places) or just above it (small ones).
+        const anchorTop = target.top - rootRect.top + Math.min(target.height * 0.22, 40);
+        let top = anchorTop - height - 10;
+        let placement = 'top';
+        if (top < 6) {
+            top = target.bottom - rootRect.top - Math.min(target.height * 0.22, 40) + 10;
+            placement = 'bottom';
+        }
+        const left = Math.min(Math.max(6, centerX - width / 2), Math.max(6, rootRect.width - width - 6));
+        tip.style.transform = `translate3d(${Math.round(left)}px, ${Math.round(top)}px, 0)`;
+        tip.style.setProperty('--arrow-x', `${Math.round(Math.min(width - 20, Math.max(20, centerX - left)))}px`);
+        tip.dataset.placement = placement;
+    };
+
+    const showTip = (el) => {
+        if (!tip || !tipBody) return;
+        clearTimeout(tipHideTimer);
+        const id = el.dataset.place;
+        const info = describePlace(id, partiesNow());
+        tipBody.innerHTML = placeTipHtml(info, { badge: ZONE_BADGE_BY_ID[id === 'portal' ? 'crystal' : id] });
+        tip.dataset.place = id;
+        tip.style.setProperty('--place-glow', PLACE_GLOW[id] || PLACE_GLOW.gold);
+        placeEls.forEach((other) => other.classList.toggle('is-hovered', other === el));
+        el.setAttribute('aria-describedby', 'tq-place-tip');
+        tipFor = el;
+        tip.hidden = false;
+        positionTip();
+        requestAnimationFrame(() => { if (tipFor === el) tip.dataset.state = 'open'; });
+    };
+
+    const hideTip = ({ now = false } = {}) => {
+        clearTimeout(tipShowTimer);
+        clearTimeout(tipHideTimer);
+        const finish = () => {
+            if (!tip) return;
+            tipFor?.classList.remove('is-hovered');
+            tipFor?.removeAttribute('aria-describedby');
+            tipFor = null;
+            tip.dataset.state = 'closed';
+            later(() => { if (!tipFor) tip.hidden = true; }, 160);
+        };
+        if (now) finish();
+        else tipHideTimer = later(finish, 140);
+    };
+
+    /** A burst of sparkles where the class touched the map. */
+    const sparkAt = (clientX, clientY, glow, { big = false } = {}) => {
+        if (!sparks || reducedMotionQuery.matches) return;
+        const rect = root.getBoundingClientRect();
+        const spark = document.createElement('span');
+        spark.className = `tq-spark${big ? ' is-big' : ''}`;
+        spark.style.left = `${(clientX - rect.left).toFixed(1)}px`;
+        spark.style.top = `${(clientY - rect.top).toFixed(1)}px`;
+        spark.style.setProperty('--spark', glow);
+        spark.innerHTML = '<i></i><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b>';
+        sparks.appendChild(spark);
+        later(() => spark.remove(), 1000);
+    };
+
+    placeEls.forEach((el) => {
+        on(el, 'pointerenter', (event) => {
+            if (event.pointerType !== 'mouse') return;
+            clearTimeout(tipHideTimer);
+            clearTimeout(tipShowTimer);
+            tipShowTimer = later(() => showTip(el), tipFor ? 0 : 90);
+        });
+        on(el, 'pointerleave', (event) => {
+            if (event.pointerType !== 'mouse') return;
+            clearTimeout(tipShowTimer);
+            hideTip();
+        });
+        on(el, 'focus', () => { if (el.matches(':focus-visible')) showTip(el); });
+        on(el, 'blur', () => hideTip());
+        on(el, 'pointerdown', (event) => {
+            el.classList.remove('is-pressed');
+            void el.offsetWidth;
+            el.classList.add('is-pressed');
+            later(() => el.classList.remove('is-pressed'), 420);
+            sparkAt(event.clientX, event.clientY, PLACE_GLOW[el.dataset.place] || PLACE_GLOW.gold, { big: true });
+        });
+        on(el, 'click', () => hideTip({ now: true }));
+    });
+
+    // Anywhere else on the land, a touch leaves a little magic dust.
+    on(frame, 'pointerdown', (event) => {
+        if (root.dataset.fx === 'lite') return;
+        if (event.target.closest('[data-place], [data-map-token], .tq-map-controls, .tq-route-finish, button, a')) return;
+        sparkAt(event.clientX, event.clientY, '255, 236, 170');
+    });
+
     if (replayButton) {
         on(replayButton, 'click', () => {
             closePopover();
@@ -1126,25 +1230,26 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         pageHidden = document.hidden;
         updateMotionState();
     });
-    on(reducedMotionQuery, 'change', () => updateMotionState());
+    on(reducedMotionQuery, 'change', () => {
+        syncTilt();
+        scene?.setTier(sceneTier());
+        positionTokens();
+        updateMotionState();
+    });
 
     // Art first, then the parties set off — never over a blank map.
-    const background = root.querySelector('.tq-living-map__background');
     const markArtReady = () => root.classList.add('is-art-ready');
-    if (background?.complete && background.naturalWidth) markArtReady();
-    else {
-        root.classList.remove('is-art-ready');
-        background?.addEventListener('load', markArtReady, { once: true, signal: listeners.signal });
-        background?.addEventListener('error', markArtReady, { once: true, signal: listeners.signal });
-    }
-    const artReady = new Promise((resolve) => {
-        if (root.classList.contains('is-art-ready')) { resolve(); return; }
-        const decode = background?.decode ? background.decode().catch(() => {}) : Promise.resolve();
-        Promise.race([decode, new Promise((done) => later(done, 1400))]).then(() => {
-            markArtReady();
-            resolve();
-        });
-    });
+    const worldAlreadyReady = Boolean(root.querySelector('.tq-world.is-ready'));
+    if (worldAlreadyReady) markArtReady();
+    else root.classList.remove('is-art-ready');
+    const artReady = worldAlreadyReady
+        ? Promise.resolve()
+        : Promise.race([
+            scenePromise.then((mounted) => mounted?.ready),
+            // The first visit on a device paints the world (a second or two on a slow
+            // machine); after that it comes from the device cache at once.
+            new Promise((done) => later(done, 6000))
+        ]).then(() => { markArtReady(); });
 
     const intersectionObserver = new IntersectionObserver((entries) => {
         const entry = entries[0];
@@ -1177,6 +1282,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
     updateWaypointStates();
     positionTokens();
     updateExploration(continuing ? leaderProgress() : 0);
+    syncLeader();
     if (continuing) root.dataset.mapReady = 'true';
     else delete root.dataset.mapReady;
 
@@ -1200,6 +1306,11 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             later(() => {
                 openPopover(token, { pin: true });
                 token.focus({ preventScroll: true });
+                const { progress, lane } = tokenState(token);
+                const { point } = getLanePoint(routeSegments, progress, lane);
+                scene?.glideTo(point.x, point.y).then(() => {
+                    if (!destroyed && openToken === token) positionPopover();
+                });
             }, 520);
             return true;
         },
@@ -1213,6 +1324,8 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             listeners.abort();
             intersectionObserver.disconnect();
             resizeObserver.disconnect();
+            scene?.release();
+            scene?.setPaused(true);
             if (popover) {
                 popover.hidden = true;
                 popover.dataset.state = 'closed';

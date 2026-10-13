@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quest World preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Fredoka+One&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/node_modules/@fortawesome/fontawesome-free/css/all.min.css" />
+  <style>
+    html, body { margin: 0; min-height: 100vh; background: #f6efe0; font-family: 'Fredoka', system-ui, sans-serif; }
+    .pv-wrap { max-width: 84rem; margin: 0 auto; padding: 3rem 3.2rem 7rem; }
+    .pv-toolbar { position: fixed; left: 10px; bottom: 10px; z-index: 9999; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; max-width: 760px; padding: 8px 10px; border-radius: 14px; background: rgba(15, 23, 42, 0.88); color: #fff; font: 600 12px system-ui; }
+    .pv-toolbar button, .pv-toolbar select { font: inherit; color: #fff; border: 0; border-radius: 999px; padding: 4px 10px; background: rgba(255,255,255,.14); cursor: pointer; }
+    .pv-toolbar button[aria-pressed='true'] { background: #f59e0b; color: #1f1300; }
+    .pv-toolbar input[type=range] { width: 160px; }
+    .pv-fps { min-width: 64px; padding: 4px 8px; border-radius: 999px; background: #0f766e; text-align: center; }
+    .pv-note { margin: 0 0 1rem; color: #7a5a35; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div class="pv-wrap">
+    <p class="pv-note">Quest World preview: fake league data. The sky runs through the app's real sky pipeline: pick a time and a weather. Hover the map for parallax; tap a party for its card.</p>
+    <div id="pv-slot"></div>
+  </div>
+  <div class="pv-toolbar" id="pv-toolbar">
+    <span>Tier</span>
+    <button type="button" data-tier="full">Full</button>
+    <button type="button" data-tier="lite">Lite</button>
+    <span>Time</span>
+    <select id="pv-time">
+      <option value="">Real clock</option>
+      <option value="dawn">Dawn</option>
+      <option value="morning">Morning</option>
+      <option value="noon">Noon</option>
+      <option value="golden">Golden hour</option>
+      <option value="twilight">Twilight</option>
+      <option value="night">Night</option>
+    </select>
+    <span>Weather</span>
+    <select id="pv-weather">
+      <option value="clear">Clear</option>
+      <option value="partly" selected>Partly cloudy</option>
+      <option value="overcast">Overcast</option>
+      <option value="fog">Fog</option>
+      <option value="drizzle">Drizzle</option>
+      <option value="rain">Rain</option>
+      <option value="heavy">Heavy rain</option>
+      <option value="showers">Showers (rainbow)</option>
+      <option value="snow">Snow</option>
+      <option value="storm">Thunderstorm</option>
+      <option value="windy">Windy</option>
+    </select>
+    <span>Leader</span>
+    <input type="range" id="pv-leader" min="0" max="100" step="1" value="68" />
+    <output id="pv-leader-out">68%</output>
+    <button type="button" id="pv-find">Find 2nd</button>
+    <span class="pv-fps" id="pv-fps">– fps</span>
+  </div>
+  <script type="module" src="/quest-world-preview.js"></script>
+</body>
+</html>

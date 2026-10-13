@@ -63,33 +63,10 @@
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent 18%, transparent 78%, rgba(60, 35, 13, 0.08));
 }
 
-.tq-living-map__background,
-.tq-living-map__crystal-aura,
-.tq-living-map__mist {
-    position: absolute;
-    display: block;
-    pointer-events: none;
-    user-select: none;
-}
-
-.tq-living-map__background {
-    inset: 0;
-    z-index: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    opacity: 1;
-    transform: none;
-    transition: opacity 520ms ease, transform 900ms cubic-bezier(0.22, 0.76, 0.25, 1);
-}
-
-/* While the art decodes the frame shows a softly lit parchment, then the world fades in. */
-.tq-living-map:not(.is-art-ready) .tq-living-map__background {
-    opacity: 0;
-    transform: scale(1.03);
-}
-
-.tq-living-map:not(.is-art-ready) .tq-living-map__frame > :not(.tq-living-map__background):not(.tq-map-title) {
+/* While the world loads the frame shows softly lit parchment; the parties and
+   controls wait until it is there (the world fades itself in, quest_world.css). */
+.tq-living-map:not(.is-art-ready) .tq-living-map__frame > :not(.tq-stage):not(.tq-map-title),
+.tq-living-map:not(.is-art-ready) .tq-stage > :not(.tq-world) {
     visibility: hidden;
 }
 
@@ -218,47 +195,13 @@
     50% { filter: brightness(1.18); }
 }
 
-/* Lite effects: modest laptops keep the map, road and parties but skip the
-   big drifting art layers. Chosen from device hints or a slow first second. */
-.tq-living-map[data-fx='lite'] .tq-fx-heavy { display: none; }
-.tq-living-map[data-fx='lite'] .tq-living-map__crystal-aura { animation: none; opacity: 0.26; }
+/* Lite effects: modest laptops keep the world, road and parties but skip the
+   small creatures, parallax and tilt (quest_world.css). Chosen from device
+   hints or a slow first second. */
 .tq-living-map[data-fx='lite'] .tq-token__frame { filter: none; }
-.tq-living-map[data-fx='lite'] .tq-waypoint__scroll { filter: drop-shadow(0 0.35rem 0.3rem rgba(45, 29, 17, 0.42)); }
 
-.tq-living-map__crystal-aura {
-    z-index: 1;
-    top: -5%;
-    right: 1%;
-    width: 27%;
-    height: auto;
-    opacity: 0.28;
-    transform-origin: 60% 45%;
-    animation: tq-crystal-breathe 5.8s ease-in-out infinite;
-}
-
-.tq-living-map__mist {
-    z-index: 2;
-    width: 52%;
-    height: auto;
-    opacity: 0.12;
-    will-change: transform, opacity;
-}
-
-.tq-living-map__mist--near {
-    right: -15%;
-    top: 29%;
-    animation: tq-mist-near 24s ease-in-out infinite alternate;
-}
-
-.tq-living-map__mist--far {
-    left: -18%;
-    top: 4%;
-    opacity: 0.09;
-    transform: scale(0.78);
-    animation: tq-mist-far 31s ease-in-out infinite alternate;
-}
-
-/* The four colored paths are contiguous and are also the geometry used by tokens. */
+/* The road the parties walk is drawn into the world (features/questWorld/worldArt.mjs).
+   These four paths are its exact geometry, used to place tokens, crests and the fog. */
 .tq-route {
     position: absolute;
     inset: 0;
@@ -269,41 +212,17 @@
     pointer-events: none;
 }
 
-.tq-route__shadow,
-.tq-route__edge,
-.tq-route__segment,
-.tq-route__gleam {
-    fill: none;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    vector-effect: non-scaling-stroke;
-}
-
-.tq-route__shadow {
-    stroke: rgba(55, 35, 17, 0.32);
-    stroke-width: 18;
-    transform: translateY(3px);
-}
-
-.tq-route__edge {
-    stroke: rgba(102, 62, 25, 0.92);
-    stroke-width: 14;
-}
-
 .tq-route__segment {
-    stroke-width: 10;
-    opacity: 0.9;
+    fill: none;
+    stroke: none;
 }
 
-.tq-route__segment--bronze { stroke: url('#tqBronzeRoad'); }
-.tq-route__segment--silver { stroke: url('#tqSilverRoad'); }
-.tq-route__segment--gold { stroke: url('#tqGoldRoad'); }
-.tq-route__segment--crystal { stroke: url('#tqCrystalRoad'); }
-
-.tq-route__gleam {
-    stroke: rgba(255, 255, 242, 0.8);
-    stroke-width: 2.3;
-    stroke-dasharray: 3 17;
+/* If the world ever fails to load, the road still shows on the parchment. */
+.tq-living-map.is-world-missing .tq-route__segment {
+    stroke: #b8864a;
+    stroke-width: 12px;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
 }
 
 /* Unexplored road: a veil of parchment from the furthest party onward.
@@ -350,148 +269,28 @@
     object-fit: contain;
 }
 
-/* Generated region crests sit on the route checkpoints. Their scroll artwork is
-   deliberately separate, fixed-size and noninteractive. */
-.tq-waypoint {
-    --waypoint-glow: 255, 226, 118;
-    --waypoint-halo-opacity: 0.16;
-    --waypoint-halo-scale: 0.84;
-    --waypoint-hover-opacity: 0.51;
-    --waypoint-hover-scale: 0.99;
+/* The realms' landmarks are invisible buttons over the painting (worldMap.js
+   renderPlace); their glow and place card are styled in quest_world.css. */
+.tq-place {
     position: absolute;
     z-index: 12;
     display: block;
-    width: clamp(6.2rem, 10vw, 8.6rem);
-    aspect-ratio: 1;
-    pointer-events: none;
-    transform: translate(-50%, -50%);
-    transition: transform 360ms cubic-bezier(0.22, 0.76, 0.25, 1), opacity 240ms ease;
-}
-
-.tq-waypoint--bronze { --waypoint-glow: 146, 232, 104; }
-.tq-waypoint--silver { --waypoint-glow: 149, 224, 255; }
-.tq-waypoint--gold { --waypoint-glow: 255, 211, 86; }
-.tq-waypoint--crystal { --waypoint-glow: 218, 139, 255; }
-
-.tq-waypoint.is-occupied.tq-waypoint--bronze { transform: translate(-50%, -50%) translate(6.6rem, -0.15rem); }
-.tq-waypoint.is-occupied.tq-waypoint--silver { transform: translate(-50%, -50%) translate(-5.2rem, 1.35rem); }
-.tq-waypoint.is-occupied.tq-waypoint--gold { transform: translate(-50%, -50%) translate(5.4rem, 1.45rem); }
-.tq-waypoint.is-occupied.tq-waypoint--crystal { transform: translate(-50%, -50%) translate(-5.2rem, 1.35rem); }
-
-.tq-waypoint__button {
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    display: block;
-    width: 100%;
-    height: 100%;
     padding: 0;
-    overflow: visible;
     border: 0;
-    outline: 0;
+    border-radius: 50%;
     background: transparent;
     cursor: pointer;
-    pointer-events: auto;
+    -webkit-tap-highlight-color: transparent;
 }
 
-.tq-waypoint__halo {
-    position: absolute;
-    z-index: 0;
-    inset: -34%;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(var(--waypoint-glow), 0.88) 0%, rgba(var(--waypoint-glow), 0.34) 38%, rgba(var(--waypoint-glow), 0) 72%);
-    opacity: var(--waypoint-halo-opacity);
-    transform: scale(var(--waypoint-halo-scale));
-    transition: opacity 220ms ease, transform 260ms ease;
-}
-
-.tq-waypoint__badge {
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    pointer-events: none;
-    user-select: none;
-    transform-origin: 50% 58%;
-    transition: transform 180ms ease;
-    animation: tq-waypoint-breathe 4.2s ease-in-out infinite;
-}
-
-.tq-waypoint__scroll {
-    position: absolute;
-    z-index: 1;
-    left: 50%;
-    bottom: calc(100% + 0.08rem);
-    display: block;
-    width: clamp(12rem, 21vw, 17rem);
-    max-width: none;
-    height: auto;
-    pointer-events: none;
-    user-select: none;
-    transform: translateX(-50%);
-    transition: none;
-    filter:
-        drop-shadow(0 0.42rem 0.34rem rgba(45, 29, 17, 0.48))
-        drop-shadow(0 0 0.82rem rgba(var(--waypoint-glow), 0.42));
-}
-
-.tq-waypoint--gold .tq-waypoint__scroll { width: clamp(12.5rem, 22vw, 18rem); }
-.tq-waypoint--crystal .tq-waypoint__scroll { width: clamp(12.3rem, 21.5vw, 17.5rem); }
-
-.tq-waypoint--bronze .tq-waypoint__scroll {
-    left: calc(50% + clamp(7.75rem, 10.5vw, 9.5rem) - 8px);
-    bottom: calc(100% + 2rem + 18px);
-}
-
-.tq-waypoint--silver .tq-waypoint__scroll {
-    top: calc(100% - 2rem);
-    bottom: auto;
-    left: calc(50% + clamp(7.5rem, 12vw, 10rem));
-}
-
-.tq-waypoint--gold .tq-waypoint__scroll {
-    top: calc(100% + 0.18rem);
-    bottom: auto;
-}
-
-.tq-waypoint--crystal .tq-waypoint__scroll {
-    left: calc(50% - clamp(4.5rem, 7.5vw, 6.5rem));
-}
-
-.tq-waypoint--silver .tq-waypoint__badge { animation-delay: -1.05s; }
-.tq-waypoint--gold .tq-waypoint__badge { animation-delay: -2.1s; }
-.tq-waypoint--crystal .tq-waypoint__badge { animation-delay: -3.15s; }
-
-.tq-waypoint:hover,
-.tq-waypoint:focus-within { z-index: 22; }
-
-.tq-waypoint:hover .tq-waypoint__halo,
-.tq-waypoint:focus-within .tq-waypoint__halo {
-    opacity: var(--waypoint-hover-opacity);
-    transform: scale(var(--waypoint-hover-scale));
-}
-
-.tq-waypoint:hover .tq-waypoint__badge,
-.tq-waypoint:focus-within .tq-waypoint__badge {
-    animation: none;
-    transform: translateY(-0.16rem) scale(1.07) rotate(-1deg);
-}
-
-.tq-waypoint__button:focus-visible .tq-waypoint__badge {
-    border-radius: 50%;
-    outline: 3px solid rgba(255, 255, 255, 0.97);
-    outline-offset: 3px;
-}
-
-.tq-waypoint.is-occupied .tq-waypoint__badge { opacity: 0.72; }
+.tq-place:focus-visible { outline: 3px solid rgba(255, 255, 255, 0.95); outline-offset: 2px; }
 
 .tq-route-finish {
     position: absolute;
     z-index: 19;
     display: block;
-    width: clamp(3.2rem, 5.5vw, 4.75rem);
+    /* Exactly the painted ring's opening (worldGeometry.mjs#PORTAL: 2 × 62 of 1600). */
+    width: 7.75%;
     aspect-ratio: 1;
     transform: translate(-50%, -50%);
     animation: tq-finish-pulse 2.8s ease-in-out infinite;
@@ -523,39 +322,11 @@
 }
 
 .tq-route-finish__button:hover,
-.tq-route-finish__button:focus-visible { transform: scale(1.14); }
+.tq-route-finish__button:focus-visible { transform: scale(1.04); }
 
 .tq-route-finish__button:focus-visible {
     outline: 3px solid rgba(255, 255, 255, 0.97);
     outline-offset: 3px;
-}
-
-.tq-route-finish__label {
-    position: absolute;
-    left: 50%;
-    top: calc(100% + 0.2rem);
-    padding: 0.18rem 0.6rem;
-    border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.55);
-    background: linear-gradient(135deg, rgba(88, 28, 135, 0.92), rgba(14, 116, 144, 0.92));
-    color: #fff;
-    font: 700 0.68rem/1.2 'Fredoka', sans-serif;
-    letter-spacing: 0.06em;
-    white-space: nowrap;
-    box-shadow: 0 4px 12px rgba(46, 16, 101, 0.4);
-    opacity: 0;
-    transform: translate(-50%, -0.25rem);
-    transition: opacity 180ms ease, transform 180ms ease;
-    pointer-events: none;
-}
-
-.tq-route-finish:hover,
-.tq-route-finish:focus-within { z-index: 23; }
-
-.tq-route-finish__button:hover .tq-route-finish__label,
-.tq-route-finish__button:focus-visible .tq-route-finish__label {
-    opacity: 1;
-    transform: translate(-50%, 0);
 }
 
 .tq-portal-vortex {
@@ -574,130 +345,6 @@
     opacity: 0.72;
     animation: tq-portal-spin-reverse 8s linear infinite;
 }
-
-/* Ambient pieces use only transform and opacity. */
-.tq-map-ambient {
-    position: absolute;
-    inset: 0;
-    z-index: 8;
-    overflow: hidden;
-    pointer-events: none;
-}
-
-.tq-ambient {
-    position: absolute;
-    display: block;
-    will-change: transform, opacity;
-}
-
-.tq-ambient--butterfly-one {
-    left: 13%;
-    top: 72%;
-    font-size: clamp(0.72rem, 1.5vw, 1.15rem);
-    animation: tq-butterfly-one 8.5s ease-in-out infinite;
-}
-
-.tq-ambient--butterfly-two {
-    left: 25%;
-    top: 67%;
-    font-size: clamp(0.58rem, 1.2vw, 0.95rem);
-    filter: hue-rotate(145deg);
-    animation: tq-butterfly-two 10.5s ease-in-out infinite -4s;
-}
-
-.tq-ambient--bird-one,
-.tq-ambient--bird-two {
-    color: rgba(255, 255, 255, 0.94);
-    font-size: clamp(0.55rem, 1.15vw, 0.9rem);
-    text-shadow: 0 1px 3px rgba(64, 91, 125, 0.45);
-}
-
-.tq-ambient--bird-one { left: 48%; top: 26%; animation: tq-bird-glide 12s ease-in-out infinite; }
-.tq-ambient--bird-two { left: 56%; top: 34%; opacity: 0.72; animation: tq-bird-glide 15s ease-in-out infinite -6s reverse; }
-
-.tq-ambient--silver-flag,
-.tq-ambient--gold-flag {
-    transform-origin: 10% 90%;
-    animation: tq-ambient-flag 2.4s ease-in-out infinite;
-}
-
-.tq-ambient--silver-flag {
-    left: 38.3%;
-    top: 14.5%;
-    color: #4b86cb;
-    font-size: clamp(0.65rem, 1.4vw, 1.05rem);
-}
-
-.tq-ambient--gold-flag {
-    left: 68.3%;
-    top: 39%;
-    color: #e44e2d;
-    font-size: clamp(0.7rem, 1.55vw, 1.2rem);
-    animation-delay: -1.1s;
-}
-
-.tq-ambient--crystal-spark-one,
-.tq-ambient--crystal-spark-two,
-.tq-ambient--crystal-spark-three {
-    color: #e8c6ff;
-    text-shadow: 0 0 0.5rem rgba(145, 240, 255, 0.9);
-    animation: tq-crystal-spark 2.7s ease-in-out infinite;
-}
-
-.tq-ambient--crystal-spark-one { left: 84%; top: 15%; font-size: 1.1rem; }
-.tq-ambient--crystal-spark-two { left: 88%; top: 25%; font-size: 0.8rem; animation-delay: -0.9s; }
-.tq-ambient--crystal-spark-three { left: 80%; top: 29%; font-size: 0.68rem; animation-delay: -1.8s; }
-
-.tq-water-ripple {
-    width: clamp(2.7rem, 5vw, 4.6rem);
-    height: auto;
-    object-fit: contain;
-    animation: tq-water-ripple 4.6s ease-out infinite;
-}
-
-.tq-water-ripple--one { left: 58%; top: 82%; }
-.tq-water-ripple--two { left: 68%; top: 89%; animation-delay: -1.55s; }
-.tq-water-ripple--three { left: 78%; top: 80%; animation-delay: -3.1s; }
-
-.tq-mountain-wind {
-    width: clamp(9rem, 18vw, 16rem);
-    height: auto;
-    object-fit: contain;
-    animation: tq-wind-wisp 8s ease-in-out infinite;
-}
-
-.tq-mountain-wind--one { left: 19%; top: 3%; }
-.tq-mountain-wind--two { left: 35%; top: 18%; animation-delay: -4s; }
-
-.tq-snow-flurry {
-    width: clamp(9rem, 19vw, 17rem);
-    height: auto;
-    object-fit: contain;
-    animation: tq-snow-drift 6.4s linear infinite;
-}
-
-.tq-snow-flurry--one { left: 8%; top: 2%; }
-.tq-snow-flurry--two { left: 36%; top: 5%; animation-delay: -3.2s; }
-
-.tq-city-sparks {
-    width: clamp(8rem, 16vw, 14rem);
-    height: auto;
-    object-fit: contain;
-    animation: tq-city-glow 2.8s ease-in-out infinite;
-}
-
-.tq-city-sparks--one { left: 57%; top: 34%; }
-.tq-city-sparks--two { left: 66%; top: 45%; animation-delay: -1.4s; }
-
-.tq-crystal-stardust {
-    width: clamp(10rem, 20vw, 17rem);
-    height: auto;
-    object-fit: contain;
-    animation: tq-crystal-mote 5.2s ease-in-out infinite;
-}
-
-.tq-crystal-stardust--one { left: 76%; top: 3%; }
-.tq-crystal-stardust--two { left: 84%; top: 27%; animation-delay: -2.6s; }
 
 /* ── Parties on the road ────────────────────────────────────────────────
    Each class is a crested token that walks the road. One shared party card
@@ -1485,51 +1132,17 @@
 
 .tq-map-replay.is-spinning i { animation: tq-replay-steps 700ms ease-out; }
 
-/* ── Waypoint states ─────────────────────────────────────────────────── */
-.tq-waypoint:not(.is-reached) .tq-waypoint__badge { filter: grayscale(0.55) brightness(0.96); opacity: 0.86; }
-
-.tq-waypoint__burst {
-    position: absolute;
-    z-index: 1;
-    inset: -20%;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(var(--waypoint-glow), 0.95) 0%, rgba(var(--waypoint-glow), 0.35) 40%, rgba(var(--waypoint-glow), 0) 68%);
-    opacity: 0;
-    pointer-events: none;
-}
-
-.tq-waypoint.is-celebrating .tq-waypoint__burst { animation: tq-waypoint-burst 1.6s ease-out; }
-.tq-waypoint.is-celebrating .tq-waypoint__badge { animation: tq-waypoint-cheer 900ms cubic-bezier(0.3, 1.6, 0.5, 1); }
-
-.tq-living-map.is-motion-paused .tq-living-map__crystal-aura,
-.tq-living-map.is-motion-paused .tq-living-map__mist,
 .tq-living-map.is-motion-paused .tq-token__aura,
 .tq-living-map.is-motion-paused .tq-token__disc::after,
 .tq-living-map.is-motion-paused .tq-chronicle-btn__book::after,
-.tq-living-map.is-motion-paused .tq-waypoint__badge,
 .tq-living-map.is-motion-paused .tq-route-finish,
 .tq-living-map.is-motion-paused .tq-route-finish__glow,
-.tq-living-map.is-motion-paused .tq-portal-vortex,
-.tq-living-map.is-motion-paused .tq-ambient { animation-play-state: paused; }
+.tq-living-map.is-motion-paused .tq-portal-vortex { animation-play-state: paused; }
 
-@keyframes tq-crystal-breathe { 0%, 100% { opacity: 0.2; transform: scale(0.97); } 50% { opacity: 0.36; transform: scale(1.035); } }
-@keyframes tq-mist-near { 0% { opacity: 0.08; transform: translate3d(-2.5%, 0, 0); } 100% { opacity: 0.16; transform: translate3d(4%, 1.4%, 0); } }
-@keyframes tq-mist-far { 0% { opacity: 0.05; transform: translate3d(-3%, 0, 0) scale(0.78); } 100% { opacity: 0.12; transform: translate3d(6%, -1.5%, 0) scale(0.78); } }
-@keyframes tq-waypoint-breathe { 0%, 100% { transform: translateY(0) scale(0.98); } 50% { transform: translateY(-0.18rem) scale(1.025); } }
-@keyframes tq-finish-pulse { 0%, 100% { transform: translate(-50%, -50%) scale(0.96); opacity: 0.88; } 50% { transform: translate(-50%, -50%) scale(1.08); opacity: 1; } }
+@keyframes tq-finish-pulse { 0%, 100% { transform: translate(-50%, -50%) scale(0.98); opacity: 0.9; } 50% { transform: translate(-50%, -50%) scale(1.02); opacity: 1; } }
 @keyframes tq-portal-glow { 0%, 100% { opacity: 0.5; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.12); } }
 @keyframes tq-portal-spin { to { transform: rotate(360deg); } }
 @keyframes tq-portal-spin-reverse { from { transform: rotate(360deg) scale(0.72); } to { transform: rotate(0deg) scale(0.72); } }
-@keyframes tq-butterfly-one { 0%, 100% { transform: translate3d(0, 0, 0) rotate(-8deg) scale(0.88); opacity: 0.55; } 35% { transform: translate3d(2.3rem, -1.3rem, 0) rotate(8deg) scale(1); opacity: 1; } 70% { transform: translate3d(4.1rem, 0.2rem, 0) rotate(-4deg) scale(0.92); opacity: 0.75; } }
-@keyframes tq-butterfly-two { 0%, 100% { transform: translate3d(0, 0, 0) rotate(8deg) scale(0.8); opacity: 0.45; } 45% { transform: translate3d(-2rem, -1.5rem, 0) rotate(-10deg) scale(1); opacity: 0.92; } 75% { transform: translate3d(-3rem, 0.4rem, 0) rotate(5deg) scale(0.88); opacity: 0.68; } }
-@keyframes tq-bird-glide { 0%, 100% { transform: translate3d(-1rem, 0.3rem, 0) scaleX(1); opacity: 0; } 15% { opacity: 0.8; } 50% { transform: translate3d(4rem, -1rem, 0) scaleX(1); opacity: 0.9; } 85% { opacity: 0.68; } }
-@keyframes tq-ambient-flag { 0%, 100% { transform: rotate(-5deg) scaleX(0.92); } 50% { transform: rotate(6deg) scaleX(1.05); } }
-@keyframes tq-crystal-spark { 0%, 100% { transform: scale(0.58) rotate(0); opacity: 0.18; } 50% { transform: scale(1.12) rotate(14deg); opacity: 1; } }
-@keyframes tq-water-ripple { 0% { opacity: 0; transform: scale(0.42); } 24% { opacity: 0.78; } 100% { opacity: 0; transform: scale(1.28); } }
-@keyframes tq-wind-wisp { 0%, 100% { opacity: 0; transform: translate3d(-1.2rem, 0.15rem, 0) scaleX(0.72); } 22% { opacity: 0.72; } 68% { opacity: 0.5; } 88% { opacity: 0; transform: translate3d(4.2rem, -0.45rem, 0) scaleX(1.08); } }
-@keyframes tq-snow-drift { 0% { opacity: 0; transform: translate3d(-0.3rem, -0.7rem, 0) scale(0.72); } 18% { opacity: 0.9; } 82% { opacity: 0.72; } 100% { opacity: 0; transform: translate3d(1.2rem, 3.1rem, 0) scale(1); } }
-@keyframes tq-city-glow { 0%, 100% { opacity: 0.36; transform: scale(0.72); } 50% { opacity: 1; transform: scale(1.35); } }
-@keyframes tq-crystal-mote { 0%, 100% { opacity: 0; transform: translate3d(0, 0.7rem, 0) rotate(0) scale(0.55); } 34% { opacity: 1; } 72% { opacity: 0.72; } 100% { transform: translate3d(0.8rem, -2.2rem, 0) rotate(28deg) scale(1.1); } }
 @keyframes tq-aura-pulse { 0%, 100% { opacity: 0.75; transform: scale(0.92); } 50% { opacity: 1; transform: scale(1.08); } }
 @keyframes tq-mine-orbit { to { transform: rotate(360deg); } }
 @keyframes tq-token-hop { from { transform: translateY(0) rotate(-5deg); } to { transform: translateY(-0.42rem) rotate(5deg); } }
@@ -1545,17 +1158,11 @@
 }
 @keyframes tq-book-shine { 0%, 70% { transform: translateX(0) skewX(-20deg); } 100% { transform: translateX(560%) skewX(-20deg); } }
 @keyframes tq-replay-steps { 0% { transform: translateX(0); } 30% { transform: translateX(-0.2rem) rotate(-12deg); } 60% { transform: translateX(0.25rem) rotate(10deg); } 100% { transform: none; } }
-@keyframes tq-waypoint-burst { 0% { opacity: 0; transform: scale(0.4); } 25% { opacity: 1; } 100% { opacity: 0; transform: scale(1.6); } }
-@keyframes tq-waypoint-cheer { 0% { transform: scale(1); } 40% { transform: translateY(-0.4rem) scale(1.16) rotate(-4deg); } 100% { transform: none; } }
 @keyframes tq-title-wait { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
 
 @media (max-width: 1180px) {
     .tq-living-map__frame { border-radius: 1.15rem; }
     .tq-map-title { left: 1.6%; top: 1.6%; }
-    .tq-waypoint { width: clamp(5.4rem, 9vw, 6.9rem); }
-    .tq-waypoint__scroll { width: clamp(11rem, 24vw, 15rem); }
-    .tq-waypoint--gold .tq-waypoint__scroll { width: clamp(11.5rem, 25vw, 15.6rem); }
-    .tq-waypoint--crystal .tq-waypoint__scroll { width: clamp(11.3rem, 24.5vw, 15.3rem); }
     .tq-living-map .tq-token { --tq-token-size: clamp(2.8rem, 4.8vw, 3.45rem); }
     .tq-map-controls { right: 0.8rem; bottom: 0.72rem; gap: 0.4rem; }
     .tq-chronicle-btn__copy small { display: none; }
@@ -1565,10 +1172,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .tq-living-map__crystal-aura,
-    .tq-living-map__mist,
-    .tq-waypoint__badge,
-    .tq-waypoint__burst,
     .tq-token__aura,
     .tq-token__disc::after,
     .tq-token__body,
@@ -1579,18 +1182,13 @@
     .tq-chronicle-btn__book::after,
     .tq-route-finish,
     .tq-route-finish__glow,
-    .tq-portal-vortex,
-    .tq-ambient { animation: none !important; }
+    .tq-portal-vortex { animation: none !important; }
 
-    .tq-waypoint,
-    .tq-waypoint__badge,
     .tq-token__body,
     .tq-popover__inner,
     .tq-route__fog,
-    .tq-living-map__background,
     .tq-chronicle-btn,
     .tq-route-finish__button,
-    .tq-route-finish__label,
     .tq-map-replay { transition-duration: 0.01ms !important; }
 
     .tq-unroll { display: none !important; }

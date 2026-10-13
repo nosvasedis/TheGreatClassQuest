@@ -1,0 +1,1098 @@
+/* Quest World: the living Team Quest realm (features/questWorld/*).
+   Loaded lazily with worldScene.js, so none of this is in the first paint.
+
+   The rule that keeps weak laptops smooth: the land is painted once into
+   canvases that never re-draw, and every moving piece animates transform and
+   opacity only (compositor work). Tiers on [data-tier]: full (everything),
+   lite (water, banners, isles, clouds, the day), still (reduced motion).
+
+   The sky uses the app's live palette (styles/sky_weather.css sets --wx-* on
+   <html> from the shared sky scene), so the map's sky changes in step with
+   the header, the Home card and the projector. */
+
+/* ── The stage: one plane holding the world, the road, the crests and the parties ── */
+.tq-stage {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    transform-origin: 50% 55%;
+}
+
+.tq-living-map[data-fx='full'] .tq-stage { will-change: transform; }
+.tq-living-map:not([data-tilt='0']) .tq-living-map__frame { perspective: 1600px; perspective-origin: 50% 30%; }
+
+/* Parallax: the scene writes a new target a few times a second and these
+   transitions glide between them on the compositor. */
+.tq-living-map[data-fx='full'] .tq-stage,
+.tq-living-map[data-fx='full'] .tq-world__depth { transition: transform 620ms cubic-bezier(0.2, 0.7, 0.3, 1); }
+
+.tq-living-map .tq-stage.is-gliding {
+    transition:
+        transform 720ms cubic-bezier(0.22, 0.76, 0.25, 1),
+        transform-origin 720ms cubic-bezier(0.22, 0.76, 0.25, 1);
+}
+
+.tq-world,
+.tq-world-front {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    user-select: none;
+}
+
+.tq-world { z-index: 1; overflow: hidden; }
+.tq-world-front { z-index: 22; overflow: hidden; }
+
+.tq-world__depth,
+.tq-world__sprites,
+.tq-world__mists,
+.tq-world__lanterns,
+.tq-world__marks,
+.tq-world__paint,
+.tq-world__vignette,
+.tq-cloud-shadows,
+.tq-weather {
+    position: absolute;
+    inset: 0;
+}
+
+.tq-world__depth--sky { inset: -3%; }
+.tq-living-map[data-fx='full'] .tq-world__depth { will-change: transform; }
+
+/* The painted land fades in once painted; the frame shows parchment until then. */
+.tq-world__paint { opacity: 0; transition: opacity 700ms ease; }
+.tq-world.is-ready .tq-world__paint,
+.tq-world-front.is-ready .tq-world__paint { opacity: 1; }
+
+.tq-world__canvas {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    transition: opacity 1.6s ease;
+}
+
+.tq-world__canvas.is-entering { opacity: 0; }
+
+/* A soft frame of shade, like the edge of an old atlas page. */
+.tq-world__vignette {
+    background:
+        radial-gradient(ellipse 75% 70% at 50% 48%, rgba(0, 0, 0, 0) 62%, rgba(58, 34, 12, 0.26) 100%),
+        linear-gradient(180deg, rgba(255, 246, 220, 0.08), rgba(0, 0, 0, 0) 20%),
+        var(--tq-paper, none) 0 0 / 256px 256px;
+    opacity: 0.95;
+}
+
+/* ── The sky ───────────────────────────────────────────────────────────── */
+.tq-sky {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(180deg, var(--wx-zenith, rgba(37, 99, 235, 0.16)), rgba(0, 0, 0, 0) 32%),
+        radial-gradient(ellipse 90% 30% at 50% 44%, var(--wx-horizon, rgba(224, 242, 254, 0.62)), rgba(255, 255, 255, 0) 70%),
+        linear-gradient(180deg, var(--wx-sky-3, #66a6ff) 0%, var(--wx-sky-2, #79cffd) 24%, var(--wx-sky-1, #89f7fe) 46%, var(--wx-sky-1, #89f7fe) 100%);
+}
+
+.tq-sky__stars,
+.tq-sky__shooting,
+.tq-sky__clouds,
+.tq-sky__rainbow { position: absolute; inset: 0; }
+
+.tq-sky__stars {
+    display: none;
+    -webkit-mask-image: linear-gradient(180deg, #000 18%, transparent 52%);
+    mask-image: linear-gradient(180deg, #000 18%, transparent 52%);
+}
+
+.tq-world:not([data-stars='0']) .tq-sky__stars { display: block; }
+
+.tq-sky__stars span {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle, #fff 0 1px, transparent 1.6px) 0 0 / 97px 83px,
+        radial-gradient(circle, rgba(255, 255, 255, 0.85) 0 0.8px, transparent 1.4px) 41px 29px / 71px 61px,
+        radial-gradient(circle, rgba(220, 230, 255, 0.9) 0 1.4px, transparent 2px) 13px 52px / 157px 131px;
+}
+
+.tq-sky__stars span:nth-child(2) {
+    background:
+        radial-gradient(circle, #fff 0 1.3px, transparent 2px) 20px 10px / 131px 109px,
+        radial-gradient(circle, rgba(255, 250, 220, 0.9) 0 1px, transparent 1.6px) 70px 60px / 89px 103px;
+    animation: tqw-twinkle 3.6s ease-in-out infinite alternate;
+}
+
+.tq-sky__shooting { display: none; }
+.tq-world[data-stars='2'][data-tier='full'] .tq-sky__shooting { display: block; }
+
+.tq-sky__shooting span {
+    position: absolute;
+    left: 18%;
+    top: 8%;
+    width: 9%;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0), #fff);
+    opacity: 0;
+    transform: rotate(18deg);
+    animation: tqw-shooting 13s ease-in infinite 4s;
+}
+
+/* The sun and moon walk their real arcs (left/top set by the scene). */
+.tq-sky__sun,
+.tq-sky__moon,
+.tq-sky__rays {
+    position: absolute;
+    left: 50%;
+    top: 10%;
+    display: none;
+    width: 6.4%;
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+}
+
+.tq-world[data-sun='1'] .tq-sky__sun,
+.tq-world[data-night='0'][data-tone='grey'] .tq-sky__sun { display: block; }
+.tq-world[data-night='1'][data-moon='1'] .tq-sky__moon { display: block; }
+
+.tq-sky__sun-disc,
+.tq-sky__sun-glow,
+.tq-sky__moon-disc,
+.tq-sky__moon-glow {
+    position: absolute;
+    border-radius: 50%;
+}
+
+.tq-sky__sun-disc { inset: 0; background: radial-gradient(circle at 42% 40%, #fffef4, #fff3b8 55%, #ffd76a); box-shadow: 0 0 1.2rem rgba(255, 236, 160, 0.9); }
+.tq-sky__sun-glow { inset: -170%; background: radial-gradient(closest-side, rgba(255, 246, 200, 0.85), rgba(255, 220, 140, 0.32) 38%, rgba(255, 220, 140, 0)); }
+.tq-world[data-light='golden'] .tq-sky__sun-disc { background: radial-gradient(circle at 42% 40%, #fff3d6, #ffc067 58%, #ff8a3c); box-shadow: 0 0 1.6rem rgba(255, 150, 70, 0.9); }
+.tq-world[data-light='golden'] .tq-sky__sun-glow { background: radial-gradient(closest-side, rgba(255, 196, 120, 0.9), rgba(255, 130, 70, 0.32) 40%, rgba(255, 130, 70, 0)); }
+.tq-world[data-light='dawn'] .tq-sky__sun-disc { background: radial-gradient(circle at 42% 40%, #fff6ee, #ffc7a8 58%, #ff9a86); }
+.tq-world[data-tone='grey'] .tq-sky__sun-disc { opacity: 0.35; box-shadow: none; }
+.tq-world[data-tone='grey'] .tq-sky__sun-glow { opacity: 0.5; }
+
+.tq-sky__moon { width: 4.6%; }
+.tq-sky__moon-disc { inset: 0; }
+.tq-sky__moon-disc svg { display: block; width: 100%; height: 100%; }
+.tq-sky__moon-glow { inset: -140%; background: radial-gradient(closest-side, rgba(214, 226, 255, 0.5), rgba(170, 190, 255, 0.14) 45%, rgba(170, 190, 255, 0)); }
+
+/* Sunbeams on a fair day. */
+.tq-sky__rays {
+    width: 46%;
+    background: repeating-conic-gradient(from 0deg, rgba(255, 248, 214, 0.22) 0deg 5deg, rgba(255, 248, 214, 0) 5deg 17deg);
+    -webkit-mask-image: radial-gradient(closest-side, #000 10%, transparent 72%);
+    mask-image: radial-gradient(closest-side, #000 10%, transparent 72%);
+    border-radius: 50%;
+}
+
+.tq-world[data-sun='1'][data-tone='fair']:is([data-light='day'], [data-light='golden'], [data-light='dawn']) .tq-sky__rays { display: block; }
+.tq-world[data-tier='full'] .tq-sky__rays { animation: tqw-rays 120s linear infinite; }
+.tq-world[data-light='golden'] .tq-sky__rays { background: repeating-conic-gradient(from 0deg, rgba(255, 200, 130, 0.26) 0deg 5deg, rgba(255, 200, 130, 0) 5deg 17deg); }
+
+/* A rainbow after the showers. */
+.tq-sky__rainbow {
+    display: none;
+    left: 26%;
+    right: 26%;
+    top: 6%;
+    bottom: 34%;
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+    background: radial-gradient(ellipse 50% 100% at 50% 100%,
+        rgba(0, 0, 0, 0) 74%, rgba(160, 90, 255, 0.4) 75.5%, rgba(80, 130, 255, 0.4) 77.5%, rgba(80, 220, 160, 0.4) 79.5%,
+        rgba(255, 236, 90, 0.42) 81.5%, rgba(255, 160, 60, 0.42) 83.5%, rgba(255, 70, 70, 0.4) 85.5%, rgba(0, 0, 0, 0) 87%);
+    -webkit-mask-image: linear-gradient(180deg, #000 50%, transparent);
+    mask-image: linear-gradient(180deg, #000 50%, transparent);
+    opacity: 0.85;
+}
+
+.tq-world[data-rainbow='1'] .tq-sky__rainbow { display: block; }
+
+/* Clouds: the app's own cloud shapes, coloured by its live palette. */
+.tq-cloud {
+    position: absolute;
+    left: 0;
+    width: var(--cw, 14%);
+    opacity: var(--ca, 0.9);
+    animation: tqw-drift var(--cd, 180s) linear infinite;
+    animation-delay: var(--cdl, 0s);
+}
+
+.tq-cloud svg { display: block; width: 100%; height: auto; overflow: visible; }
+.tq-cloud .wx-cs { fill: var(--wx-cloud-shade, #afc6e9); }
+.tq-cloud .wx-cb { fill: var(--wx-cloud-body, #e4eefb); }
+.tq-cloud .wx-cl { fill: var(--wx-cloud-lit, #fff); }
+.tq-cloud .wx-cg { fill: var(--wx-cloud-glint, #fff); opacity: 0.7; }
+.tq-cloud.is-far { opacity: calc(var(--ca, 0.9) * 0.7); }
+.tq-world[data-wind-dir='-1'] .tq-cloud { animation-direction: reverse; }
+
+/* Shadows of the clouds sliding over the land on a bright day. */
+.tq-cloud-shadows { display: none; overflow: hidden; }
+.tq-world[data-tier='full'][data-night='0']:is([data-tone='fair'], [data-tone='grey']) .tq-cloud-shadows { display: block; }
+
+.tq-cloud-shadows span {
+    position: absolute;
+    top: 52%;
+    left: 0;
+    width: 30%;
+    height: 22%;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(28, 40, 32, 0.16), rgba(28, 40, 32, 0));
+    animation: tqw-shadow-drift calc(140s / var(--tq-wind, 1)) linear infinite;
+}
+
+.tq-cloud-shadows span:nth-child(2) { top: 66%; width: 24%; animation-delay: -60s; }
+.tq-cloud-shadows span:nth-child(3) { top: 40%; width: 20%; animation-delay: -100s; }
+
+/* ── Sprites ───────────────────────────────────────────────────────────── */
+/* Sprites take the light of the moment like the painted land does (one
+   compositor filter on each sprite layer, set only when the light changes). */
+.tq-world[data-light='dawn'] .tq-world__sprites { filter: sepia(0.15) saturate(1.05) brightness(0.98); }
+.tq-world[data-light='golden'] .tq-world__sprites { filter: sepia(0.28) saturate(1.1) brightness(0.96); }
+.tq-world[data-light='twilight'] .tq-world__sprites { filter: brightness(0.72) saturate(0.8) hue-rotate(-8deg); }
+.tq-world[data-light='night'] .tq-world__sprites { filter: brightness(0.5) saturate(0.65); }
+.tq-world:is([data-tone='rain'], [data-tone='storm']):not([data-light='night']) .tq-world__sprites { filter: brightness(0.8) saturate(0.7); }
+
+.tq-sp {
+    position: absolute;
+    display: block;
+    pointer-events: none;
+    animation-delay: var(--d, 0s);
+}
+
+.tq-sp svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.tq-sp--birds { animation: tqw-birds 28s linear infinite; animation-delay: var(--d, 0s); }
+.tq-sp__flap { display: block; width: 100%; height: 100%; transform-origin: 50% 50%; animation: tqw-flap 0.5s ease-in-out infinite alternate; }
+.tq-sp--eagle { animation: tqw-circle 24s linear infinite; }
+.tq-world[data-night='1'] .tq-sp--birds,
+.tq-world[data-night='1'] .tq-sp--eagle,
+.tq-world[data-night='1'] .tq-sp--butterfly,
+.tq-world[data-night='1'] .tq-sp--sheep,
+.tq-world:is([data-tone='rain'], [data-tone='storm']) .tq-sp--butterfly { display: none; }
+
+.tq-sp--sails { transform-origin: 50% 50%; animation: tqw-spin calc(11s / var(--tq-wind, 1)) linear infinite; }
+
+.tq-sp--smoke span {
+    position: absolute;
+    left: 15%;
+    bottom: 0;
+    width: 70%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(244, 240, 236, 0.9), rgba(244, 240, 236, 0));
+    opacity: 0;
+    animation: tqw-smoke 4.8s ease-out infinite;
+    animation-delay: var(--d, 0s);
+}
+
+.tq-sp--smoke span:nth-child(2) { animation-delay: calc(var(--d, 0s) - 1.6s); }
+.tq-sp--smoke span:nth-child(3) { animation-delay: calc(var(--d, 0s) - 3.2s); }
+
+/* Falls and rivers: light bands sliding through a water-shaped mask. */
+.tq-sp__mask {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+}
+
+.tq-sp__flow {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -36px;
+    height: calc(100% + 36px);
+    animation: tqw-flow 0.9s linear infinite;
+}
+
+.tq-sp--fall .tq-sp__flow {
+    background:
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0) 0 3px, rgba(255, 255, 255, 0.4) 3px 4px, rgba(255, 255, 255, 0) 4px 7px),
+        repeating-linear-gradient(180deg, rgba(255, 255, 255, 0) 0 8px, rgba(255, 255, 255, 0.75) 8px 11px, rgba(200, 238, 255, 0.25) 11px 18px);
+}
+
+/* River: glints that slide downstream (soft streaks, not stripes). */
+.tq-sp--river .tq-sp__flow {
+    background:
+        radial-gradient(ellipse 2px 7px, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0)) 0 0 / 18px 36px,
+        radial-gradient(ellipse 1.5px 5px, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0)) 9px 18px / 18px 36px;
+    animation-duration: 2.4s;
+}
+
+.tq-sp__foam,
+.tq-sp__spray {
+    position: absolute;
+    left: -70%;
+    right: -70%;
+    bottom: -8%;
+    height: 22%;
+    min-height: 6px;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0));
+    animation: tqw-foam 1.3s ease-in-out infinite alternate;
+}
+
+.tq-sp__spray { bottom: 2%; height: 30%; opacity: 0.5; animation: tqw-spray-mist 2.6s ease-out infinite; }
+
+.tq-sp--flag .tq-sp__pole {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 7%;
+    min-width: 2px;
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #8a6340, #4a3018);
+}
+
+.tq-sp--flag .tq-sp__cloth {
+    position: absolute;
+    left: 6%;
+    top: 2%;
+    width: 94%;
+    height: 66%;
+    transform-origin: 0 50%;
+    animation: tqw-wave calc(1.9s / var(--tq-wind, 1)) ease-in-out infinite alternate;
+    animation-delay: var(--d, 0s);
+}
+
+.tq-sp--isle { animation: tqw-bob 7.5s ease-in-out infinite alternate; animation-delay: var(--d, 0s); }
+.tq-sp--isle:nth-child(2n) { animation-duration: 9s; }
+
+.tq-sp--sheep { animation: tqw-graze 9s ease-in-out infinite alternate; animation-delay: var(--d, 0s); }
+.tq-sp--sheep.is-flipped svg { transform: scaleX(-1); }
+
+.tq-sp--butterfly { animation: tqw-flutter-path 14s ease-in-out infinite; animation-delay: var(--d, 0s); }
+.tq-sp--butterfly svg { animation: tqw-flutter 0.22s ease-in-out infinite alternate; }
+
+.tq-sp--fountain { transform-origin: 50% 100%; animation: tqw-spray 1.3s ease-in-out infinite alternate; }
+.tq-sp--boat { animation: tqw-sail 40s ease-in-out infinite alternate; }
+.tq-sp--boat svg { animation: tqw-rock 3.2s ease-in-out infinite alternate; transform-origin: 50% 80%; }
+.tq-sp--glint { opacity: 0; animation: tqw-twinkle-star 3.2s ease-in-out infinite; animation-delay: var(--d, 0s); }
+
+/* The Portal's magic: slow rays behind the ring, a turning ring of runes,
+   crystal shards drifting around it. */
+.tq-sp--portal-rays span {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background:
+        repeating-conic-gradient(from 0deg, rgba(214, 190, 255, 0.34) 0deg 4deg, rgba(160, 235, 255, 0) 4deg 13deg),
+        radial-gradient(closest-side, rgba(255, 255, 255, 0.5), rgba(200, 170, 255, 0.18) 55%, rgba(200, 170, 255, 0));
+    -webkit-mask-image: radial-gradient(closest-side, transparent 31%, #000 36%, transparent 96%);
+    mask-image: radial-gradient(closest-side, transparent 31%, #000 36%, transparent 96%);
+    animation: tqw-spin 90s linear infinite;
+}
+
+.tq-sp--portal-runes { animation: tqw-spin 46s linear infinite reverse; }
+.tq-sp--portal-runes svg { filter: drop-shadow(0 0 3px rgba(190, 240, 255, 0.9)); }
+.tq-sp--shard { animation: tqw-bob 4.6s ease-in-out infinite alternate; animation-delay: var(--d, 0s); }
+.tq-sp--shard svg { filter: drop-shadow(0 0 4px rgba(200, 170, 255, 0.85)); }
+.tq-world.is-portal-open .tq-sp--portal-rays span { animation-duration: 40s; }
+.tq-world.is-portal-open .tq-sp--portal-runes { animation-duration: 18s; }
+
+/* Motes of light rising around the Portal. */
+.tq-sp--motes span {
+    position: absolute;
+    bottom: 10%;
+    width: 4%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, #fff, rgba(200, 170, 255, 0.7) 45%, rgba(200, 170, 255, 0));
+    opacity: 0;
+    animation: tqw-mote 6s ease-out infinite;
+}
+
+.tq-sp--motes span:nth-child(1) { left: 20%; animation-delay: 0s; }
+.tq-sp--motes span:nth-child(2) { left: 38%; animation-delay: -1s; }
+.tq-sp--motes span:nth-child(3) { left: 52%; animation-delay: -2.2s; }
+.tq-sp--motes span:nth-child(4) { left: 66%; animation-delay: -3.1s; }
+.tq-sp--motes span:nth-child(5) { left: 30%; animation-delay: -4.4s; }
+.tq-sp--motes span:nth-child(6) { left: 78%; animation-delay: -5.2s; }
+
+/* Fireflies only after dusk. */
+.tq-sp--fireflies { display: none; }
+.tq-world:is([data-light='twilight'], [data-light='night']) .tq-sp--fireflies { display: block; }
+
+.tq-sp--fireflies span {
+    position: absolute;
+    width: 1.1%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, #f4ffb0, rgba(200, 255, 120, 0.7) 40%, rgba(200, 255, 120, 0));
+    animation: tqw-firefly 9s ease-in-out infinite alternate, tqw-blink 2.2s ease-in-out infinite alternate;
+}
+
+.tq-sp--fireflies span:nth-child(1) { left: 8%; top: 30%; animation-delay: 0s, -0.4s; }
+.tq-sp--fireflies span:nth-child(2) { left: 22%; top: 62%; animation-delay: -3s, -1.1s; animation-direction: alternate-reverse, alternate; }
+.tq-sp--fireflies span:nth-child(3) { left: 35%; top: 20%; animation-delay: -6s, -0.2s; }
+.tq-sp--fireflies span:nth-child(4) { left: 48%; top: 70%; animation-delay: -1.5s, -1.6s; animation-direction: alternate-reverse, alternate; }
+.tq-sp--fireflies span:nth-child(5) { left: 60%; top: 40%; animation-delay: -4.5s, -0.8s; }
+.tq-sp--fireflies span:nth-child(6) { left: 72%; top: 18%; animation-delay: -7s, -1.9s; animation-direction: alternate-reverse, alternate; }
+.tq-sp--fireflies span:nth-child(7) { left: 84%; top: 58%; animation-delay: -2.2s, -0.5s; }
+.tq-sp--fireflies span:nth-child(8) { left: 14%; top: 84%; animation-delay: -5.2s, -1.3s; }
+.tq-sp--fireflies span:nth-child(9) { left: 56%; top: 86%; animation-delay: -3.8s, -0.9s; }
+.tq-sp--fireflies span:nth-child(10) { left: 92%; top: 30%; animation-delay: -6.6s, -1.7s; }
+
+/* ── Mist over the realms nobody has reached yet ──────────────────────── */
+.tq-mist {
+    position: absolute;
+    opacity: 0;
+    transition: opacity 1.8s ease;
+}
+
+.tq-mist[data-state='asleep'],
+.tq-mist[data-state='waking'] { opacity: 1; }
+
+/* Each puff is one of the app's cloud shapes in soft lavender white. Awake, they
+   drift apart and fade, revealing the realm. */
+.tq-mist__puff {
+    position: absolute;
+    display: block;
+    opacity: 0;
+    transform: translate(-50%, -50%) translate3d(calc(var(--part) * 60%), 0, 0) scale(0.8);
+    transition: opacity 1.6s ease, transform 2.2s cubic-bezier(0.22, 0.76, 0.25, 1);
+    transition-delay: calc(var(--i) * 90ms);
+}
+
+.tq-mist__puff svg { display: block; width: 100%; height: auto; overflow: visible; filter: drop-shadow(0 0.4rem 0.6rem rgba(70, 60, 120, 0.18)); }
+.tq-mist__puff .wx-cs { fill: #cfc7ea; }
+.tq-mist__puff .wx-cb { fill: #f1edfb; }
+.tq-mist__puff .wx-cl { fill: #ffffff; }
+.tq-mist__puff .wx-cg { fill: #ffffff; opacity: 0.8; }
+.tq-world[data-night='1'] .tq-mist__puff .wx-cs { fill: #39406e; }
+.tq-world[data-night='1'] .tq-mist__puff .wx-cb { fill: #5b6398; }
+.tq-world[data-night='1'] .tq-mist__puff .wx-cl { fill: #8d96c8; }
+
+.tq-mist[data-state='asleep'] .tq-mist__puff { opacity: 0.97; transform: translate(-50%, -50%) scale(1); }
+.tq-mist[data-state='waking'] .tq-mist__puff { opacity: 0.8; transform: translate(-50%, -50%) translate3d(calc(var(--part) * 18%), 0, 0) scale(0.92); }
+.tq-world[data-tier='full'] .tq-mist[data-state='asleep'] .tq-mist__puff svg,
+.tq-world[data-tier='full'] .tq-mist[data-state='waking'] .tq-mist__puff svg { animation: tqw-puff 9s ease-in-out infinite alternate; animation-delay: calc(var(--i) * -2.1s); }
+
+/* ── Lanterns: lit up to the furthest party ───────────────────────────── */
+.tq-lantern { position: absolute; }
+
+.tq-lantern svg {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.tq-lantern__glow {
+    position: absolute;
+    left: 50%;
+    top: 26%;
+    width: 320%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(255, 238, 170, 0.95), rgba(255, 186, 80, 0.4) 45%, rgba(255, 160, 60, 0));
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4);
+    transition: opacity 600ms ease, transform 600ms cubic-bezier(0.3, 1.5, 0.5, 1);
+    transition-delay: inherit;
+}
+
+.tq-lantern .tq-lantern__pane { transition: fill 400ms ease; }
+.tq-lantern.is-lit .tq-lantern__pane { fill: #ffd76a; }
+.tq-lantern.is-lit .tq-lantern__glow { opacity: 0.45; transform: translate(-50%, -50%) scale(0.8); }
+.tq-world:is([data-light='golden'], [data-tone='storm'], [data-tone='rain']) .tq-lantern.is-lit .tq-lantern__glow { opacity: 0.7; transform: translate(-50%, -50%) scale(1); }
+.tq-world:is([data-light='twilight'], [data-light='night']) .tq-lantern.is-lit .tq-lantern__glow { opacity: 1; transform: translate(-50%, -50%) scale(1.25); }
+.tq-world[data-tier='full'][data-night='1'] .tq-lantern.is-lit .tq-lantern__glow { animation: tqw-flicker 2.4s ease-in-out infinite alternate; }
+
+/* ── The leader's pennant, realm bursts and the Portal's beam ─────────── */
+.tq-pennant { position: absolute; }
+.tq-pennant[hidden] { display: none; }
+
+.tq-pennant__pole {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 3px;
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #a77b48, #5a3a1c);
+}
+
+.tq-pennant__pole::before {
+    content: '';
+    position: absolute;
+    left: -2px;
+    top: -4px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #fff3b0, #d79a17);
+}
+
+.tq-pennant__cloth {
+    position: absolute;
+    left: 3px;
+    top: 2px;
+    display: grid;
+    width: 92%;
+    height: 50%;
+    place-items: center;
+    padding-right: 18%;
+    background: linear-gradient(180deg, #7b3fd6, #4b23a0);
+    clip-path: polygon(0 0, 100% 0, 80% 50%, 100% 100%, 0 100%);
+    box-shadow: inset 0 -3px 0 rgba(255, 215, 90, 0.9);
+    transform-origin: 0 50%;
+}
+
+.tq-world[data-tier='full'] .tq-pennant__cloth { animation: tqw-wave calc(2.2s / var(--tq-wind, 1)) ease-in-out infinite alternate; }
+
+.tq-pennant__logo {
+    font-size: clamp(0.62rem, 1.15vw, 1rem);
+    line-height: 1;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
+}
+
+.tq-burst { position: absolute; }
+
+.tq-burst span,
+.tq-burst i {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 18%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, #fff, rgba(255, 236, 160, 0.85) 40%, rgba(255, 236, 160, 0));
+    opacity: 0;
+    animation: tqw-burst 1.7s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+
+.tq-burst span:nth-child(1) { --bx: -170%; --by: -140%; }
+.tq-burst span:nth-child(2) { --bx: 170%; --by: -150%; animation-delay: 60ms; }
+.tq-burst span:nth-child(3) { --bx: -230%; --by: 40%; animation-delay: 120ms; }
+.tq-burst span:nth-child(4) { --bx: 230%; --by: 30%; animation-delay: 90ms; }
+.tq-burst span:nth-child(5) { --bx: 0%; --by: -240%; animation-delay: 30ms; }
+.tq-burst span:nth-child(6) { --bx: -90%; --by: -230%; animation-delay: 150ms; }
+.tq-burst span:nth-child(7) { --bx: 100%; --by: -220%; animation-delay: 180ms; }
+.tq-burst span:nth-child(8) { --bx: 0%; --by: 90%; animation-delay: 210ms; }
+.tq-burst i { width: 70%; animation-name: tqw-burst-core; }
+.tq-burst--silver span, .tq-burst--silver i { background: radial-gradient(closest-side, #fff, rgba(170, 225, 255, 0.85) 40%, rgba(170, 225, 255, 0)); }
+.tq-burst--crystal span, .tq-burst--crystal i { background: radial-gradient(closest-side, #fff, rgba(214, 160, 255, 0.85) 40%, rgba(214, 160, 255, 0)); }
+
+/* Once a party reaches the Portal it opens: a pillar of light rises into the sky. */
+.tq-portal-beam {
+    position: absolute;
+    left: 84%;
+    top: -8%;
+    width: 12%;
+    height: 26%;
+    display: none;
+}
+
+.tq-world.is-portal-open .tq-portal-beam { display: block; }
+
+.tq-portal-beam::before {
+    content: '';
+    position: absolute;
+    inset: 0 -40% -10%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse 40% 60% at 50% 88%, rgba(220, 200, 255, 0.75), rgba(160, 230, 255, 0.25) 55%, rgba(160, 230, 255, 0));
+    animation: tqw-beam-halo 3s ease-in-out infinite alternate;
+}
+
+.tq-portal-beam span {
+    position: absolute;
+    left: 34%;
+    right: 34%;
+    top: 0;
+    bottom: 0;
+    border-radius: 40% 40% 30% 30%;
+    background: linear-gradient(0deg, #ffffff 0%, rgba(214, 248, 255, 0.95) 35%, rgba(200, 170, 255, 0.55) 70%, rgba(200, 170, 255, 0));
+    box-shadow: 0 0 1.6rem rgba(190, 240, 255, 0.85);
+    transform-origin: 50% 100%;
+    animation: tqw-beam 3.4s ease-in-out infinite alternate;
+}
+
+/* ── Weather on the land (in front of the land, behind the parties) ──── */
+.tq-weather > * { position: absolute; inset: 0; display: none; }
+
+/* Rain: tiles of short streaks slanted by the wind (--wx-slant from the app). */
+.tq-world-front:is([data-precip='rain'], [data-precip='drizzle'], [data-precip='sleet'], [data-precip='hail']) .tq-weather__rain { display: block; }
+
+.tq-weather__rain { inset: -12%; transform: rotate(var(--wx-slant, 8deg)); }
+
+.tq-weather__rain span {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -120px;
+    height: calc(100% + 240px);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cg stroke='%23e8f2ff' stroke-linecap='round'%3E%3Cpath d='M10 4v16M46 30v18M82 8v14M108 52v16M28 66v18M64 84v14M96 96v18M14 100v12M54 50v12' stroke-width='1.3' opacity='.85'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 120px 120px;
+    opacity: 0.75;
+    animation: tqw-rain 0.55s linear infinite;
+}
+
+.tq-weather__rain span:nth-child(2) { background-size: 84px 84px; opacity: 0.45; animation-duration: 0.8s; background-position: 30px 10px; }
+.tq-world-front[data-precip='drizzle'] .tq-weather__rain span { opacity: 0.4; animation-duration: 0.9s; }
+.tq-world-front[data-precip='drizzle'] .tq-weather__rain span:nth-child(2) { display: none; }
+.tq-world-front[data-intensity='heavy'] .tq-weather__rain span { opacity: 0.95; animation-duration: 0.42s; }
+.tq-world-front[data-intensity='light'] .tq-weather__rain span:nth-child(2) { display: none; }
+.tq-world-front[data-tier='lite'] .tq-weather__rain span:nth-child(2) { display: none; }
+
+/* Snow (also sleet): drifting flakes in three depths. */
+.tq-world-front:is([data-precip='snow'], [data-precip='sleet']) .tq-weather__snow { display: block; }
+
+.tq-weather__snow span {
+    position: absolute;
+    left: -5%;
+    right: -5%;
+    top: -96px;
+    height: calc(100% + 192px);
+    background:
+        radial-gradient(circle, var(--wx-flake, #fff) 0 2.2px, transparent 2.8px) 0 0 / 96px 96px,
+        radial-gradient(circle, var(--wx-flake, #fff) 0 1.6px, transparent 2.2px) 48px 40px / 96px 96px;
+    animation: tqw-snow 8s linear infinite;
+}
+
+.tq-weather__snow span:nth-child(2) { background-size: 64px 64px, 64px 64px; opacity: 0.7; animation-duration: 11s; animation-name: tqw-snow-far; }
+.tq-weather__snow span:nth-child(3) { background-size: 140px 140px, 140px 140px; opacity: 0.9; animation-duration: 6s; }
+.tq-world-front[data-intensity='light'] .tq-weather__snow span:nth-child(3),
+.tq-world-front[data-tier='lite'] .tq-weather__snow span:nth-child(n + 2) { display: none; }
+
+/* Rain rings on the lake. */
+.tq-world-front:is([data-precip='rain'], [data-precip='hail']) .tq-weather__splash { display: block; }
+
+.tq-weather__splash span {
+    position: absolute;
+    width: 2.4%;
+    aspect-ratio: 2.4;
+    border: 1.5px solid rgba(235, 248, 255, 0.85);
+    border-radius: 50%;
+    opacity: 0;
+    animation: tqw-ring 1.4s ease-out infinite;
+}
+
+.tq-weather__splash span:nth-child(1) { left: 48%; top: 93%; }
+.tq-weather__splash span:nth-child(2) { left: 60%; top: 95%; animation-delay: -0.3s; }
+.tq-weather__splash span:nth-child(3) { left: 70%; top: 91.5%; animation-delay: -0.7s; }
+.tq-weather__splash span:nth-child(4) { left: 79%; top: 96%; animation-delay: -1s; }
+.tq-weather__splash span:nth-child(5) { left: 55%; top: 98%; animation-delay: -0.5s; }
+
+/* Fog: soft banks drifting low over the valleys. */
+.tq-world-front[data-fog='1'] .tq-weather__fog,
+.tq-world-front[data-tone='fog'] .tq-weather__fog { display: block; }
+
+.tq-weather__fog { background: linear-gradient(180deg, rgba(255, 255, 255, 0) 30%, var(--wx-fog, rgba(255, 255, 255, 0.62)) 100%); opacity: 0.8; }
+
+.tq-weather__fog span {
+    position: absolute;
+    left: -20%;
+    width: 70%;
+    height: 30%;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, var(--wx-fog, rgba(255, 255, 255, 0.62)), rgba(255, 255, 255, 0));
+    animation: tqw-fog 60s ease-in-out infinite alternate;
+}
+
+.tq-weather__fog span:nth-child(1) { top: 40%; }
+.tq-weather__fog span:nth-child(2) { top: 62%; left: 30%; animation-duration: 80s; animation-direction: alternate-reverse; }
+.tq-weather__fog span:nth-child(3) { top: 22%; left: 10%; width: 50%; animation-duration: 70s; }
+
+/* Lightning: a bolt and a flash of the whole sky. */
+.tq-weather__bolt { inset: auto; left: 50%; top: 0; width: 5%; height: 40%; }
+.tq-weather__bolt svg { display: block; width: 100%; height: 100%; }
+.tq-weather__bolt path { fill: #fffde8; }
+.tq-weather__flash { background: rgba(240, 246, 255, 0.85); }
+.tq-world-front.is-striking .tq-weather__bolt,
+.tq-world-front.is-striking .tq-weather__flash { display: block; opacity: 0; animation: tqw-flash 0.9s ease-out forwards; }
+
+/* ── Places: the realms' landmarks answer a hover or a click ─────────── */
+.tq-place__glow,
+.tq-place__ring,
+.tq-place__burst {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.tq-place__glow {
+    inset: -6%;
+    background: radial-gradient(closest-side, rgba(var(--place-glow), 0.5), rgba(var(--place-glow), 0.2) 52%, rgba(var(--place-glow), 0) 76%);
+    opacity: 0;
+    transform: scale(0.9);
+    transition: opacity 320ms ease, transform 420ms cubic-bezier(0.22, 0.76, 0.25, 1);
+}
+
+/* An aura ring on the ground under the place. */
+.tq-place__ring {
+    left: 10%;
+    right: 10%;
+    bottom: 4%;
+    height: 24%;
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    box-shadow: 0 0 0.9rem rgba(var(--place-glow), 0.9), inset 0 0 0.7rem rgba(var(--place-glow), 0.65);
+    opacity: 0;
+    transform: scale(0.7);
+    transition: opacity 260ms ease, transform 380ms cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+
+/* Two motes of light rise from the place while it is hovered. */
+.tq-place::before,
+.tq-place::after {
+    content: '';
+    position: absolute;
+    bottom: 22%;
+    width: 7%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, #fff, rgba(var(--place-glow), 0.85) 45%, rgba(var(--place-glow), 0));
+    opacity: 0;
+    pointer-events: none;
+}
+
+.tq-place::before { left: 30%; }
+.tq-place::after { right: 28%; width: 5%; }
+
+.tq-place:is(:hover, .is-hovered, :focus-visible) .tq-place__glow { opacity: 1; transform: scale(1); animation: tqw-place-breathe 2.6s ease-in-out infinite alternate; }
+.tq-place:is(:hover, .is-hovered, :focus-visible) .tq-place__ring { opacity: 1; transform: scale(1); }
+.tq-place:is(:hover, .is-hovered, :focus-visible)::before { animation: tqw-place-twinkle 1.8s ease-out infinite; }
+.tq-place:is(:hover, .is-hovered, :focus-visible)::after { animation: tqw-place-twinkle 1.8s ease-out infinite 0.9s; }
+.tq-place:not(.is-reached) .tq-place__glow { filter: saturate(0.6); }
+.tq-place.is-pressed .tq-place__glow { animation: tqw-place-press 420ms ease-out; }
+
+.tq-place__burst {
+    inset: 0;
+    background: radial-gradient(closest-side, rgba(255, 255, 255, 0.9), rgba(var(--place-glow), 0.55) 40%, rgba(var(--place-glow), 0) 70%);
+    opacity: 0;
+}
+
+.tq-place.is-celebrating .tq-place__burst { animation: tqw-place-celebrate 1.6s ease-out; }
+
+/* The Portal answers the same way: an aura ring around its ring. */
+.tq-route-finish__button::after {
+    content: '';
+    position: absolute;
+    inset: -22%;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 0 1.2rem rgba(var(--place-glow), 0.95), inset 0 0 1rem rgba(var(--place-glow), 0.7);
+    opacity: 0;
+    transform: scale(0.85);
+    transition: opacity 260ms ease, transform 380ms cubic-bezier(0.3, 1.5, 0.5, 1);
+    pointer-events: none;
+}
+
+.tq-route-finish__button:is(:hover, .is-hovered, :focus-visible)::after { opacity: 1; transform: scale(1); }
+
+/* ── The place card: one shared tooltip, a little gilded page of the atlas ── */
+.tq-tip {
+    position: absolute;
+    z-index: 380;
+    top: 0;
+    left: 0;
+    width: min(17.5rem, calc(100% - 1rem));
+    pointer-events: none;
+    --place-glow: 255, 211, 86;
+}
+
+.tq-tip[hidden] { display: none; }
+
+.tq-tip__inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.42rem;
+    padding: 0.75rem 0.85rem 0.7rem;
+    overflow: hidden;
+    color: #4a2e14;
+    border: 2px solid #b8883e;
+    border-radius: 1rem;
+    background:
+        radial-gradient(120% 80% at 0% 0%, rgba(var(--place-glow), 0.28), rgba(var(--place-glow), 0) 60%),
+        radial-gradient(circle at 20% 30%, rgba(160, 110, 40, 0.07) 0 1px, transparent 1.5px) 0 0 / 7px 7px,
+        linear-gradient(180deg, #fffaf0, #f7e8c6);
+    box-shadow:
+        0 0.9rem 1.8rem rgba(50, 28, 8, 0.32),
+        0 0 0 3px rgba(255, 248, 225, 0.85),
+        0 0 1.4rem rgba(var(--place-glow), 0.45),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+    opacity: 0;
+    transform: translateY(6px) scale(0.94);
+    transform-origin: 50% 100%;
+    transition: opacity 180ms ease, transform 260ms cubic-bezier(0.3, 1.4, 0.5, 1);
+    font-family: 'Fredoka', sans-serif;
+}
+
+.tq-tip[data-placement='bottom'] .tq-tip__inner { transform-origin: 50% 0; transform: translateY(-6px) scale(0.94); }
+.tq-tip[data-state='open'] .tq-tip__inner { opacity: 1; transform: none; }
+
+/* Gilded corners. */
+.tq-tip__inner::before,
+.tq-tip__inner::after {
+    content: '';
+    position: absolute;
+    width: 1.1rem;
+    height: 1.1rem;
+    border: 2px solid rgba(201, 150, 60, 0.75);
+    pointer-events: none;
+}
+
+.tq-tip__inner::before { top: 0.3rem; left: 0.3rem; border-right: 0; border-bottom: 0; border-top-left-radius: 0.6rem; }
+.tq-tip__inner::after { right: 0.3rem; bottom: 0.3rem; border-left: 0; border-top: 0; border-bottom-right-radius: 0.6rem; }
+
+.tq-tip__head { display: flex; align-items: center; gap: 0.6rem; }
+
+.tq-tip__badge {
+    flex: none;
+    width: 2.9rem;
+    height: 2.9rem;
+    object-fit: contain;
+    filter: drop-shadow(0 0.2rem 0.3rem rgba(60, 30, 10, 0.35)) drop-shadow(0 0 0.5rem rgba(var(--place-glow), 0.7));
+}
+
+.tq-tip__titles { display: flex; flex-direction: column; min-width: 0; line-height: 1.1; }
+
+.tq-tip__titles small {
+    color: #8a5a1c;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.tq-tip__titles strong {
+    color: #5a3312;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.12rem;
+    font-weight: 400;
+    text-shadow: 0 1px 0 #fff;
+}
+
+.tq-tip__desc {
+    color: #6b4a2a;
+    font-family: 'Lora', Georgia, serif;
+    font-size: 0.8rem;
+    font-style: italic;
+    line-height: 1.35;
+}
+
+.tq-tip__from {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: 0.35rem;
+    padding: 0.16rem 0.55rem;
+    color: #7a4e1c;
+    border-radius: 999px;
+    background: rgba(255, 236, 190, 0.85);
+    box-shadow: inset 0 0 0 1px rgba(184, 136, 62, 0.45);
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.tq-tip__status { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.74rem; font-weight: 600; }
+.tq-tip__status small { color: #8a6a3a; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+.tq-tip__status--asleep,
+.tq-tip__status--passed { flex-direction: row; align-items: center; gap: 0.4rem; color: #6a5a8a; }
+.tq-tip__status--passed { color: #3f7a3a; }
+
+.tq-tip__chips { display: flex; flex-wrap: wrap; gap: 0.28rem; }
+
+.tq-tip__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.12rem 0.5rem 0.12rem 0.3rem;
+    color: #4a2e14;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 1px 0 rgba(120, 80, 30, 0.25), inset 0 0 0 1px rgba(184, 136, 62, 0.4);
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.tq-tip__chip.is-mine { color: #fff; background: linear-gradient(135deg, #2f7de1, #6c4de6); box-shadow: 0 0 0.5rem rgba(90, 120, 240, 0.5); }
+.tq-tip__chip--more { padding-left: 0.5rem; color: #7a4e1c; background: rgba(255, 236, 190, 0.9); }
+
+.tq-tip__hint {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 0.38rem;
+    color: #8a5a1c;
+    border-top: 1px dashed rgba(184, 136, 62, 0.55);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+}
+
+.tq-tip__arrow {
+    position: absolute;
+    left: var(--arrow-x, 50%);
+    bottom: -0.42rem;
+    width: 0.85rem;
+    height: 0.85rem;
+    background: #f7e8c6;
+    border-right: 2px solid #b8883e;
+    border-bottom: 2px solid #b8883e;
+    opacity: 0;
+    transform: translateX(-50%) rotate(45deg);
+    transition: opacity 180ms ease;
+}
+
+.tq-tip[data-placement='bottom'] .tq-tip__arrow { top: -0.42rem; bottom: auto; background: #fffaf0; transform: translateX(-50%) rotate(225deg); }
+.tq-tip[data-state='open'] .tq-tip__arrow { opacity: 1; }
+
+/* ── Sparkles where the class touches the map ──────────────────────────── */
+.tq-sparks { position: absolute; inset: 0; z-index: 360; overflow: visible; pointer-events: none; }
+
+.tq-spark {
+    position: absolute;
+    width: 0;
+    height: 0;
+    --spark: 255, 236, 170;
+}
+
+.tq-spark i,
+.tq-spark b {
+    position: absolute;
+    left: 0;
+    top: 0;
+    border-radius: 50%;
+}
+
+.tq-spark i {
+    width: 2.4rem;
+    height: 2.4rem;
+    margin: -1.2rem 0 0 -1.2rem;
+    border: 2px solid rgba(var(--spark), 0.9);
+    box-shadow: 0 0 0.8rem rgba(var(--spark), 0.8);
+    animation: tqw-spark-ring 700ms ease-out forwards;
+}
+
+.tq-spark b {
+    width: 0.42rem;
+    height: 0.42rem;
+    margin: -0.21rem 0 0 -0.21rem;
+    background: radial-gradient(closest-side, #fff, rgba(var(--spark), 0.9) 55%, rgba(var(--spark), 0));
+    --a: 0deg;
+    animation: tqw-spark-fly 760ms cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+
+.tq-spark b:nth-of-type(2) { --a: 45deg; animation-delay: 30ms; }
+.tq-spark b:nth-of-type(3) { --a: 90deg; }
+.tq-spark b:nth-of-type(4) { --a: 135deg; animation-delay: 40ms; }
+.tq-spark b:nth-of-type(5) { --a: 180deg; }
+.tq-spark b:nth-of-type(6) { --a: 225deg; animation-delay: 20ms; }
+.tq-spark b:nth-of-type(7) { --a: 270deg; }
+.tq-spark b:nth-of-type(8) { --a: 315deg; animation-delay: 50ms; }
+.tq-spark.is-big i { width: 3.6rem; height: 3.6rem; margin: -1.8rem 0 0 -1.8rem; }
+.tq-spark.is-big b { width: 0.6rem; height: 0.6rem; margin: -0.3rem 0 0 -0.3rem; }
+
+/* ── Still and paused ──────────────────────────────────────────────────── */
+.tq-living-map.is-motion-paused .tq-stage *,
+.tq-living-map.is-motion-paused .tq-stage *::before,
+.tq-living-map.is-motion-paused .tq-stage *::after { animation-play-state: paused !important; }
+
+.tq-world[data-tier='lite'] .tq-sky__stars span:nth-child(2) { animation: none; }
+
+.tq-world[data-tier='still'] *,
+.tq-world[data-tier='still'] *::before,
+.tq-world-front[data-tier='still'] * { animation: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+    .tq-place *,
+    .tq-place::before,
+    .tq-place::after,
+    .tq-tip__inner,
+    .tq-world *,
+    .tq-world *::before,
+    .tq-world-front * { animation: none !important; }
+    .tq-living-map .tq-stage,
+    .tq-living-map .tq-stage.is-gliding,
+    .tq-living-map .tq-world__depth { transition: none !important; }
+    .tq-world__paint,
+    .tq-world__canvas,
+    .tq-mist__puff,
+    .tq-lantern__glow { transition-duration: 0.01ms !important; }
+}
+
+/* ── Keyframes (transform and opacity only) ───────────────────────────── */
+@keyframes tqw-drift { from { transform: translate3d(-130%, 0, 0); } to { transform: translate3d(760%, 0, 0); } }
+@keyframes tqw-shadow-drift { from { transform: translate3d(-110%, 0, 0); } to { transform: translate3d(360%, 0, 0); } }
+@keyframes tqw-twinkle { from { opacity: 0.25; } to { opacity: 1; } }
+@keyframes tqw-shooting {
+    0%, 92% { opacity: 0; transform: rotate(18deg) translate3d(0, 0, 0); }
+    94% { opacity: 1; }
+    100% { opacity: 0; transform: rotate(18deg) translate3d(520%, 0, 0); }
+}
+@keyframes tqw-rays { to { transform: translate(-50%, -50%) rotate(360deg); } }
+@keyframes tqw-birds {
+    0% { opacity: 0; transform: translate3d(-80px, 20px, 0); }
+    10% { opacity: 1; }
+    50% { transform: translate3d(90px, -14px, 0); }
+    90% { opacity: 1; }
+    100% { opacity: 0; transform: translate3d(260px, 6px, 0); }
+}
+@keyframes tqw-flap { from { transform: scaleY(1); } to { transform: scaleY(0.55); } }
+@keyframes tqw-circle { from { transform: rotate(0deg) translateX(48px) rotate(0deg); } to { transform: rotate(360deg) translateX(48px) rotate(-360deg); } }
+@keyframes tqw-spin { to { transform: rotate(360deg); } }
+@keyframes tqw-smoke {
+    0% { opacity: 0; transform: translate3d(0, 0, 0) scale(0.35); }
+    18% { opacity: 0.8; }
+    100% { opacity: 0; transform: translate3d(40%, -170%, 0) scale(1.25); }
+}
+@keyframes tqw-flow { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(0, 36px, 0); } }
+@keyframes tqw-foam { from { opacity: 0.65; transform: scale(0.85); } to { opacity: 1; transform: scale(1.12); } }
+@keyframes tqw-spray-mist { 0% { opacity: 0; transform: translate3d(0, 0, 0) scale(0.8); } 30% { opacity: 0.55; } 100% { opacity: 0; transform: translate3d(0, -60%, 0) scale(1.5); } }
+@keyframes tqw-wave { from { transform: scaleX(0.84) skewY(-5deg); } to { transform: scaleX(1) skewY(5deg); } }
+@keyframes tqw-bob { from { transform: translate3d(0, -4px, 0); } to { transform: translate3d(0, 6px, 0); } }
+@keyframes tqw-graze { 0%, 40% { transform: translate3d(0, 0, 0) rotate(0deg); } 50% { transform: translate3d(3px, 1px, 0) rotate(4deg); } 100% { transform: translate3d(9px, 0, 0) rotate(0deg); } }
+@keyframes tqw-flutter-path {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    25% { transform: translate3d(34px, -22px, 0); }
+    50% { transform: translate3d(64px, 4px, 0); }
+    75% { transform: translate3d(26px, 16px, 0); }
+}
+@keyframes tqw-flutter { from { transform: scaleX(1); } to { transform: scaleX(0.35); } }
+@keyframes tqw-spray { from { opacity: 0.75; transform: scaleY(0.82); } to { opacity: 1; transform: scaleY(1.06); } }
+@keyframes tqw-sail { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(520%, 4%, 0); } }
+@keyframes tqw-rock { from { transform: rotate(-3deg); } to { transform: rotate(3deg); } }
+@keyframes tqw-twinkle-star { 0%, 100% { opacity: 0; transform: scale(0.3) rotate(0deg); } 45% { opacity: 1; transform: scale(1) rotate(20deg); } 60% { opacity: 0.8; transform: scale(0.85) rotate(28deg); } }
+@keyframes tqw-mote { 0% { opacity: 0; transform: translate3d(0, 0, 0) scale(0.5); } 20% { opacity: 1; } 100% { opacity: 0; transform: translate3d(10px, -260%, 0) scale(1.1); } }
+@keyframes tqw-firefly {
+    0% { transform: translate3d(0, 0, 0); }
+    33% { transform: translate3d(28px, -18px, 0); }
+    66% { transform: translate3d(-12px, -30px, 0); }
+    100% { transform: translate3d(18px, 10px, 0); }
+}
+@keyframes tqw-blink { 0%, 30% { opacity: 0; } 70%, 100% { opacity: 1; } }
+@keyframes tqw-puff { from { transform: translate3d(-6px, 0, 0); } to { transform: translate3d(8px, -3px, 0); } }
+@keyframes tqw-flicker { from { opacity: 0.82; } to { opacity: 1; } }
+@keyframes tqw-burst {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+    25% { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%, -50%) translate(var(--bx), var(--by)) scale(1); }
+}
+@keyframes tqw-burst-core {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
+    30% { opacity: 0.95; }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.7); }
+}
+@keyframes tqw-beam { from { opacity: 0.75; transform: scaleX(0.85) scaleY(0.94); } to { opacity: 1; transform: scaleX(1.1) scaleY(1.04); } }
+@keyframes tqw-beam-halo { from { opacity: 0.6; transform: scale(0.92); } to { opacity: 1; transform: scale(1.08); } }
+@keyframes tqw-rain { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(0, 120px, 0); } }
+@keyframes tqw-snow { from { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(14px, 48px, 0); } to { transform: translate3d(0, 96px, 0); } }
+@keyframes tqw-snow-far { from { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(-8px, 32px, 0); } to { transform: translate3d(0, 64px, 0); } }
+@keyframes tqw-ring { 0% { opacity: 0.9; transform: scale(0.2); } 100% { opacity: 0; transform: scale(1.4); } }
+@keyframes tqw-fog { from { transform: translate3d(-6%, 0, 0); } to { transform: translate3d(12%, -2%, 0); } }
+@keyframes tqw-place-breathe { from { transform: scale(0.97); } to { transform: scale(1.04); } }
+@keyframes tqw-place-twinkle { 0% { opacity: 0; transform: translate3d(0, 0, 0) scale(0.4); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate3d(0, -260%, 0) scale(1); } }
+@keyframes tqw-place-press { 0% { opacity: 1; transform: scale(1); } 40% { opacity: 1; transform: scale(1.12); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes tqw-place-celebrate { 0% { opacity: 0; transform: scale(0.5); } 25% { opacity: 1; } 100% { opacity: 0; transform: scale(1.5); } }
+@keyframes tqw-spark-ring { 0% { opacity: 1; transform: scale(0.2); } 100% { opacity: 0; transform: scale(1.4); } }
+@keyframes tqw-spark-fly { 0% { opacity: 1; transform: rotate(var(--a)) translate3d(0, 0, 0) scale(1); } 100% { opacity: 0; transform: rotate(var(--a)) translate3d(2.6rem, 0, 0) scale(0.4); } }
+@keyframes tqw-flash { 0% { opacity: 0; } 6% { opacity: 1; } 14% { opacity: 0.2; } 20% { opacity: 0.85; } 100% { opacity: 0; } }

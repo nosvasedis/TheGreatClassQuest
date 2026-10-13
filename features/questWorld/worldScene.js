@@ -1,0 +1,577 @@
+/**
+ * Quest World scene: mounts the living world into the Team Quest map.
+ *
+ * Loaded lazily by features/worldMap.js.
+ * - The land (far, mid, near) is painted once by worldPainter.js into canvases
+ *   and kept per device; the light of the moment is a cheap grade of it.
+ * - The sky is the app's own sky: the shared scene from skyWeatherStage.js
+ *   (live weather + sun times, the same one the header, Home card and
+ *   projector paint) and its palette tokens on <html> (--wx-*). The sun walks
+ *   its real arc, the moon shows tonight's real phase (utils/dayCycle.mjs),
+ *   clouds, rain, snow, fog, lightning and rainbows follow the reading, and the
+ *   wind sets the drift and the banners.
+ * - Everything that moves is a small sprite animated with transform/opacity
+ *   (quest_world.css). Nothing here draws per frame; the only per-frame-ish
+ *   script is the throttled pointer parallax.
+ *
+ * The scene outlives the map controller: live star updates re-create the
+ * controller but keep this world. It tidies itself away once its map leaves.
+ */
+
+import '../../styles/quest_world.css';
+import { WORLD_SEED, buildWorldArt, lanternSvg } from './worldArt.mjs';
+import { bakeWidthFor, bakeWorld, gradeInto } from './worldPainter.js';
+import {
+    WORLD_H,
+    WORLD_W,
+    SCENE_TIERS,
+    furthestRealm,
+    landGrade,
+    litLanternCount,
+    realmStates,
+    scenePlan,
+    seasonFor
+} from './worldGeometry.mjs';
+import { QUEST_MAP_ZONES } from '../questMapZones.mjs';
+import { applySkyScene, computeSkyScene, getSkyScene, getLastSkyReading } from '../skyWeatherStage.js';
+import { cloudSvg, BOLT_PATHS } from '../skyWeatherArt.js';
+import { seededRandom } from '../skyWeather.mjs';
+import { currentLightSpan, moonLitPath, moonPhase, moonPhaseName } from '../../utils/dayCycle.mjs';
+import { getSolarTimes } from '../../utils.js';
+
+const artBySeason = new Map();
+function getArt(season) {
+    if (!artBySeason.has(season)) artBySeason.set(season, buildWorldArt(WORLD_SEED, season));
+    return artBySeason.get(season);
+}
+
+/** Baked day pictures shared by every map on the page (keyed by season + size). */
+const bakes = new Map();
+function getBake(art, width) {
+    const key = `${art.season}:${width}`;
+    if (!bakes.has(key)) {
+        bakes.set(key, bakeWorld(art, { width }).catch((error) => {
+            bakes.delete(key);
+            throw error;
+        }));
+    }
+    return bakes.get(key);
+}
+
+let paperUrl = '';
+const pct = (value, total) => `${((value / total) * 100).toFixed(3)}%`;
+const boxStyle = ({ x, y, w, h }) => `left:${pct(x, WORLD_W)};top:${pct(y, WORLD_H)};width:${pct(w, WORLD_W)};height:${pct(h, WORLD_H)}`;
+
+function spriteHtml(sprite) {
+    const style = `${boxStyle(sprite)}${sprite.delay ? `;--d:${sprite.delay}s` : ''}`;
+    return `<div class="tq-sp tq-sp--${sprite.kind}${sprite.flip ? ' is-flipped' : ''}" data-sprite="${sprite.id}" style="${style}" aria-hidden="true">${sprite.html}</div>`;
+}
+
+/** A realm nobody has reached hides under game clouds that part when the first party arrives. */
+function mistHtml(mist) {
+    const blobs = mist.blobs.map(([x, y, r], i) => (
+        `<span class="tq-mist__puff" style="left:${(x * 100).toFixed(1)}%;top:${(y * 100).toFixed(1)}%;width:${(r * 100).toFixed(1)}%;--part:${x < 0.5 ? -1 : 1};--i:${i}">${cloudSvg(i % 3 === 2 ? 'twin' : 'cumulus', i + mist.realm.length)}</span>`
+    )).join('');
+    return `<div class="tq-mist" data-realm="${mist.realm}" data-state="asleep" style="${boxStyle(mist)}" aria-hidden="true">${blobs}</div>`;
+}
+
+function lanternHtml(lantern, index) {
+    return `<div class="tq-lantern" data-lantern="${index}" data-progress="${lantern.progress}" style="${boxStyle({ x: lantern.x - 8, y: lantern.y - 40, w: 16, h: 40 })}" aria-hidden="true">`
+        + `<span class="tq-lantern__glow"></span>${lanternSvg()}</div>`;
+}
+
+// ── The sky ──────────────────────────────────────────────────────────────
+
+const CLOUD_SHAPES_BY_TONE = {
+    fair: ['cumulus', 'puff', 'twin', 'cumulus', 'wisp'],
+    grey: ['long', 'cumulus', 'long', 'twin'],
+    rain: ['long', 'fractus', 'long', 'cumulus'],
+    storm: ['anvil', 'tower', 'fractus', 'long'],
+    snow: ['long', 'cumulus', 'long'],
+    fog: ['long', 'wisp', 'long'],
+    ice: ['long', 'fractus', 'long']
+};
+
+/** How many clouds the map's sky shows for a cover. */
+export function mapCloudCount(cover, tier) {
+    const c = Math.min(100, Math.max(0, Number(cover) || 0)) / 100;
+    const count = Math.round(2 + c * 9);
+    return tier === 'full' ? count : Math.max(1, Math.round(count * 0.5));
+}
+
+function cloudsHtml(scene, tier) {
+    const count = mapCloudCount(scene.cover, tier);
+    const shapes = CLOUD_SHAPES_BY_TONE[scene.tone] || CLOUD_SHAPES_BY_TONE.fair;
+    const rng = seededRandom(31 + count);
+    const wind = scene.wind || { factor: 1, dir: 1 };
+    let html = '';
+    for (let i = 0; i < count; i += 1) {
+        const shape = shapes[i % shapes.length];
+        const depth = rng();
+        const width = 9 + depth * 11 + (shape === 'long' || shape === 'anvil' ? 4 : 0);
+        const top = 1 + rng() * 26 + (1 - depth) * 4;
+        const duration = Math.round((220 - depth * 90) / Math.max(0.5, wind.factor));
+        const delay = -Math.round(rng() * duration);
+        html += `<div class="tq-cloud${depth < 0.35 ? ' is-far' : ''}" style="top:${top.toFixed(1)}%;--cw:${width.toFixed(1)}%;--cd:${duration}s;--cdl:${delay}s;--ca:${(0.7 + depth * 0.3).toFixed(2)}">${cloudSvg(shape, Math.floor(rng() * 7))}</div>`;
+    }
+    return html;
+}
+
+function moonSvg(phase) {
+    const lit = moonLitPath(phase, 46, 50, 50);
+    return `<svg viewBox="0 0 100 100" aria-hidden="true">
+        <defs>
+            <radialGradient id="tqMoonLit" cx="0.4" cy="0.38" r="0.7"><stop offset="0" stop-color="#fffdf2"/><stop offset="0.7" stop-color="#f1ead0"/><stop offset="1" stop-color="#d9cfae"/></radialGradient>
+            <clipPath id="tqMoonClip"><path d="${lit || 'M0 0'}"/></clipPath>
+        </defs>
+        <circle cx="50" cy="50" r="46" fill="#2b3566" opacity="0.55"/>
+        <g clip-path="url(#tqMoonClip)">
+            <circle cx="50" cy="50" r="46" fill="url(#tqMoonLit)"/>
+            <circle cx="36" cy="34" r="8" fill="#d8ceb0" opacity="0.7"/><circle cx="60" cy="58" r="11" fill="#d8ceb0" opacity="0.55"/>
+            <circle cx="64" cy="30" r="5" fill="#d8ceb0" opacity="0.6"/><circle cx="40" cy="66" r="6" fill="#d8ceb0" opacity="0.5"/>
+            <circle cx="74" cy="46" r="4" fill="#d8ceb0" opacity="0.55"/>
+        </g>
+    </svg>`;
+}
+
+/** Where the sun or moon sits on its arc (share of the frame), from the real times. */
+export function skyBodyPosition(progress) {
+    const p = Math.min(1, Math.max(0, Number(progress) || 0));
+    return { x: 6 + p * 88, y: 30 - Math.sin(p * Math.PI) * 25 };
+}
+
+/**
+ * Mounts (or finds) the world in a map root.
+ * @param {HTMLElement} root  the `[data-living-quest-map]` element
+ * @param {{ tier: 'full'|'lite'|'still' }} options
+ */
+export function mountQuestWorld(root, { tier = 'full' } = {}) {
+    const world = root.querySelector('[data-quest-world]');
+    const front = root.querySelector('[data-quest-world-front]');
+    const stage = root.querySelector('[data-quest-stage]');
+    if (!world || !front || !stage) return null;
+    if (world.__questScene && !world.__questScene.destroyed) {
+        world.__questScene.setTier(tier);
+        return world.__questScene;
+    }
+
+    const season = seasonFor(Date.now());
+    const art = getArt(season);
+    let currentTier = tier;
+    let paused = false;
+    let destroyed = false;
+    let explored = 0;
+    let leader = null;
+    let sky = null;
+    let gradeKey = '';
+    let bake = null;
+    const timers = new Set();
+    const later = (fn, ms) => {
+        const id = setTimeout(() => { timers.delete(id); fn(); }, ms);
+        timers.add(id);
+        return id;
+    };
+
+    world.dataset.season = season;
+    world.innerHTML = `
+        <div class="tq-world__depth tq-world__depth--sky">
+            <div class="tq-sky"></div>
+            <div class="tq-sky__stars"><span></span><span></span></div>
+            <div class="tq-sky__shooting"><span></span></div>
+            <div class="tq-sky__rays"></div>
+            <div class="tq-sky__sun"><span class="tq-sky__sun-glow"></span><span class="tq-sky__sun-disc"></span></div>
+            <div class="tq-sky__moon" role="img"><span class="tq-sky__moon-glow"></span><span class="tq-sky__moon-disc"></span></div>
+            <div class="tq-sky__rainbow"></div>
+            <div class="tq-sky__clouds"></div>
+        </div>
+        <div class="tq-world__depth tq-world__depth--far"><div class="tq-world__paint" data-layer="far"></div></div>
+        <div class="tq-world__sprites" data-sprites="back"></div>
+        <div class="tq-world__paint tq-world__mid" data-layer="mid"></div>
+        <div class="tq-world__sprites" data-sprites="mid"></div>
+        <div class="tq-cloud-shadows"><span></span><span></span><span></span></div>
+        <div class="tq-world__mists">${art.mists.map(mistHtml).join('')}</div>
+        <div class="tq-world__lanterns">${art.lanterns.map(lanternHtml).join('')}</div>
+        <div class="tq-world__marks">
+            <div class="tq-portal-beam" aria-hidden="true"><span></span></div>
+            <div class="tq-pennant" hidden aria-hidden="true">
+                <span class="tq-pennant__pole"></span>
+                <span class="tq-pennant__cloth"><span class="tq-pennant__logo"></span></span>
+            </div>
+        </div>`;
+    front.innerHTML = `
+        <div class="tq-world__depth tq-world__depth--near"><div class="tq-world__paint" data-layer="near"></div></div>
+        <div class="tq-weather">
+            <div class="tq-weather__fog"><span></span><span></span><span></span></div>
+            <div class="tq-weather__rain"><span></span><span></span></div>
+            <div class="tq-weather__snow"><span></span><span></span><span></span></div>
+            <div class="tq-weather__splash"><span></span><span></span><span></span><span></span><span></span></div>
+            <div class="tq-weather__bolt"><svg viewBox="0 0 60 160" aria-hidden="true"><path d=""/></svg></div>
+            <div class="tq-weather__flash"></div>
+        </div>
+        <div class="tq-world__vignette"></div>`;
+
+    // Paper grain over everything, sky included (one static tile, made once per page).
+    paperUrl ||= URL.createObjectURL(new Blob([art.paper], { type: 'image/svg+xml' }));
+    front.querySelector('.tq-world__vignette').style.setProperty('--tq-paper', `url("${paperUrl}")`);
+
+    const slots = {
+        far: world.querySelector('[data-layer="far"]'),
+        mid: world.querySelector('[data-layer="mid"]'),
+        near: front.querySelector('[data-layer="near"]')
+    };
+
+    // ── The painted land ──────────────────────────────────────────────────
+    const gradeLayers = ({ fade = true } = {}) => {
+        if (!bake || !sky) return;
+        const grade = landGrade(sky.light, sky.tone);
+        if (grade.key === gradeKey) return;
+        gradeKey = grade.key;
+        const crossfade = fade && currentTier === 'full' && !paused;
+        ['far', 'mid', 'near'].forEach((name) => {
+            const slot = slots[name];
+            const canvas = document.createElement('canvas');
+            canvas.width = bake.width;
+            canvas.height = bake.height;
+            canvas.className = 'tq-world__canvas';
+            gradeInto(canvas, bake[name], grade, { lights: name === 'mid' ? { halo: bake.halo, panes: bake.panes } : null });
+            const old = [...slot.children];
+            if (!crossfade || !old.length) {
+                slot.replaceChildren(canvas);
+                return;
+            }
+            canvas.classList.add('is-entering');
+            slot.appendChild(canvas);
+            requestAnimationFrame(() => requestAnimationFrame(() => canvas.classList.remove('is-entering')));
+            later(() => old.forEach((el) => el.remove()), 1700);
+        });
+    };
+
+    const frameWidth = () => root.querySelector('.tq-living-map__frame')?.clientWidth || root.clientWidth || 1200;
+    const bakeWidth = bakeWidthFor(frameWidth(), { dpr: window.devicePixelRatio || 1, lite: currentTier !== 'full' });
+    const paintStarted = performance.now();
+    const ready = getBake(art, bakeWidth).then((pictures) => {
+        if (destroyed) return;
+        bake = pictures;
+        // For support: how the land was painted this time (fresh or from the device cache).
+        world.dataset.paint = `${pictures.fromCache ? 'cache' : 'fresh'}:${pictures.width}:${Math.round(performance.now() - paintStarted)}ms`;
+        gradeLayers({ fade: false });
+        world.classList.add('is-ready');
+        front.classList.add('is-ready');
+    }).catch((error) => {
+        console.warn('Quest World could not paint the land.', error);
+        world.classList.add('is-ready', 'is-unpainted');
+        front.classList.add('is-ready');
+    });
+
+    // ── Sprites, by tier ──────────────────────────────────────────────────
+    const renderSprites = () => {
+        const plan = scenePlan(currentTier, art.sprites);
+        const html = { back: '', mid: '' };
+        plan.sprites.forEach((sprite) => { html[sprite.slot] += spriteHtml(sprite); });
+        world.querySelector('[data-sprites="back"]').innerHTML = html.back;
+        world.querySelector('[data-sprites="mid"]').innerHTML = html.mid;
+        world.dataset.tier = currentTier;
+        front.dataset.tier = currentTier;
+    };
+    renderSprites();
+
+    // ── The sky: the app's live scene ────────────────────────────────────
+    const sunEl = world.querySelector('.tq-sky__sun');
+    const moonEl = world.querySelector('.tq-sky__moon');
+    const raysEl = world.querySelector('.tq-sky__rays');
+    const cloudsEl = world.querySelector('.tq-sky__clouds');
+    let cloudsKey = '';
+    let moonPhaseKey = -1;
+    let skyClock = null;
+
+    const placeSkyBodies = () => {
+        if (!sky) return;
+        const clock = skyClock || { now: Date.now(), ...getSolarTimes() };
+        const { now, sunrise, sunset } = clock;
+        const span = currentLightSpan(now, sunrise, sunset);
+        const body = skyBodyPosition(span.progress);
+        const target = span.isDay ? sunEl : moonEl;
+        target.style.left = `${body.x.toFixed(2)}%`;
+        target.style.top = `${body.y.toFixed(2)}%`;
+        raysEl.style.left = sunEl.style.left;
+        raysEl.style.top = sunEl.style.top;
+        const phase = moonPhase(now);
+        const phaseKey = Math.round(phase * 200);
+        if (phaseKey !== moonPhaseKey) {
+            moonPhaseKey = phaseKey;
+            moonEl.querySelector('.tq-sky__moon-disc').innerHTML = moonSvg(phase);
+            moonEl.setAttribute('aria-label', moonPhaseName(phase));
+        }
+    };
+
+    const applySky = (scene) => {
+        if (!scene || destroyed) return;
+        sky = scene;
+        const d = world.dataset;
+        d.light = scene.light;
+        d.tone = scene.tone;
+        d.wx = scene.condition;
+        d.intensity = scene.intensity || 'normal';
+        d.night = scene.isNight ? '1' : '0';
+        d.sun = scene.sun ? '1' : '0';
+        d.moon = scene.moon ? '1' : '0';
+        d.stars = !scene.stars ? '0' : scene.shootingStars ? '2' : '1';
+        d.rainbow = scene.rainbow ? '1' : '0';
+        d.wind = scene.wind?.level || 'calm';
+        d.windDir = String(scene.wind?.dir || 1);
+        Object.assign(front.dataset, {
+            light: scene.light,
+            tone: scene.tone,
+            wx: scene.condition,
+            intensity: scene.intensity || 'normal',
+            precip: scene.precip || 'none',
+            fog: scene.fog ? '1' : '0',
+            night: scene.isNight ? '1' : '0'
+        });
+        root.style.setProperty('--tq-wind', String(scene.wind?.factor || 1));
+        root.style.setProperty('--tq-wind-dir', String(scene.wind?.dir || 1));
+        const key = `${scene.tone}:${mapCloudCount(scene.cover, currentTier)}:${Math.round((scene.wind?.factor || 1) * 4)}:${scene.wind?.dir || 1}`;
+        if (key !== cloudsKey) {
+            cloudsKey = key;
+            cloudsEl.innerHTML = cloudsHtml(scene, currentTier);
+        }
+        placeSkyBodies();
+        gradeLayers();
+        setLightning(Boolean(scene.lightning) && currentTier !== 'still');
+    };
+
+    const initialScene = () => {
+        const existing = getSkyScene();
+        if (existing) return existing;
+        // The app paints its sky at start-up; if it has not yet, paint it the way
+        // the app does without a reading (the same fallback the header uses).
+        const scene = computeSkyScene(getLastSkyReading(), { now: Date.now(), ...getSolarTimes() });
+        applySkyScene(scene);
+        return getSkyScene() || scene;
+    };
+
+    // ── Lightning (storms) ───────────────────────────────────────────────
+    let lightningTimer = 0;
+    const boltWrap = front.querySelector('.tq-weather__bolt');
+    const strike = () => {
+        lightningTimer = 0;
+        if (destroyed || !sky?.lightning) return;
+        if (!paused) {
+            boltWrap.querySelector('path').setAttribute('d', BOLT_PATHS[Math.floor(Math.random() * BOLT_PATHS.length)]);
+            boltWrap.style.left = `${(14 + Math.random() * 64).toFixed(1)}%`;
+            front.classList.remove('is-striking');
+            void front.offsetWidth;
+            front.classList.add('is-striking');
+        }
+        lightningTimer = later(strike, 6500 + Math.random() * 9000);
+    };
+    const setLightning = (on) => {
+        if (on && !lightningTimer) lightningTimer = later(strike, 2000 + Math.random() * 3000);
+        if (!on && lightningTimer) {
+            clearTimeout(lightningTimer);
+            timers.delete(lightningTimer);
+            lightningTimer = 0;
+        }
+    };
+
+    // ── Explored road: mists lift, lanterns light, the leader's pennant ───
+    const mists = [...world.querySelectorAll('.tq-mist')];
+    const lanterns = [...world.querySelectorAll('.tq-lantern')];
+    const pennant = world.querySelector('.tq-pennant');
+
+    const placePennant = () => {
+        if (!leader) { pennant.hidden = true; return; }
+        const realm = furthestRealm(explored);
+        const spot = art.landmarks[realm];
+        pennant.hidden = false;
+        pennant.dataset.realm = realm;
+        pennant.style.cssText = boxStyle({ x: spot.x - 1.5, y: spot.y - 58, w: 46, h: 58 });
+        pennant.querySelector('.tq-pennant__logo').textContent = leader.logo || '★';
+        pennant.title = leader.name ? `${leader.name} leads the quest` : '';
+    };
+
+    const setExplored = (value, { animate = false } = {}) => {
+        const previous = explored;
+        explored = Math.min(100, Math.max(0, Number(value) || 0));
+        const states = realmStates(explored);
+        mists.forEach((mist) => { mist.dataset.state = states[mist.dataset.realm] || 'awake'; });
+        const lit = litLanternCount(explored);
+        const wasLit = litLanternCount(previous);
+        lanterns.forEach((lantern, index) => {
+            const on = index < lit;
+            const step = Math.max(0, index - wasLit);
+            lantern.style.transitionDelay = animate && on && index >= wasLit ? `${step * 160}ms` : '0ms';
+            lantern.classList.toggle('is-lit', on);
+        });
+        // The Portal sends a beam of light into the sky once a party arrives.
+        world.classList.toggle('is-portal-open', explored >= 100);
+        placePennant();
+    };
+
+    const celebrateRealm = (progress) => {
+        const zone = QUEST_MAP_ZONES.find((candidate) => candidate.minPercent === Number(progress));
+        if (!zone) return;
+        if (explored < zone.minPercent) setExplored(zone.minPercent, { animate: true });
+        if (currentTier !== 'full') return;
+        const spot = art.landmarks[zone.id];
+        const burst = document.createElement('div');
+        burst.className = `tq-burst tq-burst--${zone.id}`;
+        burst.setAttribute('aria-hidden', 'true');
+        burst.style.cssText = boxStyle({ x: spot.x - 70, y: spot.y - 40, w: 140, h: 140 });
+        burst.innerHTML = '<span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><i></i>';
+        world.querySelector('.tq-world__marks').appendChild(burst);
+        later(() => burst.remove(), 2200);
+    };
+
+    // ── The diorama: tilt, pointer parallax and the camera glide ─────────
+    const depthEls = {
+        sky: world.querySelector('.tq-world__depth--sky'),
+        far: world.querySelector('.tq-world__depth--far'),
+        near: front.querySelector('.tq-world__depth--near')
+    };
+    const DEPTH = { sky: 0.12, far: 0.32, stage: 0.6, near: 1 };
+    const SWAY_X = 18;
+    const SWAY_Y = 8;
+    // The pointer target is written a few times a second; a CSS transition on
+    // the layers glides between targets on the compositor (quest_world.css),
+    // so the main thread does almost nothing while the mouse moves.
+    const PARALLAX_STEP_MS = 110;
+    const pointer = { x: 0, y: 0 };
+    let parallaxTimer = 0;
+    let frameRect = null;
+    let glide = null;
+
+    const settings = () => SCENE_TIERS[currentTier] || SCENE_TIERS.lite;
+    const tiltDeg = () => Number(root.dataset.tilt) || 0;
+
+    const writeStage = () => {
+        const tilt = tiltDeg();
+        const { parallax } = settings();
+        if (!tilt && !parallax && !glide) {
+            stage.style.transform = '';
+            Object.values(depthEls).forEach((el) => { el.style.transform = ''; });
+            return;
+        }
+        const scale = (tilt ? 1.05 : 1.02) * (glide ? glide.zoom : 1);
+        const sx = glide ? 0 : -SWAY_X * DEPTH.stage * pointer.x;
+        const sy = glide ? 0 : -SWAY_Y * DEPTH.stage * pointer.y;
+        stage.style.transform = `translate3d(${sx.toFixed(2)}px, ${sy.toFixed(2)}px, 0)${tilt ? ` rotateX(${tilt}deg)` : ''} scale(${scale.toFixed(4)})`;
+        Object.entries(depthEls).forEach(([layer, el]) => {
+            const k = DEPTH[layer] - DEPTH.stage;
+            const dx = glide ? 0 : -SWAY_X * k * pointer.x;
+            const dy = glide ? 0 : -SWAY_Y * k * pointer.y;
+            el.style.transform = `translate3d(${dx.toFixed(2)}px, ${dy.toFixed(2)}px, 0)`;
+        });
+    };
+
+    const flushParallax = () => {
+        parallaxTimer = 0;
+        if (destroyed || paused || glide) return;
+        writeStage();
+    };
+    const queueParallax = () => {
+        if (!parallaxTimer && settings().parallax) parallaxTimer = setTimeout(flushParallax, PARALLAX_STEP_MS);
+    };
+
+    const listeners = new AbortController();
+    root.addEventListener('pointerenter', () => {
+        frameRect = root.getBoundingClientRect();
+    }, { passive: true, signal: listeners.signal });
+    root.addEventListener('pointermove', (event) => {
+        if (event.pointerType !== 'mouse' || !settings().parallax) return;
+        frameRect ||= root.getBoundingClientRect();
+        if (!frameRect.width) return;
+        pointer.x = Math.max(-1, Math.min(1, ((event.clientX - frameRect.left) / frameRect.width - 0.5) * 2));
+        pointer.y = Math.max(-1, Math.min(1, ((event.clientY - frameRect.top) / frameRect.height - 0.5) * 2));
+        queueParallax();
+    }, { passive: true, signal: listeners.signal });
+    root.addEventListener('pointerleave', () => {
+        pointer.x = 0;
+        pointer.y = 0;
+        frameRect = null;
+        queueParallax();
+    }, { signal: listeners.signal });
+    window.addEventListener('gcq:sky-scene', (event) => applySky(event.detail?.scene), { signal: listeners.signal });
+
+    /** Zooms gently toward a world point; resolves once the camera has settled. */
+    const glideTo = (x, y) => new Promise((resolve) => {
+        if (currentTier !== 'full') { resolve(); return; }
+        glide = { zoom: 1.14 };
+        clearTimeout(parallaxTimer);
+        parallaxTimer = 0;
+        stage.classList.add('is-gliding');
+        stage.style.transformOrigin = `${pct(x, WORLD_W)} ${pct(y, WORLD_H)}`;
+        writeStage();
+        later(resolve, 760);
+    });
+    const release = () => {
+        if (!glide) return;
+        glide = null;
+        stage.style.transformOrigin = '';
+        writeStage();
+        later(() => { if (!glide) stage.classList.remove('is-gliding'); }, 760);
+    };
+
+    // Sun and moon walk their arcs; the app's own minute tick moves the light.
+    const skyTimer = setInterval(() => {
+        if (!world.isConnected) { scene.destroy(); return; }
+        if (!paused) placeSkyBodies();
+    }, 60 * 1000);
+
+    const scene = {
+        ready,
+        get destroyed() { return destroyed; },
+        get sky() { return sky; },
+        setTier(next) {
+            if (destroyed || !next || next === currentTier) return;
+            currentTier = next;
+            if (!settings().parallax) { pointer.x = 0; pointer.y = 0; }
+            if (currentTier !== 'full') release();
+            renderSprites();
+            cloudsKey = '';
+            if (sky) applySky(sky);
+            writeStage();
+        },
+        setPaused(next) {
+            paused = Boolean(next);
+            if (paused) {
+                clearTimeout(parallaxTimer);
+                parallaxTimer = 0;
+            } else if (!world.isConnected) {
+                scene.destroy();
+            } else {
+                placeSkyBodies();
+            }
+        },
+        /** Shows a given sky scene and clock (the preview page uses this; the map follows the app's sky). */
+        setSky(next, clock = null) {
+            skyClock = clock;
+            moonPhaseKey = -1;
+            applySky(next);
+        },
+        setExplored,
+        celebrateRealm,
+        setLeader(next) {
+            leader = next && (next.logo || next.name) ? { logo: next.logo, name: next.name } : null;
+            placePennant();
+        },
+        glideTo,
+        release,
+        refreshStage: writeStage,
+        destroy() {
+            if (destroyed) return;
+            destroyed = true;
+            clearInterval(skyTimer);
+            timers.forEach((id) => clearTimeout(id));
+            timers.clear();
+            clearTimeout(parallaxTimer);
+            listeners.abort();
+            if (world.__questScene === scene) world.__questScene = null;
+        }
+    };
+
+    world.__questScene = scene;
+    applySky(initialScene());
+    writeStage();
+    return scene;
+}

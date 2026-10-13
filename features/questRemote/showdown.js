@@ -28,7 +28,7 @@ import {
     showdownWinners, showdownPanel, isGrowthLeague, showdownBarLevels, showdownAnswerer, showdownGoalText, showdownRewardIds,
     showdownTeamLooks, normalizeShowdownRules, removeShowdownMembers
 } from './remoteCore.mjs';
-import { showdownHtml, showdownFinaleHtml, growthFlower, seatHtml, deckCardHtml, clockHtml, heartsHtml, chestHtml, paidBannerHtml } from './remoteStageView.mjs';
+import { showdownHtml, showdownFinaleHtml, growthFlower, seatHtml, deckCardHtml, clockHtml, heartsHtml, chestHtml, paidBannerHtml, modeSplashHtml } from './remoteStageView.mjs';
 import { burstOn, confettiRain, isLiteFx, isStillFx, sparkTo, centreOf } from './remoteFx.js';
 
 const ROOT_ID = 'qr-showdown';
@@ -335,6 +335,21 @@ function popFaces(lane, answerer) {
     if (one) { restartAnim(one, 'is-scored'); return; }
     const crew = lane.querySelector('.qr-lane__crew');
     if (crew) restartAnim(crew, 'is-cheer');
+}
+
+/** The game's title card (Race, Tug of War, Survivor, Treasure Hunt): it rises, holds, and melts away. */
+function showSplash() {
+    const el = root();
+    const html = modeSplashHtml(sd);
+    if (!el || !html) return;
+    el.querySelector('[data-qr-splash]')?.remove();
+    // once the arena has faded in, so the card lands on the stage the class can already see
+    setTimeout(() => {
+        if (root() !== el || !el.classList.contains('is-in')) return;
+        el.insertAdjacentHTML('beforeend', html);
+        const splash = el.querySelector('[data-qr-splash]');
+        setTimeout(() => splash?.remove(), isStillFx() ? 1800 : 2900);
+    }, isStillFx() ? 0 : 420);
 }
 
 /** The roll call: every team's faces pop in one after another with their names, then the names tuck away. */
@@ -726,6 +741,7 @@ export async function runShowdownCommand(p, ctx) {
             watchAttendance();
             openArena();
             playShowdownSfx('open', { teams: sd.teams.length });
+            showSplash();
             rollCall();
             armClock(deck.length ? 3600 : 3000);
             ctx.scheduleStage(0);
@@ -890,6 +906,7 @@ export async function runShowdownCommand(p, ctx) {
             deck = [...deck].sort(() => Math.random() - 0.5);
             openArena();
             playShowdownSfx('open', { teams: sd.teams.length });
+            showSplash();
             armClock(3000);
             ctx.scheduleStage(0);
             return 'Rematch! Same teams, fresh scores';

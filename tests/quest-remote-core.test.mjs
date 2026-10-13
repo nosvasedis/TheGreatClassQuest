@@ -1030,3 +1030,47 @@ test('Showdown stars go to monthly and total stars with a logbook row, never to 
     assert.match(html, /Showdown stars/);
     assert.match(html, /Today's stars are untouched/);
 });
+
+test('Showdown hot seat: every hero once a lap, a fresh order each lap, so the pairs keep changing', async () => {
+    const core = await import('../features/questRemote/remoteCore.mjs');
+    const view = await import('../features/questRemote/remoteStageView.mjs');
+    let seed = 7;
+    const rng = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+    const teams = [{ name: 'A', members: ['a1', 'a2', 'a3', 'a4'] }, { name: 'B', members: ['b1', 'b2', 'b3', 'b4'] }];
+    let sd = core.createShowdown(teams, { rules: { hotseat: true }, rng });
+    const laps = [];
+    let lastA = '';
+    for (let lap = 0; lap < 4; lap++) {
+        const pairs = [];
+        const seenA = new Set();
+        for (let q = 0; q < 4; q++) {
+            const a = core.showdownAnswerer(sd, 0);
+            const b = core.showdownAnswerer(sd, 1);
+            assert.notEqual(a, lastA, 'nobody answers twice in a row');
+            lastA = a;
+            seenA.add(a);
+            pairs.push(`${a}-${b}`);
+            sd = core.nextShowdownQuestion(sd, { rng });
+        }
+        assert.equal(seenA.size, 4, 'everyone once a lap');
+        laps.push(pairs.sort().join(','));
+    }
+    assert.ok(new Set(laps).size > 1, 'the pairs are not the same every lap');
+    // Undo puts the same hero back at the microphone, even across a reshuffle
+    const before = core.showdownAnswerer(sd, 0);
+    const moved = core.nextShowdownQuestion(sd, { rng });
+    assert.equal(core.showdownAnswerer(core.undoShowdown(moved), 0), before);
+    // a knocked-out team has nobody at the microphone
+    let sv = core.createShowdown(teams, { rules: { hotseat: true, mode: 'survivor', lives: 1 } });
+    sv = core.missShowdown(sv, 1);
+    assert.equal(core.showdownAnswerer(sv, 1), '');
+    // Survivor bars are the hearts left; every game has its own title card
+    const sv2 = core.missShowdown(core.createShowdown(teams, { rules: { mode: 'survivor', lives: 4 } }), 0);
+    assert.deepEqual(core.showdownBarLevels(sv2), [0.75, 1]);
+    for (const mode of ['race', 'tug', 'survivor', 'treasure']) {
+        const html = view.modeSplashHtml(core.createShowdown(teams, { rules: { mode } }));
+        assert.match(html, new RegExp(`qr-splash--${mode}`));
+    }
+    assert.equal(view.modeSplashHtml(core.createShowdown(teams, { growth: true })), '');
+    assert.match(view.showdownHtml(core.createShowdown(teams)), /qr-lane__runner/);
+});

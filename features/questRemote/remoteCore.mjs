@@ -600,7 +600,8 @@ function shuffled(list, rng = Math.random) {
 /**
  * A new showdown. teams: [{ name, members?, color?, emoji?, dragon? }] (2–8). `growth` (Nursery /
  * Pre-Junior) keeps every number off the screen: teams grow flowers, nobody ranks, no bonuses, and a
- * "first to N points" goal becomes "N questions". The hot seat order is shuffled once per show.
+ * "first to N points" goal becomes "N questions". The hot seat order is shuffled for the show and
+ * again after every lap (nextSeat), so the heroes who face each other keep changing.
  */
 export function createShowdown(teams, { growth = false, title = 'Showdown', rules = null, rng = Math.random } = {}) {
     const list = (Array.isArray(teams) ? teams : []).slice(0, 8);
@@ -658,13 +659,13 @@ export function rematchShowdown(sd, { rng = Math.random } = {}) {
 /** Who is in the hot seat for a team right now ('' when the hot seat is off or the team has nobody). */
 export function showdownAnswerer(sd, teamIndex) {
     const t = sd?.teams?.[teamIndex];
-    if (!t || !sd.rules?.hotseat || t.dragon || !t.order.length) return '';
+    if (!t || !sd.rules?.hotseat || t.dragon || t.out || !t.order.length) return '';
     return t.order[t.seat % t.order.length];
 }
 
 function snapshotOf(sd) {
     return {
-        scores: sd.teams.map((t) => [t.score, t.streak, t.seat, t.lives, t.out, t.dbl]),
+        scores: sd.teams.map((t) => [t.score, t.streak, t.seat, t.lives, t.out, t.dbl, t.order]),
         round: sd.round, golden: sd.golden, finished: sd.finished, reached: sd.reached, lastScorer: sd.lastScorer,
         roundScorers: [...sd.roundScorers], prevScorers: [...sd.prevScorers], credits: { ...sd.credits }
     };
@@ -684,13 +685,26 @@ function goalReached(sd) {
 }
 
 /** The question is over: streaks of teams that did not score break, the hot seats move on, golden is spent. */
-function advance(sd) {
+/**
+ * The microphone moves to the team's next hero. After everyone has had a turn (a lap), the team's
+ * order is shuffled again, on its own: the heroes who face each other at the same question change
+ * every lap, so the same pairs never meet again and again. Nobody answers twice in a row.
+ */
+function nextSeat(t, rng = Math.random) {
+    if (t.dragon || !t.order.length) return t;
+    if (t.seat + 1 < t.order.length) return { ...t, seat: t.seat + 1 };
+    let order = shuffled(t.order, rng);
+    const last = t.order[t.order.length - 1];
+    if (order.length > 1 && order[0] === last) order = [...order.slice(1), order[0]];
+    return { ...t, order, seat: 0 };
+}
+
+function advance(sd, rng = Math.random) {
     const scored = new Set(sd.roundScorers);
-    const teams = sd.teams.map((t, i) => ({
-        ...t,
-        streak: scored.has(i) ? t.streak : 0,
-        seat: sd.rules?.hotseat && !t.dragon && t.order.length ? (t.seat + 1) % t.order.length : t.seat
-    }));
+    const teams = sd.teams.map((t, i) => {
+        const next = { ...t, streak: scored.has(i) ? t.streak : 0 };
+        return sd.rules?.hotseat ? nextSeat(next, rng) : next;
+    });
     return { ...sd, teams, round: sd.round + 1, prevScorers: [...scored], roundScorers: [], golden: false };
 }
 
@@ -775,7 +789,7 @@ export function scoreShowdownTeams(sd, indices, points = 1, { rng = Math.random 
         gains.push(out.lastGain);
     }
     out = { ...out, history, lastGain: gains[0], lastGains: gains };
-    if (base > 0 && (sd.rules || SHOWDOWN_RULES_DEFAULT).style !== 'all') out = advance(out);
+    if (base > 0 && (sd.rules || SHOWDOWN_RULES_DEFAULT).style !== 'all') out = advance(out, rng);
     return { ...out, reached: goalReached(out) };
 }
 
@@ -810,16 +824,16 @@ export function missShowdown(sd, teamIndex) {
 }
 
 /** Next question (in Buzz-in style: nobody got it). */
-export function nextShowdownQuestion(sd) {
+export function nextShowdownQuestion(sd, { rng = Math.random } = {}) {
     if (!sd || sd.finished) return sd;
-    const out = advance({ ...sd, history: withHistory(sd), lastGain: null });
+    const out = advance({ ...sd, history: withHistory(sd), lastGain: null }, rng);
     return { ...out, reached: goalReached(out) };
 }
 
 /** The hot seat passes to the next hero in every team without ending the question. */
-export function passShowdownSeats(sd) {
+export function passShowdownSeats(sd, { rng = Math.random } = {}) {
     if (!sd || sd.finished || !sd.rules?.hotseat) return sd;
-    const teams = sd.teams.map((t) => (t.dragon || !t.order.length ? t : { ...t, seat: (t.seat + 1) % t.order.length }));
+    const teams = sd.teams.map((t) => nextSeat(t, rng));
     return { ...sd, teams, history: withHistory(sd) };
 }
 
@@ -833,8 +847,11 @@ export function undoShowdown(sd) {
     const last = sd?.history?.[sd.history.length - 1];
     if (!last) return sd;
     const teams = sd.teams.map((t, i) => {
-        const [score, streak, seat, lives = t.lives, out = t.out, dbl = t.dbl] = last.scores[i] || [t.score, t.streak, t.seat];
-        return { ...t, score, streak, seat, lives, out: Boolean(out), dbl: Boolean(dbl) };
+        const [score, streak, seat, lives = t.lives, out = t.out, dbl = t.dbl, order = t.order] = last.scores[i] || [t.score, t.streak, t.seat];
+        // a hero who left since (marked absent) never comes back to the microphone through an Undo
+        const here = new Set(t.members);
+        const kept = (order || t.order).filter((id) => here.has(id));
+        return { ...t, score, streak, seat: kept.length ? Math.min(seat, kept.length - 1) : 0, order: kept.length ? kept : t.order, lives, out: Boolean(out), dbl: Boolean(dbl) };
     });
     return {
         ...sd, teams, round: last.round, golden: last.golden, finished: last.finished, reached: last.reached,
@@ -920,6 +937,8 @@ export function showdownBarLevels(sd) {
         const k = 0.5 + Math.max(-1, Math.min(1, (teams[0].score - teams[1].score) / sd.rules.tugN)) / 2;
         return [k, 1 - k];
     }
+    // Survivor: the bar is the team's hearts (it drains with every miss)
+    if (sd?.rules?.mode === 'survivor') return teams.map((t) => (t.out ? 0.03 : Math.max(0.06, t.lives / Math.max(1, sd.rules.lives))));
     if (sd?.rules?.goal === 'points') return teams.map((t) => Math.min(1, Math.max(0.06, t.score / sd.rules.goalN)));
     const max = Math.max(0, ...teams.map((t) => t.score));
     return teams.map((t) => (max === 0 ? 0.06 : Math.max(0.06, t.score / max)));

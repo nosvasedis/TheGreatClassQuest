@@ -160,18 +160,42 @@ export function crewHtml(sd, team, index, faceOf = () => null) {
 
 /** How each game introduces itself on the projector: the eyebrow, its icon, and the one-line rule. */
 export const SHOWDOWN_MODE_LOOKS = Object.freeze({
-    race: { eyebrow: 'Showdown Arena', icon: 'fa-bolt', rule: '' },
+    race: { eyebrow: 'Showdown Arena', icon: 'fa-flag-checkered', rule: '' },
     tug: { eyebrow: 'Tug of War', icon: 'fa-arrows-left-right', rule: 'Every point pulls the rope your way' },
     survivor: { eyebrow: 'Survivor', icon: 'fa-heart', rule: 'A wrong answer costs a heart · the last team standing wins' },
     treasure: { eyebrow: 'Treasure Showdown', icon: 'fa-gem', rule: 'Every point opens a chest: coins, a steal, or a double' }
 });
+
+const MODE_SPLASH = {
+    race: { title: 'The Race', icon: 'fa-flag-checkered' },
+    tug: { title: 'Tug of War', icon: 'fa-arrows-left-right' },
+    survivor: { title: 'Survivor', icon: 'fa-heart' },
+    treasure: { title: 'Treasure Hunt', icon: 'fa-gem' }
+};
+
+/** The game's title card as the arena opens: what this game is and how to win, in one line. */
+export function modeSplashHtml(sd) {
+    if (!sd || sd.growth) return '';
+    const r = sd.rules || {};
+    const mode = MODE_SPLASH[r.mode] ? r.mode : 'race';
+    const look = MODE_SPLASH[mode];
+    const rule = mode === 'tug' ? `Every point pulls the rope your way · pull ${r.tugN} ahead to win`
+        : mode === 'survivor' ? `${r.lives} heart${r.lives === 1 ? '' : 's'} each · a wrong answer costs one · the last team standing wins`
+            : mode === 'treasure' ? 'Every point opens a treasure chest: coins, a double, or a steal'
+                : r.goal === 'points' ? `Climb to ${r.goalN} first` : r.goal === 'questions' ? `${r.goalN} questions · the most points wins` : 'Answer right, climb higher · the most points wins';
+    return `<div class="qr-splash qr-splash--${mode}" data-qr-splash aria-hidden="true">
+        <span class="qr-splash__icon"><i class="fas ${look.icon}"></i></span>
+        <b class="qr-splash__title">${esc(look.title)}</b>
+        <span class="qr-splash__rule">${esc(rule)}</span>
+    </div>`;
+}
 
 /** Survivor: a team's hearts (full ones first, lost ones as cracked outlines). */
 export function heartsHtml(lives, max) {
     const n = Math.max(0, Math.min(5, Number(max) || 0));
     if (!n) return '';
     const left = Math.max(0, Math.min(n, Number(lives) || 0));
-    const hearts = Array.from({ length: n }, (_, i) => `<i class="qr-heart${i < left ? '' : ' is-lost'}" style="--i:${i}"><i class="fas ${i < left ? 'fa-heart' : 'fa-heart-crack'}"></i></i>`).join('');
+    const hearts = Array.from({ length: n }, (_, i) => `<i class="qr-heart${i < left ? (left === 1 ? ' is-last' : '') : ' is-lost'}" style="--i:${i}"><i class="fas ${i < left ? 'fa-heart' : 'fa-heart-crack'}"></i></i>`).join('');
     return `<span class="qr-lane__hearts" data-qr-hearts aria-label="${left} heart${left === 1 ? '' : 's'} left">${hearts}</span>`;
 }
 
@@ -223,6 +247,7 @@ function laneHtml(sd, team, index, level, nameOf, faceOf) {
         <div class="qr-lane__track">${finish}<div class="qr-lane__bar"><span class="qr-lane__shine" aria-hidden="true"></span></div>
             ${team.streak >= 2 ? `<span class="qr-lane__streak" aria-label="${team.streak} in a row"><i class="fas fa-fire"></i>${team.streak}</span>` : ''}
             <span class="qr-lane__tick" aria-hidden="true"><i class="fas fa-check"></i></span>
+            ${mode === 'race' ? `<span class="qr-lane__runner" aria-hidden="true">${badge}</span>` : ''}
             ${mode === 'survivor' ? heartsHtml(team.lives, sd.rules.lives) : ''}
             ${mode === 'treasure' ? `<span class="qr-lane__dbl" data-qr-dbl${team.dbl ? '' : ' hidden'}><i class="fas fa-gem" aria-hidden="true"></i>×2</span>` : ''}
             ${mode === 'survivor' ? `<span class="qr-lane__stamp" data-qr-stamp${team.out ? '' : ' hidden'}>Out</span>` : ''}

@@ -39,6 +39,8 @@ import {
 import { grantStallTreasure, loadLeagueStall } from './stallTreasure.js';
 import { getLiveYearGold, getLiveYearGoldContextFromState } from '../../utils/yearGold.js';
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
+import { monthlyStarsChange } from './monthlyStars.js';
+import { getStartOfMonthString } from '../../utils.js';
 
 
 function weekKey() {
@@ -484,7 +486,7 @@ export async function distributeQuizRewards(classId, results, { attempts = [] } 
                     const updates = { gold: current + hero.gold };
                     if (hero.stars > 0) {
                         updates.totalStars = increment(hero.stars);
-                        updates.monthlyStars = increment(hero.stars);
+                        Object.assign(updates, monthlyStarsChange(transaction, hero.studentId, scoreSnap.data(), hero.stars));
                     }
                     transaction.update(scoreRef, updates);
                 } else {
@@ -492,6 +494,7 @@ export async function distributeQuizRewards(classId, results, { attempts = [] } 
                     transaction.set(scoreRef, withActiveScoreYear({
                         totalStars: hero.stars,
                         monthlyStars: hero.stars,
+                        lastMonthlyResetDate: getStartOfMonthString(),
                         gold: hero.gold,
                         inventory: [],
                         createdBy: student?.createdBy || teacher

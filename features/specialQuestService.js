@@ -6,6 +6,8 @@ import { getLiveYearGold, getLiveYearGoldContextFromState } from '../utils/yearG
 import { updateGuildScores } from './guildScoring.js';
 import { reconcileFamiliarLifecycle } from './familiars.js';
 import { dataPath } from '../utils/tenant.mjs';
+import { monthlyStarsChange } from '../db/actions/monthlyStars.js';
+import { getStartOfMonthString } from '../utils.js';
 
 
 export function questRunId(eventId) { return String(eventId); }
@@ -87,8 +89,8 @@ export async function completeQuestRun(event, { recipientIds, completedBy = stat
         for (const { write, score, student } of studentSnapshots) {
             if (!student.exists()) continue;
             const scoreData = score.exists() ? score.data() : {};
-            if (score.exists()) transaction.update(write.scoreRef, { totalStars: increment(stars), monthlyStars: increment(stars), gold: increment(stars) });
-            else transaction.set(write.scoreRef, withSchoolYear({ totalStars: stars, monthlyStars: stars, gold: stars, inventory: [], createdBy: student.data().createdBy || { uid: state.get('currentUserId'), name: state.get('currentTeacherName') } }, state.getActiveSchoolYearKey()));
+            if (score.exists()) transaction.update(write.scoreRef, { totalStars: increment(stars), ...monthlyStarsChange(transaction, write.studentId, scoreData, stars), gold: increment(stars) });
+            else transaction.set(write.scoreRef, withSchoolYear({ totalStars: stars, monthlyStars: stars, lastMonthlyResetDate: getStartOfMonthString(), gold: stars, inventory: [], createdBy: student.data().createdBy || { uid: state.get('currentUserId'), name: state.get('currentTeacherName') } }, state.getActiveSchoolYearKey()));
             transaction.set(write.awardRef, withSchoolYear({ studentId: write.studentId, classId: freshData.classId, teacherId: state.get('currentUserId'), stars, appliedStarCredit: stars, reason: 'special_quest', questType: normalized.type, eventId: event.id, actionId, date: freshData.dateKey, createdAt: serverTimestamp(), createdBy: { uid: completedBy, name: state.get('currentTeacherName') } }, state.getActiveSchoolYearKey()));
         }
         transaction.set(actionRef, withSchoolYear({ schemaVersion: 1, type: 'completion', eventId: event.id, runId: runRef.id, runVersion: freshData.runVersion, classId: freshData.classId, schoolYearKey: state.getActiveSchoolYearKey(), recipientIds: recipients, starsPerRecipient: stars, totalStars: stars * recipients.length, totalGold: stars * recipients.length, coreStatus: 'applied', effects: { guild: 'pending', familiars: 'pending' }, effectsVersion: IDEMPOTENT_EFFECTS_VERSION, createdBy: completedBy, createdAt: serverTimestamp() }, state.getActiveSchoolYearKey()));

@@ -11,6 +11,7 @@ import { LEGENDARY_ARTIFACTS } from '../../features/powerUps.js';
 import { withActiveScoreYear, withSchoolYear } from '../../utils/schoolYear.js';
 import { getLiveYearGold, getLiveYearGoldContextFromState } from '../../utils/yearGold.js';
 import { PUBLIC_DATA_PATH as publicDataPath } from '../../utils/tenant.mjs';
+import { rollMonthlyStars } from './monthlyStars.js';
 
 
 function shuffleArray(arr) {
@@ -116,7 +117,11 @@ export async function applyWheelStudentEffects({
             const scoreData = ensureScoreDoc(transaction, scoreRef, studentId, scoreSnap.exists() ? scoreSnap.data() : null);
 
             const currentTotalStars = Number(scoreData.totalStars) || 0;
-            const currentMonthlyStars = Number(scoreData.monthlyStars) || 0;
+            // This month's count: a counter still holding last month is filed first.
+            const monthRoll = starsDelta !== 0 && scoreSnap.exists()
+                ? rollMonthlyStars(transaction, studentId, scoreData)
+                : { base: Number(scoreData.monthlyStars) || 0, fields: {} };
+            const currentMonthlyStars = monthRoll.base;
             const currentGold = getLiveYearGold(scoreData, getLiveYearGoldContextFromState(state));
             const currentInventory = Array.isArray(scoreData.inventory) ? [...scoreData.inventory] : [];
 
@@ -127,6 +132,7 @@ export async function applyWheelStudentEffects({
                 const nextMonthly = Math.max(0, currentMonthlyStars + starsDelta);
                 next.totalStars = nextTotal;
                 next.monthlyStars = nextMonthly;
+                Object.assign(next, monthRoll.fields);
             }
 
             if (goldDelta !== 0) {

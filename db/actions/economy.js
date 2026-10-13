@@ -26,6 +26,8 @@ import { getLiveYearGold, getLiveYearGoldContextFromState } from '../../utils/ye
 import { getYearScopedHeroOfDayWinsFromAppState } from '../../utils/yearLegend.js';
 import { isGrowthStarfallNote } from '../../features/growthStarfallCore.mjs';
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
+import { monthlyStarsChange } from './monthlyStars.js';
+import { planMonthlyRollover } from '../../features/monthlyStarsCore.mjs';
 import { parseTrialScore, trialRowValue, UNMARKABLE_VALUE } from '../../features/trialLogCore.mjs';
 import { showShopPurchasePopup } from '../../ui/core/marketParcel.js';
 // GUILD_IDS not needed at module level but kept for reference
@@ -691,21 +693,6 @@ export async function handleBuyItem(studentId, itemId) {
     }
 }
 
-function getClosingMonthKey(lastMonthlyResetDate, currentMonthStart) {
-    if (typeof lastMonthlyResetDate === 'string' && lastMonthlyResetDate.length >= 7) {
-        return lastMonthlyResetDate.substring(0, 7);
-    }
-    const match = String(currentMonthStart || '').match(/^(\d{4})-(\d{2})/);
-    if (!match) return null;
-    let year = Number(match[1]);
-    let month = Number(match[2]) - 1;
-    if (month < 1) {
-        month = 12;
-        year -= 1;
-    }
-    return `${year}-${String(month).padStart(2, '0')}`;
-}
-
 export async function checkAndResetMonthlyStars(studentId, currentMonthStart) {
     const publicDataPath = PUBLIC_DATA_PATH;
     const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
@@ -715,24 +702,24 @@ export async function checkAndResetMonthlyStars(studentId, currentMonthStart) {
             if (!scoreDoc.exists()) return;
             const scoreData = scoreDoc.data();
 
-            if (scoreData.lastMonthlyResetDate !== currentMonthStart) {
-                const lastMonthScore = scoreData.monthlyStars || 0;
-                const yearMonthKey = getClosingMonthKey(scoreData.lastMonthlyResetDate, currentMonthStart);
-                const historyRef = yearMonthKey
-                    ? doc(db, `${publicDataPath}/student_scores/${studentId}/monthly_history/${yearMonthKey}`)
-                    : null;
-
-                if (lastMonthScore > 0 && historyRef) {
-                    transaction.set(historyRef, withSchoolYear({ stars: lastMonthScore, month: yearMonthKey }, scoreData.activeSchoolYearKey || state.getActiveSchoolYearKey()));
-                }
-
+            // Same rule as every other star write (features/monthlyStarsCore.mjs): a counter
+            // with no stamp already counts as this month, so it is stamped, not wiped.
+            const plan = planMonthlyRollover(scoreData, currentMonthStart);
+            if (plan.archive) {
+                transaction.set(
+                    doc(db, `${publicDataPath}/student_scores/${studentId}/monthly_history/${plan.archive.month}`),
+                    withSchoolYear({ stars: plan.archive.stars, month: plan.archive.month }, scoreData.activeSchoolYearKey || state.getActiveSchoolYearKey()),
+                );
+            }
+            if (plan.stale) {
                 const currentGold = getLiveYearGold(scoreData, getLiveYearGoldContextFromState(state));
-
                 transaction.update(scoreRef, {
                     monthlyStars: 0,
                     lastMonthlyResetDate: currentMonthStart,
                     gold: currentGold
                 });
+            } else if (plan.stamp.lastMonthlyResetDate) {
+                transaction.update(scoreRef, plan.stamp);
             }
         });
 
@@ -860,7 +847,7 @@ export async function handleSpecialOccasionBonus(studentId, type) {
             // Add to totals WITHOUT affecting daily cap (only total/monthly)
             transaction.update(scoreRef, {
                 totalStars: increment(bonus),
-                monthlyStars: increment(bonus),
+                ...monthlyStarsChange(transaction, studentId, scoreDoc.data(), bonus),
                 gold: currentGold + bonus // They get gold too!
             });
 

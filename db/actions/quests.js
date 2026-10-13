@@ -28,6 +28,7 @@ import { nextHeroOfDayWinWrite, getYearLegendContextFromState } from '../../util
 import { classUsesTests } from '../../features/assessmentConfig.js';
 import { PAGE_AWAITING, PAGE_WRITTEN, buildAwaitingPagePayload, isAwaitingAdventurePage } from '../../features/adventurePageCore.mjs';
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
+import { planMonthlyRollover } from '../../features/monthlyStarsCore.mjs';
 
 const ADVENTURE_LOG_AI_RETRY_DELAYS_MS = [30000, 90000, 240000];
 
@@ -823,7 +824,8 @@ export function handleStarManagerStudentSelect() {
         const todayData = state.get('todaysStars')[studentId] || {};
 
         document.getElementById('override-today-stars').value = todayData.stars || 0;
-        document.getElementById('override-monthly-stars').value = scoreData.monthlyStars || 0;
+        // A counter still holding last month's stars reads as 0 for this month.
+        document.getElementById('override-monthly-stars').value = planMonthlyRollover(scoreData, utils.getStartOfMonthString()).base;
         document.getElementById('override-total-stars').value = scoreData.totalStars || 0;
 
     } else {

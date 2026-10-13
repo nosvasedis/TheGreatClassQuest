@@ -19,6 +19,7 @@ import {
 import { canUseFeature } from '../utils/subscription.js';
 import { withSchoolYear } from '../utils/schoolYear.js';
 import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
+import { monthlyStarsChange } from '../db/actions/monthlyStars.js';
 
 export const TEACHER_BOON_PRESETS = [
     { key: 'leadership', label: 'Leadership', icon: '👑', accent: 'from-fuchsia-500 via-rose-500 to-orange-400' },
@@ -86,6 +87,7 @@ export async function handleBestowBoon(senderId, receiverId) {
 
             const senderDoc = await transaction.get(senderScoreRef);
             const senderData = senderDoc.data() || {};
+            const receiverDoc = await transaction.get(receiverScoreRef);
 
             // Enforce the daily cap atomically: each boon occupies one of the
             // class's deterministic daily slots, so concurrent boons contend on
@@ -160,7 +162,7 @@ export async function handleBestowBoon(senderId, receiverId) {
 
             transaction.update(receiverScoreRef, {
                 totalStars: increment(receiverStarDelta),
-                monthlyStars: increment(receiverStarDelta)
+                ...monthlyStarsChange(transaction, receiverId, receiverDoc.data() || {}, receiverStarDelta)
             });
 
             transaction.set(logRef, withSchoolYear({

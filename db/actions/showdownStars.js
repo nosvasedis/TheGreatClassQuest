@@ -11,6 +11,8 @@ import { updateGuildScores } from '../../features/guildScoring.js';
 import { withActiveScoreYear, withSchoolYear } from '../../utils/schoolYear.js';
 import { getLiveYearGold, getLiveYearGoldContextFromState } from '../../utils/yearGold.js';
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
+import { monthlyStarsChange } from './monthlyStars.js';
+import { getStartOfMonthString } from '../../utils.js';
 import { SHOWDOWN_AWARD_REASON } from '../../features/awardLogReasonMeta.js';
 
 export { SHOWDOWN_AWARD_REASON };
@@ -50,13 +52,14 @@ export async function payShowdownStars({ classId, showId, heroIds = [], stars = 
                 // monthly and total only (never today_stars), with the Gold a star always brings
                 transaction.update(scoreRef, {
                     totalStars: increment(amount),
-                    monthlyStars: increment(amount),
+                    ...monthlyStarsChange(transaction, studentId, scoreSnap.data(), amount),
                     gold: getLiveYearGold(scoreSnap.data(), goldContext) + amount
                 });
             } else {
                 const student = state.get('allStudents')?.find((s) => s.id === studentId);
                 transaction.set(scoreRef, withActiveScoreYear({
                     totalStars: amount, monthlyStars: amount, gold: amount, inventory: [],
+                    lastMonthlyResetDate: getStartOfMonthString(),
                     createdBy: student?.createdBy || teacher
                 }, yearKey));
             }

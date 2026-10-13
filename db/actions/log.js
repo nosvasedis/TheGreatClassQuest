@@ -36,6 +36,7 @@ import { recordGuildGloryEvent, updateGuildScores } from '../../features/guildSc
 import { createQuestEventDocument, normalizeQuestType, isSpecialQuestType, isSchoolWideModifierType, QUEST_DEFINITIONS, validateQuestEvent } from '../../features/specialQuestEngine.js';
 import { buildGrowthStarfallNote } from '../../features/growthStarfallCore.mjs';
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
+import { monthlyStarsChange } from './monthlyStars.js';
 
 export async function addOrUpdateHeroChronicleNote(studentId, noteText, category, noteId = null) {
     if (!studentId || !noteText || !category) {
@@ -815,7 +816,7 @@ export async function handleMarkAbsent(studentId, classId, isAbsent, targetDate 
                 if (scoreDoc.exists() && creditFromLogsTotal > 0) {
                     const scoreUpdates = { totalStars: increment(-creditFromLogsTotal) };
                     if (creditFromLogsMonthly > 0) {
-                        scoreUpdates.monthlyStars = increment(-creditFromLogsMonthly);
+                        Object.assign(scoreUpdates, monthlyStarsChange(transaction, studentId, scoreDoc.data(), -creditFromLogsMonthly));
                     }
                     transaction.update(scoreRef, scoreUpdates);
                 }

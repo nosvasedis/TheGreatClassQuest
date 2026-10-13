@@ -22,6 +22,17 @@ export function isBonusOnlyAwardLog(log) {
     return BONUS_ONLY_AWARD_REASONS.includes(String(log?.reason || ''));
 }
 
+/** `award_log.source` on rows added by Settings › Student Tools › Add Historical Award. */
+export const STAR_MANAGER_SOURCE = 'star_manager';
+
+/**
+ * A Star Manager row is a dated repair, not the day's Award Stars row: it never made a
+ * today_stars record, so Award Stars must not adopt it and deleting it leaves today's stars alone.
+ */
+export function isStarManagerAwardLog(log) {
+    return log?.source === STAR_MANAGER_SOURCE;
+}
+
 export function getClassQuestBonusStarsFromAwardLog(log) {
     return log?.reason === PATHFINDER_AWARD_REASON ? PATHFINDER_CLASS_QUEST_BONUS_STARS : 0;
 }

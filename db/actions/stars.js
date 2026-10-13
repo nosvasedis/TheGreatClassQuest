@@ -58,12 +58,14 @@ import {
 import { TRAINING_REASONS } from "../../features/trainingGroundsCore.mjs";
 import { reconcileFamiliarLifecycle } from "../../features/familiars.js";
 import { canUseFeature } from "../../utils/subscription.js";
-import { getAwardLogMonthlyStarCredit, isBonusOnlyAwardLog } from "../../features/awardLogReasonMeta.js";
+import { getAwardLogMonthlyStarCredit, isBonusOnlyAwardLog, isStarManagerAwardLog, STAR_MANAGER_SOURCE } from "../../features/awardLogReasonMeta.js";
 import { withActiveScoreYear, withSchoolYear } from "../../utils/schoolYear.js";
 import { resolveDailyModifier, applyDailyModifier } from "../../features/specialQuestEngine.js";
 import { TRAINING_HERO, normalizeHeroClass } from "../../features/heroClassNames.mjs";
 import { runAwardWriteInOrder, withWriteRetries } from "../../features/awardPending.mjs";
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
+import { monthlyStarsChange, rollMonthlyStars } from "./monthlyStars.js";
+import { monthStartOf } from "../../features/monthlyStarsCore.mjs";
 
 // --- SCORE, STAR, & LOG ACTIONS ---
 
@@ -330,7 +332,9 @@ async function writeStudentStarsForToday(
                     const classReason = getHeroReason(heroClass);
                     const updates = {
                         totalStars: increment(totalDifference),
-                        monthlyStars: increment(totalDifference),
+                        // The month is normally rolled over before this transaction; this
+                        // covers a reset that failed or raced.
+                        ...monthlyStarsChange(transaction, studentId, currentData, totalDifference),
                         gold: Math.max(0, safeCurrentGold + totalGoldChange),
                     };
                     if (
@@ -408,6 +412,7 @@ async function writeStudentStarsForToday(
             const stateDailyPerformanceLog = allTodaysLogs.find(
                 (l) =>
                     !isBonusOnlyAwardLog(l) &&
+                    !isStarManagerAwardLog(l) &&
                     ![
                         "welcome_back",
                         "scholar_s_bonus",
@@ -578,7 +583,10 @@ export function applyReasonAwardScoreTransaction(
 ) {
     const heroProgressionEnabled = canUseFeature("heroProgression");
     const currentTotalStars = Number(scoreData?.totalStars) || 0;
-    const currentMonthlyStars = Number(scoreData?.monthlyStars) || 0;
+    // Starts from this month's count: a counter still holding last month is filed first.
+    const { base: currentMonthlyStars, fields: monthStamp } = scoreData
+        ? rollMonthlyStars(transaction, studentId, scoreData)
+        : { base: 0, fields: {} };
     const safeCurrentGold = getLiveYearGold(
         scoreData,
         getLiveYearGoldContextFromState(state),
@@ -592,6 +600,7 @@ export function applyReasonAwardScoreTransaction(
 
     const totalStarsDelta = awardedStars + bonusStars;
     const nextScoreData = {
+        ...monthStamp,
         totalStars: currentTotalStars + totalStarsDelta,
         monthlyStars: currentMonthlyStars + totalStarsDelta,
         gold: safeCurrentGold + goldChange,
@@ -913,13 +922,18 @@ export async function handleDeleteAwardLog(logId) {
             deletedLogMonthKey = `${logDate.getFullYear()}-${String(logDate.getMonth() + 1).padStart(2, "0")}`;
             // A finished month was archived at rollover; take the stars back
             // there too so undone stars never reach that month's ceremony.
-            const historyRef = !isCurrentMonth && starCredit
+            // An earlier month not rolled over yet still lives in the counter.
+            const counterHoldsLogMonth = !isCurrentMonth && scoreDoc.exists()
+                && scoreDoc.data().lastMonthlyResetDate === `${deletedLogMonthKey}-01`;
+            const historyRef = !isCurrentMonth && !counterHoldsLogMonth && starCredit
                 ? doc(db, `${publicDataPath}/student_scores/${studentId}/monthly_history/${deletedLogMonthKey}`)
                 : null;
             const historyDoc = historyRef ? await transaction.get(historyRef) : null;
             if (scoreDoc.exists()) {
                 const updates = { totalStars: increment(-starCredit) };
                 if (isCurrentMonth) {
+                    Object.assign(updates, monthlyStarsChange(transaction, studentId, scoreDoc.data(), -starCredit));
+                } else if (counterHoldsLogMonth) {
                     updates.monthlyStars = increment(-starCredit);
                 }
                 transaction.update(scoreRef, updates);
@@ -931,8 +945,9 @@ export async function handleDeleteAwardLog(logId) {
 
             transaction.delete(logRef);
 
-            // Bonus-only stars (Showdown, Quiz of the Week, Quiet Dragon) never made a today_stars record
-            if (logData.date === getTodayDateString() && !isBonusOnlyAwardLog(logData)) {
+            // Bonus-only stars (Showdown, Quiz of the Week, Quiet Dragon) and Star Manager rows
+            // never made a today_stars record
+            if (logData.date === getTodayDateString() && !isBonusOnlyAwardLog(logData) && !isStarManagerAwardLog(logData)) {
                 const todayStarsQuery = query(
                     collection(db, `${publicDataPath}/today_stars`),
                     where("studentId", "==", studentId),
@@ -1023,6 +1038,21 @@ export async function handleAddStarsManually() {
         return;
     }
 
+    // Local calendar date (a bare new Date('YYYY-MM-DD') is UTC midnight).
+    const logDateObject = parseFlexibleDate(date);
+    const today = new Date();
+    if (!logDateObject) {
+        showToast("Please choose a valid date.", "error");
+        return;
+    }
+    if (logDateObject > new Date(today.getFullYear(), today.getMonth(), today.getDate())) {
+        showToast("The award date can't be in the future.", "error");
+        return;
+    }
+    const isCurrentMonth =
+        logDateObject.getMonth() === today.getMonth() &&
+        logDateObject.getFullYear() === today.getFullYear();
+
     const btn = document.getElementById("star-manager-add-btn");
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Adding...';
@@ -1041,8 +1071,16 @@ export async function handleAddStarsManually() {
                 throw new Error(
                     "Student score record not found. Cannot add stars.",
                 );
+            const scoreData = scoreDoc.data();
+            // An earlier month: its stars are either still in the counter (not rolled over
+            // yet) or already archived in monthly_history, which must match the log.
+            const logMonthStart = monthStartOf(logDateObject);
+            const counterHoldsLogMonth = !isCurrentMonth && scoreData.lastMonthlyResetDate === logMonthStart;
+            const historyRef = !isCurrentMonth && !counterHoldsLogMonth
+                ? doc(db, `${publicDataPath}/student_scores/${studentId}/monthly_history/${logMonthStart.slice(0, 7)}`)
+                : null;
+            const historyDoc = historyRef ? await transaction.get(historyRef) : null;
 
-            const logDateObject = parseFlexibleDate(date) || new Date(date);
             const dParts = logDateObject;
             const dateForDb = `${String(dParts.getDate()).padStart(2, "0")}-${String(dParts.getMonth() + 1).padStart(2, "0")}-${dParts.getFullYear()}`;
 
@@ -1053,6 +1091,7 @@ export async function handleAddStarsManually() {
                 stars: starsToAdd,
                 appliedStarCredit: starsToAdd,
                 reason,
+                source: STAR_MANAGER_SOURCE,
                 date: dateForDb,
                 createdAt: serverTimestamp(),
                 createdBy: {
@@ -1066,15 +1105,20 @@ export async function handleAddStarsManually() {
                 logData,
             );
 
-            const logDate = new Date(date);
-            const today = new Date();
-            const isCurrentMonth =
-                logDate.getMonth() === today.getMonth() &&
-                logDate.getFullYear() === today.getFullYear();
-
             const updates = { totalStars: increment(starsToAdd) };
             if (isCurrentMonth) {
+                // A counter still holding last month's stars is rolled over first, or these
+                // stars would be hidden from Team Quest and later filed under last month.
+                Object.assign(updates, monthlyStarsChange(transaction, studentId, scoreData, starsToAdd));
+            } else if (counterHoldsLogMonth) {
                 updates.monthlyStars = increment(starsToAdd);
+            } else if (historyDoc?.exists()) {
+                transaction.update(historyRef, { stars: (Number(historyDoc.data().stars) || 0) + starsToAdd });
+            } else if (historyRef) {
+                transaction.set(historyRef, withSchoolYear(
+                    { stars: starsToAdd, month: logMonthStart.slice(0, 7) },
+                    scoreData.activeSchoolYearKey || state.getActiveSchoolYearKey(),
+                ));
             }
             transaction.update(scoreRef, updates);
         });
@@ -1145,8 +1189,14 @@ export async function handleSetStudentScores() {
             const todayDocRef = todayDocId
                 ? doc(db, `${publicDataPath}/today_stars`, todayDocId)
                 : null;
+            const scoreDoc = await transaction.get(scoreRef);
+            if (!scoreDoc.exists()) throw new Error("Student score record not found.");
 
+            // The value typed is this month's: file a counter still holding last month first
+            // and stamp it, or every board would keep reading it as last month's (0).
+            const { fields: monthStamp } = rollMonthlyStars(transaction, studentId, scoreDoc.data());
             transaction.update(scoreRef, {
+                ...monthStamp,
                 monthlyStars: monthlyStarsVal,
                 totalStars: totalStarsVal,
             });

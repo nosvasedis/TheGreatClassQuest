@@ -12,6 +12,8 @@ import { withActiveScoreYear, withSchoolYear } from '../../utils/schoolYear.js';
 import { getLiveYearGold, getLiveYearGoldContextFromState } from '../../utils/yearGold.js';
 import { normalizeGift, describeGift, levelByKey } from '../../features/quietDragonCore.mjs';
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
+import { monthlyStarsChange } from './monthlyStars.js';
+import { getStartOfMonthString } from '../../utils.js';
 
 const ALREADY_PAID = 'quiet-dragon-already-paid';
 export const QUIET_DRAGON_REASON = 'quiet_dragon';
@@ -51,13 +53,14 @@ export async function payQuietDragonGift({ classId, sessionId, gift, heroIds = [
                     if (gold) updates.gold = getLiveYearGold(scoreSnap.data(), goldContext) + gold;
                     if (stars) {
                         updates.totalStars = increment(stars);
-                        updates.monthlyStars = increment(stars);
+                        Object.assign(updates, monthlyStarsChange(transaction, studentId, scoreSnap.data(), stars));
                     }
                     transaction.update(scoreRef, updates);
                 } else {
                     const student = state.get('allStudents')?.find((s) => s.id === studentId);
                     transaction.set(scoreRef, withActiveScoreYear({
                         totalStars: stars, monthlyStars: stars, gold, inventory: [],
+                        lastMonthlyResetDate: getStartOfMonthString(),
                         createdBy: student?.createdBy || teacher
                     }, yearKey));
                 }

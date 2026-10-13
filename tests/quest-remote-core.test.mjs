@@ -1015,7 +1015,7 @@ test('Showdown stars go to monthly and total stars with a logbook row, never to 
     const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
     const pay = read('../db/actions/showdownStars.js');
     assert.doesNotMatch(pay, /\/today_stars`/, 'never writes today\'s stars');
-    assert.match(pay, /monthlyStars: increment\(amount\)/);
+    assert.match(pay, /\.\.\.monthlyStarsChange\(transaction, studentId, scoreSnap\.data\(\), amount\)/, 'this month, after any monthly rollover');
     assert.match(pay, /totalStars: increment\(amount\)/);
     assert.match(pay, /award_log`, showdownAwardLogId\(showId, studentId\)/);
     assert.match(pay, /if \(logSnap\.exists\(\)\) \{ already\.push/, 'paid once per show');

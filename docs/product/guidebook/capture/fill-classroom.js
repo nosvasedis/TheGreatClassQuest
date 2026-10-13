@@ -85,7 +85,15 @@ export function showAwardStarsTab() {
   document.getElementById('open-teacher-boon-btn')?.classList.remove('hidden');
   const summary = document.getElementById('award-sky-summary');
   if (summary) {
-    summary.innerHTML = buildAwardSkySummaryHtml({ shining: 2, heroes: 4, starsToday: 3, awaiting: 2 });
+    summary.innerHTML = buildAwardSkySummaryHtml({
+      starsToday: 3,
+      heroes: [
+        { id: 'alex', name: 'Alex', status: 'shining', stars: 2 },
+        { id: 'maria', name: 'Maria', status: 'shining', stars: 1 },
+        { id: 'nikos', name: 'Nikos', status: 'waiting' },
+        { id: 'eleni', name: 'Eleni', status: 'waiting' }
+      ]
+    });
     summary.classList.remove('hidden');
   }
   const list = document.getElementById('award-stars-student-list');

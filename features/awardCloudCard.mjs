@@ -323,23 +323,102 @@ export function buildAwardCloudCardHtml(view) {
         + `</div></div></article></div>`;
 }
 
-/** Today's award summary above the clouds: how much of the class shines, and any day bonus. */
-export function buildAwardSkySummaryHtml({ shining = 0, heroes = 0, starsToday = 0, awaiting = 0, modifier = null } = {}) {
-    const pct = heroes > 0 ? Math.round((shining / heroes) * 100) : 0;
-    const dots = heroes > 0 && heroes <= 40
-        ? Array.from({ length: heroes }, (_, i) => `<i class="aw-sky-summary__dot${i < shining ? ' is-lit' : ''}"></i>`).join('')
-        : '';
+/** Which lane of the star roll a hero sits in today. */
+export function resolveAwardRollStatus({ starsToday = 0, isMarkedAbsentToday = false, attendanceMode = 'none' } = {}) {
+    if (isMarkedAbsentToday) return 'away';
+    if ((Number(starsToday) || 0) > 0) return 'shining';
+    return attendanceMode === 'returning' ? 'returning' : 'waiting';
+}
+
+const ROLL_LANES = [
+    { key: 'waiting', label: 'Still waiting', icon: 'fa-cloud' },
+    { key: 'shining', label: 'Shining', icon: 'fa-star' },
+    { key: 'away', label: 'Away today', icon: 'fa-cloud-rain' }
+];
+
+function rollHeroHtml(hero) {
+    const first = hero.firstName || String(hero.name || '').split(' ')[0] || '?';
+    const face = hero.avatar
+        ? `<img src="${esc(hero.avatar)}" alt="" loading="lazy" decoding="async">`
+        : `<span class="aw-roll__initial">${esc(first.charAt(0))}</span>`;
+    const status = hero.status;
+    const badge = status === 'shining'
+        ? `<span class="aw-roll__badge"><i class="fas fa-star" aria-hidden="true"></i>${esc(formatAwardStars(hero.stars))}</span>`
+        : status === 'away'
+            ? '<span class="aw-roll__badge"><i class="fas fa-cloud-rain" aria-hidden="true"></i></span>'
+            : status === 'returning'
+                ? '<span class="aw-roll__badge"><i class="fas fa-cloud-sun" aria-hidden="true"></i></span>'
+                : '';
+    const said = status === 'shining'
+        ? `${hero.name}: ${formatAwardStars(hero.stars)} star${Number(hero.stars) === 1 ? '' : 's'} today`
+        : status === 'away'
+            ? `${hero.name}: away today`
+            : status === 'returning'
+                ? `${hero.name}: away last lesson, waiting for a welcome back`
+                : `${hero.name}: still waiting for a star`;
+    const tag = status === 'waiting' || status === 'returning' ? 'button' : 'span';
+    const attrs = tag === 'button' ? ` type="button" data-roll-student="${esc(hero.id)}"` : '';
+    return `<${tag} class="aw-roll__hero is-${esc(status)}"${attrs} title="${esc(said)}" aria-label="${esc(said)}">`
+        + `<span class="aw-roll__face" aria-hidden="true">${face}</span>${badge}`
+        + `<span class="aw-roll__name" aria-hidden="true">${esc(first)}</span></${tag}>`;
+}
+
+/**
+ * Today's star roll above the clouds: who shines, who still waits, who is away today.
+ * heroes: [{ id, name, firstName, avatar, status: 'shining'|'waiting'|'returning'|'away', stars }]
+ * Away heroes never count as waiting, and the class total is the heroes in the room.
+ */
+export function buildAwardSkySummaryHtml({ heroes = [], starsToday = 0, modifier = null } = {}) {
+    const byName = (a, b) => String(a.name || '').localeCompare(String(b.name || ''));
+    const lanes = { waiting: [], shining: [], away: [] };
+    for (const hero of heroes) {
+        const lane = hero.status === 'returning' ? 'waiting' : hero.status;
+        (lanes[lane] || lanes.waiting).push(hero);
+    }
+    Object.values(lanes).forEach((list) => list.sort(byName));
+    const here = lanes.waiting.length + lanes.shining.length;
+    const shining = lanes.shining.length;
+    const pct = here > 0 ? shining / here : 0;
+    const allShining = here > 0 && shining === here;
+    const nobodyHere = heroes.length > 0 && here === 0;
+
     const mod = modifier?.type === 'double'
-        ? '<span class="aw-sky-summary__mod aw-sky-summary__mod--double" title="Every award counts twice today"><i class="fas fa-bolt" aria-hidden="true"></i>2× Star Day</span>'
+        ? '<span class="aw-roll__mod aw-roll__mod--double" title="Every award counts twice today"><i class="fas fa-bolt" aria-hidden="true"></i>2× Star Day</span>'
         : modifier?.type === 'reason' && VIRTUE_NAMES[modifier.reason]
-            ? `<span class="aw-sky-summary__mod" title="${esc(VIRTUE_NAMES[modifier.reason])} awards get +1 star today"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>${esc(VIRTUE_NAMES[modifier.reason])} Bonus Day</span>`
+            ? `<span class="aw-roll__mod" title="${esc(VIRTUE_NAMES[modifier.reason])} awards get +1 star today"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>${esc(VIRTUE_NAMES[modifier.reason])} Bonus Day</span>`
             : '';
-    const waiting = awaiting > 0
-        ? `<span class="aw-sky-summary__note">${awaiting} still waiting for a star</span>`
-        : (heroes > 0 ? '<span class="aw-sky-summary__note aw-sky-summary__note--full">Every hero is shining!</span>' : '');
-    return `<div class="aw-sky-summary__main"><span class="aw-sky-summary__sigil" aria-hidden="true"><i class="fas fa-star"></i></span>`
-        + `<span class="aw-sky-summary__count"><b>${shining}</b> of ${heroes} heroes shining</span>`
-        + `<span class="aw-sky-summary__stars"><b>${esc(formatAwardStars(starsToday))}</b> <i class="fas fa-star" aria-hidden="true"></i> today</span>${mod}</div>`
-        + `<div class="aw-sky-summary__track" role="img" aria-label="${pct}% of the class has a star today">${dots || `<span class="aw-sky-summary__bar" style="--pct:${pct}%"></span>`}</div>`
-        + waiting;
+
+    // The sun dial: a ring that fills as the heroes in the room shine.
+    const r = 22;
+    const c = 2 * Math.PI * r;
+    const dial = `<span class="aw-roll__dial" role="img" aria-label="${nobodyHere ? 'Every hero is away today' : `${shining} of ${here} heroes in class have a star today`}">`
+        + `<svg viewBox="0 0 56 56" aria-hidden="true"><circle class="aw-roll__dial-track" cx="28" cy="28" r="${r}"/>`
+        + `<circle class="aw-roll__dial-fill" cx="28" cy="28" r="${r}" stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${(c * (1 - pct)).toFixed(2)}"/></svg>`
+        + (nobodyHere
+            ? '<span class="aw-roll__dial-num aw-roll__dial-num--rain"><i class="fas fa-cloud-rain"></i></span></span>'
+            : `<span class="aw-roll__dial-num"><b>${shining}</b><small>/${here}</small></span></span>`);
+
+    const headline = nobodyHere
+        ? 'Every hero is away today'
+        : allShining
+            ? 'Every hero in class is shining!'
+            : `<b>${shining}</b> of ${here} heroes in class shining`;
+    const sub = [
+        `<span class="aw-roll__stars"><i class="fas fa-star" aria-hidden="true"></i><b>${esc(formatAwardStars(starsToday))}</b> today</span>`,
+        lanes.away.length ? `<span class="aw-roll__away-count"><i class="fas fa-cloud-rain" aria-hidden="true"></i>${lanes.away.length} away</span>` : '',
+        mod
+    ].filter(Boolean).join('');
+
+    const lanesHtml = ROLL_LANES.map((lane) => {
+        const list = lanes[lane.key];
+        if (!list.length) return '';
+        return `<section class="aw-roll__lane aw-roll__lane--${lane.key}">`
+            + `<h4 class="aw-roll__lane-title"><i class="fas ${lane.icon}" aria-hidden="true"></i>${lane.label}<span class="aw-roll__lane-count">${list.length}</span></h4>`
+            + `<div class="aw-roll__heroes">${list.map(rollHeroHtml).join('')}</div></section>`;
+    }).join('');
+
+    return `<div class="aw-roll${allShining ? ' is-complete' : ''}">`
+        + `<div class="aw-roll__head">${dial}<div class="aw-roll__titles"><span class="aw-roll__kicker">Today's star roll</span>`
+        + `<span class="aw-roll__headline">${headline}</span><span class="aw-roll__sub">${sub}</span></div></div>`
+        + `<div class="aw-roll__lanes">${lanesHtml}</div></div>`;
 }

@@ -8,7 +8,8 @@ import {
     buildAwardHonoursHtml,
     resolveAwardAttendanceMode,
     buildAwardBoonButtonHtml,
-    buildAwardSkySummaryHtml
+    buildAwardSkySummaryHtml,
+    resolveAwardRollStatus
 } from '../features/awardCloudCard.mjs';
 
 const baseView = {
@@ -78,7 +79,35 @@ test('boon button marks resting state for the listener', () => {
     assert.match(buildAwardBoonButtonHtml('s', { eligible: false, dailyLimitReached: true }), /aw-boon--resting[\s\S]*Daily boon limit/);
 });
 
-test('sky summary counts heroes', () => {
-    const html = buildAwardSkySummaryHtml({ shining: 1, heroes: 6, starsToday: 2, awaiting: 4 });
-    assert.match(html, /1[\s\S]*of 6/);
+test('star roll counts only the heroes in the room', () => {
+    const html = buildAwardSkySummaryHtml({
+        starsToday: 2,
+        heroes: [
+            { id: 'a', name: 'Alex', status: 'shining', stars: 2 },
+            { id: 'b', name: 'Bea', status: 'waiting' },
+            { id: 'c', name: 'Chris', status: 'returning' },
+            { id: 'd', name: 'Dora', status: 'away' }
+        ]
+    });
+    assert.match(html, /<b>1<\/b> of 3 heroes in class shining/);
+    assert.match(html, /aw-roll__lane--away[\s\S]*Dora/);
+    assert.match(html, /data-roll-student="b"/);
+    assert.match(html, /data-roll-student="c"/);
+    assert.doesNotMatch(html, /data-roll-student="d"/);
+    assert.match(html, /1 away/);
+});
+
+test('star roll: everyone in the room shining, or everyone away', () => {
+    const all = buildAwardSkySummaryHtml({ heroes: [{ id: 'a', name: 'A', status: 'shining', stars: 1 }, { id: 'b', name: 'B', status: 'away' }] });
+    assert.match(all, /Every hero in class is shining!/);
+    assert.match(all, /aw-roll is-complete/);
+    const away = buildAwardSkySummaryHtml({ heroes: [{ id: 'b', name: 'B', status: 'away' }] });
+    assert.match(away, /Every hero is away today/);
+});
+
+test('star roll status: absence beats stars, returning heroes still wait', () => {
+    assert.equal(resolveAwardRollStatus({ starsToday: 2, isMarkedAbsentToday: true }), 'away');
+    assert.equal(resolveAwardRollStatus({ starsToday: 1 }), 'shining');
+    assert.equal(resolveAwardRollStatus({ starsToday: 0, attendanceMode: 'returning' }), 'returning');
+    assert.equal(resolveAwardRollStatus({ starsToday: 0, attendanceMode: 'absent-offer' }), 'waiting');
 });

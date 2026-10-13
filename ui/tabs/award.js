@@ -15,7 +15,8 @@ import {
     buildAwardSkySummaryHtml,
     buildAwardVirtuesHtml,
     formatAwardStars,
-    resolveAwardAttendanceMode
+    resolveAwardAttendanceMode,
+    resolveAwardRollStatus
 } from '../../features/awardCloudCard.mjs';
 import { getHeroTitle, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
 import { canUseFeature } from '../../utils/subscription.js';
@@ -287,9 +288,8 @@ function getOccasion(student, ctx) {
     return null;
 }
 
-/** Everything one cloud shows, as plain data for features/awardCloudCard.mjs. */
-function buildStudentCloudView(student, ctx, index = 0) {
-    const scoreData = ctx.scoreMap.get(student.id) || {};
+/** Today's stars and attendance for one hero: the clouds and the star roll read the same answer. */
+function getStudentDayState(student, ctx) {
     const todayEntry = ctx.todaysStars[student.id];
     const starsToday = Number(todayEntry?.stars) || 0;
     const reasonToday = todayEntry?.reason || null;
@@ -298,6 +298,19 @@ function buildStudentCloudView(student, ctx, index = 0) {
     const isPresentToday = starsToday > 0 || reasonToday === 'marked_present' || reasonToday === 'welcome_back';
     const isVisuallyAbsent = isMarkedAbsentToday || (wasAbsentLastTime && !isPresentToday);
     const locked = starsToday > 0 && reasonToday !== 'welcome_back';
+    const attendanceMode = resolveAwardAttendanceMode({
+        isVisuallyAbsent,
+        isMarkedAbsentToday,
+        classHasLessonToday: ctx.classHasLessonToday,
+        isCardLocked: locked
+    });
+    return { starsToday, reasonToday, isMarkedAbsentToday, isVisuallyAbsent, locked, attendanceMode };
+}
+
+/** Everything one cloud shows, as plain data for features/awardCloudCard.mjs. */
+function buildStudentCloudView(student, ctx, index = 0) {
+    const scoreData = ctx.scoreMap.get(student.id) || {};
+    const { starsToday, reasonToday, locked, isVisuallyAbsent, attendanceMode } = getStudentDayState(student, ctx);
     const isHeroOfDay = Boolean(ctx.reigningHero && ctx.reigningHero.id === student.id);
     const visual = getAwardCardVisualState(ctx.classId, student.id);
 
@@ -316,12 +329,7 @@ function buildStudentCloudView(student, ctx, index = 0) {
         todayReason: reasonToday,
         locked,
         isAbsent: isVisuallyAbsent,
-        attendanceMode: resolveAwardAttendanceMode({
-            isVisuallyAbsent,
-            isMarkedAbsentToday,
-            classHasLessonToday: ctx.classHasLessonToday,
-            isCardLocked: locked
-        }),
+        attendanceMode,
         boon: { eligible: isBoonEligible(ctx, student.id), dailyLimitReached: ctx.dailyLimitReached },
         honours: {
             heroOfDay: isHeroOfDay,
@@ -354,7 +362,7 @@ function getClassStudents(classId) {
     return (state.get('allStudents') || []).filter((s) => s.classId === classId);
 }
 
-/** The strip above the clouds: how much of the class shines today, and the day's bonus. */
+/** The star roll above the clouds: who shines today, who still waits, who is away. */
 function renderAwardSkySummary(classId) {
     const el = document.getElementById('award-sky-summary');
     if (!el) return;
@@ -365,34 +373,59 @@ function renderAwardSkySummary(classId) {
         awardSkySummaryHtml = null;
         return;
     }
-    const todaysStars = getEffectiveTodaysStars();
-    const today = utils.getTodayDateString();
-    const awayToday = new Set((state.get('allAttendanceRecords') || []).filter((r) => r.date === today).map((r) => r.studentId));
-    let shining = 0;
+    bindAwardSkySummary(el);
+    // The same attendance reading the clouds use, so the roll and the clouds always agree.
+    const ctx = buildAwardClassContext(classId, students);
     let starsToday = 0;
-    let awaiting = 0;
-    for (const s of students) {
-        const n = Number(todaysStars[s.id]?.stars) || 0;
-        if (n > 0) {
-            shining += 1;
-            starsToday += n;
-        } else if (!awayToday.has(s.id)) {
-            awaiting += 1;
-        }
-    }
-    const html = buildAwardSkySummaryHtml({
-        shining,
-        heroes: students.length,
-        starsToday,
-        awaiting,
-        modifier: getAwardDayModifier(classId)
+    const heroes = students.map((s) => {
+        const day = getStudentDayState(s, ctx);
+        starsToday += day.starsToday;
+        return {
+            id: s.id,
+            name: s.name,
+            avatar: s.avatar || null,
+            stars: day.starsToday,
+            status: resolveAwardRollStatus(day)
+        };
     });
+    const html = buildAwardSkySummaryHtml({ heroes, starsToday, modifier: ctx.modifier });
     if (html !== awardSkySummaryHtml || !el.firstChild) {
         el.innerHTML = html;
         awardSkySummaryHtml = html;
     }
     el.classList.remove('hidden');
 }
+
+/** Tapping a waiting hero on the roll brings their cloud into view and makes it glow. */
+function bindAwardSkySummary(el) {
+    if (el.dataset.rollBound) return;
+    el.dataset.rollBound = '1';
+    el.addEventListener('click', (event) => {
+        const hero = event.target.closest('[data-roll-student]');
+        if (!hero) return;
+        const card = document.querySelector(`.student-cloud-card[data-studentid="${CSS.escape(hero.dataset.rollStudent)}"]`);
+        if (!card) return;
+        const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        card.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+        card.classList.remove('aw-beckon');
+        void card.offsetWidth;
+        card.classList.add('aw-beckon');
+        setTimeout(() => card.classList.remove('aw-beckon'), 2200);
+    });
+}
+
+// Attendance can change without any cloud redrawing (another computer, a register
+// filled elsewhere), so the roll follows the register itself.
+let awardSummaryFrame = 0;
+state.subscribe('allAttendanceRecords', () => {
+    if (awardSummaryFrame) return;
+    awardSummaryFrame = requestAnimationFrame(() => {
+        awardSummaryFrame = 0;
+        const tab = document.getElementById('award-stars-tab');
+        if (!tab || tab.classList.contains('hidden')) return;
+        renderAwardSkySummary(state.get('globalSelectedClassId'));
+    });
+});
 
 // Clouds drift only while on screen, so a long class never keeps dozens of layers busy.
 let awardFloatObserver = null;

@@ -1469,6 +1469,25 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             new Promise((done) => later(done, 6000))
         ]).then(() => { markArtReady(); });
 
+    /**
+     * The page glides down so the sealed scroll sits in the middle of the view
+     * as it opens (or with its top in view, when the map is taller than the view).
+     */
+    const centreScrollInView = () => {
+        const scroller = root.closest('main');
+        if (!scroller || scroller.scrollHeight <= scroller.clientHeight) return;
+        const view = scroller.getBoundingClientRect();
+        const rect = root.getBoundingClientRect();
+        if (!rect.height || !view.height) return;
+        const margin = 12;
+        const offset = rect.height + margin * 2 <= view.height
+            ? (rect.top - view.top) - (view.height - rect.height) / 2
+            : (rect.top - view.top) - margin;
+        const top = Math.min(scroller.scrollHeight - scroller.clientHeight, Math.max(0, scroller.scrollTop + offset));
+        if (Math.abs(top - scroller.scrollTop) < 8) return;
+        scroller.scrollTo({ top, behavior: reducedMotionQuery.matches ? 'auto' : 'smooth' });
+    };
+
     const intersectionObserver = new IntersectionObserver((entries) => {
         const entry = entries[0];
         offscreen = !entry?.isIntersecting;
@@ -1480,6 +1499,8 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             revealPromise = null;
         }
         updateMotionState();
+        // A scroll about to open is brought to the middle of the page first.
+        if (!offscreen && !revealPromise && root.dataset.scroll !== 'open') centreScrollInView();
         if (!offscreen) artReady.then(unrollScroll).then(startJourney);
     }, { threshold: 0.08 });
     intersectionObserver.observe(root);

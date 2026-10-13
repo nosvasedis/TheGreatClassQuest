@@ -14,15 +14,16 @@
 }
 
 /* ───────────────────────── Today's star roll ─────────────────────────
- * The strip above the clouds: a little sky ledger with a cloud-scalloped top.
- * Three lanes: still waiting (open sky), shining (sunlit), away today (rain).
+ * One slim strip above the clouds: a sky ledger with a cloud-scalloped top.
+ * Left: the sun dial and today's count. Right: three pill lanes, still waiting
+ * (named, tappable), shining (gold faces) and away today (faded, rain).
  * Static gradients only; the dial ring is one small SVG stroke.
  */
 
 .aw-sky-summary {
-    max-width: 54rem;
-    margin: -0.25rem auto 1.5rem;
-    padding-top: 12px;
+    max-width: 60rem;
+    margin: -0.5rem auto 0.9rem;
+    padding-top: 9px;
 }
 
 .aw-sky-summary.hidden { display: none; }
@@ -33,13 +34,17 @@
     --roll-panel-top: #ffffff;
     --roll-panel-bot: #eef6ff;
     position: relative;
-    padding: 0.85rem 1rem 0.95rem;
-    border-radius: 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem 1rem;
+    padding: 0.45rem 0.8rem;
+    border-radius: 1.3rem;
     background:
-        radial-gradient(90% 120% at 0% 0%, rgba(254, 243, 199, 0.6), transparent 55%),
+        radial-gradient(60% 140% at 0% 0%, rgba(254, 243, 199, 0.65), transparent 60%),
         linear-gradient(180deg, var(--roll-panel-top), var(--roll-panel-bot));
     border: 1.5px solid rgba(255, 255, 255, 0.95);
-    box-shadow: 0 12px 28px rgba(30, 64, 175, 0.13), inset 0 -3px 0 rgba(191, 219, 254, 0.6);
+    box-shadow: 0 8px 20px rgba(30, 64, 175, 0.12), inset 0 -2px 0 rgba(191, 219, 254, 0.6);
     color: var(--roll-ink);
     font-family: 'Fredoka', sans-serif;
 }
@@ -48,27 +53,28 @@
 .aw-roll::before {
     content: '';
     position: absolute;
-    left: 1.4rem;
-    right: 1.4rem;
-    top: -11px;
-    height: 13px;
-    background: radial-gradient(circle at 50% 100%, var(--roll-panel-top) 10px, transparent 10.5px) 0 0 / 24px 13px;
+    left: 1.3rem;
+    right: 1.3rem;
+    top: -8px;
+    height: 10px;
+    background: radial-gradient(circle at 50% 100%, var(--roll-panel-top) 7.5px, transparent 8px) 0 0 / 18px 10px;
     background-repeat: round no-repeat;
     pointer-events: none;
 }
 
 .aw-roll__head {
+    flex: 0 1 auto;
+    min-width: 0;
     display: flex;
     align-items: center;
-    gap: 0.85rem;
-    padding: 0 0.2rem 0.75rem;
+    gap: 0.6rem;
 }
 
 .aw-roll__dial {
     position: relative;
     flex: none;
-    width: 3.5rem;
-    height: 3.5rem;
+    width: 2.6rem;
+    height: 2.6rem;
 }
 
 .aw-roll__dial svg {
@@ -99,37 +105,40 @@
 
 .aw-roll__dial-num b {
     font-family: 'Fredoka One', 'Fredoka', sans-serif;
-    font-size: 1.2rem;
+    font-size: 0.95rem;
     color: #b45309;
 }
 
-.aw-roll__dial-num--rain { font-size: 1.15rem; color: #60a5fa; }
+.aw-roll__dial-num--rain { font-size: 0.95rem; color: #60a5fa; }
 
-.aw-roll__dial-num small { font-size: 0.72rem; font-weight: 700; color: var(--roll-soft); }
+.aw-roll__dial-num small { font-size: 0.6rem; font-weight: 700; color: var(--roll-soft); }
 
 .aw-roll__titles {
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.12rem;
+    gap: 0.15rem;
 }
 
 .aw-roll__kicker {
-    font-size: 0.66rem;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--roll-soft);
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
 }
 
 .aw-roll__headline {
-    font-size: 1.08rem;
+    font-size: 0.92rem;
     font-weight: 600;
-    line-height: 1.2;
+    line-height: 1.15;
+    white-space: nowrap;
 }
 
 .aw-roll__headline b {
     font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.05rem;
     color: #1d4ed8;
 }
 
@@ -137,8 +146,7 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.3rem 0.5rem;
-    margin-top: 0.15rem;
+    gap: 0.25rem 0.35rem;
 }
 
 .aw-roll__stars,
@@ -146,10 +154,10 @@
 .aw-roll__mod {
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
-    padding: 0.12rem 0.6rem;
+    gap: 0.25rem;
+    padding: 0.05rem 0.45rem;
     border-radius: 999px;
-    font-size: 0.74rem;
+    font-size: 0.68rem;
     font-weight: 700;
     white-space: nowrap;
 }
@@ -171,50 +179,56 @@
     border-color: rgba(249, 115, 22, 0.45);
 }
 
-/* Lanes */
+/* Lanes: pills that sit side by side and wrap. */
 .aw-roll__lanes {
+    flex: 1 1 18rem;
+    min-width: 0;
     display: flex;
     flex-wrap: wrap;
-    gap: 0.6rem;
+    align-items: center;
+    gap: 0.35rem 0.4rem;
 }
 
 .aw-roll__lane {
-    flex: 1 1 13rem;
     min-width: 0;
-    padding: 0.5rem 0.65rem 0.6rem;
-    border-radius: 1.05rem;
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.4rem;
+    padding: 0.2rem 0.5rem 0.2rem 0.4rem;
+    border-radius: 1rem;
     border: 1.5px solid transparent;
 }
 
 .aw-roll__lane--waiting {
-    flex-grow: 2;
     background: linear-gradient(180deg, #f0f9ff, #e0f2fe);
     border: 1.5px dashed #7dd3fc;
 }
 
 .aw-roll__lane--shining {
     background:
-        radial-gradient(70% 90% at 100% 0%, rgba(253, 230, 138, 0.7), transparent 70%),
+        radial-gradient(70% 120% at 100% 0%, rgba(253, 230, 138, 0.7), transparent 70%),
         linear-gradient(180deg, #fffbeb, #fef3c7);
     border-color: #fcd34d;
 }
 
 .aw-roll__lane--away {
     background:
-        repeating-linear-gradient(105deg, transparent 0 11px, rgba(96, 165, 250, 0.16) 11px 12.5px),
+        repeating-linear-gradient(105deg, transparent 0 7px, rgba(96, 165, 250, 0.18) 7px 8.5px),
         linear-gradient(180deg, #f8fafc, #e2e8f0);
     border-color: #cbd5e1;
 }
 
 .aw-roll__lane-title {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-    margin: 0 0 0.45rem;
-    font-size: 0.7rem;
+    gap: 0.25rem;
+    margin: 0;
+    font-size: 0.66rem;
     font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
+    white-space: nowrap;
 }
 
 .aw-roll__lane--waiting .aw-roll__lane-title { color: #0369a1; }
@@ -223,117 +237,109 @@
 .aw-roll__lane--away .aw-roll__lane-title .fa-cloud-rain { color: #60a5fa; }
 
 .aw-roll__lane-count {
-    margin-left: auto;
-    min-width: 1.45rem;
-    padding: 0.05rem 0.4rem;
+    min-width: 1.15rem;
+    padding: 0 0.3rem;
     border-radius: 999px;
     text-align: center;
-    font-size: 0.72rem;
+    font-size: 0.66rem;
     letter-spacing: 0;
-    background: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.9);
 }
 
 .aw-roll__heroes {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.45rem 0.35rem;
+    align-items: center;
+    gap: 0.2rem 0.25rem;
 }
 
 /* One hero on the roll */
 .aw-roll__hero {
     position: relative;
-    width: 3.45rem;
     display: inline-flex;
-    flex-direction: column;
     align-items: center;
-    gap: 0.2rem;
+    gap: 0.25rem;
     padding: 0;
     border: 0;
     background: none;
     font: inherit;
     color: inherit;
-    text-align: center;
 }
 
-button.aw-roll__hero { cursor: pointer; transition: transform 0.18s ease; }
-button.aw-roll__hero:hover { transform: translateY(-2px); }
-button.aw-roll__hero:active { transform: translateY(1px); }
-button.aw-roll__hero:focus-visible { outline: none; }
-button.aw-roll__hero:focus-visible .aw-roll__face { box-shadow: 0 0 0 3px #fff, 0 0 0 5px #0ea5e9; }
-
 .aw-roll__face {
-    width: 2.45rem;
-    height: 2.45rem;
+    flex: none;
+    width: 1.6rem;
+    height: 1.6rem;
     display: grid;
     place-items: center;
     overflow: hidden;
     border-radius: 50%;
     background: #fff;
-    border: 2.5px solid #fff;
-    box-shadow: 0 2px 6px rgba(30, 64, 175, 0.16);
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(30, 64, 175, 0.16);
 }
 
 .aw-roll__face img { width: 100%; height: 100%; object-fit: cover; }
 
 .aw-roll__initial {
     font-family: 'Fredoka One', 'Fredoka', sans-serif;
-    font-size: 1.05rem;
+    font-size: 0.72rem;
     color: #4338ca;
 }
 
 .aw-roll__name {
-    max-width: 100%;
+    max-width: 5.5rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 0.68rem;
+    font-size: 0.72rem;
     font-weight: 600;
-    line-height: 1.1;
-}
-
-.aw-roll__badge {
-    position: absolute;
-    top: 1.55rem;
-    right: 0.05rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.12rem;
-    min-width: 1.15rem;
-    height: 1.15rem;
-    padding: 0 0.25rem;
-    justify-content: center;
-    border-radius: 999px;
-    font-size: 0.62rem;
-    font-weight: 700;
     line-height: 1;
-    border: 1.5px solid #fff;
 }
 
-/* Still waiting: an open ring of sky. */
-.aw-roll__hero.is-waiting .aw-roll__face { border: 2.5px dashed #38bdf8; }
+/* Waiting heroes are named, tappable chips. */
+button.aw-roll__hero {
+    padding: 0.08rem 0.45rem 0.08rem 0.08rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 1px 3px rgba(14, 116, 144, 0.14);
+    cursor: pointer;
+    transition: transform 0.18s ease;
+}
+button.aw-roll__hero:hover { transform: translateY(-1px); }
+button.aw-roll__hero:active { transform: translateY(1px); }
+button.aw-roll__hero:focus-visible { outline: 2px solid #0ea5e9; outline-offset: 1px; }
+
+.aw-roll__hero.is-waiting .aw-roll__face { border: 2px dashed #38bdf8; box-shadow: none; }
 .aw-roll__hero.is-waiting .aw-roll__name { color: #075985; }
 
 /* Back from an absence, waiting on the welcome desk. */
-.aw-roll__hero.is-returning .aw-roll__face { border: 2.5px dashed #f59e0b; }
-.aw-roll__hero.is-returning .aw-roll__badge { color: #fff; background: #f59e0b; }
+.aw-roll__hero.is-returning .aw-roll__face { border: 2px dashed #f59e0b; box-shadow: none; }
 .aw-roll__hero.is-returning .aw-roll__name { color: #92400e; }
+.aw-roll__hero.is-returning .aw-roll__badge {
+    display: inline-flex;
+    order: 3;
+    font-size: 0.6rem;
+    color: #f59e0b;
+}
 
-/* Shining: a gold rim and today's stars. */
+/* Shining and away heroes are a row of faces; their names and stars are in the tooltip. */
+.aw-roll__hero.is-shining,
+.aw-roll__hero.is-away { margin-right: -0.4rem; }
+.aw-roll__hero.is-shining .aw-roll__name,
+.aw-roll__hero.is-away .aw-roll__name,
+.aw-roll__badge { display: none; }
+.aw-roll__heroes:has(.is-shining, .is-away) { padding-right: 0.4rem; }
+
 .aw-roll__hero.is-shining .aw-roll__face {
     border-color: #fbbf24;
-    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.3), 0 2px 8px rgba(217, 119, 6, 0.3);
+    box-shadow: 0 0 0 1.5px #fff, 0 1px 5px rgba(217, 119, 6, 0.35);
 }
-.aw-roll__hero.is-shining .aw-roll__badge { color: #fff; background: linear-gradient(180deg, #fbbf24, #f59e0b); }
-.aw-roll__hero.is-shining .aw-roll__badge .fa-star { font-size: 0.52rem; }
-.aw-roll__hero.is-shining .aw-roll__name { color: #92400e; }
 
-/* Away today: faded under a little rain cloud. */
-.aw-roll__hero.is-away .aw-roll__face { background: #e2e8f0; border-color: #cbd5e1; box-shadow: none; }
+.aw-roll__hero.is-away .aw-roll__face { background: #e2e8f0; border-color: #cbd5e1; box-shadow: 0 0 0 1.5px #f8fafc; }
 .aw-roll__hero.is-away .aw-roll__face img,
 .aw-roll__hero.is-away .aw-roll__initial { opacity: 0.45; }
 .aw-roll__hero.is-away .aw-roll__initial { color: #475569; }
-.aw-roll__hero.is-away .aw-roll__badge { color: #fff; background: #94a3b8; }
-.aw-roll__hero.is-away .aw-roll__name { color: #64748b; }
 
 /* The whole room shines. */
 .aw-roll.is-complete {
@@ -372,6 +378,7 @@ button.aw-roll__hero:focus-visible .aw-roll__face { box-shadow: 0 0 0 3px #fff, 
 #app-screen.header-night .aw-roll__hero.is-away .aw-roll__name { color: #cbd5e1; }
 #app-screen.header-night .aw-roll__lane-count { background: rgba(255, 255, 255, 0.14); }
 #app-screen.header-night .aw-roll.is-complete .aw-roll__headline { color: #fde68a; }
+#app-screen.header-night button.aw-roll__hero { background: rgba(255, 255, 255, 0.12); box-shadow: none; }
 
 /* A tap on the roll: the hero's cloud glows sky blue (halo opacity only). */
 .aw-card.aw-beckon .aw-cloud__halo {
@@ -1693,10 +1700,15 @@ body.gcq-mobile .aw-sky-grid {
 }
 
 body.gcq-mobile .aw-sky-grid > .award-card-mount { margin-top: 0 !important; }
-body.gcq-mobile .aw-sky-summary { margin: 0 0.75rem 1rem; }
-body.gcq-mobile .aw-roll { padding: 0.75rem 0.7rem 0.8rem; }
-body.gcq-mobile .aw-roll__lane { flex-basis: 100%; }
-body.gcq-mobile .aw-roll__headline { font-size: 0.98rem; }
+body.gcq-mobile .aw-sky-summary { margin: 0 0.75rem 0.4rem; }
+body.gcq-mobile .aw-roll { padding: 0.45rem 0.6rem; gap: 0.4rem; }
+body.gcq-mobile .aw-roll__lanes { flex-basis: 100%; }
+body.gcq-mobile .aw-roll__lane--shining .aw-roll__lane-label,
+body.gcq-mobile .aw-roll__lane--away .aw-roll__lane-label { display: none; }
+body.gcq-mobile .aw-roll__lane--waiting { padding: 0.3rem 0.4rem; }
+body.gcq-mobile .aw-roll__face { width: 1.4rem; height: 1.4rem; }
+body.gcq-mobile .aw-roll__name { font-size: 0.68rem; }
+body.gcq-mobile .aw-roll__heroes { gap: 0.2rem; }
 body.gcq-mobile .aw-card { padding: 0.4rem 1.05rem 1.9rem; }
 body.gcq-mobile .aw-card__corner--left { left: 0.7rem; }
 body.gcq-mobile .aw-card__corner--right { right: 0.7rem; }

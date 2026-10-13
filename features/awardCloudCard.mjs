@@ -331,7 +331,7 @@ export function resolveAwardRollStatus({ starsToday = 0, isMarkedAbsentToday = f
 }
 
 const ROLL_LANES = [
-    { key: 'waiting', label: 'Still waiting', icon: 'fa-cloud' },
+    { key: 'waiting', label: 'Waiting', icon: 'fa-cloud' },
     { key: 'shining', label: 'Shining', icon: 'fa-star' },
     { key: 'away', label: 'Away today', icon: 'fa-cloud-rain' }
 ];
@@ -401,8 +401,8 @@ export function buildAwardSkySummaryHtml({ heroes = [], starsToday = 0, modifier
     const headline = nobodyHere
         ? 'Every hero is away today'
         : allShining
-            ? 'Every hero in class is shining!'
-            : `<b>${shining}</b> of ${here} heroes in class shining`;
+            ? 'Everyone is shining!'
+            : `<b>${shining}</b> of ${here} shining`;
     const sub = [
         `<span class="aw-roll__stars"><i class="fas fa-star" aria-hidden="true"></i><b>${esc(formatAwardStars(starsToday))}</b> today</span>`,
         lanes.away.length ? `<span class="aw-roll__away-count"><i class="fas fa-cloud-rain" aria-hidden="true"></i>${lanes.away.length} away</span>` : '',
@@ -413,7 +413,7 @@ export function buildAwardSkySummaryHtml({ heroes = [], starsToday = 0, modifier
         const list = lanes[lane.key];
         if (!list.length) return '';
         return `<section class="aw-roll__lane aw-roll__lane--${lane.key}">`
-            + `<h4 class="aw-roll__lane-title"><i class="fas ${lane.icon}" aria-hidden="true"></i>${lane.label}<span class="aw-roll__lane-count">${list.length}</span></h4>`
+            + `<h4 class="aw-roll__lane-title"><i class="fas ${lane.icon}" aria-hidden="true"></i><span class="aw-roll__lane-label">${lane.label}</span><span class="aw-roll__lane-count">${list.length}</span></h4>`
             + `<div class="aw-roll__heroes">${list.map(rollHeroHtml).join('')}</div></section>`;
     }).join('');
 

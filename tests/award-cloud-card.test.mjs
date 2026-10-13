@@ -89,7 +89,7 @@ test('star roll counts only the heroes in the room', () => {
             { id: 'd', name: 'Dora', status: 'away' }
         ]
     });
-    assert.match(html, /<b>1<\/b> of 3 heroes in class shining/);
+    assert.match(html, /<b>1<\/b> of 3 shining/);
     assert.match(html, /aw-roll__lane--away[\s\S]*Dora/);
     assert.match(html, /data-roll-student="b"/);
     assert.match(html, /data-roll-student="c"/);
@@ -99,7 +99,7 @@ test('star roll counts only the heroes in the room', () => {
 
 test('star roll: everyone in the room shining, or everyone away', () => {
     const all = buildAwardSkySummaryHtml({ heroes: [{ id: 'a', name: 'A', status: 'shining', stars: 1 }, { id: 'b', name: 'B', status: 'away' }] });
-    assert.match(all, /Every hero in class is shining!/);
+    assert.match(all, /Everyone is shining!/);
     assert.match(all, /aw-roll is-complete/);
     const away = buildAwardSkySummaryHtml({ heroes: [{ id: 'b', name: 'B', status: 'away' }] });
     assert.match(away, /Every hero is away today/);

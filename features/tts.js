@@ -107,7 +107,8 @@ function boostContext() {
     const Ctx = typeof window !== 'undefined' ? (window.AudioContext || window.webkitAudioContext) : null;
     if (!Ctx) return null;
     try {
-        const ctx = new Ctx();
+        // A roomy output buffer: narration plays next to busy animations without crackling.
+        const ctx = new Ctx({ latencyHint: 'playback' });
         const gain = ctx.createGain();
         const limiter = ctx.createDynamicsCompressor();
         gain.connect(limiter).connect(ctx.destination);

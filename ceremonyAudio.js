@@ -7,6 +7,7 @@
 
 import { ensureAudioReady, setCeremonyMuted } from './audio.js';
 import { loadTone } from './utils/lazyLibraries.js';
+import { VoicePool, guardMonoVoice, createVoiceBank, lazyVoices } from './utils/voiceBank.js';
 
 export const CEREMONY_TRACKS = {
     arena: {
@@ -27,8 +28,7 @@ export const CEREMONY_TRACKS = {
 };
 
 let Tone = null;
-let fx = null;
-let fxPromise = null;
+let fxReady = false;
 const players = new Map();
 const buffers = new Map();
 let currentMusic = null;
@@ -47,43 +47,52 @@ export function toggleCeremonyAudioMute() {
     return muted;
 }
 
-async function buildFx() {
-    Tone = Tone || await loadTone();
-    const out = new Tone.Gain(0.9).toDestination();
-    const reverb = new Tone.Reverb({ decay: 2.4, wet: 0.28 }).connect(out);
-    const dry = new Tone.Gain(1).connect(out);
-
-    const boom = new Tone.MembraneSynth({ pitchDecay: 0.09, octaves: 5, envelope: { attack: 0.001, decay: 0.7, sustain: 0, release: 0.3 }, volume: -6 }).connect(reverb);
-    const snare = new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.001, decay: 0.09, sustain: 0 }, volume: -18 });
-    const snareFilter = new Tone.Filter({ type: 'bandpass', frequency: 2400, Q: 0.8 }).connect(dry);
-    snare.connect(snareFilter);
-    const crash = new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.002, decay: 1.9, sustain: 0 }, volume: -14 });
-    const crashFilter = new Tone.Filter({ type: 'highpass', frequency: 4200 }).connect(reverb);
-    crash.connect(crashFilter);
-    const whooshNoise = new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.12, decay: 0.35, sustain: 0, release: 0.2 }, volume: -12 });
-    const whooshFilter = new Tone.Filter({ type: 'bandpass', frequency: 500, Q: 1.4 }).connect(reverb);
-    whooshNoise.connect(whooshFilter);
-    const crackNoise = new Tone.NoiseSynth({ noise: { type: 'brown' }, envelope: { attack: 0.001, decay: 0.06, sustain: 0 }, volume: -6 }).connect(dry);
-    const bells = new Tone.PolySynth(Tone.FMSynth, {
-        harmonicity: 3.01, modulationIndex: 6,
-        envelope: { attack: 0.005, decay: 0.9, sustain: 0, release: 1.2 },
-        modulationEnvelope: { attack: 0.002, decay: 0.3, sustain: 0, release: 0.4 },
-        volume: -14
-    }).connect(reverb);
-    // A plain triangle pluck: Tone.PluckSynth builds IIR filters that stall slow laptops for a moment.
-    const pluck = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.002, decay: 0.18, sustain: 0, release: 0.12 }, volume: -8 }).connect(reverb);
-    const tick = new Tone.MembraneSynth({ pitchDecay: 0.01, octaves: 2, envelope: { attack: 0.001, decay: 0.06, sustain: 0 }, volume: -12 }).connect(dry);
-    const brass = new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'fatsawtooth', count: 3, spread: 18 },
-        envelope: { attack: 0.04, decay: 0.3, sustain: 0.55, release: 0.9 },
-        volume: -20
+// Effect voices are built when first played and put to sleep when quiet (see utils/voiceBank.js):
+// silent synths kept costing the audio thread and made the music crackle on school laptops.
+let fxChassis = null;
+const fxBank = createVoiceBank((keep) => {
+    if (!fxChassis) {
+        const out = new Tone.Gain(0.9).toDestination();
+        fxChassis = { out, reverb: new Tone.Reverb({ decay: 2.4, wet: 0.28 }).connect(out), dry: new Tone.Gain(1).connect(out) };
+    }
+    const { out, reverb, dry } = fxChassis;
+    const mono = (node) => keep(guardMonoVoice(node));
+    const pool = (Voice, options, max) => keep(new VoicePool(Tone, Voice, options, max));
+    const v = lazyVoices({
+        out: () => out,
+        reverb: () => reverb,
+        boom: () => mono(new Tone.MembraneSynth({ pitchDecay: 0.09, octaves: 5, envelope: { attack: 0.001, decay: 0.7, sustain: 0, release: 0.3 }, volume: -6 }).connect(reverb)),
+        snareFilter: () => keep(new Tone.Filter({ type: 'bandpass', frequency: 2400, Q: 0.8 }).connect(dry)),
+        snare: () => mono(new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.001, decay: 0.09, sustain: 0 }, volume: -18 }).connect(v.snareFilter)),
+        crashFilter: () => keep(new Tone.Filter({ type: 'highpass', frequency: 4200 }).connect(reverb)),
+        crash: () => mono(new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.002, decay: 1.9, sustain: 0 }, volume: -14 }).connect(v.crashFilter)),
+        whooshFilter: () => keep(new Tone.Filter({ type: 'bandpass', frequency: 500, Q: 1.4 }).connect(reverb)),
+        whooshNoise: () => mono(new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.12, decay: 0.35, sustain: 0, release: 0.2 }, volume: -12 }).connect(v.whooshFilter)),
+        crackNoise: () => mono(new Tone.NoiseSynth({ noise: { type: 'brown' }, envelope: { attack: 0.001, decay: 0.06, sustain: 0 }, volume: -6 }).connect(dry)),
+        bells: () => pool(Tone.FMSynth, {
+            harmonicity: 3.01, modulationIndex: 6,
+            envelope: { attack: 0.005, decay: 0.9, sustain: 0, release: 1.2 },
+            modulationEnvelope: { attack: 0.002, decay: 0.3, sustain: 0, release: 0.4 },
+            volume: -14
+        }, 10).connect(reverb),
+        // A plain triangle pluck: Tone.PluckSynth runs an audio-thread script that stalls slow laptops.
+        pluck: () => mono(new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.002, decay: 0.18, sustain: 0, release: 0.12 }, volume: -8 }).connect(reverb)),
+        tick: () => mono(new Tone.MembraneSynth({ pitchDecay: 0.01, octaves: 2, envelope: { attack: 0.001, decay: 0.06, sustain: 0 }, volume: -12 }).connect(dry)),
+        brassFilter: () => keep(new Tone.Filter({ type: 'lowpass', frequency: 2200 }).connect(reverb)),
+        brass: () => pool(Tone.Synth, {
+            oscillator: { type: 'fatsawtooth', count: 3, spread: 18 },
+            envelope: { attack: 0.04, decay: 0.3, sustain: 0.55, release: 0.9 },
+            volume: -20
+        }, 8).connect(v.brassFilter),
+        gong: () => mono(new Tone.FMSynth({ harmonicity: 1.41, modulationIndex: 18, envelope: { attack: 0.002, decay: 3.5, sustain: 0, release: 2 }, modulationEnvelope: { attack: 0.002, decay: 2.5, sustain: 0, release: 1 }, volume: -10 }).connect(reverb)),
+        glide: () => mono(new Tone.Synth({ oscillator: { type: 'sine' }, portamento: 0.35, envelope: { attack: 0.02, decay: 0.4, sustain: 0.2, release: 0.4 }, volume: -16 }).connect(reverb)),
     });
-    const brassFilter = new Tone.Filter({ type: 'lowpass', frequency: 2200 }).connect(reverb);
-    brass.connect(brassFilter);
-    const gong = new Tone.FMSynth({ harmonicity: 1.41, modulationIndex: 18, envelope: { attack: 0.002, decay: 3.5, sustain: 0, release: 2 }, modulationEnvelope: { attack: 0.002, decay: 2.5, sustain: 0, release: 1 }, volume: -10 }).connect(reverb);
-    const glide = new Tone.Synth({ oscillator: { type: 'sine' }, portamento: 0.35, envelope: { attack: 0.02, decay: 0.4, sustain: 0.2, release: 0.4 }, volume: -16 }).connect(reverb);
+    return v;
+}, { idle: 8, span: 4 });
 
-    return { out, reverb, boom, snare, crash, whooshNoise, whooshFilter, crackNoise, bells, pluck, tick, brass, gong, glide };
+/** The effect voices, kept awake for `seconds`. */
+function getFx(seconds) {
+    return fxReady && Tone ? fxBank.get(seconds) : null;
 }
 
 /** Wake audio, build the effect synths once, and start loading a bank's music. */
@@ -91,8 +100,7 @@ export async function prepareCeremonyAudio(bank) {
     const ready = await ensureAudioReady().catch(() => false);
     if (!ready) return false;
     Tone = Tone || await loadTone();
-    if (!fxPromise) fxPromise = buildFx().then((built) => { fx = built; return built; }).catch((error) => { console.warn('Ceremony sound effects unavailable', error); fxPromise = null; return null; });
-    await fxPromise;
+    fxReady = true;
     const tracks = CEREMONY_TRACKS[bank] || {};
     Object.entries(tracks).forEach(([key, def]) => {
         if (players.has(key)) return;
@@ -178,8 +186,10 @@ export function stopCeremonyAudio({ fade = 0.5 } = {}) {
 
 /** Rolling snare that swells for `seconds`, optional cymbal + boom at the end. */
 export function startCeremonyDrumroll(seconds = 2.8) {
-    if (muted || !fx || !Tone) return;
+    if (muted || !fxReady || !Tone) return;
     stopCeremonyDrumroll({ crash: false });
+    const fx = getFx(seconds + 4);
+    fxBank.hold();
     const t0 = Tone.now();
     fx.snare.volume.cancelScheduledValues(t0);
     fx.snare.volume.setValueAtTime(-30, t0);
@@ -188,7 +198,8 @@ export function startCeremonyDrumroll(seconds = 2.8) {
     const end = t0 + seconds + 4;
     // Schedule ahead in small chunks so a stop can cancel quickly.
     const chunk = () => {
-        const until = Math.min(end, Tone.now() + 0.4);
+        // Scheduled well ahead so a busy frame cannot open a gap; a stop silences it at once.
+        const until = Math.min(end, Tone.now() + 0.8);
         while (t < until) {
             fx.snare.triggerAttackRelease('32n', t, 0.6 + Math.random() * 0.4);
             t += 0.045;
@@ -202,8 +213,10 @@ export function startCeremonyDrumroll(seconds = 2.8) {
 export function stopCeremonyDrumroll({ crash = true } = {}) {
     if (drumTimer) clearTimeout(drumTimer);
     drumTimer = null;
-    if (!fx || !Tone) return;
+    const fx = getFx(3);
+    if (!fx) return;
     if (drumLoop) {
+        fxBank.release(3);
         fx.snare.volume.cancelScheduledValues(Tone.now());
         fx.snare.volume.setValueAtTime(-60, Tone.now() + 0.05);
         setTimeout(() => { try { fx.snare.volume.value = -18; } catch (_) { /* disposed */ } }, 600);
@@ -225,7 +238,8 @@ const NOTE_SETS = {
 
 /** One-shot effects. Unknown names are ignored. */
 export function playCeremonySfx(name) {
-    if (muted || !fx || !Tone) return;
+    if (muted || !fxReady || !Tone) return;
+    const fx = getFx(name === 'gong' ? 6 : 4);
     const now = Tone.now() + 0.02;
     try {
         switch (name) {

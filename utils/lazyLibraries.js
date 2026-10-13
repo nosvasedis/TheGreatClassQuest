@@ -2,9 +2,28 @@ let tonePromise;
 let chartPromise;
 let pdfPromise;
 
+// Sound effects run next to heavy animations, so the audio context trades a few hundredths of a
+// second of latency for a bigger output buffer: a busy laptop no longer crackles or drops out.
+// Use Tone.getContext() / getTransport() / getDestination() everywhere: Tone's old `Tone.context`
+// and `Tone.Transport` exports keep pointing at the default context this replaces.
+function configureTone(Tone) {
+    try {
+        const old = Tone.getContext();
+        if (old.latencyHint !== 'playback') {
+            Tone.setContext(new Tone.Context({ latencyHint: 'playback', lookAhead: 0.1 }), true);
+        }
+        // A gentle limiter on the master output: when many effects stack up they are squeezed a little
+        // instead of clipping into static.
+        Tone.getDestination().chain(new Tone.Limiter(-1.5));
+    } catch (error) {
+        console.warn('Audio context setup skipped:', error);
+    }
+    return Tone;
+}
+
 export function loadTone() {
     if (!tonePromise) {
-        tonePromise = import('tone').catch((error) => {
+        tonePromise = import('tone').then(configureTone).catch((error) => {
             tonePromise = null;
             throw error;
         });

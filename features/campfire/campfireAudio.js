@@ -7,7 +7,8 @@ const PREF = 'gcq_campfire_sound';
 export async function createCampfireAudio() {
     const AC = globalThis.AudioContext || globalThis.webkitAudioContext;
     if (!AC) throw new Error('No Web Audio');
-    const ctx = new AC();
+    // A roomy output buffer so the fire never crackles in the wrong way while the scene animates.
+    const ctx = new AC({ latencyHint: 'playback' });
     if (ctx.state === 'suspended') await ctx.resume().catch(() => {});
     const out = ctx.createDynamicsCompressor();
     out.threshold.value = -18; out.ratio.value = 3;

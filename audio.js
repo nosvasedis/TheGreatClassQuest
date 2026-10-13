@@ -1,14 +1,158 @@
 import * as state from './state.js';
 import { loadTone } from './utils/lazyLibraries.js';
+import { VoicePool, guardMonoVoice, createVoiceBank, lazyVoices } from './utils/voiceBank.js';
+
+// How the sound effects stay smooth during heavy animations (see utils/voiceBank.js):
+// - chords and bells are VoicePools, which put every note straight on the audio clock
+//   (Tone.PolySynth waited for the busy main thread and played notes late or not at all);
+// - each family of voices is a VoiceBank: built on first use, disposed when it has been quiet,
+//   so silent synths stop costing the audio thread anything;
+// - no Tone.PluckSynth: each one ran a script on the audio thread nonstop (the old 15% idle load);
+// - the context uses a bigger output buffer and a master limiter (utils/lazyLibraries.js).
+// Always reach the context through Tone.getContext() / getTransport(), never Tone.context.
 
 let Tone = null;
-let sounds = {};
 export let winnerFanfare = {};
 export let heroFanfare = {};
 let soundsReady = false;
 let soundSetupPromise = null;
 let audioStartPromise = null;
 let lastSoundTime = 0; // Track the time of the last scheduled sound
+let baseReverb = null;
+
+function audioRunning() {
+    return Boolean(Tone) && Tone.getContext().state === 'running';
+}
+
+/** A polyphonic voice (bells, chords) scheduled straight onto the audio clock. */
+function pool(keep, Voice, options, maxPolyphony = 8) {
+    return keep(new VoicePool(Tone, Voice, options, maxPolyphony));
+}
+
+/** A one-note-at-a-time voice that skips a clashing note instead of throwing. */
+function mono(keep, node) {
+    return keep(guardMonoVoice(node));
+}
+
+// The everyday sounds (stars, clicks, quiz chimes). Built when first needed, put to sleep when quiet.
+const baseBank = createVoiceBank((keep) => {
+    const reverb = baseReverb;
+    const v = lazyVoices({
+        click: () => mono(keep, new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.001, decay: 0.05, sustain: 0.0, release: 0.05 }, volume: -25 }).toDestination()),
+        confirm: () => mono(keep, new Tone.Synth({ oscillator: { type: 'sawtooth' }, envelope: { attack: 0.01, decay: 0.1, sustain: 0.0, release: 0.2 }, volume: -15 }).toDestination()),
+        star_remove: () => mono(keep, new Tone.NoiseSynth({ noise: { type: "pink" }, envelope: { attack: 0.02, decay: 0.1, sustain: 0.01, release: 0.3 }, volume: -10 }).toDestination()),
+        writing: () => mono(keep, new Tone.NoiseSynth({ noise: { type: "white", playbackRate: 0.5 }, envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 }, volume: -20 }).toDestination()),
+        cash: () => pool(keep, Tone.Synth, {
+            oscillator: { type: "sine" },
+            envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 },
+            volume: -10
+        }, 6).toDestination(),
+        snare: () => mono(keep, new Tone.NoiseSynth({
+            noise: { type: 'white' },
+            envelope: { attack: 0.005, decay: 0.1, sustain: 0 },
+            volume: -10
+        }).toDestination()),
+        familiar_hatch: () => pool(keep, Tone.Synth, {
+            oscillator: { type: 'triangle' },
+            envelope: { attack: 0.02, decay: 0.15, sustain: 0.1, release: 0.4 },
+            volume: -8
+        }, 8).connect(reverb),
+        familiar_levelup: () => pool(keep, Tone.Synth, {
+            oscillator: { type: 'sawtooth' },
+            envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.6 },
+            volume: -10
+        }, 10).connect(reverb),
+        // Plucked notes: one light triangle pluck shared by the star, chime and quiz plucks
+        // (Tone.PluckSynth ran an audio-thread script all the time, even in silence).
+        pluck: () => pool(keep, Tone.Synth, {
+            oscillator: { type: 'triangle' },
+            envelope: { attack: 0.002, decay: 0.38, sustain: 0, release: 0.35 },
+            volume: -9
+        }, 8).connect(reverb),
+        magic_chime: () => plucked(v, 0.55),
+        star1: () => plucked(v, 0.75),
+        star2: () => plucked(v, 0.9),
+        // Quiz of the Week SFX
+        quiz_open: () => pool(keep, Tone.Synth, {
+            oscillator: { type: 'triangle' },
+            envelope: { attack: 0.01, decay: 0.15, sustain: 0.1, release: 0.3 },
+            volume: -8
+        }, 6).connect(reverb),
+        quiz_question_in: () => plucked(v, 0.45),
+        quiz_student_reveal: () => plucked(v, 0.75),
+        quiz_correct: () => mono(keep, new Tone.FMSynth({
+            harmonicity: 2.5,
+            modulationIndex: 8,
+            detune: 0,
+            oscillator: { type: 'sine' },
+            envelope: { attack: 0.01, decay: 0.3, sustain: 0.15, release: 0.5 },
+            modulation: { type: 'triangle' },
+            modulationEnvelope: { attack: 0.01, decay: 0.1, sustain: 0.1, release: 0.3 },
+            volume: -6
+        }).connect(reverb)),
+        quiz_wrong: () => mono(keep, new Tone.Synth({
+            oscillator: { type: 'sine' },
+            envelope: { attack: 0.01, decay: 0.2, sustain: 0.0, release: 0.2 },
+            volume: -12
+        }).toDestination()),
+        quiz_tier_reveal: () => pool(keep, Tone.Synth, {
+            oscillator: { type: 'triangle' },
+            envelope: { attack: 0.02, decay: 0.3, sustain: 0.2, release: 0.6 },
+            volume: -6
+        }, 8).connect(reverb),
+        quiz_confetti_pop: () => plucked(v, 0.75),
+        ceremony_gling: () => plucked(v, 0.12),
+        star3: () => mono(keep, new Tone.FMSynth({
+            harmonicity: 3,
+            modulationIndex: 10,
+            detune: 0,
+            oscillator: { type: "sine" },
+            envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.5 },
+            modulation: { type: "square" },
+            modulationEnvelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.4 },
+            volume: -5
+        }).connect(reverb)),
+        // Award Stars: a bell choir that grows with the award (spark, shine, supernova),
+        // a sparkle wash, a soft low swell for three stars, and one chime per virtue.
+        award_bell: () => pool(keep, Tone.FMSynth, {
+            harmonicity: 3.01,
+            modulationIndex: 7,
+            oscillator: { type: 'sine' },
+            envelope: { attack: 0.002, decay: 0.55, sustain: 0, release: 0.9 },
+            modulation: { type: 'sine' },
+            modulationEnvelope: { attack: 0.002, decay: 0.35, sustain: 0, release: 0.4 },
+            volume: -15
+        }, 12).connect(reverb),
+        awardSparkleFilter: () => keep(new Tone.Filter({ frequency: 7000, type: 'highpass' }).connect(reverb)),
+        award_sparkle: () => mono(keep, new Tone.NoiseSynth({
+            noise: { type: 'white' },
+            envelope: { attack: 0.02, decay: 0.45, sustain: 0, release: 0.2 },
+            volume: -24
+        }).connect(v.awardSparkleFilter)),
+        award_swell: () => mono(keep, new Tone.MembraneSynth({
+            pitchDecay: 0.08,
+            octaves: 4,
+            envelope: { attack: 0.002, decay: 0.6, sustain: 0, release: 0.5 },
+            volume: -13
+        }).toDestination()),
+        award_pad: () => pool(keep, Tone.Synth, {
+            oscillator: { type: 'triangle' },
+            envelope: { attack: 0.04, decay: 0.5, sustain: 0.25, release: 1.1 },
+            volume: -20
+        }, 6).connect(reverb),
+    });
+    return v;
+}, { idle: 6, span: 3 });
+
+/** One of the plucked notes: the shared pluck at its own loudness. */
+function plucked(v, velocity) {
+    return { triggerAttackRelease: (note, duration, time) => v.pluck.triggerAttackRelease(note, duration, time, velocity) };
+}
+
+/** The everyday voices, kept awake for `seconds`. */
+function getSounds(seconds = 3) {
+    return baseBank.get(seconds);
+}
 
 export async function setupSounds() {
     if (soundSetupPromise) return soundSetupPromise;
@@ -16,117 +160,7 @@ export async function setupSounds() {
     soundSetupPromise = (async () => {
         try {
             Tone = await loadTone();
-            // SFX Synths
-            const reverb = new Tone.Reverb({ decay: 0.8, wet: 0.3 }).toDestination();
-            sounds.click = new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.001, decay: 0.05, sustain: 0.0, release: 0.05 } }).toDestination();
-            sounds.confirm = new Tone.Synth({ oscillator: { type: 'sawtooth' }, envelope: { attack: 0.01, decay: 0.1, sustain: 0.0, release: 0.2 }, volume: -15 }).toDestination();
-            sounds.star_remove = new Tone.NoiseSynth({ noise: { type: "pink" }, envelope: { attack: 0.02, decay: 0.1, sustain: 0.01, release: 0.3 }, volume: -10 }).toDestination();
-            sounds.click.volume.value = -25;
-
-            sounds.writing = new Tone.NoiseSynth({ noise: { type: "white", playbackRate: 0.5 }, envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 }, volume: -20 }).toDestination();
-            sounds.magic_chime = new Tone.PluckSynth({ attackNoise: 0.5, dampening: 2000, resonance: 0.9, volume: -12 }).connect(reverb);
-            sounds.cash = new Tone.PolySynth(Tone.Synth, {
-                oscillator: { type: "sine" },
-                envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 }
-            }).toDestination();
-            sounds.cash.volume.value = -10;
-            sounds.snare = new Tone.NoiseSynth({
-                noise: { type: 'white' },
-                envelope: { attack: 0.005, decay: 0.1, sustain: 0 }
-            }).toDestination();
-            sounds.snare.volume.value = -10;
-
-            sounds.familiar_hatch = new Tone.PolySynth(Tone.Synth, {
-                oscillator: { type: 'triangle' },
-                envelope: { attack: 0.02, decay: 0.15, sustain: 0.1, release: 0.4 },
-                volume: -8
-            }).connect(reverb);
-            sounds.familiar_levelup = new Tone.PolySynth(Tone.Synth, {
-                oscillator: { type: 'sawtooth' },
-                envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.6 },
-                volume: -10
-            }).connect(reverb);
-
-            sounds.star1 = new Tone.PluckSynth({ attackNoise: 1, dampening: 4000, resonance: 0.7, volume: -10 }).connect(reverb);
-            sounds.star2 = new Tone.PluckSynth({ attackNoise: 1, dampening: 3000, resonance: 0.8, volume: -8 }).connect(reverb);
-
-            // Quiz of the Week SFX
-            sounds.quiz_open = new Tone.PolySynth(Tone.Synth, {
-                oscillator: { type: 'triangle' },
-                envelope: { attack: 0.01, decay: 0.15, sustain: 0.1, release: 0.3 },
-                volume: -8
-            }).connect(reverb);
-            sounds.quiz_question_in = new Tone.PluckSynth({ attackNoise: 0.5, dampening: 3000, resonance: 0.8, volume: -14 }).connect(reverb);
-            sounds.quiz_student_reveal = new Tone.PluckSynth({ attackNoise: 0.8, dampening: 2500, resonance: 0.9, volume: -10 }).connect(reverb);
-            sounds.quiz_correct = new Tone.FMSynth({
-                harmonicity: 2.5,
-                modulationIndex: 8,
-                detune: 0,
-                oscillator: { type: 'sine' },
-                envelope: { attack: 0.01, decay: 0.3, sustain: 0.15, release: 0.5 },
-                modulation: { type: 'triangle' },
-                modulationEnvelope: { attack: 0.01, decay: 0.1, sustain: 0.1, release: 0.3 },
-                volume: -6
-            }).connect(reverb);
-            sounds.quiz_wrong = new Tone.Synth({
-                oscillator: { type: 'sine' },
-                envelope: { attack: 0.01, decay: 0.2, sustain: 0.0, release: 0.2 },
-                volume: -12
-            }).toDestination();
-            sounds.quiz_tier_reveal = new Tone.PolySynth(Tone.Synth, {
-                oscillator: { type: 'triangle' },
-                envelope: { attack: 0.02, decay: 0.3, sustain: 0.2, release: 0.6 },
-                volume: -6
-            }).connect(reverb);
-            sounds.quiz_confetti_pop = new Tone.PluckSynth({ attackNoise: 1, dampening: 3500, resonance: 0.75, volume: -10 }).connect(reverb);
-
-            sounds.ceremony_gling = new Tone.PluckSynth({
-                attackNoise: 0.15,
-                dampening: 6200,
-                resonance: 0.94,
-                volume: -24
-            }).connect(reverb);
-
-            sounds.star3 = new Tone.FMSynth({
-                harmonicity: 3,
-                modulationIndex: 10,
-                detune: 0,
-                oscillator: { type: "sine" },
-                envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.5 },
-                modulation: { type: "square" },
-                modulationEnvelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.4 },
-                volume: -5
-            }).connect(reverb);
-
-            // Award Stars: a bell choir that grows with the award (spark, shine, supernova),
-            // a sparkle wash, a soft low swell for three stars, and one chime per virtue.
-            sounds.award_bell = new Tone.PolySynth(Tone.FMSynth, {
-                harmonicity: 3.01,
-                modulationIndex: 7,
-                oscillator: { type: 'sine' },
-                envelope: { attack: 0.002, decay: 0.55, sustain: 0, release: 0.9 },
-                modulation: { type: 'sine' },
-                modulationEnvelope: { attack: 0.002, decay: 0.35, sustain: 0, release: 0.4 },
-                volume: -15
-            }).connect(reverb);
-            sounds.award_bell.maxPolyphony = 12;
-            const awardSparkleFilter = new Tone.Filter({ frequency: 7000, type: 'highpass' }).connect(reverb);
-            sounds.award_sparkle = new Tone.NoiseSynth({
-                noise: { type: 'white' },
-                envelope: { attack: 0.02, decay: 0.45, sustain: 0, release: 0.2 },
-                volume: -24
-            }).connect(awardSparkleFilter);
-            sounds.award_swell = new Tone.MembraneSynth({
-                pitchDecay: 0.08,
-                octaves: 4,
-                envelope: { attack: 0.002, decay: 0.6, sustain: 0, release: 0.5 },
-                volume: -13
-            }).toDestination();
-            sounds.award_pad = new Tone.PolySynth(Tone.Synth, {
-                oscillator: { type: 'triangle' },
-                envelope: { attack: 0.04, decay: 0.5, sustain: 0.25, release: 1.1 },
-                volume: -20
-            }).connect(reverb);
+            baseReverb = baseReverb || new Tone.Reverb({ decay: 0.8, wet: 0.3 }).toDestination();
 
             winnerFanfare = new Tone.Player({
                 url: "assets/ceremony_winner.mp3",
@@ -158,7 +192,8 @@ export async function setupSounds() {
 }
 
 export function playSound(sound) {
-    if (!soundsReady || Tone.context.state !== 'running') return;
+    if (!soundsReady || !audioRunning()) return;
+    const sounds = getSounds(sound === 'award_3' ? 3 : 2);
     const composedAward = typeof sound === 'string' && (sound.startsWith('award_') || sound.startsWith('virtue_')) && sounds.award_bell;
     if (!sounds[sound] && !composedAward) return;
     
@@ -283,7 +318,7 @@ export async function activateAudioContext() {
         console.error('Failed to load audio library:', error);
         return false;
     }
-    if (Tone.context.state === 'running') return Promise.resolve(true);
+    if (audioRunning()) return Promise.resolve(true);
     if (audioStartPromise) return audioStartPromise;
 
     audioStartPromise = Tone.start()
@@ -304,11 +339,11 @@ export async function ensureAudioReady() {
     const started = await activateAudioContext();
     if (!started) return false;
     await setupSounds();
-    return soundsReady && Tone?.context?.state === 'running';
+    return soundsReady && audioRunning();
 }
 
 export function isAudioReady() {
-    return soundsReady && Tone?.context?.state === 'running';
+    return soundsReady && audioRunning();
 }
 
 let ceremonyMuted = false;
@@ -347,18 +382,22 @@ export function playWinnerFanfare() {
 let drumRollLoop;
 export function playDrumRoll() {
     if (ceremonyMuted || !soundsReady) return;
+    stopDrumRoll();
+    const sounds = getSounds();
+    baseBank.hold();
     // Play a snare hit every 16th note (fast)
     drumRollLoop = new Tone.Loop(time => {
         sounds.snare.triggerAttackRelease("8n", time);
     }, "16n").start(0);
-    Tone.Transport.start();
+    Tone.getTransport().start();
 }
 
 export function stopDrumRoll() {
     if (drumRollLoop) {
         drumRollLoop.dispose();
         drumRollLoop = null;
-        Tone.Transport.stop();
+        baseBank.release(1);
+        if (!writingLoop) Tone.getTransport().stop();
     }
 }
 
@@ -366,139 +405,162 @@ export function stopDrumRoll() {
 // Every voice is synthesised (no files) and built once, on first use.
 // The draw and the crowning each have their own bus, so a skipped draw or a
 // closed reveal can fade out what is still scheduled without touching the rest.
-let heroVoices = null;
-function getHeroVoices() {
-    if (heroVoices || !Tone) return heroVoices;
-    const reverb = new Tone.Reverb({ decay: 3.2, wet: 0.3 }).toDestination();
-    const bus = new Tone.Gain(1).connect(reverb);
-    const drawBus = new Tone.Gain(1).connect(reverb);
-    const quillFilter = new Tone.Filter({ type: 'bandpass', frequency: 3200, Q: 1.4 }).connect(bus);
-    const quill = new Tone.NoiseSynth({
-        noise: { type: 'pink' },
-        envelope: { attack: 0.004, decay: 0.07, sustain: 0, release: 0.03 },
-        volume: -24
-    }).connect(quillFilter);
-    const harp = new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'triangle' },
-        envelope: { attack: 0.002, decay: 0.35, sustain: 0, release: 0.4 },
-        volume: -13
-    }).connect(drawBus);
-    harp.maxPolyphony = 16;
-    const roll = new Tone.MembraneSynth({
-        pitchDecay: 0.04,
-        octaves: 2.2,
-        envelope: { attack: 0.002, decay: 0.3, sustain: 0, release: 0.2 },
-        volume: -11
-    }).connect(drawBus);
-    // The held breath before the crown: a dominant string swell and a rising hiss.
-    const tensionFilter = new Tone.Filter({ type: 'lowpass', frequency: 500, Q: 1.2 }).connect(drawBus);
-    const tension = new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'fatsawtooth', count: 3, spread: 22 },
-        envelope: { attack: 1.2, decay: 0.1, sustain: 1, release: 0.25 },
-        volume: -22
-    }).connect(tensionFilter);
-    tension.maxPolyphony = 8;
-    const riserFilter = new Tone.Filter({ type: 'bandpass', frequency: 600, Q: 0.9 }).connect(drawBus);
-    const riser = new Tone.NoiseSynth({
-        noise: { type: 'white' },
-        envelope: { attack: 1, decay: 0.05, sustain: 1, release: 0.06 },
-        volume: -24
-    }).connect(riserFilter);
-    const heartbeat = new Tone.MembraneSynth({
-        pitchDecay: 0.06,
-        octaves: 3,
-        envelope: { attack: 0.002, decay: 0.35, sustain: 0, release: 0.2 },
-        volume: -6
-    }).connect(drawBus);
-    const timpani = new Tone.MembraneSynth({
-        pitchDecay: 0.04,
-        octaves: 2.2,
-        envelope: { attack: 0.002, decay: 0.45, sustain: 0, release: 0.3 },
-        volume: -9
-    }).connect(bus);
-    const sub = new Tone.MembraneSynth({
-        pitchDecay: 0.12,
-        octaves: 4,
-        envelope: { attack: 0.002, decay: 1.4, sustain: 0, release: 0.6 },
-        volume: -4
-    }).connect(bus);
-    const brassFilter = new Tone.Filter({ type: 'lowpass', frequency: 2300, Q: 0.8 }).connect(bus);
-    const brass = new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'fatsawtooth', count: 3, spread: 16 },
-        envelope: { attack: 0.03, decay: 0.2, sustain: 0.75, release: 0.6 },
-        volume: -17
-    }).connect(brassFilter);
-    brass.maxPolyphony = 28;
-    // A choir-like "aah" under the fanfare: slow sawtooth pad through a vowel-ish band.
-    const choirFilter = new Tone.Filter({ type: 'bandpass', frequency: 900, Q: 0.7 }).connect(bus);
-    const choir = new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'fatsawtooth', count: 3, spread: 30 },
-        envelope: { attack: 0.35, decay: 0.3, sustain: 0.85, release: 1.6 },
-        volume: -21
-    }).connect(choirFilter);
-    choir.maxPolyphony = 20;
-    const cymbalFilter = new Tone.Filter({ type: 'highpass', frequency: 4200 }).connect(bus);
-    const cymbal = new Tone.NoiseSynth({
-        noise: { type: 'white' },
-        envelope: { attack: 0.003, decay: 3, sustain: 0, release: 0.5 },
-        volume: -22
-    }).connect(cymbalFilter);
-    const bell = new Tone.PolySynth(Tone.FMSynth, {
-        harmonicity: 3.01,
-        modulationIndex: 6,
-        envelope: { attack: 0.002, decay: 0.9, sustain: 0, release: 1.1 },
-        modulationEnvelope: { attack: 0.002, decay: 0.4, sustain: 0, release: 0.4 },
-        volume: -19
-    }).connect(bus);
-    bell.maxPolyphony = 32;
-    // The anthem's band: a singing lead with a little vibrato, a round bass and a march snare.
-    const leadFilter = new Tone.Filter({ type: 'lowpass', frequency: 3200, Q: 0.6 }).connect(bus);
-    const leadVibrato = new Tone.Vibrato({ frequency: 5.2, depth: 0.08 }).connect(leadFilter);
-    const lead = new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'fatsawtooth', count: 3, spread: 12 },
-        envelope: { attack: 0.025, decay: 0.15, sustain: 0.8, release: 0.35 },
-        volume: -15
-    }).connect(leadVibrato);
-    lead.maxPolyphony = 10;
-    const bassFilter = new Tone.Filter({ type: 'lowpass', frequency: 650, Q: 1 }).connect(bus);
-    const bass = new Tone.Synth({
-        oscillator: { type: 'fatsawtooth', count: 2, spread: 10 },
-        envelope: { attack: 0.01, decay: 0.25, sustain: 0.35, release: 0.2 },
-        volume: -10
-    }).connect(bassFilter);
-    const snareFilter = new Tone.Filter({ type: 'highpass', frequency: 1600 }).connect(bus);
-    const snare = new Tone.NoiseSynth({
-        noise: { type: 'white' },
-        envelope: { attack: 0.002, decay: 0.13, sustain: 0, release: 0.05 },
-        volume: -19
-    }).connect(snareFilter);
-    heroVoices = {
-        bus, drawBus, quill, quillFilter, harp, roll, tension, tensionFilter, riser, riserFilter,
-        heartbeat, timpani, sub, brass, choir, cymbal, bell, lead, bass, snare
-    };
-    return heroVoices;
+let heroChassis = null;
+function getHeroChassis() {
+    if (!heroChassis && Tone) {
+        const reverb = new Tone.Reverb({ decay: 3.2, wet: 0.3 }).toDestination();
+        heroChassis = { reverb, bus: new Tone.Gain(1).connect(reverb), drawBus: new Tone.Gain(1).connect(reverb) };
+    }
+    return heroChassis;
 }
 
-function heroBusUp(busName = 'bus') {
-    const v = getHeroVoices();
-    if (!v) return null;
-    const gain = v[busName].gain;
+// The drawing of lots and the quill: small, built when the reveal opens.
+const heroDrawBank = createVoiceBank((keep) => {
+    const { bus, drawBus } = getHeroChassis();
+    const v = lazyVoices({
+        quillFilter: () => keep(new Tone.Filter({ type: 'bandpass', frequency: 3200, Q: 1.4 }).connect(bus)),
+        quill: () => mono(keep, new Tone.NoiseSynth({
+            noise: { type: 'pink' },
+            envelope: { attack: 0.004, decay: 0.07, sustain: 0, release: 0.03 },
+            volume: -24
+        }).connect(v.quillFilter)),
+        harp: () => pool(keep, Tone.Synth, {
+            oscillator: { type: 'triangle' },
+            envelope: { attack: 0.002, decay: 0.35, sustain: 0, release: 0.4 },
+            volume: -13
+        }, 10).connect(drawBus),
+        roll: () => mono(keep, new Tone.MembraneSynth({
+            pitchDecay: 0.04,
+            octaves: 2.2,
+            envelope: { attack: 0.002, decay: 0.3, sustain: 0, release: 0.2 },
+            volume: -11
+        }).connect(drawBus)),
+        // The held breath before the crown: a dominant string swell and a rising hiss.
+        tensionFilter: () => keep(new Tone.Filter({ type: 'lowpass', frequency: 500, Q: 1.2 }).connect(drawBus)),
+        tension: () => pool(keep, Tone.Synth, {
+            oscillator: { type: 'fatsawtooth', count: 3, spread: 22 },
+            envelope: { attack: 1.2, decay: 0.1, sustain: 1, release: 0.25 },
+            volume: -22
+        }, 8).connect(v.tensionFilter),
+        riserFilter: () => keep(new Tone.Filter({ type: 'bandpass', frequency: 600, Q: 0.9 }).connect(drawBus)),
+        riser: () => mono(keep, new Tone.NoiseSynth({
+            noise: { type: 'white' },
+            envelope: { attack: 1, decay: 0.05, sustain: 1, release: 0.06 },
+            volume: -24
+        }).connect(v.riserFilter)),
+        heartbeat: () => mono(keep, new Tone.MembraneSynth({
+            pitchDecay: 0.06,
+            octaves: 3,
+            envelope: { attack: 0.002, decay: 0.35, sustain: 0, release: 0.2 },
+            volume: -6
+        }).connect(drawBus)),
+    });
+    return v;
+}, { idle: 6 });
+
+// The live band of the Hero's March: only built when the recording could not be played.
+const heroAnthemBank = createVoiceBank((keep) => {
+    const { bus } = getHeroChassis();
+    const v = lazyVoices({
+        timpani: () => mono(keep, new Tone.MembraneSynth({
+            pitchDecay: 0.04,
+            octaves: 2.2,
+            envelope: { attack: 0.002, decay: 0.45, sustain: 0, release: 0.3 },
+            volume: -9
+        }).connect(bus)),
+        sub: () => mono(keep, new Tone.MembraneSynth({
+            pitchDecay: 0.12,
+            octaves: 4,
+            envelope: { attack: 0.002, decay: 1.4, sustain: 0, release: 0.6 },
+            volume: -4
+        }).connect(bus)),
+        brassFilter: () => keep(new Tone.Filter({ type: 'lowpass', frequency: 2300, Q: 0.8 }).connect(bus)),
+        brass: () => pool(keep, Tone.Synth, {
+            oscillator: { type: 'fatsawtooth', count: 3, spread: 16 },
+            envelope: { attack: 0.03, decay: 0.2, sustain: 0.75, release: 0.6 },
+            volume: -17
+        }, 12).connect(v.brassFilter),
+        // A choir-like "aah" under the fanfare: slow sawtooth pad through a vowel-ish band.
+        choirFilter: () => keep(new Tone.Filter({ type: 'bandpass', frequency: 900, Q: 0.7 }).connect(bus)),
+        choir: () => pool(keep, Tone.Synth, {
+            oscillator: { type: 'fatsawtooth', count: 3, spread: 30 },
+            envelope: { attack: 0.35, decay: 0.3, sustain: 0.85, release: 1.6 },
+            volume: -21
+        }, 12).connect(v.choirFilter),
+        cymbalFilter: () => keep(new Tone.Filter({ type: 'highpass', frequency: 4200 }).connect(bus)),
+        cymbal: () => mono(keep, new Tone.NoiseSynth({
+            noise: { type: 'white' },
+            envelope: { attack: 0.003, decay: 3, sustain: 0, release: 0.5 },
+            volume: -22
+        }).connect(v.cymbalFilter)),
+        bell: () => pool(keep, Tone.FMSynth, {
+            harmonicity: 3.01,
+            modulationIndex: 6,
+            envelope: { attack: 0.002, decay: 0.9, sustain: 0, release: 1.1 },
+            modulationEnvelope: { attack: 0.002, decay: 0.4, sustain: 0, release: 0.4 },
+            volume: -19
+        }, 16).connect(bus),
+        // The anthem's band: a singing lead with a little vibrato, a round bass and a march snare.
+        leadFilter: () => keep(new Tone.Filter({ type: 'lowpass', frequency: 3200, Q: 0.6 }).connect(bus)),
+        leadVibrato: () => keep(new Tone.Vibrato({ frequency: 5.2, depth: 0.08 }).connect(v.leadFilter)),
+        lead: () => pool(keep, Tone.Synth, {
+            oscillator: { type: 'fatsawtooth', count: 3, spread: 12 },
+            envelope: { attack: 0.025, decay: 0.15, sustain: 0.8, release: 0.35 },
+            volume: -15
+        }, 6).connect(v.leadVibrato),
+        bassFilter: () => keep(new Tone.Filter({ type: 'lowpass', frequency: 650, Q: 1 }).connect(bus)),
+        bass: () => mono(keep, new Tone.Synth({
+            oscillator: { type: 'fatsawtooth', count: 2, spread: 10 },
+            envelope: { attack: 0.01, decay: 0.25, sustain: 0.35, release: 0.2 },
+            volume: -10
+        }).connect(v.bassFilter)),
+        snareFilter: () => keep(new Tone.Filter({ type: 'highpass', frequency: 1600 }).connect(bus)),
+        snare: () => mono(keep, new Tone.NoiseSynth({
+            noise: { type: 'white' },
+            envelope: { attack: 0.002, decay: 0.13, sustain: 0, release: 0.05 },
+            volume: -19
+        }).connect(v.snareFilter)),
+    });
+    return v;
+}, { idle: 4, span: 18 });
+
+/** Bring a hero bus back to full and hand out its voices (`kind` 'draw' or 'anthem'). */
+function heroBusUp(busName = 'bus', kind = 'draw', seconds) {
+    const chassis = getHeroChassis();
+    if (!chassis) return null;
+    if (busName === 'drawBus' && drawFadeTimer) {
+        // A new draw right after a skipped one: start from fresh voices.
+        clearTimeout(drawFadeTimer);
+        drawFadeTimer = 0;
+        heroDrawBank.dispose();
+    }
+    const voices = (kind === 'anthem' ? heroAnthemBank : heroDrawBank).get(seconds);
+    const gain = chassis[busName].gain;
     gain.cancelScheduledValues(Tone.now());
     gain.setValueAtTime(1, Tone.now());
-    return v;
+    return voices;
 }
 
+let drawFadeTimer = 0;
 function fadeHeroBus(busName) {
-    const gain = heroVoices?.[busName]?.gain;
+    const gain = heroChassis?.[busName]?.gain;
     if (!gain) return;
     const now = Tone.now();
     gain.cancelScheduledValues(now);
     gain.setValueAtTime(gain.value, now);
     gain.linearRampToValueAtTime(0, now + 0.2);
-    if (busName === 'drawBus') {
+    if (busName === 'drawBus' && heroDrawBank.awake) {
         // Held voices would otherwise sustain under the next draw.
-        heroVoices.tension.releaseAll(now + 0.2);
-        heroVoices.riser.triggerRelease(now + 0.2);
+        const v = heroDrawBank.get(1);
+        v.tension.releaseAll(now + 0.2);
+        v.riser.triggerRelease(now + 0.2);
+        // Drop everything the draw still has scheduled once it has faded, so none of it
+        // sounds under the next draw.
+        if (drawFadeTimer) clearTimeout(drawFadeTimer);
+        drawFadeTimer = setTimeout(() => {
+            drawFadeTimer = 0;
+            if (!writingLoop) heroDrawBank.dispose();
+        }, 400);
     }
 }
 
@@ -510,6 +572,7 @@ export function playWritingLoop() {
     if (!v) return;
     getHeroMarchPlayer(); // start fetching the crowning music while the page is written
     stopWritingLoop();
+    heroDrawBank.hold();
     writingLoop = new Tone.Loop(time => {
         v.quillFilter.frequency.setValueAtTime(2600 + Math.random() * 1400, time);
         v.quill.triggerAttackRelease(0.03 + Math.random() * 0.05, time);
@@ -517,15 +580,16 @@ export function playWritingLoop() {
     writingLoop.probability = 0.55;
     writingLoop.humanize = 0.02;
     writingLoop.start(0);
-    Tone.Transport.start();
+    Tone.getTransport().start();
 }
 
 export function stopWritingLoop() {
     if (writingLoop) {
         writingLoop.dispose();
         writingLoop = null;
+        heroDrawBank.release(1);
         if (!drumRollLoop) {
-            Tone.Transport.stop();
+            Tone.getTransport().stop();
         }
     }
 }
@@ -542,7 +606,7 @@ const HERO_DRAW_LADDER = ['D4', 'E4', 'F#4', 'A4', 'B4', 'D5', 'E5', 'F#5', 'A5'
  */
 export function playHeroDrawSound(hopTimes = [], hushSeconds = 0) {
     if (ceremonyMuted || !isAudioReady() || !hopTimes.length) return;
-    const v = heroBusUp('drawBus');
+    const v = heroBusUp('drawBus', 'draw', hopTimes[hopTimes.length - 1] + Math.max(0, hushSeconds) + 1);
     if (!v) return;
     const now = Tone.now() + 0.02;
     const end = hopTimes[hopTimes.length - 1];
@@ -603,7 +667,7 @@ export function playHeroDrawSound(hopTimes = [], hushSeconds = 0) {
 /** Build the reveal voices ahead of time so the reverb is ready when the draw starts. */
 export function primeHeroRevealSound() {
     if (soundsReady && Tone) {
-        getHeroVoices();
+        heroBusUp('drawBus', 'draw', 8);
         getHeroMarchPlayer();
     }
 }
@@ -674,14 +738,6 @@ const HERO_ANTHEM_CHORDS = [
 
 let heroAnthemEndsAt = 0;
 
-/** Rebuild the reveal voices, dropping anything still scheduled on them. */
-function resetHeroVoices() {
-    if (!heroVoices) return;
-    Object.values(heroVoices).forEach(node => {
-        try { node.dispose?.(); } catch (_) { /* already disposed */ }
-    });
-    heroVoices = null;
-}
 
 export function playHeroCrowningSound() {
     if (ceremonyMuted) return;
@@ -698,8 +754,8 @@ export function playHeroCrowningSound() {
     if (playHeroMarchRecording()) return;
     // A second crowning while the last anthem is still scheduled would collide on
     // the one-voice synths, so start from fresh voices in that rare case.
-    if (heroVoices && Tone.now() < heroAnthemEndsAt) resetHeroVoices();
-    const v = heroBusUp();
+    if (heroAnthemBank.awake && Tone.now() < heroAnthemEndsAt) heroAnthemBank.dispose();
+    const v = heroBusUp('bus', 'anthem', 18);
     if (!v) return;
     try {
         scheduleHeroAnthem(v);
@@ -778,7 +834,7 @@ export function stopHeroRevealSound() {
         heroMarch.gain.gain.linearRampToValueAtTime(0, now + 0.4);
         heroMarch.player.stop(now + 0.45);
     }
-    if (!heroVoices) return;
+    if (!heroChassis) return;
     fadeHeroBus('drawBus');
     fadeHeroBus('bus');
 }
@@ -793,34 +849,40 @@ export function playHeroFanfare() {
 // ── Fortune's Wheel moments ──────────────────────────────────────
 // Synthesised on first use: thunder for storms, a shield chime, a whoosh for the
 // Whirlwind, the Trickster's "wah-wah", a coin ring and a creaking chest.
-let wheelVoices = null;
+let wheelChassis = null;
+const wheelBank = createVoiceBank((keep) => {
+    if (!wheelChassis) {
+        const out = new Tone.Gain(0.9).toDestination();
+        wheelChassis = { out, reverb: new Tone.Reverb({ decay: 2.4, wet: 0.28 }).connect(out) };
+    }
+    const { out, reverb } = wheelChassis;
+    const v = lazyVoices({
+        rumbleFilter: () => keep(new Tone.Filter({ type: 'lowpass', frequency: 260, Q: 0.7 }).connect(out)),
+        rumble: () => mono(keep, new Tone.NoiseSynth({ noise: { type: 'brown' }, envelope: { attack: 0.03, decay: 1.6, sustain: 0, release: 0.8 }, volume: -2 }).connect(v.rumbleFilter)),
+        crack: () => mono(keep, new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.001, decay: 0.18, sustain: 0, release: 0.05 }, volume: -12 }).connect(reverb)),
+        whooshFilter: () => keep(new Tone.AutoFilter({ frequency: 2.2, baseFrequency: 300, octaves: 4 }).connect(reverb).start()),
+        whoosh: () => mono(keep, new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.25, decay: 0.6, sustain: 0.2, release: 0.6 }, volume: -10 }).connect(v.whooshFilter)),
+        bell: () => pool(keep, Tone.Synth, { oscillator: { type: 'triangle' }, envelope: { attack: 0.003, decay: 0.5, sustain: 0, release: 0.6 }, volume: -10 }, 8).connect(reverb),
+        hornFilter: () => keep(new Tone.Filter({ type: 'lowpass', frequency: 1100 }).connect(out)),
+        horn: () => mono(keep, new Tone.Synth({ oscillator: { type: 'sawtooth' }, envelope: { attack: 0.03, decay: 0.1, sustain: 0.8, release: 0.25 }, volume: -16 }).connect(v.hornFilter)),
+        knock: () => mono(keep, new Tone.MembraneSynth({ pitchDecay: 0.03, octaves: 2, envelope: { attack: 0.001, decay: 0.2, sustain: 0, release: 0.1 }, volume: -8 }).connect(out)),
+    });
+    return v;
+}, { idle: 6, span: 4 });
+
 function getWheelVoices() {
-    if (wheelVoices || !Tone) return wheelVoices;
-    const out = new Tone.Gain(0.9).toDestination();
-    const reverb = new Tone.Reverb({ decay: 2.4, wet: 0.28 }).connect(out);
-    const rumbleFilter = new Tone.Filter({ type: 'lowpass', frequency: 260, Q: 0.7 }).connect(out);
-    const rumble = new Tone.NoiseSynth({ noise: { type: 'brown' }, envelope: { attack: 0.03, decay: 1.6, sustain: 0, release: 0.8 }, volume: -2 }).connect(rumbleFilter);
-    const crack = new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.001, decay: 0.18, sustain: 0, release: 0.05 }, volume: -12 }).connect(reverb);
-    const whooshFilter = new Tone.AutoFilter({ frequency: 2.2, baseFrequency: 300, octaves: 4 }).connect(reverb).start();
-    const whoosh = new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.25, decay: 0.6, sustain: 0.2, release: 0.6 }, volume: -10 }).connect(whooshFilter);
-    const bell = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'triangle' }, envelope: { attack: 0.003, decay: 0.5, sustain: 0, release: 0.6 }, volume: -10 }).connect(reverb);
-    const horn = new Tone.Synth({ oscillator: { type: 'sawtooth' }, envelope: { attack: 0.03, decay: 0.1, sustain: 0.8, release: 0.25 }, volume: -16 });
-    const hornFilter = new Tone.Filter({ type: 'lowpass', frequency: 1100 }).connect(out);
-    horn.connect(hornFilter);
-    const knock = new Tone.MembraneSynth({ pitchDecay: 0.03, octaves: 2, envelope: { attack: 0.001, decay: 0.2, sustain: 0, release: 0.1 }, volume: -8 }).connect(out);
-    wheelVoices = { rumble, crack, whoosh, bell, horn, knock };
-    return wheelVoices;
+    return Tone ? wheelBank.get() : null;
 }
 
 /** Fortune's Wheel sound effects: 'thunder' | 'shield' | 'whoosh' | 'trickster' | 'coin' | 'chest' | 'tick_heavy' | 'buzzer'. */
 /** Builds the Wheel's voices ahead of time (the reverb takes a moment), so the first thunder doesn't stall a frame. */
 export function warmWheelAudio() {
-    if (!soundsReady || !Tone || Tone.context.state !== 'running') return;
+    if (!soundsReady || !audioRunning()) return;
     getWheelVoices();
 }
 
 export function playWheelSfx(name) {
-    if (!soundsReady || !Tone || Tone.context.state !== 'running') return;
+    if (!soundsReady || !audioRunning()) return;
     const v = getWheelVoices();
     if (!v) return;
     const t = Tone.now() + 0.03;
@@ -850,22 +912,28 @@ export function playWheelSfx(name) {
 
 // ─── Familiar voices ──────────────────────────────────────────────────────────
 // One voice per class (see familiarVoice() in features/familiarForge.mjs), pitched per familiar.
-let familiarVoices = null;
+let familiarChassis = null;
+const familiarBank = createVoiceBank((keep) => {
+    if (!familiarChassis) {
+        const out = new Tone.Gain(0.8).toDestination();
+        familiarChassis = { out, reverb: new Tone.Reverb({ decay: 1.6, wet: 0.25 }).connect(out) };
+    }
+    const { reverb } = familiarChassis;
+    const v = lazyVoices({
+        lead: () => mono(keep, new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.01, decay: 0.12, sustain: 0.5, release: 0.18 }, volume: -10 }).connect(reverb)),
+        growlFilter: () => keep(new Tone.Filter({ type: 'lowpass', frequency: 1500, Q: 2 }).connect(reverb)),
+        growl: () => mono(keep, new Tone.Synth({ oscillator: { type: 'sawtooth' }, envelope: { attack: 0.02, decay: 0.1, sustain: 0.6, release: 0.15 }, volume: -16 }).connect(v.growlFilter)),
+        croakFilter: () => keep(new Tone.Filter({ type: 'lowpass', frequency: 700, Q: 4 }).connect(reverb)),
+        croak: () => mono(keep, new Tone.Synth({ oscillator: { type: 'square' }, envelope: { attack: 0.005, decay: 0.05, sustain: 0.4, release: 0.05 }, volume: -16 }).connect(v.croakFilter)),
+        puffFilter: () => keep(new Tone.Filter({ type: 'bandpass', frequency: 900, Q: 0.8 }).connect(reverb)),
+        puff: () => mono(keep, new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.02, decay: 0.25, sustain: 0, release: 0.1 }, volume: -14 }).connect(v.puffFilter)),
+        bell: () => pool(keep, Tone.Synth, { oscillator: { type: 'sine' }, envelope: { attack: 0.002, decay: 0.35, sustain: 0, release: 0.4 }, volume: -14 }, 8).connect(reverb),
+    });
+    return v;
+}, { idle: 6, span: 3 });
 
 function getFamiliarVoices() {
-    if (familiarVoices || !Tone) return familiarVoices;
-    const out = new Tone.Gain(0.8).toDestination();
-    const reverb = new Tone.Reverb({ decay: 1.6, wet: 0.25 }).connect(out);
-    const lead = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.01, decay: 0.12, sustain: 0.5, release: 0.18 }, volume: -10 }).connect(reverb);
-    const growlFilter = new Tone.Filter({ type: 'lowpass', frequency: 1500, Q: 2 }).connect(reverb);
-    const growl = new Tone.Synth({ oscillator: { type: 'sawtooth' }, envelope: { attack: 0.02, decay: 0.1, sustain: 0.6, release: 0.15 }, volume: -16 }).connect(growlFilter);
-    const croakFilter = new Tone.Filter({ type: 'lowpass', frequency: 700, Q: 4 }).connect(reverb);
-    const croak = new Tone.Synth({ oscillator: { type: 'square' }, envelope: { attack: 0.005, decay: 0.05, sustain: 0.4, release: 0.05 }, volume: -16 }).connect(croakFilter);
-    const puffFilter = new Tone.Filter({ type: 'bandpass', frequency: 900, Q: 0.8 }).connect(reverb);
-    const puff = new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.02, decay: 0.25, sustain: 0, release: 0.1 }, volume: -14 }).connect(puffFilter);
-    const bell = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'sine' }, envelope: { attack: 0.002, decay: 0.35, sustain: 0, release: 0.4 }, volume: -14 }).connect(reverb);
-    familiarVoices = { lead, growl, croak, puff, bell };
-    return familiarVoices;
+    return Tone ? familiarBank.get() : null;
 }
 
 function glide(synth, t, points, end) {
@@ -876,7 +944,7 @@ function glide(synth, t, points, end) {
 
 /** A familiar's call: { kind: 'chirr' | 'yip' | 'croak' | 'hum' | 'trill', pitch, shiny }. */
 export function playFamiliarVoice(voice = {}) {
-    if (!soundsReady || !Tone || Tone.context.state !== 'running') return;
+    if (!soundsReady || !audioRunning()) return;
     const v = getFamiliarVoices();
     if (!v) return;
     const p = Math.max(0.5, Math.min(1.6, Number(voice.pitch) || 1));
@@ -906,77 +974,83 @@ export function playFamiliarVoice(voice = {}) {
 // and snare for the spotlight roulette, a "ta-daa" when it lands, a buzzer, a
 // gentle "wah-wah" for a missed question, whooshes, and a drum roll before the
 // curtain call. Everything runs through one bus so closing the stage can fade it.
-let quizVoices = null;
-function getQuizVoices() {
-    if (quizVoices || !Tone) return quizVoices;
-    const bus = new Tone.Gain(0.9).toDestination();
-    const reverb = new Tone.Reverb({ decay: 1.8, wet: 0.24 }).connect(bus);
-    const block = new Tone.MembraneSynth({
-        pitchDecay: 0.008,
-        octaves: 1.4,
-        envelope: { attack: 0.001, decay: 0.07, sustain: 0, release: 0.03 },
-        volume: -12
-    }).connect(bus);
-    const mallet = new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'sine' },
-        envelope: { attack: 0.002, decay: 0.22, sustain: 0, release: 0.2 },
-        volume: -9
-    }).connect(reverb);
-    mallet.maxPolyphony = 12;
-    const snareFilter = new Tone.Filter({ type: 'highpass', frequency: 1700 }).connect(bus);
-    const snare = new Tone.NoiseSynth({
-        noise: { type: 'white' },
-        envelope: { attack: 0.002, decay: 0.08, sustain: 0, release: 0.03 },
-        volume: -20
-    }).connect(snareFilter);
-    const boom = new Tone.MembraneSynth({
-        pitchDecay: 0.06,
-        octaves: 3,
-        envelope: { attack: 0.002, decay: 0.5, sustain: 0, release: 0.3 },
-        volume: -8
-    }).connect(bus);
-    const brassFilter = new Tone.Filter({ type: 'lowpass', frequency: 2600, Q: 0.7 }).connect(reverb);
-    const brass = new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'fatsawtooth', count: 3, spread: 18 },
-        envelope: { attack: 0.02, decay: 0.15, sustain: 0.7, release: 0.4 },
-        volume: -19
-    }).connect(brassFilter);
-    brass.maxPolyphony = 16;
-    const bell = new Tone.PolySynth(Tone.FMSynth, {
-        harmonicity: 3.01,
-        modulationIndex: 5,
-        envelope: { attack: 0.002, decay: 0.7, sustain: 0, release: 0.8 },
-        modulationEnvelope: { attack: 0.002, decay: 0.3, sustain: 0, release: 0.3 },
-        volume: -14
-    }).connect(reverb);
-    bell.maxPolyphony = 20;
-    const cymbalFilter = new Tone.Filter({ type: 'highpass', frequency: 5000 }).connect(reverb);
-    const cymbal = new Tone.NoiseSynth({
-        noise: { type: 'white' },
-        envelope: { attack: 0.002, decay: 1.4, sustain: 0, release: 0.4 },
-        volume: -26
-    }).connect(cymbalFilter);
-    const whooshFilter = new Tone.Filter({ type: 'bandpass', frequency: 600, Q: 0.7 }).connect(reverb);
-    const whoosh = new Tone.NoiseSynth({
-        noise: { type: 'pink' },
-        envelope: { attack: 0.12, decay: 0.3, sustain: 0, release: 0.1 },
-        volume: 1
-    }).connect(whooshFilter);
-    const buzzFilter = new Tone.Filter({ type: 'lowpass', frequency: 900, Q: 1 }).connect(bus);
-    const buzz = new Tone.Synth({
-        oscillator: { type: 'square' },
-        envelope: { attack: 0.005, decay: 0.05, sustain: 0.8, release: 0.06 },
-        volume: -15
-    }).connect(buzzFilter);
-    // The "wah": a muted horn whose filter opens and closes on every note.
-    const hornFilter = new Tone.Filter({ type: 'lowpass', frequency: 500, Q: 2.5 }).connect(reverb);
-    const horn = new Tone.Synth({
-        oscillator: { type: 'sawtooth' },
-        envelope: { attack: 0.04, decay: 0.1, sustain: 0.85, release: 0.2 },
-        volume: -12
-    }).connect(hornFilter);
-    quizVoices = { bus, block, mallet, snare, boom, brass, bell, cymbal, whoosh, whooshFilter, buzz, horn, hornFilter };
-    return quizVoices;
+let quizChassis = null;
+const quizBank = createVoiceBank((keep) => {
+    if (!quizChassis) {
+        const bus = new Tone.Gain(0.9).toDestination();
+        quizChassis = { bus, reverb: new Tone.Reverb({ decay: 1.8, wet: 0.24 }).connect(bus) };
+    }
+    const { bus, reverb } = quizChassis;
+    const v = lazyVoices({
+        block: () => mono(keep, new Tone.MembraneSynth({
+            pitchDecay: 0.008,
+            octaves: 1.4,
+            envelope: { attack: 0.001, decay: 0.07, sustain: 0, release: 0.03 },
+            volume: -12
+        }).connect(bus)),
+        mallet: () => pool(keep, Tone.Synth, {
+            oscillator: { type: 'sine' },
+            envelope: { attack: 0.002, decay: 0.22, sustain: 0, release: 0.2 },
+            volume: -9
+        }, 12).connect(reverb),
+        snareFilter: () => keep(new Tone.Filter({ type: 'highpass', frequency: 1700 }).connect(bus)),
+        snare: () => mono(keep, new Tone.NoiseSynth({
+            noise: { type: 'white' },
+            envelope: { attack: 0.002, decay: 0.08, sustain: 0, release: 0.03 },
+            volume: -20
+        }).connect(v.snareFilter)),
+        boom: () => mono(keep, new Tone.MembraneSynth({
+            pitchDecay: 0.06,
+            octaves: 3,
+            envelope: { attack: 0.002, decay: 0.5, sustain: 0, release: 0.3 },
+            volume: -8
+        }).connect(bus)),
+        brassFilter: () => keep(new Tone.Filter({ type: 'lowpass', frequency: 2600, Q: 0.7 }).connect(reverb)),
+        brass: () => pool(keep, Tone.Synth, {
+            oscillator: { type: 'fatsawtooth', count: 3, spread: 18 },
+            envelope: { attack: 0.02, decay: 0.15, sustain: 0.7, release: 0.4 },
+            volume: -19
+        }, 12).connect(v.brassFilter),
+        bell: () => pool(keep, Tone.FMSynth, {
+            harmonicity: 3.01,
+            modulationIndex: 5,
+            envelope: { attack: 0.002, decay: 0.7, sustain: 0, release: 0.8 },
+            modulationEnvelope: { attack: 0.002, decay: 0.3, sustain: 0, release: 0.3 },
+            volume: -14
+        }, 14).connect(reverb),
+        cymbalFilter: () => keep(new Tone.Filter({ type: 'highpass', frequency: 5000 }).connect(reverb)),
+        cymbal: () => mono(keep, new Tone.NoiseSynth({
+            noise: { type: 'white' },
+            envelope: { attack: 0.002, decay: 1.4, sustain: 0, release: 0.4 },
+            volume: -26
+        }).connect(v.cymbalFilter)),
+        whooshFilter: () => keep(new Tone.Filter({ type: 'bandpass', frequency: 600, Q: 0.7 }).connect(reverb)),
+        whoosh: () => mono(keep, new Tone.NoiseSynth({
+            noise: { type: 'pink' },
+            envelope: { attack: 0.12, decay: 0.3, sustain: 0, release: 0.1 },
+            volume: 1
+        }).connect(v.whooshFilter)),
+        buzzFilter: () => keep(new Tone.Filter({ type: 'lowpass', frequency: 900, Q: 1 }).connect(bus)),
+        buzz: () => mono(keep, new Tone.Synth({
+            oscillator: { type: 'square' },
+            envelope: { attack: 0.005, decay: 0.05, sustain: 0.8, release: 0.06 },
+            volume: -15
+        }).connect(v.buzzFilter)),
+        // The "wah": a muted horn whose filter opens and closes on every note.
+        hornFilter: () => keep(new Tone.Filter({ type: 'lowpass', frequency: 500, Q: 2.5 }).connect(reverb)),
+        horn: () => mono(keep, new Tone.Synth({
+            oscillator: { type: 'sawtooth' },
+            envelope: { attack: 0.04, decay: 0.1, sustain: 0.85, release: 0.2 },
+            volume: -12
+        }).connect(v.hornFilter)),
+        bus: () => bus,
+    });
+    return v;
+}, { idle: 10, span: 6 });
+
+/** The quiz show's band (also the Showdown's), kept awake for `seconds`. */
+function getQuizVoices(seconds = 6) {
+    return Tone ? quizBank.get(seconds) : null;
 }
 
 // A C-major ladder the roulette climbs, one rung per name.
@@ -987,7 +1061,8 @@ const QUIZ_SPIN_LADDER = ['C5', 'D5', 'E5', 'G5', 'A5', 'C6', 'D6', 'E6', 'G6', 
 const STARFALL_LADDER = ['E6', 'G6', 'A6', 'C7', 'D7', 'E7', 'G7', 'A7', 'C8'];
 
 export function playStarfallSfx(name, opts = {}) {
-    if (!soundsReady || Tone.context.state !== 'running' || !sounds.award_bell) return;
+    if (!soundsReady || !audioRunning()) return;
+    const sounds = getSounds(3);
     const t = Tone.now() + 0.03;
     try {
         if (name === 'open') {
@@ -1135,7 +1210,7 @@ export function playQuizShowSfx(name, opts = {}) {
 
 /** Fade out whatever the quiz still has scheduled (the stage closed). */
 export function stopQuizShowSound() {
-    const gain = quizVoices?.bus?.gain;
+    const gain = quizChassis?.bus?.gain;
     if (!gain || !Tone) return;
     const now = Tone.now();
     gain.cancelScheduledValues(now);

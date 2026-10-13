@@ -47,6 +47,8 @@ import {
 import { getMonthFinaleClassIds } from '../../features/monthFinale.js';
 import { playSound } from '../../audio.js';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
+import { classPortalStatus } from '../../features/questPortal.js';
+import { portalStatusLine } from '../../features/questRanksCore.mjs';
 
 const TEAM_QUEST_ANALYTICS_ASSETS = {
     bronze: new URL('../../assets/team-quest-map/living-atlas/badge-bronze.webp', import.meta.url).href,
@@ -134,7 +136,10 @@ function generateTeacherMobileRaceHtml(classScores, activeClassId = null) {
             QUEST_MAP_ZONES[0]
         );
         const nextMilestone = getQuestNextStop(progress, stars, goal);
-        const nextStepText = nextMilestone.complete
+        const sealedPortal = nextMilestone.complete && classroom.portal && !classroom.portal.open;
+        const nextStepText = sealedPortal
+            ? `Stars full · ${portalStatusLine(classroom.portal)}`
+            : nextMilestone.complete
             ? 'The portal is open!'
             : `${nextMilestone.starsNeeded} ${nextMilestone.starsNeeded === 1 ? 'star' : 'stars'} to ${nextMilestone.label}`;
         const isMine = Boolean(activeClassId) && classroom.id === activeClassId;
@@ -510,7 +515,8 @@ export async function renderClassLeaderboardTab({ freshVisit = false } = {}) {
             hasPathfinder,
             topSkill,
             progress,
-            difficulty: dbDifficulty
+            difficulty: dbDifficulty,
+            portal: classPortalStatus(c, { students: studentsInClass, scores: scoresByStudentId, now })
         };
     }));
 
@@ -526,6 +532,7 @@ export async function renderClassLeaderboardTab({ freshVisit = false } = {}) {
             c.id, c.name, c.logo, c.rank, Math.round((Number(c.progress) || 0) * 100),
             c.currentMonthlyStars, c.goals?.diamond, c.goalDifference, c.classQuestBonus,
             c.weeklyStars, c.totalGold, c.adventureCount, c.topSkill, c.studentCount, c.difficulty,
+            c.portal?.state, c.portal?.level, c.portal?.runes.map((r) => `${r.id}${r.met ? 1 : 0}${r.have}`).join(','), c.portal?.guardian?.triedToday,
             c.topHeroes.map((h) => [h.name, h.stars, String(h.avatar || '').slice(-32)])
         ])
     ]);

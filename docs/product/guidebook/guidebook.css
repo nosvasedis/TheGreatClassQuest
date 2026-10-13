@@ -2040,6 +2040,7 @@ button.term:hover {
 .lvl {
   display: inline-flex;
   align-items: center;
+  gap: 0.35rem;
   border-radius: 999px;
   padding: 0.28rem 0.6rem;
   font-size: 0.78rem;
@@ -2047,6 +2048,7 @@ button.term:hover {
   background: #fff;
   border: 1px solid #e2e8f0;
 }
+.lvl .qrc { width: 1.4em; height: 1.4em; }
 html[data-lang="el"] .feeds::before { content: "Πώς ταΐζει το Quest"; }
 html[data-lang="el"] .plan-notes::before { content: "Σημειώσεις πλάνου"; }
 

@@ -66,6 +66,7 @@ import { runAwardWriteInOrder, withWriteRetries } from "../../features/awardPend
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 import { monthlyStarsChange, rollMonthlyStars } from "./monthlyStars.js";
 import { monthStartOf } from "../../features/monthlyStarsCore.mjs";
+import { classPortalStatus, completedThisMonth as portalCompletedThisMonth } from "../../features/questPortal.js";
 
 // --- SCORE, STAR, & LOG ACTIONS ---
 
@@ -778,6 +779,14 @@ export async function reconcileScholarAndNomadProgressFromLogs() {
     }
 }
 
+/**
+ * Opens the Portal for a class once its stars fill this month's goal AND every Portal rune of
+ * its rank is lit (features/questRanksCore.mjs). The goal itself is calculated exactly as
+ * before. Stepping through raises the quest level, keeps a quest_history record and pays the
+ * Portal spoils (Gold for every hero), all in one transaction so it happens once.
+ * When the stars are there but a rune still sleeps (or the Guardian waits), the teacher is
+ * told once per session and nothing is recorded yet.
+ */
 export async function checkAndRecordQuestCompletion(classId) {
     const classRef = doc(
         db,
@@ -786,80 +795,103 @@ export async function checkAndRecordQuestCompletion(classId) {
     );
     const classDoc = await getDoc(classRef);
     if (!classDoc.exists()) return;
+    const classData = { id: classId, ...classDoc.data() };
 
-    const currentDifficulty = classDoc.data().difficultyLevel || 0;
+    // Already through this month: nothing to do (no repeated popups).
+    if (portalCompletedThisMonth(classData)) return;
 
-    // 1. Check if already completed this month to prevent duplicates
-    // Fix: Check regardless of difficulty level to prevent annoying popups
-    if (classDoc.data().questCompletedAt) {
-        const completedDate = classDoc.data().questCompletedAt.toDate();
-        const now = new Date();
-        if (
-            completedDate.getMonth() === now.getMonth() &&
-            completedDate.getFullYear() === now.getFullYear()
-        ) {
-            // Already completed this month - don't show popup or re-record
-            return;
-        }
-    }
-
-    // 2. Calculate Goals (Same logic as UI)
     const studentsInClass = state
         .get("allStudents")
         .filter((s) => s.classId === classId);
-    const studentCount = studentsInClass.length;
-    if (studentCount === 0) return;
+    if (studentsInClass.length === 0) return;
 
-    const diamondGoal = calculateMonthlyClassGoal(
-        classDoc.data(),
-        studentCount,
-        state.get("schoolHolidayRanges"),
-        state.get("allScheduleOverrides"),
-    );
+    const status = classPortalStatus(classData, { students: studentsInClass });
+    if (!status?.starsMet) return;
+    if (!status.readyToRecord) {
+        import("../../features/portalMoments.js")
+            .then(({ announcePortalWaiting }) => announcePortalWaiting(classData, status))
+            .catch(() => {});
+        return;
+    }
 
-    // 3. Calculate Current Stars
-    const allScores = state.get("allStudentScores");
-    const { totalStars: currentMonthlyStars } = getClassMonthlyQuestStars(
-        classDoc.data(),
-        studentsInClass,
-        allScores,
-    );
+    let crossing;
+    try {
+        crossing = await recordPortalCrossing(classData, studentsInClass, status);
+    } catch (error) {
+        // A hero's score this teacher may not write must never keep the class from stepping
+        // through: record the crossing without the Gold.
+        if (error?.code !== "permission-denied") throw error;
+        crossing = await recordPortalCrossing(classData, studentsInClass, status, { payGold: false });
+    }
+    if (!crossing) return;
+    playSound("magic_chime");
+    import("../../features/portalMoments.js")
+        .then(({ announcePortalCrossing }) => announcePortalCrossing(classData, crossing))
+        .catch(() => {});
+}
 
-    // 4. Check for Victory & SAVE HISTORY
-    if (currentMonthlyStars >= diamondGoal) {
+async function recordPortalCrossing(classData, studentsInClass, status, { payGold = true } = {}) {
+    const classRef = doc(db, `${PUBLIC_DATA_PATH}/classes`, classData.id);
+    const monthKey = getMonthKey();
+    const goldContext = getLiveYearGoldContextFromState(state);
+    const gold = payGold ? status.spoils : 0;
+    return runTransaction(db, async (transaction) => {
+        const snap = await transaction.get(classRef);
+        if (!snap.exists()) return null;
+        const fresh = { id: classData.id, ...snap.data() };
+        if (portalCompletedThisMonth(fresh)) return null;
+        const currentDifficulty = Number(fresh.difficultyLevel) || 0;
+        const reads = gold > 0 ? await Promise.all(studentsInClass.map(async (s) => {
+            const ref = doc(db, `${PUBLIC_DATA_PATH}/student_scores`, s.id);
+            return { ref, snap: await transaction.get(ref) };
+        })) : [];
 
-        const batch = writeBatch(db);
-
-        // A. Update the Class (Level Up)
-        batch.update(classRef, {
+        // A. The class steps through and rises one level.
+        transaction.update(classRef, {
             questCompletedAt: serverTimestamp(),
             difficultyLevel: increment(1),
+            [`portalCrossings.${monthKey}`]: {
+                level: status.level,
+                rank: status.rank.id,
+                gold,
+                stars: status.totalStars,
+                goal: status.goal,
+                runes: status.runes.map((r) => r.id),
+            },
         });
 
-        // B. Create Persistent History Record
-        const historyRef = doc(
-            collection(
-                db,
-                `${PUBLIC_DATA_PATH}/quest_history`,
-            ),
-        );
-        batch.set(historyRef, withSchoolYear({
-            classId: classId,
-            className: classDoc.data().name,
+        // B. Persistent history record.
+        const historyRef = doc(collection(db, `${PUBLIC_DATA_PATH}/quest_history`));
+        transaction.set(historyRef, withSchoolYear({
+            classId: classData.id,
+            className: fresh.name,
             levelReached: currentDifficulty + 1, // They just finished currentDifficulty to reach +1
-            goalTarget: diamondGoal,
-            starsEarned: currentMonthlyStars,
+            goalTarget: status.goal,
+            starsEarned: status.totalStars,
+            runes: status.runes.map((r) => r.id),
+            spoilsGold: gold,
             completedAt: serverTimestamp(),
-            monthKey: getMonthKey(), // "2026-01" (local month)
+            monthKey, // "2026-01" (local month)
             createdBy: {
                 uid: state.get("currentUserId"),
                 name: state.get("currentTeacherName"),
             },
         }, state.getActiveSchoolYearKey()));
 
-        await batch.commit();
-        playSound("magic_chime");
-    }
+        // C. Portal spoils: Gold for every hero.
+        let heroes = 0;
+        reads.forEach(({ ref, snap: scoreSnap }) => {
+            if (!scoreSnap.exists() || gold <= 0) return;
+            heroes += 1;
+            transaction.update(ref, { gold: getLiveYearGold(scoreSnap.data(), goldContext) + gold });
+        });
+        return {
+            fromLevel: status.level,
+            toLevel: currentDifficulty + 2,
+            gold,
+            heroes,
+        };
+    });
 }
 
 /** Adds the Glory an award (or its reduction) wrote to the day's award row. */

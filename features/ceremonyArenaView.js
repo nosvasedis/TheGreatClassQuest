@@ -3,6 +3,9 @@
 // ceremony (features/ceremony.js) and the guidebook capture stage both build
 // their screens from these functions.
 
+import { rankForLevel } from './questRanksCore.mjs';
+import { rankCrestSvg } from './questRankCrest.mjs';
+
 export function escapeCeremonyHtml(value) {
     return String(value ?? '').replace(/[<&>"']/g, (ch) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[ch]));
 }
@@ -23,7 +26,6 @@ export const ARENA_REASON_INFO = {
     pathfinder_map: { icon: 'fa-map', tone: 'pathfinder', name: 'Pathfinder' }
 };
 
-const LEVEL_ICONS = { 1: '🌱', 2: '💧', 3: '🛡️', 4: '🔮', 5: '🔥', 6: '🐉' };
 
 export function arenaMetalForRank(rank) {
     if (rank === 1) return 'gold';
@@ -255,8 +257,10 @@ function chip(tone, content, title = '') {
 
 export function arenaClassChipsHtml(entry, { compact = false } = {}) {
     const chips = [];
-    const lvl = Math.min(6, Math.max(1, Number(entry.level) || 1));
-    chips.push(chip(`lvl-${lvl}`, `${LEVEL_ICONS[lvl]} ${compact ? `Lv ${lvl}` : `Level ${lvl}`}`, `Quest difficulty level ${lvl}`));
+    const level = Math.max(1, Number(entry.level) || 1);
+    const lvl = Math.min(6, level);
+    const rank = rankForLevel(level);
+    chips.push(chip(`lvl-${lvl}`, `${rankCrestSvg(level, { className: 'cer-chip__crest' })} ${compact ? `Lv ${level}` : `${esc(rank.title)} · Lv ${level}`}`, `Quest Level ${level}: ${rank.title}`));
     if (entry.zone) chips.push(chip(`zone-${esc(entry.zone.id || 'bronze')}`, compact ? esc(entry.zone.icon || '') : `${esc(entry.zone.icon || '')} ${esc(entry.zone.label || '')}`, entry.zone.desc || ''));
     if (!compact && Number(entry.avgPerHero) > 0) chips.push(chip('avg', `<i class="fas fa-user-group" aria-hidden="true"></i>${Number(entry.avgPerHero).toFixed(1)} per hero`, 'Average stars per hero'));
     if (Number(entry.teamBonus) > 0) {

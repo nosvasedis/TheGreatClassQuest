@@ -3,6 +3,7 @@
 // sheet of the atlas. A month rail with waypoint pips, league chips and a class
 // search sit on top; every league gets a race chart (where each party stopped
 // on the road), a champion's pennant and a standings ledger.
+import '../../styles/quest_ranks.css';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { questLeagues, getQuestLeagueDefinition } from '../../constants.js';
@@ -27,6 +28,8 @@ import { showAnimatedModal, hideModal } from './base.js';
 import { playSound } from '../../audio.js';
 import { getSchoolYearStartMonthDate, getViewableCompletedMonthStart } from '../../utils/schoolYear.js';
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
+import { rankForLevel } from '../../features/questRanksCore.mjs';
+import { rankCrestSvg } from '../../features/questRankCrest.mjs';
 
 const MODAL_ID = 'league-archive-modal';
 const ALL = 'all';
@@ -364,11 +367,13 @@ function rowHtml(entry, index, gaps, trackMax, myIds, showLeague) {
         showLeague ? `<span class="la-chip la-chip--league"><i class="fas ${esc(leagueIcon(entry.questLevel))}" aria-hidden="true"></i>${esc(entry.questLevel)}</span>` : '',
         isMine ? '<span class="la-chip la-chip--mine">Your class</span>' : '',
         reached ? '<span class="la-chip la-chip--goal"><i class="fas fa-gem" aria-hidden="true"></i>Goal reached</span>' : '',
-        entry.historicalLevel > 0 ? `<span class="la-chip la-chip--level" title="Quest difficulty that month">Lvl ${entry.historicalLevel + 1}</span>` : '',
+        `<span class="la-chip la-chip--level qr-chip qr-chip--${rankForLevel(entry.historicalLevel + 1).id}" title="Quest Level that month">${rankCrestSvg(entry.historicalLevel + 1, { className: 'qr-chip__crest' })}<span>${esc(rankForLevel(entry.historicalLevel + 1).title)}</span><b>Lv ${entry.historicalLevel + 1}</b></span>`,
         entry.daysLost > 0 ? `<span class="la-chip la-chip--lost" title="${entry.daysLost} lesson day${entry.daysLost === 1 ? '' : 's'} lost to holidays or cancellations">−${entry.daysLost} day${entry.daysLost === 1 ? '' : 's'}</span>` : ''
     ].filter(Boolean).join('');
 
-    const where = reached
+    const where = reached && !entry.isQuestComplete && entry.historicalLevel > 0
+        ? `${badgeImg('crystal')}<span>Filled the goal · the Portal stayed sealed</span>`
+        : reached
         ? `${badgeImg('crystal')}<span>Crossed the Portal</span>`
         : `${badgeImg(stretch.zone.id)}<span>Stopped in ${esc(stretch.zone.label)} · ${stretch.starsShortOfGoal}★ short of the goal</span>`;
     const chase = gap ? `<span class="la-row__gap"><i class="fas fa-person-running" aria-hidden="true"></i>${gap.starsToCatch}★ behind ${esc(gap.name)}</span>` : '';

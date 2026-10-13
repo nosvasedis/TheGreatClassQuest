@@ -5,6 +5,8 @@ import { TERMS, TERM_ICONS, PLAN_EXPLORER, PLAN_CHIP_ICONS, CHAPTER_SEARCH } fro
 import { decorateStarCounts } from './stars.mjs';
 import { UI, KICKERS } from './i18n.mjs';
 import { EL_CHAPTERS } from './el-chapters.mjs';
+import { QUEST_RANKS } from '../../../features/questRanksCore.mjs';
+import { rankCrestSvg } from '../../../features/questRankCrest.mjs';
 import {
   headerToolsHtml,
   classPickerHtml,
@@ -544,10 +546,9 @@ function widgets(id, print = false) {
     return `
       ${map}
       <div class="live-demo">
-        <p class="live-demo__label"><i class="fas fa-mountain" aria-hidden="true"></i> Quest difficulty (shown as Level 1–6)</p>
+        <p class="live-demo__label"><i class="fas fa-shield-halved" aria-hidden="true"></i> Quest ranks (Level 1 to 7+)</p>
         <div class="live-row live-row--levels">
-          <span class="lvl l1">🌱 Level 1</span><span class="lvl l2">💧 Level 2</span><span class="lvl l3">🛡️ Level 3</span>
-          <span class="lvl l4">🔮 Level 4</span><span class="lvl l5">🔥 Level 5</span><span class="lvl l6">🐉 Level 6</span>
+          ${QUEST_RANKS.map((r) => `<span class="lvl l${r.level}">${rankCrestSvg(r.level)} ${r.name} · Lv ${r.level}${r.level === 7 ? '+' : ''}</span>`).join('')}
         </div>
       </div>`;
   }

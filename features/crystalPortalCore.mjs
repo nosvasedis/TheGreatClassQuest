@@ -1,7 +1,8 @@
 // features/crystalPortalCore.mjs
 // The Crystal Portal: the goal at the end of the Team Quest road (100% of a class's
 // own monthly goal). Pure rules for the Portal modal (ui/modals/crystalPortal.js):
-// who has stepped through this month and in what order, who waits at the threshold,
+// who has stepped through this month and in what order, who waits at the threshold (or at
+// the sealed gate, stars full but a Portal rune still asleep),
 // and how often each party opened the Portal this school year. No DOM, no state.
 // Covered by tests/crystal-portal.test.mjs.
 
@@ -17,6 +18,19 @@ function num(value) {
 
 function pct(party) {
     return Math.max(0, num(party?.progress));
+}
+
+/**
+ * Stepped through this month. With a Portal status (features/questRanksCore.mjs) the runes
+ * decide; without one (older callers, the preview) a full goal is enough.
+ */
+export function isThrough(party) {
+    return party?.portal ? Boolean(party.portal.open) : pct(party) >= 100;
+}
+
+/** Stars full, but a rune still sleeps or the Guardian waits. */
+export function isSealedAtGate(party) {
+    return pct(party) >= 100 && !isThrough(party);
 }
 
 /** A Firestore Timestamp, Date, millis or ISO string as millis (null when unknown). */
@@ -47,7 +61,7 @@ export function completedThisMonth(completedAt, monthKey) {
  */
 export function orderThroughPortal(parties = [], monthKey) {
     return parties
-        .filter((p) => pct(p) >= 100)
+        .filter((p) => isThrough(p))
         .map((p) => ({ ...p, throughAt: completedThisMonth(p.completedAt, monthKey) }))
         .sort((a, b) => {
             if (a.throughAt != null && b.throughAt != null) return a.throughAt - b.throughAt;
@@ -58,12 +72,15 @@ export function orderThroughPortal(parties = [], monthKey) {
         .map((p, index) => ({ ...p, order: index + 1, first: index === 0 && p.throughAt != null }));
 }
 
-/** Crystal Realm parties (85–99%), closest first, with the stars each still needs. */
+/**
+ * Crystal Realm parties not yet through, closest first, with the stars each still needs
+ * (0 for a party whose stars are full and who waits at the sealed gate).
+ */
 export function partiesAtThreshold(parties = []) {
     return parties
-        .filter((p) => pct(p) >= PORTAL_THRESHOLD_PERCENT && pct(p) < 100)
-        .map((p) => ({ ...p, starsToGo: Math.max(1, starsToReachPercent(p.stars, p.goal, 100)) }))
-        .sort((a, b) => pct(b) - pct(a) || a.starsToGo - b.starsToGo);
+        .filter((p) => pct(p) >= PORTAL_THRESHOLD_PERCENT && !isThrough(p))
+        .map((p) => ({ ...p, sealed: pct(p) >= 100, starsToGo: pct(p) >= 100 ? 0 : Math.max(1, starsToReachPercent(p.stars, p.goal, 100)) }))
+        .sort((a, b) => Math.min(100, pct(b)) - Math.min(100, pct(a)) || num(b.portal?.runesLit) - num(a.portal?.runesLit) || a.starsToGo - b.starsToGo);
 }
 
 /**
@@ -78,7 +95,7 @@ export function buildKeepers(parties = [], history = [], monthKeys = [], current
         .map((p) => {
             const months = monthKeys.map((monthKey) => ({
                 monthKey,
-                done: done.has(`${p.id}|${monthKey}`) || (monthKey === currentMonthKey && pct(p) >= 100),
+                done: done.has(`${p.id}|${monthKey}`) || (monthKey === currentMonthKey && isThrough(p)),
                 current: monthKey === currentMonthKey
             }));
             return { ...p, months, count: months.filter((m) => m.done).length };
@@ -92,6 +109,7 @@ export function describeMine(party, through = []) {
     const p = pct(party);
     const passed = through.find((t) => t.id === party.id);
     if (passed) return { ...party, state: 'through', order: passed.order, first: passed.first, throughAt: passed.throughAt, starsToGo: 0, pct: Math.min(100, p) };
+    if (p >= 100) return { ...party, state: party.portal?.state === 'guardian' ? 'guardian' : 'sealed', starsToGo: 0, pct: 100 };
     return {
         ...party,
         state: p >= PORTAL_THRESHOLD_PERCENT ? 'threshold' : 'road',
@@ -104,7 +122,7 @@ export function describeMine(party, through = []) {
 export function buildPortalView({ parties = [], activeClassId = null, history = null, monthKey = '', monthKeys = [] } = {}) {
     const through = orderThroughPortal(parties, monthKey);
     const threshold = partiesAtThreshold(parties);
-    const road = parties.filter((p) => pct(p) < PORTAL_THRESHOLD_PERCENT).length;
+    const road = parties.filter((p) => pct(p) < PORTAL_THRESHOLD_PERCENT && !isThrough(p)).length;
     const mine = describeMine(parties.find((p) => p.id === activeClassId) || null, through);
     const keepers = Array.isArray(history) ? buildKeepers(parties, history, monthKeys, monthKey) : null;
     const yearOpenings = keepers ? keepers.reduce((sum, k) => sum + k.count, 0) : null;

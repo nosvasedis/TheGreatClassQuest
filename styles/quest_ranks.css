@@ -1,0 +1,431 @@
+/* Team Quest ranks, Portal runes and the Portal Guardian.
+   Crests are inline SVG (features/questRankCrest.mjs). Rules: features/questRanksCore.mjs.
+   Motion moves only transform and opacity; the lite tier and reduced motion keep it still. */
+
+.qrc { display: inline-block; width: 1em; height: 1em; flex: 0 0 auto; vertical-align: -0.18em; overflow: visible; }
+
+/* ── Rank chip (crest + name + level) ─────────────────────────────────── */
+.qr-chip {
+    --qr: #22c55e;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    max-width: 100%;
+    padding: 0.14rem 0.45rem 0.14rem 0.2rem;
+    border: 1px solid color-mix(in srgb, var(--qr) 45%, white);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--qr) 12%, white);
+    color: color-mix(in srgb, var(--qr) 70%, #111827);
+    font-size: 0.66rem;
+    font-weight: 800;
+    line-height: 1.1;
+    white-space: nowrap;
+}
+.qr-chip > span { overflow: hidden; text-overflow: ellipsis; }
+.qr-chip > b { font-weight: 800; opacity: 0.7; }
+.qr-chip__crest { width: 1.35em; height: 1.35em; }
+.qr-chip--wayfinders { --qr: #16a34a; }
+.qr-chip--torchbearers { --qr: #ea580c; }
+.qr-chip--shieldbearers { --qr: #2563eb; }
+.qr-chip--starseekers { --qr: #7c3aed; }
+.qr-chip--stormriders { --qr: #0891b2; }
+.qr-chip--dragonhearts { --qr: #e11d48; }
+.qr-chip--sovereigns { --qr: #ca8a04; }
+
+/* Map card ribbon: the chip sits where "Lvl N" used to be. */
+.tq-card__lvl.qr-chip { padding: 0.12rem 0.42rem 0.12rem 0.16rem; font-size: 0.6rem; color: color-mix(in srgb, var(--qr) 70%, #111827); border-color: color-mix(in srgb, var(--qr) 45%, white); background: rgba(255, 255, 255, 0.86); }
+.tq-card__lvl.qr-chip > span { max-width: 6.5rem; }
+
+/* ── Rune marks (lit / asleep) ───────────────────────────────────────── */
+.qr-marks { display: inline-flex; align-items: center; gap: 0.2rem; }
+.qr-mark {
+    display: inline-grid;
+    place-items: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    border: 1.5px dashed rgba(100, 90, 140, 0.55);
+    color: rgba(100, 90, 140, 0.7);
+    background: rgba(255, 255, 255, 0.6);
+    font-size: 0.58rem;
+}
+.qr-mark.is-lit {
+    border: 1.5px solid #a78bfa;
+    color: #fff;
+    background: radial-gradient(circle at 35% 30%, #c4b5fd, #7c3aed);
+    box-shadow: 0 0 0.45rem rgba(167, 139, 250, 0.75);
+}
+
+.tq-card__runes {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-top: 0.45rem;
+    padding: 0.3rem 0.55rem;
+    border-radius: 0.8rem;
+    background: rgba(124, 58, 237, 0.08);
+    color: #4c1d95;
+}
+.tq-card__runes small { color: #6d5a8f; font-size: 0.55rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; }
+.tq-card__runes em { margin-left: auto; font-size: 0.66rem; font-style: normal; font-weight: 800; white-space: nowrap; }
+.tq-card__next.is-sealed em { background: linear-gradient(135deg, #8b5cf6, #4c1d95); }
+.tq-card__next.is-sealed strong { white-space: normal; }
+
+.tq-card__cta--guardian {
+    background: linear-gradient(135deg, #7c3aed, #312e81);
+    box-shadow: 0 0.25rem 0 #1e1b4b, 0 0.5rem 0.9rem rgba(49, 46, 129, 0.35);
+}
+.tq-card__cta--guardian:active { box-shadow: 0 0.05rem 0 #1e1b4b; }
+
+/* ── Map token: the rank crest and the lock of a sealed Portal ──────────── */
+.tq-token__crest {
+    position: absolute;
+    z-index: 5;
+    left: -12%;
+    bottom: -4%;
+    width: 42%;
+    height: 42%;
+    filter: drop-shadow(0 0.1rem 0.15rem rgba(40, 20, 5, 0.4));
+    pointer-events: none;
+}
+.tq-token__crest .qrc { width: 100%; height: 100%; }
+
+.tq-token__seal {
+    position: absolute;
+    z-index: 6;
+    right: -6%;
+    top: -6%;
+    display: grid;
+    place-items: center;
+    width: 1.2rem;
+    height: 1.2rem;
+    border: 2px solid #ede9fe;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #8b5cf6, #4c1d95);
+    color: #fff;
+    font-size: 0.5rem;
+    box-shadow: 0 0 0.5rem rgba(139, 92, 246, 0.8);
+}
+
+/* ── Quest Chronicles ─────────────────────────────────────────────────── */
+.tqc-card__meta .qr-chip { font-size: 0.62rem; }
+.tqc-pill--next.is-sealed { color: #fff; background: linear-gradient(135deg, #8b5cf6, #4c1d95); }
+.tqc-pill--runes { display: inline-flex; align-items: center; gap: 0.35rem; color: #4c1d95; background: rgba(124, 58, 237, 0.1); }
+
+/* ── League Archive / Realm Overview chips on their own backgrounds ───── */
+.la-chip.qr-chip { padding: 0.12rem 0.45rem 0.12rem 0.18rem; }
+.ro-party__level.qr-chip { margin-left: auto; }
+
+/* ── Crystal Portal: your rank, the runes, the ladder ───────────────────── */
+.cp-mine__rank { display: inline-flex; align-items: center; gap: 0.3rem; color: #fff; }
+.cp-mine__crest { width: 1.35em; height: 1.35em; }
+
+.cp-tag--rank { display: inline-flex; align-items: center; gap: 0.3rem; padding-left: 0.2rem; }
+.cp-tag__crest { width: 1.3em; height: 1.3em; }
+
+.cp-runes { margin-top: 1rem; }
+.cp-runes__list { display: grid; gap: 0.6rem; margin: 0; padding: 0; list-style: none; }
+.cp-rune {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.8rem;
+    align-items: start;
+    padding: 0.75rem 0.85rem;
+    border-radius: 1rem;
+    border: 1px dashed rgba(196, 181, 253, 0.35);
+    background: rgba(255, 255, 255, 0.035);
+}
+.cp-rune.is-lit { border-style: solid; border-color: rgba(var(--cp-gold), 0.55); background: linear-gradient(120deg, rgba(var(--cp-violet), 0.22), rgba(var(--cp-gold), 0.08)); }
+.cp-rune__glyph {
+    display: grid;
+    place-items: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 50%;
+    border: 2px dashed rgba(196, 181, 253, 0.5);
+    color: rgba(226, 216, 255, 0.55);
+    font-size: 1.05rem;
+}
+.cp-rune.is-lit .cp-rune__glyph {
+    border: 2px solid rgba(var(--cp-gold), 0.9);
+    color: #fff;
+    background: radial-gradient(circle at 35% 30%, rgba(var(--cp-pink), 0.9), rgba(var(--cp-violet), 0.9));
+    box-shadow: 0 0 1rem rgba(var(--cp-violet), 0.75);
+    animation: qr-rune-glow 2.8s ease-in-out infinite;
+}
+@keyframes qr-rune-glow { 50% { transform: scale(1.06); } }
+.cp-rune__body { display: grid; gap: 0.3rem; min-width: 0; }
+.cp-rune__head { display: flex; align-items: center; gap: 0.6rem; }
+.cp-rune__head strong { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-weight: 400; font-size: 1.02rem; color: #fff; }
+.cp-rune__head em { margin-left: auto; font-style: normal; font-size: 0.72rem; font-weight: 700; color: var(--cp-muted); white-space: nowrap; }
+.cp-rune.is-lit .cp-rune__head em { color: rgb(var(--cp-gold)); }
+.cp-rune__rule { font-size: 0.82rem; color: var(--cp-muted); }
+.cp-rune__note { font-size: 0.74rem; color: var(--cp-muted); }
+
+.cp-rune__parts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.4rem; }
+.cp-rune__part {
+    display: grid;
+    justify-items: center;
+    gap: 0.1rem;
+    padding: 0.4rem 0.3rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+    text-align: center;
+}
+.cp-rune__part i { color: var(--v); font-size: 0.95rem; opacity: 0.55; }
+.cp-rune__part b { font-size: 0.74rem; color: #fff; }
+.cp-rune__part small { font-size: 0.7rem; color: var(--cp-muted); }
+.cp-rune__part.is-lit { border-color: var(--v); background: color-mix(in srgb, var(--v) 22%, transparent); }
+.cp-rune__part.is-lit i { opacity: 1; }
+
+.cp-rune__lanterns { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.cp-lantern {
+    width: 0.8rem;
+    height: 1.05rem;
+    border-radius: 0.4rem 0.4rem 0.3rem 0.3rem;
+    border: 1.5px solid rgba(253, 224, 138, 0.35);
+    background: rgba(255, 255, 255, 0.04);
+}
+.cp-lantern.is-lit { border-color: rgb(var(--cp-gold)); background: radial-gradient(circle at 50% 60%, #fff7cc, #f59e0b); box-shadow: 0 0 0.45rem rgba(245, 158, 11, 0.7); }
+
+.cp-rune__bar { display: block; height: 0.5rem; border-radius: 999px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.cp-rune__bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #fde68a, #f59e0b); }
+
+.cp-rune__riddles { display: flex; gap: 0.3rem; }
+.cp-riddle-pip {
+    display: grid;
+    place-items: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 0.45rem;
+    border: 1px solid rgba(196, 181, 253, 0.3);
+    color: var(--cp-muted);
+    font: 400 0.8rem 'Fredoka One', 'Fredoka', sans-serif;
+}
+.cp-riddle-pip.is-needed { border-color: rgba(var(--cp-cyan), 0.6); color: rgb(var(--cp-cyan)); }
+.cp-guardian-btn { justify-self: start; margin-top: 0.3rem; padding-left: 0.85rem; }
+
+.cp-near__row.is-sealed .cp-near__bar span { background: linear-gradient(90deg, #a78bfa, #7c3aed); }
+.cp-near__name { display: flex; align-items: center; gap: 0.45rem; }
+.cp-near__runes .qr-mark { width: 1rem; height: 1rem; font-size: 0.48rem; background: transparent; border-color: rgba(196, 181, 253, 0.5); color: rgba(226, 216, 255, 0.7); }
+.cp-near__runes .qr-mark.is-lit { color: #fff; background: radial-gradient(circle at 35% 30%, #c4b5fd, #7c3aed); }
+.cp-near__togo--sealed strong { color: #c4b5fd; }
+
+.cp-beyond__icon .qrc,
+.cp-beyond__crest { width: 1.6rem; height: 1.6rem; }
+
+.cp-ladder {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin: 0.85rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+.cp-ladder__rank {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    align-content: start;
+    gap: 0.15rem;
+    padding: 0.6rem 0.4rem 0.55rem;
+    border-radius: 1rem;
+    border: 1px solid var(--cp-line);
+    background: rgba(255, 255, 255, 0.035);
+    text-align: center;
+}
+.cp-ladder__crest { width: 2.6rem; height: 2.6rem; filter: drop-shadow(0 0.2rem 0.35rem rgba(0, 0, 0, 0.35)); }
+.cp-ladder__rank strong { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-weight: 400; font-size: 0.86rem; color: #fff; }
+.cp-ladder__rank small { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--cp-muted); }
+.cp-ladder__rank > span { font-size: 0.72rem; line-height: 1.25; color: rgba(236, 228, 255, 0.86); }
+.cp-ladder__runes { min-height: 1.1rem; margin-top: 0.15rem; color: rgba(253, 224, 138, 0.8); font-size: 0.7rem; }
+.cp-ladder__runes .qr-mark { width: 1.1rem; height: 1.1rem; font-size: 0.5rem; opacity: 0.65; box-shadow: none; }
+.cp-ladder__runes .qr-mark.is-new { opacity: 1; box-shadow: 0 0 0.45rem rgba(var(--cp-gold), 0.8); border-color: rgb(var(--cp-gold)); }
+.cp-ladder__rank em { margin-top: 0.15rem; font-style: normal; font-size: 0.7rem; font-weight: 700; color: rgb(var(--cp-gold)); }
+.cp-ladder__rank.is-past { opacity: 0.6; }
+.cp-ladder__rank.is-current {
+    border-color: rgba(var(--cp-gold), 0.75);
+    background: linear-gradient(170deg, rgba(var(--cp-violet), 0.35), rgba(var(--cp-gold), 0.1));
+    box-shadow: 0 0 1.2rem rgba(var(--cp-violet), 0.45);
+}
+.cp-ladder__here {
+    position: absolute;
+    top: -0.6rem;
+    left: 50%;
+    padding: 0.08rem 0.45rem;
+    border-radius: 999px;
+    background: rgb(var(--cp-gold));
+    color: #4c1d95;
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transform: translateX(-50%);
+}
+
+@media (max-width: 900px) {
+    .cp-ladder { grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 0.9rem; }
+}
+@media (max-width: 520px) {
+    .cp-ladder { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .cp-rune__parts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.cp--lite .cp-rune.is-lit .cp-rune__glyph { animation: none; }
+
+/* ── Rank-up banner (shares realm_moments.css) ─────────────────────────── */
+.rm-banner.rm-banner--rank { --rm-a: #ede9fe; --rm-b: #a78bfa; --rm-ink: #2e1065; --rm-edge: #8b5cf6; }
+.rm-banner.qr-banner--wayfinders { --rm-a: #dcfce7; --rm-b: #86efac; --rm-ink: #14532d; --rm-edge: #22c55e; }
+.rm-banner.qr-banner--torchbearers { --rm-a: #ffedd5; --rm-b: #fdba74; --rm-ink: #7c2d12; --rm-edge: #f97316; }
+.rm-banner.qr-banner--shieldbearers { --rm-a: #dbeafe; --rm-b: #93c5fd; --rm-ink: #1e3a8a; --rm-edge: #3b82f6; }
+.rm-banner.qr-banner--starseekers { --rm-a: #ede9fe; --rm-b: #c4b5fd; --rm-ink: #3b0764; --rm-edge: #8b5cf6; }
+.rm-banner.qr-banner--stormriders { --rm-a: #cffafe; --rm-b: #67e8f9; --rm-ink: #164e63; --rm-edge: #06b6d4; }
+.rm-banner.qr-banner--dragonhearts { --rm-a: #ffe4e6; --rm-b: #fda4af; --rm-ink: #881337; --rm-edge: #e11d48; }
+.rm-banner.qr-banner--sovereigns { --rm-a: #fef9c3; --rm-b: #fde047; --rm-ink: #713f12; --rm-edge: #eab308; }
+.qr-banner__crest { display: block; }
+.qr-banner__crest .qrc { width: 100%; height: 100%; }
+
+/* ── The Portal Guardian ──────────────────────────────────────────────── */
+.pg-host { position: fixed; inset: 0; z-index: 9500; }
+.pg-overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: 16px; }
+.pg-backdrop { position: absolute; inset: 0; background: rgba(12, 8, 32, 0.78); animation: pg-fade 0.3s ease both; }
+.pg-host.is-leaving { opacity: 0; transition: opacity 0.2s ease; }
+@keyframes pg-fade { from { opacity: 0; } }
+
+.pg-card {
+    position: relative;
+    width: min(880px, 100%);
+    max-height: calc(100vh - 32px);
+    overflow: auto;
+    padding: clamp(18px, 3vw, 34px);
+    border-radius: 28px;
+    border: 2px solid rgba(196, 181, 253, 0.45);
+    background:
+        radial-gradient(90% 60% at 20% 0%, rgba(139, 92, 246, 0.45), transparent 70%),
+        radial-gradient(60% 50% at 100% 100%, rgba(34, 211, 238, 0.18), transparent 70%),
+        linear-gradient(180deg, #1e1b4b, #120d2e);
+    color: #f5f0ff;
+    font-family: 'Fredoka', 'Open Sans', sans-serif;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+    animation: pg-rise 0.45s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+@keyframes pg-rise { from { opacity: 0; transform: translateY(24px) scale(0.97); } }
+
+.pg-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    display: grid;
+    place-items: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    border: 1px solid rgba(196, 181, 253, 0.4);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+    cursor: pointer;
+}
+
+.pg-head { display: grid; grid-template-columns: clamp(120px, 22vw, 200px) minmax(0, 1fr); gap: clamp(14px, 3vw, 28px); align-items: center; }
+.pg-art { width: 100%; height: auto; }
+.pg-art__halo { transform-origin: 110px 110px; animation: pg-breathe 4s ease-in-out infinite; }
+.pg-art__ring { transform-origin: 110px 110px; animation: pg-turn 40s linear infinite; }
+.pg-art__body { transform-origin: 110px 236px; animation: pg-sway 5s ease-in-out infinite; }
+.pg-art__eyes { animation: pg-blink 5.5s ease-in-out infinite; }
+.pg-art__gem { transform-origin: 166px 62px; animation: pg-breathe 2.6s ease-in-out infinite; }
+@keyframes pg-breathe { 50% { opacity: 0.75; transform: scale(1.05); } }
+@keyframes pg-turn { to { transform: rotate(360deg); } }
+@keyframes pg-sway { 50% { transform: translateY(-3px); } }
+@keyframes pg-blink { 0%, 92%, 100% { opacity: 1; } 95% { opacity: 0.15; } }
+
+.pg-kicker { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; margin: 0; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(226, 216, 255, 0.8); }
+.pg-kicker__crest { width: 1.4em; height: 1.4em; }
+.pg-title { margin: 0.2rem 0 0.4rem; font-size: clamp(1.7rem, 4vw, 2.6rem); line-height: 1.05; color: #fff; }
+.pg-lore { margin: 0; font-size: clamp(1rem, 1.8vw, 1.2rem); color: rgba(236, 228, 255, 0.9); font-style: italic; }
+.pg-lore b { color: #fde68a; font-style: normal; }
+
+.pg-pips { display: flex; gap: 0.45rem; margin-top: 0.8rem; }
+.pg-pip {
+    display: grid;
+    place-items: center;
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: 0.7rem;
+    border: 2px solid rgba(196, 181, 253, 0.35);
+    color: rgba(226, 216, 255, 0.7);
+    font: 400 1rem 'Fredoka One', 'Fredoka', sans-serif;
+}
+.pg-pip.is-now { border-color: #67e8f9; color: #fff; box-shadow: 0 0 0.8rem rgba(103, 232, 249, 0.6); }
+.pg-pip.is-right { border-color: #4ade80; background: #16a34a; color: #fff; }
+.pg-pip.is-wrong { border-color: #fb7185; background: rgba(225, 29, 72, 0.6); color: #fff; }
+
+.pg-riddle {
+    margin-top: clamp(14px, 2.5vw, 24px);
+    padding: clamp(16px, 2.6vw, 26px);
+    border-radius: 22px;
+    border: 1px solid rgba(196, 181, 253, 0.3);
+    background: rgba(255, 255, 255, 0.06);
+    text-align: center;
+    animation: pg-rise 0.35s ease both;
+}
+.pg-riddle__count { margin: 0 0 0.4rem; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #67e8f9; }
+.pg-riddle__text { margin: 0; font-size: clamp(1.4rem, 3.4vw, 2.2rem); font-weight: 600; line-height: 1.25; color: #fff; }
+.pg-answer {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    margin-top: 0.9rem;
+    padding: 0.4rem 1rem;
+    border: 1px dashed rgba(196, 181, 253, 0.5);
+    border-radius: 14px;
+    background: transparent;
+    color: rgba(226, 216, 255, 0.85);
+    font: 600 0.8rem 'Fredoka', sans-serif;
+    cursor: pointer;
+}
+.pg-answer b { font-size: 1.05rem; color: #fde68a; opacity: 0; transition: opacity 0.2s ease; }
+.pg-answer[aria-expanded='true'] b { opacity: 1; }
+
+.pg-actions { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0.7rem; margin-top: 1.1rem; }
+.pg-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1.4rem;
+    border: 0;
+    border-radius: 999px;
+    color: #fff;
+    font: 700 1.05rem 'Fredoka', sans-serif;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+}
+.pg-btn:hover { transform: translateY(-2px); }
+.pg-btn:active { transform: translateY(1px); }
+.pg-btn--right { background: linear-gradient(135deg, #22c55e, #15803d); box-shadow: 0 4px 0 #14532d; }
+.pg-btn--wrong { background: linear-gradient(135deg, #f43f5e, #9f1239); box-shadow: 0 4px 0 #4c0519; }
+.pg-link { border: 0; background: none; color: rgba(226, 216, 255, 0.85); font: 600 0.9rem 'Fredoka', sans-serif; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+.pg-end { display: grid; justify-items: center; gap: 0.5rem; margin-top: 1.2rem; padding: 1.2rem; border-radius: 22px; text-align: center; animation: pg-rise 0.4s ease both; }
+.pg-end--pass { background: linear-gradient(160deg, rgba(250, 204, 21, 0.2), rgba(139, 92, 246, 0.2)); border: 1px solid rgba(250, 204, 21, 0.5); }
+.pg-end--fail { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(196, 181, 253, 0.3); }
+.pg-end__icon { display: grid; place-items: center; width: 3.4rem; height: 3.4rem; border-radius: 50%; background: rgba(255, 255, 255, 0.1); font-size: 1.5rem; color: #fde68a; }
+.pg-end h3 { margin: 0; font-size: clamp(1.4rem, 3vw, 2rem); color: #fff; }
+.pg-end p { margin: 0 0 0.4rem; font-size: 1.02rem; color: rgba(236, 228, 255, 0.9); }
+
+@media (max-width: 600px) {
+    .pg-head { grid-template-columns: 96px minmax(0, 1fr); }
+}
+
+.pg-host--lite .pg-art__halo,
+.pg-host--lite .pg-art__ring,
+.pg-host--lite .pg-art__body,
+.pg-host--lite .pg-art__gem { animation: none; }
+
+@media (prefers-reduced-motion: reduce) {
+    .pg-art__halo, .pg-art__ring, .pg-art__body, .pg-art__eyes, .pg-art__gem,
+    .pg-card, .pg-riddle, .pg-end, .pg-backdrop,
+    .cp-rune.is-lit .cp-rune__glyph { animation: none; }
+}

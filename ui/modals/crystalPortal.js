@@ -4,6 +4,7 @@
 // realm overviews (data-modal-mode="portal"). Rules: features/crystalPortalCore.mjs;
 // markup: ./crystalPortalView.mjs; styles: styles/crystal_portal.css.
 
+import '../../styles/quest_ranks.css';
 import '../../styles/crystal_portal.css';
 import * as state from '../../state.js';
 import { db, query, collection, where, getDocs } from '../../firebase.js';
@@ -52,6 +53,12 @@ function bindPortalNavigation(contentEl) {
     contentEl.addEventListener('click', (event) => {
         const modal = document.getElementById(MODAL_ID);
         if (modal?.dataset.modalMode !== 'portal') return;
+        const guardian = event.target.closest('[data-portal-guardian]');
+        if (guardian) {
+            const classId = state.get('globalSelectedClassId');
+            if (classId) import('../../features/portalGuardian.js').then(({ openPortalGuardian }) => openPortalGuardian(classId)).catch(() => {});
+            return;
+        }
         if (event.target.closest('[data-portal-realm]')) {
             openZoneOverviewModal('crystal');
             contentEl.scrollTop = 0;

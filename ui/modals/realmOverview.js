@@ -3,11 +3,15 @@
 // Shows where every party of the league stands relative to that realm, using
 // the same realm boundaries as the living map (features/questMapZones.mjs).
 
+import '../../styles/quest_ranks.css';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { QUEST_MAP_ZONES } from '../../features/questMapZones.mjs';
 import { formatQuestStars, starsToReachPercent } from '../../features/teamQuestRace.mjs';
 import { showAnimatedModal } from './base.js';
+import { rankForLevel } from '../../features/questRanksCore.mjs';
+import { rankCrestSvg } from '../../features/questRankCrest.mjs';
+import { classPortalStatus, ownsClass } from '../../features/questPortal.js';
 
 const MODAL_ID = 'milestone-details-modal';
 
@@ -37,14 +41,6 @@ const REALM_LORE = {
     }
 };
 
-const LEVEL_STYLES = {
-    1: { label: 'Sprout', icon: '🌱' },
-    2: { label: 'Ripple', icon: '💧' },
-    3: { label: 'Shield', icon: '🛡️' },
-    4: { label: 'Arcane', icon: '🔮' },
-    5: { label: 'Blaze', icon: '🔥' },
-    6: { label: 'Dragon', icon: '🐉' }
-};
 
 const GROUPS = {
     beyond: { title: 'Journeyed beyond', icon: 'fa-flag-checkered' },
@@ -105,7 +101,9 @@ export function collectLeagueParties(league) {
             stars: totalStars,
             questBonus: Number(classBonus) || 0,
             progress,
-            completedAt: c.questCompletedAt || null
+            completedAt: c.questCompletedAt || null,
+            portal: classPortalStatus(c, { students }),
+            owned: ownsClass(c)
         };
     }).sort(utils.sortTeamQuestEntries);
 }
@@ -115,8 +113,8 @@ function describeParty(party, bounds) {
     if (pct >= bounds.end) {
         return {
             group: 'beyond',
-            status: bounds.end >= 100 ? 'Portal reached' : 'Passed',
-            statusIcon: 'fa-check'
+            status: bounds.end >= 100 ? (party.portal && !party.portal.open ? 'At the sealed Portal' : 'Through the Portal') : 'Passed',
+            statusIcon: bounds.end >= 100 && party.portal && !party.portal.open ? 'fa-lock' : 'fa-check'
         };
     }
     if (pct >= bounds.start) {
@@ -151,7 +149,7 @@ function renderRoute(pct, bounds) {
 
 function renderParty(party, info, bounds, rank, activeClassId) {
     const pct = Math.min(100, Math.max(0, party.progress));
-    const level = LEVEL_STYLES[party.level] || LEVEL_STYLES[1];
+    const rankInfo = rankForLevel(party.level);
     const isMine = activeClassId && party.id === activeClassId;
     const bonus = party.questBonus > 0
         ? `<span class="ro-party__bonus" title="Pathfinder bonus stars"><i class="fas fa-compass" aria-hidden="true"></i> +${formatQuestStars(party.questBonus)}</span>`
@@ -164,7 +162,7 @@ function renderParty(party, info, bounds, rank, activeClassId) {
                 <div class="ro-party__head">
                     <span class="ro-party__name">${escapeHtml(party.name)}</span>
                     ${isMine ? '<span class="ro-party__mine">Your class</span>' : ''}
-                    <span class="ro-party__level" title="Quest level ${party.level}">${level.icon} Lv ${party.level}</span>
+                    <span class="ro-party__level qr-chip qr-chip--${rankInfo.id}" title="Quest Level ${party.level}: ${escapeHtml(rankInfo.title)}">${rankCrestSvg(party.level, { className: 'qr-chip__crest' })}<span>${escapeHtml(rankInfo.title)}</span><b>Lv ${party.level}</b></span>
                 </div>
                 ${renderRoute(pct, bounds)}
                 <div class="ro-party__meta">

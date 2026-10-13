@@ -16,15 +16,15 @@ Build **social cohesion**. Nobody is left as a lonely high-scorer: every star a 
 - **Each league has its own touches.** A few small drawn pieces make the map the league's own, matched to the children's age: Pre-Junior has a duck family paddling on the lake and soap bubbles by the shore; Junior A has sheep grazing by the fields and a scarecrow with his crow; Junior B has paper boats on the lake and a frog hopping between lily pads; A has a compass rose in the sky and a treasure chest that opens by the lake; B has a beacon fire on the mountain and a longship rowing on patrol; C has a ring of runes turning round the Citadel's tallest spire and pages of an old book flying over the land; D has a sea serpent rising from the lake and the Dragon of the North drawn in the stars over the mountain. They follow the header's league.
 - **More colour.** Each realm a class has reached glows softly in its own colour, and grey or rainy skies soften the land without draining it.
 - **The Portal hides in the clouds.** Until a class reaches the Crystal Realm, the Portal's vortex turns blurred behind clouds, with its light breaking through in slow rays and a glow; point at it and the clouds part a little for a peek. As the leader nears the realm they thin, and when a class arrives they drift away.
-- **The road remembers the leaders.** A realm no class has reached yet hides under clouds; when the first class gets there, the clouds part and the realm celebrates. Lanterns along the road are lit as far as the furthest class has walked, the leading class flies its banner over the furthest realm reached, and when a class reaches the Portal a pillar of light rises from it.
+- **The road remembers the leaders.** A realm no class has reached yet hides under clouds; when the first class gets there, the clouds part and the realm celebrates. Lanterns along the road are lit as far as the furthest class has walked, the leading class flies its banner over the furthest realm reached, and when a class reaches the Portal a pillar of light rises from it. Each token wears its rank's crest, and a small lock while its stars are full but the Portal is still sealed.
 - **Explore the road.** Point at a class to light up its whole journey: the rest of the map steps into shade and a flag marks its next stop with the stars still to go. Point anywhere on the road and a pin says how far along it is, which realm it is in, and how many stars your selected class (or the leader) still needs to stand there. The road wears each realm's colour: copper through Bronze Meadows, ice blue up Silver Peaks, gold through the Golden Citadel and violet on the Crystal stair, blending where two realms meet. The explored road glows in those colours (and so does a class's journey when you point at it), the stretch ahead is dotted, and the road flares in the new realm's colour when the first class crosses into it. Faint lights run up the explored road to the leading class, footsteps glow where classes walk, and on a strong computer a warm lantern light follows the mouse.
 - **Zoom and look around.** Double-click the land, use the **+** and **−** buttons, pinch on a touch screen or hold Ctrl and scroll to zoom; drag to look around; the **⤢** button (or the 0 key) shows the whole map again.
 - **Switching classes.** Picking the general view in the header rolls the map back up and seals it until you choose a class or a league again (opening Team Quest in the general view shows the sealed scroll waiting), and choosing a class breaks the seal and unrolls it; choosing a class in another league rolls up the old map and unrolls the new one.
 - Every computer starts with the full map. Only if the map stays clearly slow for a few seconds does it drop its heaviest effects by itself (the tilt, the mouse depth and the lantern light), and everything that moves stays. Only if that computer is still too slow does the map rest the small drifting pieces (leaves, fish, butterflies, the eagle); the windmills, waterfall, smoke and Portal keep moving. A laptop on battery saver is not counted as slow. With **reduced motion** turned on in the computer’s settings, nothing moves.
 - **Find on map** (from Quest Chronicles) glides the view toward that class and opens its card.
 - Each class as a moving token. Position is **progress toward this month’s goal**, not raw star count alone. Labels are nudged so overlapping classes stay readable.
-- A list of classes with stars, goal, **quest difficulty level**, and zone.
-- **History** opens the **League Archive**, an atlas of past months. It opens on the latest finished month, in your league (or **All leagues**). Step through the months with the arrows or tap one on the dotted route; switch league with the chips, or **Find a class** by name. **Your parties** shows where each of your classes finished. Each league’s page shows the **Month champion**, a **race chart** of where every class stopped on the road (the realms and the goal flag), and then every class with its rank, % of goal, stars against goal, the realm it reached (or the stars it was short), the stars it needed to catch the class ahead, its difficulty level, “Goal reached” and the lesson days lost. Classes with no stars that month wait under **Still at the start line**. Only this school year’s finished months are charted.
+- A list of classes with stars, goal, **rank and quest level**, Portal runes, and zone.
+- **History** opens the **League Archive**, an atlas of past months. It opens on the latest finished month, in your league (or **All leagues**). Step through the months with the arrows or tap one on the dotted route; switch league with the chips, or **Find a class** by name. **Your parties** shows where each of your classes finished. Each league’s page shows the **Month champion**, a **race chart** of where every class stopped on the road (the realms and the goal flag), and then every class with its rank, % of goal, stars against goal, the realm it reached (or the stars it was short), the stars it needed to catch the class ahead, its rank that month (crest, name and level), “Goal reached” and the lesson days lost. Classes with no stars that month wait under **Still at the start line**. Only this school year’s finished months are charted.
 - A reminder on **Home** when last month’s **Ceremony of the Month** has not been run yet; the ceremony opens from there.
 
 Only classes that share the same **Quest League** race each other. Junior B does not race Class C.
@@ -39,15 +39,44 @@ A class’s progress is its stars this month (including Team Quest bonuses such 
 
 Places are never shared: if two classes sit on the same percentage, the app still gives each one its own place.
 
-## Quest difficulty levels
+## Quest ranks and Portal runes
 
-Every class has a **quest level** that starts at **Level 1**. Each time the class **reaches this month’s goal**, its level goes up by one, so later months ask a little more. The level shows as a badge on the tab and as a chip in the ceremony (Levels 1–6: 🌱 💧 🛡️ 🔮 🔥 🐉; the display stops at 6). Past months in History and the ceremony show the level that was true *that* month, not today’s harder one.
+Every class has a **quest level** that starts at **Level 1**. Each time the class **steps through the Crystal Portal**, its level goes up by one, so later months ask a little more. The level has nothing to do with Quest League: two Junior B classes can sit at different levels if one stepped through more often.
 
-The level has nothing to do with Quest League: two Junior B classes can sit at different levels if one finished the map more often.
+Each level is a **rank** with its own crest, shown on the class's token on the map (a small shield beside it), on its map card, in Quest Chronicles, Realm Overviews, the League Archive, the Crystal Portal and the Ceremony chips:
+
+| Level | Rank | Crest | To open the Portal | Portal spoils |
+|-------|------|-------|--------------------|---------------|
+| 1 | **Wayfinders** | green, a sprout | Fill the goal | +5 Gold |
+| 2 | **Torchbearers** | orange, a torch | Goal + Rune of the Four Virtues | +6 Gold |
+| 3 | **Shieldbearers** | blue, a shield | … + Rune of Lanterns | +7 Gold |
+| 4 | **Starseekers** | violet, a star | … + the Guardian's Riddles (2 of 3) | +8 Gold |
+| 5 | **Stormriders** | teal, a lightning bolt | … + Rune of Our Own Light | +9 Gold |
+| 6 | **Dragonhearts** | red, a winged heart | Every rune; the Guardian asks 4 and wants 3 | +10 Gold |
+| 7+ | **Sovereigns** | gold, a crown | Every rune, every month (Sovereigns ×2, ×3…) | +10 Gold |
+
+**Stars always move the token and the race exactly as before.** The runes never take a star away and never change the goal or the ranking; they only decide whether the Portal opens at the end of the road. A class whose stars fill the goal while a rune still sleeps stands at the **sealed Portal** (a small lock on its token) until the rune is lit.
+
+### The Portal runes
+
+The numbers follow this month's goal, so holidays, cancelled lessons and June shrink them in the same way.
+
+- **Rune of the Four Virtues** (from Level 2): the class earns stars in all four virtues, Teamwork, Creativity, Respect and Focus. Each virtue needs a sixteenth of the goal (about 13★ for 10 heroes at Level 2 in a full month). It rewards a teacher who notices all four, not only one.
+- **Rune of Lanterns** (from Level 3): almost every hero lights a lantern with their own stars this month. A lantern needs a quarter of one hero's share of the goal (about 6★ in a full month at Level 3, 3★ in June). One hero in every five may rest, so an absent or new child never holds the class back.
+- **The Guardian's Riddles** (from Level 4): once the stars and every other rune are ready, the Portal Guardian waits at the gate. Press **Face the Guardian** (on the class's map card, in the Crystal Portal, or in the notification). The class answers aloud and you judge each riddle with **Right!** or **Not this time**; **Another riddle** swaps an unfair one, and **Answer (for the teacher)** shows the answer. Two right out of three open the Portal (from Level 6, three out of four). The riddles come from the class's own grammar in the **Grammar Forge** and the Wheel's riddle bank, at the league's level. One try per lesson day: a miss takes nothing away, and the Guardian asks again next lesson. Only the class's own teacher can call the Guardian.
+- **Rune of Our Own Light** (from Level 5): the heroes' own stars fill 90% of the goal. Pathfinder's Map, Quiz and Raid bonuses still count for the race, but they can only light the last stretch to the Portal.
+
+### Stepping through
+
+When the stars and every rune are ready, the Portal opens by itself (or when the Guardian bows). The class rises one rank, a short banner with the new crest plays over the screen (also on the projector), and the usual notification says what the class won and what its new rank will ask. Every hero gets the **Portal spoils** in Gold, once per month (5 Gold at Level 1, one more per level, up to 10). When the stars are full but a rune still sleeps, the notification says which one and how many stars it still needs.
+
+Open the **Crystal Portal** to see your class's runes one by one (the four virtues with their stars, a lantern per hero, the riddles), who stepped through this month, who waits at the threshold or at the sealed gate, **Beyond the Portal** (your next rank, its spoils and the new challenge it brings) and **The ranks of the road**, every rank with what it asks and pays, with your class's marked **You are here**.
+
+Past months in History and the ceremony show the level that was true *that* month, not today's higher one. A month where a class filled the goal but the Portal stayed sealed reads "Filled the goal · the Portal stayed sealed" in the League Archive.
 
 ## How the monthly goal is set
 
-You do not type the goal. The Quest works it out, so that a class with many holidays is not punished and a class that has already conquered the map is not racing an easy target.
+You do not type the goal. The Quest works it out, so that a class with many holidays is not punished and a class that has already conquered the map is not racing an easy target. The ranks and runes above never change this calculation.
 
 For each student the goal starts at **18** stars, plus **2.5** more for every level above Level 1. That figure is then adjusted for holidays (see below), multiplied by the number of students, and rounded. The class goal **never falls below 18** stars in total (even an empty class is treated as 18).
 

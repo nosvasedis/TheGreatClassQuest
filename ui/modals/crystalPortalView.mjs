@@ -4,6 +4,9 @@
 // so the app (ui/modals/crystalPortal.js) and crystal-portal-preview.html share it.
 // Styles: styles/crystal_portal.css. Motion is transform/opacity only.
 
+import { QUEST_RANKS, rankForLevel, newAtLevel, portalSpoilsGold, runesForLevel, guardianTestFor } from '../../features/questRanksCore.mjs';
+import { rankCrestSvg, renderRuneMarks } from '../../features/questRankCrest.mjs';
+
 const ASSETS = {
     vortex: new URL('../../assets/team-quest-map/living-atlas/portal-vortex.webp', import.meta.url).href,
     crest: new URL('../../assets/team-quest-map/living-atlas/badge-crystal.webp', import.meta.url).href
@@ -90,7 +93,7 @@ function heroHtml(view, { league, monthKey }) {
             <div class="cp-hero__copy">
                 <p class="cp-hero__eyebrow">The end of the road · ${esc(league)} League · ${esc(monthName(monthKey))}</p>
                 <h2 class="cp-hero__title">The Crystal Portal</h2>
-                <p class="cp-hero__lore">Fill your monthly goal to the very last star and the Portal opens. Every class that steps through rises one Quest Level.</p>
+                <p class="cp-hero__lore">Fill your monthly goal to the very last star and light every rune of your rank, and the Portal opens. Every class that steps through rises one rank and brings home Gold for every hero.</p>
                 <div class="cp-hero__chips">
                     <span class="cp-chip"><i class="fas fa-bullseye" aria-hidden="true"></i> 100% of each class's own goal</span>
                     ${status}
@@ -129,6 +132,15 @@ function mineHtml(mine) {
         detail = mine.first
             ? `First class through this month${when}. Now Quest Level ${mine.level}.`
             : `${ordinal(mine.order)} through this month${when}. Now Quest Level ${mine.level}.`;
+    } else if (mine.state === 'guardian') {
+        headline = `${esc(mine.name)} faces the Portal Guardian`;
+        detail = mine.portal?.guardian?.triedToday
+            ? 'The Guardian has spoken today and asks again next lesson. Every star and rune stays lit.'
+            : `Stars full and every rune lit. Answer <strong>${mine.portal.guardian.toPass} of ${mine.portal.guardian.questions}</strong> riddles to open the Portal.`;
+    } else if (mine.state === 'sealed') {
+        const sleeping = (mine.portal?.runes || []).filter((r) => !r.met && r.id !== 'guardian').length;
+        headline = `${esc(mine.name)} filled the goal!`;
+        detail = `The Portal is still sealed: <strong>${sleeping} ${sleeping === 1 ? 'rune sleeps' : 'runes sleep'}</strong>. Light ${sleeping === 1 ? 'it' : 'them'} to step through.`;
     } else if (mine.state === 'threshold') {
         headline = `${esc(mine.name)} stands at the threshold`;
         detail = `Only <strong>${stars(mine.starsToGo)} ★</strong> left to open the Portal.`;
@@ -144,10 +156,69 @@ function mineHtml(mine) {
                 ${mine.state === 'through' ? '<span class="cp-mine__crown" aria-hidden="true"><i class="fas fa-check"></i></span>' : ''}
             </div>
             <div class="cp-mine__copy">
-                <p class="cp-mine__eyebrow">Your class · ${pctText}</p>
+                <p class="cp-mine__eyebrow">Your class · ${pctText}${mine.portal ? ` · <span class="cp-mine__rank">${rankCrestSvg(mine.portal.level, { className: 'cp-mine__crest' })}${esc(mine.portal.rank.title)}</span>` : ''}</p>
                 <h3 class="cp-mine__title">${headline}</h3>
                 <p class="cp-mine__detail">${detail}</p>
             </div>
+        </section>
+        ${runesHtml(mine)}`;
+}
+
+/** The runes the class's rank asks for this month, each with how far it has come. */
+function runesHtml(mine) {
+    const portal = mine?.portal;
+    if (!portal) return '';
+    const rank = portal.rank;
+    if (!portal.runes.length) {
+        return `
+        <section class="cp-card cp-runes cp-rise" style="--rise:1">
+            <h3 class="cp-card__title"><i class="fas fa-gem" aria-hidden="true"></i><span>Portal runes</span></h3>
+            <p class="cp-card__note cp-card__note--solo">${esc(rank.title)} only need to fill the goal. From Level 2 the Portal asks for runes too.</p>
+        </section>`;
+    }
+    const rows = portal.runes.map((rune) => {
+        let body = '';
+        if (rune.id === 'virtues') {
+            body = `<span class="cp-rune__parts">${rune.parts.map((part) => `
+                <span class="cp-rune__part${part.met ? ' is-lit' : ''}" style="--v:${part.color}">
+                    <i class="fas ${part.icon}" aria-hidden="true"></i>
+                    <b>${esc(part.label)}</b>
+                    <small>${stars(Math.min(part.have, part.need))} / ${stars(part.need)}★</small>
+                </span>`).join('')}</span>`;
+        } else if (rune.id === 'lanterns') {
+            const dots = Array.from({ length: portal.heroes }, (_, i) => `<span class="cp-lantern${i < rune.have ? ' is-lit' : ''}"></span>`).join('');
+            body = `<span class="cp-rune__lanterns" aria-label="${rune.have} of ${portal.heroes} lanterns lit">${dots}</span>
+                <small class="cp-rune__note">${rune.have} lit · ${rune.need} needed · a lantern needs ${rune.each}★ of a hero's own</small>`;
+        } else if (rune.id === 'ownLight') {
+            const share = Math.min(100, (rune.have / Math.max(1, rune.need)) * 100);
+            body = `<span class="cp-rune__bar"><span style="width:${share.toFixed(1)}%"></span></span>
+                <small class="cp-rune__note">${stars(rune.have)} / ${stars(rune.need)}★ from the heroes' own stars (bonuses don't count here)</small>`;
+        } else if (rune.id === 'guardian') {
+            const g = portal.guardian;
+            const pips = Array.from({ length: g.questions }, (_, i) => `<span class="cp-riddle-pip${i < g.toPass ? ' is-needed' : ''}">?</span>`).join('');
+            const state = g.passed ? 'The Guardian bowed this month.'
+                : g.awake ? (g.triedToday ? 'The Guardian asks again next lesson.' : 'The Guardian is awake and waits at the gate.')
+                    : 'Wakes once the stars fill the goal and every other rune is lit.';
+            const button = g.canTry && mine.owned
+                ? '<button type="button" class="cp-back cp-guardian-btn" data-portal-guardian><i class="fas fa-dungeon" aria-hidden="true"></i><span>Face the Guardian</span></button>'
+                : '';
+            body = `<span class="cp-rune__riddles">${pips}</span><small class="cp-rune__note">${state}</small>${button}`;
+        }
+        return `
+            <li class="cp-rune${rune.met ? ' is-lit' : ''} cp-rune--${rune.id}">
+                <span class="cp-rune__glyph" aria-hidden="true"><i class="fas ${rune.icon}"></i></span>
+                <span class="cp-rune__body">
+                    <span class="cp-rune__head"><strong>${esc(rune.name)}</strong><em>${rune.met ? '<i class="fas fa-check" aria-hidden="true"></i> Lit' : 'Asleep'}</em></span>
+                    <span class="cp-rune__rule">${esc(rune.rule)}</span>
+                    ${body}
+                </span>
+            </li>`;
+    }).join('');
+    return `
+        <section class="cp-card cp-runes cp-rise" style="--rise:1">
+            <h3 class="cp-card__title"><i class="fas fa-gem" aria-hidden="true"></i><span>Portal runes of the ${esc(rank.name)}</span><span class="cp-card__count">${portal.runesLit}/${portal.runes.length}</span></h3>
+            <ol class="cp-runes__list">${rows}</ol>
+            <p class="cp-card__note"><i class="fas fa-star" aria-hidden="true"></i><span>Stars always count for the race, whatever the runes say. Nothing is ever taken away.</span></p>
         </section>`;
 }
 
@@ -165,7 +236,7 @@ function throughHtml(view, activeClassId) {
                     ${p.throughAt != null ? `<span class="cp-through__date"><i class="far fa-calendar" aria-hidden="true"></i> ${dayLabel(p.throughAt)}</span>` : ''}
                 </span>
             </span>
-            <span class="cp-tag">Now Lv ${p.level}</span>
+            <span class="cp-tag cp-tag--rank" title="Now Quest Level ${p.level}">${rankCrestSvg(p.level, { className: 'cp-tag__crest' })}${esc(rankForLevel(p.level).title)}</span>
         </li>`).join('');
     const body = rows
         ? `<ol class="cp-through">${rows}</ol>`
@@ -184,14 +255,17 @@ function thresholdHtml(view, activeClassId) {
     const rows = view.threshold.map((p) => {
         // The bar shows the last stretch only: the Crystal Realm (85%) to the Portal (100%).
         const fill = Math.min(100, Math.max(0, ((p.progress - 85) / 15) * 100));
+        const togo = p.sealed
+            ? `<span class="cp-near__togo cp-near__togo--sealed"><strong><i class="fas fa-lock" aria-hidden="true"></i></strong><small>${p.portal?.state === 'guardian' ? 'Guardian' : 'runes'}</small></span>`
+            : `<span class="cp-near__togo"><strong>${stars(p.starsToGo)} ★</strong><small>to go</small></span>`;
         return `
-            <li class="cp-near__row${p.id === activeClassId ? ' is-mine' : ''}">
+            <li class="cp-near__row${p.id === activeClassId ? ' is-mine' : ''}${p.sealed ? ' is-sealed' : ''}">
                 <span class="cp-through__seal" aria-hidden="true">${esc(p.logo)}</span>
                 <span class="cp-near__body">
-                    <span class="cp-near__name">${esc(p.name)}</span>
+                    <span class="cp-near__name">${esc(p.name)}${p.portal?.runes?.length ? renderRuneMarks(p.portal, { className: 'qr-marks cp-near__runes' }) : ''}</span>
                     <span class="cp-near__bar" aria-hidden="true"><span style="width:${fill.toFixed(1)}%"></span></span>
                 </span>
-                <span class="cp-near__togo"><strong>${stars(p.starsToGo)} ★</strong><small>to go</small></span>
+                ${togo}
             </li>`;
     }).join('');
     const roadLine = view.road
@@ -205,21 +279,60 @@ function thresholdHtml(view, activeClassId) {
         </section>`;
 }
 
-function beyondHtml() {
+function beyondHtml(mine) {
+    // For your class: the rank it is walking for now and what the next one asks. Otherwise, in general.
+    const level = mine?.portal ? (mine.state === 'through' ? Math.max(mine.portal.level, Number(mine.level) || 1) : mine.portal.level) : null;
+    const nextLevel = level ? level + 1 : null;
+    const nextRank = nextLevel ? rankForLevel(nextLevel) : null;
+    const next = nextLevel ? newAtLevel(nextLevel) : null;
     const tiles = [
-        ['fa-arrow-up', 'One Quest Level up', 'The class rises a level the moment it steps through.'],
-        ['fa-route', 'A longer road next month', 'A higher level brings a bigger goal and a fair new challenge.'],
-        ['fa-scroll', 'Remembered all year', 'Every opening is kept in the League Archive.']
+        [nextRank ? rankCrestSvg(nextLevel, { className: 'cp-beyond__crest' }) : '<i class="fas fa-arrow-up"></i>',
+            nextRank ? `Rise to ${esc(nextRank.title)}` : 'One rank up',
+            nextRank ? `Quest Level ${nextLevel}: a new crest the moment the class steps through.` : 'The class rises a rank and wears a new crest the moment it steps through.'],
+        ['<i class="fas fa-coins"></i>', level ? `+${portalSpoilsGold(level)} Gold for every hero` : 'Portal spoils',
+            level ? 'The Portal spoils, paid once when the class steps through.' : 'Gold for every hero when the class steps through: more at higher ranks.'],
+        ['<i class="fas fa-route"></i>', 'A new challenge next month',
+            next ? esc(next.text) : 'The goal grows a little, and the runes stay.']
     ];
     return `
         <section class="cp-beyond cp-rise" style="--rise:4" aria-label="Beyond the Portal">
             ${tiles.map(([icon, title, text], i) => `
                 <div class="cp-beyond__tile" style="--i:${i}">
-                    <span class="cp-beyond__icon" aria-hidden="true"><i class="fas ${icon}"></i></span>
+                    <span class="cp-beyond__icon" aria-hidden="true">${icon}</span>
                     <strong>${title}</strong>
                     <span>${text}</span>
                 </div>`).join('')}
         </section>`;
+}
+
+/** What each rank asks to open the Portal, with the class's own rank marked. */
+export function ranksLadderHtml(currentLevel = null) {
+    const adds = (level) => {
+        if (level === 1) return 'Fill the goal';
+        if (level >= 7) return 'Every rune, every month';
+        const n = newAtLevel(level);
+        if (n?.kind === 'guardian') return `Guardian asks ${guardianTestFor(level).questions}`;
+        if (n?.rune.id === 'guardian') return `+ Guardian (${guardianTestFor(level).toPass} of ${guardianTestFor(level).questions})`;
+        return `+ ${n.rune.short}`;
+    };
+    const icons = (level) => runesForLevel(level).map((rune) => {
+        const fresh = rune.from === level || (level === 6 && rune.id === 'guardian');
+        return `<span class="qr-mark is-lit${fresh ? ' is-new' : ''}" title="${esc(rune.name)}"><i class="fas ${rune.icon}" aria-hidden="true"></i></span>`;
+    }).join('');
+    const current = currentLevel ? Math.min(7, currentLevel) : null;
+    return `
+        <ol class="cp-ladder">
+            ${QUEST_RANKS.map((rank) => `
+                <li class="cp-ladder__rank${current === rank.level ? ' is-current' : ''}${current && rank.level < current ? ' is-past' : ''}">
+                    ${rankCrestSvg(rank.level, { className: 'cp-ladder__crest' })}
+                    <strong>${esc(rank.name)}</strong>
+                    <small>Level ${rank.level}${rank.level === 7 ? '+' : ''}</small>
+                    <span>${esc(adds(rank.level))}</span>
+                    <span class="qr-marks cp-ladder__runes">${icons(rank.level) || '<i class="fas fa-star" aria-hidden="true"></i>'}</span>
+                    <em><i class="fas fa-coins" aria-hidden="true"></i> +${portalSpoilsGold(rank.level)} Gold</em>
+                    ${current === rank.level ? '<b class="cp-ladder__here">You are here</b>' : ''}
+                </li>`).join('')}
+        </ol>`;
 }
 
 // —— Portal Keepers (loaded after the modal opens) ——————————————
@@ -262,7 +375,12 @@ export function portalModalHtml(view, { league = '', monthKey = '', activeClassI
                     ${throughHtml(view, activeClassId)}
                     ${thresholdHtml(view, activeClassId)}
                 </div>
-                ${beyondHtml()}
+                ${beyondHtml(view.mine)}
+                <section class="cp-card cp-rise" style="--rise:5">
+                    <h3 class="cp-card__title"><i class="fas fa-shield-halved" aria-hidden="true"></i><span>The ranks of the road</span></h3>
+                    <p class="cp-card__note"><i class="fas fa-circle-info" aria-hidden="true"></i><span>Each time a class steps through, it rises one rank. Higher ranks ask a little more to open the Portal, and pay more Gold.</span></p>
+                    ${ranksLadderHtml(view.mine?.portal?.level || null)}
+                </section>
                 <section class="cp-card cp-rise" style="--rise:5">
                     <h3 class="cp-card__title"><i class="fas fa-gem" aria-hidden="true"></i><span>Portal Keepers this school year</span></h3>
                     <div data-portal-keepers>${keepersHtml(view, { activeClassId })}</div>

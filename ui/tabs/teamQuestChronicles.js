@@ -12,6 +12,8 @@ import {
     getQuestNextStop
 } from '../../features/teamQuestRace.mjs';
 import { REALM_STOPS, journalMonth, realmMonthKey } from '../../features/realmMomentsCore.mjs';
+import { rankForLevel, portalStatusLine } from '../../features/questRanksCore.mjs';
+import { rankCrestSvg, renderRuneMarks } from '../../features/questRankCrest.mjs';
 
 const asset = (name) => new URL(`../../assets/team-quest-map/living-atlas/${name}`, import.meta.url).href;
 
@@ -147,6 +149,9 @@ function renderCard(entry, index, { gap, activeClassId, open, showFind }) {
     const weekly = Number(entry.weeklyStars) || 0;
     const adventures = Number(entry.adventureCount) || 0;
     const level = (Number(entry.difficulty) || 0) + 1;
+    const questRank = rankForLevel(level);
+    const portal = entry.portal || null;
+    const sealed = next.complete && portal && !portal.open;
     const isMine = Boolean(activeClassId) && entry.id === activeClassId;
     const drawerId = `tqc-drawer-${esc(String(entry.id || index))}`;
     const raceLine = describeQuestRaceLine(gap);
@@ -172,6 +177,7 @@ function renderCard(entry, index, { gap, activeClassId, open, showFind }) {
                     <strong class="tqc-card__name">${esc(entry.name || 'Class')}</strong>
                     <span class="tqc-card__meta">
                         <span class="tqc-zone"><img src="${CHRONICLE_ASSETS[zone.id]}" alt="" aria-hidden="true" draggable="false" loading="lazy" decoding="async">${zone.label}</span>
+                        <span class="qr-chip qr-chip--${questRank.id}" title="Quest Level ${level}">${rankCrestSvg(level, { className: 'qr-chip__crest' })}<span>${esc(questRank.title)}</span><b>Lv ${level}</b></span>
                         ${isMine ? '<span class="tqc-you"><i class="fas fa-flag" aria-hidden="true"></i>Active class</span>' : ''}
                     </span>
                 </span>
@@ -186,10 +192,11 @@ function renderCard(entry, index, { gap, activeClassId, open, showFind }) {
                 <div class="tqc-card__drawer-inner">
                     ${renderRoute(entry, pct)}
                     <div class="tqc-card__pills">
-                        <span class="tqc-pill tqc-pill--next${next.complete ? ' is-complete' : ''}">
-                            <i class="fas ${next.complete ? 'fa-trophy' : 'fa-location-dot'}" aria-hidden="true"></i>
-                            ${next.complete ? 'Quest complete — the portal is open!' : `<b>${next.starsNeeded}★</b> to ${esc(next.label)}`}
+                        <span class="tqc-pill tqc-pill--next${next.complete && !sealed ? ' is-complete' : ''}${sealed ? ' is-sealed' : ''}">
+                            <i class="fas ${sealed ? 'fa-lock' : next.complete ? 'fa-trophy' : 'fa-location-dot'}" aria-hidden="true"></i>
+                            ${sealed ? `Stars full · ${esc(portalStatusLine(portal))}` : next.complete ? 'Quest complete — the portal is open!' : `<b>${next.starsNeeded}★</b> to ${esc(next.label)}`}
                         </span>
+                        ${portal?.runes?.length ? `<span class="tqc-pill tqc-pill--runes" title="Portal runes of this rank">${renderRuneMarks(portal)} ${portal.runesLit} of ${portal.runes.length} runes lit</span>` : ''}
                         ${raceLine ? `<span class="tqc-pill tqc-pill--race"><i class="fas fa-flag-checkered" aria-hidden="true"></i>${esc(raceLine)}</span>` : ''}
                         ${entry.classQuestBonus > 0 ? `<span class="tqc-pill tqc-pill--bonus"><i class="fas fa-compass" aria-hidden="true"></i>+${formatQuestStars(entry.classQuestBonus)} Pathfinder</span>` : ''}
                         ${goalNote}
@@ -228,8 +235,8 @@ function renderCard(entry, index, { gap, activeClassId, open, showFind }) {
                         </div>
                     </div>
                     <div class="tqc-card__foot">
-                        <span class="tqc-foot-chip" title="Each quest level raises the monthly goal a little">
-                            <i class="fas fa-shield-halved" aria-hidden="true"></i>Quest level ${level}
+                        <span class="tqc-foot-chip" title="Each quest level raises the monthly goal a little and adds a Portal rune">
+                            <i class="fas fa-gift" aria-hidden="true"></i>Portal spoils +${portal?.spoils ?? 0} Gold each
                         </span>
                         <span class="tqc-foot-chip"><i class="fas fa-users" aria-hidden="true"></i>${Number(entry.studentCount) || 0} heroes</span>
                         ${showFind ? `<button type="button" class="tqc-find" data-chronicle-find="${esc(entry.id || '')}"><i class="fas fa-map-location-dot" aria-hidden="true"></i><span>Find on the map</span></button>` : ''}

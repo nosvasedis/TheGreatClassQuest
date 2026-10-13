@@ -258,11 +258,11 @@ export const TERMS = [
     id: 'quest-difficulty',
     chapter: 'team-quest',
     widget: 'levels',
-    names: { en: 'Quest difficulty', el: 'Επίπεδο δυσκολίας' },
-    aliases: ['quest difficulty', 'difficulty level', 'map level', 'level 1', 'difficulty'],
+    names: { en: 'Quest rank and level', el: 'Βαθμίδα και επίπεδο' },
+    aliases: ['quest difficulty', 'difficulty level', 'map level', 'level 1', 'difficulty', 'quest rank', 'rank', 'portal runes', 'runes', 'portal guardian', 'guardian', 'portal spoils', 'wayfinders', 'torchbearers', 'shieldbearers', 'starseekers', 'stormriders', 'dragonhearts', 'sovereigns'],
     def: {
-      en: 'Every class starts at Level 1, and each month it reaches its goal moves it up one level. Each level above Level 1 adds 2.5 stars per student to the goal, which is then adjusted for holidays (and halved in June). Ceremony chips show Levels 1–6.',
-      el: 'Κάθε τμήμα ξεκινά από Level 1 και ανεβαίνει ένα επίπεδο κάθε μήνα που πιάνει τον στόχο του. Κάθε επίπεδο πάνω από το Level 1 προσθέτει 2,5 αστέρια ανά μαθητή στον στόχο, που μετά προσαρμόζεται για τις αργίες (και μισώνει τον Ιούνιο).'
+      en: 'Every class starts at Level 1 (Wayfinders) and rises one level each time it steps through the Crystal Portal: Torchbearers, Shieldbearers, Starseekers, Stormriders, Dragonhearts, then Sovereigns from Level 7. Each level above Level 1 adds 2.5 stars per student to the goal, which is then adjusted for holidays (and halved in June). From Level 2 the Portal also asks for runes: the Four Virtues (2), Lanterns (3), the Guardian\'s Riddles (4) and Our Own Light (5). Stars still move the race as before; a class with full stars and a sleeping rune waits at the sealed Portal. Stepping through pays every hero 5 to 10 Gold.',
+      el: 'Κάθε τμήμα ξεκινά από το Level 1 (Wayfinders) και ανεβαίνει ένα επίπεδο κάθε φορά που περνά την Crystal Portal: Torchbearers, Shieldbearers, Starseekers, Stormriders, Dragonhearts και Sovereigns από το Level 7. Κάθε επίπεδο πάνω από το Level 1 προσθέτει 2,5 αστέρια ανά μαθητή στον στόχο, που μετά προσαρμόζεται για τις αργίες (και μισώνει τον Ιούνιο). Από το Level 2 η Πύλη ζητά και ρούνους: Τέσσερις Αρετές (2), Φανάρια (3), Γρίφοι του Φύλακα (4), Το Δικό μας Φως (5). Τα αστέρια κινούν τον αγώνα όπως πριν· τμήμα με γεμάτα αστέρια και ρούνο που κοιμάται περιμένει στη σφραγισμένη Πύλη. Το πέρασμα δίνει σε κάθε ήρωα 5 έως 10 Gold.'
     },
     confuse: { en: 'Quest League (who you race)', el: 'Quest League (με ποιον τρέχεις)' }
   },
@@ -881,7 +881,7 @@ export const TERM_ICONS = {
   'fortune-ledger': 'fa-scroll',
   'guild-champion': 'fa-medal',
   'quest-league': 'fa-layer-group',
-  'quest-difficulty': 'fa-mountain',
+  'quest-difficulty': 'fa-shield-halved',
   projector: 'fa-tv',
   'quiz-of-the-week': 'fa-question',
   'family-portal': 'fa-house-user',

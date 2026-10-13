@@ -1,4 +1,5 @@
 // features/worldMap.js
+import '../styles/quest_ranks.css';
 import * as state from '../state.js'; // Import state to get live scores
 import * as utils from '../utils.js';
 
@@ -26,6 +27,8 @@ import {
 } from './questWorld/worldGeometry.mjs';
 import { describePlace, placeTipHtml } from './questWorld/placeTips.mjs';
 import { PAINTED_PROPS } from './questWorld/worldArt.mjs';
+import { rankForLevel, portalStatusLine } from './questRanksCore.mjs';
+import { rankCrestSvg, renderRuneMarks } from './questRankCrest.mjs';
 
 /** League map HTML path: use tab-precomputed stars/goal when present (avoids re-scanning students/scores). */
 function resolveLeagueMapMetrics(c) {
@@ -269,6 +272,7 @@ function buildMapItems(classes, { activeClassId = null } = {}) {
             isLeader: rankPosition === 1,
             isMine: Boolean(activeClassId) && c.id === activeClassId,
             displayLevel: (Number(c.difficulty) || 0) + 1,
+            portal: c.portal || null,
             weeklyStars: Number(c.weeklyStars) || 0,
             topHeroes: Array.isArray(c.topHeroes) ? c.topHeroes : [],
             gap: gaps.get(c.id) || null,
@@ -279,19 +283,22 @@ function buildMapItems(classes, { activeClassId = null } = {}) {
 }
 
 function renderMapToken(item) {
-    const { c, pct, isLeader, isMine, pinTier, progressDisplay, starsDisplay, goal, rankPosition, tokenKey, lane, liveMonthlyStars } = item;
+    const { c, pct, isLeader, isMine, pinTier, progressDisplay, starsDisplay, goal, rankPosition, tokenKey, lane, liveMonthlyStars, displayLevel, portal } = item;
     const zone = getQuestMapZoneForProgressPercent(pct);
     const safeName = escapeMapHtml(c.name || 'Class');
     const safeLogo = escapeMapHtml(c.logo || '📚');
+    const rank = rankForLevel(displayLevel);
+    const portalOpen = portal ? portal.open : pct >= 100;
     const classes = [
         'tq-token',
         `tq-token--${zone.id}`,
         `tq-token--tier-${pinTier}`,
         isLeader ? 'is-leader' : '',
         isMine ? 'is-mine' : '',
-        pct >= 100 ? 'is-complete' : ''
+        pct >= 100 && portalOpen ? 'is-complete' : '',
+        pct >= 100 && !portalOpen ? 'is-sealed' : ''
     ].filter(Boolean).join(' ');
-    const ariaLabel = `${safeName}: league rank ${rankPosition}, ${Math.round(Number(progressDisplay))}% of the monthly quest, ${starsDisplay} of ${goal} stars, in ${escapeMapHtml(zone.label)}.`;
+    const ariaLabel = `${safeName}: league rank ${rankPosition}, ${escapeMapHtml(rank.title)} (Quest Level ${displayLevel}), ${Math.round(Number(progressDisplay))}% of the monthly quest, ${starsDisplay} of ${goal} stars, in ${escapeMapHtml(zone.label)}.`;
 
     return `
         <button type="button"
@@ -317,6 +324,8 @@ function renderMapToken(item) {
                     <img class="tq-token__frame" src="${TOKEN_FRAME_BY_TIER[pinTier]}" alt="" draggable="false" decoding="async">
                 </span>
                 <span class="tq-token__rank">${rankPosition}</span>
+                <span class="tq-token__crest">${rankCrestSvg(displayLevel)}</span>
+                ${pct >= 100 && !portalOpen ? '<span class="tq-token__seal"><i class="fas fa-lock"></i></span>' : ''}
                 ${isMine ? '<span class="tq-token__pennant"><i class="fas fa-flag"></i>Active</span>' : ''}
             </span>
         </button>`;
@@ -337,9 +346,13 @@ function renderRouteStrip(pct) {
 }
 
 function renderTokenCard(item) {
-    const { c, pct, isLeader, isMine, pinTier, starsDisplay, goal, liveMonthlyStars, rankPosition, displayLevel, classQuestBonus, weeklyStars, topHeroes, gap, tokenKey } = item;
+    const { c, pct, isLeader, isMine, pinTier, starsDisplay, goal, liveMonthlyStars, rankPosition, displayLevel, classQuestBonus, weeklyStars, topHeroes, gap, tokenKey, portal } = item;
     const zone = getQuestMapZoneForProgressPercent(pct);
-    const next = getQuestNextStop(pct, liveMonthlyStars, goal);
+    const rank = rankForLevel(displayLevel);
+    const stop = getQuestNextStop(pct, liveMonthlyStars, goal);
+    // Stars full but the Portal still sealed: the card says what the Portal waits for.
+    const sealed = stop.complete && portal && !portal.open;
+    const next = sealed ? { ...stop, complete: false, sealed: true } : stop;
     const safeName = escapeMapHtml(c.name || 'Class');
     const safeLogo = escapeMapHtml(c.logo || '📚');
     const rankWord = RANK_WORDS[rankPosition - 1] || `${rankPosition}th place`;
@@ -366,7 +379,7 @@ function renderTokenCard(item) {
                 <span class="tq-card__ribbon">
                     <span class="tq-card__seal tq-card__seal--${pinTier}">${isLeader ? '<i class="fas fa-crown" aria-hidden="true"></i>' : rankPosition}</span>
                     <span class="tq-card__ribbon-text">${rankWord}${isMine ? ' · <b>Active class</b>' : ''}</span>
-                    <span class="tq-card__lvl" title="Quest level: the monthly goal grows with each level"><i class="fas fa-shield-halved" aria-hidden="true"></i>Lvl ${displayLevel}</span>
+                    <span class="tq-card__lvl qr-chip qr-chip--${rank.id}" title="Quest Level ${displayLevel}: ${escapeMapHtml(rank.title)}. Each level asks a little more to open the Portal">${rankCrestSvg(displayLevel, { className: 'qr-chip__crest' })}<span>${escapeMapHtml(rank.title)}</span><b>Lv ${displayLevel}</b></span>
                 </span>
                 <span class="tq-card__head">
                     <span class="tq-card__logo" aria-hidden="true">${safeLogo}</span>
@@ -381,17 +394,22 @@ function renderTokenCard(item) {
                     <span class="tq-card__fact tq-card__fact--stars"><i class="fas fa-star" aria-hidden="true"></i><strong>${starsDisplay}</strong><small>of ${formatQuestStars(goal)} stars</small></span>
                     <span class="tq-card__fact tq-card__fact--week"><i class="fas fa-fire" aria-hidden="true"></i><strong>+${formatQuestStars(weeklyStars)}</strong><small>this week</small></span>
                 </span>
-                <span class="tq-card__next${next.complete ? ' is-complete' : ''}">
+                <span class="tq-card__next${next.complete ? ' is-complete' : ''}${next.sealed ? ' is-sealed' : ''}">
                     <img src="${ROAD_STOP_BADGE[next.id] || LIVING_MAP_ASSETS.badgeCrystal}" alt="" aria-hidden="true" draggable="false">
                     <span>
-                        <small>${next.complete ? 'The portal is open' : 'Next stop'}</small>
-                        <strong>${next.complete ? 'Quest complete!' : escapeMapHtml(next.label)}</strong>
+                        <small>${next.complete ? 'The portal is open' : next.sealed ? 'Stars full · the Portal is sealed' : 'Next stop'}</small>
+                        <strong>${next.complete ? 'Quest complete!' : next.sealed ? escapeMapHtml(portalStatusLine(portal)) : escapeMapHtml(next.label)}</strong>
                     </span>
-                    <em>${next.complete ? '<i class="fas fa-trophy" aria-hidden="true"></i>' : `${next.starsNeeded}★ to go`}</em>
+                    <em>${next.complete ? '<i class="fas fa-trophy" aria-hidden="true"></i>' : next.sealed ? '<i class="fas fa-lock" aria-hidden="true"></i>' : `${next.starsNeeded}★ to go`}</em>
                 </span>
+                ${portal?.runes?.length ? `<span class="tq-card__runes"><small>Portal runes</small>${renderRuneMarks(portal)}<em>${portal.runesLit} of ${portal.runes.length} lit</em></span>` : ''}
                 ${raceLine ? `<span class="tq-card__race"><i class="fas fa-flag-checkered" aria-hidden="true"></i>${escapeMapHtml(raceLine)}</span>` : ''}
                 ${heroesHtml}
                 ${classQuestBonus > 0 ? `<span class="tq-card__bonus"><i class="fas fa-compass" aria-hidden="true"></i>+${formatQuestStars(classQuestBonus)} Pathfinder bonus</span>` : ''}
+                ${portal?.guardian?.canTry && c.createdBy?.uid && c.createdBy.uid === state.get('currentUserId') ? `
+                <button type="button" class="tq-card__cta tq-card__cta--guardian" data-face-guardian="${escapeMapHtml(c.id || '')}">
+                    <i class="fas fa-dungeon" aria-hidden="true"></i><span>Face the Portal Guardian</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
+                </button>` : ''}
                 <button type="button" class="tq-card__cta" data-open-chronicle="${escapeMapHtml(c.id || '')}">
                     <i class="fas fa-book-open" aria-hidden="true"></i><span>Open in Quest Chronicles</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
                 </button>
@@ -1281,6 +1299,13 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             scheduleClose();
         });
         on(popover, 'click', (event) => {
+            const guardian = event.target.closest('[data-face-guardian]');
+            if (guardian) {
+                const classId = guardian.dataset.faceGuardian;
+                closePopover();
+                import('./portalGuardian.js').then(({ openPortalGuardian }) => openPortalGuardian(classId)).catch(() => {});
+                return;
+            }
             const cta = event.target.closest('[data-open-chronicle]');
             if (!cta) return;
             const classId = cta.dataset.openChronicle;

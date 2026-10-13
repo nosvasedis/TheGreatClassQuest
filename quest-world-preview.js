@@ -2,7 +2,7 @@
 // driven by the app's real sky pipeline (skyWeatherStage) with a chosen weather and time.
 import './styles/sky_weather.css';
 import './styles/team_quest_map_living.css';
-import { getActiveLivingQuestMap, initializeLivingQuestMap, renderLeagueMapInto, rollUpLivingQuestMap } from './features/worldMap.js';
+import { getActiveLivingQuestMap, initializeLivingQuestMap, renderLeagueMapInto, renderSealedLeagueMapInto, rollUpLivingQuestMap } from './features/worldMap.js';
 import { applySkyReading, getSkyScene } from './features/skyWeatherStage.js';
 
 const FX_KEY = 'gcq-team-quest-map-fx-choice';
@@ -134,5 +134,10 @@ let since = performance.now();
     requestAnimationFrame(count);
 }(performance.now()));
 
-draw({ replay: true });
+// ?start=general opens the tab in the general view: the sealed scroll waits for a class.
+if (params.get('start') === 'general') {
+    renderSealedLeagueMapInto(slot, '<i class="fas fa-compass" aria-hidden="true"></i> Choose a class or a Quest League to unroll the map');
+    generalButton.dataset.idle = 'true';
+    generalButton.textContent = 'Pick a class';
+} else draw({ replay: true });
 window.__questWorldPreview = { draw, league, applySky, rollUp: rollUpLivingQuestMap };

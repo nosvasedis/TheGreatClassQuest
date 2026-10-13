@@ -72,3 +72,18 @@ pastes the repainted pixels where the sails were (at 2560 and 1600) and writes
 `sails.webp`: one painted blade repeated round a wooden hub. `worldArt.mjs#WINDMILLS`
 turns it in front of both windmills. Run it after every rebake, since the bake
 writes the land with its sails again.
+
+## The sky's visitors (dragon, balloon, kite)
+
+One 1024 px sheet from `google/gemini-3.1-flash-image-preview` (a crop of the
+autumn land as style reference), keyed off its green background and cut into
+`dragon-up.webp`, `dragon-down.webp` (the two halves of a wing beat, cut at the
+same offset so the body stays put), `balloon.webp` and `kite.webp`:
+
+> Image 1 is a STYLE REFERENCE only. Paint a game sprite sheet in exactly that rendering style … The background must be a perfectly flat, solid, pure green (#00FF00) chroma-key colour … TOP-LEFT: a small friendly cute dragon with crimson red scales, a golden belly and golden horns, flying, seen exactly from the side, facing RIGHT, both wings raised high … TOP-RIGHT: the exact same dragon … both wings swept fully DOWN … BOTTOM-LEFT: a hot-air balloon with red and golden-yellow vertical stripes and a small wicker basket. BOTTOM-RIGHT: a diamond-shaped kite in sky blue and yellow with a long tail of small red bows. No text …
+
+## Place sounds
+
+`build_place_sounds.py` mixes the short sound each place plays when its card
+opens (`assets/team-quest-map/sounds/`): CC0 recordings from BigSoundBank plus a
+synthesised crystal shimmer and Portal swell. The ids are in the script.

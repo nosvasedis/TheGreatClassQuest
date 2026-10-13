@@ -247,9 +247,9 @@ export function furthestRealm(explored) {
 // (they are tiny transform/opacity layers); full adds the big costly layers
 // (sunbeams, the lantern light), parallax and the diorama tilt.
 export const SCENE_TIERS = Object.freeze({
-    lite: Object.freeze({ maxSprites: 84, parallax: false, tilt: 0 }),
-    full: Object.freeze({ maxSprites: 90, parallax: true, tilt: 6 }),
-    still: Object.freeze({ maxSprites: 84, parallax: false, tilt: 0 })
+    lite: Object.freeze({ maxSprites: 96, parallax: false, tilt: 0 }),
+    full: Object.freeze({ maxSprites: 104, parallax: true, tilt: 6 }),
+    still: Object.freeze({ maxSprites: 96, parallax: false, tilt: 0 })
 });
 
 /** Which tier a map runs: reduced motion is always still, a slow machine lite. */

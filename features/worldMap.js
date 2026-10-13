@@ -196,17 +196,13 @@ function escapeMapHtml(value) {
         .replaceAll("'", '&#039;');
 }
 
-// The teacher's own choice from the map's wand button, kept for this tab.
+// A tier forced for this tab (the preview page's Full / Lite buttons).
 // (A new key: the old one also held the automatic step-downs, which stuck.)
 const FX_CHOICE_STORAGE_KEY = 'gcq-team-quest-map-fx-choice';
 try { sessionStorage.removeItem(LITE_FX_STORAGE_KEY); sessionStorage.removeItem('gcq-team-quest-map-calm'); } catch { /* private mode */ }
 
 function readStoredFxPreference() {
     try { return sessionStorage.getItem(FX_CHOICE_STORAGE_KEY); } catch { return null; }
-}
-
-function storeFxPreference(value) {
-    try { sessionStorage.setItem(FX_CHOICE_STORAGE_KEY, value); } catch { /* private mode */ }
 }
 
 // What the frame-rate check decided on this page load only, so a reload
@@ -546,7 +542,7 @@ export function renderLeagueMapInto(slot, classes, options = {}) {
     const root = slot.querySelector('[data-living-quest-map]');
     if (!root) {
         slot.innerHTML = generateLeagueMapHtml(classes, options);
-        return slot.querySelector('[data-living-quest-map]');
+        return arrive(slot.querySelector('[data-living-quest-map]'));
     }
     const parts = buildLeagueMapParts(classes, options);
     const tokenLayer = root.querySelector('.tq-class-token-layer');
@@ -560,6 +556,30 @@ export function renderLeagueMapInto(slot, classes, options = {}) {
         count.textContent = String(parts.count);
         count.setAttribute('aria-label', `${parts.count} parties`);
     }
+    return root;
+}
+
+/** A freshly drawn scroll floats down into place instead of popping in. */
+function arrive(root) {
+    if (!root || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return root;
+    root.classList.add('is-arriving');
+    setTimeout(() => root.classList.remove('is-arriving'), 900);
+    return root;
+}
+
+/**
+ * The general view with no map yet: the sealed scroll waits with its note, so
+ * picking a class breaks this very seal and unrolls it (no map is started).
+ */
+export function renderSealedLeagueMapInto(slot, note = '') {
+    if (!slot) return null;
+    let root = slot.querySelector('[data-living-quest-map]');
+    if (!root) {
+        slot.innerHTML = generateLeagueMapHtml([], {});
+        root = arrive(slot.querySelector('[data-living-quest-map]'));
+    }
+    root.classList.add('is-idle');
+    setIdleNote(root, note);
     return root;
 }
 
@@ -664,7 +684,10 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
 
     const root = scope?.querySelector?.('[data-living-quest-map]');
     const frame = root?.querySelector('.tq-living-map__frame');
-    if (root) setIdleNote(root, '');
+    if (root) {
+        setIdleNote(root, '');
+        root.classList.remove('is-idle');
+    }
     const toSegments = (selector) => [...(root?.querySelectorAll?.(selector) || [])].map((path) => ({
         path,
         minProgress: Number(path.dataset.progressMin) || 0,
@@ -754,7 +777,6 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             if (destroyed || !scene) return;
             magic = mountMapMagic({ root, scene, parties: partiesNow, tier: sceneTier });
             if (!magic) return;
-            mountWand();
             magic.setExplored(lastExplored);
             magic.setPaused(root.classList.contains('is-motion-paused'));
             if (openToken) magic.focusParty(openToken.dataset.tokenKey);
@@ -1046,41 +1068,6 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         scene?.setTier(sceneTier());
         magic?.setTier();
         positionTokens();
-        syncWand();
-    };
-
-    // The wand among the camera buttons: the full world or the lighter map,
-    // for this tab. Choosing either stops the automatic check.
-    let wand = null;
-    const syncWand = () => {
-        if (!wand) return;
-        const full = root.dataset.fx === 'full' && root.dataset.calm !== '1';
-        wand.setAttribute('aria-pressed', String(full));
-        wand.classList.toggle('is-light', !full);
-        const label = full ? 'Full magic is on: switch to the lighter map' : 'Lighter map: switch on full magic';
-        wand.title = label;
-        wand.setAttribute('aria-label', label);
-    };
-    const mountWand = () => {
-        const bar = root.querySelector('.tq-map-camera');
-        if (!bar || wand) return;
-        wand = document.createElement('button');
-        wand.type = 'button';
-        wand.className = 'tq-map-replay tq-map-camera__btn tq-map-wand';
-        wand.dataset.mapFx = '';
-        wand.innerHTML = '<i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>';
-        bar.append(wand);
-        wand.addEventListener('click', (event) => {
-            event.stopPropagation();
-            const goFull = wand.classList.contains('is-light');
-            storeFxPreference(goFull ? 'full' : 'lite');
-            autoFx.lite = false;
-            autoFx.calm = false;
-            delete root.dataset.calm;
-            applyFx(goFull ? 'full' : 'lite');
-            syncWand();
-        });
-        syncWand();
     };
 
     // Watch the frame rate once the parties have settled. Only a machine that
@@ -1091,7 +1078,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
     let slowSamples = 0;
     const probeFrameRate = () => {
         if (destroyed || reducedMotionQuery.matches || root.dataset.calm === '1') return;
-        if (readStoredFxPreference()) return; // the teacher chose with the wand
+        if (readStoredFxPreference()) return; // a tier forced for this tab (the preview page)
         let frames = 0;
         let total = 0;
         let last = performance.now();
@@ -1115,7 +1102,6 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             } else {
                 autoFx.calm = true;
                 root.dataset.calm = '1';
-                syncWand();
             }
         };
         requestAnimationFrame(tick);

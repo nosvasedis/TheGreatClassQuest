@@ -249,7 +249,7 @@
 
 /* Shadows of the clouds sliding over the land on a bright day. */
 .tq-cloud-shadows { display: none; overflow: hidden; }
-.tq-world[data-tier='full'][data-night='0']:is([data-tone='fair'], [data-tone='grey']) .tq-cloud-shadows { display: block; }
+.tq-world:not([data-tier='still'])[data-night='0']:is([data-tone='fair'], [data-tone='grey']) .tq-cloud-shadows { display: block; }
 
 .tq-cloud-shadows span {
     position: absolute;
@@ -269,11 +269,11 @@
 /* Sprites take the light of the moment like the painted land does: one
    colour filter on each small sprite, set only when the light changes (never
    on a big box whose children move: that would redraw the filter every frame). */
-.tq-world[data-light='dawn'] .tq-world__sprites > .tq-sp:not(.tq-sp--fireflies, .tq-sp--aura, .tq-sp--glint, .tq-sp--drift, .tq-sp--sunbeams, .tq-sp--stair, .tq-sp--motes) { filter: sepia(0.15) saturate(1.05) brightness(0.98); }
-.tq-world[data-light='golden'] .tq-world__sprites > .tq-sp:not(.tq-sp--fireflies, .tq-sp--aura, .tq-sp--glint, .tq-sp--drift, .tq-sp--sunbeams, .tq-sp--stair, .tq-sp--motes) { filter: sepia(0.28) saturate(1.1) brightness(0.96); }
-.tq-world[data-light='twilight'] .tq-world__sprites > .tq-sp:not(.tq-sp--fireflies, .tq-sp--aura, .tq-sp--glint, .tq-sp--drift, .tq-sp--sunbeams, .tq-sp--stair, .tq-sp--motes) { filter: brightness(0.8) saturate(0.84) hue-rotate(-8deg); }
-.tq-world[data-light='night'] .tq-world__sprites > .tq-sp:not(.tq-sp--fireflies, .tq-sp--aura, .tq-sp--glint, .tq-sp--drift, .tq-sp--sunbeams, .tq-sp--stair, .tq-sp--motes) { filter: brightness(0.66) saturate(0.74); }
-.tq-world:is([data-tone='rain'], [data-tone='storm']):not([data-light='night']) .tq-world__sprites > .tq-sp:not(.tq-sp--fireflies, .tq-sp--aura, .tq-sp--glint, .tq-sp--drift, .tq-sp--sunbeams, .tq-sp--stair, .tq-sp--motes) { filter: brightness(0.82) saturate(0.72); }
+.tq-world[data-light='dawn'] .tq-world__sprites > .tq-sp:not(.tq-sp--fireflies, .tq-sp--aura, .tq-sp--glint, .tq-sp--drift, .tq-sp--sunbeams, .tq-sp--stair, .tq-sp--motes, .tq-sp--aurora) { filter: sepia(0.15) saturate(1.05) brightness(0.98); }
+.tq-world[data-light='golden'] .tq-world__sprites > .tq-sp:not(.tq-sp--fireflies, .tq-sp--aura, .tq-sp--glint, .tq-sp--drift, .tq-sp--sunbeams, .tq-sp--stair, .tq-sp--motes, .tq-sp--aurora) { filter: sepia(0.28) saturate(1.1) brightness(0.96); }
+.tq-world[data-light='twilight'] .tq-world__sprites > .tq-sp:not(.tq-sp--fireflies, .tq-sp--aura, .tq-sp--glint, .tq-sp--drift, .tq-sp--sunbeams, .tq-sp--stair, .tq-sp--motes, .tq-sp--aurora) { filter: brightness(0.8) saturate(0.84) hue-rotate(-8deg); }
+.tq-world[data-light='night'] .tq-world__sprites > .tq-sp:not(.tq-sp--fireflies, .tq-sp--aura, .tq-sp--glint, .tq-sp--drift, .tq-sp--sunbeams, .tq-sp--stair, .tq-sp--motes, .tq-sp--aurora) { filter: brightness(0.66) saturate(0.74); }
+.tq-world:is([data-tone='rain'], [data-tone='storm']):not([data-light='night']) .tq-world__sprites > .tq-sp:not(.tq-sp--fireflies, .tq-sp--aura, .tq-sp--glint, .tq-sp--drift, .tq-sp--sunbeams, .tq-sp--stair, .tq-sp--motes, .tq-sp--aurora) { filter: brightness(0.82) saturate(0.72); }
 
 .tq-sp {
     position: absolute;
@@ -471,12 +471,18 @@
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    background: radial-gradient(closest-side, rgba(var(--aura), 0.3), rgba(var(--aura), 0.12) 55%, rgba(var(--aura), 0));
+    background: radial-gradient(closest-side, rgba(var(--aura), 0.38), rgba(var(--aura), 0.15) 55%, rgba(var(--aura), 0));
 }
 
 /* A slow breath on a strong computer (big soft layers cost fill on a weak one). */
 .tq-world[data-tier='full'] .tq-sp--aura span { animation: tqw-aura 9s ease-in-out infinite alternate; animation-delay: var(--d, 0s); }
 
+/* Pointing at a place makes its realm glow up, as if it heard you. */
+.tq-sp--aura { opacity: 0.78; transition: opacity 600ms ease, scale 900ms cubic-bezier(0.22, 0.76, 0.25, 1); }
+.tq-stage:has(.tq-place--bronze:is(:hover, .is-hovered, :focus-visible)) .tq-sp--aura[data-sprite='aura-bronze'],
+.tq-stage:has(.tq-place--silver:is(:hover, .is-hovered, :focus-visible)) .tq-sp--aura[data-sprite='aura-silver'],
+.tq-stage:has(.tq-place--gold:is(:hover, .is-hovered, :focus-visible)) .tq-sp--aura[data-sprite='aura-gold'],
+.tq-stage:has(:is(.tq-place--crystal, .tq-route-finish__button):is(:hover, .is-hovered, :focus-visible)) .tq-sp--aura[data-sprite='aura-crystal'] { opacity: 1; scale: 1.08; }
 .tq-sp--aura[data-sprite='aura-bronze'] { --aura: 255, 170, 80; }
 .tq-sp--aura[data-sprite='aura-silver'] { --aura: 120, 200, 255; }
 .tq-sp--aura[data-sprite='aura-gold'] { --aura: 255, 210, 70; }
@@ -619,6 +625,100 @@
 }
 
 .tq-sp__soar { display: block; width: 100%; height: 100%; animation: tqw-orbit-y 9s ease-in-out infinite alternate; animation-delay: -4.5s; }
+
+/* The sky's visitors (worldArt.mjs): each shows only when its sky fits. */
+/* A dragon crosses the sky now and then, beating its wings (two frames, opacity only). */
+.tq-world[data-tone='storm'] .tq-sp--dragon { display: none; }
+.tq-sp__glide {
+    position: absolute;
+    left: 0;
+    top: 20%;
+    width: 6.2%;
+    aspect-ratio: 240 / 256;
+    transform: translateX(-130%);
+    animation: tqw-dragon-glide 64s linear infinite;
+    /* First seen some eight seconds after the map opens. */
+    animation-delay: -56s;
+}
+
+.tq-sp--dragon img, .tq-sp--balloon img, .tq-sp--kite img { display: block; width: 100%; height: 100%; user-select: none; }
+.tq-sp__glide .tq-sp__bob { position: absolute; inset: 0; animation: tqw-dragon-bob 2.4s ease-in-out infinite alternate; }
+.tq-sp__frame { position: absolute; inset: 0; }
+.tq-sp__frame img { display: block; width: 100%; height: 100%; }
+.tq-sp__frame:first-child { animation: tqw-frame 0.56s steps(1) infinite; }
+.tq-sp__frame:last-child { animation: tqw-frame 0.56s steps(1) infinite reverse; }
+.tq-world[data-night='1'] .tq-sp--dragon img { filter: brightness(0.55) saturate(0.8); }
+
+/* A hot-air balloon drifts high over the meadows on a calm, fair day. */
+.tq-sp--balloon { display: none; }
+.tq-world[data-tone='fair']:is([data-light='day'], [data-light='golden'], [data-light='dawn']):is([data-wind='calm'], [data-wind='breezy']) .tq-sp--balloon { display: block; }
+.tq-sp__drift-x {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 8.5%;
+    aspect-ratio: 150 / 238;
+    animation: tqw-balloon-drift 150s ease-in-out infinite alternate;
+}
+
+.tq-sp__drift-x .tq-sp__bob { position: absolute; inset: 0; animation: tqw-balloon-bob 7s ease-in-out infinite alternate; }
+
+/* A kite over the meadows when the wind is up. */
+.tq-sp--kite { display: none; }
+.tq-world:is([data-tone='fair'], [data-tone='grey']):is([data-light='day'], [data-light='golden']):is([data-wind='breezy'], [data-wind='windy'], [data-wind='gale']) .tq-sp--kite { display: block; }
+/* The kite flies from the village: its string runs down behind the trees. */
+.tq-sp__sway { position: absolute; left: 0; top: 0; width: 100%; height: 43%; transform-origin: 48% 62%; animation: tqw-kite calc(3.4s / var(--tq-wind, 1)) ease-in-out infinite alternate; }
+.tq-sp__string {
+    position: absolute;
+    left: 47%;
+    top: 26.5%;
+    width: 1px;
+    height: 74%;
+    background: linear-gradient(rgba(70, 50, 30, 0.75), rgba(70, 50, 30, 0.35));
+    transform: rotate(-14deg);
+    transform-origin: 50% 0;
+}
+
+/* Bats round the citadel spires once the light goes. */
+.tq-sp--bats { display: none; }
+.tq-world:is([data-light='twilight'], [data-light='night']) .tq-sp--bats { display: block; }
+.tq-sp__bat {
+    position: absolute;
+    left: 40%;
+    top: 40%;
+    width: 10%;
+    aspect-ratio: 30 / 12;
+    animation: tqw-bat 7s ease-in-out infinite;
+    animation-delay: calc(var(--i) * -2.4s);
+}
+
+.tq-sp__bat:nth-child(2) { animation-duration: 8.5s; animation-direction: reverse; }
+.tq-sp__flit { display: block; width: 100%; height: 100%; animation: tqw-wings 0.16s ease-in-out infinite alternate; }
+
+/* The northern lights over the Crystal Realm on a clear night. */
+.tq-sp--aurora { display: none; }
+.tq-world[data-night='1']:not([data-tone='rain'], [data-tone='storm'], [data-tone='fog']) .tq-sp--aurora { display: block; }
+.tq-sp--aurora span {
+    position: absolute;
+    left: 4%;
+    width: 92%;
+    height: 44%;
+    background:
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.1) 0 2px, rgba(255, 255, 255, 0) 2px 11px),
+        linear-gradient(90deg, rgba(110, 255, 200, 0), rgba(110, 255, 200, 0.5) 30%, rgba(170, 130, 255, 0.46) 66%, rgba(170, 130, 255, 0));
+    /* Curtains: bright along their hem, fading upward into the stars. */
+    -webkit-mask-image: linear-gradient(rgba(0, 0, 0, 0), #000 70%, rgba(0, 0, 0, 0.3) 88%, rgba(0, 0, 0, 0));
+    mask-image: linear-gradient(rgba(0, 0, 0, 0), #000 70%, rgba(0, 0, 0, 0.3) 88%, rgba(0, 0, 0, 0));
+    opacity: 0.5;
+    transform: skewY(-8deg);
+    animation: tqw-aurora 11s ease-in-out infinite alternate;
+}
+
+/* The curtains sway on a strong computer; elsewhere they hang still (big soft layers cost fill). */
+.tq-world:not([data-tier='full']) .tq-sp--aurora span { animation: none; opacity: 0.7; }
+.tq-sp--aurora span:nth-child(1) { top: 2%; }
+.tq-sp--aurora span:nth-child(2) { top: 18%; height: 36%; animation-duration: 14s; animation-delay: -5s; background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0 2px, rgba(255, 255, 255, 0) 2px 13px), linear-gradient(90deg, rgba(120, 220, 255, 0), rgba(120, 220, 255, 0.44) 40%, rgba(110, 255, 190, 0.44) 70%, rgba(110, 255, 190, 0)); }
+.tq-sp--aurora span:nth-child(3) { top: 34%; height: 30%; animation-duration: 9s; animation-delay: -2s; }
 
 /* ── Clouds over the realms nobody has reached yet ───────────────────── */
 .tq-mist {
@@ -1578,9 +1678,6 @@
 .tq-map-camera__btn.tq-map-replay { width: 2.45rem; height: 2.45rem; font-size: 0.85rem; }
 .tq-map-camera__btn[hidden] { display: none; }
 .tq-map-camera__btn:disabled { opacity: 0.45; cursor: default; filter: grayscale(0.4); transform: none; }
-/* The wand: full magic (lit) or the lighter map (dimmed, the sparkles greyed). */
-.tq-map-wand { margin-top: 0.35rem; }
-.tq-map-wand.is-light i { opacity: 0.55; filter: grayscale(0.7); }
 
 .tq-map-hint {
     position: absolute;
@@ -1645,7 +1742,7 @@
 /* Calm: a machine too slow even for lite rests the small drifting pieces
    (features/worldMap.js#probeFrameRate). The world, the windmills, the
    waterfall, the smoke and the Portal keep moving. */
-.tq-living-map[data-calm='1'] :is(.tq-sp--drift, .tq-sp--ripple, .tq-sp--fish, .tq-sp--butterfly, .tq-sp--eagle, .tq-sp--aura, .tq-sp--fireflies, .tq-sp--motes) { display: none; }
+.tq-living-map[data-calm='1'] :is(.tq-sp--drift, .tq-sp--ripple, .tq-sp--fish, .tq-sp--butterfly, .tq-sp--eagle, .tq-sp--aura, .tq-sp--fireflies, .tq-sp--motes, .tq-sp--kite, .tq-sp--bats, .tq-sp--aurora) { display: none; }
 .tq-living-map[data-calm='1'] :is(.tq-sp__cloth, .tq-token__disc, .tq-token__shadow, .tq-mist__puff img, .tq-portal-veil__cloud img, .tq-portal-shine::before) { animation: none !important; }
 
 /* ── Still and paused ──────────────────────────────────────────────────── */
@@ -1832,3 +1929,28 @@
 @keyframes tqw-ribbon-tie { from { opacity: 0; transform: translate(-50%, -50%) scaleX(0.4); } to { opacity: 1; transform: translate(-50%, -50%); } }
 @keyframes tqw-note-in { from { opacity: 0; transform: translate(-50%, 0.5rem); } to { opacity: 1; transform: translate(-50%, 0); } }
 @keyframes tqw-flash { 0% { opacity: 0; } 6% { opacity: 1; } 14% { opacity: 0.2; } 20% { opacity: 0.85; } 100% { opacity: 0; } }
+
+@keyframes tqw-dragon-glide {
+    0% { transform: translateX(-130%); }
+    42% { transform: translateX(1660%); }
+    100% { transform: translateX(1660%); }
+}
+
+@keyframes tqw-dragon-bob { from { transform: translateY(-18%) rotate(-3deg); } to { transform: translateY(26%) rotate(4deg); } }
+@keyframes tqw-frame { 0% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes tqw-balloon-drift { from { transform: translateX(0); } to { transform: translateX(1050%); } }
+@keyframes tqw-balloon-bob { from { transform: translateY(0) rotate(-1.5deg); } to { transform: translateY(22%) rotate(1.5deg); } }
+@keyframes tqw-kite { from { transform: translate(-6%, 0) rotate(-9deg); } to { transform: translate(8%, -6%) rotate(7deg); } }
+
+@keyframes tqw-bat {
+    0% { transform: translate(0, 0) scale(1); }
+    25% { transform: translate(260%, -120%) scale(0.85); }
+    50% { transform: translate(-90%, -260%) scale(0.7); }
+    75% { transform: translate(-300%, -40%) scale(0.9); }
+    100% { transform: translate(0, 0) scale(1); }
+}
+
+@keyframes tqw-aurora {
+    from { opacity: 0.35; transform: skewY(-8deg) translateX(-4%) scaleY(0.85); }
+    to { opacity: 0.85; transform: skewY(-5deg) translateX(4%) scaleY(1.15); }
+}

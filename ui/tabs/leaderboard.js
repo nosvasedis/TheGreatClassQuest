@@ -13,7 +13,8 @@ import { getEggAlertState } from '../../features/familiarProgression.mjs';
 import { wrapAvatarWithLevelUpIndicator } from '../core/avatar.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
-import { getActiveLivingQuestMap, initializeLivingQuestMap, QUEST_MAP_ZONES, renderLeagueMapInto, rollUpLivingQuestMap } from '../../features/worldMap.js';
+import { playPlaceSound } from '../../features/questWorld/placeSounds.js';
+import { getActiveLivingQuestMap, initializeLivingQuestMap, QUEST_MAP_ZONES, renderLeagueMapInto, renderSealedLeagueMapInto, rollUpLivingQuestMap } from '../../features/worldMap.js';
 import { getQuestNextStop } from '../../features/teamQuestRace.mjs';
 import { renderQuestChroniclesHtml } from './teamQuestChronicles.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
@@ -328,10 +329,28 @@ export async function renderClassLeaderboardTab({ freshVisit = false } = {}) {
         }
         return;
     }
+    if (!league && !useCompactTeacherRaceView) {
+        // No map yet: the sealed scroll waits on the page, so picking a class
+        // breaks this seal and unrolls it rather than popping a map in.
+        list.__tqSignature = null;
+        initializeLivingQuestMap(null);
+        let board = list.querySelector(':scope > [data-tq-board]');
+        if (!board || board.dataset.mode !== 'map') {
+            teardownTeamQuestBoard();
+            list.innerHTML = renderTeamQuestBoardShell('map');
+            board = list.querySelector(':scope > [data-tq-board]');
+            bindTeamQuestBoard(board);
+        }
+        board.dataset.idle = 'true';
+        board.dataset.league = '';
+        setChroniclesOpen(board, false, { animate: false });
+        renderSealedLeagueMapInto(board.querySelector('[data-tq-map-slot]'), IDLE_MAP_NOTE);
+        return;
+    }
     if (!league) {
         teardownTeamQuestBoard();
         list.__tqSignature = null;
-        list.innerHTML = renderTeamQuestEmptyState('fa-compass', 'Choose a Quest League', `Pick a league above to unroll its Team Quest ${useCompactTeacherRaceView ? 'race' : 'map'}.`);
+        list.innerHTML = renderTeamQuestEmptyState('fa-compass', 'Choose a Quest League', 'Pick a league above to unroll its Team Quest race.');
         initializeLivingQuestMap(null);
         return;
     }
@@ -687,11 +706,13 @@ function bindTeamQuestBoard(board) {
             return;
         }
         if (target.closest('.portal-trigger')) {
+            playPlaceSound('portal');
             import('../modals/crystalPortal.js').then((m) => m.openCrystalPortalModal());
             return;
         }
         const zone = target.closest('.zone-trigger');
         if (zone) {
+            playPlaceSound(zone.dataset.zone);
             import('../modals.js').then((m) => m.openZoneOverviewModal(zone.dataset.zone));
             return;
         }

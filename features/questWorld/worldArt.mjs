@@ -13,7 +13,7 @@ import { PORTAL, lanternPositions, REALM_LANDMARKS } from './worldGeometry.mjs';
 
 export const WORLD_SEED = 20261013;
 /** Bump when the pictures change, so devices drop the old ones. */
-export const ART_VERSION = 8;
+export const ART_VERSION = 9;
 
 const asset = (name) => new URL(`../../assets/team-quest-map/painted/${name}`, import.meta.url).href;
 
@@ -40,7 +40,11 @@ export const PAINTED_PROPS = Object.freeze({
     ribbon: asset('ribbon.webp'),
     sketch: asset('sketch-1280.webp'),
     lights: asset('lights-1600.webp'),
-    sails: asset('sails.webp')
+    sails: asset('sails.webp'),
+    // The sky's visitors: a dragon (one wing beat in two frames), a balloon and a kite.
+    dragon: Object.freeze([asset('dragon-up.webp'), asset('dragon-down.webp')]),
+    balloon: asset('balloon.webp'),
+    kite: asset('kite.webp')
 });
 
 export const SEASONS = Object.freeze(['spring', 'summer', 'autumn', 'winter']);
@@ -113,6 +117,9 @@ export const STAIR_STEPS = Object.freeze([
 
 const SPARKLE = (colour) => `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 0 L11.6 8.4 L20 10 L11.6 11.6 L10 20 L8.4 11.6 L0 10 L8.4 8.4 Z" fill="${colour}"/></svg>`;
 const BIRDS = '<svg viewBox="0 0 60 30" aria-hidden="true"><path d="M2 14 Q8 8 13 13 Q18 8 24 14" stroke="#2f3a52" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M26 6 Q31 1 35 5 Q39 1 44 6" stroke="#2f3a52" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M38 22 Q42 18 46 21 Q50 18 54 22" stroke="#2f3a52" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>';
+// Bats flitting round the citadel spires at night.
+const BAT = '<svg viewBox="0 0 30 12" aria-hidden="true"><path d="M15 5 Q12 1 8 3 Q5 0 1 4 Q5 4 6 8 Q9 5 12 8 Q13 6 15 7 Q17 6 18 8 Q21 5 24 8 Q25 4 29 4 Q25 0 22 3 Q18 1 15 5 Z" fill="#20172a"/></svg>';
+
 const spans = (count) => Array.from({ length: count }, () => '<span></span>').join('');
 
 /**
@@ -196,6 +203,18 @@ export function buildWorldSprites(season = 'autumn') {
     });
     push({ id: 'eagle', kind: 'eagle', slot: 'back', x: 520, y: 14, w: 230, h: 70,
         html: `<span class="tq-sp__orbit"><span class="tq-sp__soar">${EAGLE}</span></span>` });
+
+    // The sky's visitors: a dragon crossing now and then, a balloon on calm fair
+    // days, a kite when the wind is up; bats round the spires and the northern
+    // lights over the Crystal Realm at night (quest_world.css picks by the sky).
+    push({ id: 'dragon', kind: 'dragon', slot: 'back', x: 0, y: 36, w: 1600, h: 150,
+        html: `<span class="tq-sp__glide"><span class="tq-sp__bob"><span class="tq-sp__frame"><img src="${PAINTED_PROPS.dragon[0]}" alt="" draggable="false" decoding="async"></span><span class="tq-sp__frame"><img src="${PAINTED_PROPS.dragon[1]}" alt="" draggable="false" decoding="async"></span></span></span>` });
+    push({ id: 'balloon', kind: 'balloon', slot: 'back', x: 30, y: 150, w: 720, h: 200,
+        html: `<span class="tq-sp__drift-x"><span class="tq-sp__bob"><img src="${PAINTED_PROPS.balloon}" alt="" draggable="false" decoding="async"></span></span>` });
+    push({ id: 'kite', kind: 'kite', slot: 'back', x: 300, y: 140, w: 70, h: 220, html: `<span class="tq-sp__string"></span><span class="tq-sp__sway"><img src="${PAINTED_PROPS.kite}" alt="" draggable="false" decoding="async"></span>` });
+    push({ id: 'bats', kind: 'bats', x: 1010, y: 120, w: 300, h: 170,
+        html: [0, 1, 2].map((i) => `<span class="tq-sp__bat" style="--i:${i}"><span class="tq-sp__flit">${BAT}</span></span>`).join('') });
+    push({ id: 'aurora', kind: 'aurora', slot: 'back', x: 1120, y: -20, w: 480, h: 260, html: spans(3) });
 
     return [...sprites.filter((sprite) => sprite.tier === 'lite'), ...sprites.filter((sprite) => sprite.tier !== 'lite')];
 }

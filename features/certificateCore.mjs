@@ -24,6 +24,7 @@ export const VIRTUE_META = Object.freeze({
     teacher_boon: { label: "Teacher's Boon", emoji: '🎁' },
     excellence: { label: 'Excellence', emoji: '🌟' },
     quiz_of_the_week: { label: 'Quiz Mastery', emoji: '🧠' },
+    showdown: { label: 'Team Spirit', emoji: '⚡' },
     special_quest: { label: 'Special Quest', emoji: '🗺️' },
 });
 

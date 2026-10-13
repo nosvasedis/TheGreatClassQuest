@@ -15,8 +15,9 @@
 // costs one; the last team standing wins) and Treasure (every point opens a chest: coins, a steal from
 // the leader, or a double next point). Several teams can get a point in one tap (one step for Undo).
 // Nursery / Pre-Junior play the Growth Festival way: flowers grow, no numbers, everyone blooms.
-// Rewards are ordinary Teamwork stars through the Award Stars cloud (one award per hero per day,
-// exactly as with the mouse), so the Showdown never invents a new kind of star.
+// Rewards are Showdown stars (db/actions/showdownStars.js): a bonus on monthly and total stars with its
+// own logbook row, never today's stars, so every hero can still earn the day's stars afterwards.
+// Paid once per show (each row's id is the show's and the hero's).
 // Markup: remoteStageView.mjs.
 
 import * as state from '../../state.js';
@@ -27,7 +28,7 @@ import {
     showdownWinners, showdownPanel, isGrowthLeague, showdownBarLevels, showdownAnswerer, showdownGoalText, showdownRewardIds,
     showdownTeamLooks, normalizeShowdownRules, removeShowdownMembers
 } from './remoteCore.mjs';
-import { showdownHtml, showdownFinaleHtml, growthFlower, seatHtml, deckCardHtml, clockHtml, heartsHtml, chestHtml } from './remoteStageView.mjs';
+import { showdownHtml, showdownFinaleHtml, growthFlower, seatHtml, deckCardHtml, clockHtml, heartsHtml, chestHtml, paidBannerHtml } from './remoteStageView.mjs';
 import { burstOn, confettiRain, isLiteFx, isStillFx, sparkTo, centreOf } from './remoteFx.js';
 
 const ROOT_ID = 'qr-showdown';
@@ -47,6 +48,7 @@ let cardTimer = 0;
 let rollTimer = 0;
 let lastCtx = null;
 let showClassId = '';
+let showId = ''; // one show (a rematch is a new one): its reward is paid once
 let unwatchAttendance = null;
 // The deck of a show that brings its own questions: card i belongs to question i + 1.
 let deck = [];
@@ -640,6 +642,42 @@ function openChest(lane, chest) {
     }, 420);
 }
 
+function newShowId() {
+    return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+}
+
+const MODE_NAMES = { tug: 'Tug of War', survivor: 'Survivor', treasure: 'Treasure' };
+
+/** The logbook line for each rewarded hero: which show, which team, and why. */
+function rewardNote(scope) {
+    const mode = MODE_NAMES[sd.rules?.mode];
+    const game = sd.growth ? 'Garden Showdown' : `Showdown Arena${mode ? ` (${mode})` : ''}`;
+    const winners = new Set(showdownWinners(sd));
+    const teamOf = new Map(sd.teams.flatMap((t, i) => t.members.map((id) => [id, i])));
+    const stars = new Set(showdownRewardIds(sd, 'stars'));
+    return (id) => {
+        const i = teamOf.get(id);
+        const team = sd.teams[i]?.name || 'a team';
+        if (scope === 'stars' && stars.has(id)) return `${game}: star player for ${team}`;
+        if (winners.has(i) && !sd.growth) return `${game}: ${team} won`;
+        return `${game}: played for ${team}`;
+    };
+}
+
+/** The finale says the stars landed (monthly and total), then the arena closes. */
+function showPaid(paid, stars, ctx) {
+    const el = root();
+    if (!el) return;
+    el.querySelector('[data-qr-paid]')?.remove();
+    el.insertAdjacentHTML('beforeend', paidBannerHtml(paid, stars));
+    if (paid) {
+        playShowdownSfx('golden');
+        burstOn(el.querySelector('[data-qr-paid]'), { color: '#fcd34d', count: 22 });
+    }
+    clearTimeout(goalTimer);
+    goalTimer = setTimeout(() => { closeShowdown(); ctx.scheduleStage(0); }, isStillFx() ? 1600 : 3200);
+}
+
 function pointMessage(team, gain) {
     if (sd.growth) return gain.golden ? `${team.name}'s flower grows twice` : `${team.name}'s flower grows`;
     if (gain.total < 0) return `${gain.total} ${team.name}`.replace('-', '−');
@@ -653,7 +691,7 @@ function pointMessage(team, gain) {
 
 /**
  * Runs one Showdown command from the Wand. `ctx` comes from remoteHost.js:
- * { sparkTo, scheduleStage, award(studentId, reason, stars) → Promise<{ok, message}> }.
+ * { sparkTo, scheduleStage, payStars({ classId, showId, heroIds, stars, noteOf }) → Promise<{ paid[], already[] }> }.
  */
 export async function runShowdownCommand(p, ctx) {
     lastCtx = ctx;
@@ -684,6 +722,7 @@ export async function runShowdownCommand(p, ctx) {
                 rules
             });
             showClassId = classId;
+            showId = newShowId();
             watchAttendance();
             openArena();
             playShowdownSfx('open', { teams: sd.teams.length });
@@ -845,6 +884,7 @@ export async function runShowdownCommand(p, ctx) {
             stopCount();
             // the same teams, minus anyone marked absent since
             sd = removeShowdownMembers(rematchShowdown(sd), awayToday(showClassId));
+            showId = newShowId();
             revealed.clear();
             // a rematch with a deck asks the questions in a fresh order
             deck = [...deck].sort(() => Math.random() - 0.5);
@@ -862,15 +902,20 @@ export async function runShowdownCommand(p, ctx) {
             const ids = showdownRewardIds(sd, scope).filter((id) => !away.has(id));
             if (!ids.length) return scope === 'stars' ? 'No star players yet (turn on the hot seat)' : 'Nobody to reward';
             const stars = p.stars || 1;
-            closeShowdown({ silent: true });
-            let given = 0;
-            let skipped = 0;
-            for (const id of ids) {
-                const res = await ctx.award(id, 'teamwork', stars);
-                if (res?.ok) given += 1; else skipped += 1;
+            let res;
+            try {
+                res = await ctx.payStars({ classId: showClassId, showId, heroIds: ids, stars, noteOf: rewardNote(scope) });
+            } catch (error) {
+                console.error('Showdown stars could not be saved:', error);
+                return 'The stars could not be saved: try again';
             }
+            if (!sd) return '';
+            const paid = res?.paid?.length || 0;
+            const already = res?.already?.length || 0;
+            showPaid(paid, stars, ctx);
             ctx.scheduleStage(0);
-            return `Teamwork stars (${stars}) for ${given}${skipped ? ` · ${skipped} already had today's stars` : ''}`;
+            if (!paid) return already ? 'Already given for this show' : 'Nobody to reward';
+            return `Showdown stars (${stars}) for ${paid} hero${paid === 1 ? '' : 'es'} · monthly and total, not today's stars${already ? ` · ${already} already had them` : ''}`;
         }
         case 'close':
             closeShowdown();

@@ -560,7 +560,7 @@ async function run(cmd) {
         case 'wall': return runWall(cmd, p.action);
         case 'showdown': {
             const sd = await import('./showdown.js');
-            const message = await sd.runShowdownCommand(p, { sparkTo, scheduleStage, award: awardHero });
+            const message = await sd.runShowdownCommand(p, { sparkTo, scheduleStage, payStars: payShowdownStars });
             return report(cmd, true, message || '');
         }
         case 'quiz': return runQuiz(cmd, p);
@@ -675,6 +675,12 @@ async function cardFor(studentId) {
         }
     }
     return { card, student, covered };
+}
+
+/** Showdown stars: monthly and total only (never today's stars), paid once per show. */
+async function payShowdownStars(args) {
+    const { payShowdownStars: pay } = await import('../../db/actions/showdownStars.js');
+    return pay(args);
 }
 
 async function runAward(cmd, { studentId, reason, stars }) {

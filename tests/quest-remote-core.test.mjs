@@ -1004,3 +1004,29 @@ test('Showdown: several teams score in one tap (one Undo), and the new games pla
     const wandSrc = readFileSync(new URL('../features/questRemote/remoteWand.js', import.meta.url), 'utf8');
     assert.match(wandSrc, /if \(d\.teams\) p\.teams = /);
 });
+
+test('Showdown stars go to monthly and total stars with a logbook row, never to today\'s stars', async () => {
+    const meta = await import('../features/awardLogReasonMeta.js');
+    assert.equal(meta.SHOWDOWN_AWARD_REASON, 'showdown');
+    assert.ok(meta.isBonusOnlyAwardLog({ reason: 'showdown' }));
+    assert.ok(!meta.isBonusOnlyAwardLog({ reason: 'teamwork' }));
+    assert.equal(meta.getAwardLogMonthlyStarCredit({ reason: 'showdown', stars: 2, appliedStarCredit: 2 }), 2);
+    assert.ok(meta.AWARD_LOG_REASON_ICONS.showdown && meta.AWARD_LOG_REASON_GRADIENTS.showdown);
+    const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+    const pay = read('../db/actions/showdownStars.js');
+    assert.doesNotMatch(pay, /\/today_stars`/, 'never writes today\'s stars');
+    assert.match(pay, /monthlyStars: increment\(amount\)/);
+    assert.match(pay, /totalStars: increment\(amount\)/);
+    assert.match(pay, /award_log`, showdownAwardLogId\(showId, studentId\)/);
+    assert.match(pay, /if \(logSnap\.exists\(\)\) \{ already\.push/, 'paid once per show');
+    const show = read('../features/questRemote/showdown.js');
+    assert.doesNotMatch(show, /ctx\.award\(/, 'no longer through the Award Stars cloud');
+    assert.match(show, /ctx\.payStars\(/);
+    const stars = read('../db/actions/stars.js');
+    assert.match(stars, /!isBonusOnlyAwardLog\(l\) &&/, 'a bonus row is never taken for the day\'s row');
+    assert.match(stars, /logData\.date === getTodayDateString\(\) && !isBonusOnlyAwardLog\(logData\)/, 'deleting a bonus row leaves today\'s stars');
+    const { finaleHtml } = await import('../features/questRemote/showdownWandView.mjs');
+    const html = finaleHtml({ teams: [{ name: 'A', score: 2 }, { name: 'B', score: 1 }], stars: [] });
+    assert.match(html, /Showdown stars/);
+    assert.match(html, /Today's stars are untouched/);
+});

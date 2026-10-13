@@ -1060,3 +1060,11 @@
     .qr-chest__lid { transform: rotate(-24deg) translate(-8%, -18%); }
     .qr-tug__mark, .qr-tug__side, .qr-tug__side .qr-lane__crew { transition-duration: 0.01s; }
 }
+
+/* The reward landed: a gold ribbon over the finale (monthly and total stars, never today's) */
+.qr-sd__paid { position: absolute; left: 50%; bottom: clamp(18px, 5vh, 48px); z-index: 4; display: grid; justify-items: center; gap: 4px; margin: 0; padding: 12px 26px; border-radius: 22px; text-align: center; color: #422006; background: linear-gradient(180deg, #fef3c7, #fbbf24); box-shadow: 0 0 0 3px rgba(252, 211, 77, 0.45), 0 18px 40px -16px rgba(0, 0, 0, 0.8); transform: translateX(-50%); animation: qr-paid-in 0.6s cubic-bezier(0.22, 1.6, 0.36, 1) both; }
+.qr-sd__paid b { font: 400 clamp(1.2rem, 3.2vmin, 2.2rem)/1.1 var(--qr-ui); }
+.qr-sd__paid small { font: 500 clamp(0.8rem, 1.7vmin, 1.1rem)/1.2 'Fredoka', sans-serif; color: #713f12; }
+@keyframes qr-paid-in { from { opacity: 0; transform: translate(-50%, 30px) scale(0.7); } }
+.qr-lite .qr-sd__paid { box-shadow: none; }
+@media (prefers-reduced-motion: reduce) { .qr-sd__paid { animation: none; } }

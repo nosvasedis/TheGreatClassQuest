@@ -58,7 +58,7 @@ import {
 import { TRAINING_REASONS } from "../../features/trainingGroundsCore.mjs";
 import { reconcileFamiliarLifecycle } from "../../features/familiars.js";
 import { canUseFeature } from "../../utils/subscription.js";
-import { getAwardLogMonthlyStarCredit } from "../../features/awardLogReasonMeta.js";
+import { getAwardLogMonthlyStarCredit, isBonusOnlyAwardLog } from "../../features/awardLogReasonMeta.js";
 import { withActiveScoreYear, withSchoolYear } from "../../utils/schoolYear.js";
 import { resolveDailyModifier, applyDailyModifier } from "../../features/specialQuestEngine.js";
 import { TRAINING_HERO, normalizeHeroClass } from "../../features/heroClassNames.mjs";
@@ -403,8 +403,11 @@ async function writeStudentStarsForToday(
                         l.date === today &&
                         (l.createdBy?.uid || l.teacherId) === currentTeacherId,
                 );
+            // Bonus-only rows (Showdown, Quiz of the Week, Quiet Dragon) are never the day's row:
+            // updating one would rewrite that bonus as today's stars.
             const stateDailyPerformanceLog = allTodaysLogs.find(
                 (l) =>
+                    !isBonusOnlyAwardLog(l) &&
                     ![
                         "welcome_back",
                         "scholar_s_bonus",
@@ -928,7 +931,8 @@ export async function handleDeleteAwardLog(logId) {
 
             transaction.delete(logRef);
 
-            if (logData.date === getTodayDateString()) {
+            // Bonus-only stars (Showdown, Quiz of the Week, Quiet Dragon) never made a today_stars record
+            if (logData.date === getTodayDateString() && !isBonusOnlyAwardLog(logData)) {
                 const todayStarsQuery = query(
                     collection(db, `${publicDataPath}/today_stars`),
                     where("studentId", "==", studentId),

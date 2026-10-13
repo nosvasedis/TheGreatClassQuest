@@ -321,14 +321,14 @@ export function finaleHtml(panel, { scope = 'winners', stars = 1 } = {}) {
             ${hasStars ? `<ol class="qw-starplayers">${panel.stars.map((p) => `<li><i class="fas fa-microphone" aria-hidden="true"></i><b>${esc(p.name)}</b><span>${esc(p.pts)}</span></li>`).join('')}</ol>` : ''}
         </div>
         <div class="qw-forge__card qw-reward">
-            <h3 class="qw-forge__h"><i class="fas fa-star" aria-hidden="true"></i> Teamwork stars</h3>
+            <h3 class="qw-forge__h"><i class="fas fa-star" aria-hidden="true"></i> Showdown stars</h3>
             <p class="qw-forge__label">For</p>
             ${seg('reward-scope', pick, scopes)}
             <p class="qw-forge__label">Stars each</p>
             ${seg('reward-stars', String(stars), [{ key: '1', label: '1 star' }, { key: '2', label: '2 stars' }, { key: '3', label: '3 stars' }])}
             <button type="button" class="qw-btn qw-btn--gold qw-btn--wide" data-qw-cmd="showdown" data-action="reward" data-scope="${pick}" data-stars="${esc(stars)}">
                 <i class="fas fa-star" aria-hidden="true"></i> Give the stars</button>
-            <p class="qw-hint qw-hint--center">One award per hero a day, as always: anyone who already has today's stars is skipped.</p>
+            <p class="qw-hint qw-hint--center">A bonus on this month's and all-time stars, with its own line in the logbook. Today's stars are untouched, so every hero can still earn them.</p>
         </div>
         <div class="qw-showtools">
             <button type="button" class="qw-chip" data-qw-cmd="showdown" data-action="rematch"><i class="fas fa-repeat" aria-hidden="true"></i> Rematch</button>

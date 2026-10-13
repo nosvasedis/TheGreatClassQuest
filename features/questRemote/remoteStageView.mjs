@@ -360,6 +360,13 @@ export function showdownFinaleHtml(sd, { nameOf = () => '', faceOf = () => null 
     </div>`;
 }
 
+/** After the reward: the stars landed on monthly and total stars (today's stars stay free). */
+export function paidBannerHtml(paid, stars) {
+    const n = Math.max(0, Number(paid) || 0);
+    const text = n ? `${'★'.repeat(Math.max(1, Math.min(3, Number(stars) || 1)))} Showdown stars for ${n} hero${n === 1 ? '' : 'es'}` : 'These heroes already have their Showdown stars';
+    return `<p class="qr-sd__paid" data-qr-paid role="status"><b>${esc(text)}</b><small>Added to this month's and all-time stars · today's stars are still to earn</small></p>`;
+}
+
 const FINALE_EYEBROW = { tug: 'Tug of War champions', survivor: 'Last team standing', treasure: 'Treasure champions' };
 
 /** The winners' faces on the podium (up to 12; the names are the tooltips). */

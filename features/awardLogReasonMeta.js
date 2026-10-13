@@ -9,6 +9,19 @@ export const PATHFINDER_CLASS_QUEST_BONUS_STARS = 10;
 /** `award_log.reason` value written for Pathfinder’s Map. */
 export const PATHFINDER_AWARD_REASON = 'pathfinder_map';
 
+/** `award_log.reason` for the Showdown Arena's reward stars (Quest Remote): monthly and total only. */
+export const SHOWDOWN_AWARD_REASON = 'showdown';
+
+/**
+ * Bonus stars written straight to monthly/total stars with their own award_log row: they never
+ * create or use the hero's today_stars record, so deleting one must leave today's stars alone.
+ */
+export const BONUS_ONLY_AWARD_REASONS = Object.freeze([SHOWDOWN_AWARD_REASON, 'quiz_of_the_week', 'quiet_dragon']);
+
+export function isBonusOnlyAwardLog(log) {
+    return BONUS_ONLY_AWARD_REASONS.includes(String(log?.reason || ''));
+}
+
 export function getClassQuestBonusStarsFromAwardLog(log) {
     return log?.reason === PATHFINDER_AWARD_REASON ? PATHFINDER_CLASS_QUEST_BONUS_STARS : 0;
 }
@@ -35,7 +48,8 @@ export const AWARD_LOG_REASON_GRADIENTS = {
     marked_present: 'from-teal-400 to-emerald-600',
     excellence: 'from-amber-300 to-yellow-500',
     special_quest: 'from-violet-500 to-fuchsia-600',
-    quiet_dragon: 'from-teal-500 to-indigo-700'
+    quiet_dragon: 'from-teal-500 to-indigo-700',
+    showdown: 'from-rose-500 to-indigo-700'
 };
 
 /** Font Awesome icon suffix (without `fa-` prefix sometimes passed as fa-x) — logbook uses `fas ${AWARD_LOG_REASON_ICONS[r]}` */
@@ -60,7 +74,8 @@ export const AWARD_LOG_REASON_ICONS = {
     marked_present: 'fa-user-check',
     excellence: 'fa-star',
     special_quest: 'fa-wand-magic-sparkles',
-    quiet_dragon: 'fa-dragon'
+    quiet_dragon: 'fa-dragon',
+    showdown: 'fa-bolt'
 };
 
 /** Wallpaper “float card” styling (icon + colours) */
@@ -85,7 +100,8 @@ export const AWARD_REASON_WALLPAPER_FLOAT = {
     marked_present: { icon: 'fa-user-check', color: 'text-teal-600', css: 'float-card-green', bg: 'bg-teal-100' },
     excellence: { icon: 'fa-star', color: 'text-amber-500', css: 'float-card-gold', bg: 'bg-amber-100' },
     special_quest: { icon: 'fa-wand-magic-sparkles', color: 'text-violet-600', css: 'float-card-purple', bg: 'bg-violet-100' },
-    quiet_dragon: { icon: 'fa-dragon', color: 'text-teal-700', css: 'float-card-indigo', bg: 'bg-teal-100' }
+    quiet_dragon: { icon: 'fa-dragon', color: 'text-teal-700', css: 'float-card-indigo', bg: 'bg-teal-100' },
+    showdown: { icon: 'fa-bolt', color: 'text-rose-600', css: 'float-card-pink', bg: 'bg-rose-100' }
 };
 
 export function resolveWallpaperFloatStyle(reason) {

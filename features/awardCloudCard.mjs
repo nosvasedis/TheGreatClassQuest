@@ -332,21 +332,33 @@ export function resolveAwardRollStatus({ starsToday = 0, isMarkedAbsentToday = f
 
 const ROLL_ORDER = { shining: 0, waiting: 1, returning: 1, away: 2 };
 
-/** One bead on the star roll: gold when shining, an open ring while waiting, a rain cloud when away. */
-function rollBeadHtml(hero) {
-    const status = hero.status;
-    const said = status === 'shining'
-        ? `${hero.name}: ${formatAwardStars(hero.stars)} star${Number(hero.stars) === 1 ? '' : 's'} today`
-        : status === 'away'
-            ? `${hero.name}: away today`
-            : status === 'returning'
-                ? `${hero.name}: away last lesson, waiting for a welcome back. Tap to find their cloud`
-                : `${hero.name}: still waiting for a star. Tap to find their cloud`;
-    const inner = status === 'away' ? '<i class="fas fa-cloud-rain" aria-hidden="true"></i>' : '';
-    if (status === 'waiting' || status === 'returning') {
-        return `<button type="button" class="aw-roll__bead is-${esc(status)}" data-roll-student="${esc(hero.id)}" title="${esc(said)}" aria-label="${esc(said)}"></button>`;
+/** What the roll's own tooltip says about one hero: a title line and a note. */
+function rollTip(hero) {
+    const stars = formatAwardStars(hero.stars);
+    switch (hero.status) {
+        case 'shining': return { note: `${stars} star${Number(hero.stars) === 1 ? '' : 's'} today` };
+        case 'away': return { note: 'Away today' };
+        case 'returning': return { note: 'Back from an absence', hint: 'Tap to welcome them back' };
+        default: return { note: 'Still waiting for a star', hint: 'Tap to find their cloud' };
     }
-    return `<span class="aw-roll__bead is-${esc(status)}" title="${esc(said)}" role="img" aria-label="${esc(said)}">${inner}</span>`;
+}
+
+/** One bead on the star roll: gold when shining, an open ring while waiting, a rain cloud when away. */
+function rollBeadHtml(hero, index) {
+    const status = hero.status;
+    const tip = rollTip(hero);
+    const said = [hero.name, tip.note, tip.hint].filter(Boolean).join('. ');
+    const attrs = `class="aw-roll__bead is-${esc(status)}" style="--i:${index}" data-roll-id="${esc(hero.id)}"`
+        + ` data-tip-name="${esc(hero.name)}" data-tip-note="${esc(tip.note)}"${tip.hint ? ` data-tip-hint="${esc(tip.hint)}"` : ''}`
+        + `${hero.avatar ? ` data-tip-avatar="${esc(hero.avatar)}"` : ''} aria-label="${esc(said)}"`;
+    if (status === 'waiting' || status === 'returning') {
+        return `<button type="button" ${attrs} data-roll-student="${esc(hero.id)}"><span class="aw-roll__ring" aria-hidden="true"></span></button>`;
+    }
+    if (status === 'away') {
+        return `<span ${attrs} role="img"><i class="fas fa-cloud aw-roll__cloud" aria-hidden="true"></i>`
+            + '<span class="aw-roll__drop" aria-hidden="true"></span><span class="aw-roll__drop aw-roll__drop--b" aria-hidden="true"></span></span>';
+    }
+    return `<span ${attrs} role="img"><span class="aw-roll__glint" aria-hidden="true"></span></span>`;
 }
 
 /**
@@ -366,9 +378,9 @@ export function buildAwardSkySummaryHtml({ heroes = [], starsToday = 0, modifier
     const nobodyHere = sorted.length > 0 && here === 0;
 
     const mod = modifier?.type === 'double'
-        ? '<span class="aw-roll__mod aw-roll__mod--double" title="Every award counts twice today"><i class="fas fa-bolt" aria-hidden="true"></i>2×</span>'
+        ? '<span class="aw-roll__mod aw-roll__mod--double" data-tip-name="2× Star Day" data-tip-note="Every award counts twice today"><i class="fas fa-bolt" aria-hidden="true"></i>2×</span>'
         : modifier?.type === 'reason' && VIRTUE_NAMES[modifier.reason]
-            ? `<span class="aw-roll__mod" title="${esc(VIRTUE_NAMES[modifier.reason])} awards get +1 star today"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>${esc(VIRTUE_NAMES[modifier.reason])}</span>`
+            ? `<span class="aw-roll__mod" data-tip-name="${esc(VIRTUE_NAMES[modifier.reason])} Bonus Day" data-tip-note="${esc(VIRTUE_NAMES[modifier.reason])} awards get +1 star today"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>${esc(VIRTUE_NAMES[modifier.reason])}</span>`
             : '';
     const count = nobodyHere
         ? '<span class="aw-roll__count">Everyone is away today</span>'
@@ -384,7 +396,7 @@ export function buildAwardSkySummaryHtml({ heroes = [], starsToday = 0, modifier
         + count
         + `<span class="aw-roll__stars"><b>${esc(formatAwardStars(starsToday))}</b><i class="fas fa-star" aria-hidden="true"></i>today</span>`
         + mod
-        + `<span class="aw-roll__beads">${sorted.map(rollBeadHtml).join('')}</span>`
+        + `<span class="aw-roll__beads">${sorted.map((hero, i) => rollBeadHtml(hero, i)).join('')}</span>`
         + notes
         + `</div>`;
 }

@@ -92,7 +92,7 @@ test('star roll counts only the heroes in the room', () => {
     assert.match(html, /<b>1<\/b> of 3 shining/);
     assert.match(html, /2 waiting/);
     assert.match(html, /1 away/);
-    assert.match(html, /is-away[^>]*Dora: away today/);
+    assert.match(html, /is-away[^>]*data-tip-name="Dora" data-tip-note="Away today"/);
     assert.match(html, /data-roll-student="b"/);
     assert.match(html, /data-roll-student="c"/);
     assert.doesNotMatch(html, /data-roll-student="d"/);

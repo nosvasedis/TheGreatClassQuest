@@ -29,6 +29,7 @@ import {
 } from '../../features/awardLogReasonMeta.js';
 import { buildHeroTieStats, pickProdigyWinners, rankHeroes } from '../../features/heroRanking.js';
 import { withPendingAwards } from '../../features/awardPending.mjs';
+import { bindAwardRollTips, hideAwardRollTip } from '../awardRollTip.js';
 
 // --- REIGNING PRODIGY CACHE (previous month, with tie-breaker) ---
 let _awardProdigyCacheKey = null;
@@ -41,6 +42,7 @@ const awardStudentOrderCache = new Map();
 // so a redraw only touches the clouds whose content actually changed.
 const awardCardSignatures = new Map();
 let awardSkySummaryHtml = null;
+let awardSkySummaryClassId = null;
 
 async function getReigningProdigyForClass(classId) {
     const now = new Date();
@@ -390,8 +392,25 @@ function renderAwardSkySummary(classId) {
     });
     const html = buildAwardSkySummaryHtml({ heroes, starsToday, modifier: ctx.modifier });
     if (html !== awardSkySummaryHtml || !el.firstChild) {
+        // A new class (or the first visit) strings the beads in one by one; after that only
+        // a hero who has just started shining gets a burst.
+        const entering = awardSkySummaryClassId !== classId || !el.querySelector('.aw-roll');
+        const wasShining = new Set([...el.querySelectorAll('.aw-roll__bead.is-shining')].map((b) => b.dataset.rollId));
+        hideAwardRollTip();
         el.innerHTML = html;
         awardSkySummaryHtml = html;
+        awardSkySummaryClassId = classId;
+        const roll = el.querySelector('.aw-roll');
+        if (entering && roll) {
+            roll.classList.add('is-entering');
+            setTimeout(() => roll.classList.remove('is-entering'), 1600);
+        } else {
+            el.querySelectorAll('.aw-roll__bead.is-shining').forEach((bead) => {
+                if (wasShining.has(bead.dataset.rollId)) return;
+                bead.classList.add('is-just-lit');
+                setTimeout(() => bead.classList.remove('is-just-lit'), 950);
+            });
+        }
     }
     el.classList.remove('hidden');
 }
@@ -400,6 +419,7 @@ function renderAwardSkySummary(classId) {
 function bindAwardSkySummary(el) {
     if (el.dataset.rollBound) return;
     el.dataset.rollBound = '1';
+    bindAwardRollTips(el);
     el.addEventListener('click', (event) => {
         const hero = event.target.closest('[data-roll-student]');
         if (!hero) return;

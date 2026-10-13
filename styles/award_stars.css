@@ -99,54 +99,274 @@
     border-color: rgba(249, 115, 22, 0.45);
 }
 
-/* The beads: one per hero, shining first, then waiting, then away. */
+/* The beads: one per hero, shining first, then waiting, then away.
+ * Motion is transform/opacity only: shining beads breathe and glint, waiting rings
+ * sway softly, rain clouds drip. Everything holds still while the page scrolls. */
 .aw-roll__beads {
     display: inline-flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    padding: 0.3rem 0.5rem;
+    gap: 5px;
+    padding: 0.3rem 0.55rem;
     border-radius: 999px;
-    background: rgba(219, 234, 254, 0.55);
-    box-shadow: inset 0 1px 2px rgba(30, 64, 175, 0.1);
+    background:
+        linear-gradient(180deg, rgba(219, 234, 254, 0.7), rgba(224, 242, 254, 0.45));
+    box-shadow: inset 0 1px 2px rgba(30, 64, 175, 0.12), 0 1px 0 rgba(255, 255, 255, 0.9);
     white-space: normal;
 }
 
 .aw-roll__bead {
+    position: relative;
     flex: none;
-    width: 12px;
-    height: 12px;
+    width: 14px;
+    height: 14px;
     padding: 0;
     display: grid;
     place-items: center;
     border-radius: 50%;
     border: 0;
+    background: none;
     font-size: 0;
+    color: inherit;
 }
 
+/* Shining: a little sun with a travelling glint. */
 .aw-roll__bead.is-shining {
-    background: radial-gradient(circle at 35% 30%, #fffbeb, #fbbf24 55%, #f59e0b);
-    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.22), 0 0 6px rgba(251, 191, 36, 0.55);
+    background: radial-gradient(circle at 35% 30%, #fffbeb 0 18%, #fde047 40%, #f59e0b 80%, #d97706);
+    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.25), 0 1px 2px rgba(180, 83, 9, 0.35);
+    animation: aw-bead-breathe 3.2s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * -0.37s);
 }
 
+.aw-roll__bead.is-shining::before {
+    content: '';
+    position: absolute;
+    inset: -5px;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(253, 224, 71, 0.55), transparent);
+    opacity: 0.55;
+    animation: aw-bead-halo 3.2s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * -0.37s);
+    pointer-events: none;
+}
+
+.aw-roll__glint {
+    position: absolute;
+    top: 2px;
+    left: 3px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #fff;
+    opacity: 0;
+    animation: aw-bead-glint 4.4s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.55s);
+}
+
+@keyframes aw-bead-breathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.12); }
+}
+
+@keyframes aw-bead-halo {
+    0%, 100% { opacity: 0.35; transform: scale(0.9); }
+    50% { opacity: 0.9; transform: scale(1.15); }
+}
+
+@keyframes aw-bead-glint {
+    0%, 70%, 100% { opacity: 0; transform: scale(0.4); }
+    80% { opacity: 1; transform: scale(1.2); }
+}
+
+/* Waiting: an open ring of sky that sways, asking to be tapped. */
 button.aw-roll__bead {
     cursor: pointer;
-    background: #fff;
-    box-shadow: inset 0 0 0 2px #38bdf8;
-    transition: transform 0.18s ease;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-button.aw-roll__bead.is-returning { box-shadow: inset 0 0 0 2px #f59e0b; }
-button.aw-roll__bead:hover { transform: scale(1.3); }
-button.aw-roll__bead:focus-visible { outline: 2px solid #0ea5e9; outline-offset: 2px; }
 
-.aw-roll__bead.is-away {
-    width: 15px;
-    color: #94a3b8;
-    font-size: 11px;
-    border-radius: 0;
-    background: none;
+.aw-roll__ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #ffffff, #e0f2fe);
+    box-shadow: inset 0 0 0 2px #38bdf8;
+    animation: aw-ring-sway 2.8s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * -0.29s);
 }
+
+.aw-roll__bead.is-returning .aw-roll__ring {
+    background: radial-gradient(circle at 40% 35%, #ffffff, #fef3c7);
+    box-shadow: inset 0 0 0 2px #f59e0b;
+}
+
+@keyframes aw-ring-sway {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-1.5px) scale(0.92); }
+}
+
+button.aw-roll__bead:hover,
+button.aw-roll__bead:focus-visible { transform: scale(1.4); }
+button.aw-roll__bead:focus-visible { outline: none; }
+button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px #38bdf8, 0 0 0 2px #fff, 0 0 0 4px #0ea5e9; }
+
+/* Away today: a little grey cloud with falling drops. */
+.aw-roll__bead.is-away { width: 17px; }
+
+.aw-roll__cloud {
+    font-size: 11px;
+    color: #94a3b8;
+    transform: translateY(-2px);
+}
+
+.aw-roll__drop {
+    position: absolute;
+    left: 6px;
+    top: 9px;
+    width: 1.5px;
+    height: 4px;
+    border-radius: 1px;
+    background: #60a5fa;
+    opacity: 0;
+    animation: aw-drop-fall 1.6s ease-in infinite;
+    animation-delay: calc(var(--i, 0) * 0.21s);
+}
+
+.aw-roll__drop--b { left: 10px; animation-delay: calc(var(--i, 0) * 0.21s + 0.8s); }
+
+@keyframes aw-drop-fall {
+    0% { opacity: 0; transform: translateY(-1px); }
+    25% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(6px); }
+}
+
+/* A new class strings its beads in one by one. */
+.aw-roll.is-entering .aw-roll__bead {
+    animation: aw-bead-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+@keyframes aw-bead-in {
+    0% { opacity: 0; transform: scale(0.2) translateY(6px); }
+    100% { opacity: 1; transform: none; }
+}
+
+/* A hero who has just started shining: the bead pops and throws a ring of light. */
+.aw-roll__bead.is-just-lit { animation: aw-bead-lit 0.9s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.aw-roll__bead.is-just-lit::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.9);
+    animation: aw-bead-ripple 0.9s ease-out forwards;
+    pointer-events: none;
+}
+
+@keyframes aw-bead-lit {
+    0% { transform: scale(0.3); }
+    45% { transform: scale(1.7); }
+    100% { transform: scale(1); }
+}
+
+@keyframes aw-bead-ripple {
+    0% { opacity: 1; transform: scale(0.6); }
+    100% { opacity: 0; transform: scale(2.6); }
+}
+
+#award-stars-tab.award-scroll-pause .aw-roll *,
+#award-stars-tab.award-scroll-pause .aw-roll *::before,
+#award-stars-tab.award-scroll-pause .aw-roll *::after { animation-play-state: paused !important; }
+
+@media (prefers-reduced-motion: reduce) {
+    .aw-roll *,
+    .aw-roll *::before,
+    .aw-roll *::after { animation: none !important; }
+    .aw-roll__glint, .aw-roll__drop { display: none; }
+}
+
+/* The roll's own tooltip (ui/awardRollTip.js): a small sky card with an arrow. */
+.aw-roll-tip {
+    position: fixed;
+    z-index: 9000;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    max-width: 16rem;
+    padding: 0.4rem 0.7rem 0.4rem 0.45rem;
+    border-radius: 0.9rem;
+    background: linear-gradient(180deg, #ffffff, #f0f9ff);
+    border: 1.5px solid #bae6fd;
+    box-shadow: 0 10px 24px rgba(30, 64, 175, 0.2);
+    color: #1e3a8a;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 0.8rem;
+    line-height: 1.2;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(4px) scale(0.96);
+    transform-origin: var(--arrow-x, 50%) 100%;
+    transition: opacity 0.14s ease, transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.aw-roll-tip.is-shown { opacity: 1; transform: none; }
+.aw-roll-tip.is-below { transform-origin: var(--arrow-x, 50%) 0; }
+
+.aw-roll-tip::after {
+    content: '';
+    position: absolute;
+    left: calc(var(--arrow-x, 50%) - 6px);
+    bottom: -7px;
+    width: 12px;
+    height: 12px;
+    background: #f0f9ff;
+    border-right: 1.5px solid #bae6fd;
+    border-bottom: 1.5px solid #bae6fd;
+    transform: rotate(45deg);
+    border-bottom-right-radius: 3px;
+}
+
+.aw-roll-tip.is-below::after {
+    top: -7px;
+    bottom: auto;
+    background: #fff;
+    transform: rotate(225deg);
+}
+
+.aw-roll-tip__face {
+    flex: none;
+    width: 1.9rem;
+    height: 1.9rem;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #eef2ff;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px #7dd3fc;
+}
+
+.aw-roll-tip__face--initial {
+    display: grid;
+    place-items: center;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 0.9rem;
+    color: #4338ca;
+}
+
+.aw-roll-tip__text { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+.aw-roll-tip__text b { font-weight: 700; font-size: 0.86rem; }
+.aw-roll-tip__note { font-weight: 600; color: #0369a1; }
+.aw-roll-tip__hint { font-size: 0.68rem; font-weight: 600; color: #64748b; }
+
+.aw-roll-tip[data-tone="shining"] { border-color: #fcd34d; background: linear-gradient(180deg, #fffdf5, #fef3c7); }
+.aw-roll-tip[data-tone="shining"]::after { background: #fef3c7; border-color: #fcd34d; }
+.aw-roll-tip[data-tone="shining"] .aw-roll-tip__face { box-shadow: 0 0 0 2px #fbbf24; }
+.aw-roll-tip[data-tone="shining"] .aw-roll-tip__note { color: #b45309; }
+.aw-roll-tip[data-tone="returning"] .aw-roll-tip__face { box-shadow: 0 0 0 2px #f59e0b; }
+.aw-roll-tip[data-tone="returning"] .aw-roll-tip__note { color: #b45309; }
+.aw-roll-tip[data-tone="away"] { border-color: #cbd5e1; background: linear-gradient(180deg, #f8fafc, #e2e8f0); }
+.aw-roll-tip[data-tone="away"]::after { background: #e2e8f0; border-color: #cbd5e1; }
+.aw-roll-tip[data-tone="away"] .aw-roll-tip__face { box-shadow: 0 0 0 2px #94a3b8; opacity: 0.7; }
+.aw-roll-tip[data-tone="away"] .aw-roll-tip__note { color: #475569; }
 
 .aw-roll__note {
     display: inline-flex;
@@ -182,8 +402,9 @@ button.aw-roll__bead:focus-visible { outline: 2px solid #0ea5e9; outline-offset:
 #app-screen.header-night .aw-roll__count b,
 #app-screen.header-night .aw-roll__stars b { color: #fde68a; }
 #app-screen.header-night .aw-roll__beads { background: rgba(15, 23, 42, 0.4); }
-#app-screen.header-night button.aw-roll__bead { background: rgba(224, 242, 254, 0.15); box-shadow: inset 0 0 0 2px #7dd3fc; }
-#app-screen.header-night button.aw-roll__bead.is-returning { box-shadow: inset 0 0 0 2px #fbbf24; }
+#app-screen.header-night .aw-roll__ring { background: rgba(224, 242, 254, 0.15); box-shadow: inset 0 0 0 2px #7dd3fc; }
+#app-screen.header-night .aw-roll__bead.is-returning .aw-roll__ring { background: rgba(254, 243, 199, 0.15); box-shadow: inset 0 0 0 2px #fbbf24; }
+#app-screen.header-night .aw-roll__cloud { color: #cbd5e1; }
 #app-screen.header-night .aw-roll__note--waiting { color: #bae6fd; }
 #app-screen.header-night .aw-roll__note--away { color: #cbd5e1; }
 #app-screen.header-night .aw-roll__note--full { color: #fde68a; }

@@ -24,6 +24,7 @@ import {
     routeSegments
 } from './questWorld/worldGeometry.mjs';
 import { describePlace, placeTipHtml } from './questWorld/placeTips.mjs';
+import { PAINTED_PROPS } from './questWorld/worldArt.mjs';
 
 /** League map HTML path: use tab-precomputed stars/goal when present (avoids re-scanning students/scores). */
 function resolveLeagueMapMetrics(c) {
@@ -98,7 +99,7 @@ const QUEST_ROUTE_SEGMENTS = routeSegments();
 const MAP_LANE_GAP = TOKEN_LANE_GAP;
 const MAP_TOKEN_EDGE_MARGIN = TOKEN_EDGE_MARGIN;
 // Width of the parchment veil over the unexplored road, in screen pixels.
-const ROAD_FOG_PX = 24;
+const ROAD_FOG_PX = 15;
 
 const LIVING_MAP_ASSETS = {
     parchmentBacking: new URL('../assets/team-quest-map/living-atlas/map-parchment-backing.webp', import.meta.url).href,
@@ -152,8 +153,13 @@ const LITE_FX_STORAGE_KEY = 'gcq-team-quest-map-fx';
 
 let activeLivingMapController = null;
 // How long the map takes to unroll, and to roll up before unrolling again.
-const SCROLL_UNROLL_MS = 1150;
+const SCROLL_UNROLL_MS = 1300;
 const SCROLL_FURL_MS = 380;
+// The wax seal cracks and the ribbon falls before the rods part; then the ink
+// sketch on the paper blooms into the painted world.
+const SEAL_BREAK_MS = 560;
+const SEAL_BREAK_LITE_MS = 320;
+const INK_BLOOM_MS = 1600;
 const easeInCubic = (t) => t * t * t;
 function cubicBezier(x1, y1, x2, y2) {
     const axis = (a, b, t) => ((1 - 3 * b + 3 * a) * t + (3 * b - 6 * a)) * t * t + 3 * a * t;
@@ -459,6 +465,11 @@ export function generateLeagueMapHtml(classes, options = {}) {
                 <div class="tq-class-token-layer">${parts.tokensHtml}</div>
             </div>
 
+            <div class="tq-living-map__ink" aria-hidden="true">
+                <img src="${PAINTED_PROPS.sketch}" alt="" draggable="false" decoding="async">
+            </div>
+            <span class="tq-living-map__sweep" aria-hidden="true"></span>
+
             <div class="tq-map-title" aria-hidden="true">
                 <img class="tq-map-title__scroll" src="${LIVING_MAP_ASSETS.scrollMap}" alt="" draggable="false" decoding="async">
             </div>
@@ -477,7 +488,16 @@ export function generateLeagueMapHtml(classes, options = {}) {
             <span class="tq-unroll__side tq-unroll__side--right">
                 <img class="tq-unroll__roll" src="${LIVING_MAP_ASSETS.parchmentBacking}" alt="" draggable="false" decoding="async">
             </span>
-            <span class="tq-unroll__seal"><span class="tq-unroll__seal-mark">✦</span></span>
+            <span class="tq-unroll__ribbon" style="--ribbon:url('${PAINTED_PROPS.ribbon}')">
+                <span class="tq-unroll__ribbon-half tq-unroll__ribbon-half--l"></span>
+                <span class="tq-unroll__ribbon-half tq-unroll__ribbon-half--r"></span>
+            </span>
+            <span class="tq-unroll__seal">
+                <span class="tq-unroll__seal-flash"></span>
+                <img class="tq-unroll__seal-half tq-unroll__seal-half--l" src="${PAINTED_PROPS.seal}" alt="" draggable="false" decoding="async">
+                <img class="tq-unroll__seal-half tq-unroll__seal-half--r" src="${PAINTED_PROPS.seal}" alt="" draggable="false" decoding="async">
+                <span class="tq-unroll__seal-sparks"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            </span>
         </div>
         <div class="tq-sparks" data-map-sparks aria-hidden="true"></div>
         <div class="tq-tip" data-map-tip role="tooltip" id="tq-place-tip" hidden>
@@ -686,6 +706,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         cancelAnimationFrame(scrollFrame);
         root.style.removeProperty('--tq-open');
         root.dataset.scroll = pose;
+        if (pose === 'rolled') root.classList.remove('is-unsealing', 'is-blooming');
     };
     const moveScroll = (to, duration, ease) => {
         cancelAnimationFrame(scrollFrame);
@@ -717,16 +738,33 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         else setScrollPose('rolled');
     }
 
-    /** Unrolls the map; resolves once enough of it is open for the parties to set off. */
+    /** The ink sketch on the opened paper washes into the painted world. */
+    const bloomInk = () => {
+        root.classList.remove('is-blooming');
+        void root.offsetWidth;
+        root.classList.add('is-blooming');
+        later(() => root.classList.remove('is-blooming'), INK_BLOOM_MS);
+    };
+
+    /**
+     * Breaks the seal, unrolls the map and blooms the ink into colour; resolves
+     * as the colour arrives, when the parties set off.
+     */
     const unrollScroll = () => {
         revealPromise ||= scrollMotion.then(() => new Promise((resolve) => {
             if (destroyed || root.dataset.scroll === 'open') { resolve(); return; }
             if (reducedMotionQuery.matches) { setScrollPose('open'); resolve(); return; }
-            later(resolve, SCROLL_UNROLL_MS * 0.5);
-            moveScroll(1, SCROLL_UNROLL_MS, easeUnroll).then(() => {
-                if (!destroyed) setScrollPose('open');
-                resolve();
-            });
+            root.classList.add('is-unsealing');
+            later(() => {
+                if (destroyed) { resolve(); return; }
+                moveScroll(1, SCROLL_UNROLL_MS, easeUnroll).then(() => {
+                    root.classList.remove('is-unsealing');
+                    if (destroyed) { resolve(); return; }
+                    setScrollPose('open');
+                    bloomInk();
+                    later(resolve, 260);
+                });
+            }, root.dataset.fx === 'lite' ? SEAL_BREAK_LITE_MS : SEAL_BREAK_MS);
         }));
         return revealPromise;
     };

@@ -2,8 +2,9 @@
  * Quest World scene: mounts the living world into the Team Quest map.
  *
  * Loaded lazily by features/worldMap.js.
- * - The land (far, mid, near) is painted once by worldPainter.js into canvases
- *   and kept per device; the light of the moment is a cheap grade of it.
+ * - The land is a finished painting per season (worldArt.mjs), drawn once into
+ *   a canvas by worldPainter.js; the light of the moment is a cheap grade of
+ *   it, with the night lights (windows, lamps, the stair) added after dusk.
  * - The sky is the app's own sky: the shared scene from skyWeatherStage.js
  *   (live weather + sun times, the same one the header, Home card and
  *   projector paint) and its palette tokens on <html> (--wx-*). The sun walks
@@ -19,7 +20,7 @@
  */
 
 import '../../styles/quest_world.css';
-import { WORLD_SEED, buildWorldArt, lanternSvg } from './worldArt.mjs';
+import { PAINTED_PROPS, WORLD_SEED, buildWorldArt } from './worldArt.mjs';
 import { bakeWidthFor, bakeWorld, gradeInto } from './worldPainter.js';
 import {
     WORLD_H,
@@ -34,7 +35,7 @@ import {
 } from './worldGeometry.mjs';
 import { QUEST_MAP_ZONES } from '../questMapZones.mjs';
 import { applySkyScene, computeSkyScene, getSkyScene, getLastSkyReading } from '../skyWeatherStage.js';
-import { cloudSvg, BOLT_PATHS } from '../skyWeatherArt.js';
+import { BOLT_PATHS } from '../skyWeatherArt.js';
 import { seededRandom } from '../skyWeather.mjs';
 import { currentLightSpan, moonLitPath, moonPhase, moonPhaseName } from '../../utils/dayCycle.mjs';
 import { getSolarTimes } from '../../utils.js';
@@ -45,7 +46,7 @@ function getArt(season) {
     return artBySeason.get(season);
 }
 
-/** Baked day pictures shared by every map on the page (keyed by season + size). */
+/** Loaded day pictures shared by every map on the page (keyed by season + size). */
 const bakes = new Map();
 function getBake(art, width) {
     const key = `${art.season}:${width}`;
@@ -58,7 +59,6 @@ function getBake(art, width) {
     return bakes.get(key);
 }
 
-let paperUrl = '';
 const pct = (value, total) => `${((value / total) * 100).toFixed(3)}%`;
 const boxStyle = ({ x, y, w, h }) => `left:${pct(x, WORLD_W)};top:${pct(y, WORLD_H)};width:${pct(w, WORLD_W)};height:${pct(h, WORLD_H)}`;
 
@@ -67,30 +67,23 @@ function spriteHtml(sprite) {
     return `<div class="tq-sp tq-sp--${sprite.kind}${sprite.flip ? ' is-flipped' : ''}" data-sprite="${sprite.id}" style="${style}" aria-hidden="true">${sprite.html}</div>`;
 }
 
-/** A realm nobody has reached hides under game clouds that part when the first party arrives. */
+const cloudImg = (index) => `<img src="${PAINTED_PROPS.clouds[index % PAINTED_PROPS.clouds.length]}" alt="" draggable="false" decoding="async">`;
+
+/** A realm nobody has reached hides under painted clouds that part when the first party arrives. */
 function mistHtml(mist) {
-    const blobs = mist.blobs.map(([x, y, r], i) => (
-        `<span class="tq-mist__puff" style="left:${(x * 100).toFixed(1)}%;top:${(y * 100).toFixed(1)}%;width:${(r * 100).toFixed(1)}%;--part:${x < 0.5 ? -1 : 1};--i:${i}">${cloudSvg(i % 3 === 2 ? 'twin' : 'cumulus', i + mist.realm.length)}</span>`
+    const blobs = mist.blobs.map(([x, y, w, cloud], i) => (
+        `<span class="tq-mist__puff" style="left:${(x * 100).toFixed(1)}%;top:${(y * 100).toFixed(1)}%;width:${(w * 100).toFixed(1)}%;--part:${x < 0.5 ? -1 : 1};--i:${i}">${cloudImg(cloud)}</span>`
     )).join('');
     return `<div class="tq-mist" data-realm="${mist.realm}" data-state="asleep" style="${boxStyle(mist)}" aria-hidden="true">${blobs}</div>`;
 }
 
+/** A road lantern: a little flame on the roadside that kindles once a party has passed it. */
 function lanternHtml(lantern, index) {
-    return `<div class="tq-lantern" data-lantern="${index}" data-progress="${lantern.progress}" style="${boxStyle({ x: lantern.x - 8, y: lantern.y - 40, w: 16, h: 40 })}" aria-hidden="true">`
-        + `<span class="tq-lantern__glow"></span>${lanternSvg()}</div>`;
+    return `<div class="tq-lantern" data-lantern="${index}" data-progress="${lantern.progress}" style="${boxStyle({ x: lantern.x - 12, y: lantern.y - 22, w: 24, h: 24 })}" aria-hidden="true">`
+        + '<span class="tq-lantern__glow"></span><span class="tq-lantern__flame"></span></div>';
 }
 
 // ── The sky ──────────────────────────────────────────────────────────────
-
-const CLOUD_SHAPES_BY_TONE = {
-    fair: ['cumulus', 'puff', 'twin', 'cumulus', 'wisp'],
-    grey: ['long', 'cumulus', 'long', 'twin'],
-    rain: ['long', 'fractus', 'long', 'cumulus'],
-    storm: ['anvil', 'tower', 'fractus', 'long'],
-    snow: ['long', 'cumulus', 'long'],
-    fog: ['long', 'wisp', 'long'],
-    ice: ['long', 'fractus', 'long']
-};
 
 /** How many clouds the map's sky shows for a cover. */
 export function mapCloudCount(cover, tier) {
@@ -99,20 +92,32 @@ export function mapCloudCount(cover, tier) {
     return tier === 'full' ? count : Math.max(1, Math.round(count * 0.5));
 }
 
+// Which painted cloud each weather leans on: wide flat banks when it is grey,
+// tall heaps before a storm, small fair-weather puffs on a bright day.
+const CLOUDS_BY_TONE = {
+    fair: [3, 2, 0, 3, 1],
+    grey: [0, 2, 0, 1],
+    rain: [0, 1, 0, 2],
+    storm: [1, 0, 1, 2],
+    snow: [0, 2, 0],
+    fog: [0, 0, 3],
+    ice: [0, 2, 0]
+};
+
 function cloudsHtml(scene, tier) {
     const count = mapCloudCount(scene.cover, tier);
-    const shapes = CLOUD_SHAPES_BY_TONE[scene.tone] || CLOUD_SHAPES_BY_TONE.fair;
+    const shapes = CLOUDS_BY_TONE[scene.tone] || CLOUDS_BY_TONE.fair;
     const rng = seededRandom(31 + count);
     const wind = scene.wind || { factor: 1, dir: 1 };
     let html = '';
     for (let i = 0; i < count; i += 1) {
-        const shape = shapes[i % shapes.length];
+        const cloud = shapes[i % shapes.length];
         const depth = rng();
-        const width = 9 + depth * 11 + (shape === 'long' || shape === 'anvil' ? 4 : 0);
-        const top = 1 + rng() * 26 + (1 - depth) * 4;
-        const duration = Math.round((220 - depth * 90) / Math.max(0.5, wind.factor));
+        const width = 8 + depth * 10 + (cloud === 0 ? 5 : 0);
+        const top = rng() * 24 + (1 - depth) * 3 - 2;
+        const duration = Math.round((240 - depth * 100) / Math.max(0.5, wind.factor));
         const delay = -Math.round(rng() * duration);
-        html += `<div class="tq-cloud${depth < 0.35 ? ' is-far' : ''}" style="top:${top.toFixed(1)}%;--cw:${width.toFixed(1)}%;--cd:${duration}s;--cdl:${delay}s;--ca:${(0.7 + depth * 0.3).toFixed(2)}">${cloudSvg(shape, Math.floor(rng() * 7))}</div>`;
+        html += `<div class="tq-cloud${depth < 0.35 ? ' is-far' : ''}" style="top:${top.toFixed(1)}%;--cw:${width.toFixed(1)}%;--cd:${duration}s;--cdl:${delay}s;--ca:${(0.78 + depth * 0.22).toFixed(2)}">${cloudImg(cloud)}</div>`;
     }
     return html;
 }
@@ -184,8 +189,7 @@ export function mountQuestWorld(root, { tier = 'full' } = {}) {
             <div class="tq-sky__rainbow"></div>
             <div class="tq-sky__clouds"></div>
         </div>
-        <div class="tq-world__depth tq-world__depth--far"><div class="tq-world__paint" data-layer="far"></div></div>
-        <div class="tq-world__sprites" data-sprites="back"></div>
+        <div class="tq-world__depth tq-world__depth--far"><div class="tq-world__sprites" data-sprites="back"></div></div>
         <div class="tq-world__paint tq-world__mid" data-layer="mid"></div>
         <div class="tq-world__sprites" data-sprites="mid"></div>
         <div class="tq-cloud-shadows"><span></span><span></span><span></span></div>
@@ -199,7 +203,6 @@ export function mountQuestWorld(root, { tier = 'full' } = {}) {
             </div>
         </div>`;
     front.innerHTML = `
-        <div class="tq-world__depth tq-world__depth--near"><div class="tq-world__paint" data-layer="near"></div></div>
         <div class="tq-weather">
             <div class="tq-weather__fog"><span></span><span></span><span></span></div>
             <div class="tq-weather__rain"><span></span><span></span></div>
@@ -210,15 +213,7 @@ export function mountQuestWorld(root, { tier = 'full' } = {}) {
         </div>
         <div class="tq-world__vignette"></div>`;
 
-    // Paper grain over everything, sky included (one static tile, made once per page).
-    paperUrl ||= URL.createObjectURL(new Blob([art.paper], { type: 'image/svg+xml' }));
-    front.querySelector('.tq-world__vignette').style.setProperty('--tq-paper', `url("${paperUrl}")`);
-
-    const slots = {
-        far: world.querySelector('[data-layer="far"]'),
-        mid: world.querySelector('[data-layer="mid"]'),
-        near: front.querySelector('[data-layer="near"]')
-    };
+    const landSlot = world.querySelector('[data-layer="mid"]');
 
     // ── The painted land ──────────────────────────────────────────────────
     const gradeLayers = ({ fade = true } = {}) => {
@@ -227,23 +222,20 @@ export function mountQuestWorld(root, { tier = 'full' } = {}) {
         if (grade.key === gradeKey) return;
         gradeKey = grade.key;
         const crossfade = fade && currentTier === 'full' && !paused;
-        ['far', 'mid', 'near'].forEach((name) => {
-            const slot = slots[name];
-            const canvas = document.createElement('canvas');
-            canvas.width = bake.width;
-            canvas.height = bake.height;
-            canvas.className = 'tq-world__canvas';
-            gradeInto(canvas, bake[name], grade, { lights: name === 'mid' ? { halo: bake.halo, panes: bake.panes } : null });
-            const old = [...slot.children];
-            if (!crossfade || !old.length) {
-                slot.replaceChildren(canvas);
-                return;
-            }
-            canvas.classList.add('is-entering');
-            slot.appendChild(canvas);
-            requestAnimationFrame(() => requestAnimationFrame(() => canvas.classList.remove('is-entering')));
-            later(() => old.forEach((el) => el.remove()), 1700);
-        });
+        const canvas = document.createElement('canvas');
+        canvas.width = bake.width;
+        canvas.height = bake.height;
+        canvas.className = 'tq-world__canvas';
+        gradeInto(canvas, bake.land, grade, { lights: bake.lights });
+        const old = [...landSlot.children];
+        if (!crossfade || !old.length) {
+            landSlot.replaceChildren(canvas);
+            return;
+        }
+        canvas.classList.add('is-entering');
+        landSlot.appendChild(canvas);
+        requestAnimationFrame(() => requestAnimationFrame(() => canvas.classList.remove('is-entering')));
+        later(() => old.forEach((el) => el.remove()), 1700);
     };
 
     const frameWidth = () => root.querySelector('.tq-living-map__frame')?.clientWidth || root.clientWidth || 1200;
@@ -252,8 +244,8 @@ export function mountQuestWorld(root, { tier = 'full' } = {}) {
     const ready = getBake(art, bakeWidth).then((pictures) => {
         if (destroyed) return;
         bake = pictures;
-        // For support: how the land was painted this time (fresh or from the device cache).
-        world.dataset.paint = `${pictures.fromCache ? 'cache' : 'fresh'}:${pictures.width}:${Math.round(performance.now() - paintStarted)}ms`;
+        // For support: which picture the land drew and how long it took to arrive.
+        world.dataset.paint = `${pictures.width}:${Math.round(performance.now() - paintStarted)}ms`;
         gradeLayers({ fade: false });
         world.classList.add('is-ready');
         front.classList.add('is-ready');
@@ -426,10 +418,9 @@ export function mountQuestWorld(root, { tier = 'full' } = {}) {
     // ── The diorama: tilt, pointer parallax and the camera glide ─────────
     const depthEls = {
         sky: world.querySelector('.tq-world__depth--sky'),
-        far: world.querySelector('.tq-world__depth--far'),
-        near: front.querySelector('.tq-world__depth--near')
+        far: world.querySelector('.tq-world__depth--far')
     };
-    const DEPTH = { sky: 0.12, far: 0.32, stage: 0.6, near: 1 };
+    const DEPTH = { sky: 0.12, far: 0.36, stage: 0.6 };
     const SWAY_X = 18;
     const SWAY_Y = 8;
     // The pointer target is written a few times a second; a CSS transition on

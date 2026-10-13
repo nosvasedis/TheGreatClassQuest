@@ -168,21 +168,20 @@ test('the road and the realm places stay on the map (nothing clipped by the fram
     assert.deepEqual(REALM_PLACES.map((place) => place.progress), REALM_BREAKS.map((realm) => realm.progress));
 });
 
-test('the citadel never stands on the road', () => {
-    // The citadel's towers and walls (world boxes) and the road between them.
-    const buildings = [[992, 454, 1032, 552], [1000, 486, 1300, 546], [1288, 454, 1328, 552]];
-    for (let p = 55; p <= 90; p += 0.25) {
+test('the road passes in front of the citadel walls, through the market', () => {
+    // The painted citadel's front wall runs along y ≈ 545 between x 1060 and 1250.
+    for (let p = 52; p <= 85; p += 0.25) {
         const point = pointAtProgress(p);
-        buildings.forEach(([x0, y0, x1, y1]) => {
-            const inside = point.x > x0 - 16 && point.x < x1 + 16 && point.y > y0 - 16 && point.y < y1 + 16;
-            assert.ok(!inside, `road at ${p}% (${Math.round(point.x)}, ${Math.round(point.y)}) runs into the citadel`);
-        });
+        if (point.x < 1060 || point.x > 1250) continue;
+        assert.ok(point.y > 545, `road at ${p}% (${Math.round(point.x)}, ${Math.round(point.y)}) runs into the citadel`);
     }
 });
 
 test('the Crystal Realm stands clear of the citadel', () => {
-    const isleLeft = PORTAL.x - 114;
-    assert.ok(isleLeft > 1328 + 30, `the portal isle starts at ${isleLeft}, the citadel ends at 1328`);
+    const crystal = REALM_PLACES.find((place) => place.id === 'crystal');
+    const gold = REALM_PLACES.find((place) => place.id === 'gold');
+    assert.ok(crystal.x - crystal.rx > gold.x, 'the portal isle lies beyond the citadel');
+    assert.ok(PORTAL.x > gold.x + gold.rx, 'the Portal is right of the citadel');
 });
 
 test('the land follows the season', () => {
@@ -218,7 +217,7 @@ test('the land is graded for the light and the weather of the shared sky', () =>
 
 test('the Portal ring sits at the end of the road, inside the map', () => {
     const end = pointAtProgress(100);
-    assert.equal(PORTAL.x, Math.round(end.x));
+    assert.ok(Math.hypot(PORTAL.x - end.x, PORTAL.y - end.y) < PORTAL.r * 2.2, 'the ring is where the stair ends');
     assert.ok(PORTAL.y < end.y - PORTAL.r * 0.9, 'the ring stands above where the road arrives');
     assert.ok(PORTAL.y - PORTAL.r - 40 > 0 && PORTAL.x + PORTAL.r + 30 < WORLD_W, 'ring and crown are on the map');
 });

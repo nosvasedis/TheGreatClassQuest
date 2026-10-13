@@ -153,47 +153,99 @@
 .tq-living-map[data-scroll='rolled'] .tq-living-map__frame,
 .tq-living-map[data-scroll='rolled'] .tq-living-map__parchment-backing { visibility: hidden; }
 
+/* The sealed scroll: a silk ribbon round the two rods, closed with a wax seal.
+   It floats gently while the art arrives; the seal breaks (quest_world.css)
+   and the ribbon falls away as the scroll starts to open. */
+.tq-unroll__ribbon,
 .tq-unroll__seal {
     position: absolute;
     top: 50%;
     left: 50%;
-    display: grid;
-    place-items: center;
-    width: clamp(2.4rem, 4.4vw, 3.6rem);
-    aspect-ratio: 1;
-    margin: calc(clamp(2.4rem, 4.4vw, 3.6rem) / -2) 0 0 calc(clamp(2.4rem, 4.4vw, 3.6rem) / -2);
-    border-radius: 47% 53% 50% 50% / 52% 48% 52% 48%;
-    background: radial-gradient(circle at 36% 30%, #e46a62 0%, #b3262f 42%, #7c121b 100%);
-    box-shadow:
-        0 0.35rem 0.6rem rgba(58, 12, 14, 0.42),
-        inset 0 0 0 0.2rem rgba(120, 18, 26, 0.85),
-        inset 0 0 0 0.32rem rgba(240, 140, 128, 0.32);
     opacity: 0;
-    transform: scale(1.5) rotate(10deg);
-    transition: opacity 260ms ease-out, transform 320ms cubic-bezier(0.3, 1.4, 0.5, 1);
+    pointer-events: none;
 }
 
-.tq-unroll__seal-mark {
-    color: #ffd9b8;
-    font-size: clamp(1rem, 1.9vw, 1.5rem);
-    line-height: 1;
-    text-shadow: 0 1px 0 rgba(90, 10, 16, 0.75);
+.tq-unroll__ribbon { width: 14%; aspect-ratio: 6.7; transform: translate(-50%, -50%); }
+
+.tq-unroll__ribbon-half {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 50%;
+    background: var(--ribbon) 0 0 / 200% 100% no-repeat;
+    filter: drop-shadow(0 0.2rem 0.25rem rgba(60, 14, 18, 0.35));
 }
 
-/* Sealed while rolled; the seal breaks as the scroll starts to open. */
-.tq-living-map[data-scroll='rolled'] .tq-unroll__seal {
+.tq-unroll__ribbon-half--l { left: 0; transform-origin: 0 50%; }
+.tq-unroll__ribbon-half--r { right: 0; background-position: 100% 0; transform-origin: 100% 50%; }
+
+.tq-unroll__seal {
+    width: clamp(3rem, 5.4vw, 4.6rem);
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%) scale(1.4) rotate(12deg);
+    transition: opacity 260ms ease-out, transform 360ms cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+.tq-unroll__seal-half {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    user-select: none;
+    filter: drop-shadow(0 0.3rem 0.4rem rgba(58, 12, 14, 0.45));
+}
+
+.tq-unroll__seal-half--l { clip-path: polygon(0 0, 53% 0, 46% 22%, 56% 44%, 45% 63%, 54% 82%, 49% 100%, 0 100%); }
+.tq-unroll__seal-half--r { clip-path: polygon(53% 0, 100% 0, 100% 100%, 49% 100%, 54% 82%, 45% 63%, 56% 44%, 46% 22%); }
+.tq-unroll__seal-flash,
+.tq-unroll__seal-sparks { position: absolute; inset: 0; display: none; }
+
+.tq-living-map[data-scroll='rolled'] .tq-unroll__ribbon,
+.tq-living-map.is-unsealing .tq-unroll__ribbon { opacity: 1; }
+
+.tq-living-map[data-scroll='rolled'] .tq-unroll__seal,
+.tq-living-map.is-unsealing .tq-unroll__seal {
     opacity: 1;
-    transform: none;
+    transform: translate(-50%, -50%);
     transition-delay: 0ms;
 }
 
+.tq-living-map[data-scroll='rolled']:not(.is-unsealing) .tq-unroll { animation: tq-scroll-float 3.2s ease-in-out infinite alternate; }
+
 /* While the art is still on its way the sealed scroll waits with a soft glint. */
-.tq-living-map[data-scroll='rolled']:not(.is-art-ready) .tq-unroll__seal { animation: tq-seal-wait 1.6s ease-in-out infinite; }
+.tq-living-map[data-scroll='rolled']:not(.is-art-ready) .tq-unroll__seal-half { animation: tq-seal-wait 1.6s ease-in-out infinite; }
 
 @keyframes tq-seal-wait {
-    0%, 100% { filter: brightness(1); }
-    50% { filter: brightness(1.18); }
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.82; }
 }
+
+@keyframes tq-scroll-float {
+    from { transform: translate3d(0, -0.25rem, 0); }
+    to { transform: translate3d(0, 0.25rem, 0); }
+}
+
+/* The ink sketch of the world: what the paper shows while it unrolls, before
+   the colours bloom in (quest_world.css). */
+.tq-living-map__ink,
+.tq-living-map__sweep {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: none;
+    pointer-events: none;
+}
+
+.tq-living-map__ink {
+    background:
+        radial-gradient(ellipse at 50% 45%, rgba(255, 251, 232, 0.96), rgba(236, 222, 186, 0.96) 62%, rgba(214, 190, 140, 0.98)),
+        #e9dcb8;
+}
+
+.tq-living-map__ink img { display: block; width: 100%; height: 100%; user-select: none; }
+.tq-living-map:not([data-scroll='open']) .tq-living-map__ink,
+.tq-living-map.is-blooming .tq-living-map__ink { display: block; }
 
 /* Lite effects: modest laptops keep the world, road and parties but skip the
    small creatures, parallax and tilt (quest_world.css). Chosen from device
@@ -229,7 +281,7 @@
    Stroke width is set in JS (viewBox units) so the dash range lines up. */
 .tq-route__fog {
     fill: none;
-    stroke: rgba(246, 236, 210, 0.7);
+    stroke: rgba(244, 236, 216, 0.5);
     stroke-linecap: butt;
     stroke-linejoin: round;
 }
@@ -289,8 +341,8 @@
     position: absolute;
     z-index: 19;
     display: block;
-    /* Exactly the painted ring's opening (worldGeometry.mjs#PORTAL: 2 × 62 of 1600). */
-    width: 7.75%;
+    /* Exactly the painted ring's opening (worldGeometry.mjs#PORTAL: 2 × 30 of 1600). */
+    width: 3.75%;
     aspect-ratio: 1;
     transform: translate(-50%, -50%);
     animation: tq-finish-pulse 2.8s ease-in-out infinite;
@@ -1191,7 +1243,9 @@
     .tq-route-finish__button,
     .tq-map-replay { transition-duration: 0.01ms !important; }
 
-    .tq-unroll { display: none !important; }
+    .tq-unroll,
+    .tq-living-map__ink,
+    .tq-living-map__sweep { display: none !important; }
     .tq-living-map .tq-living-map__frame,
     .tq-living-map .tq-living-map__parchment-backing { clip-path: none !important; }
 }

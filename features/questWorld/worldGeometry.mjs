@@ -22,35 +22,40 @@ export const TOKEN_EDGE_MARGIN = 58;
 // far inside the world, so the diorama tilt and the frame never clip it.
 export const SAFE_MARGIN = 70;
 
-// The road, as the points it passes through (a smooth curve is drawn through them).
-// Meadow village → over the stream bridge → switchbacks up the Silver Peaks to the
-// mountain gate → down over the river bridge → through the Golden Citadel →
-// up the crystal steps of light to the Portal.
+// The road, as the points it passes through (a smooth curve is drawn through them),
+// traced on the painted world (assets/team-quest-map/painted): from the wooden bridge
+// by the meadow village, past the cottages, up through the forest and the snowy
+// switchbacks to the white fortress gate, down the far flank to the arched stone
+// bridge by the waterfall, through the citadel's market square, and up the floating
+// stair of light to the Portal on the crystal isle.
 export const ROUTE_POINTS = Object.freeze([
-    [236, 806], [330, 772], [420, 740], [484, 702], [524, 652],
-    [516, 598], [468, 556], [436, 504], [474, 456], [540, 428],
-    [548, 374], [500, 330], [520, 278], [584, 236],
-    [640, 198], // 14 · the mountain gate (Silver Peaks, 30%)
-    [700, 214], [752, 252], [772, 312], [752, 370], [790, 424],
-    [856, 462], [920, 500], [968, 566],
-    [1036, 604], // 23 · the citadel road (Golden Citadel, 60%), below its walls
-    [1120, 622], [1200, 626], [1290, 612], [1376, 578],
-    [1440, 528], // 28 · the crystal stair's foot (Crystal Realm, 85%)
-    [1464, 468], [1478, 408], [1486, 348], [1490, 292],
-    [1488, 234] // 33 · the Portal (100%)
+    [230, 748], [262, 728], [292, 707], [335, 698], [390, 702], [440, 721],
+    [500, 737], [552, 735], [600, 718], [640, 694], [624, 640], [613, 590],
+    [604, 540], [592, 486], [568, 446], [525, 410], [476, 362], [449, 318],
+    [456, 289], [490, 273], [552, 264], [612, 254], [655, 234], [668, 210],
+    [655, 188], // 24 · the mountain gate (Silver Peaks, 30%)
+    [686, 197], [720, 220], [750, 250], [774, 290], [791, 331], [810, 373],
+    [829, 420], [846, 456], [862, 486], [884, 505], [912, 500], [942, 503],
+    [975, 516], [1012, 535], [1060, 553], [1100, 576], [1142, 596],
+    [1192, 592], // 42 · the citadel market (Golden Citadel, 60%)
+    [1242, 578], [1290, 559], [1328, 540],
+    [1358, 522], // 46 · the foot of the stair of light (Crystal Realm, 85%)
+    [1379, 486], [1391, 436], [1390, 398], [1372, 361], [1347, 330], [1323, 298],
+    [1311, 262], [1312, 229], [1330, 203], [1354, 180],
+    [1372, 160] // 57 · the Portal (100%)
 ].map((point) => Object.freeze(point)));
 
 /** Where each realm's stretch of road begins, by point index. */
 export const REALM_BREAKS = Object.freeze([
     { id: 'bronze', index: 0, progress: 0 },
-    { id: 'silver', index: 14, progress: 30 },
-    { id: 'gold', index: 23, progress: 60 },
-    { id: 'crystal', index: 28, progress: 85 }
+    { id: 'silver', index: 24, progress: 30 },
+    { id: 'gold', index: 42, progress: 60 },
+    { id: 'crystal', index: 46, progress: 85 }
 ]);
 export const ROUTE_END_INDEX = ROUTE_POINTS.length - 1;
 
 /** The Portal's ring: the painted arch and the spinning vortex share these numbers. */
-export const PORTAL = Object.freeze({ x: 1488, y: 158, r: 58 });
+export const PORTAL = Object.freeze({ x: 1404, y: 113, r: 30 });
 
 /**
  * The places on the map that answer a hover or a click: each realm's own
@@ -59,24 +64,26 @@ export const PORTAL = Object.freeze({ x: 1488, y: 158, r: 58 });
  * Realm Overview opens with. The Portal itself is its own place (the ring).
  */
 export const REALM_PLACES = Object.freeze([
-    { id: 'bronze', zone: 'bronze', progress: 0, x: 190, y: 660, rx: 150, ry: 104, label: 'Bronze Meadows', kind: 'The village and its windmill' },
-    { id: 'silver', zone: 'silver', progress: 30, x: 640, y: 168, rx: 74, ry: 62, label: 'Silver Peaks', kind: 'The mountain gate' },
-    { id: 'gold', zone: 'gold', progress: 60, x: 1150, y: 392, rx: 172, ry: 150, label: 'Golden Citadel', kind: 'The citadel' },
-    { id: 'crystal', zone: 'diamond', progress: 85, x: 1488, y: 338, rx: 108, ry: 70, label: 'Crystal Realm', kind: 'The floating isles' }
+    { id: 'bronze', zone: 'bronze', progress: 0, x: 300, y: 610, rx: 200, ry: 104, label: 'Bronze Meadows', kind: 'The village and its windmills' },
+    { id: 'silver', zone: 'silver', progress: 30, x: 614, y: 140, rx: 92, ry: 64, label: 'Silver Peaks', kind: 'The mountain gate' },
+    { id: 'gold', zone: 'gold', progress: 60, x: 1158, y: 380, rx: 150, ry: 160, label: 'Golden Citadel', kind: 'The citadel' },
+    { id: 'crystal', zone: 'diamond', progress: 85, x: 1410, y: 222, rx: 100, ry: 66, label: 'Crystal Realm', kind: 'The floating isles' }
 ].map((place) => Object.freeze(place)));
 
 /** Landmarks the scene hangs things on (the leader's pennant, realm bursts). */
-// Each is where a flagpole stands: the village green, the gate's arch, the
-// citadel's central spire and the edge of the Portal's isle.
+// Each is where a flagpole stands: the village green, the fortress's east
+// tower, the tip of the citadel's great spire and the edge of the Portal's isle.
 export const REALM_LANDMARKS = Object.freeze({
-    bronze: { x: 210, y: 650, label: 'Bronze Meadows' },
-    silver: { x: 640, y: 150, label: 'Silver Peaks' },
-    gold: { x: 1150, y: 212, label: 'Golden Citadel' },
-    crystal: { x: 1388, y: 256, label: 'Crystal Realm' }
+    bronze: { x: 252, y: 640, label: 'Bronze Meadows' },
+    silver: { x: 690, y: 104, label: 'Silver Peaks' },
+    gold: { x: 1150, y: 196, label: 'Golden Citadel' },
+    crystal: { x: 1334, y: 152, label: 'Crystal Realm' }
 });
 
 /** Lanterns stand beside the road at these shares of the journey. */
 export const LANTERN_STOPS = Object.freeze([6, 13, 20, 26, 37, 45, 53, 66, 74, 80, 91]);
+/** How far beside the road's centre a lantern stands (the painted road is about 26 wide). */
+export const LANTERN_SIDE_STEP = 17;
 
 const round1 = (value) => Math.round(value * 10) / 10;
 
@@ -202,8 +209,8 @@ export function lanternPositions() {
         const side = index % 2 === 0 ? 1 : -1;
         return {
             progress,
-            x: round1(point.x + point.normalX * 30 * side),
-            y: round1(point.y + point.normalY * 30 * side)
+            x: round1(point.x + point.normalX * LANTERN_SIDE_STEP * side),
+            y: round1(point.y + point.normalY * LANTERN_SIDE_STEP * side)
         };
     });
 }
@@ -281,8 +288,8 @@ const LIGHT_GRADES = {
     dawn: { tint: '#ffcfc0', tintAlpha: 0.32, glow: '#ffb38a', glowAlpha: 0.22, glowFrom: 'left', saturate: 0.98, brightness: 1, lights: 0.25 },
     day: { tint: '#ffffff', tintAlpha: 0, glow: '#fff3cf', glowAlpha: 0.1, glowFrom: 'left', saturate: 1.04, brightness: 1.02, lights: 0 },
     golden: { tint: '#ffc78a', tintAlpha: 0.34, glow: '#ff9d4d', glowAlpha: 0.26, glowFrom: 'right', saturate: 1.06, brightness: 0.98, lights: 0.35 },
-    twilight: { tint: '#7d6fc4', tintAlpha: 0.55, glow: '#ff8fb0', glowAlpha: 0.16, glowFrom: 'right', saturate: 0.82, brightness: 0.86, lights: 0.8 },
-    night: { tint: '#33427f', tintAlpha: 0.74, glow: '#9fb4ff', glowAlpha: 0.08, glowFrom: 'top', saturate: 0.66, brightness: 0.82, lights: 1 }
+    twilight: { tint: '#7d6fc4', tintAlpha: 0.5, glow: '#ff8fb0', glowAlpha: 0.16, glowFrom: 'right', saturate: 0.84, brightness: 0.9, lights: 0.75 },
+    night: { tint: '#33427f', tintAlpha: 0.62, glow: '#9fb4ff', glowAlpha: 0.08, glowFrom: 'top', saturate: 0.72, brightness: 0.88, lights: 1 }
 };
 const TONE_GRADES = {
     fair: { saturate: 1, brightness: 1, tint: null, tintAlpha: 0 },

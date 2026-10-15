@@ -124,10 +124,12 @@ export async function keepEmberOath(id, { confirmed = false, reflection = {}, oa
         tx.update(scoreRef, {
             inventory: [...inventory, keepsake, ...extra],
             // Star Path bonus stars: monthly and total only (never today's stars), plus the Gold they bring.
-            ...(paid ? { totalStars: increment(perk.stars), ...monthlyStarsChange(tx, current.studentId, scoreData, perk.stars),
-                gold: getLiveYearGold(scoreData, getLiveYearGoldContextFromState(state)) + perk.goldTotal } : {})
+            ...(paid && perk.stars ? { totalStars: increment(perk.stars), ...monthlyStarsChange(tx, current.studentId, scoreData, perk.stars),
+                gold: getLiveYearGold(scoreData, getLiveYearGoldContextFromState(state)) + perk.goldTotal } : {}),
+            ...(paid && !perk.stars ? { gold: getLiveYearGold(scoreData, getLiveYearGoldContextFromState(state)) + perk.goldTotal } : {})
         });
-        if (paid) tx.set(logRef, withSchoolYear({
+        // A logbook row only when the promise brings a bonus star (a milestone); Gold alone needs none.
+        if (paid && perk.stars) tx.set(logRef, withSchoolYear({
             studentId: current.studentId, classId: current.classId, teacherId: c.teacherId,
             stars: perk.stars, appliedStarCredit: perk.stars, reason: EMBER_OATH_AWARD_REASON,
             note: starPathNote(perk, title), oathId: id, starPathRank: perk.rank?.id || '', starPathCount: n, gold: perk.goldTotal,

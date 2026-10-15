@@ -1,6 +1,6 @@
 /**
  * The Star Path: what a child earns each time they keep an Ember Oath, growing with every promise.
- * Each kept promise is one more star in the child's OWN constellation; ranks, bonus stars, Gold and
+ * Each kept promise is one more star in the child's OWN constellation; ranks, Gold, keepsakes and (rarely) bonus stars
  * keepsakes climb with the count. Pure (no DOM, no Firebase). Covered by tests/oath-star-path.test.mjs.
  *
  * Bonus stars from the Star Path go to monthly + total stars only (never today's stars), with their
@@ -28,10 +28,10 @@ const KEEPSAKES = {
     12: { key: 'astrolabe', name: "Sky-Keeper's Astrolabe", icon: '🔭', description: 'Twelve promises kept: a Keeper of the Sky.' }
 };
 
-/** Bonus stars for the n-th promise kept (1, 1, 2, 2, 2, then 3). */
+/** Bonus stars stay rare: one star only on a big milestone (3, 5, 8, 12, then every 4th); otherwise none. */
 export function starsForKept(n) {
     const k = Math.max(1, Math.floor(Number(n) || 1));
-    return k <= 2 ? 1 : k <= 5 ? 2 : 3;
+    return [3, 5, 8, 12].includes(k) || (k > 12 && k % 4 === 0) ? 1 : 0;
 }
 const GOLD = [0, 5, 6, 8, 10, 12, 14, 15, 20, 20, 20, 20, 30];
 /** Gold for the n-th promise kept: grows to 20, a milestone gives more, every 4th after twelve is a 30. */

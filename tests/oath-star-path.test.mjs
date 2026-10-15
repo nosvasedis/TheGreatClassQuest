@@ -8,14 +8,15 @@ test('the Star Path grows with every promise kept and never shrinks', () => {
     let lastStars = 0, lastGold = 0;
     for (let n = 1; n <= 30; n++) {
         const p = oathPerkFor(n);
-        assert.ok(p.stars >= lastStars, 'stars ' + n);
-        assert.ok(p.stars >= 1 && p.stars <= 3);
+        assert.ok(p.stars === 0 || p.stars === 1, 'bonus stars stay rare: ' + n);
+        assert.equal(p.stars, p.milestone && n > 2 || (n > 12 && n % 4 === 0) ? 1 : 0, 'a star only on a big milestone: ' + n);
         if (n <= 12) assert.ok(p.gold >= lastGold, 'gold ' + n);
         assert.ok(p.gold >= 5 && p.gold <= 30);
         assert.equal(p.goldTotal, p.gold + p.stars, 'each bonus star brings its Gold too');
         lastStars = p.stars; lastGold = Math.max(lastGold, p.gold);
     }
-    assert.equal(starsForKept(1), 1); assert.equal(starsForKept(3), 2); assert.equal(starsForKept(9), 3);
+    assert.equal(starsForKept(1), 0); assert.equal(starsForKept(3), 1); assert.equal(starsForKept(9), 0); assert.equal(starsForKept(16), 1);
+    assert.equal([...Array(12)].reduce((sum, _, i) => sum + starsForKept(i + 1), 0), 4, 'four bonus stars across the first twelve promises');
     assert.equal(goldForKept(1), 5); assert.equal(goldForKept(12), 30); assert.equal(goldForKept(16), 30); assert.equal(goldForKept(13), 20);
 });
 

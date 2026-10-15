@@ -279,6 +279,7 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
 #award-stars-tab.award-scroll-pause .aw-roll *::after { animation-play-state: paused !important; }
 
 @media (prefers-reduced-motion: reduce) {
+    .aw-ledger-tip__bar span,
     .aw-roll *,
     .aw-roll *::before,
     .aw-roll *::after { animation: none !important; }
@@ -408,6 +409,148 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
 #app-screen.header-night .aw-roll__note--waiting { color: #bae6fd; }
 #app-screen.header-night .aw-roll__note--away { color: #cbd5e1; }
 #app-screen.header-night .aw-roll__note--full { color: #fde68a; }
+
+
+/* ───────────────────────── The star ledger seal (beside a hero's name) ───────────────────────── */
+
+.aw-ledger {
+    position: absolute;
+    left: calc(100% + 0.3rem);
+    top: 50%;
+    width: 1.35rem;
+    height: 1.35rem;
+    margin-top: -0.675rem;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: 1.5px solid #fff;
+    color: #0369a1;
+    font-size: 0.6rem;
+    background: radial-gradient(circle at 35% 30%, #ffffff, #e0f2fe 70%, #bae6fd);
+    box-shadow: 0 1px 0 rgba(14, 116, 144, 0.25), 0 2px 6px rgba(30, 64, 175, 0.18);
+    cursor: help;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.aw-ledger:hover,
+.aw-ledger:focus-visible { transform: scale(1.18) rotate(-6deg); outline: none; }
+.aw-ledger:focus-visible { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #0ea5e9; }
+
+.aw-ledger--lit { color: #fff; background: radial-gradient(circle at 35% 30%, #fef3c7, #fbbf24 55%, #d97706); }
+.aw-ledger--teamwork { color: #fff; background: radial-gradient(circle at 35% 30%, #ddd6fe, #8b5cf6 60%, #6d28d9); }
+.aw-ledger--creativity { color: #fff; background: radial-gradient(circle at 35% 30%, #fbcfe8, #ec4899 60%, #be185d); }
+.aw-ledger--respect { color: #fff; background: radial-gradient(circle at 35% 30%, #a7f3d0, #10b981 60%, #047857); }
+.aw-ledger--focus { color: #fff; background: radial-gradient(circle at 35% 30%, #fde68a, #f59e0b 60%, #b45309); }
+
+.aw-card.is-absent .aw-ledger { opacity: 0.75; }
+body.projector-mode .aw-ledger { display: none; }
+
+/* The ledger card inside the tooltip */
+.aw-roll-tip.is-rich { max-width: 17.5rem; padding: 0.6rem 0.75rem 0.65rem; }
+.aw-ledger-tip { display: flex; flex-direction: column; gap: 0.3rem; min-width: 14.5rem; }
+.aw-ledger-tip__head { display: flex; align-items: center; gap: 0.5rem; padding-bottom: 0.15rem; }
+.aw-ledger-tip__kicker { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #64748b; }
+
+.aw-ledger-tip__section {
+    margin-top: 0.15rem;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #94a3b8;
+}
+
+.aw-ledger-tip__today {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    align-self: flex-start;
+    padding: 0.18rem 0.6rem 0.18rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #475569;
+    background: #f1f5f9;
+}
+
+.aw-ledger-tip__today.is-lit {
+    color: #fff;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--v, #f59e0b) 80%, #fff), var(--v, #f59e0b));
+    box-shadow: 0 2px 6px color-mix(in srgb, var(--v, #f59e0b) 35%, transparent);
+}
+
+.aw-ledger-tip__today.is-lit b { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-size: 0.9rem; }
+.aw-ledger-tip__today .aw-ledger-tip__star { margin-left: -0.2rem; font-size: 0.62rem; color: #fde68a; }
+.aw-ledger-tip__today.is-away .fa-cloud-rain { color: #60a5fa; }
+
+.aw-ledger-tip__virtues { display: grid; gap: 0.2rem; }
+
+.aw-ledger-tip__virtue {
+    display: grid;
+    grid-template-columns: 0.9rem 4.6rem 1fr 1.6rem;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+.aw-ledger-tip__virtue > i { color: var(--v); font-size: 0.7rem; text-align: center; }
+.aw-ledger-tip__virtue b { text-align: right; font-family: 'Fredoka One', 'Fredoka', sans-serif; color: var(--v); }
+.aw-ledger-tip__virtue.is-empty { opacity: 0.5; }
+
+.aw-ledger-tip__bar {
+    height: 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--v) 14%, #f1f5f9);
+    overflow: hidden;
+}
+
+.aw-ledger-tip__bar span {
+    display: block;
+    width: var(--w, 0%);
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--v) 60%, #fff), var(--v));
+    transform-origin: left;
+}
+
+.aw-roll-tip.is-shown .aw-ledger-tip__bar span { animation: aw-ledger-bar 0.6s cubic-bezier(0.34, 1.2, 0.64, 1) both; }
+
+@keyframes aw-ledger-bar {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+}
+
+.aw-ledger-tip__extra {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.15rem 0.6rem;
+    padding: 0.3rem 0.45rem;
+    border-radius: 0.6rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #475569;
+    background: rgba(241, 245, 249, 0.85);
+}
+
+.aw-ledger-tip__extra b { color: #1e3a8a; }
+.aw-ledger-tip__extra-title { flex-basis: 100%; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #94a3b8; }
+.aw-ledger-tip__extra.is-games { background: rgba(255, 241, 242, 0.9); }
+.aw-ledger-tip__extra.is-games b { color: #be123c; }
+
+.aw-ledger-tip__foot {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.aw-ledger-tip__foot .fa-heart { color: #f472b6; }
+.aw-ledger-tip__foot b { color: #1e3a8a; }
 
 /* A tap on the roll: the hero's cloud glows sky blue (halo opacity only). */
 .aw-card.aw-beckon .aw-cloud__halo {
@@ -922,7 +1065,16 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
     flex-direction: column;
     align-items: center;
     gap: 0.22rem;
+    width: 100%;
     max-width: 100%;
+}
+
+.aw-card__nameline {
+    position: relative;
+    max-width: calc(100% - 3.4rem);
+    min-width: 0;
+    display: flex;
+    justify-content: center;
 }
 
 .aw-card__name {

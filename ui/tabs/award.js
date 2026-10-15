@@ -12,6 +12,7 @@ import {
     buildAwardCloudCardHtml,
     buildAwardFinaleHtml,
     buildAwardHonoursHtml,
+    buildAwardLedgerTipHtml,
     buildAwardSkySummaryHtml,
     buildAwardVirtuesHtml,
     formatAwardStars,
@@ -24,12 +25,15 @@ import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js
 import { getClassDataById, getTeacherBoonForMonth } from '../../features/boons.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 import {
+    getAwardLogMonthlyStarCredit,
+    isBonusOnlyAwardLog,
     mergeMonthlyStarsFromArchivedHistoryAndAwardLogs,
+    shouldShowInStarAwardLog,
     sumMonthlyStarCreditsByStudentFromAwardLogs
 } from '../../features/awardLogReasonMeta.js';
 import { buildHeroTieStats, pickProdigyWinners, rankHeroes } from '../../features/heroRanking.js';
 import { withPendingAwards } from '../../features/awardPending.mjs';
-import { bindAwardRollTips, hideAwardRollTip } from '../awardRollTip.js';
+import { bindAwardRollTips, hideAwardRollTip, registerAwardTipBuilder } from '../awardRollTip.js';
 
 // --- REIGNING PRODIGY CACHE (previous month, with tie-breaker) ---
 let _awardProdigyCacheKey = null;
@@ -434,6 +438,65 @@ function bindAwardSkySummary(el) {
     });
 }
 
+const LEDGER_VIRTUE_KEYS = new Set(['teamwork', 'creativity', 'respect', 'focus']);
+
+/**
+ * A hero's star ledger from this month's award log: stars per virtue, other stars, and
+ * game bonuses kept apart (they are never today's stars). Today's line follows the cloud.
+ */
+function buildAwardLedgerData(studentId) {
+    const student = (state.get('allStudents') || []).find((s) => s.id === studentId);
+    if (!student) return null;
+    const ctx = buildAwardClassContext(student.classId, getClassStudents(student.classId));
+    const day = getStudentDayState(student, ctx);
+    const virtues = { teamwork: 0, creativity: 0, respect: 0, focus: 0 };
+    const other = new Map();
+    const games = new Map();
+    let lastStar = null;
+    for (const log of state.get('allAwardLogs') || []) {
+        if (log.studentId !== studentId || !shouldShowInStarAwardLog(log)) continue;
+        const credit = getAwardLogMonthlyStarCredit(log);
+        if (!credit) continue;
+        const reason = String(log.reason || '');
+        if (isBonusOnlyAwardLog(log)) {
+            games.set(reason, (games.get(reason) || 0) + credit);
+            continue;
+        }
+        if (LEDGER_VIRTUE_KEYS.has(reason)) virtues[reason] += credit;
+        else if (reason !== 'marked_present') other.set(reason, (other.get(reason) || 0) + credit);
+        if (credit > 0 && log.date && !utils.datesMatch(log.date, ctx.today)) {
+            const when = utils.parseFlexibleDate(log.date);
+            if (when && (!lastStar || when > lastStar.when)) lastStar = { when, reason };
+        }
+    }
+    const asList = (map) => [...map].map(([reason, stars]) => ({ reason, stars })).sort((a, b) => b.stars - a.stars);
+    return {
+        name: student.name,
+        avatar: student.avatar || null,
+        status: resolveAwardRollStatus(day),
+        today: { stars: day.starsToday, reason: day.reasonToday },
+        virtues,
+        other: asList(other),
+        games: asList(games),
+        lastStar: lastStar
+            ? { date: lastStar.when.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }), reason: lastStar.reason }
+            : null
+    };
+}
+
+registerAwardTipBuilder('ledger', (target) => {
+    const data = buildAwardLedgerData(target.dataset.ledgerStudent);
+    if (!data) return null;
+    return { html: buildAwardLedgerTipHtml(data), tone: data.status === 'away' ? 'away' : (data.today.stars > 0 ? 'shining' : 'ledger') };
+});
+
+/** The clouds' star ledgers use the same tooltip as the roll. */
+function bindAwardCloudTips(listContainer) {
+    if (!listContainer || listContainer.dataset.tipsBound) return;
+    listContainer.dataset.tipsBound = '1';
+    bindAwardRollTips(listContainer);
+}
+
 // Attendance can change without any cloud redrawing (another computer, a register
 // filled elsewhere), so the roll follows the register itself.
 let awardSummaryFrame = 0;
@@ -558,6 +621,7 @@ export function renderAwardStarsTab(options = {}) {
         : options;
     const studentListContainer = document.getElementById('award-stars-student-list');
     if (!studentListContainer) return;
+    bindAwardCloudTips(studentListContainer);
 
     const selectedClassId = state.get('globalSelectedClassId');
     const allTeachersClasses = state.get('allTeachersClasses');

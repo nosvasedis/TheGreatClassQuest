@@ -9,7 +9,8 @@ import {
     resolveAwardAttendanceMode,
     buildAwardBoonButtonHtml,
     buildAwardSkySummaryHtml,
-    resolveAwardRollStatus
+    resolveAwardRollStatus,
+    buildAwardLedgerTipHtml
 } from '../features/awardCloudCard.mjs';
 
 const baseView = {
@@ -111,4 +112,24 @@ test('star roll status: absence beats stars, returning heroes still wait', () =>
     assert.equal(resolveAwardRollStatus({ starsToday: 1 }), 'shining');
     assert.equal(resolveAwardRollStatus({ starsToday: 0, attendanceMode: 'returning' }), 'returning');
     assert.equal(resolveAwardRollStatus({ starsToday: 0, attendanceMode: 'absent-offer' }), 'waiting');
+});
+
+test('cloud ledger seal takes today\'s virtue and opens the ledger tip', () => {
+    const html = buildAwardCloudCardHtml({ ...baseView, today: 2, locked: true, todayReason: 'focus' });
+    assert.match(html, /class="aw-ledger aw-ledger--focus"[^>]*data-tip-build="ledger"/);
+    assert.doesNotMatch(buildAwardCloudCardHtml(baseView), /aw-ledger--/);
+});
+
+test('star ledger: today, virtues this month, game bonuses apart', () => {
+    const html = buildAwardLedgerTipHtml({
+        name: 'Alex', status: 'shining', today: { stars: 2, reason: 'teamwork' },
+        virtues: { teamwork: 5, focus: 2 }, other: [{ reason: 'peer_boon', stars: 0.5 }],
+        games: [{ reason: 'showdown', stars: 3 }], lastStar: { date: 'Tue 13 Oct', reason: 'focus' }
+    });
+    assert.match(html, /<b>\+2<\/b>[\s\S]*Teamwork/);
+    assert.match(html, /Game bonuses[\s\S]*Showdown Arena <b>\+3<\/b>/);
+    assert.match(html, /Strongest virtue this month: <b>Teamwork<\/b>/);
+    assert.match(html, /Last star before today: Tue 13 Oct, Focus/);
+    assert.match(buildAwardLedgerTipHtml({ name: 'B', status: 'away' }), /Away today/);
+    assert.match(buildAwardLedgerTipHtml({ name: 'B', status: 'waiting' }), /No star yet today/);
 });

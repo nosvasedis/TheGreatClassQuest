@@ -175,7 +175,10 @@ test('challenges: four league bands, a fresh one on "Another one"', async () => 
   assert.equal(riddle.seconds, CHALLENGE_SECONDS.riddle);
   assert.ok(bank.riddles.j.some((r) => r.q === riddle.text));
   // older callers' band names still work
-  assert.ok(bank.riddles.j.some((r) => r.q === drawChallenge('riddle', 'young').text));
+  // draw once: drawing inside the callback picked a new riddle for every comparison, so it
+  // failed about one run in three
+  const young = drawChallenge('riddle', 'young');
+  assert.ok(bank.riddles.j.some((r) => r.q === young.text));
 
   for (let i = 0; i < 50; i += 1) {
     assert.notEqual(drawChallenge('riddle', 'm', { previous: riddle }).text, riddle.text);

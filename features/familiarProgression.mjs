@@ -1,13 +1,60 @@
+// features/familiarProgression.mjs — how a familiar grows.
+//
+// A familiar grows with its "bond": the stars its hero has earned since the egg was bought.
+// The bond is kept on the familiar itself as { banked, anchor, year }:
+//   bond now = banked + (this year's totalStars - anchor)
+// so it survives the yearly star reset (totalStars goes back to 0 when a school year closes,
+// but the familiar stays). When the school year changes, the stars earned with the familiar in
+// the closed year are banked and the anchor restarts at 0.
+//
+// Pure module: no DOM, no Firebase.
+
+/** Bond (stars together) needed to reach each level. Index = level. */
+export const FAMILIAR_STAGE_BOND = [0, 20, 80, 160];
+export const FAMILIAR_MAX_LEVEL = FAMILIAR_STAGE_BOND.length - 1;
+
+/** Kept for older callers: hatch after 20, then +60 and +140 stars after hatching. */
 export const FAMILIAR_LEVEL_THRESHOLDS = {
-    hatch: 20,
-    level2: 60,
-    level3: 140
+    hatch: FAMILIAR_STAGE_BOND[1],
+    level2: FAMILIAR_STAGE_BOND[2] - FAMILIAR_STAGE_BOND[1],
+    level3: FAMILIAR_STAGE_BOND[3] - FAMILIAR_STAGE_BOND[1]
 };
 
 function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
 }
 
+function num(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+}
+
+/** The bond needed for a level (0 = egg). */
+export function bondForLevel(level) {
+    const lvl = clamp(Math.floor(num(level)), 0, FAMILIAR_MAX_LEVEL);
+    return FAMILIAR_STAGE_BOND[lvl];
+}
+
+/** The level a bond reaches. */
+export function levelForBond(bond) {
+    const b = num(bond);
+    let level = 0;
+    for (let i = 1; i <= FAMILIAR_MAX_LEVEL; i++) {
+        if (b >= FAMILIAR_STAGE_BOND[i]) level = i;
+    }
+    return level;
+}
+
+function aliveLevel(familiar) {
+    return familiar?.state === 'alive' ? clamp(Math.floor(num(familiar.level)), 0, FAMILIAR_MAX_LEVEL) : 0;
+}
+
+export function hasStoredBond(familiar) {
+    const bond = familiar?.bond;
+    return Boolean(bond && typeof bond === 'object' && Number.isFinite(Number(bond.banked)) && Number.isFinite(Number(bond.anchor)));
+}
+
+/** Older saves stored the star total at hatch (or, before that, at the last level-up). */
 export function deriveLegacyStarsAtHatch(familiar) {
     if (!familiar || familiar.state === 'egg') return null;
     if (typeof familiar.starsAtHatch === 'number') return familiar.starsAtHatch;
@@ -20,80 +67,99 @@ export function deriveLegacyStarsAtHatch(familiar) {
     return legacy;
 }
 
-export function getEffectiveStarsAtHatch(familiar, totalStars) {
-    if (!familiar) return totalStars ?? 0;
+/**
+ * A familiar saved before the bond existed: work out its bond from the star total at purchase.
+ * When the star total has been reset since then (a new school year), `priorYear` can carry the
+ * last closed year's final star total; every star of the current year was earned together.
+ * A familiar never loses a stage it already reached.
+ * @param {object} familiar
+ * @param {number} totalStars
+ * @param {{ resetSincePurchase?: boolean, priorYearTotal?: number|null }} [priorYear]
+ */
+export function estimateLegacyBond(familiar, totalStars, priorYear = {}) {
+    if (!familiar) return 0;
+    const total = Math.max(0, num(totalStars));
+    const purchase = Math.max(0, num(familiar.starsWhenPurchased));
+    const floor = bondForLevel(aliveLevel(familiar));
+    if (priorYear.resetSincePurchase) {
+        const lastYear = typeof priorYear.priorYearTotal === 'number' ? Math.max(0, priorYear.priorYearTotal - purchase) : 0;
+        return Math.max(floor, lastYear) + total;
+    }
+    return Math.max(floor, total - purchase);
+}
 
-    const explicit = deriveLegacyStarsAtHatch(familiar);
-    if (typeof explicit === 'number') return explicit;
+/** Stars earned together right now. */
+export function getFamiliarBond(familiar, totalStars) {
+    if (!familiar) return 0;
+    const total = Math.max(0, num(totalStars));
+    if (hasStoredBond(familiar)) {
+        const banked = Math.max(0, num(familiar.bond.banked));
+        const anchor = Math.max(0, num(familiar.bond.anchor));
+        return banked + Math.max(0, total - anchor);
+    }
+    return estimateLegacyBond(familiar, total);
+}
 
-    const purchaseStars = familiar.starsWhenPurchased || 0;
-    return purchaseStars + FAMILIAR_LEVEL_THRESHOLDS.hatch;
+/** A fresh bond record for a familiar bought (or re-anchored) right now. */
+export function createFamiliarBond(totalStars, yearKey = null, banked = 0) {
+    return { banked: Math.max(0, Math.round(num(banked))), anchor: Math.max(0, num(totalStars)), year: yearKey || null };
+}
+
+/**
+ * The bond record after a school-year change: the closed year's stars are banked and the
+ * anchor restarts at 0 (the new year's star total starts from 0).
+ * @param {object} bond   the stored bond
+ * @param {number|null} closedYearTotal  the hero's final star total for the closed year, if known
+ * @param {string|null} newYearKey
+ */
+export function rollFamiliarBondOver(bond, closedYearTotal, newYearKey) {
+    const banked = Math.max(0, num(bond?.banked));
+    const anchor = Math.max(0, num(bond?.anchor));
+    const closed = typeof closedYearTotal === 'number' ? Math.max(0, closedYearTotal - anchor) : 0;
+    return { banked: banked + closed, anchor: 0, year: newYearKey || null };
 }
 
 export function getUnlockedFamiliarLevel(familiar, totalStars) {
     if (!familiar) return 0;
-
-    const starsSincePurchase = Math.max(0, (totalStars || 0) - (familiar.starsWhenPurchased || 0));
-    if (starsSincePurchase < FAMILIAR_LEVEL_THRESHOLDS.hatch) {
-        return 0;
-    }
-
-    const starsAtHatch = getEffectiveStarsAtHatch(familiar, totalStars);
-    const starsSinceHatch = Math.max(0, (totalStars || 0) - starsAtHatch);
-
-    if (starsSinceHatch >= FAMILIAR_LEVEL_THRESHOLDS.level3) return 3;
-    if (starsSinceHatch >= FAMILIAR_LEVEL_THRESHOLDS.level2) return 2;
-    return 1;
+    return levelForBond(getFamiliarBond(familiar, totalStars));
 }
 
+/**
+ * Where a familiar stands on its way to the next stage.
+ * phase: 'egg' | 'level1' | 'level2' | ... | 'max'
+ */
 export function getFamiliarProgress(familiar, totalStars) {
-    const unlockedLevel = getUnlockedFamiliarLevel(familiar, totalStars);
-    const currentLevel = familiar?.state === 'alive' ? (familiar.level || 0) : 0;
-    const effectiveLevel = Math.max(currentLevel, unlockedLevel);
+    const bond = getFamiliarBond(familiar, totalStars);
+    const unlockedLevel = levelForBond(bond);
+    const effectiveLevel = Math.max(aliveLevel(familiar), unlockedLevel);
 
     if (!familiar || effectiveLevel === 0 || familiar.state === 'egg') {
-        const current = Math.max(0, (totalStars || 0) - (familiar?.starsWhenPurchased || 0));
+        const max = FAMILIAR_STAGE_BOND[1];
         return {
             phase: 'egg',
-            current,
+            bond,
+            current: clamp(bond, 0, max),
             min: 0,
-            max: FAMILIAR_LEVEL_THRESHOLDS.hatch,
-            remaining: Math.max(0, FAMILIAR_LEVEL_THRESHOLDS.hatch - current),
+            max,
+            remaining: Math.max(0, max - bond),
             unlockedLevel: effectiveLevel
         };
     }
 
-    const starsAtHatch = getEffectiveStarsAtHatch(familiar, totalStars);
-    const starsSinceHatch = Math.max(0, (totalStars || 0) - starsAtHatch);
-
-    if (effectiveLevel >= 3) {
-        return {
-            phase: 'max',
-            current: FAMILIAR_LEVEL_THRESHOLDS.level3,
-            min: FAMILIAR_LEVEL_THRESHOLDS.level3,
-            max: FAMILIAR_LEVEL_THRESHOLDS.level3,
-            remaining: 0,
-            unlockedLevel: effectiveLevel
-        };
+    if (effectiveLevel >= FAMILIAR_MAX_LEVEL) {
+        const top = FAMILIAR_STAGE_BOND[FAMILIAR_MAX_LEVEL];
+        return { phase: 'max', bond, current: top, min: top, max: top, remaining: 0, unlockedLevel: effectiveLevel };
     }
 
-    if (effectiveLevel === 1) {
-        return {
-            phase: 'level1',
-            current: clamp(starsSinceHatch, 0, FAMILIAR_LEVEL_THRESHOLDS.level2),
-            min: 0,
-            max: FAMILIAR_LEVEL_THRESHOLDS.level2,
-            remaining: Math.max(0, FAMILIAR_LEVEL_THRESHOLDS.level2 - starsSinceHatch),
-            unlockedLevel: effectiveLevel
-        };
-    }
-
+    const min = FAMILIAR_STAGE_BOND[effectiveLevel];
+    const max = FAMILIAR_STAGE_BOND[effectiveLevel + 1];
     return {
-        phase: 'level2',
-        current: clamp(starsSinceHatch, FAMILIAR_LEVEL_THRESHOLDS.level2, FAMILIAR_LEVEL_THRESHOLDS.level3),
-        min: FAMILIAR_LEVEL_THRESHOLDS.level2,
-        max: FAMILIAR_LEVEL_THRESHOLDS.level3,
-        remaining: Math.max(0, FAMILIAR_LEVEL_THRESHOLDS.level3 - starsSinceHatch),
+        phase: `level${effectiveLevel}`,
+        bond,
+        current: clamp(bond, min, max),
+        min,
+        max,
+        remaining: Math.max(0, max - bond),
         unlockedLevel: effectiveLevel
     };
 }

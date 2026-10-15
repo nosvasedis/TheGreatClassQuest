@@ -47,7 +47,7 @@ import { updateCeremonyStatus } from "../features/ceremony.js";
 import * as utils from "../utils.js";
 import { DEFAULT_SCHOOL_NAME } from "../constants.js";
 import * as modals from "../ui/modals.js";
-import { renderFamiliarOptionsUi } from "../features/familiars.js";
+import { renderFamiliarOptionsUi, scheduleFamiliarGrowthSweep } from "../features/familiars.js";
 import { renderHomeTab } from "../features/home.js";
 import { refreshSetupClassesList } from "../features/schoolSetup.js";
 import {
@@ -1146,6 +1146,7 @@ export async function setupDataListeners(
                         }),
                     );
                 state.setAllStudentScores(allStudentScores);
+                scheduleFamiliarGrowthSweep();
                 snapshot.docChanges().forEach((change) => {
                     if (change.type === "added" || change.type === "modified") {
                         const scoreData = change.doc.data();

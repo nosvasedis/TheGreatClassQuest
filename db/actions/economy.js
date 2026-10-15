@@ -929,7 +929,7 @@ export async function handleBuyFamiliarEgg(studentId, typeId) {
                 : typeDef.price;
             if (currentGold < finalPrice) throw new Error(`Not enough Gold! Need ${finalPrice}🪙.`);
             newGoldBalance = currentGold - finalPrice;
-            familiarData = buildFamiliarInitData(typeId, scoreData.totalStars || 0, studentId);
+            familiarData = buildFamiliarInitData(typeId, scoreData.totalStars || 0, studentId, scoreData.activeSchoolYearKey || null);
 
             const scoreUpdate = {
                 gold: newGoldBalance,

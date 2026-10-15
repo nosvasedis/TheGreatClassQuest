@@ -10,11 +10,16 @@ import { showToast } from '../ui/effects.js';
 import { detectLowPowerTier } from '../utils/devicePerformance.mjs';
 import {
     FAMILIAR_LEVEL_THRESHOLDS,
-    deriveLegacyStarsAtHatch,
-    getEffectiveStarsAtHatch,
+    FAMILIAR_MAX_LEVEL,
+    bondForLevel,
+    createFamiliarBond,
+    estimateLegacyBond,
+    getFamiliarBond,
     getUnlockedFamiliarLevel,
     getFamiliarProgress,
-    getFamiliarProgressPercent
+    getFamiliarProgressPercent,
+    hasStoredBond,
+    rollFamiliarBondOver
 } from './familiarProgression.mjs';
 import { getFamiliarVariant, normalizeFamiliarName } from './familiarIdentity.mjs';
 import {
@@ -33,7 +38,7 @@ import {
 import { PUBLIC_DATA_PATH as publicDataPath } from '../utils/tenant.mjs';
 
 const familiarOps = new Map();
-const FAMILIAR_SCHEMA_VERSION = 3;
+const FAMILIAR_SCHEMA_VERSION = 4;
 
 export { FAMILIAR_LEVEL_THRESHOLDS };
 
@@ -143,13 +148,14 @@ export function playFamiliarCall(familiar, studentId = '') {
 
 // ─── LIFECYCLE ────────────────────────────────────────────────────────────────
 
-export function buildFamiliarInitData(typeId, currentTotalStars, studentId = '') {
+export function buildFamiliarInitData(typeId, currentTotalStars, studentId = '', yearKey = null) {
     const variant = getFamiliarVariant(typeId, studentId);
     return {
         typeId,
         state: 'egg',
         level: 0,
         starsWhenPurchased: currentTotalStars,
+        bond: createFamiliarBond(currentTotalStars, yearKey),
         starsWhenHatched: 0,
         starsAtHatch: null,
         name: '',
@@ -191,8 +197,11 @@ async function _reconcileFamiliarLifecycle(studentId, options = {}) {
     if (!scoreData?.familiar) return null;
 
     let familiar = scoreData.familiar;
-    const totalStars = scoreData.totalStars || 0;
+    const totalStars = Number(scoreData.totalStars) || 0;
+    const yearKey = scoreData.activeSchoolYearKey || null;
     const migrationUpdates = _buildMigrationUpdates(familiar, studentId);
+    const bondUpdate = await _buildBondUpdate(familiar, studentId, totalStars, yearKey);
+    if (bondUpdate) migrationUpdates['familiar.bond'] = bondUpdate;
     if (Object.keys(migrationUpdates).length) {
         await updateDoc(scoreRef, migrationUpdates);
         familiar = _mergeFamiliar(familiar, migrationUpdates);
@@ -200,17 +209,19 @@ async function _reconcileFamiliarLifecycle(studentId, options = {}) {
 
     const currentLevel = familiar.state === 'alive' ? (familiar.level || 0) : 0;
     const unlockedLevel = getUnlockedFamiliarLevel(familiar, totalStars);
-    const desiredLevel = Math.max(currentLevel, unlockedLevel);
+    const desiredLevel = Math.min(FAMILIAR_MAX_LEVEL, Math.max(currentLevel, unlockedLevel));
     const desiredState = desiredLevel > 0 || familiar.state === 'alive' ? 'alive' : 'egg';
     const levelChanged = (familiar.level || 0) !== desiredLevel || familiar.state !== desiredState;
     const progressionUpdates = {};
 
     if (desiredState === 'alive') {
-        const starsAtHatch = getEffectiveStarsAtHatch(familiar, totalStars);
         if (familiar.state !== 'alive') progressionUpdates['familiar.state'] = 'alive';
         if ((familiar.level || 0) !== desiredLevel) progressionUpdates['familiar.level'] = desiredLevel;
-        if (familiar.starsWhenHatched !== starsAtHatch) progressionUpdates['familiar.starsWhenHatched'] = starsAtHatch;
-        if (familiar.starsAtHatch !== starsAtHatch) progressionUpdates['familiar.starsAtHatch'] = starsAtHatch;
+        if (typeof familiar.starsAtHatch !== 'number') {
+            // Kept for older screens; the bond is what drives growth now.
+            progressionUpdates['familiar.starsAtHatch'] = totalStars;
+            progressionUpdates['familiar.starsWhenHatched'] = totalStars;
+        }
     } else {
         if (familiar.state !== 'egg') progressionUpdates['familiar.state'] = 'egg';
         if ((familiar.level || 0) !== 0) progressionUpdates['familiar.level'] = 0;
@@ -221,10 +232,103 @@ async function _reconcileFamiliarLifecycle(studentId, options = {}) {
         familiar = _mergeFamiliar(familiar, progressionUpdates);
     }
 
+    if (Object.keys(migrationUpdates).length || Object.keys(progressionUpdates).length) {
+        _patchLocalFamiliarState(studentId, () => familiar);
+    }
+
     if (levelChanged && options.announce && desiredLevel > 0) {
         _announceStageChange(studentId, familiar, desiredLevel);
     }
     return { level: desiredLevel };
+}
+
+function previousYearKey(yearKey) {
+    const m = /^(\d{4})-(\d{4})$/.exec(String(yearKey || ''));
+    return m ? `${Number(m[1]) - 1}-${Number(m[2]) - 1}` : null;
+}
+
+/** The hero's final star total for a closed school year, from the year-close snapshot. */
+async function closedYearTotal(studentId, yearKey) {
+    if (!yearKey) return null;
+    try {
+        const snap = await getDoc(doc(db, `${publicDataPath}/student_year_snapshots`, `${studentId}_${yearKey}`));
+        if (!snap.exists()) return null;
+        const total = Number(snap.data()?.totalStars);
+        return Number.isFinite(total) ? total : null;
+    } catch (error) {
+        console.warn('Could not read last year\'s stars for the familiar:', error);
+        return null;
+    }
+}
+
+/**
+ * Keep the familiar's bond (stars earned together) right across school years.
+ * Returns the new bond to save, or null when nothing changes.
+ */
+async function _buildBondUpdate(familiar, studentId, totalStars, yearKey) {
+    if (!familiar) return null;
+
+    if (!hasStoredBond(familiar)) {
+        // A familiar from before the bond: if the star total is now below the total at purchase,
+        // the year was reset since the egg was bought, so last year's stars are looked up.
+        const purchase = Number(familiar.starsWhenPurchased) || 0;
+        let priorYear = {};
+        if (totalStars < purchase) {
+            const lastYear = await closedYearTotal(studentId, previousYearKey(yearKey));
+            if (typeof lastYear === 'number' && lastYear >= purchase) {
+                priorYear = { resetSincePurchase: true, priorYearTotal: lastYear };
+            }
+        }
+        const bond = estimateLegacyBond(familiar, totalStars, priorYear);
+        return createFamiliarBond(totalStars, yearKey, bond);
+    }
+
+    const stored = familiar.bond;
+    if (yearKey && stored.year && stored.year !== yearKey) {
+        // A new school year: bank what was earned together in the year that closed.
+        const closedTotal = await closedYearTotal(studentId, stored.year);
+        const rolled = rollFamiliarBondOver(stored, closedTotal, yearKey);
+        // Never let a stage already reached slip back.
+        const floor = bondForLevel(familiar.state === 'alive' ? familiar.level : 0);
+        if (rolled.banked < floor) rolled.banked = floor;
+        return rolled;
+    }
+    if (yearKey && !stored.year) return { ...stored, year: yearKey };
+    return null;
+}
+
+let sweepTimer = null;
+let sweepRuns = 0;
+
+/**
+ * Stars arrive from many places (games, oaths, boons, quests), not all of which call the
+ * familiar check. Whenever the scores change, any familiar of this teacher's own students
+ * that has earned a new stage (or still needs its bond saved) is brought up to date.
+ */
+export function scheduleFamiliarGrowthSweep() {
+    if (typeof window === 'undefined') return;
+    clearTimeout(sweepTimer);
+    sweepTimer = setTimeout(runFamiliarGrowthSweep, 1200);
+}
+
+function runFamiliarGrowthSweep() {
+    const userId = state.get('currentUserId');
+    if (!userId) return;
+    const announce = sweepRuns++ > 0;
+    const owned = new Set((state.get('allStudents') || [])
+        .filter((s) => s.createdBy?.uid === userId)
+        .map((s) => s.id));
+    for (const score of state.get('allStudentScores') || []) {
+        const familiar = score?.familiar;
+        if (!familiar || !owned.has(score.id) || !FAMILIAR_TYPES[familiar.typeId]) continue;
+        const stored = familiar.state === 'alive' ? (Number(familiar.level) || 0) : 0;
+        const unlocked = getUnlockedFamiliarLevel(familiar, Number(score.totalStars) || 0);
+        const bondStale = !hasStoredBond(familiar)
+            || (score.activeSchoolYearKey && familiar.bond?.year !== score.activeSchoolYearKey);
+        if (unlocked > stored || bondStale) {
+            reconcileFamiliarLifecycle(score.id, { announce, source: 'sweep' });
+        }
+    }
 }
 
 /**
@@ -237,15 +341,6 @@ function _buildMigrationUpdates(familiar, studentId = '') {
     if (!familiar) return updates;
 
     if (familiar.schemaVersion !== FAMILIAR_SCHEMA_VERSION) updates['familiar.schemaVersion'] = FAMILIAR_SCHEMA_VERSION;
-
-    if (familiar.state !== 'egg') {
-        const starsAtHatch = deriveLegacyStarsAtHatch(familiar);
-        if (typeof starsAtHatch === 'number') {
-            if (familiar.starsAtHatch !== starsAtHatch) updates['familiar.starsAtHatch'] = starsAtHatch;
-            if (familiar.starsWhenHatched !== starsAtHatch) updates['familiar.starsWhenHatched'] = starsAtHatch;
-        }
-    }
-
     if (!('name' in familiar)) updates['familiar.name'] = '';
     if (!familiar.variant) updates['familiar.variant'] = getFamiliarVariant(familiar.typeId, studentId);
     if (!familiar.look || familiar.look.v !== FAMILIAR_LOOK_VERSION) {
@@ -446,7 +541,7 @@ export function openFamiliarStatsOverlay(studentId) {
 
     const level = familiar.level || 1;
     const starsTotal = scoreData.totalStars || 0;
-    const starsTogether = Math.max(0, starsTotal - (familiar.starsWhenPurchased || 0));
+    const starsTogether = getFamiliarBond(familiar, starsTotal);
     const progress = getFamiliarProgress(familiar, starsTotal);
     const progressPercent = getFamiliarProgressPercent(progress);
     const isMaxLevel = progress.phase === 'max';

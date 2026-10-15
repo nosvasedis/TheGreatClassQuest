@@ -171,20 +171,26 @@ export function buildAwardHonoursHtml(honours = {}) {
     return chips.join('');
 }
 
+/** Today, Month and Total each open their own star card (ui/awardRollTip.js builds it on hover). */
+function tallyTipAttrs(view, kind) {
+    const label = { today: 'Stars today', month: 'Stars this month', total: 'Stars all year' }[kind];
+    return `data-tip-build="star-${kind}" data-ledger-student="${esc(view.id)}" tabindex="0" aria-label="${esc(label)}"`;
+}
+
 function tallyHtml(view) {
     const id = esc(view.id);
     const today = Number(view.today) || 0;
     const pips = [1, 2, 3].map((n) => `<i class="aw-tally__pip${today >= n ? ' is-lit' : ''}" aria-hidden="true"></i>`).join('');
     return `<div class="award-counters-row aw-tally" role="group" aria-label="Stars">`
-        + `<div class="aw-tally__item aw-tally__item--today" title="Stars today">`
+        + `<div class="aw-tally__item aw-tally__item--today" ${tallyTipAttrs(view, 'today')}>`
         + `<span class="aw-tally__sigil" aria-hidden="true"><i class="fas fa-sun"></i></span>`
         + `<span class="aw-tally__value font-title" id="today-stars-${id}">${esc(formatAwardStars(today))}</span>`
         + `<span class="aw-tally__label">Today</span><span class="aw-tally__pips">${pips}</span></div>`
-        + `<div class="aw-tally__item aw-tally__item--month" title="Stars this month">`
+        + `<div class="aw-tally__item aw-tally__item--month" ${tallyTipAttrs(view, 'month')}>`
         + `<span class="aw-tally__sigil" aria-hidden="true"><i class="fas fa-moon"></i></span>`
         + `<span class="aw-tally__value font-title" id="monthly-stars-${id}">${esc(formatAwardStars(view.month))}</span>`
         + `<span class="aw-tally__label">Month</span></div>`
-        + `<div class="aw-tally__item aw-tally__item--total" title="Stars all year">`
+        + `<div class="aw-tally__item aw-tally__item--total" ${tallyTipAttrs(view, 'total')}>`
         + `<span class="aw-tally__sigil" aria-hidden="true"><i class="fas fa-star"></i></span>`
         + `<span class="aw-tally__value font-title" id="total-stars-${id}">${esc(formatAwardStars(view.total))}</span>`
         + `<span class="aw-tally__label">Total</span></div>`
@@ -314,7 +320,7 @@ export function buildAwardCloudCardHtml(view) {
         + `<button type="button" id="post-award-undo-${esc(id)}" class="post-award-undo-btn aw-undo${locked ? '' : ' hidden'}" title="Undo today's award" aria-label="Undo today's award"><i class="fas fa-rotate-left" aria-hidden="true"></i><span class="aw-undo__tip">Undo</span></button></div>`
         + `<header class="aw-card__head">${familiarHtml(view)}${portraitHtml(view)}${purseHtml(view)}</header>`
         + `<div class="card-content-wrapper aw-card__body">`
-        + `<div class="aw-card__nameplate">${heroRibbonHtml(view)}<div class="aw-card__nameline"><h3 class="aw-card__name font-title">${esc(view.name)}</h3>${buildAwardLedgerButtonHtml(view)}</div>`
+        + `<div class="aw-card__nameplate">${heroRibbonHtml(view)}<h3 class="aw-card__name font-title">${esc(view.name)}</h3>`
         + `<div class="aw-card__honours">${honoursHtml}</div></div>`
         + tallyHtml(view)
         + `<div class="aw-card__desk">${desk}</div>`
@@ -415,47 +421,63 @@ export const AWARD_REASON_NAMES = {
     showdown: 'Showdown Arena', correction: 'Correction'
 };
 
-/**
- * The little seal beside a hero's name: tinted with today's virtue once they shine.
- * Hovering or tapping it opens the star ledger (ui/awardRollTip.js builds it on demand).
- */
-export function buildAwardLedgerButtonHtml(view) {
-    const virtue = view.locked ? AWARD_VIRTUES.find((v) => v.key === view.todayReason) : null;
-    const lit = Number(view.today) > 0;
-    const icon = virtue ? virtue.icon : 'fa-star';
-    const label = `${view.name}: star ledger`;
-    return `<button type="button" class="aw-ledger${virtue ? ` aw-ledger--${virtue.key}` : (lit ? ' aw-ledger--lit' : '')}" data-ledger-student="${esc(view.id)}" data-tip-build="ledger" aria-label="${esc(label)}">`
-        + `<i class="fas ${icon}" aria-hidden="true"></i></button>`;
-}
-
-/**
- * The star ledger card.
- * data: { name, avatar, status: 'shining'|'waiting'|'returning'|'away', today: {stars, reason},
- *   virtues: {teamwork, creativity, respect, focus} (this month), other: [{reason, stars}],
- *   games: [{reason, stars}], lastStar: {date, reason} | null }
- */
-export function buildAwardLedgerTipHtml(data = {}) {
+function ledgerHead(data, kicker) {
     const first = String(data.name || '?');
     const face = data.avatar
         ? `<img class="aw-roll-tip__face" src="${esc(data.avatar)}" alt="">`
         : `<span class="aw-roll-tip__face aw-roll-tip__face--initial">${esc(first.charAt(0))}</span>`;
+    return `<span class="aw-ledger-tip__head" data-initial="${esc(first.charAt(0))}">${face}<span class="aw-roll-tip__text"><b>${esc(first)}</b>`
+        + `<span class="aw-ledger-tip__kicker">${esc(kicker)}</span></span></span>`;
+}
+
+function reasonChips(reasons = []) {
+    return reasons.map((r) => {
+        const virtue = AWARD_VIRTUES.find((v) => v.key === r.reason);
+        const color = virtue ? LEDGER_VIRTUE_COLORS[virtue.key] : '#6366f1';
+        return `<span class="aw-ledger-tip__chip" style="--v:${color}"><i class="fas ${virtue ? virtue.icon : 'fa-star'}" aria-hidden="true"></i>`
+            + `${esc(AWARD_REASON_NAMES[r.reason] || r.reason)}<b>+${esc(formatAwardStars(r.stars))}</b></span>`;
+    }).join('');
+}
+
+function bigStars(n, cls = '') {
+    return `<span class="aw-ledger-tip__big ${cls}"><b>${esc(formatAwardStars(n))}</b><i class="fas fa-star" aria-hidden="true"></i></span>`;
+}
+
+/**
+ * Today's card (the Today chip).
+ * data: { name, avatar, status, today: {stars, reasons: [{reason, stars}]},
+ *   lastLesson: { date, away, stars, reasons, loading } | null }
+ */
+export function buildAwardTodayTipHtml(data = {}) {
     const todayStars = Number(data.today?.stars) || 0;
-    const todayReason = data.today?.reason || null;
-    const todayVirtue = AWARD_VIRTUES.find((v) => v.key === todayReason);
     let todayHtml;
     if (data.status === 'away') {
-        todayHtml = '<span class="aw-ledger-tip__today is-away"><i class="fas fa-cloud-rain" aria-hidden="true"></i>Away today</span>';
+        todayHtml = '<span class="aw-ledger-tip__status is-away"><i class="fas fa-cloud-rain" aria-hidden="true"></i>Away today</span>';
     } else if (todayStars > 0) {
-        const what = todayVirtue ? todayVirtue.name : (AWARD_REASON_NAMES[todayReason] || 'Stars');
-        const color = todayVirtue ? ` style="--v:${LEDGER_VIRTUE_COLORS[todayVirtue.key]}"` : '';
-        todayHtml = `<span class="aw-ledger-tip__today is-lit"${color}><i class="fas ${todayVirtue ? todayVirtue.icon : 'fa-star'}" aria-hidden="true"></i>`
-            + `<b>+${esc(formatAwardStars(todayStars))}</b><i class="fas fa-star aw-ledger-tip__star" aria-hidden="true"></i>${esc(what)}</span>`;
+        todayHtml = `<span class="aw-ledger-tip__row">${bigStars(todayStars, 'is-gold')}<span class="aw-ledger-tip__chips">${reasonChips(data.today.reasons)}</span></span>`;
     } else if (data.status === 'returning') {
-        todayHtml = '<span class="aw-ledger-tip__today"><i class="fas fa-cloud-sun" aria-hidden="true"></i>Back from an absence</span>';
+        todayHtml = '<span class="aw-ledger-tip__status"><i class="fas fa-cloud-sun" aria-hidden="true"></i>Back from an absence: welcome them!</span>';
     } else {
-        todayHtml = '<span class="aw-ledger-tip__today"><i class="fas fa-hourglass-half" aria-hidden="true"></i>No star yet today</span>';
+        todayHtml = '<span class="aw-ledger-tip__status"><i class="fas fa-hourglass-half" aria-hidden="true"></i>No star yet today</span>';
     }
+    const last = data.lastLesson;
+    let lastHtml = '';
+    if (last) {
+        const when = `<span class="aw-ledger-tip__section">Last lesson · ${esc(last.date)}</span>`;
+        if (last.loading) lastHtml = `${when}<span class="aw-ledger-tip__status is-soft"><i class="fas fa-feather" aria-hidden="true"></i>Opening the log…</span>`;
+        else if (last.away) lastHtml = `${when}<span class="aw-ledger-tip__status is-away"><i class="fas fa-cloud-rain" aria-hidden="true"></i>Away that day</span>`;
+        else if (Number(last.stars) > 0) lastHtml = `${when}<span class="aw-ledger-tip__row">${bigStars(last.stars)}<span class="aw-ledger-tip__chips">${reasonChips(last.reasons)}</span></span>`;
+        else lastHtml = `${when}<span class="aw-ledger-tip__status is-soft"><i class="fas fa-cloud" aria-hidden="true"></i>No stars that lesson</span>`;
+    }
+    return `<span class="aw-ledger-tip">${ledgerHead(data, "Today's stars")}`
+        + `<span class="aw-ledger-tip__section">Today</span>${todayHtml}${lastHtml}</span>`;
+}
 
+/**
+ * This month's card (the Month chip).
+ * data: { name, avatar, month, rank: {place, of}, virtues, other, games }
+ */
+export function buildAwardMonthTipHtml(data = {}) {
     const virtues = data.virtues || {};
     const top = Math.max(1, ...AWARD_VIRTUES.map((v) => Number(virtues[v.key]) || 0));
     const bars = AWARD_VIRTUES.map((v) => {
@@ -465,25 +487,37 @@ export function buildAwardLedgerTipHtml(data = {}) {
             + `<span class="aw-ledger-tip__bar"><span></span></span><b>${esc(formatAwardStars(n))}</b></span>`;
     }).join('');
     const favourite = AWARD_VIRTUES.reduce((best, v) => ((Number(virtues[v.key]) || 0) > (Number(virtues[best?.key]) || 0) ? v : best), null);
-
     const line = (list, cls, title) => (list && list.length
         ? `<span class="aw-ledger-tip__extra ${cls}"><span class="aw-ledger-tip__extra-title">${title}</span>`
             + list.map((x) => `<span>${esc(AWARD_REASON_NAMES[x.reason] || x.reason)} <b>${Number(x.stars) > 0 ? '+' : ''}${esc(formatAwardStars(x.stars))}</b></span>`).join('')
             + '</span>'
         : '');
-    const last = data.lastStar
-        ? `<span class="aw-ledger-tip__foot"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i>Last star before today: ${esc(data.lastStar.date)}, ${esc(AWARD_REASON_NAMES[data.lastStar.reason] || data.lastStar.reason)}</span>`
-        : '';
-    const fav = favourite
-        ? `<span class="aw-ledger-tip__foot"><i class="fas fa-heart" aria-hidden="true"></i>Strongest virtue this month: <b>${esc(favourite.name)}</b></span>`
-        : '';
-
-    return `<span class="aw-ledger-tip">`
-        + `<span class="aw-ledger-tip__head" data-initial="${esc(first.charAt(0))}">${face}<span class="aw-roll-tip__text"><b>${esc(first)}</b><span class="aw-ledger-tip__kicker">Star ledger</span></span></span>`
-        + `<span class="aw-ledger-tip__section">Today</span>${todayHtml}`
-        + `<span class="aw-ledger-tip__section">This month by virtue</span><span class="aw-ledger-tip__virtues">${bars}</span>`
-        + line(data.other, 'is-other', 'Other stars this month')
+    const rank = data.rank?.place ? `<span class="aw-ledger-tip__rank"><i class="fas fa-ranking-star" aria-hidden="true"></i>#${data.rank.place} of ${data.rank.of} in class</span>` : '';
+    return `<span class="aw-ledger-tip">${ledgerHead(data, 'This month')}`
+        + `<span class="aw-ledger-tip__row">${bigStars(data.month, 'is-moon')}${rank}</span>`
+        + `<span class="aw-ledger-tip__section">By virtue</span><span class="aw-ledger-tip__virtues">${bars}</span>`
+        + line(data.other, 'is-other', 'Other stars')
         + line(data.games, 'is-games', 'Game bonuses (month and total only)')
-        + fav + last
+        + (favourite ? `<span class="aw-ledger-tip__foot"><i class="fas fa-heart" aria-hidden="true"></i>Strongest virtue: <b>${esc(favourite.name)}</b></span>` : '')
         + `</span>`;
+}
+
+/**
+ * The whole year's card (the Total chip).
+ * data: { name, avatar, total, month, rank: {place, of}, gold, heroTitle, crowns }
+ */
+export function buildAwardTotalTipHtml(data = {}) {
+    const total = Number(data.total) || 0;
+    const month = Number(data.month) || 0;
+    const share = total > 0 ? Math.min(100, Math.round((month / total) * 100)) : 0;
+    const rank = data.rank?.place ? `<span class="aw-ledger-tip__rank is-night"><i class="fas fa-ranking-star" aria-hidden="true"></i>#${data.rank.place} of ${data.rank.of} in class</span>` : '';
+    const facts = [
+        `<span class="aw-ledger-tip__fact"><i class="fas fa-moon" aria-hidden="true"></i><b>${esc(formatAwardStars(month))}</b> earned this month</span>`,
+        data.gold != null ? `<span class="aw-ledger-tip__fact"><i class="fas fa-coins" aria-hidden="true"></i><b>${esc(formatAwardStars(data.gold))}</b> Gold in the purse</span>` : '',
+        data.heroTitle ? `<span class="aw-ledger-tip__fact"><i class="fas fa-shield-halved" aria-hidden="true"></i>${esc(data.heroTitle)}</span>` : ''
+    ].filter(Boolean).join('');
+    return `<span class="aw-ledger-tip">${ledgerHead(data, 'All year')}`
+        + `<span class="aw-ledger-tip__row">${bigStars(total, 'is-night')}${rank}</span>`
+        + `<span class="aw-ledger-tip__share" style="--w:${share}%"><span></span></span>`
+        + `<span class="aw-ledger-tip__facts">${facts}</span></span>`;
 }

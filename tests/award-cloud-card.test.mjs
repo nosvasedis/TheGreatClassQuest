@@ -10,7 +10,9 @@ import {
     buildAwardBoonButtonHtml,
     buildAwardSkySummaryHtml,
     resolveAwardRollStatus,
-    buildAwardLedgerTipHtml
+    buildAwardTodayTipHtml,
+    buildAwardMonthTipHtml,
+    buildAwardTotalTipHtml
 } from '../features/awardCloudCard.mjs';
 
 const baseView = {
@@ -114,22 +116,33 @@ test('star roll status: absence beats stars, returning heroes still wait', () =>
     assert.equal(resolveAwardRollStatus({ starsToday: 0, attendanceMode: 'absent-offer' }), 'waiting');
 });
 
-test('cloud ledger seal takes today\'s virtue and opens the ledger tip', () => {
+test('Today, Month and Total chips open their own star cards, no browser titles', () => {
     const html = buildAwardCloudCardHtml({ ...baseView, today: 2, locked: true, todayReason: 'focus' });
-    assert.match(html, /class="aw-ledger aw-ledger--focus"[^>]*data-tip-build="ledger"/);
-    assert.doesNotMatch(buildAwardCloudCardHtml(baseView), /aw-ledger--/);
+    for (const kind of ['today', 'month', 'total']) assert.match(html, new RegExp(`aw-tally__item--${kind}" data-tip-build="star-${kind}" data-ledger-student="stu-1"`));
+    assert.doesNotMatch(html, /title="Stars (today|this month|all year)"/);
 });
 
-test('star ledger: today, virtues this month, game bonuses apart', () => {
-    const html = buildAwardLedgerTipHtml({
-        name: 'Alex', status: 'shining', today: { stars: 2, reason: 'teamwork' },
-        virtues: { teamwork: 5, focus: 2 }, other: [{ reason: 'peer_boon', stars: 0.5 }],
-        games: [{ reason: 'showdown', stars: 3 }], lastStar: { date: 'Tue 13 Oct', reason: 'focus' }
+test('Today card: today\'s stars and last lesson\'s amount', () => {
+    const html = buildAwardTodayTipHtml({
+        name: 'Alex', status: 'shining', today: { stars: 2, reasons: [{ reason: 'teamwork', stars: 2 }] },
+        lastLesson: { date: 'Tue 13 Oct', stars: 3.5, reasons: [{ reason: 'focus', stars: 3 }, { reason: 'peer_boon', stars: 0.5 }] }
     });
-    assert.match(html, /<b>\+2<\/b>[\s\S]*Teamwork/);
-    assert.match(html, /Game bonuses[\s\S]*Showdown Arena <b>\+3<\/b>/);
-    assert.match(html, /Strongest virtue this month: <b>Teamwork<\/b>/);
-    assert.match(html, /Last star before today: Tue 13 Oct, Focus/);
-    assert.match(buildAwardLedgerTipHtml({ name: 'B', status: 'away' }), /Away today/);
-    assert.match(buildAwardLedgerTipHtml({ name: 'B', status: 'waiting' }), /No star yet today/);
+    assert.match(html, /<b>2<\/b>[\s\S]*Teamwork<b>\+2<\/b>/);
+    assert.match(html, /Last lesson · Tue 13 Oct[\s\S]*<b>3\.5<\/b>[\s\S]*Focus<b>\+3<\/b>/);
+    assert.match(buildAwardTodayTipHtml({ name: 'B', status: 'waiting', lastLesson: { date: 'Mon', away: true } }), /No star yet today[\s\S]*Away that day/);
+    assert.match(buildAwardTodayTipHtml({ name: 'B', status: 'away' }), /Away today/);
+});
+
+test('Month card: virtues, other stars, game bonuses apart; Total card: rank and gold', () => {
+    const month = buildAwardMonthTipHtml({
+        name: 'Alex', month: 11, rank: { place: 2, of: 12 }, virtues: { teamwork: 5, focus: 2 },
+        other: [{ reason: 'peer_boon', stars: 0.5 }], games: [{ reason: 'showdown', stars: 3 }]
+    });
+    assert.match(month, /#2 of 12 in class/);
+    assert.match(month, /Game bonuses[\s\S]*Showdown Arena <b>\+3<\/b>/);
+    assert.match(month, /Strongest virtue: <b>Teamwork<\/b>/);
+    const total = buildAwardTotalTipHtml({ name: 'Alex', total: 86, month: 11, rank: { place: 1, of: 12 }, gold: 42, heroTitle: 'Sentinel' });
+    assert.match(total, /<b>86<\/b>[\s\S]*#1 of 12/);
+    assert.match(total, /42<\/b> Gold/);
+    assert.match(total, /Sentinel/);
 });

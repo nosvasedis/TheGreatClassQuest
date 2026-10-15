@@ -12,7 +12,9 @@ import {
     buildAwardCloudCardHtml,
     buildAwardFinaleHtml,
     buildAwardHonoursHtml,
-    buildAwardLedgerTipHtml,
+    buildAwardMonthTipHtml,
+    buildAwardTodayTipHtml,
+    buildAwardTotalTipHtml,
     buildAwardSkySummaryHtml,
     buildAwardVirtuesHtml,
     formatAwardStars,
@@ -33,7 +35,7 @@ import {
 } from '../../features/awardLogReasonMeta.js';
 import { buildHeroTieStats, pickProdigyWinners, rankHeroes } from '../../features/heroRanking.js';
 import { withPendingAwards } from '../../features/awardPending.mjs';
-import { bindAwardRollTips, hideAwardRollTip, registerAwardTipBuilder } from '../awardRollTip.js';
+import { bindAwardRollTips, hideAwardRollTip, refreshAwardRollTip, registerAwardTipBuilder } from '../awardRollTip.js';
 
 // --- REIGNING PRODIGY CACHE (previous month, with tie-breaker) ---
 let _awardProdigyCacheKey = null;
@@ -254,6 +256,7 @@ function buildAwardClassContext(classId, studentsInClass) {
         dailyLimitReached,
         absentTodaySet,
         absentPrevSet,
+        previousLessonDate,
         todaysStars: getEffectiveTodaysStars(),
         reigningHero: state.get('reigningHero'),
         prodigySet: getCachedProdigySet(classId) || new Set(),
@@ -440,21 +443,14 @@ function bindAwardSkySummary(el) {
 
 const LEDGER_VIRTUE_KEYS = new Set(['teamwork', 'creativity', 'respect', 'focus']);
 
-/**
- * A hero's star ledger from this month's award log: stars per virtue, other stars, and
- * game bonuses kept apart (they are never today's stars). Today's line follows the cloud.
- */
-function buildAwardLedgerData(studentId) {
-    const student = (state.get('allStudents') || []).find((s) => s.id === studentId);
-    if (!student) return null;
-    const ctx = buildAwardClassContext(student.classId, getClassStudents(student.classId));
-    const day = getStudentDayState(student, ctx);
-    const virtues = { teamwork: 0, creativity: 0, respect: 0, focus: 0 };
-    const other = new Map();
+/** A hero's star rows in a set of award logs, game bonuses (never today's stars) apart. */
+function summariseStarLogs(logs, studentId, date = null) {
+    const byReason = new Map();
     const games = new Map();
-    let lastStar = null;
-    for (const log of state.get('allAwardLogs') || []) {
+    let stars = 0;
+    for (const log of logs || []) {
         if (log.studentId !== studentId || !shouldShowInStarAwardLog(log)) continue;
+        if (date && !utils.datesMatch(log.date, date)) continue;
         const credit = getAwardLogMonthlyStarCredit(log);
         if (!credit) continue;
         const reason = String(log.reason || '');
@@ -462,33 +458,126 @@ function buildAwardLedgerData(studentId) {
             games.set(reason, (games.get(reason) || 0) + credit);
             continue;
         }
-        if (LEDGER_VIRTUE_KEYS.has(reason)) virtues[reason] += credit;
-        else if (reason !== 'marked_present') other.set(reason, (other.get(reason) || 0) + credit);
-        if (credit > 0 && log.date && !utils.datesMatch(log.date, ctx.today)) {
-            const when = utils.parseFlexibleDate(log.date);
-            if (when && (!lastStar || when > lastStar.when)) lastStar = { when, reason };
+        if (reason === 'marked_present') continue;
+        byReason.set(reason, (byReason.get(reason) || 0) + credit);
+        stars += credit;
+    }
+    const asList = (map) => [...map].map(([reason, n]) => ({ reason, stars: n })).sort((x, y) => y.stars - x.stars);
+    return { stars, reasons: asList(byReason), games: asList(games), byReason };
+}
+
+// Last month's log, fetched once and only when a Today card needs a lesson from last month.
+const olderMonthLogs = new Map();
+const olderMonthLoads = new Map();
+function monthKeyOf(date) {
+    return `${date.getFullYear()}-${date.getMonth() + 1}`;
+}
+function loadMonthLogs(date) {
+    const key = monthKeyOf(date);
+    if (!olderMonthLoads.has(key)) {
+        olderMonthLoads.set(key, import('../../db/queries.js')
+            .then(({ fetchLogsForMonth }) => fetchLogsForMonth(date.getFullYear(), date.getMonth() + 1))
+            .catch(() => [])
+            .then((logs) => { olderMonthLogs.set(key, logs || []); }));
+    }
+    return olderMonthLoads.get(key);
+}
+
+function shortDay(dateString) {
+    const when = utils.parseFlexibleDate(dateString);
+    return when ? when.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : String(dateString || '');
+}
+
+function rankInClass(ctx, studentId, field) {
+    const values = [...ctx.scoreMap.values()];
+    const classIds = new Set(getClassStudents(ctx.classId).map((s) => s.id));
+    const mine = Number(ctx.scoreMap.get(studentId)?.[field]) || 0;
+    const peers = values.filter((sc) => classIds.has(sc.id));
+    const above = peers.filter((sc) => (Number(sc[field]) || 0) > mine).length;
+    return { place: above + 1, of: classIds.size };
+}
+
+function ledgerBase(studentId) {
+    const student = (state.get('allStudents') || []).find((s) => s.id === studentId);
+    if (!student) return null;
+    const ctx = buildAwardClassContext(student.classId, getClassStudents(student.classId));
+    const day = getStudentDayState(student, ctx);
+    return { student, ctx, day, scores: ctx.scoreMap.get(studentId) || {}, status: resolveAwardRollStatus(day) };
+}
+
+function buildTodayTip(target) {
+    const base = ledgerBase(target.dataset.ledgerStudent);
+    if (!base) return null;
+    const { student, ctx, day, status } = base;
+    const logs = state.get('allAwardLogs') || [];
+    const todayRows = summariseStarLogs(logs, student.id, ctx.today);
+    // An award still saving has no log row yet: the cloud's own reading fills in.
+    const reasons = todayRows.reasons.length ? todayRows.reasons : (day.starsToday > 0 ? [{ reason: day.reasonToday, stars: day.starsToday }] : []);
+
+    let lastLesson = null;
+    const prev = ctx.previousLessonDate;
+    if (prev) {
+        const when = utils.parseFlexibleDate(prev);
+        const now = new Date();
+        const sameMonth = when && when.getMonth() === now.getMonth() && when.getFullYear() === now.getFullYear();
+        const away = ctx.absentPrevSet.has(student.id);
+        if (away) lastLesson = { date: shortDay(prev), away: true };
+        else if (sameMonth || !when) lastLesson = { date: shortDay(prev), ...summariseStarLogs(logs, student.id, prev) };
+        else if (olderMonthLogs.has(monthKeyOf(when))) {
+            lastLesson = { date: shortDay(prev), ...summariseStarLogs(olderMonthLogs.get(monthKeyOf(when)), student.id, prev) };
+        } else {
+            lastLesson = { date: shortDay(prev), loading: true };
+            void loadMonthLogs(when).then(() => refreshAwardRollTip(target));
         }
     }
-    const asList = (map) => [...map].map(([reason, stars]) => ({ reason, stars })).sort((a, b) => b.stars - a.stars);
+    const html = buildAwardTodayTipHtml({
+        name: student.name, avatar: student.avatar || null, status,
+        today: { stars: day.starsToday, reasons }, lastLesson
+    });
+    return { html, tone: status === 'away' ? 'away' : (day.starsToday > 0 ? 'shining' : 'ledger') };
+}
+
+function buildMonthTip(target) {
+    const base = ledgerBase(target.dataset.ledgerStudent);
+    if (!base) return null;
+    const { student, ctx, scores } = base;
+    const month = summariseStarLogs(state.get('allAwardLogs') || [], student.id);
+    const virtues = { teamwork: 0, creativity: 0, respect: 0, focus: 0 };
+    const other = [];
+    for (const r of month.reasons) {
+        if (LEDGER_VIRTUE_KEYS.has(r.reason)) virtues[r.reason] += r.stars;
+        else other.push(r);
+    }
     return {
-        name: student.name,
-        avatar: student.avatar || null,
-        status: resolveAwardRollStatus(day),
-        today: { stars: day.starsToday, reason: day.reasonToday },
-        virtues,
-        other: asList(other),
-        games: asList(games),
-        lastStar: lastStar
-            ? { date: lastStar.when.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }), reason: lastStar.reason }
-            : null
+        html: buildAwardMonthTipHtml({
+            name: student.name, avatar: student.avatar || null,
+            month: Number(scores.monthlyStars) || 0, rank: rankInClass(ctx, student.id, 'monthlyStars'),
+            virtues, other, games: month.games
+        }),
+        tone: 'month'
     };
 }
 
-registerAwardTipBuilder('ledger', (target) => {
-    const data = buildAwardLedgerData(target.dataset.ledgerStudent);
-    if (!data) return null;
-    return { html: buildAwardLedgerTipHtml(data), tone: data.status === 'away' ? 'away' : (data.today.stars > 0 ? 'shining' : 'ledger') };
-});
+function buildTotalTip(target) {
+    const base = ledgerBase(target.dataset.ledgerStudent);
+    if (!base) return null;
+    const { student, ctx, scores } = base;
+    const hero = getHeroClassView(student, scores, ctx);
+    return {
+        html: buildAwardTotalTipHtml({
+            name: student.name, avatar: student.avatar || null,
+            total: Number(scores.totalStars) || 0, month: Number(scores.monthlyStars) || 0,
+            rank: rankInClass(ctx, student.id, 'totalStars'),
+            gold: getLiveYearGoldFromAppState(scores, state),
+            heroTitle: hero?.title || null
+        }),
+        tone: 'total'
+    };
+}
+
+registerAwardTipBuilder('star-today', buildTodayTip);
+registerAwardTipBuilder('star-month', buildMonthTip);
+registerAwardTipBuilder('star-total', buildTotalTip);
 
 /** The clouds' star ledgers use the same tooltip as the roll. */
 function bindAwardCloudTips(listContainer) {

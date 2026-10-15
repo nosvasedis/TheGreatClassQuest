@@ -73,6 +73,11 @@ export function showAwardRollTip(target) {
     tip.classList.add('is-shown');
 }
 
+/** Redraws the open tip when its card's data arrives late (a month's log loading). */
+export function refreshAwardRollTip(target) {
+    if (target && target === tipFor && tipEl?.classList.contains('is-shown')) showAwardRollTip(target);
+}
+
 export function hideAwardRollTip(target) {
     if (!tipEl || (target && target !== tipFor)) return;
     tipEl.classList.remove('is-shown');

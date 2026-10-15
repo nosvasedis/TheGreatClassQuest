@@ -280,6 +280,7 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
 
 @media (prefers-reduced-motion: reduce) {
     .aw-ledger-tip__bar span,
+    .aw-ledger-tip__share span,
     .aw-roll *,
     .aw-roll *::before,
     .aw-roll *::after { animation: none !important; }
@@ -411,40 +412,11 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
 #app-screen.header-night .aw-roll__note--full { color: #fde68a; }
 
 
-/* ───────────────────────── The star ledger seal (beside a hero's name) ───────────────────────── */
+/* ───────────────────────── Star cards on the Today / Month / Total chips ───────────────────────── */
 
-.aw-ledger {
-    position: absolute;
-    left: calc(100% + 0.3rem);
-    top: 50%;
-    width: 1.35rem;
-    height: 1.35rem;
-    margin-top: -0.675rem;
-    padding: 0;
-    display: grid;
-    place-items: center;
-    border-radius: 50%;
-    border: 1.5px solid #fff;
-    color: #0369a1;
-    font-size: 0.6rem;
-    background: radial-gradient(circle at 35% 30%, #ffffff, #e0f2fe 70%, #bae6fd);
-    box-shadow: 0 1px 0 rgba(14, 116, 144, 0.25), 0 2px 6px rgba(30, 64, 175, 0.18);
-    cursor: help;
-    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.aw-ledger:hover,
-.aw-ledger:focus-visible { transform: scale(1.18) rotate(-6deg); outline: none; }
-.aw-ledger:focus-visible { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #0ea5e9; }
-
-.aw-ledger--lit { color: #fff; background: radial-gradient(circle at 35% 30%, #fef3c7, #fbbf24 55%, #d97706); }
-.aw-ledger--teamwork { color: #fff; background: radial-gradient(circle at 35% 30%, #ddd6fe, #8b5cf6 60%, #6d28d9); }
-.aw-ledger--creativity { color: #fff; background: radial-gradient(circle at 35% 30%, #fbcfe8, #ec4899 60%, #be185d); }
-.aw-ledger--respect { color: #fff; background: radial-gradient(circle at 35% 30%, #a7f3d0, #10b981 60%, #047857); }
-.aw-ledger--focus { color: #fff; background: radial-gradient(circle at 35% 30%, #fde68a, #f59e0b 60%, #b45309); }
-
-.aw-card.is-absent .aw-ledger { opacity: 0.75; }
-body.projector-mode .aw-ledger { display: none; }
+.aw-tally__item[data-tip-build] { cursor: help; transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.aw-tally__item[data-tip-build]:hover { transform: translateY(-2px); }
+.aw-tally__item[data-tip-build]:focus-visible { outline: none; box-shadow: 0 0 0 2px #fff, 0 0 0 4px #0ea5e9; }
 
 /* The ledger card inside the tooltip */
 .aw-roll-tip.is-rich { max-width: 17.5rem; padding: 0.6rem 0.75rem 0.65rem; }
@@ -460,29 +432,6 @@ body.projector-mode .aw-ledger { display: none; }
     text-transform: uppercase;
     color: #94a3b8;
 }
-
-.aw-ledger-tip__today {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    align-self: flex-start;
-    padding: 0.18rem 0.6rem 0.18rem 0.45rem;
-    border-radius: 999px;
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: #475569;
-    background: #f1f5f9;
-}
-
-.aw-ledger-tip__today.is-lit {
-    color: #fff;
-    background: linear-gradient(135deg, color-mix(in srgb, var(--v, #f59e0b) 80%, #fff), var(--v, #f59e0b));
-    box-shadow: 0 2px 6px color-mix(in srgb, var(--v, #f59e0b) 35%, transparent);
-}
-
-.aw-ledger-tip__today.is-lit b { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-size: 0.9rem; }
-.aw-ledger-tip__today .aw-ledger-tip__star { margin-left: -0.2rem; font-size: 0.62rem; color: #fde68a; }
-.aw-ledger-tip__today.is-away .fa-cloud-rain { color: #60a5fa; }
 
 .aw-ledger-tip__virtues { display: grid; gap: 0.2rem; }
 
@@ -551,6 +500,99 @@ body.projector-mode .aw-ledger { display: none; }
 
 .aw-ledger-tip__foot .fa-heart { color: #f472b6; }
 .aw-ledger-tip__foot b { color: #1e3a8a; }
+
+
+.aw-ledger-tip__row { display: flex; align-items: center; flex-wrap: wrap; gap: 0.35rem 0.5rem; }
+
+.aw-ledger-tip__big {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.1rem 0.55rem 0.1rem 0.6rem;
+    border-radius: 0.8rem;
+    color: #b45309;
+    background: linear-gradient(180deg, #fffbeb, #fef3c7);
+    box-shadow: inset 0 0 0 1.5px #fcd34d;
+}
+.aw-ledger-tip__big b { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-size: 1.3rem; line-height: 1.1; }
+.aw-ledger-tip__big .fa-star { font-size: 0.8rem; color: #f59e0b; }
+.aw-ledger-tip__big.is-gold { color: #fff; background: linear-gradient(135deg, #fbbf24, #f59e0b); box-shadow: 0 2px 8px rgba(217, 119, 6, 0.35); }
+.aw-ledger-tip__big.is-gold .fa-star { color: #fff7d6; }
+.aw-ledger-tip__big.is-moon { color: #5b21b6; background: linear-gradient(180deg, #f5f3ff, #ede9fe); box-shadow: inset 0 0 0 1.5px #c4b5fd; }
+.aw-ledger-tip__big.is-moon .fa-star { color: #8b5cf6; }
+.aw-ledger-tip__big.is-night { color: #fde68a; background: linear-gradient(135deg, #312e81, #1e1b4b); box-shadow: 0 2px 8px rgba(30, 27, 75, 0.35); }
+.aw-ledger-tip__big.is-night .fa-star { color: #fbbf24; }
+
+.aw-ledger-tip__chips { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.aw-ledger-tip__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--v);
+    background: color-mix(in srgb, var(--v) 12%, #fff);
+    box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--v) 35%, transparent);
+}
+.aw-ledger-tip__chip b { font-family: 'Fredoka One', 'Fredoka', sans-serif; }
+
+.aw-ledger-tip__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    align-self: flex-start;
+    padding: 0.18rem 0.6rem 0.18rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: #0369a1;
+    background: #e0f2fe;
+}
+.aw-ledger-tip__status.is-away { color: #475569; background: #f1f5f9; }
+.aw-ledger-tip__status.is-away .fa-cloud-rain { color: #60a5fa; }
+.aw-ledger-tip__status.is-soft { color: #64748b; background: #f8fafc; }
+
+.aw-ledger-tip__rank {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: #6d28d9;
+}
+.aw-ledger-tip__rank.is-night { color: #312e81; }
+
+.aw-ledger-tip__share {
+    height: 6px;
+    border-radius: 999px;
+    background: #e0e7ff;
+    overflow: hidden;
+}
+.aw-ledger-tip__share span {
+    display: block;
+    width: var(--w, 0%);
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #a78bfa, #6d28d9);
+    transform-origin: left;
+}
+.aw-roll-tip.is-shown .aw-ledger-tip__share span { animation: aw-ledger-bar 0.6s cubic-bezier(0.34, 1.2, 0.64, 1) both; }
+
+.aw-ledger-tip__facts { display: grid; gap: 0.2rem; }
+.aw-ledger-tip__fact { display: flex; align-items: center; gap: 0.4rem; font-size: 0.74rem; font-weight: 600; color: #475569; }
+.aw-ledger-tip__fact i { width: 0.9rem; text-align: center; color: #6366f1; }
+.aw-ledger-tip__fact .fa-coins { color: #d97706; }
+.aw-ledger-tip__fact .fa-moon { color: #8b5cf6; }
+.aw-ledger-tip__fact b { font-family: 'Fredoka One', 'Fredoka', sans-serif; color: #1e3a8a; }
+
+.aw-roll-tip[data-tone="month"] { border-color: #c4b5fd; background: linear-gradient(180deg, #ffffff, #f5f3ff); }
+.aw-roll-tip[data-tone="month"]::after { background: #f5f3ff; border-color: #c4b5fd; }
+.aw-roll-tip[data-tone="month"] .aw-roll-tip__face { box-shadow: 0 0 0 2px #a78bfa; }
+.aw-roll-tip[data-tone="total"] { border-color: #a5b4fc; background: linear-gradient(180deg, #ffffff, #eef2ff); }
+.aw-roll-tip[data-tone="total"]::after { background: #eef2ff; border-color: #a5b4fc; }
+.aw-roll-tip[data-tone="total"] .aw-roll-tip__face { box-shadow: 0 0 0 2px #6366f1; }
 
 /* A tap on the roll: the hero's cloud glows sky blue (halo opacity only). */
 .aw-card.aw-beckon .aw-cloud__halo {
@@ -1067,14 +1109,6 @@ body.projector-mode .aw-ledger { display: none; }
     gap: 0.22rem;
     width: 100%;
     max-width: 100%;
-}
-
-.aw-card__nameline {
-    position: relative;
-    max-width: calc(100% - 3.4rem);
-    min-width: 0;
-    display: flex;
-    justify-content: center;
 }
 
 .aw-card__name {

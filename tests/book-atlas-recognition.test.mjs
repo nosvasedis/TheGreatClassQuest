@@ -171,7 +171,7 @@ test('picker rows: unit and pages follow each other for the row’s own book and
     const row = fields => ({ bookId: 'primary-path-1', component: 'sb', unit: '', pageText: '', unitAuto: false, pagesAuto: false, ...fields });
     // A typed unit shows that part's pages; a typed page finds its unit.
     assert.equal(syncLessonRow(row({ unit: '2' }), 'unit').pageText, '28-49');
-    assert.equal(syncLessonRow(row({ component: 'wb', unit: '2' }), 'unit').pageText, '13-20');
+    assert.equal(syncLessonRow(row({ component: 'wb', unit: '2' }), 'unit').pageText, '13-22');
     assert.equal(syncLessonRow(row({ pageText: '30' }), 'pages').unit, '2');
     assert.equal(syncLessonRow(row({ component: 'wb', pageText: '30' }), 'pages').unit, '3');
     // Changing the unit replaces pages the app filled; a unit with no page list clears them instead of leaving stale ones.
@@ -185,12 +185,14 @@ test('picker rows: unit and pages follow each other for the row’s own book and
     const fromPage = syncLessonRow(row({ pageText: '30' }), 'pages');
     assert.equal(syncLessonRow({ ...fromPage, pageText: '' }, 'pages').unit, '');
     // Switching the part: a unit keeps its meaning and gets that part's pages…
-    assert.equal(syncLessonRow({ ...filled, component: 'wb' }, 'part').pageText, '13-20');
+    assert.equal(syncLessonRow({ ...filled, component: 'wb' }, 'part').pageText, '13-22');
     // …while pages the teacher typed re-find their unit in the new part.
     assert.equal(syncLessonRow({ ...fromPage, component: 'wb' }, 'part').unit, '3');
     // A part with no page list keeps the teacher's unit and drops pages that belonged to the old part.
-    assert.equal(syncLessonRow({ ...filled, bookId: 'bamboo' }, 'book').pageText, '');
-    assert.equal(syncLessonRow({ ...filled, bookId: 'bamboo' }, 'book').unit, '2');
+    assert.equal(syncLessonRow({ ...filled, bookId: 'bamboo', component: 'companion' }, 'book').pageText, '');
+    assert.equal(syncLessonRow({ ...filled, bookId: 'bamboo', component: 'companion' }, 'book').unit, '2');
+    // …and a book whose part has one shows that lesson's pages.
+    assert.equal(syncLessonRow({ ...filled, bookId: 'bamboo' }, 'book').pageText, '8-9');
     // Custom books are left exactly as typed.
     assert.deepEqual(syncLessonRow(row({ bookId: 'custom', unit: '4', pageText: '9' }), 'unit'), row({ bookId: 'custom', unit: '4', pageText: '9' }));
     // Every coursebook offers the usual parts, mapped ones first; grammar books keep their own.

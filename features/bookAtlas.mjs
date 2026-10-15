@@ -414,13 +414,9 @@ const loaders = {
 };
 /** The books whose wordlists ship with the app (the ones getUnitWords can read). */
 export const WORDLIST_BOOK_IDS = Object.freeze(Object.keys(loaders));
-export async function getUnitWords(bookId, unit, { component = 'sb', pages = [], lessonCode = null, limit = Infinity } = {}) {
-    if (!loaders[bookId] || !unit) return [];
-    const data = (await loaders[bookId]()).default;
-    const source = component === 'companion' && Object.keys(data.companion || {}).length ? data.companion : data.units;
-    let words = [...(source?.[String(unit)] || [])];
-    if (component === 'wb') words = words.filter(w => w.component === 'wb');
-    else if (component === 'sb') words = words.filter(w => w.component !== 'wb');
+// Narrow one part's words to the lesson code and pages that were asked for.
+function narrowWords(list, { pages = [], lessonCode = null } = {}) {
+    let words = [...list];
     if (lessonCode) { const matching = words.filter(w => w.location?.toLowerCase() === lessonCode.toLowerCase()); if (matching.length) words = matching; }
     if (pages.length) {
         // Senior courses teach a DIFFERENT vocabulary set on each page set inside one unit. When the
@@ -430,13 +426,54 @@ export async function getUnitWords(bookId, unit, { component = 'sb', pages = [],
         if (pageSet.length) words = pageSet.sort((a, b) => Number(a.page) - Number(b.page));
         else words.sort((a, b) => Number(pages.includes(b.page)) - Number(pages.includes(a.page)));
     }
+    return words;
+}
+/**
+ * The words one part of a book teaches in a unit.
+ * - Student's / Pupil's Book: the unit's coursebook words.
+ * - Activity book: the words printed in the activity book itself first, then the unit's coursebook words it
+ *   practises (a junior activity book has no list of its own, so it never comes back empty).
+ * - Companion / Language Booster: its own lesson list where the book has one, otherwise the coursebook words.
+ * Pages belong to the part asked for, so they only narrow that part's own list.
+ */
+export async function getUnitWords(bookId, unit, { component = 'sb', pages = [], lessonCode = null, limit = Infinity } = {}) {
+    if (!loaders[bookId] || !unit) return [];
+    const data = (await loaders[bookId]()).default;
+    const all = data.units?.[String(unit)] || [];
+    const core = all.filter(w => w.component !== 'wb');
+    let words;
+    if (component === 'wb' || component === 'companion') {
+        const own = component === 'wb' ? all.filter(w => w.component === 'wb') : (data.companion?.[String(unit)] || []);
+        const first = narrowWords(own, { pages, lessonCode });
+        const seen = new Set(first.map(w => String(w.w).toLowerCase()));
+        words = [...first, ...narrowWords(core, { lessonCode }).filter(w => !seen.has(String(w.w).toLowerCase()))];
+    } else {
+        words = narrowWords(core, { pages, lessonCode });
+    }
     return words.slice(0, limit);
+}
+const COMPANION_PARTS = new Set(['wb', 'companion']);
+/**
+ * The lessons that supply words. The Student's / Pupil's Book carries the weight: when an assignment names it,
+ * the activity book and companion of the SAME book ride along without adding words of their own. When no
+ * Student's Book of that book is named, the activity book or companion supplies the words. Other books
+ * (a grammar book, a second course) keep their own lessons.
+ */
+export function wordLessonTargets(targets = [], { byUnit = false } = {}) {
+    // `byUnit`: lessons gathered from several assignments (a week of homework) only give way to a Student's
+    // Book lesson of the same unit; within one assignment the Student's Book always leads.
+    const key = t => byUnit ? t.bookId + ':' + Number(t.unit) : t.bookId;
+    const list = targets.filter(t => t && t.bookId);
+    const withSb = new Set(list.filter(t => (t.component || 'sb') === 'sb').map(key));
+    return list.filter(t => !(COMPANION_PARTS.has(t.component) && withSb.has(key(t))));
 }
 /** The page sets inside one unit that carry vocabulary (senior courses). Empty for page-less books. */
 export async function unitPageSets(bookId, unit, { component = 'sb' } = {}) {
     const words = await getUnitWords(bookId, unit, { component });
     const byPage = new Map();
-    for (const w of words) if (w.page != null) byPage.set(Number(w.page), (byPage.get(Number(w.page)) || 0) + 1);
+    // Only this part's own page numbers: an activity book's list also carries Student's Book words.
+    const ownPart = w => component === 'wb' ? w.component === 'wb' : w.component !== 'wb';
+    for (const w of words) if (w.page != null && ownPart(w)) byPage.set(Number(w.page), (byPage.get(Number(w.page)) || 0) + 1);
     return [...byPage.entries()].map(([page, count]) => ({ page, count })).sort((a, b) => a.page - b.page);
 }
 

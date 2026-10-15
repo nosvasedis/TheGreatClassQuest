@@ -386,16 +386,19 @@ function nextLessonThisWeek(classData) {
  * Words, units and grammar for a list of book places ({ bookId, unit, component, pages }).
  * Every wordlist is read at once, so the card fills in quickly.
  */
-async function focusFromTargets(targets, windowMeta = null) {
-    const { BOOK_ATLAS: atlas, describeUnit, getUnitWords } = await import('../../features/bookAtlas.mjs');
+async function focusFromTargets(targets, windowMeta = null, { byUnit = false } = {}) {
+    const { BOOK_ATLAS: atlas, describeUnit, getUnitWords, wordLessonTargets } = await import('../../features/bookAtlas.mjs');
     const loads = new Map();
     const units = [];
     const seenUnits = new Set();
+    // The Student's Book carries the words; the same book's activity book or companion only adds words when
+    // no Student's Book of it was chosen.
+    const wordTargets = new Set(wordLessonTargets(targets, { byUnit }));
     for (const target of targets) {
         if (!target?.bookId || target.unit == null) continue;
         const pages = Array.isArray(target.pages) ? target.pages : [];
         const key = `${target.bookId}:${Number(target.unit)}:${target.component || 'sb'}:${pages.join(',')}:${target.lessonCode || ''}`;
-        if (!loads.has(key)) {
+        if (wordTargets.has(target) && !loads.has(key)) {
             loads.set(key, getUnitWords(target.bookId, target.unit, {
                 component: target.component || 'sb',
                 pages,
@@ -449,7 +452,7 @@ async function loadLessonFocus(classId) {
                 pages: Array.isArray(entry.pages) && entry.pages.length ? entry.pages : (entry.page ? [entry.page] : []),
                 lessonCode: entry.lessonCode || null
             }));
-        const { units, atlasWords } = await focusFromTargets(targets);
+        const { units, atlasWords } = await focusFromTargets(targets, null, { byUnit: true });
         const focus = buildQuizLessonFocus({ entries: window.entries, units, atlasWords, window });
         return hasUsableLessonFocus(focus) ? focus : null;
     } catch (error) {

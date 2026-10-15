@@ -47,7 +47,7 @@ export const BOOK_ATLAS = [
           ],
           "wb": [
             3,
-            10
+            12
           ]
         },
         "reviewAfter": true
@@ -68,7 +68,7 @@ export const BOOK_ATLAS = [
           ],
           "wb": [
             13,
-            20
+            22
           ]
         },
         "reviewAfter": true
@@ -89,7 +89,7 @@ export const BOOK_ATLAS = [
           ],
           "wb": [
             23,
-            30
+            32
           ]
         },
         "reviewAfter": true
@@ -100,12 +100,12 @@ export const BOOK_ATLAS = [
         "theme": "What is a friend?",
         "grammar": "present simple: affirmative, negative and questions",
         "pageRange": [
-          69,
+          72,
           93
         ],
         "pages": {
           "sb": [
-            69,
+            72,
             93
           ],
           "wb": [
@@ -131,7 +131,7 @@ export const BOOK_ATLAS = [
           ],
           "wb": [
             43,
-            50
+            52
           ]
         },
         "reviewAfter": true
@@ -152,7 +152,7 @@ export const BOOK_ATLAS = [
           ],
           "wb": [
             53,
-            60
+            62
           ]
         },
         "reviewAfter": true
@@ -194,7 +194,7 @@ export const BOOK_ATLAS = [
           ],
           "wb": [
             73,
-            81
+            82
           ]
         },
         "reviewAfter": true
@@ -206,12 +206,12 @@ export const BOOK_ATLAS = [
         "grammar": "present continuous: affirmative, negative and questions",
         "pageRange": [
           182,
-          202
+          203
         ],
         "pages": {
           "sb": [
             182,
-            202
+            203
           ],
           "wb": [
             83,
@@ -261,12 +261,12 @@ export const BOOK_ATLAS = [
         "grammar": "prepositions of time and place",
         "pageRange": [
           6,
-          26
+          27
         ],
         "pages": {
           "sb": [
             6,
-            26
+            27
           ],
           "wb": [
             3,
@@ -303,12 +303,12 @@ export const BOOK_ATLAS = [
         "grammar": "quantifiers; how much/how many",
         "pageRange": [
           50,
-          70
+          71
         ],
         "pages": {
           "sb": [
             50,
-            70
+            71
           ],
           "wb": [
             23,
@@ -324,12 +324,12 @@ export const BOOK_ATLAS = [
         "grammar": "past simple of be",
         "pageRange": [
           72,
-          92
+          93
         ],
         "pages": {
           "sb": [
             72,
-            92
+            93
           ],
           "wb": [
             33,
@@ -345,16 +345,16 @@ export const BOOK_ATLAS = [
         "grammar": "past simple irregular verbs; possessive pronouns",
         "pageRange": [
           94,
-          114
+          115
         ],
         "pages": {
           "sb": [
             94,
-            114
+            115
           ],
           "wb": [
             43,
-            51
+            52
           ]
         },
         "reviewAfter": true
@@ -396,7 +396,7 @@ export const BOOK_ATLAS = [
           ],
           "wb": [
             63,
-            159
+            72
           ]
         },
         "reviewAfter": true
@@ -556,7 +556,7 @@ export const BOOK_ATLAS = [
           ],
           "wb": [
             33,
-            40
+            42
           ]
         },
         "reviewAfter": true
@@ -589,12 +589,12 @@ export const BOOK_ATLAS = [
         "grammar": "zero conditional; have to",
         "pageRange": [
           116,
-          136
+          137
         ],
         "pages": {
           "sb": [
             116,
-            136
+            137
           ],
           "wb": [
             53,
@@ -619,7 +619,7 @@ export const BOOK_ATLAS = [
           ],
           "wb": [
             63,
-            70
+            72
           ]
         },
         "reviewAfter": true
@@ -888,7 +888,7 @@ export const BOOK_ATLAS = [
         "n": 12,
         "title": "Body and mind",
         "theme": "health and the body",
-        "grammar": "adjectives/adverbs; so/such; comparison",
+        "grammar": "adjectives; adverbs; comparison of adjectives and adverbs",
         "pageRange": [
           137,
           148
@@ -937,8 +937,20 @@ export const BOOK_ATLAS = [
         "title": "I'm Bamboo.",
         "theme": "I'm Bamboo.",
         "grammar": "a/an; What's this? It's a ...",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          6,
+          7
+        ],
+        "pages": {
+          "sb": [
+            6,
+            7
+          ],
+          "wb": [
+            6,
+            7
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -946,8 +958,20 @@ export const BOOK_ATLAS = [
         "title": "The red apple",
         "theme": "The red apple",
         "grammar": "a/an; It's a/an ...; The ... is (red/green)",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          8,
+          9
+        ],
+        "pages": {
+          "sb": [
+            8,
+            9
+          ],
+          "wb": [
+            8,
+            9
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -955,8 +979,20 @@ export const BOOK_ATLAS = [
         "title": "Toys",
         "theme": "Toys",
         "grammar": "What's this? It's a ...; plural -s (one ball, two balls)",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          10,
+          11
+        ],
+        "pages": {
+          "sb": [
+            10,
+            11
+          ],
+          "wb": [
+            10,
+            11
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -964,8 +1000,20 @@ export const BOOK_ATLAS = [
         "title": "Max's bag",
         "theme": "Max's bag",
         "grammar": "This is ... / That is ... (That's ...)",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          12,
+          13
+        ],
+        "pages": {
+          "sb": [
+            12,
+            13
+          ],
+          "wb": [
+            12,
+            13
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -973,8 +1021,20 @@ export const BOOK_ATLAS = [
         "title": "Maria's garden",
         "theme": "Maria's garden",
         "grammar": "These are ... / Those are ...",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          14,
+          15
+        ],
+        "pages": {
+          "sb": [
+            14,
+            15
+          ],
+          "wb": [
+            14,
+            15
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -982,8 +1042,20 @@ export const BOOK_ATLAS = [
         "title": "Mum is happy.",
         "theme": "Mum is happy.",
         "grammar": "am/is/are; short forms (I'm, He's, She's, It's, You're)",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          20,
+          21
+        ],
+        "pages": {
+          "sb": [
+            20,
+            21
+          ],
+          "wb": [
+            18,
+            19
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -991,8 +1063,20 @@ export const BOOK_ATLAS = [
         "title": "Miranda's family",
         "theme": "Miranda's family",
         "grammar": "We're / You're / They're; This is my ...",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          22,
+          23
+        ],
+        "pages": {
+          "sb": [
+            22,
+            23
+          ],
+          "wb": [
+            20,
+            21
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1000,17 +1084,41 @@ export const BOOK_ATLAS = [
         "title": "Funny aliens",
         "theme": "Funny aliens",
         "grammar": "am/is/are + not (I'm not, isn't, aren't)",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          24,
+          25
+        ],
+        "pages": {
+          "sb": [
+            24,
+            25
+          ],
+          "wb": [
+            22,
+            23
+          ]
+        },
         "reviewAfter": false
       },
       {
         "n": 9,
-        "title": "Hello, Mrs Frog",
-        "theme": "Hello, Mrs Frog",
+        "title": "Is it a hat?",
+        "theme": "Is it a hat?",
         "grammar": "Is he/she/it ...? Yes, he is. / No, he isn't.",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          26,
+          27
+        ],
+        "pages": {
+          "sb": [
+            26,
+            27
+          ],
+          "wb": [
+            24,
+            25
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1018,8 +1126,20 @@ export const BOOK_ATLAS = [
         "title": "Wild animals",
         "theme": "Wild animals",
         "grammar": "Are they ...? Yes, they are. / No, they aren't.",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          28,
+          29
+        ],
+        "pages": {
+          "sb": [
+            28,
+            29
+          ],
+          "wb": [
+            26,
+            27
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1027,8 +1147,20 @@ export const BOOK_ATLAS = [
         "title": "Bamboo has got an idea.",
         "theme": "Bamboo has got an idea.",
         "grammar": "have got / has got",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          34,
+          35
+        ],
+        "pages": {
+          "sb": [
+            34,
+            35
+          ],
+          "wb": [
+            30,
+            31
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1036,8 +1168,20 @@ export const BOOK_ATLAS = [
         "title": "Who am I?",
         "theme": "Who am I?",
         "grammar": "haven't got / hasn't got",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          36,
+          37
+        ],
+        "pages": {
+          "sb": [
+            36,
+            37
+          ],
+          "wb": [
+            32,
+            33
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1045,8 +1189,20 @@ export const BOOK_ATLAS = [
         "title": "Mum's birthday",
         "theme": "Mum's birthday",
         "grammar": "Have you got ...? Yes, I have. / No, I haven't.",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          38,
+          39
+        ],
+        "pages": {
+          "sb": [
+            38,
+            39
+          ],
+          "wb": [
+            34,
+            35
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1054,8 +1210,20 @@ export const BOOK_ATLAS = [
         "title": "Big feet and teeth",
         "theme": "Big feet and teeth",
         "grammar": "irregular plurals (foot/feet, tooth/teeth, man/men, woman/women, baby/babies)",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          40,
+          41
+        ],
+        "pages": {
+          "sb": [
+            40,
+            41
+          ],
+          "wb": [
+            36,
+            37
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1063,8 +1231,20 @@ export const BOOK_ATLAS = [
         "title": "There is a panda.",
         "theme": "There is a panda.",
         "grammar": "There is / There are; have got",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          42,
+          43
+        ],
+        "pages": {
+          "sb": [
+            42,
+            43
+          ],
+          "wb": [
+            38,
+            39
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1072,8 +1252,20 @@ export const BOOK_ATLAS = [
         "title": "I'm reading.",
         "theme": "I'm reading.",
         "grammar": "present continuous (I'm reading); What are you doing?",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          48,
+          49
+        ],
+        "pages": {
+          "sb": [
+            48,
+            49
+          ],
+          "wb": [
+            42,
+            43
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1081,8 +1273,20 @@ export const BOOK_ATLAS = [
         "title": "We're flying.",
         "theme": "We're flying.",
         "grammar": "present continuous (We're flying)",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          50,
+          51
+        ],
+        "pages": {
+          "sb": [
+            50,
+            51
+          ],
+          "wb": [
+            44,
+            45
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1090,8 +1294,20 @@ export const BOOK_ATLAS = [
         "title": "Panda school",
         "theme": "Panda school",
         "grammar": "present continuous negative (isn't / aren't); numbers 11-20",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          52,
+          53
+        ],
+        "pages": {
+          "sb": [
+            52,
+            53
+          ],
+          "wb": [
+            46,
+            47
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1099,8 +1315,20 @@ export const BOOK_ATLAS = [
         "title": "Snow!",
         "theme": "Snow!",
         "grammar": "present continuous questions (Are you wearing ...? Yes, I am. / No, I'm not.)",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          54,
+          55
+        ],
+        "pages": {
+          "sb": [
+            54,
+            55
+          ],
+          "wb": [
+            48,
+            49
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1108,8 +1336,20 @@ export const BOOK_ATLAS = [
         "title": "Jigsaws",
         "theme": "Jigsaws",
         "grammar": "prepositions of place (on, under, next to, behind, in front of); Where's ...? It's ...",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          56,
+          57
+        ],
+        "pages": {
+          "sb": [
+            56,
+            57
+          ],
+          "wb": [
+            50,
+            51
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1117,8 +1357,20 @@ export const BOOK_ATLAS = [
         "title": "Mum's pyjamas",
         "theme": "Mum's pyjamas",
         "grammar": "possessive adjectives (my, your, his, her, its); These are ...",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          62,
+          63
+        ],
+        "pages": {
+          "sb": [
+            62,
+            63
+          ],
+          "wb": [
+            54,
+            55
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1126,8 +1378,20 @@ export const BOOK_ATLAS = [
         "title": "Let's watch TV!",
         "theme": "Let's watch TV!",
         "grammar": "possessive adjectives (our, their); Is this ...?",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          64,
+          65
+        ],
+        "pages": {
+          "sb": [
+            64,
+            65
+          ],
+          "wb": [
+            56,
+            57
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1135,8 +1399,20 @@ export const BOOK_ATLAS = [
         "title": "Sports",
         "theme": "Sports",
         "grammar": "can / can't (ability)",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          66,
+          67
+        ],
+        "pages": {
+          "sb": [
+            66,
+            67
+          ],
+          "wb": [
+            58,
+            59
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1144,17 +1420,41 @@ export const BOOK_ATLAS = [
         "title": "Can Max dance?",
         "theme": "Can Max dance?",
         "grammar": "can / can't (Can you ...? Yes, I can. / No, I can't.)",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          68,
+          69
+        ],
+        "pages": {
+          "sb": [
+            68,
+            69
+          ],
+          "wb": [
+            60,
+            61
+          ]
+        },
         "reviewAfter": false
       },
       {
         "n": 25,
-        "title": "Let's draw a cat!",
-        "theme": "Let's draw a cat!",
+        "title": "Let's draw a cat.",
+        "theme": "Let's draw a cat.",
         "grammar": "imperatives (Draw ..., Don't ...); Let's ...",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          70,
+          71
+        ],
+        "pages": {
+          "sb": [
+            70,
+            71
+          ],
+          "wb": [
+            62,
+            63
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1162,8 +1462,20 @@ export const BOOK_ATLAS = [
         "title": "I like flowers.",
         "theme": "I like flowers.",
         "grammar": "present simple with I/you/we/they; I like ...; days of the week",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          76,
+          77
+        ],
+        "pages": {
+          "sb": [
+            76,
+            77
+          ],
+          "wb": [
+            66,
+            67
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1171,8 +1483,20 @@ export const BOOK_ATLAS = [
         "title": "Well done, Miranda!",
         "theme": "Well done, Miranda!",
         "grammar": "present simple 3rd person -s (He reads, He goes)",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          78,
+          79
+        ],
+        "pages": {
+          "sb": [
+            78,
+            79
+          ],
+          "wb": [
+            68,
+            69
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1180,8 +1504,20 @@ export const BOOK_ATLAS = [
         "title": "Clive the crab",
         "theme": "Clive the crab",
         "grammar": "don't / doesn't (present simple negative)",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          80,
+          81
+        ],
+        "pages": {
+          "sb": [
+            80,
+            81
+          ],
+          "wb": [
+            70,
+            71
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1189,8 +1525,20 @@ export const BOOK_ATLAS = [
         "title": "Bamboo's farm",
         "theme": "Bamboo's farm",
         "grammar": "Do you like ...? Yes, I do. / No, I don't.",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          82,
+          83
+        ],
+        "pages": {
+          "sb": [
+            82,
+            83
+          ],
+          "wb": [
+            72,
+            73
+          ]
+        },
         "reviewAfter": false
       },
       {
@@ -1198,8 +1546,20 @@ export const BOOK_ATLAS = [
         "title": "Favourite snacks",
         "theme": "Favourite snacks",
         "grammar": "Does he/she/it like ...? Yes, he does. / No, he doesn't.",
-        "pageRange": null,
-        "pages": {},
+        "pageRange": [
+          84,
+          85
+        ],
+        "pages": {
+          "sb": [
+            84,
+            85
+          ],
+          "wb": [
+            74,
+            75
+          ]
+        },
         "reviewAfter": false
       }
     ],
@@ -1237,9 +1597,9 @@ export const BOOK_ATLAS = [
     "units": [
       {
         "n": 1,
-        "title": "Lesson 1",
-        "theme": "aunt, brother, dad, friend",
-        "grammar": "be: am/is/are (affirmative and negative: isn't / aren't)",
+        "title": "Grandpa George",
+        "theme": "family",
+        "grammar": "to be: present simple affirmative and negative",
         "pageRange": [
           8,
           9
@@ -1250,8 +1610,8 @@ export const BOOK_ATLAS = [
             9
           ],
           "wb": [
-            8,
-            9
+            6,
+            7
           ],
           "companion": [
             8,
@@ -1262,9 +1622,9 @@ export const BOOK_ATLAS = [
       },
       {
         "n": 2,
-        "title": "Lesson 2",
-        "theme": "cold, extinct, famous, fast",
-        "grammar": "be questions and short answers: Am I ...? Is he/she/it ...? Are they ...?",
+        "title": "Is Yeti young?",
+        "theme": "adjectives",
+        "grammar": "to be: present simple questions and short answers",
         "pageRange": [
           10,
           11
@@ -1275,8 +1635,8 @@ export const BOOK_ATLAS = [
             11
           ],
           "wb": [
-            10,
-            11
+            8,
+            9
           ],
           "companion": [
             12,
@@ -1287,9 +1647,9 @@ export const BOOK_ATLAS = [
       },
       {
         "n": 3,
-        "title": "Lesson 3",
-        "theme": "arms, box, clothes, cold",
-        "grammar": "this/these/those: What's this? It's a snowman. What are these? They're clothes.",
+        "title": "The snowman",
+        "theme": "clothes",
+        "grammar": "have/has; What's this/that? What are these/those?",
         "pageRange": [
           12,
           13
@@ -1300,8 +1660,8 @@ export const BOOK_ATLAS = [
             13
           ],
           "wb": [
-            12,
-            13
+            10,
+            11
           ],
           "companion": [
             16,
@@ -1312,9 +1672,9 @@ export const BOOK_ATLAS = [
       },
       {
         "n": 4,
-        "title": "Lesson 4",
-        "theme": "board game, clock, game, helmet",
-        "grammar": "possessive adjectives (my/your/her/our/their); Whose ...? It's Fred's book.",
+        "title": "Favourite things",
+        "theme": "possessions",
+        "grammar": "possessive adjectives; Whose ...?; possessive 's",
         "pageRange": [
           14,
           15
@@ -1325,8 +1685,8 @@ export const BOOK_ATLAS = [
             15
           ],
           "wb": [
-            14,
-            15
+            12,
+            13
           ],
           "companion": [
             20,
@@ -1337,9 +1697,9 @@ export const BOOK_ATLAS = [
       },
       {
         "n": 5,
-        "title": "Lesson 5",
-        "theme": "cloud, rain, rainbow, snow",
-        "grammar": "",
+        "title": "Weather",
+        "theme": "weather",
+        "grammar": "adjectives",
         "pageRange": [
           16,
           17
@@ -1350,21 +1710,21 @@ export const BOOK_ATLAS = [
             17
           ],
           "wb": [
-            16,
-            17
+            14,
+            15
           ],
           "companion": [
             24,
-            28
+            27
           ]
         },
         "reviewAfter": false
       },
       {
         "n": 6,
-        "title": "Lesson 6",
-        "theme": "cry, garden, gloves, hat",
-        "grammar": "present continuous: am/is/are + -ing (He's wearing a hat.)",
+        "title": "We're laughing!",
+        "theme": "verbs",
+        "grammar": "present continuous: affirmative and negative",
         "pageRange": [
           24,
           25
@@ -1375,8 +1735,8 @@ export const BOOK_ATLAS = [
             25
           ],
           "wb": [
-            24,
-            25
+            18,
+            19
           ],
           "companion": [
             29,
@@ -1387,9 +1747,9 @@ export const BOOK_ATLAS = [
       },
       {
         "n": 7,
-        "title": "Lesson 7",
-        "theme": "cry, drive, game, go-kart",
-        "grammar": "present continuous questions: Is he driving? Are they ...?",
+        "title": "Go-karts",
+        "theme": "races",
+        "grammar": "present continuous: questions and short answers",
         "pageRange": [
           26,
           27
@@ -1400,8 +1760,8 @@ export const BOOK_ATLAS = [
             27
           ],
           "wb": [
-            26,
-            27
+            20,
+            21
           ],
           "companion": [
             33,
@@ -1412,9 +1772,9 @@ export const BOOK_ATLAS = [
       },
       {
         "n": 8,
-        "title": "Lesson 8",
-        "theme": "banana, costume, dance, dress up",
-        "grammar": "imperatives and Let's: Put on ... / Let's dance! Let's sing!",
+        "title": "Let's dress up!",
+        "theme": "costumes",
+        "grammar": "imperative; Let's",
         "pageRange": [
           28,
           29
@@ -1425,8 +1785,8 @@ export const BOOK_ATLAS = [
             29
           ],
           "wb": [
-            28,
-            29
+            22,
+            23
           ],
           "companion": [
             37,
@@ -1437,9 +1797,9 @@ export const BOOK_ATLAS = [
       },
       {
         "n": 9,
-        "title": "Lesson 9",
-        "theme": "boat, dance, draw, drive",
-        "grammar": "can / can't: Can you skate? Yes, I can. / No, I can't.",
+        "title": "I can sail.",
+        "theme": "free time",
+        "grammar": "can, can't, Can ...?",
         "pageRange": [
           30,
           31
@@ -1450,8 +1810,8 @@ export const BOOK_ATLAS = [
             31
           ],
           "wb": [
-            30,
-            31
+            24,
+            25
           ],
           "companion": [
             41,
@@ -1462,9 +1822,9 @@ export const BOOK_ATLAS = [
       },
       {
         "n": 10,
-        "title": "Lesson 10",
-        "theme": "band, drums, guitar, music",
-        "grammar": "can: Can Emily play the violin? Yes, she can.",
+        "title": "Music",
+        "theme": "musical instruments",
+        "grammar": "object pronouns",
         "pageRange": [
           32,
           33
@@ -1475,21 +1835,21 @@ export const BOOK_ATLAS = [
             33
           ],
           "wb": [
-            32,
-            33
+            26,
+            27
           ],
           "companion": [
             45,
-            49
+            48
           ]
         },
         "reviewAfter": false
       },
       {
         "n": 11,
-        "title": "Lesson 11",
-        "theme": "bank, bookshop, cafe, cinema",
-        "grammar": "There is / There are (+ some / any): There are some books. There aren't any books.",
+        "title": "Yeti's town",
+        "theme": "places in town",
+        "grammar": "there is/are, there isn't/aren't; some, any, lots of",
         "pageRange": [
           40,
           41
@@ -1500,8 +1860,8 @@ export const BOOK_ATLAS = [
             41
           ],
           "wb": [
-            40,
-            41
+            30,
+            31
           ],
           "companion": [
             50,
@@ -1512,9 +1872,9 @@ export const BOOK_ATLAS = [
       },
       {
         "n": 12,
-        "title": "Lesson 12",
-        "theme": "be quiet, dress up, listen, museum",
-        "grammar": "must / mustn't: You mustn't touch things in the museum.",
+        "title": "You mustn't shout!",
+        "theme": "verbs",
+        "grammar": "must/mustn't",
         "pageRange": [
           42,
           43
@@ -1525,8 +1885,8 @@ export const BOOK_ATLAS = [
             43
           ],
           "wb": [
-            42,
-            43
+            32,
+            33
           ],
           "companion": [
             54,
@@ -1537,9 +1897,9 @@ export const BOOK_ATLAS = [
       },
       {
         "n": 13,
-        "title": "Lesson 13",
-        "theme": "always, breakfast, brush my teeth, do homework",
-        "grammar": "present simple + adverbs of frequency (always, often, sometimes, never)",
+        "title": "Tina's day",
+        "theme": "daily routines",
+        "grammar": "present simple: affirmative; adverbs of frequency",
         "pageRange": [
           44,
           45
@@ -1550,8 +1910,8 @@ export const BOOK_ATLAS = [
             45
           ],
           "wb": [
-            44,
-            45
+            34,
+            35
           ],
           "companion": [
             58,
@@ -1562,9 +1922,9 @@ export const BOOK_ATLAS = [
       },
       {
         "n": 14,
-        "title": "Lesson 14",
-        "theme": "apple, banana, blanket, brush my teeth",
-        "grammar": "present simple negative: don't / doesn't (He doesn't have lunch at school.)",
+        "title": "We don't have any sandwiches.",
+        "theme": "daily routines",
+        "grammar": "present simple: negative",
         "pageRange": [
           46,
           47
@@ -1575,8 +1935,8 @@ export const BOOK_ATLAS = [
             47
           ],
           "wb": [
-            46,
-            47
+            36,
+            37
           ],
           "companion": [
             62,
@@ -1587,9 +1947,9 @@ export const BOOK_ATLAS = [
       },
       {
         "n": 15,
-        "title": "Lesson 15",
-        "theme": "breakfast, early, football, half past",
-        "grammar": "present simple questions: Do you ...? Does he ...?; What time is it?",
+        "title": "Kids' TV!",
+        "theme": "time",
+        "grammar": "present simple: questions and short answers",
         "pageRange": [
           48,
           49
@@ -1600,21 +1960,21 @@ export const BOOK_ATLAS = [
             49
           ],
           "wb": [
-            48,
-            49
+            38,
+            39
           ],
           "companion": [
             66,
-            70
+            69
           ]
         },
         "reviewAfter": false
       },
       {
         "n": 16,
-        "title": "Lesson 16",
-        "theme": "bread, butter, cheese, cherry",
-        "grammar": "Is there any ...? Are there any ...?; There is some ... / There are some ...",
+        "title": "Chef school",
+        "theme": "food",
+        "grammar": "countable and uncountable nouns; regular plurals -es, -ies",
         "pageRange": [
           56,
           57
@@ -1625,8 +1985,8 @@ export const BOOK_ATLAS = [
             57
           ],
           "wb": [
-            56,
-            57
+            42,
+            43
           ],
           "companion": [
             71,
@@ -1637,9 +1997,9 @@ export const BOOK_ATLAS = [
       },
       {
         "n": 17,
-        "title": "Lesson 17",
-        "theme": "apple, apples, balloon, bread",
-        "grammar": "How much ...? / How many ...?",
+        "title": "Yeti goes to a party.",
+        "theme": "food",
+        "grammar": "Is there ...? Are there ...?; How much? How many?",
         "pageRange": [
           58,
           59
@@ -1650,8 +2010,8 @@ export const BOOK_ATLAS = [
             59
           ],
           "wb": [
-            58,
-            59
+            44,
+            45
           ],
           "companion": [
             75,
@@ -1662,9 +2022,9 @@ export const BOOK_ATLAS = [
       },
       {
         "n": 18,
-        "title": "Lesson 18",
-        "theme": "animal, bat, elephant, frog",
-        "grammar": "comparatives: -er / more ... than (The giraffe is taller than the hippo.)",
+        "title": "The animal race",
+        "theme": "animals",
+        "grammar": "comparatives",
         "pageRange": [
           60,
           61
@@ -1675,8 +2035,8 @@ export const BOOK_ATLAS = [
             61
           ],
           "wb": [
-            60,
-            61
+            46,
+            47
           ],
           "companion": [
             79,
@@ -1687,9 +2047,9 @@ export const BOOK_ATLAS = [
       },
       {
         "n": 19,
-        "title": "Lesson 19",
-        "theme": "bat, frog, garden, giraffe",
-        "grammar": "superlatives: the -est / the most (The spider is the smallest animal.)",
+        "title": "The smallest animal",
+        "theme": "animals",
+        "grammar": "superlatives",
         "pageRange": [
           62,
           63
@@ -1700,8 +2060,8 @@ export const BOOK_ATLAS = [
             63
           ],
           "wb": [
-            62,
-            63
+            48,
+            49
           ],
           "companion": [
             83,
@@ -1712,9 +2072,9 @@ export const BOOK_ATLAS = [
       },
       {
         "n": 20,
-        "title": "Lesson 20",
-        "theme": "child, children, feet, finger",
-        "grammar": "irregular plurals: child/children, tooth/teeth, mouse/mice, foot/feet, man/men",
+        "title": "Alice's homework",
+        "theme": "face and body",
+        "grammar": "irregular plurals",
         "pageRange": [
           64,
           65
@@ -1725,21 +2085,21 @@ export const BOOK_ATLAS = [
             65
           ],
           "wb": [
-            64,
-            65
+            50,
+            51
           ],
           "companion": [
             87,
-            91
+            90
           ]
         },
         "reviewAfter": false
       },
       {
         "n": 21,
-        "title": "Lesson 21",
-        "theme": "eighty, fifty, forty, ninety",
-        "grammar": "was / were (past of be)",
+        "title": "Hide and seek",
+        "theme": "numbers 20-100",
+        "grammar": "to be: past simple affirmative",
         "pageRange": [
           72,
           73
@@ -1750,8 +2110,8 @@ export const BOOK_ATLAS = [
             73
           ],
           "wb": [
-            72,
-            73
+            54,
+            55
           ],
           "companion": [
             92,
@@ -1762,9 +2122,9 @@ export const BOOK_ATLAS = [
       },
       {
         "n": 22,
-        "title": "Lesson 22",
-        "theme": "eighth, fifth, first, fourth",
-        "grammar": "was / were: questions and negatives; ordinal numbers",
+        "title": "The quiz",
+        "theme": "ordinal numbers",
+        "grammar": "to be: past simple negative",
         "pageRange": [
           74,
           75
@@ -1775,8 +2135,8 @@ export const BOOK_ATLAS = [
             75
           ],
           "wb": [
-            74,
-            75
+            56,
+            57
           ],
           "companion": [
             96,
@@ -1787,9 +2147,9 @@ export const BOOK_ATLAS = [
       },
       {
         "n": 23,
-        "title": "Lesson 23",
-        "theme": "April, August, autumn, December",
-        "grammar": "was / were with weather; months of the year",
+        "title": "The rollercoaster",
+        "theme": "months",
+        "grammar": "to be: past simple questions and short answers",
         "pageRange": [
           76,
           77
@@ -1800,8 +2160,8 @@ export const BOOK_ATLAS = [
             77
           ],
           "wb": [
-            76,
-            77
+            58,
+            59
           ],
           "companion": [
             100,
@@ -1812,9 +2172,9 @@ export const BOOK_ATLAS = [
       },
       {
         "n": 24,
-        "title": "Lesson 24",
-        "theme": "autumn, bush, clouds, dinosaur",
-        "grammar": "There was / There were (affirmative and negative): There wasn't any snow on the mountain.",
+        "title": "Yeti's holidays",
+        "theme": "seasons and nature",
+        "grammar": "there was/wasn't, there were/weren't",
         "pageRange": [
           78,
           79
@@ -1825,8 +2185,8 @@ export const BOOK_ATLAS = [
             79
           ],
           "wb": [
-            78,
-            79
+            60,
+            61
           ],
           "companion": [
             104,
@@ -1837,9 +2197,9 @@ export const BOOK_ATLAS = [
       },
       {
         "n": 25,
-        "title": "Lesson 25",
-        "theme": "dinosaur, eighty-four, fifty-one, forty-six",
-        "grammar": "past simple: regular verbs (-ed: walked, listened, watched, played, lived, skipped)",
+        "title": "Dinosaurs",
+        "theme": "nature",
+        "grammar": "past simple: affirmative and negative, regular verbs",
         "pageRange": [
           80,
           81
@@ -1850,21 +2210,21 @@ export const BOOK_ATLAS = [
             81
           ],
           "wb": [
-            80,
-            81
+            62,
+            63
           ],
           "companion": [
             108,
-            112
+            111
           ]
         },
         "reviewAfter": false
       },
       {
         "n": 26,
-        "title": "Lesson 26",
-        "theme": "beach, cake, car, chair",
-        "grammar": "past simple: irregular verbs (ate, drank, took, found, woke up, swam, sat, drew, rode, drove)",
+        "title": "A day at the beach",
+        "theme": "verbs",
+        "grammar": "past simple: affirmative and negative, irregular verbs",
         "pageRange": [
           88,
           89
@@ -1875,8 +2235,8 @@ export const BOOK_ATLAS = [
             89
           ],
           "wb": [
-            88,
-            89
+            66,
+            67
           ],
           "companion": [
             113,
@@ -1887,9 +2247,9 @@ export const BOOK_ATLAS = [
       },
       {
         "n": 27,
-        "title": "Lesson 27",
-        "theme": "catch, catch a fish, chess, fishing",
-        "grammar": "past simple questions: Did you ...? What did you ...?",
+        "title": "Tony's photos",
+        "theme": "free time",
+        "grammar": "past simple: questions, regular and irregular verbs",
         "pageRange": [
           90,
           91
@@ -1900,8 +2260,8 @@ export const BOOK_ATLAS = [
             91
           ],
           "wb": [
-            90,
-            91
+            68,
+            69
           ],
           "companion": [
             117,
@@ -1912,9 +2272,9 @@ export const BOOK_ATLAS = [
       },
       {
         "n": 28,
-        "title": "Lesson 28",
-        "theme": "bike, boat, book, bus",
-        "grammar": "be going to (future plans): I'm going to play a game.",
+        "title": "I'm going to fly a helicopter!",
+        "theme": "transport",
+        "grammar": "be going to: affirmative and negative",
         "pageRange": [
           92,
           93
@@ -1925,8 +2285,8 @@ export const BOOK_ATLAS = [
             93
           ],
           "wb": [
-            92,
-            93
+            70,
+            71
           ],
           "companion": [
             121,
@@ -1937,9 +2297,9 @@ export const BOOK_ATLAS = [
       },
       {
         "n": 29,
-        "title": "Lesson 29",
-        "theme": "artist, chef, computer, doctor",
-        "grammar": "be going to be (jobs): I'm going to be an artist.",
+        "title": "What are you going to be?",
+        "theme": "jobs",
+        "grammar": "be going to: questions and short answers",
         "pageRange": [
           94,
           95
@@ -1950,8 +2310,8 @@ export const BOOK_ATLAS = [
             95
           ],
           "wb": [
-            94,
-            95
+            72,
+            73
           ],
           "companion": [
             125,
@@ -1962,9 +2322,9 @@ export const BOOK_ATLAS = [
       },
       {
         "n": 30,
-        "title": "Lesson 30",
-        "theme": "famous, farmer, music, sheep",
-        "grammar": "will / won't (future): Will you be a singer? Yes, I will. / No, I won't.",
+        "title": "When I grow up",
+        "theme": "jobs",
+        "grammar": "future simple (will): affirmative, negative and questions",
         "pageRange": [
           96,
           97
@@ -1975,8 +2335,8 @@ export const BOOK_ATLAS = [
             97
           ],
           "wb": [
-            96,
-            97
+            74,
+            75
           ],
           "companion": [
             129,

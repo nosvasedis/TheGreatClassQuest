@@ -7,6 +7,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { juniorUnits, companionByLesson, cppUnitPages, correctCppWords, CLOSE_UP_B1_GRAMMAR_12 } from './book-atlas-corrections.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const sources = path.join(root, 'docs/agent-atlas/book-sources');
@@ -49,6 +50,7 @@ for (let level = 1; level <= 3; level++) {
             page: Number(page) || null, location: location || '', component: /workbook/i.test(location) ? 'wb' : 'sb' };
         if (u === 'REVIEW') review.push(entry); else (units[u] ||= []).push(entry);
     }
+    correctCppWords(level, units);
     const scope = read('publisher/cambridge-primary-path-level-' + level + '-scope-and-sequence.pdf.txt');
     const titles = [...new Set([...scope.matchAll(/\d+\s+Big Question:\s*([^\n]+)/g)].map(m => m[1].trim()))];
     if (titles.length !== 9 || Object.keys(units).length !== 9) throw Error('Incomplete CPP source: ' + level);
@@ -59,11 +61,9 @@ for (let level = 1; level <= 3; level++) {
         { edition: '2e', publisher: 'Cambridge University Press', wordlistRef: 'cpp' + level,
             prevBookId: level > 1 ? 'primary-path-' + (level - 1) : null, nextBookId: level < 3 ? 'primary-path-' + (level + 1) : null });
     item.units = titles.map((title, i) => {
-        const rangeFor = comp => {
-            const pages = units[i + 1].filter(w => w.component === comp && w.page > 0).map(w => w.page);
-            return pages.length ? [Math.min(...pages), Math.max(...pages)] : null;
-        };
-        const pages = { sb: rangeFor('sb'), wb: rangeFor('wb') };
+        // Units are fixed-length; a stray page number in the wordlist must never stretch a unit.
+        const firstWb = Math.min(...units[1].filter(w => w.component === 'wb' && w.page > 0).map(w => w.page));
+        const pages = cppUnitPages(i, Number.isFinite(firstWb) ? firstWb : null);
         return { n: i + 1, title, theme: title, grammar: cppGrammar[level - 1][i], pageRange: pages.sb, pages, reviewAfter: true };
     });
     writeWords('cpp' + level, { bookId: id, edition: '2e', units, review });
@@ -72,7 +72,7 @@ const closeup = [
     { ref: 'b1', id: 'close-up-b1', level: 'B1', league: 'D',
         titles: ['Perfect for the job', 'Delicious!', 'It’s natural', 'That’s the fashion', 'Where we live', 'Go for it!', 'Have a great trip!', 'My own time', 'Digital world', 'Show time!', 'Life lessons', 'Body and mind'],
         themes: ['jobs and personality', 'food and cooking', 'nature and the environment', 'clothes and shopping', 'homes and household objects', 'sports', 'travel and holidays', 'free time', 'computers and technology', 'film and television', 'education', 'health and the body'],
-        grammar: ['present simple/continuous; stative verbs; countable/uncountable nouns; quantifiers', 'past simple/continuous; used to/would; be/get used to', 'present perfect simple/continuous; articles', 'relative clauses; clauses with time expressions', 'will; going to; future plans and predictions', 'zero, first and second conditional; unless', 'question tags; subject/object questions; past perfect simple/continuous', 'modals and semi-modals', 'passive voice; passive with modals; by/with', 'reported statements, questions and requests', 'causative; gerunds and infinitives', 'adjectives/adverbs; so/such; comparison'] }
+        grammar: ['present simple/continuous; stative verbs; countable/uncountable nouns; quantifiers', 'past simple/continuous; used to/would; be/get used to', 'present perfect simple/continuous; articles', 'relative clauses; clauses with time expressions', 'will; going to; future plans and predictions', 'zero, first and second conditional; unless', 'question tags; subject/object questions; past perfect simple/continuous', 'modals and semi-modals', 'passive voice; passive with modals; by/with', 'reported statements, questions and requests', 'causative; gerunds and infinitives', CLOSE_UP_B1_GRAMMAR_12] }
 ];
 for (const c of closeup) {
     const vocabulary = json('closeup/closeup-' + c.ref + '.json');
@@ -112,8 +112,9 @@ for (const [ref, id, title, league, aliases] of [
     // OCR image names denote blocks, not printed page numbers. Never guess a page mapping.
     item.units = rows.map(u => ({ n: u.lesson || u.unit, title: u.title || ('Lesson ' + u.unit),
         theme: u.title || u.words.slice(0, 4).join(', '), grammar: u.grammar || '', pageRange: null, pages: {}, reviewAfter: false }));
-    const companion = ref === 'yeti' ? Object.fromEntries(Object.entries(json('ebook/yeti-companion-words.json')).map(([u, ws]) =>
+    const companionGroups = ref === 'yeti' ? Object.fromEntries(Object.entries(json('ebook/yeti-companion-words.json')).map(([u, ws]) =>
         [u, ws.map(w => ({ w, pos: '', component: 'companion' }))])) : {};
+    const companion = companionByLesson(units, companionGroups);
     writeWords(item.wordlistRef, { bookId: id, units, companion, pictureDictionary: input.pictureDictionary || input.picture_dictionary || [] });
 }
 for (let level = 1; level <= 3; level++) {
@@ -161,6 +162,14 @@ for (const b of books) {
         u.pages = u.pages || {};
         u.pageRange = u.pages.sb || u.pages.grammar || u.pageRange || null;
     }
+}
+// Publisher contents pages for the junior books win over the OCR titles and the hand-made page maps.
+for (const b of books) {
+    const curated = juniorUnits(b.id);
+    if (curated) b.units = b.units.map(u => {
+        const c = curated.find(x => x.n === u.n);
+        return c ? { ...u, title: c.title, theme: c.theme, grammar: c.grammar ?? u.grammar, pages: c.pages, pageRange: c.pages.sb } : u;
+    });
 }
 fs.writeFileSync(path.join(root, 'features/bookAtlas.data.mjs'), '// Generated by scripts/build-book-atlas.mjs. Source dates and provenance are per book.\nexport const BOOK_ATLAS = ' + JSON.stringify(books, null, 2) + ';\nexport default BOOK_ATLAS;\n');
 console.log('Book Atlas: ' + books.length + ' books, ' + books.reduce((n, b) => n + b.units.length, 0) + ' units. Vocabulary written to features/bookAtlas/data.');

@@ -12,7 +12,8 @@ test('page ranges map a unit to pages and back, and page-less books stay null',(
     assert.equal(unitForPage('primary-path-2',28),2);
     assert.deepEqual(pageRangeForUnit('grammalysis-b1',1),[4,9]);
     assert.equal(unitForPage('grammalysis-b1',4,'grammar'),1);
-    assert.equal(pageRangeForUnit('bamboo',1),null);
+    assert.deepEqual(pageRangeForUnit('bamboo',1),[6,7]);
+    assert.equal(pageRangeForUnit('bamboo',1,'companion'),null);
     assert.equal(pageRangeForUnit('primary-path-2',999),null);
 });
 test('published third-edition Close-Up page ranges do not inherit old-edition contents',async()=>{
@@ -37,16 +38,26 @@ test('every part of a collection maps its own pages to the unit',()=>{
             assert.deepEqual(pageRangeForUnit(id,u.n,'wb'),u.pages.wb);
         }
     }
-    // A page-only book (Bamboo) still has no invented map, in any part.
-    assert.equal(pageRangeForUnit('bamboo',1,'sb'),null);
-    assert.equal(pageRangeForUnit('bamboo',1,'wb'),null);
+    // Units are fixed-length: a stray page number in the wordlist never stretches or overlaps a unit.
+    for(const id of ['primary-path-1','primary-path-2','primary-path-3']) BOOK_ATLAS.find(b=>b.id===id).units.forEach((u,i,all)=>{
+        assert.equal(u.pages.sb[1]-u.pages.sb[0],21,id+' u'+u.n);
+        if(i) assert.ok(u.pages.sb[0]>all[i-1].pages.sb[1]&&u.pages.wb[0]>all[i-1].pages.wb[1],id+' u'+u.n+' overlaps');
+    });
+    // Bamboo: Pupil's Book and Activity Book from the publisher's contents pages.
+    assert.equal(unitForPage('bamboo',20,'sb'),6);
+    assert.equal(unitForPage('bamboo',18,'wb'),6);
+    assert.equal(unitForPage('bamboo',84,'sb'),30);
+    assert.equal(describeUnit(BOOK_ATLAS,'bamboo',9).title,'Is it a hat?');
 });
 test('curated component maps fill a collection the publishers never published as scope',()=>{
-    // Yeti: Pupil's Book + Activity Book (page-for-page) + Language Booster (companion), from the samples.
+    // Yeti: Pupil's Book, Activity Book and Language Booster each keep their own page numbers (publisher contents).
     assert.equal(unitForPage('yeti-2',80,'sb'),25);
-    assert.equal(unitForPage('yeti-2',80,'wb'),25);
+    assert.equal(unitForPage('yeti-2',62,'wb'),25);
+    assert.equal(unitForPage('yeti-2',80,'wb'),null);
     assert.equal(unitForPage('yeti-2',108,'companion'),25);
-    assert.deepEqual(pageRangeForUnit('yeti-2',25,'companion'),[108,112]);
+    assert.deepEqual(pageRangeForUnit('yeti-2',25,'companion'),[108,111]);
+    assert.equal(unitForPage('yeti-2',112,'companion'),null,'a review page belongs to no lesson');
+    assert.equal(describeUnit(BOOK_ATLAS,'yeti-2',13).title,"Tina's day");
     for(const u of BOOK_ATLAS.find(b=>b.id==='yeti-2').units){
         assert.ok(u.pages.sb&&u.pages.wb&&u.pages.companion,'yeti unit '+u.n+' has all parts');
     }
@@ -61,7 +72,7 @@ test('CPP lesson and page ordering prefers the precise requested content',async(
     }
 });
 test('OCR sources never invent a printed page map and companion stays separate',async()=>{
-    assert.equal(unitForPage('bamboo',10),null);
+    assert.equal(unitForPage('bamboo',16),null,'a story page belongs to no lesson');
     const sb=await getUnitWords('yeti-2',1), companion=await getUnitWords('yeti-2',1,{component:'companion'});
     assert.ok(sb.length&&companion.length);assert.notDeepEqual(sb,companion);
     assert.deepEqual(await getUnitWords('custom',2),[]);
@@ -77,4 +88,38 @@ test('a senior unit returns only the assigned page set, while a junior book stay
     const yetiWhole=await getUnitWords('yeti-2',1,{limit:Infinity});
     assert.equal(yetiWhole.length,(await getUnitWords('yeti-2',1,{pages:[80],limit:Infinity})).length);
     assert.deepEqual(await unitPageSets('yeti-2',1),[]);
+});
+test('the Language Booster gives each lesson its own words, never another lesson\'s',async()=>{
+    for(let n=1;n<=30;n++){
+        const lesson=new Set((await getUnitWords('yeti-2',n,{limit:Infinity})).map(w=>w.w));
+        const data=JSON.parse(fs.readFileSync(new URL('../features/bookAtlas/data/yeti2.json',import.meta.url)));
+        for(const w of data.companion[String(n)]||[]) assert.ok(lesson.has(w.w),'lesson '+n+' companion word '+w.w);
+    }
+    // Lesson 13 is daily routines, not food.
+    const c13=(await getUnitWords('yeti-2',13,{component:'companion',limit:Infinity})).map(w=>w.w);
+    assert.ok(c13.includes('get up')&&!c13.includes('omelette'));
+});
+test('an activity book or companion supplies words even when it has no list of its own',async()=>{
+    for(const [id,unit] of [['yeti-2',5],['bamboo',4],['primary-path-2',3]]){
+        const wb=await getUnitWords(id,unit,{component:'wb',limit:Infinity});
+        const companion=await getUnitWords(id,unit,{component:'companion',limit:Infinity});
+        assert.ok(wb.length&&companion.length,id);
+    }
+    // A CPP activity book leads with its own words, then the unit's Student's Book words, never twice.
+    const wb=await getUnitWords('primary-path-2',3,{component:'wb',limit:Infinity});
+    assert.equal(wb[0].component,'wb');
+    assert.ok(wb.some(w=>w.component==='sb'));
+    assert.equal(new Set(wb.map(w=>w.w.toLowerCase())).size,wb.length);
+    // Activity book pages only ever narrow activity book words, and page sets show its own pages.
+    const sets=await unitPageSets('primary-path-2',3,{component:'wb'});
+    assert.ok(sets.length&&sets.every(s=>s.page>=23&&s.page<=32));
+});
+test('CPP wordlist fixes: words filed in the right unit, no impossible pages, Latin lesson codes',async()=>{
+    for(const id of ['primary-path-1','primary-path-2','primary-path-3']) for(let u=1;u<=9;u++){
+        const range=pageRangeForUnit(id,u,'wb');
+        for(const w of await getUnitWords(id,u,{component:'wb',limit:Infinity})) if(w.component==='wb'&&w.page) assert.ok(w.page>=range[0]-3&&w.page<=range[1],id+' u'+u+' '+w.w+' p'+w.page);
+        for(const w of await getUnitWords(id,u,{limit:Infinity})) assert.ok(!/[\u0370-\u03ff]/.test(w.location||''),id+' '+w.location);
+    }
+    assert.ok((await getUnitWords('primary-path-1',3,{limit:Infinity})).some(w=>w.w==='petal'));
+    assert.ok(!(await getUnitWords('primary-path-1',4,{limit:Infinity})).some(w=>w.w==='petal'));
 });

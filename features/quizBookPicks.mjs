@@ -111,7 +111,8 @@ export function defaultBookPick({ bookPlan = {}, league = '' } = {}, atlas = BOO
     const bookId = bookPlan.currentBookId && atlas.some((b) => b.id === bookPlan.currentBookId) ? bookPlan.currentBookId : first?.id;
     if (!bookId) return null;
     const book = atlas.find((b) => b.id === bookId);
-    const component = book.kind === 'grammar' ? 'grammar' : (bookPlan.currentBookId === bookId && bookPlan.component) || 'sb';
+    // The Student's Book leads, even when the class's last homework was in the activity book.
+    const component = book.kind === 'grammar' ? 'grammar' : 'sb';
     const unit = bookPlan.currentBookId === bookId ? Number(bookPlan.unit) || null : null;
     const range = unit ? pageRangeForUnit(bookId, unit, component, atlas) : null;
     return cleanBookPick({ bookId, component, unit, pageText: range ? `${range[0]}-${range[1]}` : '' }, atlas);

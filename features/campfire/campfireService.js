@@ -79,7 +79,7 @@ function clearPrep(context, classId) {
  * Pass `practisedOverride` to shape a pack for the NEXT campfire from today's assignment.
  */
 async function lessonContext(classId, learnedToday, date, practisedOverride = null) {
-    const { BOOK_ATLAS, parseLessonTarget, describeUnit, getUnitWords, buildLessonTargetSummary } = await import('../bookAtlas.mjs');
+    const { BOOK_ATLAS, parseLessonTarget, describeUnit, getUnitWords, buildLessonTargetSummary, wordLessonTargets } = await import('../bookAtlas.mjs');
     const { getClassBookPlan } = await import('../bookProgress.js');
     const bookPlan = getClassBookPlan(classId);
     const { practised: historyPractised, upcoming } = splitLessonHistory(bookPlan, date);
@@ -95,10 +95,12 @@ async function lessonContext(classId, learnedToday, date, practisedOverride = nu
     const unit = target ? describeUnit(BOOK_ATLAS, target.bookId, target.unit) : null;
     const pages = Array.isArray(target?.pages) ? target.pages : target?.page ? [target.page] : [];
     const vocabulary = target?.unit ? await getUnitWords(target.bookId, target.unit, { component: target.component, pages, lessonCode: target.lessonCode, limit: 24 }).catch(() => []) : [];
-    // A class may use more than one book the same day (coursebook + grammar book, or SB + activity book).
-    // Pull words from every other part that has a wordlist, so the fire reflects the whole lesson.
-    const extraBooks = (Array.isArray(practised?.books) ? practised.books : [])
-        .filter(b => b?.bookId && b.unit && !(b.bookId === target?.bookId && (b.component || 'sb') === (target?.component || 'sb')));
+    // A class may use more than one book the same day (coursebook + grammar book, or two courses).
+    // Pull words from every other book that has a wordlist. The Student's Book carries the words: when it was
+    // set, the same book's activity book and companion add none of their own (wordLessonTargets).
+    const lessonBooks = Array.isArray(practised?.books) ? practised.books : [];
+    const extraBooks = wordLessonTargets(target?.bookId ? [target, ...lessonBooks] : lessonBooks)
+        .filter(b => b?.bookId && b.unit && b !== target && !(b.bookId === target?.bookId && (b.component || 'sb') === (target?.component || 'sb')));
     const extraWords = [];
     for (const b of extraBooks) {
         const ws = await getUnitWords(b.bookId, b.unit, { component: b.component || 'sb', pages: b.page ? [b.page] : [], limit: 12 }).catch(() => []);

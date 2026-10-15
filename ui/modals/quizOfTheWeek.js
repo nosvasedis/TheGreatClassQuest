@@ -361,7 +361,7 @@ function renderTurn(turn) {
 }
 
 /**
- * A level-3 Familiar can help its hero once a month: its trick takes away one wrong answer.
+ * A grown Familiar (form 3+) can help its hero once a month, twice at its Mythic form: its trick takes away one wrong answer.
  * Only offered while at least two wrong answers are still open, so a real choice remains.
  */
 async function offerFamiliarTrick(turn) {
@@ -382,7 +382,7 @@ async function offerFamiliarTrick(turn) {
     btn.type = 'button';
     btn.className = 'qs-familiar-trick';
     btn.innerHTML = `<span class="qs-familiar-trick__pet">${fam.familiarArtSvg(ready.familiar, studentId, { mode: 'chip' })}</span>`
-        + `<span>${escapeAttr(ready.name)}'s ${escapeAttr(ready.trick.name)}</span>`;
+        + `<span>${escapeAttr(ready.name)}'s ${escapeAttr(ready.trick.name)}${ready.left > 1 ? ` <small class="qs-familiar-trick__left">×${ready.left}</small>` : ''}</span>`;
     podium.insertAdjacentElement('afterend', btn);
     btn.addEventListener('click', async () => {
         if (busy || btn.disabled) return;

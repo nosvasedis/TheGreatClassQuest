@@ -83,6 +83,46 @@
     --mote-color: #fef08a;
     --mote-anim: fam-mote-rise;
 }
+.fam-den[data-fam-type="tidefin"] {
+    --den-sky-top: #021526;
+    --den-sky-mid: #0c4a6e;
+    --den-sky-low: #22d3ee;
+    --den-glow: #7dd3fc;
+    --den-glow-2: #2dd4bf;
+    --den-ink: #e0f2fe;
+    --den-body: #04182b;
+    --den-ground: #0e7490;
+    --den-rays: 0.16;
+    --mote-color: #e0f2fe;
+    --mote-anim: fam-mote-bubble;
+}
+.fam-den[data-fam-type="stormwing"] {
+    --den-sky-top: #0b1120;
+    --den-sky-mid: #334155;
+    --den-sky-low: #64748b;
+    --den-glow: #fde047;
+    --den-glow-2: #93c5fd;
+    --den-ink: #f1f5f9;
+    --den-body: #0f172a;
+    --den-ground: #1e293b;
+    --den-rays: 0.1;
+    --mote-color: #fef08a;
+    --mote-anim: fam-mote-zap;
+}
+.fam-den[data-fam-type="gemshell"] {
+    --den-sky-top: #04140f;
+    --den-sky-mid: #134e4a;
+    --den-sky-low: #14b8a6;
+    --den-glow: #5eead4;
+    --den-glow-2: #f0abfc;
+    --den-ink: #ccfbf1;
+    --den-body: #052421;
+    --den-ground: #1c1917;
+    --den-rays: 0.22;
+    --mote-color: #f0abfc;
+    --mote-anim: fam-mote-rise;
+    --mote-shape: 2px;
+}
 
 /* ─── Backdrop ──────────────────────────────────────────────────────────────── */
 @keyframes fam-modal-bg-in  { from { opacity: 0; } to { opacity: 1; } }
@@ -239,6 +279,39 @@
         linear-gradient(180deg, #2e1065 0%, #9d174d 38%, #ea580c 72%, #fcd34d 100%);
 }
 
+/* Tidefin — under the waves, light dancing from above */
+.fam-den[data-fam-type="tidefin"] .fam-den-sky {
+    background:
+        repeating-linear-gradient(100deg, transparent 0 22px, rgba(186, 230, 253, 0.08) 22px 30px),
+        radial-gradient(ellipse 80% 40% at 50% 0%, rgba(125, 211, 252, 0.45), transparent 70%),
+        linear-gradient(180deg, #0369a1 0%, #0c4a6e 55%, #082f49 100%);
+    background-size: 160% 100%, 100% 100%, 100% 100%;
+    animation: fam-caustics 9s ease-in-out infinite alternate;
+}
+/* Stormwing — thunderclouds lit from within */
+.fam-den[data-fam-type="stormwing"] .fam-den-sky {
+    background:
+        radial-gradient(ellipse 30% 20% at 20% 18%, #64748b 60%, transparent 62%),
+        radial-gradient(ellipse 34% 22% at 48% 10%, #475569 60%, transparent 62%),
+        radial-gradient(ellipse 30% 20% at 82% 16%, #64748b 60%, transparent 62%),
+        radial-gradient(ellipse 70% 40% at 50% 100%, rgba(253, 224, 71, 0.25), transparent 70%),
+        linear-gradient(180deg, #0b1120 0%, #1e293b 60%, #334155 100%);
+    animation: fam-storm-flash 7s steps(1, end) infinite;
+}
+/* Gemshell — a glittering crystal cave */
+.fam-den[data-fam-type="gemshell"] .fam-den-sky {
+    background:
+        conic-gradient(from 200deg at 12% 0%, transparent 0 20deg, rgba(94, 234, 212, 0.25) 20deg 26deg, transparent 26deg),
+        conic-gradient(from 140deg at 88% 0%, transparent 0 20deg, rgba(240, 171, 252, 0.25) 20deg 26deg, transparent 26deg),
+        radial-gradient(1.4px 1.4px at 18% 30%, #fff, transparent),
+        radial-gradient(1.2px 1.2px at 76% 22%, #f0abfc, transparent),
+        radial-gradient(1.4px 1.4px at 60% 46%, #5eead4, transparent),
+        radial-gradient(ellipse 70% 40% at 50% 100%, rgba(20, 184, 166, 0.45), transparent 70%),
+        linear-gradient(180deg, #021411 0%, #0f3b36 65%, #134e4a 100%);
+}
+@keyframes fam-caustics { from { background-position: 0 0, 0 0, 0 0; } to { background-position: 100% 0, 0 0, 0 0; } }
+@keyframes fam-storm-flash { 0%, 100% { filter: none; } 62% { filter: brightness(1.7); } 64% { filter: none; } 66% { filter: brightness(1.4); } 68% { filter: none; } }
+
 @keyframes fam-aurora {
     from { background-position: 0% 0, 100% 0, 0 0, 0 0, 0 0, 0 0, 0 0; }
     to   { background-position: 100% 0, 0% 0, 0 0, 0 0, 0 0, 0 0, 0 0; }
@@ -274,6 +347,18 @@
 .fam-den[data-fam-type="veilshade"] .fam-den-stage::after {
     background: linear-gradient(180deg, rgba(76, 29, 149, 0.6), #07030f 60%);
     clip-path: ellipse(75% 55% at 50% 100%);
+}
+.fam-den[data-fam-type="tidefin"] .fam-den-stage::after {
+    background: linear-gradient(180deg, #67e8f9 0 3px, #0e7490 3px, #083344);
+    clip-path: polygon(0 50%, 10% 40%, 20% 50%, 30% 40%, 40% 50%, 50% 40%, 60% 50%, 70% 40%, 80% 50%, 90% 40%, 100% 50%, 100% 100%, 0 100%);
+}
+.fam-den[data-fam-type="stormwing"] .fam-den-stage::after {
+    background: linear-gradient(180deg, #475569, #1e293b 50%, #0f172a);
+    clip-path: polygon(0 60%, 14% 30%, 22% 50%, 36% 16%, 48% 44%, 60% 24%, 72% 46%, 84% 22%, 100% 52%, 100% 100%, 0 100%);
+}
+.fam-den[data-fam-type="gemshell"] .fam-den-stage::after {
+    background: linear-gradient(180deg, #2dd4bf 0 2px, #292524 2px, #1c1917);
+    clip-path: polygon(0 50%, 6% 20%, 10% 46%, 18% 10%, 24% 44%, 40% 40%, 50% 48%, 62% 40%, 76% 44%, 82% 8%, 88% 42%, 94% 18%, 100% 46%, 100% 100%, 0 100%);
 }
 .fam-den[data-fam-type="sparkling"] .fam-den-stage::after {
     background: linear-gradient(180deg, #7c2d12, #2a0f12);
@@ -346,6 +431,23 @@
     50%  { transform: translate(var(--mote-drift, 0), 20px) rotate(200deg); }
     100% { transform: translate(calc(var(--mote-drift, 0) * -0.5), 150px) rotate(420deg); opacity: 0; }
 }
+@keyframes fam-mote-bubble {
+    0%   { transform: translate(0, 90px) scale(0.5); opacity: 0; }
+    15%  { opacity: 0.9; }
+    100% { transform: translate(var(--mote-drift, 0), -140px) scale(1.2); opacity: 0; }
+}
+@keyframes fam-mote-zap {
+    0%, 100% { transform: translate(0, 0) scale(0.4); opacity: 0; }
+    48%      { opacity: 0; }
+    50%      { transform: translate(var(--mote-drift, 0), -12px) scale(1.4); opacity: 1; }
+    56%      { opacity: 0; }
+}
+.fam-den[data-fam-type="tidefin"] .fam-den-mote {
+    background: rgba(224, 242, 254, 0.18);
+    border: 1px solid rgba(224, 242, 254, 0.8);
+    box-shadow: none;
+}
+.fam-den[data-fam-type="gemshell"] .fam-den-mote { transform: rotate(45deg); }
 @keyframes fam-mote-wisp {
     0%, 100% { transform: translate(0, 0) scale(0.6); opacity: 0; }
     35%      { opacity: 0.95; }
@@ -605,7 +707,7 @@
 .fam-evo-track {
     position: relative;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     margin: 10px 0 0;
     padding: 0;
     list-style: none;
@@ -615,16 +717,16 @@
     content: '';
     position: absolute;
     top: 17px;
-    left: 12.5%;
+    left: 8.33%;
     height: 3px;
     border-radius: 3px;
 }
 .fam-evo-track::before {
-    right: 12.5%;
+    right: 8.33%;
     background: rgba(255, 255, 255, 0.1);
 }
 .fam-evo-track::after {
-    width: calc(var(--evo-fill, 0%) * 0.75);
+    width: calc(var(--evo-fill, 0%) * 0.8334);
     background: linear-gradient(90deg, var(--den-glow-2), var(--den-glow));
     box-shadow: 0 0 10px var(--den-glow);
 }
@@ -685,6 +787,17 @@
     line-height: 1.15;
     color: var(--den-ink);
     padding: 0 2px;
+}
+.fam-evo-node--next .fam-evo-gem::before {
+    background: #0b0a14;
+    border: 1.5px solid color-mix(in srgb, var(--den-glow) 55%, transparent);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--den-glow) 30%, transparent);
+}
+.fam-evo-node--next .fam-evo-name { opacity: 0.75; }
+.fam-evo-need {
+    margin-top: -3px;
+    font: 600 0.58rem/1 'Fredoka', sans-serif;
+    color: color-mix(in srgb, var(--den-ink) 50%, transparent);
 }
 .fam-evo-node--current .fam-evo-name { color: var(--den-glow); font-weight: 700; }
 .fam-evo-node--locked .fam-evo-name { opacity: 0.4; }
@@ -777,6 +890,29 @@
     color: #fde68a;
     text-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
 }
+
+/* Mythic form: Starbond marks keep growing */
+.fam-den-max-body { flex: 1; min-width: 0; }
+.fam-starbond-row { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 8px; }
+.fam-starbond-pip { font-size: 0.95rem; line-height: 1; color: rgba(255, 255, 255, 0.18); }
+.fam-starbond-pip.is-lit { color: #fde047; text-shadow: 0 0 8px rgba(251, 191, 36, 0.9); }
+.fam-den-bar--starbond .fam-modal-progress-bar { background: linear-gradient(90deg, #f59e0b, #fde047 70%, #fff); box-shadow: 0 0 14px rgba(251, 191, 36, 0.8); }
+.fam-den-form-badge {
+    position: absolute;
+    top: 12px;
+    right: 52px;
+    z-index: 5;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font: 700 0.7rem/1.2 'Fredoka', sans-serif;
+    letter-spacing: 0.06em;
+    color: var(--den-ink);
+    background: rgba(0, 0, 0, 0.42);
+    border: 1px solid color-mix(in srgb, var(--den-glow) 45%, transparent);
+    animation: fam-text-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.36s both;
+}
+.fam-den--mythic .fam-den-form-badge { color: #1a1026; background: linear-gradient(135deg, #fffbeb, #fde047); border-color: transparent; }
+.fam-den--mythic .fam-den-stage { box-shadow: inset 0 0 0 2px rgba(253, 224, 71, 0.35), inset 0 0 40px rgba(253, 224, 71, 0.18); }
 
 /* Stats */
 .fam-den-stats {
@@ -910,7 +1046,9 @@
     .fam-den-altar { transform: scale(0.9); transform-origin: 50% 100%; }
     .fam-modal-name { font-size: 1.75rem; }
     .fam-den-body { padding: 14px 14px 18px; }
-    .fam-evo-name { font-size: 0.62rem; }
+    .fam-evo-name { font-size: 0.56rem; }
+    .fam-evo-art { width: 38px; height: 38px; }
+    .fam-den-form-badge { right: 48px; font-size: 0.62rem; }
 }
 
 /* ─── Reduced motion ────────────────────────────────────────────────────────── */
@@ -931,6 +1069,7 @@
     .fam-modal-stat,
     .fam-evo-node--current .fam-evo-gem::before,
     .fam-den-max-crown,
+    .fam-den-form-badge,
     .fam-modal-progress-bar::after {
         animation: none !important;
         opacity: 1;

@@ -1,7 +1,7 @@
 // ui/core/marketView.mjs — pure markup for the Mystic Market storefront shelves.
 // Shared by ui/core/shop.js and the guidebook capture (no Firebase / state imports).
 import { shopItemStock } from '../../utils/shopRestock.js';
-import { FAMILIAR_LEVEL_THRESHOLDS } from '../../features/familiarProgression.mjs';
+import { FAMILIAR_STAGE_BOND } from '../../features/familiarProgression.mjs';
 import { buildFamiliarEggSvg, describeFamiliar, getFamiliarPresets } from '../../features/familiarForge.mjs';
 
 /** The class's egg, drawn by the Familiar Forge in its signature colours. */
@@ -137,9 +137,9 @@ export function renderFamiliarEggCard(fType) {
                 <p class="mm-ware__desc">${escapeShopHtml(fType.desc)}</p>
                 <p class="mm-ware__flavor">${escapeShopHtml(fType.flavorHint)}</p>
                 <ul class="mm-ware__facts">
-                    <li><span aria-hidden="true">🥚</span> Hatches after <strong>${FAMILIAR_LEVEL_THRESHOLDS.hatch} stars</strong></li>
-                    <li><span aria-hidden="true">✨</span> <strong>+${FAMILIAR_LEVEL_THRESHOLDS.level2}</strong> stars after hatch → Level 2</li>
-                    <li><span aria-hidden="true">✨</span> <strong>+${FAMILIAR_LEVEL_THRESHOLDS.level3}</strong> stars after hatch → Level 3</li>
+                    <li><span aria-hidden="true">🥚</span> Hatches after <strong>${FAMILIAR_STAGE_BOND[1]} stars</strong> together</li>
+                    <li><span aria-hidden="true">✨</span> Grows at <strong>${FAMILIAR_STAGE_BOND.slice(2).join(' · ')}</strong> stars together</li>
+                    <li><span aria-hidden="true">🌟</span> Mythic form keeps earning Starbond marks</li>
                     <li class="mm-ware__forms"><span aria-hidden="true">📛</span> ${forms}</li>
                 </ul>
                 <div class="shop-item-footer mm-ware__footer">

@@ -9,6 +9,7 @@ import {
     getFamiliarBond,
     getFamiliarProgress,
     getFamiliarProgressPercent,
+    getFamiliarStarbond,
     getUnlockedFamiliarLevel,
     levelForBond,
     rollFamiliarBondOver
@@ -17,7 +18,9 @@ import {
 const egg = (purchase, extra = {}) => ({ typeId: 'emberfang', state: 'egg', level: 0, starsWhenPurchased: purchase, ...extra });
 const alive = (level, purchase, extra = {}) => ({ typeId: 'emberfang', state: 'alive', level, starsWhenPurchased: purchase, ...extra });
 
-test('stages follow the bond: hatch at 20, then 80, 160 ...', () => {
+test('stages follow the bond: hatch at 20, then 80, 160, 300, 500', () => {
+    assert.deepEqual(FAMILIAR_STAGE_BOND, [0, 20, 80, 160, 300, 500]);
+    assert.equal(FAMILIAR_MAX_LEVEL, 5);
     assert.equal(levelForBond(0), 0);
     assert.equal(levelForBond(19), 0);
     assert.equal(levelForBond(20), 1);
@@ -32,6 +35,16 @@ test('a familiar with a stored bond grows with the stars earned since its anchor
     assert.equal(getUnlockedFamiliarLevel(f, 120), 1);
     assert.equal(getUnlockedFamiliarLevel(f, 180), 2);
     assert.equal(getUnlockedFamiliarLevel(f, 260), 3);
+    assert.equal(getUnlockedFamiliarLevel(f, 400), 4);
+    assert.equal(getUnlockedFamiliarLevel(f, 600), 5);
+});
+
+test('a familiar keeps growing after its Mythic form through Starbond marks', () => {
+    const f = alive(5, 0, { bond: createFamiliarBond(0, 'y') });
+    assert.deepEqual(getFamiliarStarbond(f, 500), { marks: 0, intoNext: 0, step: 150 });
+    assert.deepEqual(getFamiliarStarbond(f, 830), { marks: 2, intoNext: 30, step: 150 });
+    assert.equal(getFamiliarProgress(f, 900).phase, 'max');
+    assert.equal(getFamiliarStarbond(alive(3, 0, { bond: createFamiliarBond(0, 'y') }), 200).marks, 0);
 });
 
 test('the yearly star reset no longer freezes a familiar', () => {
@@ -55,6 +68,8 @@ test('legacy familiars: reset since purchase counts last year and every star thi
     // A hatched familiar never drops below the stage it already reached.
     assert.equal(estimateLegacyBond(alive(2, 300), 10, { resetSincePurchase: true, priorYearTotal: 310 }), FAMILIAR_STAGE_BOND[2] + 10);
     assert.equal(estimateLegacyBond(alive(3, 10), 30), FAMILIAR_STAGE_BOND[3]);
+    // A level-3 familiar from before the revamp is not pushed past its stage on day one.
+    assert.equal(getUnlockedFamiliarLevel(alive(3, 10), 30), 3);
 });
 
 test('legacy familiars without a reset keep the old timing', () => {
@@ -62,6 +77,7 @@ test('legacy familiars without a reset keep the old timing', () => {
     assert.equal(getUnlockedFamiliarLevel(f, 100), 1);
     assert.equal(getUnlockedFamiliarLevel(f, 120), 2);
     assert.equal(getUnlockedFamiliarLevel(f, 200), 3);
+    assert.equal(getUnlockedFamiliarLevel(f, 340), 4);
 });
 
 test('progress is measured within the current stage', () => {

@@ -1543,7 +1543,7 @@ function getClassFamiliarParadeCard(classId) {
         const score = allStudentScores.find(sc => sc.id === s.id) || {};
         const familiar = score.familiar;
         if (!familiar) return null;
-        const badge = familiar.state === 'egg' ? '🥚' : familiar.level >= 2 ? '✨' : '🐣';
+        const badge = familiar.state === 'egg' ? '🥚' : familiar.level >= 5 ? '🌟' : familiar.level >= 2 ? '✨' : '🐣';
         return `<div class="flex flex-col items-center gap-1">
             <div>${renderFamiliarSprite(familiar, 'medium', s.id)}</div>
             <span class="text-[9px] font-bold opacity-50">${badge}</span>

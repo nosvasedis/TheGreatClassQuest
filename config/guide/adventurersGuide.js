@@ -184,7 +184,7 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'familiars', icon: 'fa-dragon', name: 'Familiars', tier: 'elite',
                     where: 'Eggs on the Mystic Market', go: 'tab:shop-tab',
-                    text: `One companion per student, bought as an egg. Every egg hatches a one-of-a-kind creature (30 kinds per class, plus its own eyes, markings and keepsakes, and a rare Shiny). It hatches after 20 more stars, evolves at 60 and at 140 stars, hops for joy when its hero earns a star, and walks in the Familiar Parade after the Ceremony of the Month. At its final form it learns a trick: once a month it takes away one wrong answer in the Quiz of the Week. Tap a familiar to open its Den.`,
+                    text: `One companion per student, bought as an egg. Every egg hatches a one-of-a-kind creature (30 kinds per class, plus its own eyes, markings and keepsakes, and a rare Shiny). It hatches after 20 stars together and grows through five forms at 20, 80, 160, 300 and 500 stars together (the bond carries over into a new school year), and its Mythic form keeps earning Starbond marks. Each new form plays an Evolution Moment. It hops for joy when its hero earns a star and walks in the Familiar Parade after the Ceremony of the Month. From its third form it knows a trick: once a month (twice at Mythic) it takes away one wrong answer in the Quiz of the Week. Tap a familiar to open its Den.`,
                     keys: 'egg pet companion hatch evolve trick parade shiny'
                 }
             ]
@@ -538,7 +538,7 @@ export const GUIDE_CHAPTERS = {
                 },
                 {
                     id: 'familiar', icon: 'fa-dragon', name: 'Your Familiar', tier: 'elite',
-                    text: `Buy an egg and look after it with your stars. It hatches after 20 stars into a creature nobody else has, and grows bigger as you keep earning. At its final form it learns a trick that can help you once a month in the Quiz of the Week.`,
+                    text: `Buy an egg and look after it with your stars. It hatches after 20 stars into a creature nobody else has, and grows through five forms as you keep earning, even into a new school year. From its third form it learns a trick that can help you once a month in the Quiz of the Week, twice at its Mythic form.`,
                     keys: 'egg pet'
                 }
             ]

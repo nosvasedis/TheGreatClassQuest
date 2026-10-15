@@ -9,15 +9,19 @@
 //
 // Pure module: no DOM, no Firebase.
 
-/** Bond (stars together) needed to reach each level. Index = level. */
-export const FAMILIAR_STAGE_BOND = [0, 20, 80, 160];
+/** Bond (stars together) needed to reach each level. Index = level: egg, then 5 forms. */
+export const FAMILIAR_STAGE_BOND = [0, 20, 80, 160, 300, 500];
 export const FAMILIAR_MAX_LEVEL = FAMILIAR_STAGE_BOND.length - 1;
+/** After the Mythic form every further 150 stars together adds a Starbond mark. */
+export const FAMILIAR_STARBOND_STEP = 150;
 
-/** Kept for older callers: hatch after 20, then +60 and +140 stars after hatching. */
+/** Stars after hatching for each form (hatch itself counts stars after buying the egg). */
 export const FAMILIAR_LEVEL_THRESHOLDS = {
     hatch: FAMILIAR_STAGE_BOND[1],
     level2: FAMILIAR_STAGE_BOND[2] - FAMILIAR_STAGE_BOND[1],
-    level3: FAMILIAR_STAGE_BOND[3] - FAMILIAR_STAGE_BOND[1]
+    level3: FAMILIAR_STAGE_BOND[3] - FAMILIAR_STAGE_BOND[1],
+    level4: FAMILIAR_STAGE_BOND[4] - FAMILIAR_STAGE_BOND[1],
+    level5: FAMILIAR_STAGE_BOND[5] - FAMILIAR_STAGE_BOND[1]
 };
 
 function clamp(value, min, max) {
@@ -117,6 +121,17 @@ export function rollFamiliarBondOver(bond, closedYearTotal, newYearKey) {
     const anchor = Math.max(0, num(bond?.anchor));
     const closed = typeof closedYearTotal === 'number' ? Math.max(0, closedYearTotal - anchor) : 0;
     return { banked: banked + closed, anchor: 0, year: newYearKey || null };
+}
+
+/**
+ * Starbond: once Mythic, the bond keeps counting. Returns { marks, intoNext, step }.
+ */
+export function getFamiliarStarbond(familiar, totalStars) {
+    const bond = getFamiliarBond(familiar, totalStars);
+    const over = Math.max(0, bond - FAMILIAR_STAGE_BOND[FAMILIAR_MAX_LEVEL]);
+    const isMythic = familiar?.state === 'alive' && Math.max(Number(familiar.level) || 0, levelForBond(bond)) >= FAMILIAR_MAX_LEVEL;
+    if (!isMythic) return { marks: 0, intoNext: 0, step: FAMILIAR_STARBOND_STEP };
+    return { marks: Math.floor(over / FAMILIAR_STARBOND_STEP), intoNext: over % FAMILIAR_STARBOND_STEP, step: FAMILIAR_STARBOND_STEP };
 }
 
 export function getUnlockedFamiliarLevel(familiar, totalStars) {

@@ -928,6 +928,10 @@ const familiarBank = createVoiceBank((keep) => {
         puffFilter: () => keep(new Tone.Filter({ type: 'bandpass', frequency: 900, Q: 0.8 }).connect(reverb)),
         puff: () => mono(keep, new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.02, decay: 0.25, sustain: 0, release: 0.1 }, volume: -14 }).connect(v.puffFilter)),
         bell: () => pool(keep, Tone.Synth, { oscillator: { type: 'sine' }, envelope: { attack: 0.002, decay: 0.35, sustain: 0, release: 0.4 }, volume: -14 }, 8).connect(reverb),
+        // Evolution Moment: a swelling pad, a deep thump for the flash and a glassy shimmer.
+        swell: () => mono(keep, new Tone.Synth({ oscillator: { type: 'fattriangle', count: 3, spread: 24 }, envelope: { attack: 0.4, decay: 0.2, sustain: 0.8, release: 0.6 }, volume: -15 }).connect(reverb)),
+        thump: () => mono(keep, new Tone.MembraneSynth({ pitchDecay: 0.08, octaves: 4, envelope: { attack: 0.002, decay: 0.6, sustain: 0, release: 0.3 }, volume: -8 }).connect(familiarChassis.out)),
+        shimmer: () => pool(keep, Tone.Synth, { oscillator: { type: 'triangle' }, envelope: { attack: 0.005, decay: 0.5, sustain: 0, release: 0.6 }, volume: -16 }, 10).connect(reverb),
     });
     return v;
 }, { idle: 6, span: 3 });
@@ -942,7 +946,7 @@ function glide(synth, t, points, end) {
     synth.triggerRelease(t + end);
 }
 
-/** A familiar's call: { kind: 'chirr' | 'yip' | 'croak' | 'hum' | 'trill', pitch, shiny }. */
+/** A familiar's call: { kind: 'chirr' | 'yip' | 'croak' | 'hum' | 'trill' | 'squeak' | 'hoot' | 'chime', pitch, shiny, mythic }. */
 export function playFamiliarVoice(voice = {}) {
     if (!soundsReady || !audioRunning()) return;
     const v = getFamiliarVoices();
@@ -962,10 +966,62 @@ export function playFamiliarVoice(voice = {}) {
         } else if (voice.kind === 'hum') {
             glide(v.lead, t, [[0, 330 * p], [0.25, 495 * p], [0.6, 392 * p]], 0.62);
             v.puff.triggerAttackRelease(0.5, t + 0.05);
+        } else if (voice.kind === 'squeak') {
+            [0, 0.12, 0.22].forEach((dt, i) => glide(v.lead, t + dt, [[0, (900 + i * 120) * p], [0.06, (1400 + i * 160) * p]], 0.08));
+            v.bell.triggerAttackRelease(1760 * p, 0.2, t + 0.34, 0.35);
+        } else if (voice.kind === 'hoot') {
+            glide(v.lead, t, [[0, 420 * p], [0.12, 470 * p], [0.3, 400 * p]], 0.32);
+            glide(v.lead, t + 0.42, [[0, 400 * p], [0.18, 450 * p], [0.42, 360 * p]], 0.46);
+        } else if (voice.kind === 'chime') {
+            [523, 784, 1047, 1568].forEach((freq, i) => v.bell.triggerAttackRelease(freq * p, 0.5, t + i * 0.09, 0.55));
         } else {
             [1047, 1319, 1568, 2093, 1568, 2637].forEach((freq, i) => v.bell.triggerAttackRelease(freq * p, 0.12, t + i * 0.055, 0.6));
         }
         if (voice.shiny) [2093, 2637, 3136, 4186].forEach((freq, i) => v.bell.triggerAttackRelease(freq, 0.3, t + 0.45 + i * 0.07, 0.35));
+        if (voice.mythic) [1568, 2093, 3136].forEach((freq, i) => v.shimmer.triggerAttackRelease(freq, 0.4, t + 0.6 + i * 0.08, 0.3));
+    } catch (_) { /* overlapping triggers are harmless */ }
+}
+
+/**
+ * The Evolution Moment's sound, in phases:
+ * 'notice' (a little bell call), 'crack' / 'charge' (the glow builds), 'morph' (the shape flickers
+ * faster and faster), 'burst' (the flash) and 'fanfare' (the new form appears).
+ */
+export function playFamiliarEvolutionSfx(phase) {
+    if (!soundsReady || !audioRunning()) return;
+    const v = getFamiliarVoices();
+    if (!v) return;
+    const t = Tone.now() + 0.03;
+    try {
+        if (phase === 'notice') {
+            ['E6', 'G#6', 'B6'].forEach((n, i) => v.bell.triggerAttackRelease(n, 0.35, t + i * 0.08, 0.45));
+        } else if (phase === 'crack') {
+            [0, 0.45, 0.8, 1.1, 1.35].forEach((dt, i) => {
+                v.puff.triggerAttackRelease(0.06, t + dt);
+                v.bell.triggerAttackRelease(1800 + i * 160, 0.08, t + dt, 0.4);
+            });
+            glide(v.swell, t + 0.2, [[0, 196], [1.4, 392]], 1.6);
+        } else if (phase === 'charge') {
+            glide(v.swell, t, [[0, 196], [1.6, 523]], 1.7);
+            v.puff.triggerAttackRelease(1.2, t + 0.3);
+        } else if (phase === 'morph') {
+            let at = 0;
+            let gap = 0.34;
+            for (let i = 0; i < 14 && at < 2.5; i++) {
+                v.shimmer.triggerAttackRelease(i % 2 ? 1319 : 988, 0.12, t + at, 0.5);
+                at += gap;
+                gap = Math.max(0.08, gap * 0.84);
+            }
+            glide(v.swell, t, [[0, 523], [2.5, 1047]], 2.6);
+        } else if (phase === 'burst') {
+            v.thump.triggerAttackRelease('C2', 0.6, t);
+            v.puff.triggerAttackRelease(0.5, t);
+            ['C6', 'E6', 'G6', 'C7'].forEach((n) => v.shimmer.triggerAttackRelease(n, 0.6, t + 0.02, 0.5));
+        } else if (phase === 'fanfare') {
+            [['C5', 0], ['E5', 0.12], ['G5', 0.24], ['C6', 0.38]].forEach(([n, dt]) => v.bell.triggerAttackRelease(n, 0.4, t + dt, 0.7));
+            ['E6', 'G6', 'C7'].forEach((n) => v.shimmer.triggerAttackRelease(n, 0.9, t + 0.56, 0.45));
+            [2637, 3136, 3951, 4186].forEach((freq, i) => v.bell.triggerAttackRelease(freq, 0.25, t + 0.9 + i * 0.06, 0.3));
+        }
     } catch (_) { /* overlapping triggers are harmless */ }
 }
 

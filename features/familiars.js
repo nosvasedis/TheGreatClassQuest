@@ -1,7 +1,10 @@
 // /features/familiars.js — Familiars: companion eggs that hatch and evolve as their hero earns stars.
 // The creatures are hand-built SVG rigs from the Familiar Forge (features/familiarForge.mjs):
-// 30 presets per class, personal traits on top, idle motion, a voice, a hop when their hero
-// earns a star and, at level 3, a once-a-month trick in the Quiz of the Week.
+// 8 classes with 30 presets each, personal traits on top, idle motion, a voice, a hop when their
+// hero earns a star, 5 forms (the trick in the Quiz of the Week arrives at the third, twice a
+// month at the fifth) and Starbond marks after the Mythic form. A new form is announced with a
+// notice and revealed in the Evolution Moment (features/familiarMoments.js); until it has been
+// watched the familiar keeps its old form and glows, waiting.
 
 import { db, doc, getDoc, updateDoc } from '../firebase.js';
 import * as state from '../state.js';
@@ -11,6 +14,7 @@ import { detectLowPowerTier } from '../utils/devicePerformance.mjs';
 import {
     FAMILIAR_LEVEL_THRESHOLDS,
     FAMILIAR_MAX_LEVEL,
+    FAMILIAR_STAGE_BOND,
     bondForLevel,
     createFamiliarBond,
     estimateLegacyBond,
@@ -18,6 +22,7 @@ import {
     getUnlockedFamiliarLevel,
     getFamiliarProgress,
     getFamiliarProgressPercent,
+    getFamiliarStarbond,
     hasStoredBond,
     rollFamiliarBondOver
 } from './familiarProgression.mjs';
@@ -30,6 +35,8 @@ import {
     buildFamiliarSvg,
     createFamiliarLook,
     describeFamiliar,
+    familiarTricksPerMonth,
+    familiarTricksUsed,
     familiarVoice,
     isFamiliarTrickReady,
     resolveFamiliarLook,
@@ -40,7 +47,7 @@ import { PUBLIC_DATA_PATH as publicDataPath } from '../utils/tenant.mjs';
 const familiarOps = new Map();
 const FAMILIAR_SCHEMA_VERSION = 4;
 
-export { FAMILIAR_LEVEL_THRESHOLDS };
+export { FAMILIAR_LEVEL_THRESHOLDS, FAMILIAR_MAX_LEVEL, FAMILIAR_STAGE_BOND };
 
 // ─── FAMILIAR TYPE DEFINITIONS ────────────────────────────────────────────────
 
@@ -53,9 +60,9 @@ export const FAMILIAR_TYPES = {
         eggColor: '#ef4444',
         eggAccent: '#fca5a5',
         personality: 'Bold and fierce — a flame that never goes out.',
-        desc: 'A fire-breathing dragon hatchling that grows into a mighty flame drake.',
+        desc: 'A fire-breathing dragon hatchling that grows into a sun-crowned elder dragon.',
         flavorHint: 'Daring • Fierce • Unstoppable',
-        levelNames: ['Hatchling', 'Flame Drake', 'Inferno Dragon']
+        levelNames: ['Hatchling', 'Flame Drake', 'Inferno Dragon', 'Magma Wyrm', 'Sunfire Elder']
     },
     frostpaw: {
         id: 'frostpaw',
@@ -65,9 +72,9 @@ export const FAMILIAR_TYPES = {
         eggColor: '#3b82f6',
         eggAccent: '#bfdbfe',
         personality: 'Calm and wise — cool as the winter wind.',
-        desc: 'An arctic fox spirit that grows into a mystical frost guardian.',
+        desc: 'An arctic fox spirit that grows a tail for every winter, up to a starfrost sovereign.',
         flavorHint: 'Serene • Wise • Graceful',
-        levelNames: ['Ice Cub', 'Snow Fox', 'Frost Guardian']
+        levelNames: ['Ice Cub', 'Snow Fox', 'Frost Guardian', 'Aurora Kitsune', 'Starfrost Sovereign']
     },
     thornback: {
         id: 'thornback',
@@ -77,9 +84,9 @@ export const FAMILIAR_TYPES = {
         eggColor: '#16a34a',
         eggAccent: '#86efac',
         personality: 'Sturdy and loyal — as solid as the ancient oaks.',
-        desc: 'A mossy forest toad that evolves into a legendary ancient treant.',
+        desc: 'A mossy forest toad that grows into a bear, a treant and, at last, a world-tree elder.',
         flavorHint: 'Strong • Loyal • Grounded',
-        levelNames: ['Moss Toad', 'Bark Bear', 'Ancient Treant']
+        levelNames: ['Moss Toad', 'Bark Bear', 'Ancient Treant', 'Grove Warden', 'World-Tree Elder']
     },
     veilshade: {
         id: 'veilshade',
@@ -89,9 +96,9 @@ export const FAMILIAR_TYPES = {
         eggColor: '#7c3aed',
         eggAccent: '#c4b5fd',
         personality: 'Mysterious and elusive — a whisper between worlds.',
-        desc: 'A shadow sprite that grows into the legendary Void Stalker.',
+        desc: 'A shadow wisp that grows into a cat of the night and, at last, a moonveil sphinx.',
         flavorHint: 'Mysterious • Swift • Ethereal',
-        levelNames: ['Shadow Wisp', 'Phantom Cat', 'Void Stalker']
+        levelNames: ['Shadow Wisp', 'Phantom Cat', 'Void Stalker', 'Eclipse Lynx', 'Moonveil Sphinx']
     },
     sparkling: {
         id: 'sparkling',
@@ -101,11 +108,55 @@ export const FAMILIAR_TYPES = {
         eggColor: '#f59e0b',
         eggAccent: '#fde68a',
         personality: 'Bright and joyful — a burst of sunrise magic.',
-        desc: 'A radiant fairy-phoenix that blossoms into a legendary sun guardian.',
+        desc: 'A radiant fairy-phoenix that blossoms into an eternal sunbird.',
         flavorHint: 'Radiant • Joyful • Inspiring',
-        levelNames: ['Sun Sprite', 'Dawn Fairy', 'Solar Phoenix']
+        levelNames: ['Sun Sprite', 'Dawn Fairy', 'Solar Phoenix', 'Radiant Phoenix', 'Eternal Sunbird']
+    },
+    tidefin: {
+        id: 'tidefin',
+        name: 'Tidefin',
+        price: 35,
+        eggIcon: '🥚',
+        eggColor: '#0284c7',
+        eggAccent: '#7dd3fc',
+        personality: 'Playful and kind — always ready to splash.',
+        desc: 'A bubbly otter pup that grows fins, a coral crown and, at last, calls the tide.',
+        flavorHint: 'Playful • Kind • Curious',
+        levelNames: ['Bubble Pup', 'River Otter', 'Tide Otter', 'Coral Selkie', 'Tidecaller']
+    },
+    stormwing: {
+        id: 'stormwing',
+        name: 'Stormwing',
+        price: 45,
+        eggIcon: '🥚',
+        eggColor: '#475569',
+        eggAccent: '#fde047',
+        personality: 'Sharp and brave — quick as a lightning flash.',
+        desc: 'A puffball owlet that grows storm wings and becomes the mighty Thunderbird.',
+        flavorHint: 'Clever • Brave • Electric',
+        levelNames: ['Puffball Owlet', 'Storm Owl', 'Thunder Owl', 'Tempest Owl', 'Thunderbird']
+    },
+    gemshell: {
+        id: 'gemshell',
+        name: 'Gemshell',
+        price: 40,
+        eggIcon: '🥚',
+        eggColor: '#0d9488',
+        eggAccent: '#5eead4',
+        personality: 'Patient and steady — slow and always shining.',
+        desc: 'A pebble turtle whose shell grows crystals until it becomes a prism colossus.',
+        flavorHint: 'Patient • Steady • Brilliant',
+        levelNames: ['Pebble Tortle', 'Crystal Tortoise', 'Geode Guardian', 'Mountain Tortoise', 'Prism Colossus']
     }
 };
+
+/** The name of a form (1-5) for a familiar class. */
+export function familiarStageName(typeId, level) {
+    const typeDef = FAMILIAR_TYPES[typeId];
+    if (!typeDef) return '';
+    const lvl = Math.max(1, Math.min(FAMILIAR_MAX_LEVEL, Number(level) || 1));
+    return typeDef.levelNames[lvl - 1] || `Form ${lvl}`;
+}
 
 // ─── STYLES, PERFORMANCE AND GENOMES ──────────────────────────────────────────
 
@@ -298,7 +349,6 @@ async function _buildBondUpdate(familiar, studentId, totalStars, yearKey) {
 }
 
 let sweepTimer = null;
-let sweepRuns = 0;
 
 /**
  * Stars arrive from many places (games, oaths, boons, quests), not all of which call the
@@ -314,7 +364,8 @@ export function scheduleFamiliarGrowthSweep() {
 function runFamiliarGrowthSweep() {
     const userId = state.get('currentUserId');
     if (!userId) return;
-    const announce = sweepRuns++ > 0;
+    // Only stage changes written here are announced; familiars already waiting simply glow.
+    const announce = true;
     const owned = new Set((state.get('allStudents') || [])
         .filter((s) => s.createdBy?.uid === userId)
         .map((s) => s.id));
@@ -374,20 +425,13 @@ function _mergeFamiliar(familiar, updates) {
 
 function _announceStageChange(studentId, familiar, newLevel) {
     const student = state.get('allStudents').find((s) => s.id === studentId);
-    const typeDef = FAMILIAR_TYPES[familiar.typeId];
-    if (!student || !typeDef) return;
-    const familiarLabel = getFamiliarDisplayName(familiar, typeDef);
-    const firstName = student.name.split(' ')[0];
-
-    import('../ui/effects.js').then((m) => {
-        if (newLevel <= 1) m.showPraiseToast(`${firstName}'s ${familiarLabel} has hatched! Open the Den to meet it. 🥚✨`, '🎉');
-        else m.showPraiseToast(`${firstName}'s ${familiarLabel} evolved into a ${typeDef.levelNames[newLevel - 1]}! 🌟`, '⬆️');
-    });
-    _playFamiliarSound(newLevel <= 1 ? 'hatch' : 'levelup');
-    setTimeout(() => playFamiliarCall({ ...familiar, level: newLevel }, studentId), 700);
+    if (!student || !FAMILIAR_TYPES[familiar.typeId]) return;
+    import('./familiarMoments.js')
+        .then((m) => m.showFamiliarNotice(studentId, { ...familiar, level: newLevel }))
+        .catch((e) => console.warn('Familiar notice failed:', e));
 }
 
-function _playFamiliarSound(type) {
+export function _playFamiliarSound(type) {
     try {
         playSound(type === 'hatch' ? 'familiar_hatch' : 'familiar_levelup');
     } catch (_) {}
@@ -399,10 +443,14 @@ const SIZE_PX = { small: 40, medium: 64, large: 128, xl: 168 };
 const lastSeenStars = new Map(); // studentId -> { stars, hopUntil }
 let lastHopCall = 0;
 
+function scoreFor(studentId) {
+    return (state.get('allStudentScores') || []).find((s) => s.id === studentId) || null;
+}
+
 /** True for a short moment after this student's star total went up, so every view of the familiar hops. */
 function shouldHop(studentId) {
     if (!studentId) return false;
-    const score = (state.get('allStudentScores') || []).find((s) => s.id === studentId);
+    const score = scoreFor(studentId);
     const stars = Number(score?.totalStars) || 0;
     const seen = lastSeenStars.get(studentId);
     const now = Date.now();
@@ -422,20 +470,39 @@ function shouldHop(studentId) {
 }
 
 function eggProgressFor(familiar, studentId) {
-    const score = (state.get('allStudentScores') || []).find((s) => s.id === studentId);
-    return getFamiliarProgressPercent(getFamiliarProgress(familiar, Number(score?.totalStars) || 0));
+    return getFamiliarProgressPercent(getFamiliarProgress(familiar, Number(scoreFor(studentId)?.totalStars) || 0));
 }
 
-/** Just the SVG for a familiar at a given stage (used by the Den, the hatch moment, the Parade and the Quiz). */
-export function familiarArtSvg(familiar, studentId = '', { level = null, mode = 'full', egg = null, progress = null } = {}) {
+/**
+ * A new form that has not been revealed yet. While it waits, every view keeps showing the
+ * form the class last saw (the egg, for a hatch) with a glow, until the Evolution Moment plays.
+ * @returns {{ from: number, to: number }|null}
+ */
+export function getPendingFamiliarMoment(familiar) {
+    if (!familiar || familiar.state !== 'alive' || typeof familiar.seenLevel !== 'number') return null;
+    const level = Math.max(1, Math.min(FAMILIAR_MAX_LEVEL, Number(familiar.level) || 1));
+    const seen = Math.max(0, Math.min(level, Number(familiar.seenLevel) || 0));
+    return seen < level ? { from: seen, to: level } : null;
+}
+
+/** Starbond marks for a Mythic familiar (0 before the fifth form). */
+export function getFamiliarStarbondMarks(familiar, studentId) {
+    if (!familiar || familiar.state !== 'alive' || (Number(familiar.level) || 0) < FAMILIAR_MAX_LEVEL) return 0;
+    return getFamiliarStarbond(familiar, Number(scoreFor(studentId)?.totalStars) || 0).marks;
+}
+
+/** Just the SVG for a familiar at a given stage (used by the Den, the Evolution Moment, the Parade and the Quiz). */
+export function familiarArtSvg(familiar, studentId = '', { level = null, mode = 'full', egg = null, progress = null, starbond = null } = {}) {
     ensureFamiliarStyles();
     const genome = getFamiliarGenome(familiar, studentId);
     if (!genome) return '';
     const showEgg = egg ?? familiar.state === 'egg';
     const lite = isLite();
+    const drawLevel = level || familiar.level || 1;
+    const marks = starbond ?? (drawLevel >= FAMILIAR_MAX_LEVEL ? getFamiliarStarbondMarks(familiar, studentId) : 0);
     let svg = showEgg
         ? buildFamiliarEggSvg(genome, { progress: progress ?? eggProgressFor(familiar, studentId) })
-        : buildFamiliarSvg(genome, { level: level || familiar.level || 1, mode });
+        : buildFamiliarSvg(genome, { level: drawLevel, mode, starbond: marks });
     if (lite) svg = svg.replace('class="fc ', 'class="fc fc--lite ');
     if (mode === 'chip') svg = svg.replace('class="fc ', 'class="fc fc--chip ');
     return svg;
@@ -447,30 +514,82 @@ export function renderFamiliarSprite(familiar, size = 'small', studentId = '') {
     if (!typeDef) return '';
     const px = SIZE_PX[size] || SIZE_PX.small;
     const chip = px < 100;
-    const isEgg = familiar.state === 'egg';
-    const genome = getFamiliarGenome(familiar, studentId);
+    const pending = getPendingFamiliarMoment(familiar);
+    const isEgg = familiar.state === 'egg' || pending?.from === 0;
     const displayName = getFamiliarDisplayName(familiar, typeDef);
-    const stageName = isEgg ? 'Egg — earn stars to hatch!' : typeDef.levelNames[(familiar.level || 1) - 1];
-    const title = `${displayName} • ${genome?.preset?.label || typeDef.name} — ${stageName}`;
+    const stageLabel = familiar.state === 'egg' ? 'egg' : pending ? 'ready to evolve' : familiarStageName(familiar.typeId, familiar.level);
     const hop = shouldHop(studentId);
-    const live = chip && !isEgg && !isLite() && !hop;
-    const classes = ['familiar-container', 'enlargeable-familiar', live ? 'fam-live' : '', hop ? 'fam-hop' : ''].filter(Boolean).join(' ');
+    const live = chip && !isEgg && !isLite() && !hop && !pending;
+    const classes = ['familiar-container', 'enlargeable-familiar', live ? 'fam-live' : '', hop ? 'fam-hop' : '', pending ? 'fam-awaits' : ''].filter(Boolean).join(' ');
+    const art = pending
+        ? (pending.from === 0
+            ? familiarArtSvg(familiar, studentId, { egg: true, progress: 100, mode: chip ? 'chip' : 'full' })
+            : familiarArtSvg(familiar, studentId, { level: pending.from, mode: chip ? 'chip' : 'full' }))
+        : familiarArtSvg(familiar, studentId, { mode: chip ? 'chip' : 'full' });
+    ensureFamiliarTips();
 
     return `
-        <div class="${classes}" data-student-id="${escapeHtml(studentId)}"
-             style="width:${px}px;height:${px}px;flex-shrink:0;"
-             title="${escapeHtml(title)}">${familiarArtSvg(familiar, studentId, { mode: chip ? 'chip' : 'full' })}</div>`;
+        <div class="${classes}" data-student-id="${escapeHtml(studentId)}" data-fam-tip="1" role="button" tabindex="0"
+             style="width:${px}px;height:${px}px;flex-shrink:0;--fam-glow:${typeDef.eggAccent};"
+             aria-label="${escapeHtml(`${displayName}, ${stageLabel}. Open the Den.`)}">${art}${pending ? '<span class="fam-awaits__spark" aria-hidden="true"></span>' : ''}</div>`;
+}
+
+// ─── FAMILIAR TAG (hover card instead of the browser's title box) ─────────────
+
+let tipsBound = false;
+function ensureFamiliarTips() {
+    if (tipsBound || typeof document === 'undefined') return;
+    tipsBound = true;
+    import('./familiarMoments.js').then((m) => m.bindFamiliarTips()).catch(() => { tipsBound = false; });
+}
+
+/** Everything the hover card and the notices need to describe a familiar. */
+export function describeFamiliarForTip(studentId) {
+    const score = scoreFor(studentId);
+    const familiar = score?.familiar;
+    const typeDef = FAMILIAR_TYPES[familiar?.typeId];
+    if (!familiar || !typeDef) return null;
+    const student = (state.get('allStudents') || []).find((s) => s.id === studentId);
+    const genome = getFamiliarGenome(familiar, studentId);
+    const total = Number(score.totalStars) || 0;
+    const progress = getFamiliarProgress(familiar, total);
+    const pending = getPendingFamiliarMoment(familiar);
+    const level = familiar.state === 'alive' ? Math.max(1, Math.min(FAMILIAR_MAX_LEVEL, Number(familiar.level) || 1)) : 0;
+    return {
+        studentId,
+        heroName: student?.name || '',
+        firstName: String(student?.name || '').split(' ')[0],
+        name: getFamiliarDisplayName(familiar, typeDef),
+        typeName: typeDef.name,
+        kind: genome?.preset?.label || typeDef.name,
+        shiny: Boolean(genome?.shiny),
+        level,
+        stageName: level ? familiarStageName(familiar.typeId, level) : 'Egg',
+        nextName: level < FAMILIAR_MAX_LEVEL ? familiarStageName(familiar.typeId, level + 1) : '',
+        progress,
+        percent: getFamiliarProgressPercent(progress),
+        bond: getFamiliarBond(familiar, total),
+        starbond: getFamiliarStarbond(familiar, total),
+        pending,
+        color: typeDef.eggColor,
+        accent: typeDef.eggAccent,
+        typeId: familiar.typeId,
+        familiar
+    };
 }
 
 // ─── FAMILIAR DEN (stats overlay) ─────────────────────────────────────────────
 
 // Element sigil per species; the matching habitat colours live in styles/familiar_modal.css.
-const FAMILIAR_DEN_THEMES = {
+export const FAMILIAR_DEN_THEMES = {
     emberfang: { sigil: '🔥', element: 'Fire', burst: ['#fb923c', '#fde047', '#ef4444'] },
     frostpaw: { sigil: '❄️', element: 'Frost', burst: ['#e0f2fe', '#7dd3fc', '#ffffff'] },
     thornback: { sigil: '🌿', element: 'Wildwood', burst: ['#84cc16', '#4ade80', '#fde047'] },
     veilshade: { sigil: '🌙', element: 'Shadow', burst: ['#c084fc', '#818cf8', '#f0abfc'] },
-    sparkling: { sigil: '☀️', element: 'Sunlight', burst: ['#fde047', '#fbbf24', '#fff7ed'] }
+    sparkling: { sigil: '☀️', element: 'Sunlight', burst: ['#fde047', '#fbbf24', '#fff7ed'] },
+    tidefin: { sigil: '🌊', element: 'Tide', burst: ['#7dd3fc', '#e0f2fe', '#2dd4bf'] },
+    stormwing: { sigil: '⚡', element: 'Storm', burst: ['#fde047', '#e2e8f0', '#93c5fd'] },
+    gemshell: { sigil: '💎', element: 'Crystal', burst: ['#5eead4', '#f0abfc', '#fde68a'] }
 };
 
 function spawnBurst(host, typeId, colours) {
@@ -488,40 +607,38 @@ function spawnBurst(host, typeId, colours) {
     setTimeout(() => burst.remove(), 1200);
 }
 
-function runHatchMoment(altar, familiar, studentId, onDone) {
-    const creature = altar.querySelector('.fam-den-creature');
-    if (!creature || prefersReducedMotion()) { onDone?.(); return; }
-    const seen = Number(familiar.seenLevel) || 0;
-    const before = seen <= 0
-        ? familiarArtSvg(familiar, studentId, { egg: true, progress: 100 })
-        : familiarArtSvg(familiar, studentId, { level: seen, mode: 'full' });
-    const stage = document.createElement('div');
-    stage.className = 'fam-hatch';
-    stage.innerHTML = `<div class="fam-hatch__egg">${before}</div><div class="fam-hatch__flash"></div>`;
-    creature.style.opacity = '0';
-    altar.appendChild(stage);
-    _playFamiliarSound(seen <= 0 ? 'hatch' : 'levelup');
-    setTimeout(() => {
-        creature.style.opacity = '';
-        creature.classList.add('fam-hatch-reveal');
-        spawnBurst(altar, familiar.typeId, FAMILIAR_DEN_THEMES[familiar.typeId]?.burst || ['#fde68a']);
-        playFamiliarCall(familiar, studentId);
-    }, 1550);
-    setTimeout(() => { stage.remove(); onDone?.(); }, 2600);
-}
-
-async function markFamiliarSeen(studentId, level) {
+export async function markFamiliarSeen(studentId, level) {
+    _patchLocalFamiliarState(studentId, (current) => ({ ...current, seenLevel: level }));
     try {
         const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
         await updateDoc(scoreRef, { 'familiar.seenLevel': level });
-        _patchLocalFamiliarState(studentId, (current) => ({ ...current, seenLevel: level }));
     } catch (error) {
         console.warn('Could not save that the familiar was met:', error);
     }
 }
 
-export function openFamiliarStatsOverlay(studentId) {
-    const scoreData = state.get('allStudentScores').find((s) => s.id === studentId);
+/**
+ * Open the Den. When a new form is still waiting to be revealed, the Evolution Moment plays
+ * first and the Den opens straight after it.
+ */
+export function openFamiliarStatsOverlay(studentId, { skipMoment = false } = {}) {
+    const scoreData = scoreFor(studentId);
+    const familiar = scoreData?.familiar;
+    if (!familiar || !FAMILIAR_TYPES[familiar.typeId]) return;
+    if (!skipMoment && getPendingFamiliarMoment(familiar)) {
+        import('./familiarMoments.js')
+            .then((m) => m.playFamiliarEvolution(studentId, { then: 'den' }))
+            .catch((e) => {
+                console.warn('Evolution Moment failed:', e);
+                openFamiliarStatsOverlay(studentId, { skipMoment: true });
+            });
+        return;
+    }
+    openDen(studentId);
+}
+
+function openDen(studentId) {
+    const scoreData = scoreFor(studentId);
     const student = state.get('allStudents').find((s) => s.id === studentId);
     if (!scoreData?.familiar || !student) return;
 
@@ -539,22 +656,21 @@ export function openFamiliarStatsOverlay(studentId) {
         existingOverlay.remove();
     }
 
-    const level = familiar.level || 1;
-    const starsTotal = scoreData.totalStars || 0;
-    const starsTogether = getFamiliarBond(familiar, starsTotal);
-    const progress = getFamiliarProgress(familiar, starsTotal);
-    const progressPercent = getFamiliarProgressPercent(progress);
-    const isMaxLevel = progress.phase === 'max';
+    const info = describeFamiliarForTip(studentId);
     const isEgg = familiar.state === 'egg';
-    const levelName = isEgg ? 'Egg' : (typeDef.levelNames[level - 1] || 'Unknown');
+    const level = isEgg ? 0 : info.level;
+    const progress = info.progress;
+    const progressPercent = info.percent;
+    const isMaxLevel = progress.phase === 'max';
     const genome = getFamiliarGenome(familiar, studentId);
-    const spriteHtml = renderFamiliarSprite(familiar, 'xl', studentId);
-    const displayName = getFamiliarDisplayName(familiar, typeDef);
+    const spriteHtml = `<div class="familiar-container" style="width:${SIZE_PX.xl}px;height:${SIZE_PX.xl}px;">${familiarArtSvg(familiar, studentId, { mode: 'full' })}</div>`;
+    const displayName = info.name;
     const speciesLabel = familiar.name ? `${typeDef.name} • ${genome?.preset?.label || ''}` : genome?.preset?.label || typeDef.name;
     const denTheme = FAMILIAR_DEN_THEMES[familiar.typeId] || { sigil: '✨', element: 'Arcane', burst: ['#fde68a'] };
     const trick = FAMILIAR_TRICKS[familiar.typeId];
     const trickReady = isFamiliarTrickReady(familiar);
-    const needsHatchMoment = !isEgg && typeof familiar.seenLevel === 'number' && familiar.seenLevel < level;
+    const tricksAllowed = familiarTricksPerMonth(familiar);
+    const tricksLeft = Math.max(0, tricksAllowed - familiarTricksUsed(familiar));
 
     const overlay = document.createElement('div');
     overlay.dataset.studentId = studentId;
@@ -580,50 +696,57 @@ export function openFamiliarStatsOverlay(studentId) {
             : `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="1.8" class="fam-rune-dot"/>`;
     }).join('');
 
-    // Evolution path: Egg → the three named forms, each drawn as this very familiar.
-    const currentStage = isEgg ? 0 : Math.min(3, level);
+    // Evolution path: Egg, then the five forms, each drawn as this very familiar. The next form
+    // shows as a shadow; later ones stay a mystery.
     const stages = [{ name: 'Egg' }, ...typeDef.levelNames.map((name) => ({ name }))];
     const evolutionTrack = stages.map((stage, i) => {
-        const status = i < currentStage ? 'done' : i === currentStage ? 'current' : 'locked';
-        const art = status === 'locked'
-            ? '<i class="fas fa-lock"></i>'
-            : `<span class="fam-evo-art">${familiarArtSvg(familiar, studentId, i === 0 ? { egg: true, progress: isEgg ? progressPercent : 100, mode: 'chip' } : { egg: false, level: i, mode: 'chip' })}</span>`;
+        const status = i < level ? 'done' : i === level ? 'current' : i === level + 1 ? 'next' : 'locked';
+        let art;
+        if (status === 'locked') art = '<span class="fam-evo-mystery" aria-hidden="true">?</span>';
+        else if (i === 0) art = `<span class="fam-evo-art">${familiarArtSvg(familiar, studentId, { egg: true, progress: isEgg ? progressPercent : 100, mode: 'chip' })}</span>`;
+        else art = `<span class="fam-evo-art${status === 'next' ? ' fam-evo-art--shadow' : ''}">${familiarArtSvg(familiar, studentId, { egg: false, level: i, mode: 'chip', starbond: 0 })}</span>`;
+        const label = status === 'locked' ? '???' : stage.name;
         return `
             <li class="fam-evo-node fam-evo-node--${status}" style="--evo-i:${i};">
                 <span class="fam-evo-gem">${art}</span>
-                <span class="fam-evo-name">${escapeHtml(stage.name)}</span>
+                <span class="fam-evo-name">${escapeHtml(label)}</span>
+                ${i > 0 ? `<span class="fam-evo-need">${FAMILIAR_STAGE_BOND[i]}★</span>` : ''}
             </li>`;
     }).join('');
-    const trackFill = Math.round((currentStage / 3) * 100);
+    const trackFill = Math.round((level / FAMILIAR_MAX_LEVEL) * 100);
 
-    const nextStageName = isMaxLevel ? '' : stages[Math.min(3, currentStage + 1)].name;
     const progressSpan = Math.max(1, progress.max - progress.min);
     const progressDone = Math.max(0, Math.min(progressSpan, progress.current - progress.min));
     const progressVerb = progress.phase === 'egg' ? 'Hatches into' : 'Evolves into';
+    const nextStageName = isEgg ? familiarStageName(familiar.typeId, 1) : info.nextName;
 
     const traits = (genome?.traits || []).slice(1)
         .map((t) => `<span class="fam-den-trait${t === 'Shiny' ? ' fam-den-trait--shiny' : ''}">${escapeHtml(t)}</span>`).join('');
 
-    const trickPanel = trick ? (level >= FAMILIAR_TRICK_LEVEL && !isEgg ? `
+    const starbond = info.starbond;
+    const starbondPips = Array.from({ length: Math.max(5, Math.min(10, starbond.marks + 1)) }, (_, i) =>
+        `<span class="fam-starbond-pip${i < starbond.marks ? ' is-lit' : ''}" aria-hidden="true">★</span>`).join('');
+
+    const trickPanel = trick ? (level >= FAMILIAR_TRICK_LEVEL ? `
                     <section class="fam-den-panel fam-den-trick">
                         <span class="fam-stat-icon" aria-hidden="true">🪄</span>
                         <div>
                             <div class="fam-den-label">Trick · ${escapeHtml(trick.name)}</div>
-                            <div class="fam-den-hint">Once a month in the Quiz of the Week, ${escapeHtml(displayName)} ${escapeHtml(trick.verb)}.</div>
-                            <div class="fam-den-trick-state ${trickReady ? 'is-ready' : ''}">${trickReady ? 'Ready this month' : 'Used this month. Back next month!'}</div>
+                            <div class="fam-den-hint">${tricksAllowed > 1 ? 'Twice' : 'Once'} a month in the Quiz of the Week, ${escapeHtml(displayName)} ${escapeHtml(trick.verb)}.</div>
+                            <div class="fam-den-trick-state ${trickReady ? 'is-ready' : ''}">${trickReady ? (tricksLeft > 1 ? `${tricksLeft} ready this month` : 'Ready this month') : 'Used this month. Back next month!'}</div>
                         </div>
                     </section>` : `
                     <section class="fam-den-panel fam-den-trick fam-den-trick--locked">
                         <span class="fam-stat-icon" aria-hidden="true">🪄</span>
                         <div>
-                            <div class="fam-den-label">Trick at ${escapeHtml(typeDef.levelNames[2])}</div>
-                            <div class="fam-den-hint">Learns ${escapeHtml(trick.name)}: once a month in the Quiz of the Week it ${escapeHtml(trick.verb)}.</div>
+                            <div class="fam-den-label">Trick at ${escapeHtml(typeDef.levelNames[FAMILIAR_TRICK_LEVEL - 1])}</div>
+                            <div class="fam-den-hint">Learns ${escapeHtml(trick.name)}: once a month in the Quiz of the Week it ${escapeHtml(trick.verb)}. At ${escapeHtml(typeDef.levelNames[FAMILIAR_MAX_LEVEL - 1])}, twice a month.</div>
                         </div>
                     </section>`) : '';
 
     overlay.innerHTML = `
         <div class="fam-overlay-backdrop"></div>
-        <div class="fam-modal-card fam-den relative w-full" data-fam-type="${escapeHtml(familiar.typeId)}"
+        <div class="fam-modal-card fam-den relative w-full${level >= FAMILIAR_MAX_LEVEL ? ' fam-den--mythic' : ''}" data-fam-type="${escapeHtml(familiar.typeId)}"
              style="--fam-color:${typeDef.eggColor};--fam-accent:${typeDef.eggAccent || typeDef.eggColor};">
             <div class="fam-modal-scroll">
                 <button type="button" class="fam-overlay-close" aria-label="Close">&times;</button>
@@ -632,10 +755,11 @@ export function openFamiliarStatsOverlay(studentId) {
                     <div class="fam-den-sky" aria-hidden="true"></div>
                     <div class="fam-den-rays" aria-hidden="true"></div>
                     <div class="fam-den-motes" aria-hidden="true">${motes}</div>
-                    <div class="fam-den-sigil" title="${escapeHtml(denTheme.element)} familiar">
-                        <span class="fam-den-sigil-icon">${denTheme.sigil}</span>
+                    <div class="fam-den-sigil">
+                        <span class="fam-den-sigil-icon" aria-hidden="true">${denTheme.sigil}</span>
                         <span>${escapeHtml(denTheme.element)}</span>
                     </div>
+                    ${level ? `<div class="fam-den-form-badge">Form ${level} of ${FAMILIAR_MAX_LEVEL}</div>` : ''}
                     <div class="fam-den-altar">
                         <svg class="fam-den-runes" viewBox="0 0 200 200" aria-hidden="true">
                             <circle cx="100" cy="100" r="94" class="fam-rune-ring"/>
@@ -656,7 +780,7 @@ export function openFamiliarStatsOverlay(studentId) {
                     <div class="fam-den-heading">
                         <div class="fam-modal-species">${escapeHtml(speciesLabel)}</div>
                         <h3 class="fam-modal-name">${escapeHtml(displayName)}</h3>
-                        <div class="fam-modal-badge">${isEgg ? '🥚' : '✨'} ${escapeHtml(levelName)}</div>
+                        <div class="fam-modal-badge">${isEgg ? '🥚' : level >= FAMILIAR_MAX_LEVEL ? '👑' : '✨'} ${escapeHtml(info.stageName)}</div>
                     </div>
 
                     <blockquote class="fam-modal-quote">${escapeHtml(typeDef.personality)}</blockquote>
@@ -683,9 +807,13 @@ export function openFamiliarStatsOverlay(studentId) {
                     </section>` : `
                     <section class="fam-den-panel fam-den-max">
                         <span class="fam-den-max-crown" aria-hidden="true">👑</span>
-                        <div>
-                            <div class="fam-den-max-title">Legendary Form</div>
-                            <div class="fam-den-hint">Maximum evolution reached</div>
+                        <div class="fam-den-max-body">
+                            <div class="fam-den-max-title">Mythic Form · Starbond ${starbond.marks}</div>
+                            <div class="fam-starbond-row">${starbondPips}</div>
+                            <div class="fam-den-bar fam-den-bar--starbond">
+                                <div class="fam-modal-progress-bar" style="--fam-progress:${Math.round((starbond.intoNext / starbond.step) * 100)}%;"></div>
+                            </div>
+                            <div class="fam-den-hint">${starbond.step - starbond.intoNext} more stars together for the next Starbond mark</div>
                         </div>
                     </section>`}
 
@@ -695,7 +823,7 @@ export function openFamiliarStatsOverlay(studentId) {
                         <div class="fam-modal-stat">
                             <span class="fam-stat-icon" aria-hidden="true">⭐</span>
                             <div>
-                                <div class="fam-stat-value">${starsTogether}</div>
+                                <div class="fam-stat-value">${info.bond}</div>
                                 <div class="fam-den-label">Stars together</div>
                             </div>
                         </div>
@@ -760,11 +888,9 @@ export function openFamiliarStatsOverlay(studentId) {
         });
     }
 
-    let busy = false;
     if (tapBtn) {
         tapBtn.addEventListener('click', async (e) => {
             e.stopPropagation();
-            if (busy) return;
             await ensureAudioReady().catch(() => false);
             const box = tapBtn.querySelector('.familiar-container');
             if (isEgg) {
@@ -783,13 +909,7 @@ export function openFamiliarStatsOverlay(studentId) {
         });
     }
 
-    if (needsHatchMoment && altar) {
-        busy = true;
-        ensureAudioReady().catch(() => false).finally(() => {
-            runHatchMoment(altar, familiar, studentId, () => { busy = false; });
-        });
-        markFamiliarSeen(studentId, level);
-    } else if (!isEgg) {
+    if (!isEgg) {
         ensureAudioReady().then(() => playFamiliarCall(familiar, studentId)).catch(() => {});
     }
 
@@ -802,7 +922,7 @@ export function openFamiliarStatsOverlay(studentId) {
             try {
                 await saveFamiliarName(studentId, nameInput.value);
                 closeOverlay();
-                setTimeout(() => openFamiliarStatsOverlay(studentId), 480);
+                setTimeout(() => openDen(studentId), 480);
             } finally {
                 saveBtn.disabled = false;
                 saveBtn.textContent = 'Save';
@@ -824,7 +944,7 @@ export function openFamiliarStatsOverlay(studentId) {
 }
 
 export async function saveFamiliarName(studentId, rawName) {
-    const scoreData = state.get('allStudentScores').find((s) => s.id === studentId);
+    const scoreData = scoreFor(studentId);
     if (!scoreData?.familiar || scoreData.familiar.state !== 'alive') {
         showToast('This familiar can be named after it hatches.', 'error');
         return;
@@ -844,21 +964,27 @@ export async function saveFamiliarName(studentId, rawName) {
 
 /** The trick this student's familiar can do right now, or null. */
 export function getReadyFamiliarTrick(studentId) {
-    const familiar = (state.get('allStudentScores') || []).find((s) => s.id === studentId)?.familiar;
+    const familiar = scoreFor(studentId)?.familiar;
     if (!familiar || !FAMILIAR_TYPES[familiar.typeId] || !isFamiliarTrickReady(familiar)) return null;
     const typeDef = FAMILIAR_TYPES[familiar.typeId];
-    return { familiar, trick: FAMILIAR_TRICKS[familiar.typeId], name: getFamiliarDisplayName(familiar, typeDef) };
+    return {
+        familiar,
+        trick: FAMILIAR_TRICKS[familiar.typeId],
+        name: getFamiliarDisplayName(familiar, typeDef),
+        left: Math.max(0, familiarTricksPerMonth(familiar) - familiarTricksUsed(familiar))
+    };
 }
 
-/** Spend this month's trick. Resolves true when it was saved. */
+/** Spend one of this month's tricks. Resolves true when it was saved. */
 export async function useFamiliarTrick(studentId) {
     const ready = getReadyFamiliarTrick(studentId);
     if (!ready) return false;
     const month = trickMonthKey();
+    const uses = familiarTricksUsed(ready.familiar) + 1;
     try {
         const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
-        await updateDoc(scoreRef, { 'familiar.trickMonth': month });
-        _patchLocalFamiliarState(studentId, (current) => ({ ...current, trickMonth: month }));
+        await updateDoc(scoreRef, { 'familiar.trickMonth': month, 'familiar.trickUses': uses });
+        _patchLocalFamiliarState(studentId, (current) => ({ ...current, trickMonth: month, trickUses: uses }));
         playFamiliarCall(ready.familiar, studentId);
         return true;
     } catch (error) {

@@ -36,13 +36,33 @@
 .fc--veilshade.fc--lv1 .fc-rig { animation-name: fc-float; }
 .fc--sparkling { --fc-flap: 1.2s; --fc-idle: 3s; }
 .fc--sparkling.fc--lv1 .fc-rig { animation-name: fc-float; }
+.fc--tidefin { --fc-idle: 3.4s; --fc-sway: 2.4s; --fc-flap: 2.6s; }
+.fc--tidefin.fc--lv1 .fc-rig { animation-name: fc-float; }
+.fc--stormwing { --fc-flap: 1.6s; --fc-idle: 3.2s; }
+.fc--gemshell { --fc-idle: 5s; --fc-sway: 4s; }
+.fc--tidefin .fc-mote { animation-name: fc-bubble-rise; animation-duration: 3.8s; }
+.fc--stormwing .fc-mote { animation-name: fc-zap; animation-duration: 2.6s; }
+
+/* Fourth and fifth forms: regalia that turns, glows and flows; the Mythic form's glints orbit. */
+.fc--full .fc-regalia-spin { animation: fc-spin 26s linear infinite; }
+.fc--full .fc-regalia-spin--slow { animation-duration: 40s; }
+.fc--full .fc-regalia-glow { animation: fc-twinkle 3.4s ease-in-out infinite; }
+.fc--full .fc-regalia-flow { animation: fc-flow 2.4s linear infinite; }
+.fc--full .fc-spark { animation: fc-spark 1.9s steps(1, end) infinite; }
+.fc--full .fc-bubble { animation: fc-bubble 4.2s ease-in-out infinite; }
+.fc--full .fc-orbit { animation: fc-spin 9s linear infinite; }
+.fc--full .fc-starbond { animation: fc-halo 3s ease-in-out infinite; }
+.fc .fc-regalia-spin, .fc .fc-orbit, .fc .fc-bubble { transform-box: view-box; }
+.fc--mythic.fc--full .fc-aura { animation-duration: 2.6s; }
 
 /* Low-power machines: a breath and a blink, nothing else. */
 .fc--lite.fc--full .fc-shadow, .fc--lite.fc--full .fc-head, .fc--lite.fc--full .fc-wing--l,
 .fc--lite.fc--full .fc-wing--r, .fc--lite.fc--full .fc-tail, .fc--lite.fc--full .fc-ear--l,
 .fc--lite.fc--full .fc-ear--r, .fc--lite.fc--full .fc-flame, .fc--lite.fc--full .fc-sprout,
 .fc--lite.fc--full .fc-halo, .fc--lite.fc--full .fc-aura, .fc--lite.fc--full .fc-twinkle,
-.fc--lite.fc--full .fc-glowmark, .fc--lite.fc--full .fc-body { animation: none; }
+.fc--lite.fc--full .fc-glowmark, .fc--lite.fc--full .fc-body, .fc--lite.fc--full .fc-regalia-spin,
+.fc--lite.fc--full .fc-regalia-glow, .fc--lite.fc--full .fc-regalia-flow, .fc--lite.fc--full .fc-spark,
+.fc--lite.fc--full .fc-bubble, .fc--lite.fc--full .fc-orbit, .fc--lite.fc--full .fc-starbond { animation: none; }
 .fc--lite .fc-motes { display: none; }
 .fc--chip .fc-eyes { animation: none; }
 
@@ -72,6 +92,12 @@
 @keyframes fc-rise { 0% { opacity: 0; transform: translateY(6px) scale(0.6); } 25% { opacity: 1; } 100% { opacity: 0; transform: translateY(-22px) scale(1); } }
 @keyframes fc-snow { 0% { opacity: 0; transform: translate(0, -10px) rotate(0); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(6px, 16px) rotate(90deg); } }
 @keyframes fc-leaf { 0% { opacity: 0; transform: translate(0, -8px) rotate(0); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(-8px, 18px) rotate(-140deg); } }
+@keyframes fc-bubble-rise { 0% { opacity: 0; transform: translate(0, 8px) scale(0.5); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate(4px, -24px) scale(1.15); } }
+@keyframes fc-zap { 0%, 60%, 100% { opacity: 0; } 64%, 72% { opacity: 1; } 68% { opacity: 0.2; } }
+@keyframes fc-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes fc-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -30; } }
+@keyframes fc-spark { 0%, 100% { opacity: 1; } 8% { opacity: 0.25; } 12% { opacity: 1; } 54% { opacity: 0.6; } 58% { opacity: 1; } }
+@keyframes fc-bubble { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.025, 0.975); } }
 
 /* ─── Eggs ───────────────────────────────────────────────────────────────── */
 .fc-egg .fc-egg-body { animation: fc-egg-rock 3.4s ease-in-out infinite; }
@@ -88,6 +114,17 @@
 .familiar-container.fam-live { animation: fam-chip-bob 3.4s ease-in-out infinite; will-change: transform; }
 .familiar-container.fam-live:nth-child(odd) { animation-delay: -1.2s; }
 @keyframes fam-chip-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+
+/* Waiting for its Evolution Moment: the old form glows and wobbles, a spark winks in the corner. */
+.familiar-container.fam-awaits { cursor: pointer; isolation: isolate; animation: fam-awaits 2.4s ease-in-out infinite; }
+.familiar-container.fam-awaits::before { content: ''; position: absolute; inset: -12%; border-radius: 50%; z-index: -1; pointer-events: none;
+    background: radial-gradient(circle, color-mix(in srgb, var(--fam-glow, #fde68a) 75%, transparent) 0%, transparent 68%); animation: fam-awaits-glow 2.4s ease-in-out infinite; }
+.fam-awaits__spark { position: absolute; right: -6%; top: -6%; width: 34%; height: 34%; min-width: 12px; min-height: 12px; pointer-events: none;
+    background: radial-gradient(circle, #fff 0 18%, #fde68a 30%, transparent 62%); clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+    animation: fam-awaits-spark 1.6s ease-in-out infinite; }
+@keyframes fam-awaits { 0%, 100% { transform: rotate(0) scale(1); } 8% { transform: rotate(-6deg) scale(1.04); } 16% { transform: rotate(5deg) scale(1.04); } 24% { transform: rotate(0) scale(1); } }
+@keyframes fam-awaits-glow { 0%, 100% { opacity: 0.45; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.08); } }
+@keyframes fam-awaits-spark { 0%, 100% { transform: scale(0.6) rotate(0); opacity: 0.7; } 50% { transform: scale(1.1) rotate(45deg); opacity: 1; } }
 
 /* Star hop: when the owner has just earned a star the familiar jumps for joy. */
 .familiar-container.fam-hop { animation: fam-hop 0.9s cubic-bezier(.3,.7,.4,1) 2 both; }
@@ -157,7 +194,7 @@
 @keyframes fam-trick-in { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: none; } }
 
 @media (prefers-reduced-motion: reduce) {
-    .fc *, .fc, .familiar-container, .fam-parade__walker, .fam-hatch__egg, .fam-hatch__flash, .fam-hatch-reveal, .fam-burst i, .fc-tilt {
+    .fc *, .fc, .familiar-container, .familiar-container::before, .fam-awaits__spark, .fam-parade__walker, .fam-hatch__egg, .fam-hatch__flash, .fam-hatch-reveal, .fam-burst i, .fc-tilt {
         animation: none !important; transition: none !important;
     }
     .fc .fc-mote { opacity: 0; }
@@ -171,6 +208,8 @@
 .fam-den-pet-hint { position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%); z-index: 5; font: 600 11px/1 'Fredoka', sans-serif; letter-spacing: .06em;
     text-transform: uppercase; color: rgba(255, 255, 255, .62); pointer-events: none; }
 .fam-evo-art { position: relative; z-index: 1; display: block; width: 46px; height: 46px; margin: -6px; }
+.fam-evo-art--shadow { filter: brightness(0) opacity(0.55); }
+.fam-evo-mystery { position: relative; z-index: 1; font: 700 14px/1 'Fredoka', sans-serif; color: rgba(255, 255, 255, .4); }
 .fam-evo-art .familiar-container, .fam-evo-art .fc { width: 100%; height: 100%; }
 .fam-den-trait--shiny { background: linear-gradient(90deg, #fde68a, #fbbf24, #fde68a) !important; color: #713f12 !important; font-weight: 700; }
 .fam-den-trick { display: flex; gap: 12px; align-items: flex-start; }

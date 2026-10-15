@@ -1099,3 +1099,40 @@
     .qr-lane__runner { transition: none; }
     .qr-lane.is-scored .qr-lane__runner, .qr-heart.is-last { animation: none !important; }
 }
+
+/* ── The finishing order: each lane's live place, a race's finishers, the rest of the field, ties the clock broke ── */
+.qr-lane__place { position: absolute; top: 0; left: 0; z-index: 4; display: inline-flex; align-items: center; gap: 4px; padding: 4px 9px; border-radius: 999px; font: 400 clamp(0.8rem, 1.9vmin, 1.25rem)/1 var(--qr-ui); color: #e0e7ff; background: rgba(15, 23, 42, 0.7); border: 2px solid rgba(255, 255, 255, 0.22); font-variant-numeric: tabular-nums; transition: transform 0.3s ease; }
+.qr-lane__place[hidden] { display: none; }
+.qr-lane__place.is-p1 { color: #422006; background: linear-gradient(180deg, #fef08a, #f59e0b); border-color: #fff7d6; box-shadow: 0 0 14px rgba(253, 224, 71, 0.55); }
+.qr-lane__place.is-p2 { color: #1e293b; background: linear-gradient(180deg, #f8fafc, #94a3b8); border-color: #fff; }
+.qr-lane__place.is-p3 { color: #431407; background: linear-gradient(180deg, #fed7aa, #c2410c); border-color: #ffedd5; }
+.qr-lane__place.is-up { animation: qr-place-up 0.7s cubic-bezier(0.22, 1.6, 0.36, 1); }
+@keyframes qr-place-up { 0% { transform: translateY(14px) scale(0.7); } 55% { transform: translateY(-6px) scale(1.25); } 100% { transform: none; } }
+.qr-lane__place.is-done { font-size: clamp(0.95rem, 2.3vmin, 1.5rem); padding: 5px 11px; }
+.qr-lane__place.is-done i { font-size: 0.85em; }
+.qr-sd__lanes[style*="--n:6"] .qr-lane__place, .qr-sd__lanes[style*="--n:7"] .qr-lane__place, .qr-sd__lanes[style*="--n:8"] .qr-lane__place { padding: 3px 6px; font-size: clamp(0.7rem, 1.5vmin, 1rem); }
+.qr-sd.is-blind .qr-lane__place:not(.is-done) { display: none; }
+/* over the line: the bar wears a chequered flag and glows; the runner rests at the line */
+.qr-lane.is-done .qr-lane__track { border-color: rgba(253, 224, 71, 0.6); box-shadow: 0 0 22px -6px rgba(253, 224, 71, 0.7); }
+.qr-lane.is-done .qr-lane__bar::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 16%; background: repeating-conic-gradient(#fff 0 25%, #111827 0 50%) 0 0 / 18px 18px; opacity: 0.55; }
+.qr-lane.is-done .qr-lane__score { color: #fde68a; }
+.qr-lane__pop.qr-lane__pop--bolt { z-index: 5; }
+
+.qr-podium__block { align-content: center; gap: 4px; padding: 6px 4px; }
+.qr-podium__block small { font: 700 clamp(1rem, 2.8vmin, 1.9rem)/1 var(--qr-caps); }
+.qr-podium__block .fa-crown + small { font-size: clamp(0.85rem, 2vmin, 1.3rem); opacity: 0.9; }
+.qr-podium__block em { font: italic 500 clamp(0.7rem, 1.5vmin, 1rem)/1.15 'Fredoka', sans-serif; color: rgba(255, 255, 255, 0.92); text-transform: none; }
+.qr-podium__block em i { font-size: 0.85em; margin-right: 3px; }
+
+.qr-field { list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 12px; margin: 14px auto 0; padding: 0; max-width: 92%; }
+.qr-field li { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 6px; border-radius: 999px; font: 400 clamp(0.9rem, 2vmin, 1.3rem)/1 var(--qr-ui); color: #e0e7ff; background: color-mix(in srgb, var(--qr-team) 28%, rgba(15, 23, 42, 0.8)); border: 2px solid color-mix(in srgb, var(--qr-team) 70%, transparent); animation: qr-rise 0.6s cubic-bezier(0.22, 1.3, 0.36, 1) both; animation-delay: calc(0.7s + var(--i, 0) * 0.12s); }
+.qr-field__place { display: grid; place-items: center; min-width: 2.4em; height: 2em; padding: 0 6px; border-radius: 999px; font-size: 0.85em; color: #1e1b4b; background: #e0e7ff; }
+.qr-field__score { color: var(--qr-gold); font-variant-numeric: tabular-nums; }
+.qr-tiebreak { list-style: none; display: grid; justify-items: center; gap: 6px; margin: 12px 0 0; padding: 0; font: 500 clamp(0.85rem, 1.9vmin, 1.25rem)/1.25 'Fredoka', sans-serif; color: #c7d2fe; animation: qr-rise 0.6s ease both; animation-delay: 1.1s; }
+.qr-tiebreak li { padding: 6px 14px; border-radius: 12px; background: rgba(15, 23, 42, 0.55); border: 1px dashed rgba(252, 211, 77, 0.5); }
+.qr-tiebreak i { color: #fcd34d; margin-right: 4px; }
+.qr-tiebreak b { color: #fef3c7; font-weight: 600; }
+.qr-lite .qr-lane__place.is-p1, .qr-lite .qr-lane.is-done .qr-lane__track { box-shadow: none; }
+@media (prefers-reduced-motion: reduce) {
+    .qr-lane__place.is-up, .qr-field li, .qr-tiebreak { animation: none; }
+}

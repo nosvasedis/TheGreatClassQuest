@@ -14,6 +14,10 @@
 // Four games: Race (bars climb), Tug of War (two teams pull a rope; win by N), Survivor (hearts; a miss
 // costs one; the last team standing wins) and Treasure (every point opens a chest: coins, a steal from
 // the leader, or a double next point). Several teams can get a point in one tap (one step for Undo).
+// Every game knows the order the teams finish: equal scores go to the team that got there first, a
+// "first to N" race runs on after the winner until 2nd and 3rd are over the line, and Survivor places
+// the fallen by when they fell. Each lane wears its live place (1st, 2nd, 3rd) and the finale names
+// the whole order (and any tie the clock broke). The Podium reward gives 1st, 2nd and 3rd their stars.
 // Nursery / Pre-Junior play the Growth Festival way: flowers grow, no numbers, everyone blooms.
 // Rewards are Showdown stars (db/actions/showdownStars.js): a bonus on monthly and total stars with its
 // own logbook row, never today's stars, so every hero can still earn the day's stars afterwards.
@@ -26,9 +30,9 @@ import { getTodayDateString } from '../../utils.js';
 import {
     createShowdown, scoreShowdown, scoreShowdownTeams, missShowdownTeams, nextShowdownQuestion, passShowdownSeats, finishShowdown, undoShowdown, rematchShowdown,
     showdownWinners, showdownPanel, isGrowthLeague, showdownBarLevels, showdownAnswerer, showdownGoalText, showdownRewardIds,
-    showdownTeamLooks, normalizeShowdownRules, removeShowdownMembers
+    showdownTeamLooks, normalizeShowdownRules, removeShowdownMembers, showdownStandings, showdownPodium, ordinalPlace, showdownPodiumSize
 } from './remoteCore.mjs';
-import { showdownHtml, showdownFinaleHtml, growthFlower, seatHtml, deckCardHtml, clockHtml, heartsHtml, chestHtml, paidBannerHtml, modeSplashHtml } from './remoteStageView.mjs';
+import { showdownHtml, showdownFinaleHtml, growthFlower, seatHtml, deckCardHtml, clockHtml, heartsHtml, chestHtml, paidBannerHtml, modeSplashHtml, placeChipHtml, livePlaces } from './remoteStageView.mjs';
 import { burstOn, confettiRain, isLiteFx, isStillFx, sparkTo, centreOf } from './remoteFx.js';
 
 const ROOT_ID = 'qr-showdown';
@@ -233,11 +237,13 @@ function update(scored = []) {
     const el = root();
     if (!el || !sd) return;
     const levels = showdownBarLevels(sd);
+    const places = livePlaces(sd);
     const hit = new Set([].concat(scored));
     sd.teams.forEach((t, i) => {
         const lane = el.querySelector(`[data-team="${i}"]`);
         if (!lane) return;
         lane.style.setProperty('--qr-level', levels[i].toFixed(3));
+        syncPlace(lane, places[i], t);
         const score = lane.querySelector('[data-qr-score]');
         if (score) countUp(score, t.score);
         const flower = lane.querySelector('[data-qr-flower]');
@@ -271,6 +277,23 @@ function update(scored = []) {
     const blind = el.querySelector('[data-qr-blind]');
     if (blind) blind.hidden = !(sd.blind && !sd.growth);
     syncGolden();
+}
+
+/** A lane's place chip: a climb pops it up, a team over the line keeps its place with a chequered flag. */
+function syncPlace(lane, place, t) {
+    if (sd.growth || lane.classList.contains('qr-tug__side')) return;
+    let chip = lane.querySelector('[data-qr-place]');
+    if (!chip) {
+        lane.insertAdjacentHTML('afterbegin', placeChipHtml(0));
+        chip = lane.querySelector('[data-qr-place]');
+    }
+    const was = Number(chip.dataset.place) || 0;
+    lane.classList.toggle('is-done', Boolean(t.done));
+    if (was === place && chip.classList.contains('is-done') === Boolean(t.done)) return;
+    chip.outerHTML = placeChipHtml(place, { done: t.done });
+    const now = lane.querySelector('[data-qr-place]');
+    if (!now) return;
+    if (place && was && place < was && !isStillFx()) now.classList.add('is-up');
 }
 
 /** Survivor's hearts and Out stamp, Treasure's ×2 badge. */
@@ -566,7 +589,10 @@ function showFinale(ctx) {
     confettiRain({ colors: sd.teams.map((t) => t.color) });
     ctx.scheduleStage(0);
     const names = winners.map((i) => sd.teams[i].name);
-    return sd.growth ? 'The garden is in bloom!' : names.length ? `${names.join(' & ')} win!` : 'A draw!';
+    if (sd.growth) return 'The garden is in bloom!';
+    if (!names.length) return 'A draw!';
+    const after = showdownStandings(sd).filter((t) => t.place > 1 && t.place <= 3).map((t) => `${ordinalPlace(t.place)} ${t.name}`);
+    return `${names.join(' & ')} win!${after.length ? ` · ${after.join(' · ')}` : ''}`;
 }
 
 /** The goal was reached: a beat for the class to see the last point land, then the finale (an undo in between cancels it). */
@@ -632,6 +658,23 @@ function celebrate(gain) {
     if (gain.chest) openChest(lane, gain.chest);
 }
 
+/**
+ * A "first to N" race: a team crosses the line. Its place lands on the lane with a chequered flag and,
+ * while places are still to win, the race goes on.
+ */
+function celebrateCrossing(crossed, final) {
+    const standings = showdownStandings(sd);
+    crossed.forEach((i, k) => setTimeout(() => {
+        const lane = laneOf(i);
+        const t = sd?.teams[i];
+        if (!lane || !t) return;
+        const place = standings.find((x) => x.index === i)?.place || 1;
+        popOn(lane, `🏁 ${ordinalPlace(place)}!`, place === 1 ? 'bolt' : '');
+        burstOn(lane.querySelector('.qr-lane__place') || lane, { color: place === 1 ? '#fde047' : place === 2 ? '#e2e8f0' : '#f59e0b', count: place === 1 ? 30 : 18 });
+        if (!final) playShowdownSfx('goal');
+    }, 700 + k * 380));
+}
+
 /** Treasure: the chest pops open over the lane; a steal flies a coin over from the team it robbed. */
 function openChest(lane, chest) {
     if (!lane) return;
@@ -669,28 +712,39 @@ function rewardNote(scope) {
     const game = sd.growth ? 'Garden Showdown' : `Showdown Arena${mode ? ` (${mode})` : ''}`;
     const winners = new Set(showdownWinners(sd));
     const teamOf = new Map(sd.teams.flatMap((t, i) => t.members.map((id) => [id, i])));
+    const placeOf = new Map(showdownStandings(sd).map((t) => [t.index, t.place]));
     const stars = new Set(showdownRewardIds(sd, 'stars'));
     return (id) => {
         const i = teamOf.get(id);
         const team = sd.teams[i]?.name || 'a team';
         if (scope === 'stars' && stars.has(id)) return `${game}: star player for ${team}`;
         if (winners.has(i) && !sd.growth) return `${game}: ${team} won`;
+        if (!sd.growth && winners.size && placeOf.has(i)) return `${game}: ${team} came ${ordinalPlace(placeOf.get(i))}`;
         return `${game}: played for ${team}`;
     };
 }
 
 /** The finale says the stars landed (monthly and total), then the arena closes. */
-function showPaid(paid, stars, ctx) {
+function showPaid(paid, stars, ctx, podium = false) {
     const el = root();
     if (!el) return;
     el.querySelector('[data-qr-paid]')?.remove();
-    el.insertAdjacentHTML('beforeend', paidBannerHtml(paid, stars));
+    el.insertAdjacentHTML('beforeend', paidBannerHtml(paid, stars, { podium }));
     if (paid) {
         playShowdownSfx('golden');
         burstOn(el.querySelector('[data-qr-paid]'), { color: '#fcd34d', count: 22 });
     }
     clearTimeout(goalTimer);
     goalTimer = setTimeout(() => { closeShowdown(); ctx.scheduleStage(0); }, isStillFx() ? 1600 : 3200);
+}
+
+/** "Foxes cross the line 1st! The race goes on for 2nd" (to the Wand). */
+function crossingMessage(crossed) {
+    const standings = showdownStandings(sd);
+    const bits = crossed.map((i) => `${sd.teams[i].name} ${ordinalPlace(standings.find((x) => x.index === i)?.place || 1)}`);
+    const done = sd.teams.filter((t) => t.done).length;
+    const more = sd.reached ? ' · the podium is full!' : done < showdownPodiumSize(sd) ? ` · the race goes on for ${ordinalPlace(done + 1)}` : '';
+    return `🏁 Over the line: ${bits.join(' · ')}${more}`;
 }
 
 function pointMessage(team, gain) {
@@ -782,10 +836,13 @@ export async function runShowdownCommand(p, ctx) {
                 }
                 if (gains.length > 2 && !isStillFx()) setTimeout(() => playShowdownSfx('chorus', { n: gains.length }), gains.length * 280 + 200);
             } else playShowdownSfx('minus');
+            const crossed = up ? sd.crossed || [] : [];
+            if (crossed.length) celebrateCrossing(crossed, sd.reached);
             if (sd.reached) onGoal(ctx);
             else if (up && sd.rules.style !== 'all') moveCard();
             ctx.scheduleStage(0);
             if (!up) return pointMessage(sd.teams[list[0]], sd.lastGain || { total: -1, bonus: [] });
+            if (crossed.length) return crossingMessage(crossed);
             if (gains.length === 1) return pointMessage(sd.teams[gains[0].team], gains[0]);
             return gains.map((g) => (sd.growth ? sd.teams[g.team].name : `+${g.total} ${sd.teams[g.team].name}`)).join(' · ') + (sd.growth ? ': flowers grow' : '');
         }
@@ -921,7 +978,17 @@ export async function runShowdownCommand(p, ctx) {
             const stars = p.stars || 1;
             let res;
             try {
-                res = await ctx.payStars({ classId: showClassId, showId, heroIds: ids, stars, noteOf: rewardNote(scope) });
+                if (scope === 'podium') {
+                    // 1st, 2nd and 3rd each get their own stars (3 · 2 · 1), one payment per place
+                    res = { paid: [], already: [] };
+                    for (const g of showdownPodium(sd, stars)) {
+                        const heroIds = g.ids.filter((id) => !away.has(id));
+                        if (!heroIds.length) continue;
+                        const one = await ctx.payStars({ classId: showClassId, showId, heroIds, stars: g.stars, noteOf: rewardNote(scope) });
+                        res.paid.push(...(one?.paid || []));
+                        res.already.push(...(one?.already || []));
+                    }
+                } else res = await ctx.payStars({ classId: showClassId, showId, heroIds: ids, stars, noteOf: rewardNote(scope) });
             } catch (error) {
                 console.error('Showdown stars could not be saved:', error);
                 return 'The stars could not be saved: try again';
@@ -929,9 +996,13 @@ export async function runShowdownCommand(p, ctx) {
             if (!sd) return '';
             const paid = res?.paid?.length || 0;
             const already = res?.already?.length || 0;
-            showPaid(paid, stars, ctx);
+            showPaid(paid, stars, ctx, scope === 'podium');
             ctx.scheduleStage(0);
             if (!paid) return already ? 'Already given for this show' : 'Nobody to reward';
+            if (scope === 'podium') {
+                const tiers = showdownPodium(sd, stars).map((g) => `${ordinalPlace(g.place)} ${g.stars}★`).join(' · ');
+                return `Podium stars (${tiers}) for ${paid} hero${paid === 1 ? '' : 'es'} · monthly and total, not today's stars${already ? ` · ${already} already had them` : ''}`;
+            }
             return `Showdown stars (${stars}) for ${paid} hero${paid === 1 ? '' : 'es'} · monthly and total, not today's stars${already ? ` · ${already} already had them` : ''}`;
         }
         case 'close':

@@ -226,7 +226,7 @@ export function arenaHtml(panel, { clock = 0, points = 1, secret = null, multi =
     const survivor = mode === 'survivor';
     const canMulti = !dragon && panel.teams.length > 1;
     const many = canMulti && multi;
-    const picked = new Set((picks || []).filter((i) => panel.teams[i] && !panel.teams[i].out));
+    const picked = new Set((picks || []).filter((i) => panel.teams[i] && !panel.teams[i].out && !panel.teams[i].done));
     const hint = many ? 'Tap every team, then give them the point'
         : dragon ? 'Class when right, Dragon when wrong'
             : survivor ? 'Got it: tap the team · wrong: Miss'
@@ -254,14 +254,17 @@ export function arenaHtml(panel, { clock = 0, points = 1, secret = null, multi =
             ${canMulti ? `<button type="button" class="qw-pts__multi${many ? ' is-on' : ''}" data-qw="sd-multi" aria-pressed="${many}"><i class="fas fa-check-double" aria-hidden="true"></i> Several</button>` : ''}
             ${panel.blind ? '<span class="qw-pts__blind"><i class="fas fa-eye-slash" aria-hidden="true"></i> hidden</span>' : ''}</div>
         <div class="qw-teams${many ? ' is-picking' : ''}" style="--n:${panel.teams.length}">${panel.teams.map((t, i) => {
-        const lead = !panel.growth && top > 0 && scored(t) === top && !survivor;
+        const lead = !panel.growth && top > 0 && !survivor && (t.place ? t.place === 1 : scored(t) === top);
         const on = picked.has(i);
+        // over the line of a race: the team keeps its place and takes no more points
+        const off = t.out || t.done;
         const tap = many
             ? `data-qw-sdpick="${i}" aria-pressed="${on}" aria-label="${on ? 'Unpick' : 'Pick'} ${esc(t.name)}"`
             : `data-qw-cmd="showdown" data-action="point" data-team="${i}" data-points="${give}" aria-label="${t.dragon ? 'The Dragon scores' : `Point to ${esc(t.name)}`}"`;
         return `
-            <div class="qw-team${lead ? ' is-leading' : ''}${t.got ? ' is-got' : ''}${t.dragon ? ' qw-team--dragon' : ''}${t.out ? ' is-out' : ''}${on ? ' is-picked' : ''}" style="--team:${esc(t.color)};--lvl:${panel.growth ? 0 : level(t).toFixed(3)}" data-qw-key="team-${i}">
-                <button type="button" class="qw-team__hit" ${tap}${t.out ? ' disabled' : ''}>
+            <div class="qw-team${lead ? ' is-leading' : ''}${t.got ? ' is-got' : ''}${t.dragon ? ' qw-team--dragon' : ''}${t.out ? ' is-out' : ''}${t.done ? ' is-done' : ''}${on ? ' is-picked' : ''}" style="--team:${esc(t.color)};--lvl:${panel.growth ? 0 : level(t).toFixed(3)}" data-qw-key="team-${i}">
+                <button type="button" class="qw-team__hit" ${tap}${off ? ' disabled' : ''}>
+                    ${t.place && !dragon && !panel.growth ? `<span class="qw-team__place qw-team__place--${Math.min(4, t.place)}">${t.done ? '<i class="fas fa-flag-checkered" aria-hidden="true"></i>' : ''}${esc(placeWord(t.place))}</span>` : ''}
                     <span class="qw-team__badge" aria-hidden="true">${esc(t.emoji || t.shape)}</span>
                     <span class="qw-team__name">${lead ? '<span class="qw-team__crown" aria-hidden="true"><i class="fas fa-crown"></i></span>' : ''}${esc(t.name)}</span>
                     ${panel.growth ? '<span class="qw-team__grow" aria-hidden="true"><i class="fas fa-seedling"></i> grow</span>' : `<span class="qw-team__score">${esc(t.score)}</span>`}
@@ -274,13 +277,13 @@ export function arenaHtml(panel, { clock = 0, points = 1, secret = null, multi =
                     ${many ? `<span class="qw-team__pick" aria-hidden="true"><i class="fas ${on ? 'fa-circle-check' : 'fa-circle'}"></i></span>` : ''}
                     ${panel.growth ? '' : '<span class="qw-team__bar" aria-hidden="true"></span>'}
                 </button>
-                ${panel.growth || many || t.out ? '' : survivor
+                ${panel.growth || many || off ? '' : survivor
             ? `<button type="button" class="qw-team__minus qw-team__miss" data-qw-cmd="showdown" data-action="miss" data-team="${i}" aria-label="${esc(t.name)} missed: lose a heart"><i class="fas fa-heart-crack" aria-hidden="true"></i></button>`
             : `<button type="button" class="qw-team__minus" data-qw-cmd="showdown" data-action="minus" data-team="${i}" aria-label="Take a point from ${esc(t.name)}">−1</button>`}
             </div>`;
     }).join('')}</div>
         ${many ? `<div class="qw-multi" data-qw-key="multi">
-            <button type="button" class="qw-chip" data-qw="sd-pick-all">${picked.size === panel.teams.filter((t) => !t.out).length ? 'None' : 'All teams'}</button>
+            <button type="button" class="qw-chip" data-qw="sd-pick-all">${picked.size === panel.teams.filter((t) => !t.out && !t.done).length ? 'None' : 'All teams'}</button>
             <button type="button" class="qw-btn qw-btn--gold qw-multi__go" data-qw-cmd="showdown" data-action="point" data-teams="${pickList.join(',')}" data-points="${give}"${picked.size ? '' : ' disabled'}>
                 <i class="fas fa-check-double" aria-hidden="true"></i> ${picked.size ? (panel.growth ? `Grow ${picked.size} flower${picked.size === 1 ? '' : 's'}` : `+${give} to ${picked.size} team${picked.size === 1 ? '' : 's'}`) : 'Pick the teams'}</button>
             ${survivor ? `<button type="button" class="qw-btn qw-multi__miss" data-qw-cmd="showdown" data-action="miss" data-teams="${pickList.join(',')}"${picked.size ? '' : ' disabled'}><i class="fas fa-heart-crack" aria-hidden="true"></i> Miss</button>` : ''}
@@ -302,12 +305,35 @@ export function arenaHtml(panel, { clock = 0, points = 1, secret = null, multi =
     </section>`;
 }
 
+function placeWord(n) {
+    const v = Number(n) || 0;
+    const teen = v % 100 >= 11 && v % 100 <= 13;
+    return `${v}${teen ? 'th' : ['th', 'st', 'nd', 'rd'][v % 10] || 'th'}`;
+}
+
+/** "1st 3 stars · 2nd 2 · 3rd 1": what each podium place gets. */
+function podiumTiers(stars) {
+    const k = Math.max(1, Math.min(3, Number(stars) || 1));
+    return `Stars each: 1st ${k} · 2nd ${Math.max(1, k - 1)} · 3rd ${Math.max(1, k - 2)}`;
+}
+
+/** The finishing order on the phone: every team in its place. */
+function standingsList(panel) {
+    const list = panel.teams.map((t, i) => ({ ...t, i })).filter((t) => t.place).sort((a, b) => a.place - b.place || a.i - b.i);
+    if (!list.length) return '';
+    return `<ol class="qw-standings">${list.map((t) => `<li class="qw-standings__row qw-standings__row--${Math.min(4, t.place)}" style="--team:${esc(t.color)}">
+        <span class="qw-standings__place">${esc(placeWord(t.place))}</span>
+        <span class="qw-standings__badge" aria-hidden="true">${esc(t.emoji || t.shape)}</span>
+        <b>${esc(t.name)}</b><span class="qw-standings__score">${esc(t.score)}</span></li>`).join('')}</ol>`;
+}
+
 /** After the finish: star players, the reward (who and how many stars), rematch, new teams. */
 export function finaleHtml(panel, { scope = 'winners', stars = 1 } = {}) {
     const hasStars = Boolean(panel.stars?.length);
+    const dragonShow = panel.teams.some((t) => t.dragon);
     const scopes = panel.growth
         ? [{ key: 'all', label: 'Everyone' }]
-        : [{ key: 'winners', label: 'Winners' }, { key: 'all', label: 'Everyone' }, ...(hasStars ? [{ key: 'stars', label: 'Star players' }] : [])];
+        : [{ key: 'winners', label: 'Winners' }, ...(dragonShow ? [] : [{ key: 'podium', label: 'Podium' }]), { key: 'all', label: 'Everyone' }, ...(hasStars ? [{ key: 'stars', label: 'Star players' }] : [])];
     const pick = scopes.some((s) => s.key === scope) ? scope : scopes[0].key;
     const dragonWon = panel.teams.some((t) => t.dragon) && (() => {
         const top = Math.max(...panel.teams.map((t) => Number(t.score) || 0));
@@ -318,6 +344,7 @@ export function finaleHtml(panel, { scope = 'winners', stars = 1 } = {}) {
         <div class="qw-showintro">
             <span class="qw-showintro__badge" aria-hidden="true"><i class="fas ${panel.growth ? 'fa-seedling' : dragonWon ? 'fa-dragon' : 'fa-trophy'}"></i></span>
             <h2 class="qw-h2">${panel.growth ? 'The garden is in bloom' : dragonWon ? 'The Dragon won this time' : 'The champions are crowned'}</h2>
+            ${!panel.growth && !dragonShow ? standingsList(panel) : ''}
             ${hasStars ? `<ol class="qw-starplayers">${panel.stars.map((p) => `<li><i class="fas fa-microphone" aria-hidden="true"></i><b>${esc(p.name)}</b><span>${esc(p.pts)}</span></li>`).join('')}</ol>` : ''}
         </div>
         <div class="qw-forge__card qw-reward">
@@ -326,6 +353,7 @@ export function finaleHtml(panel, { scope = 'winners', stars = 1 } = {}) {
             ${seg('reward-scope', pick, scopes)}
             <p class="qw-forge__label">Stars each</p>
             ${seg('reward-stars', String(stars), [{ key: '1', label: '1 star' }, { key: '2', label: '2 stars' }, { key: '3', label: '3 stars' }])}
+            ${pick === 'podium' ? `<p class="qw-hint qw-hint--center"><i class="fas fa-ranking-star" aria-hidden="true"></i> ${esc(podiumTiers(stars))}</p>` : ''}
             <button type="button" class="qw-btn qw-btn--gold qw-btn--wide" data-qw-cmd="showdown" data-action="reward" data-scope="${pick}" data-stars="${esc(stars)}">
                 <i class="fas fa-star" aria-hidden="true"></i> Give the stars</button>
             <p class="qw-hint qw-hint--center">A bonus on this month's and all-time stars, with its own line in the logbook. Today's stars are untouched, so every hero can still earn them.</p>

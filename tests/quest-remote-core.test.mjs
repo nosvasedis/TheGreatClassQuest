@@ -157,8 +157,8 @@ test('Showdown: points, streaks, ties and the Growth Festival', () => {
     sd = scoreShowdown(sd, 1);
     assert.equal(sd.teams[0].streak, 0, 'another team scoring breaks the streak');
     sd = scoreShowdown(sd, 1);
-    assert.deepEqual(showdownWinners(sd), [0, 1], 'a tie shares first place');
-    assert.deepEqual(showdownStandings(sd).map((t) => t.place), [1, 1, 3]);
+    assert.deepEqual(showdownWinners(sd), [0], 'level on points: Foxes got to 2 first');
+    assert.deepEqual(showdownStandings(sd).map((t) => t.place), [1, 2, 3]);
     sd = scoreShowdown(sd, 2, -1);
     assert.equal(sd.teams[2].score, 0, 'never below zero');
     assert.deepEqual(showdownBarLevels(sd), [1, 1, 0.06]);
@@ -1073,4 +1073,89 @@ test('Showdown hot seat: every hero once a lap, a fresh order each lap, so the p
     }
     assert.equal(view.modeSplashHtml(core.createShowdown(teams, { growth: true })), '');
     assert.match(view.showdownHtml(core.createShowdown(teams)), /qr-lane__runner/);
+});
+
+test('Showdown finishing order: who got there first, a race for 2nd and 3rd, Survivor\'s fallen, the podium', async () => {
+    const core = await import('../features/questRemote/remoteCore.mjs');
+    const view = await import('../features/questRemote/remoteStageView.mjs');
+    const wandView = await import('../features/questRemote/showdownWandView.mjs');
+    const teams = (n) => Array.from({ length: n }, (_, i) => ({ name: `T${i}`, members: [`h${i}a`, `h${i}b`] }));
+    const places = (sd) => core.showdownStandings(sd).map((t) => [t.index, t.place]);
+
+    // equal scores: the team that reached the score first ranks higher (Buzz-in: every tap is its own moment)
+    let sd = core.createShowdown(teams(3), { rules: { streak: false } });
+    sd = core.scoreShowdown(sd, 2, 2);
+    sd = core.scoreShowdown(sd, 0, 2);
+    sd = core.scoreShowdown(sd, 1, 1);
+    assert.deepEqual(places(sd), [[2, 1], [0, 2], [1, 3]], 'T2 had 2 before T0');
+    // a penalty: the team got to its new score later
+    sd = core.scoreShowdown(sd, 2, -1);
+    sd = core.scoreShowdown(sd, 1, 1);
+    assert.deepEqual(places(sd), [[0, 1], [1, 2], [2, 3]], 'T2 dropped to 1; T1 reached 2 after T0 did');
+    // one tap for two teams: they got there together and share the place
+    let both = core.createShowdown(teams(3), { rules: { streak: false } });
+    both = core.scoreShowdownTeams(both, [0, 1], 2);
+    assert.deepEqual(places(both), [[0, 1], [1, 1], [2, 3]]);
+    assert.deepEqual(core.showdownWinners(both), [0, 1]);
+    // Everyone style: the whole question is one moment, whatever order the teacher taps the teams in
+    let all = core.createShowdown(teams(2), { rules: { style: 'all', streak: false } });
+    all = core.scoreShowdown(all, 1, 1);
+    all = core.scoreShowdown(all, 0, 1);
+    assert.deepEqual(core.showdownWinners(all), [0, 1], 'same question, a shared place');
+    all = core.nextShowdownQuestion(all);
+    all = core.scoreShowdown(all, 1, 1);
+    all = core.nextShowdownQuestion(all);
+    all = core.scoreShowdown(all, 0, 1);
+    assert.deepEqual(core.showdownWinners(all), [1], 'T1 reached 2 a question earlier');
+    // the finale tells the tie the clock broke
+    assert.deepEqual(core.showdownTieBreaks(all), [{ first: 1, second: 0, score: 2 }]);
+    assert.match(view.showdownFinaleHtml(core.finishShowdown(all), {}), /T1 and T0 both have 2: <b>T1 got there first<\/b>/);
+
+    // a "first to N" race runs on after the winner until 2nd and 3rd are over the line
+    let race = core.createShowdown(teams(4), { rules: { goal: 'points', goalN: 3, streak: false } });
+    assert.equal(core.showdownPodiumSize(race), 3);
+    race = core.scoreShowdown(race, 2, 3);
+    assert.deepEqual(race.crossed, [2]);
+    assert.equal(race.reached, false, 'the race goes on for 2nd');
+    assert.match(core.showdownGoalText(race), /racing for 2nd/);
+    assert.equal(core.scoreShowdown(race, 2, 1).teams[2].score, 3, 'a team over the line takes no more points');
+    assert.equal(core.scoreShowdown(race, 2, -1).teams[2].score, 3, '…and loses none');
+    race = core.scoreShowdown(race, 0, 2);
+    race = core.scoreShowdown(race, 1, 3);
+    race = core.scoreShowdown(race, 0, 1);
+    assert.equal(race.reached, true, 'three over the line: the podium is full');
+    assert.deepEqual(places(race), [[2, 1], [1, 2], [0, 3], [3, 4]]);
+    const panel = core.showdownPanel(race);
+    assert.deepEqual(panel.teams.map((t) => [t.place, t.done]), [[3, true], [2, true], [1, true], [4, false]]);
+    const arena = wandView.arenaHtml(panel, {});
+    assert.match(arena, /qw-team__place--1"><i class="fas fa-flag-checkered"/);
+    assert.match(view.showdownHtml(race, {}), /qr-lane__place is-p1 is-done/);
+    race = core.undoShowdown(race);
+    assert.deepEqual([race.reached, race.teams[0].done, race.teams[0].score], [false, false, 2], 'Undo takes a crossing back');
+    // two teams: the first across wins at once (as before)
+    assert.equal(core.scoreShowdown(core.createShowdown(teams(2), { rules: { goal: 'points', goalN: 3 } }), 0, 3).reached, true);
+
+    // Survivor: the fallen finish in the order they fell (the last one knocked out comes 2nd)
+    let sv = core.createShowdown(teams(4), { rules: { mode: 'survivor', lives: 1 } });
+    sv = core.scoreShowdown(sv, 1, 3);
+    sv = core.missShowdown(sv, 1);
+    sv = core.missShowdown(sv, 3);
+    sv = core.missShowdown(sv, 0);
+    assert.equal(sv.reached, true);
+    assert.deepEqual(places(sv), [[2, 1], [0, 2], [3, 3], [1, 4]], 'points never save a team that fell first');
+    assert.match(view.showdownFinaleHtml(core.finishShowdown(sv), {}), /last to fall/);
+
+    // the podium reward: 1st, 2nd and 3rd, each its own stars (3 · 2 · 1), shared places share
+    const fin = core.finishShowdown(core.scoreShowdown(core.scoreShowdownTeams(core.createShowdown(teams(4), { rules: { streak: false } }), [0, 1], 2), 2, 1));
+    assert.deepEqual(core.showdownPodium(fin, 3).map((g) => [g.place, g.stars, g.teams]), [[1, 3, [0, 1]], [3, 1, [2]]]);
+    assert.deepEqual(core.showdownRewardIds(fin, 'podium').sort(), ['h0a', 'h0b', 'h1a', 'h1b', 'h2a', 'h2b']);
+    assert.deepEqual(core.showdownPodium(core.createShowdown(teams(3)), 3), [], 'nobody on the podium before a point');
+    assert.equal(core.validateCommand({ type: 'showdown', payload: { action: 'reward', scope: 'podium', stars: 3 }, clientSeq: 1 }).ok, true);
+    const wandFin = wandView.finaleHtml(core.showdownPanel(fin), { scope: 'podium', stars: 3 });
+    assert.match(wandFin, /data-scope="podium"/);
+    assert.match(wandFin, /1st 3 · 2nd 2 · 3rd 1/);
+    assert.match(wandFin, /qw-standings__row--1/);
+    assert.match(view.paidBannerHtml(6, 3, { podium: true }), /Podium stars for 6 heroes · 1st ★★★ · 2nd ★★ · 3rd ★/);
+    assert.equal(core.ordinalPlace(11), '11th');
+    assert.equal(core.ordinalPlace(22), '22nd');
 });

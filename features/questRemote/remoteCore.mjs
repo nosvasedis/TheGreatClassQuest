@@ -508,7 +508,7 @@ export const SHOWDOWN_DECKS = Object.freeze(['voice', 'quiz', 'words', 'mix']);
 export const SHOWDOWN_GOAL_MIN = 3;
 export const SHOWDOWN_GOAL_MAX = 30;
 export const SHOWDOWN_MAX_MEMBERS = 40;
-export const SHOWDOWN_REWARD_SCOPES = Object.freeze(['winners', 'all', 'stars']);
+export const SHOWDOWN_REWARD_SCOPES = Object.freeze(['winners', 'podium', 'all', 'stars']);
 /**
  * The games: Race (bars climb to the goal), Tug of War (two teams pull a rope; win by N), Survivor
  * (every team has hearts; a miss costs one; the last team standing wins) and Treasure (every point
@@ -621,6 +621,7 @@ export function createShowdown(teams, { growth = false, title = 'Showdown', rule
         golden: false,
         blind: false,
         reached: false,
+        tick: 0,
         teams: list.map((t, i) => {
             const members = (Array.isArray(t?.members) ? t.members : []).map(String).filter(Boolean).slice(0, SHOWDOWN_MAX_MEMBERS);
             return {
@@ -634,6 +635,11 @@ export function createShowdown(teams, { growth = false, title = 'Showdown', rule
                 lives: r.mode === 'survivor' ? r.lives : 0,
                 out: false,
                 dbl: false,
+                // when the team's score last changed, when it crossed the line (a "first to N" race), when it was knocked out (Survivor)
+                at: 0,
+                done: false,
+                doneAt: 0,
+                outAt: 0,
                 color: HEX_RE.test(t?.color || '') ? t.color : SHOWDOWN_COLORS[i % SHOWDOWN_COLORS.length],
                 shape: SHOWDOWN_SHAPES[i % SHOWDOWN_SHAPES.length],
                 emoji: typeof t?.emoji === 'string' ? t.emoji.slice(0, 4) : ''
@@ -659,14 +665,14 @@ export function rematchShowdown(sd, { rng = Math.random } = {}) {
 /** Who is in the hot seat for a team right now ('' when the hot seat is off or the team has nobody). */
 export function showdownAnswerer(sd, teamIndex) {
     const t = sd?.teams?.[teamIndex];
-    if (!t || !sd.rules?.hotseat || t.dragon || t.out || !t.order.length) return '';
+    if (!t || !sd.rules?.hotseat || t.dragon || t.out || t.done || !t.order.length) return '';
     return t.order[t.seat % t.order.length];
 }
 
 function snapshotOf(sd) {
     return {
-        scores: sd.teams.map((t) => [t.score, t.streak, t.seat, t.lives, t.out, t.dbl, t.order]),
-        round: sd.round, golden: sd.golden, finished: sd.finished, reached: sd.reached, lastScorer: sd.lastScorer,
+        scores: sd.teams.map((t) => [t.score, t.streak, t.seat, t.lives, t.out, t.dbl, t.order, t.at, t.done, t.doneAt, t.outAt]),
+        tick: sd.tick || 0, round: sd.round, golden: sd.golden, finished: sd.finished, reached: sd.reached, lastScorer: sd.lastScorer,
         roundScorers: [...sd.roundScorers], prevScorers: [...sd.prevScorers], credits: { ...sd.credits }
     };
 }
@@ -679,12 +685,34 @@ function goalReached(sd) {
     const r = sd.rules || SHOWDOWN_RULES_DEFAULT;
     if (r.mode === 'tug') return sd.teams.length === 2 && Math.abs(sd.teams[0].score - sd.teams[1].score) >= r.tugN;
     if (r.mode === 'survivor') return sd.teams.filter((t) => !t.out).length <= 1;
-    if (r.goal === 'points') return sd.teams.some((t) => t.score >= r.goalN);
+    if (r.goal === 'points') return sd.teams.filter((t) => t.done).length >= showdownPodiumSize(sd);
     if (r.goal === 'questions') return sd.round > r.goalN;
     return false;
 }
 
-/** The question is over: streaks of teams that did not score break, the hot seats move on, golden is spent. */
+/**
+ * How many teams cross the line before a "first to N" race ends: the race goes on after the winner for
+ * 2nd and 3rd place (the last team left is placed by itself). Two teams: the first across wins.
+ */
+export function showdownPodiumSize(sd) {
+    return Math.min(3, Math.max(1, (sd?.teams?.length || 0) - 1));
+}
+
+/** Is this a "first to N" race, where teams cross the line one after another? */
+function isLineRace(sd) {
+    const r = sd?.rules || SHOWDOWN_RULES_DEFAULT;
+    return !sd?.growth && r.goal === 'points' && r.mode !== 'tug' && r.mode !== 'survivor';
+}
+
+/**
+ * The moment of a step, for "who got there first". Buzz-in: every tap is its own moment. Everyone
+ * style: every team writes at once, so the whole question is one moment (the order the teacher taps
+ * the teams in says nothing about who was first).
+ */
+function momentOf(sd) {
+    return sd.rules?.style === 'all' ? sd.round : (sd.tick || 0) + 1;
+}
+
 /**
  * The microphone moves to the team's next hero. After everyone has had a turn (a lap), the team's
  * order is shuffled again, on its own: the heroes who face each other at the same question change
@@ -715,7 +743,7 @@ function advance(sd, rng = Math.random) {
  */
 export function rollTreasure(sd, teamIndex, rng = Math.random) {
     const team = sd.teams[teamIndex];
-    const others = sd.teams.map((t, i) => ({ t, i })).filter(({ t, i }) => i !== teamIndex && !t.dragon && t.score > 0);
+    const others = sd.teams.map((t, i) => ({ t, i })).filter(({ t, i }) => i !== teamIndex && !t.dragon && !t.done && t.score > 0);
     const top = others.length ? others.reduce((a, b) => (b.t.score > a.t.score ? b : a)) : null;
     const behind = top ? Math.max(0, top.t.score - team.score) : 0;
     const table = [
@@ -731,11 +759,12 @@ export function rollTreasure(sd, teamIndex, rng = Math.random) {
 }
 
 /** One team's point (or penalty) without history or moving on: the shared heart of every score. */
-function scoreOne(sd, teamIndex, base, rng) {
+function scoreOne(sd, teamIndex, base, rng, at) {
     const rules = sd.rules || SHOWDOWN_RULES_DEFAULT;
     const team = sd.teams[teamIndex];
     if (base < 0) {
-        const teams = sd.teams.map((t, i) => (i === teamIndex ? { ...t, score: Math.max(0, t.score + base), streak: 0 } : t));
+        const score = Math.max(0, team.score + base);
+        const teams = sd.teams.map((t, i) => (i === teamIndex ? { ...t, score, streak: 0, at: score === t.score ? t.at : at } : t));
         return { ...sd, teams, lastGain: { team: teamIndex, total: base, bonus: [] } };
     }
     const first = !sd.roundScorers.includes(teamIndex);
@@ -755,12 +784,12 @@ function scoreOne(sd, teamIndex, base, rng) {
         if (chest.kind === 'double') dbl = true;
         if (chest.kind === 'steal') {
             gain += 1;
-            teams = teams.map((t, i) => (i === chest.from ? { ...t, score: Math.max(0, t.score - 1) } : t));
+            teams = teams.map((t, i) => (i === chest.from ? { ...t, score: Math.max(0, t.score - 1), at } : t));
         }
     }
     const seated = showdownAnswerer(sd, teamIndex);
     const credits = seated ? { ...sd.credits, [seated]: (sd.credits[seated] || 0) + gain } : sd.credits;
-    teams = teams.map((t, i) => (i === teamIndex ? { ...t, score: t.score + gain, streak, dbl } : t));
+    teams = teams.map((t, i) => (i === teamIndex ? { ...t, score: t.score + gain, streak, dbl, at } : t));
     return {
         ...sd, teams, credits, lastScorer: teamIndex,
         roundScorers: first ? [...sd.roundScorers, teamIndex] : sd.roundScorers,
@@ -773,22 +802,31 @@ function scoreOne(sd, teamIndex, base, rng) {
  * one step for Undo. A Golden Question doubles a gain. With the Streak bonus, every third question in
  * a row earns +1; with the Underdog boost, a team 3+ behind the leader earns +1; in Treasure every point
  * opens a chest. In Buzz-in style the point ends the question; in Everyone style several teams can
- * score, each once per question for streaks and bonuses, until Next. A knocked-out team cannot score.
- * `lastGains` lists every team's gain, `lastGain` the first.
+ * score, each once per question for streaks and bonuses, until Next. A knocked-out team cannot score,
+ * nor can a team that already crossed the line of a "first to N" race. Every team remembers when its
+ * score last changed, so equal scores rank by who got there first. `lastGains` lists every team's gain,
+ * `lastGain` the first; `crossed` the teams that crossed the line with this step.
  */
 export function scoreShowdownTeams(sd, indices, points = 1, { rng = Math.random } = {}) {
     if (!sd || sd.finished) return sd;
     const base = Math.round(Number(points) || 0);
-    const list = [...new Set((indices || []).map(Number))].filter((i) => sd.teams[i] && !sd.teams[i].out);
+    const list = [...new Set((indices || []).map(Number))].filter((i) => sd.teams[i] && !sd.teams[i].out && !sd.teams[i].done);
     if (!base || !list.length) return sd;
     const history = withHistory(sd);
-    let out = sd;
+    const at = momentOf(sd);
+    let out = { ...sd, tick: (sd.tick || 0) + 1 };
     const gains = [];
     for (const i of list) {
-        out = scoreOne(out, i, base, rng);
+        out = scoreOne(out, i, base, rng, at);
         gains.push(out.lastGain);
     }
-    out = { ...out, history, lastGain: gains[0], lastGains: gains };
+    let crossed = [];
+    if (isLineRace(out)) {
+        const goalN = out.rules.goalN;
+        crossed = out.teams.map((t, i) => (!t.done && t.score >= goalN ? i : -1)).filter((i) => i >= 0);
+        if (crossed.length) out = { ...out, teams: out.teams.map((t, i) => (crossed.includes(i) ? { ...t, done: true, doneAt: at } : t)) };
+    }
+    out = { ...out, history, lastGain: gains[0], lastGains: gains, crossed };
     if (base > 0 && (sd.rules || SHOWDOWN_RULES_DEFAULT).style !== 'all') out = advance(out, rng);
     return { ...out, reached: goalReached(out) };
 }
@@ -812,9 +850,11 @@ export function missShowdownTeams(sd, indices) {
     const standing = (ts) => ts.filter((t) => !t.dragon && !(t.out || t.lives === 0)).length;
     const saved = standing(teams) === 0;
     if (saved) teams = teams.map((t, i) => (list.includes(i) ? { ...t, lives: Math.max(1, t.lives) } : t));
-    teams = teams.map((t) => ({ ...t, out: t.out || t.lives === 0 }));
+    // the order teams fall in is the order they finish: the last one knocked out comes second
+    const at = momentOf(sd);
+    teams = teams.map((t) => (!t.out && t.lives === 0 ? { ...t, out: true, outAt: at } : t));
     const gains = list.map((i) => ({ team: i, total: 0, bonus: [], miss: true, out: teams[i].out && !sd.teams[i].out, saved }));
-    const out = { ...sd, teams, history: withHistory(sd), lastGain: gains[0], lastGains: gains };
+    const out = { ...sd, tick: (sd.tick || 0) + 1, teams, history: withHistory(sd), lastGain: gains[0], lastGains: gains, crossed: [] };
     return { ...out, reached: goalReached(out) };
 }
 
@@ -826,7 +866,7 @@ export function missShowdown(sd, teamIndex) {
 /** Next question (in Buzz-in style: nobody got it). */
 export function nextShowdownQuestion(sd, { rng = Math.random } = {}) {
     if (!sd || sd.finished) return sd;
-    const out = advance({ ...sd, history: withHistory(sd), lastGain: null }, rng);
+    const out = advance({ ...sd, history: withHistory(sd), lastGain: null, crossed: [] }, rng);
     return { ...out, reached: goalReached(out) };
 }
 
@@ -847,14 +887,14 @@ export function undoShowdown(sd) {
     const last = sd?.history?.[sd.history.length - 1];
     if (!last) return sd;
     const teams = sd.teams.map((t, i) => {
-        const [score, streak, seat, lives = t.lives, out = t.out, dbl = t.dbl, order = t.order] = last.scores[i] || [t.score, t.streak, t.seat];
+        const [score, streak, seat, lives = t.lives, out = t.out, dbl = t.dbl, order = t.order, at = t.at, done = t.done, doneAt = t.doneAt, outAt = t.outAt] = last.scores[i] || [t.score, t.streak, t.seat];
         // a hero who left since (marked absent) never comes back to the microphone through an Undo
         const here = new Set(t.members);
         const kept = (order || t.order).filter((id) => here.has(id));
-        return { ...t, score, streak, seat: kept.length ? Math.min(seat, kept.length - 1) : 0, order: kept.length ? kept : t.order, lives, out: Boolean(out), dbl: Boolean(dbl) };
+        return { ...t, score, streak, seat: kept.length ? Math.min(seat, kept.length - 1) : 0, order: kept.length ? kept : t.order, lives, out: Boolean(out), dbl: Boolean(dbl), at: at || 0, done: Boolean(done), doneAt: doneAt || 0, outAt: outAt || 0 };
     });
     return {
-        ...sd, teams, round: last.round, golden: last.golden, finished: last.finished, reached: last.reached,
+        ...sd, teams, tick: last.tick ?? sd.tick, crossed: [], round: last.round, golden: last.golden, finished: last.finished, reached: last.reached,
         lastScorer: last.lastScorer, roundScorers: last.roundScorers, prevScorers: last.prevScorers, credits: last.credits,
         history: sd.history.slice(0, -1), lastGain: null, lastGains: []
     };
@@ -886,12 +926,24 @@ export function removeShowdownMembers(sd, ids) {
 }
 
 /**
- * Standings with shared places for ties (1, 1, 3). Survivor ranks the teams still standing first, then
- * by hearts left, then by points.
+ * Standings: places 1, 2, 3… in the order the teams finish. Equal scores go to the team that got there
+ * first; only teams that got there at the very same moment (one tap for both, or the same question in
+ * Everyone style) share a place (1, 1, 3).
+ * - a "first to N" race: the teams over the line in the order they crossed it (two crossing together:
+ *   more points first), then the rest by points;
+ * - Survivor: the teams still standing (more hearts, then points), then the fallen, the last knocked out
+ *   first;
+ * - every other game: points.
  */
 export function showdownStandings(sd) {
-    const survivor = sd?.rules?.mode === 'survivor';
-    const key = (t) => (survivor ? [t.out ? 0 : 1, t.lives, t.score] : [t.score]);
+    const mode = sd?.rules?.mode;
+    const line = isLineRace(sd);
+    // every number is "higher is better"; the moment a team got there breaks ties (earlier is better)
+    const key = (t) => {
+        if (mode === 'survivor') return [t.out ? 0 : 1, t.out ? t.outAt || 0 : t.lives, t.score, -(t.at || 0)];
+        if (line) return [t.done ? 1 : 0, t.done ? -(t.doneAt || 0) : 0, t.score, -(t.at || 0)];
+        return [t.score, -(t.at || 0)];
+    };
     const cmp = (a, b) => {
         const ka = key(a);
         const kb = key(b);
@@ -905,6 +957,39 @@ export function showdownStandings(sd) {
         if (!last || cmp(t, last) !== 0) { place = i + 1; last = t; }
         return { ...t, place };
     });
+}
+
+/** "1st", "2nd", "3rd", "4th"… */
+export function ordinalPlace(n) {
+    const v = Math.abs(Math.round(Number(n) || 0));
+    const teen = v % 100 >= 11 && v % 100 <= 13;
+    return `${v}${teen ? 'th' : ['th', 'st', 'nd', 'rd'][v % 10] || 'th'}`;
+}
+
+/** Each team's place, by team index (all 1 before anything has happened). */
+export function showdownPlaces(sd) {
+    const out = [];
+    showdownStandings(sd).forEach((t) => { out[t.index] = t.place; });
+    return out;
+}
+
+/**
+ * The ties the clock broke, for the finale: two teams level on points where one got there first
+ * ([{ first, second, score }], team indices). Survivor's fallen and a race's finishers are placed by
+ * their own moment, so only level scores are told.
+ */
+export function showdownTieBreaks(sd, max = 3) {
+    const standings = showdownStandings(sd).slice(0, max + 1);
+    const out = [];
+    for (let i = 1; i < standings.length; i++) {
+        const a = standings[i - 1];
+        const b = standings[i];
+        if (a.score !== b.score || a.place === b.place || a.score === 0) continue;
+        if (sd.rules?.mode === 'survivor' && (a.out !== b.out || a.lives !== b.lives || a.out)) continue;
+        if (isLineRace(sd) && (a.done || b.done)) continue;
+        out.push({ first: a.index, second: b.index, score: a.score });
+    }
+    return out;
 }
 
 /** Indices of the winning team(s); empty while nothing has happened yet. */
@@ -948,8 +1033,27 @@ export function showdownBarLevels(sd) {
 export function showdownRewardIds(sd, scope = 'winners') {
     if (!sd) return [];
     if (scope === 'stars') return showdownStarPlayers(sd).map((p) => p.id);
+    if (scope === 'podium' && !sd.growth) return [...new Set(showdownPodium(sd).flatMap((g) => g.ids))];
     const teams = scope === 'all' || sd.growth ? sd.teams : showdownWinners(sd).map((i) => sd.teams[i]);
     return [...new Set(teams.flatMap((t) => t.members))];
+}
+
+/**
+ * The podium reward: the heroes of the teams in 1st, 2nd and 3rd place, each place with its own stars.
+ * `stars` is what 1st gets; each place below one fewer (never below 1): 3 · 2 · 1. Nobody on the
+ * podium before a point. Returns [{ place, stars, teams: [index], ids: [heroId] }].
+ */
+export function showdownPodium(sd, stars = 3) {
+    if (!sd || !showdownWinners(sd).length) return [];
+    const top = Math.max(1, Math.min(3, Math.round(Number(stars) || 1)));
+    const groups = new Map();
+    showdownStandings(sd).filter((t) => t.place <= 3 && !t.dragon).forEach((t) => {
+        const g = groups.get(t.place) || { place: t.place, stars: Math.max(1, top - (t.place - 1)), teams: [], ids: [] };
+        g.teams.push(t.index);
+        g.ids.push(...t.members);
+        groups.set(t.place, g);
+    });
+    return [...groups.values()].map((g) => ({ ...g, ids: [...new Set(g.ids)] }));
 }
 
 /** "Question 3 of 10", "First to 10", or "Question 3". */
@@ -961,7 +1065,10 @@ export function showdownGoalText(sd) {
         return `Last team standing · ${left} still in`;
     }
     if (r.goal === 'questions') return `Question ${Math.min(sd.round, r.goalN)} of ${r.goalN}`;
-    if (r.goal === 'points') return `First to ${r.goalN}`;
+    if (r.goal === 'points') {
+        const done = (sd?.teams || []).filter((t) => t.done).length;
+        return done && !sd?.growth ? `First to ${r.goalN} · racing for ${ordinalPlace(done + 1)}` : `First to ${r.goalN}`;
+    }
     return `Question ${sd?.round ?? 1}`;
 }
 
@@ -970,6 +1077,8 @@ export function showdownPanel(sd, nameOf = () => '') {
     if (!sd) return null;
     const r = sd.rules || SHOWDOWN_RULES_DEFAULT;
     const stars = sd.growth ? [] : showdownStarPlayers(sd).slice(0, 3).map((p) => ({ name: String(nameOf(p.id) || 'Hero'), pts: p.pts }));
+    const places = showdownPlaces(sd);
+    const started = showdownWinners(sd).length > 0;
     return {
         kind: 'showdown',
         growth: sd.growth,
@@ -994,9 +1103,9 @@ export function showdownPanel(sd, nameOf = () => '') {
             const base = {
                 name: t.name, color: t.color, shape: t.shape, emoji: t.emoji, dragon: Boolean(t.dragon),
                 got: sd.roundScorers.includes(i), hot: String(nameOf(showdownAnswerer(sd, i)) || ''), size: t.members.length,
-                lives: t.lives, out: Boolean(t.out), dbl: Boolean(t.dbl)
+                lives: t.lives, out: Boolean(t.out), dbl: Boolean(t.dbl), done: Boolean(t.done)
             };
-            return sd.growth ? base : { ...base, score: t.score, streak: t.streak };
+            return sd.growth ? base : { ...base, score: t.score, streak: t.streak, place: started ? places[i] : 0 };
         })
     };
 }

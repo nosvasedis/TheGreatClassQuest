@@ -2,7 +2,7 @@
 // state): the binding rune circle, the star ribbon, the stage timer, the Blackout curtain and the
 // Showdown Arena. Styles: styles/quest_remote.css. Driven by remoteHost.js and showdown.js.
 
-import { runeForCodeChar, formatTimerClock, showdownBarLevels, showdownStandings, showdownWinners, showdownAnswerer, showdownGoalText, showdownStarPlayers } from './remoteCore.mjs';
+import { runeForCodeChar, formatTimerClock, showdownBarLevels, showdownStandings, showdownWinners, showdownAnswerer, showdownGoalText, showdownStarPlayers, showdownPlaces, showdownTieBreaks, ordinalPlace } from './remoteCore.mjs';
 
 export function esc(value) {
     return String(value ?? '')
@@ -224,7 +224,17 @@ export function chestHtml(chest, { from = '' } = {}) {
     </div>`;
 }
 
-function laneHtml(sd, team, index, level, nameOf, faceOf) {
+/**
+ * A lane's place chip: 1st (gold), 2nd (silver), 3rd (bronze), then plain. `place` 0 hides it (nothing
+ * has happened yet). A team over the line of a race wears its place for good (`done`).
+ */
+export function placeChipHtml(place, { done = false } = {}) {
+    const p = Number(place) || 0;
+    const tone = p >= 1 && p <= 3 ? ` is-p${p}` : '';
+    return `<span class="qr-lane__place${tone}${done ? ' is-done' : ''}" data-qr-place data-place="${p}"${p ? '' : ' hidden'} aria-label="${p ? `${ordinalPlace(p)} place` : ''}">${done ? '<i class="fas fa-flag-checkered" aria-hidden="true"></i>' : ''}<b>${p ? ordinalPlace(p) : ''}</b></span>`;
+}
+
+function laneHtml(sd, team, index, level, nameOf, faceOf, place = 0) {
     const style = `--qr-team:${esc(team.color)};--qr-level:${level.toFixed(3)};--i:${index}`;
     const badge = team.emoji ? esc(team.emoji) : esc(team.shape);
     const got = sd.roundScorers?.includes(index) ? ' is-got' : '';
@@ -242,7 +252,9 @@ function laneHtml(sd, team, index, level, nameOf, faceOf) {
     const mode = sd.rules?.mode || 'race';
     const finish = sd.rules?.goal === 'points' && mode !== 'survivor' ? '<span class="qr-lane__finish" aria-hidden="true"></span>' : '';
     const out = team.out ? ' is-out' : '';
-    return `<li class="qr-lane${got}${dragon}${out}" data-team="${index}" style="${style}">
+    const done = team.done ? ' is-done' : '';
+    return `<li class="qr-lane${got}${dragon}${out}${done}" data-team="${index}" style="${style}">
+        ${placeChipHtml(place, { done: team.done })}
         <div class="qr-lane__score" data-qr-score>${team.score}</div>
         <div class="qr-lane__track">${finish}<div class="qr-lane__bar"><span class="qr-lane__shine" aria-hidden="true"></span></div>
             ${team.streak >= 2 ? `<span class="qr-lane__streak" aria-label="${team.streak} in a row"><i class="fas fa-fire"></i>${team.streak}</span>` : ''}
@@ -319,6 +331,14 @@ export function tugHtml(sd, { nameOf = () => '', faceOf = () => null } = {}) {
     </section>`;
 }
 
+/** Each lane's place while the show runs (0s before anything has happened, and in the Garden). */
+export function livePlaces(sd) {
+    if (!sd || sd.growth || !showdownWinners(sd).length) return (sd?.teams || []).map(() => 0);
+    // a team still on 0 has no place to show yet (four teams "2nd" on nothing says nothing); Survivor's hearts always count
+    const survivor = sd.rules?.mode === 'survivor';
+    return showdownPlaces(sd).map((p, i) => (survivor || sd.teams[i].score > 0 || sd.teams[i].done ? p : 0));
+}
+
 /** The arena. `nameOf(id)` gives a hero's first name (hot seat), `faceOf(id)` { name, avatar } for the crews, `card` the deck's question. */
 export function showdownHtml(sd, { secondsLeft = null, secondsTotal = 0, nameOf = () => '', faceOf = () => null, card = null } = {}) {
     if (!sd) return '';
@@ -327,7 +347,7 @@ export function showdownHtml(sd, { secondsLeft = null, secondsTotal = 0, nameOf 
     const look = SHOWDOWN_MODE_LOOKS[mode] || SHOWDOWN_MODE_LOOKS.race;
     const tug = mode === 'tug' && sd.teams.length === 2;
     const lanes = tug ? tugHtml(sd, { nameOf, faceOf })
-        : `<ol class="qr-sd__lanes" style="--n:${sd.teams.length}">${sd.teams.map((t, i) => laneHtml(sd, t, i, levels[i], nameOf, faceOf)).join('')}</ol>`;
+        : `<ol class="qr-sd__lanes" style="--n:${sd.teams.length}">${sd.teams.map((t, i) => laneHtml(sd, t, i, levels[i], nameOf, faceOf, livePlaces(sd)[i])).join('')}</ol>`;
     const everyone = sd.rules?.style === 'all';
     const how = sd.rules?.hotseat ? 'The hero at the microphone answers for the team'
         : everyone ? 'Every team writes its answer: the Wand gives the points' : 'Answer out loud: the Wand gives the point';
@@ -370,9 +390,11 @@ export function showdownFinaleHtml(sd, { nameOf = () => '', faceOf = () => null 
         ${sd.rules?.mode === 'survivor' ? heartsHtml(t.lives, sd.rules.lives) : ''}
         ${t.place === 1 ? finaleFaces(t, faceOf) : ''}
         <span class="qr-podium__score">${t.score}</span>
-        <span class="qr-podium__block">${t.place === 1 ? '<i class="fas fa-crown"></i>' : t.place}</span>
+        <span class="qr-podium__block">${t.place === 1 ? '<i class="fas fa-crown"></i>' : ''}<small>${ordinalPlace(t.place)}</small>${podiumLine(sd, t)}</span>
     </li>`;
     const champion = standings.filter((t) => winners.has(t.index)).map((t) => esc(t.name)).join(' & ');
+    const ties = showdownTieBreaks(sd).map((b) => `<li><i class="fas fa-stopwatch" aria-hidden="true"></i> ${esc(sd.teams[b.first].name)} and ${esc(sd.teams[b.second].name)} both have ${b.score}: <b>${esc(sd.teams[b.first].name)} got there first</b></li>`).join('');
+    const rest = standings.slice(3);
     const dragonWon = standings.some((t) => t.dragon && winners.has(t.index)) && winners.size === 1;
     const stars = showdownStarPlayers(sd).slice(0, 3);
     return `
@@ -380,16 +402,30 @@ export function showdownFinaleHtml(sd, { nameOf = () => '', faceOf = () => null 
         <p class="qr-sd__eyebrow"><i class="fas fa-trophy" aria-hidden="true"></i> ${dragonWon ? 'The Dragon wins this time' : FINALE_EYEBROW[sd.rules?.mode] || 'Showdown champions'}</p>
         <h2 class="qr-sd__title">${champion || 'A draw!'}</h2>
         <ol class="qr-podium">${order.map(step).join('')}</ol>
+        ${rest.length ? `<ol class="qr-field" aria-label="The rest of the field">${rest.map((t, i) => `<li style="--qr-team:${esc(t.color)};--i:${i}"><span class="qr-field__place">${ordinalPlace(t.place)}</span><span class="qr-field__badge">${t.emoji ? esc(t.emoji) : esc(t.shape)}</span><b>${esc(t.name)}</b><span class="qr-field__score">${t.score}</span></li>`).join('')}</ol>` : ''}
+        ${ties ? `<ul class="qr-tiebreak">${ties}</ul>` : ''}
         ${stars.length ? `<div class="qr-stars"><p class="qr-stars__title"><i class="fas fa-microphone" aria-hidden="true"></i> Star players</p>
             <ul>${stars.map((p, i) => `<li style="--i:${i}">${starFace(p.id, faceOf)}<b>${esc(nameOf(p.id) || 'Hero')}</b><span>${p.pts}</span></li>`).join('')}</ul></div>` : ''}
     </div>`;
 }
 
 /** After the reward: the stars landed on monthly and total stars (today's stars stay free). */
-export function paidBannerHtml(paid, stars) {
+export function paidBannerHtml(paid, stars, { podium = false } = {}) {
     const n = Math.max(0, Number(paid) || 0);
-    const text = n ? `${'★'.repeat(Math.max(1, Math.min(3, Number(stars) || 1)))} Showdown stars for ${n} hero${n === 1 ? '' : 'es'}` : 'These heroes already have their Showdown stars';
+    const k = Math.max(1, Math.min(3, Number(stars) || 1));
+    const tiers = podium ? [k, Math.max(1, k - 1), Math.max(1, k - 2)].map((x, i) => `${i + 1}${['st', 'nd', 'rd'][i]} ${'★'.repeat(x)}`).join(' · ') : '';
+    const text = !n ? 'These heroes already have their Showdown stars'
+        : podium ? `Podium stars for ${n} hero${n === 1 ? '' : 'es'} · ${tiers}`
+            : `${'★'.repeat(k)} Showdown stars for ${n} hero${n === 1 ? '' : 'es'}`;
     return `<p class="qr-sd__paid" data-qr-paid role="status"><b>${esc(text)}</b><small>Added to this month's and all-time stars · today's stars are still to earn</small></p>`;
+}
+
+/** Under a podium place: how the team got there (crossed the line 2nd, knocked out last, still standing). */
+function podiumLine(sd, t) {
+    const mode = sd.rules?.mode;
+    if (mode === 'survivor') return `<em>${!t.out ? 'still standing' : t.place === 2 ? 'last to fall' : 'knocked out'}</em>`;
+    if (sd.rules?.goal === 'points' && mode !== 'tug' && !sd.growth) return t.done ? '<em><i class="fas fa-flag-checkered" aria-hidden="true"></i> over the line</em>' : '';
+    return '';
 }
 
 const FINALE_EYEBROW = { tug: 'Tug of War champions', survivor: 'Last team standing', treasure: 'Treasure champions' };

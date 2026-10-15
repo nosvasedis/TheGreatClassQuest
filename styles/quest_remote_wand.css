@@ -766,3 +766,21 @@ button.qw-fhero:active { transform: scale(0.92); background: var(--team) !import
 .qw-lite .qw-team__dbl, .qw-lite .qw-pts__multi.is-on { box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { .qw-tug__knot, .qw-teams.is-picking .qw-team__hit { transition: none; } }
 @media (max-width: 360px) { .qw-forge .qw-modes { grid-template-columns: repeat(2, 1fr); } }
+
+/* The finishing order on the phone: each team's place, a race's finishers, the finale's standings */
+.qw-team__place { position: absolute; top: 8px; left: 10px; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 800; color: #e0e7ff; background: rgba(0, 0, 0, 0.36); font-variant-numeric: tabular-nums; }
+.qw-team__place--1 { color: #422006; background: linear-gradient(180deg, #fef08a, #f59e0b); }
+.qw-team__place--2 { color: #1e293b; background: linear-gradient(180deg, #f8fafc, #94a3b8); }
+.qw-team__place--3 { color: #431407; background: linear-gradient(180deg, #fed7aa, #c2410c); }
+.qw-team__place i { font-size: 0.85em; }
+.qw-team.is-done .qw-team__hit { filter: saturate(0.6); box-shadow: inset 0 0 0 2px rgba(253, 224, 71, 0.7); }
+.qw-team.is-done .qw-team__hit:disabled { opacity: 1; }
+.qw-standings { list-style: none; display: grid; gap: 6px; width: 100%; margin: 8px 0 0; padding: 0; }
+.qw-standings__row { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 14px 0 6px; border-radius: 14px; background: color-mix(in srgb, var(--team) 26%, rgba(0, 0, 0, 0.3)); box-shadow: inset 4px 0 0 var(--team); }
+.qw-standings__place { display: grid; place-items: center; min-width: 42px; height: 30px; border-radius: 999px; font-size: 0.8rem; font-weight: 800; color: #e0e7ff; background: rgba(0, 0, 0, 0.35); }
+.qw-standings__row--1 .qw-standings__place { color: #422006; background: linear-gradient(180deg, #fef08a, #f59e0b); }
+.qw-standings__row--2 .qw-standings__place { color: #1e293b; background: linear-gradient(180deg, #f8fafc, #94a3b8); }
+.qw-standings__row--3 .qw-standings__place { color: #431407; background: linear-gradient(180deg, #fed7aa, #c2410c); }
+.qw-standings__badge { font-size: 1.15rem; }
+.qw-standings b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; color: #fff7d6; font: 400 1rem/1.1 var(--qw-title); }
+.qw-standings__score { font: 400 1.1rem/1 var(--qw-title); color: var(--qw-gold); font-variant-numeric: tabular-nums; }

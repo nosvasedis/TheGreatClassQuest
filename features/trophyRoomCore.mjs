@@ -15,6 +15,7 @@ export function formatTrophyMonth(iso) {
 /** Where a kept item came from, in words a class understands. */
 export function trophySourceLabel(item) {
     if (item?.source === 'ember_oath') return 'Oath kept';
+    if (item?.source === 'ember_path') return 'Star Path';
     if (item?.source === 'quiz_treasure' || item?.source === 'quiz_prize') return 'Quiz prize';
     if (String(item?.id || '').startsWith('leg_')) return 'Legendary';
     return 'Mystic Market';
@@ -58,7 +59,7 @@ export function buildTrophySatchel(inventory, { isUsable = () => false, present 
             icon: item.icon || '',
             image: item.image || '',
             description: item.description || '',
-            kind: item.source === 'ember_oath' ? 'keepsake' : 'treasure',
+            kind: item.source === 'ember_oath' || item.source === 'ember_path' ? 'keepsake' : 'treasure',
             sourceLabel: trophySourceLabel(item),
             acquiredAt: item.acquiredAt || '',
             acquiredLabel: formatTrophyMonth(item.acquiredAt),

@@ -19,6 +19,10 @@ const { loadEmberOaths } = oathActions;
 import { showAnimatedModal, hideModal, showModal } from './base.js';
 import { showToast } from '../effects.js';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
+import { oathPerkFor, rankFor, nextRank } from '../../features/oathStarPath.mjs';
+import { figureCompletedBy } from '../../features/campfireConstellation.mjs';
+import { personalSkyMarkup, perkMarkup, rankLadderMarkup, countUpGifts } from '../../features/campfire/oathStarPathView.js';
+import starEmberUrl from '../../assets/campfire/star-ember.png?url';
 
 const MODAL_ID = 'ember-oaths-modal';
 // Today's check-in answers one question: "Did you keep your promise today?" Only 🔥 lights an ember; the others never take one away.
@@ -458,16 +462,37 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
                 '<button type="button" class="eo-release" data-release>Let this promise go</button>' +
             '</div></div></div>', 'story');
     }
-    function renderKept(oath) {
+    /** A promise kept: the Star-Ember, the child's own constellation and the Star Path's gifts. Shown on the tap; `pending` while the save finishes. */
+    function renderKept(oath, { pending = false } = {}) {
         const student = roster.find(s => s.id === oath.studentId);
-        setView('<div class="eo-kept"><div class="eo-kept-rays" aria-hidden="true"></div><div class="eo-kept-burst" aria-hidden="true">' + Array.from({ length: 14 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</div>' +
-            '<div class="eo-kept-star" aria-hidden="true">🌟</div>' + avatarHtml(student, 'lg') +
+        const perk = oath.perk || oathPerkFor(keptFor(oath.studentId).filter(o => o.id !== oath.id).length + 1, { studentId: oath.studentId });
+        const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches || shell.classList.contains('is-lite');
+        const who = { name: student?.name || '', heroClass: student?.heroClass || '', studentId: oath.studentId };
+        const days = emberStory(evaluateOathEvidence(oath, facts.get(oath.id) || { today: isoToday() }).days);
+        setView('<div class="eo-kept eo-kept--sky' + (pending ? ' is-pending' : '') + '" data-kept="' + esc(oath.id) + '" data-n="' + perk.n + '">' +
+            '<span class="eo-kept-night" aria-hidden="true"></span><div class="eo-kept-rays" aria-hidden="true"></div>' +
+            '<div class="eo-kept-burst" aria-hidden="true">' + Array.from({ length: 16 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</div>' +
+            '<div class="eo-kept-crest"><img class="eo-kept-ember" src="' + starEmberUrl + '" alt="" aria-hidden="true">' + avatarHtml(student, 'lg') + '</div>' +
             '<p class="eo-kept-eyebrow">' + esc(oathName(oath).title) + ' · kept</p><h3 class="font-title">' + esc(student?.name) + ' kept a promise!</h3><p class="eo-kept-quote font-title">“' + esc(oath.text) + '”</p>' +
-            storyList(evaluateOathEvidence(oath, { today: isoToday() }).days, false, '') +
-            '<p class="eo-muted">A Star-Ember is in their Trophy Room, and a new star shines in the Campfire sky.</p>' +
-            '<div class="eo-kept-actions">' + (canUseFeature('parentAccess') ? '<button type="button" class="eo-secondary" data-share="' + esc(oath.id) + '"><span aria-hidden="true">💌</span> Share with family</button>' : '') +
-            '<button type="button" class="eo-secondary" data-new-for="' + esc(oath.studentId) + '"><span aria-hidden="true">✨</span> Choose the next promise</button>' +
-            '<button type="button" class="eo-primary" data-back>Back to the board</button></div></div>', 'kept');
+            (days.length ? '<p class="eo-kept-days">' + days.map(l => '<span>' + esc(l.icons) + ' ' + esc(prettyDate(l.date)) + '</span>').join('') + '</p>' : '') +
+            '<section class="eo-kept-path"><div class="eo-kept-sky">' + personalSkyMarkup(perk.n, who, { animate: !reduced }) + '</div><div class="eo-kept-perks">' + perkMarkup(perk, { name: student?.name, pending }) + '</div></section>' +
+            rankLadderMarkup(perk.n) +
+            '<p class="eo-kept-note" data-kept-note>' + (pending ? '<span class="eo-kept-spinner" aria-hidden="true"></span> Sealing it in the stars…' : 'The Star-Ember waits in their Trophy Room. The bonus stars count for this month, never for today.') + '</p>' +
+            '<div class="eo-kept-actions">' + (canUseFeature('parentAccess') ? '<button type="button" class="eo-secondary" data-share="' + esc(oath.id) + '"' + (pending ? ' disabled' : '') + '><span aria-hidden="true">💌</span> Share with family</button>' : '') +
+            '<button type="button" class="eo-secondary" data-new-for="' + esc(oath.studentId) + '"' + (pending ? ' disabled' : '') + '><span aria-hidden="true">✨</span> Choose the next promise</button>' +
+            '<button type="button" class="eo-primary" data-back' + (pending ? ' disabled' : '') + '>Back to the board</button></div></div>', 'kept');
+        countUpGifts(view.querySelector('.eo-kept-perks'), { reduced });
+    }
+    /** The save landed: unlock the buttons, and redraw only if the Star Path count turned out different. */
+    function settleKept(kept) {
+        const host = view.querySelector('.eo-kept[data-kept="' + CSS.escape(kept.id) + '"]');
+        if (!host || screen !== 'kept') return;
+        if (kept.perk && kept.perk.n !== Number(host.dataset.n)) return renderKept(kept);
+        host.classList.remove('is-pending');
+        host.querySelector('.sp-perks')?.classList.remove('is-pending');
+        host.querySelectorAll('.eo-kept-actions button').forEach(b => { b.disabled = false; });
+        const note = host.querySelector('[data-kept-note]');
+        if (note) note.textContent = 'The Star-Ember waits in their Trophy Room. The bonus stars count for this month, never for today.';
     }
     function renderShare(oath) {
         const student = roster.find(s => s.id === oath.studentId);
@@ -570,11 +595,30 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
         });
         if (b.hasAttribute('data-moment-own')) { const form = view.querySelector('.eo-moment-form'); form.hidden = false; form.querySelector('input').focus(); return; }
         if (b.dataset.feeling) { view.querySelectorAll('[data-feeling]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); return; }
-        if (b.hasAttribute('data-keep')) return work(async () => {
-            const feeling = view.querySelector('[data-feeling][aria-pressed="true"]')?.dataset.feeling || '🌱';
-            const kept = await api.keepEmberOath(focusId, { confirmed: true, reflection: { helped: view.querySelector('.eo-helped')?.value || '', next: '', emoji: feeling } });
-            local = local.map(o => o.id === kept.id ? kept : o); focusId = null; renderKept(kept);
-        });
+        if (b.hasAttribute('data-keep')) {
+            // Instant: the celebration shows on the tap, and the promise is saved underneath it.
+            const oath = local.find(o => o.id === focusId); if (!oath) return;
+            const id = oath.id, feeling = view.querySelector('[data-feeling][aria-pressed="true"]')?.dataset.feeling || '🌱';
+            const reflection = { helped: view.querySelector('.eo-helped')?.value || '', next: '', emoji: feeling };
+            const keptBefore = keptFor(oath.studentId).length;
+            focusId = null;
+            renderKept({ ...oath, status: 'kept', reflection, perk: oathPerkFor(keptBefore + 1, { studentId: oath.studentId }) }, { pending: true });
+            return work(async () => {
+                try {
+                    const kept = await api.keepEmberOath(id, { confirmed: true, reflection, oath, facts: facts.get(id) || null, keptBefore });
+                    local = local.map(o => o.id === kept.id ? { ...kept } : o);
+                    settleKept(kept.perk ? kept : { ...kept, perk: oathPerkFor(keptBefore + 1, { studentId: oath.studentId }) });
+                    renderStats();
+                    // Seven promises of one kind complete a figure in the class sky: the Team Quest gains bonus stars.
+                    const fig = figureCompletedBy(local, kept);
+                    if (fig && kept.perkPaid !== false && api.completeClassFigure) {
+                        api.completeClassFigure(classId, fig.kind, fig.completions, { name: fig.name })
+                            .then(added => { if (added && !closed) showToast('✦ ' + fig.name + ' is drawn whole in the class sky! +' + added + ' Team Quest stars', 'success'); })
+                            .catch(() => {});
+                    }
+                } catch (e) { focusId = id; if (!closed) renderOath(); throw e; }
+            });
+        }
         if (b.hasAttribute('data-release')) {
             const oath = local.find(o => o.id === focusId);
             return showModal('Let this promise go?', 'A different promise may fit better. Releasing it carries no penalty, and ' + esc(roster.find(s => s.id === oath?.studentId)?.name || 'the child') + ' can choose a new one.', () => work(async () => {
@@ -661,6 +705,14 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
 }
 
 // ─── Hero's Chronicle → 🔥 Oaths tab ───────────────────────────────────────────
+/** The child's Star Path at a glance: their constellation so far, their rank and the next step. */
+function starPathTile(student, kept) {
+    if (!kept) return '';
+    const rank = rankFor(kept), next = nextRank(kept);
+    return '<section class="eo-chron-path" aria-label="Star Path">' + personalSkyMarkup(kept, { name: student.name, heroClass: student.heroClass, studentId: student.id }, { animate: false }) +
+        '<div><p class="eo-chron-eyebrow">STAR PATH</p><b class="font-title">' + esc((rank?.icon || '') + ' ' + (rank?.name || '')) + '</b><p>' + kept + (kept === 1 ? ' promise' : ' promises') + ' kept' +
+        (next ? ' · ' + next.left + ' more to ' + esc(next.name) : ' · the whole path walked') + '</p></div></section>';
+}
 export async function renderChronicleOaths(studentId) {
     const host = document.getElementById('hero-chronicle-content-oaths');
     if (!host) return;
@@ -679,6 +731,7 @@ export async function renderChronicleOaths(studentId) {
         host.innerHTML = '<div class="eo-chron">' +
             '<div class="eo-chron-head"><div><p class="eo-chron-eyebrow">EMBER OATHS</p><h3 class="font-title">Small promises, steady growth</h3><p class="eo-muted">Personal goals ' + esc(student.name) + ' chose. Separate from grades and stars.</p></div>' +
             '<button type="button" class="eo-primary" data-open-board><span aria-hidden="true">' + (active ? '🔥' : '✨') + '</span> ' + (active ? 'Open this promise' : 'Choose a promise') + '</button></div>' +
+            starPathTile(student, oaths.filter(o => o.status === 'kept').length) +
             (oaths.length ? '<div class="eo-chron-list">' + oaths.map((o, i) => {
                 const r = o.status === 'active' ? evaluateOathEvidence(o, activeFacts) : null;
                 const status = o.status === 'kept' ? '<span class="eo-status is-kept">⭐ Kept</span>' : o.status === 'released' ? '<span class="eo-status is-released">🍃 Released</span>' : '<span class="eo-status is-active">🔥 Growing</span>';

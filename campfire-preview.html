@@ -42,6 +42,7 @@ body{background:linear-gradient(#ecfeff,#f8fafc);margin:0;font-family:'Open Sans
 <section><h2>PROJECTOR SCENE</h2><form id="preview-form" class="row">
 <label>Class band<select id="band"><option value="Pre-Junior">Early years · shared promise</option><option value="Junior A">Junior</option><option value="A" selected>Middle</option><option value="D">Upper</option></select></label>
 <label>Rendering<select id="tier"><option value="auto">Automatic</option><option value="low">Low · 50 particles / 30 fps</option><option value="mid">Mid · 90</option><option value="high">High · 140</option><option value="reduced">Reduced motion</option></select></label>
+<label>Our sky<select id="sky"><option value="two">Two stars of each kind</option><option value="nearly">The Herald one star from whole</option></select></label>
 <label>Opening<select id="opening"><option value="veil">Gathering veil, then the fire</option><option value="hold">Gathering veil only (stays)</option><option value="none">Straight to the fire</option></select></label>
 <button class="go">Gather at the Campfire →</button></form></section>
 </main>
@@ -155,6 +156,7 @@ document.getElementById('preview-form').onsubmit = async e => {
     { id: 'old2', studentId: 'a', status: 'kept', category: 'virtue', legendLine: 'A kind hand, offered.', keptAt: { seconds: 11 } },
     { id: 'old2b', studentId: 'd', status: 'kept', category: 'virtue', legendLine: 'A friend, invited in.', keptAt: { seconds: 12 } }
   );
+  if (document.getElementById('sky').value === 'nearly') ['e', 'f', 'g', 'h'].forEach((id, i) => oaths.push({ id: 'more' + i, studentId: id, status: 'kept', category: 'speak', legendLine: 'Spoke up again.', keptAt: { seconds: 20 + i } }));
   script.readyOathIds = ['o0'];
   const performance = tier === 'auto' ? {} : tier === 'reduced' ? { tier: 'low', particles: 50, fps: 30, dpr: 1, reducedMotion: true } : { tier, particles: { low: 50, mid: 90, high: 140 }[tier], fps: tier === 'low' ? 30 : 60, dpr: tier === 'low' ? 1 : 1.5 };
   const scene = openCampfireScene({ session: { id: 'preview', classId: 'preview', date, stars: 22, starsToday: 22, league, band: getLeagueBand(league), status: 'lit', script, heroStudentId: 'a' }, students: students.slice(0, 4), oaths, preview: true, performance });

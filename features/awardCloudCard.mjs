@@ -418,7 +418,7 @@ export const AWARD_REASON_NAMES = {
     round_table: 'Round Table', scholar_s_bonus: 'Scholar\u2019s Bonus', teacher_boon: 'Teacher Boon', peer_boon: 'Hero\u2019s Boon',
     pathfinder_map: 'Pathfinder\u2019s Map', quiz_of_the_week: 'Quiz of the Week', wheel_fortune: 'Fortune\u2019s Wheel',
     wheel_curse: 'Fortune\u2019s Wheel', excellence: 'Excellence', special_quest: 'Special Quest', quiet_dragon: 'The Quiet Dragon',
-    showdown: 'Showdown Arena', correction: 'Correction'
+    showdown: 'Showdown Arena', ember_oath: 'Ember Oath kept', correction: 'Correction'
 };
 
 function ledgerHead(data, kicker) {

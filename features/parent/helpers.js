@@ -193,7 +193,8 @@ const REASONS = {
     wheel_fortune: { label: "Fortune's Wheel", el: 'Τροχός της Τύχης', icon: 'fa-wand-magic-sparkles', tone: 'amber' },
     special_quest: { label: 'Special Quest', el: 'Ειδική αποστολή', icon: 'fa-wand-magic-sparkles', tone: 'violet' },
     quiet_dragon: { label: 'A calm class (The Quiet Dragon)', el: 'Ήρεμη τάξη (Ο Ήσυχος Δράκος)', icon: 'fa-dragon', tone: 'sky' },
-    showdown: { label: 'Class team game (Showdown)', el: 'Ομαδικό παιχνίδι της τάξης (Showdown)', icon: 'fa-bolt', tone: 'violet' }
+    showdown: { label: 'Class team game (Showdown)', el: 'Ομαδικό παιχνίδι της τάξης (Showdown)', icon: 'fa-bolt', tone: 'violet' },
+    ember_oath: { label: 'A promise kept (Ember Oath)', el: 'Μια υπόσχεση που τηρήθηκε', icon: 'fa-fire', tone: 'amber' }
 };
 
 function localize(meta) {

@@ -24,6 +24,32 @@ export const CONSTELLATION_FIGURES = {
     virtue: { origin: [850, 88], join: 'loop', curve: 18, nodes: [[0, -40], [-36, 8], [38, 14], [6, 48], [-66, -14], [70, -8], [22, -64]] }
 };
 
+/** Each class figure is drawn whole by seven kept promises of its kind. */
+export const FIGURE_SIZE = 7;
+/** Team Quest bonus stars (this month) when the class draws a figure whole. */
+export const FIGURE_TEAM_QUEST_BONUS = 5;
+export const FIGURE_NAMES = {
+    speak: 'The Herald', words: 'The Word-Weaver', write: 'The Quill',
+    'read/listen': 'The Listening Shell', habit: 'The Lantern', virtue: 'The Crown'
+};
+
+/** How far each kind's figure is drawn: { kind, name, count, size, completions, lit (stars of the current round) }. */
+export function figureProgress(oaths = []) {
+    const kept = (oaths || []).filter(o => o?.status === 'kept');
+    return STAR_KINDS.map(kind => {
+        const count = kept.filter(o => oathStarCategory(o) === kind).length;
+        return { kind, name: FIGURE_NAMES[kind], count, size: FIGURE_SIZE, completions: Math.floor(count / FIGURE_SIZE), whole: count >= FIGURE_SIZE };
+    });
+}
+
+/** Did keeping this one promise draw its kind's figure whole? (null when not) */
+export function figureCompletedBy(oathsAfter = [], keptOath) {
+    if (!keptOath) return null;
+    const kind = oathStarCategory(keptOath);
+    const fig = figureProgress(oathsAfter).find(f => f.kind === kind);
+    return fig && fig.count > 0 && fig.count % FIGURE_SIZE === 0 ? fig : null;
+}
+
 function hash32(s) {
     let h = 2166136261;
     const str = String(s);
@@ -200,19 +226,75 @@ function studentById(students, id) {
     return students[id] || null;
 }
 
+function baseNode(kind, index) {
+    const fig = CONSTELLATION_FIGURES[kind];
+    const [dx, dy] = fig.nodes[index];
+    return { x: clamp(fig.origin[0] + dx, 32, 968), y: clamp(fig.origin[1] + dy, 24, 236) };
+}
+
+/** The whole figure's lines on its seven places, joined the same way its stars will be. */
+function guidePairs(kind) {
+    const join = CONSTELLATION_FIGURES[kind].join;
+    const n = FIGURE_SIZE, out = [];
+    if (join === 'hub') { for (let i = 1; i < n; i++) out.push([0, i]); return out; }
+    if (join === 'mst') {
+        const pts = Array.from({ length: n }, (_, i) => baseNode(kind, i));
+        const edges = [];
+        for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) edges.push({ i, j, d: (pts[i].x - pts[j].x) ** 2 + (pts[i].y - pts[j].y) ** 2 });
+        edges.sort((a, b) => a.d - b.d);
+        const parent = pts.map((_, i) => i);
+        const find = i => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+        for (const e of edges) { const a = find(e.i), b = find(e.j); if (a === b) continue; parent[a] = b; out.push([e.i, e.j]); }
+        return out;
+    }
+    for (let i = 1; i < n; i++) out.push([i - 1, i]);
+    if (join === 'loop') out.push([n - 1, 0]);
+    return out;
+}
+
+function sparklePath(r) {
+    const a = r * 0.2;
+    return 'M0,' + (-r) + 'C' + a + ',' + (-a) + ' ' + a + ',' + (-a) + ' ' + r + ',0C' + a + ',' + a + ' ' + a + ',' + a + ' 0,' + r + 'C' + (-a) + ',' + a + ' ' + (-a) + ',' + a + ' ' + (-r) + ',0C' + (-a) + ',' + (-a) + ' ' + (-a) + ',' + (-a) + ' 0,' + (-r) + 'Z';
+}
+
 export function constellationMarkup(oaths, { highlightId = '', students = [] } = {}) {
     const { kept, byKind, points } = constellationLayout(oaths);
     const links = constellationLinks(oaths);
+    const progress = new Map(figureProgress(oaths).map(f => [f.kind, f]));
+    let defs = '<defs>';
+    STAR_KINDS.forEach(kind => {
+        const mark = STAR_MARK[kind], id = 'cf-glow-' + kind.replace('/', '-');
+        defs += '<radialGradient id="' + id + '"><stop offset="0" stop-color="' + mark.fill + '" stop-opacity=".75"/><stop offset=".35" stop-color="' + mark.fill + '" stop-opacity=".22"/><stop offset="1" stop-color="' + mark.fill + '" stop-opacity="0"/></radialGradient>';
+    });
+    defs += '</defs>';
+    // The shape still waiting: faint places and dashed lines where the next promises of this kind will shine.
+    let guides = '';
+    STAR_KINDS.forEach((kind, k) => {
+        const group = byKind.get(kind), fig = progress.get(kind);
+        if (!group.length || fig.whole) return;
+        const mark = STAR_MARK[kind];
+        const at = i => (i < group.length ? points.get(group[i].id) : baseNode(kind, i));
+        let g = '<g class="cf-figure-guide" style="--k:' + k + '" stroke="' + mark.fill + '" fill="' + mark.fill + '">';
+        // Only the way to the next place is dashed in; the rest of the shape waits as faint dots.
+        for (const [a, b] of guidePairs(kind)) {
+            if (Math.max(a, b) !== group.length) continue;
+            const p = at(a), q = at(b);
+            g += '<path class="cf-guide-line" d="M' + p.x + ',' + p.y + 'L' + q.x + ',' + q.y + '"/>';
+        }
+        for (let i = group.length; i < FIGURE_SIZE; i++) { const p = baseNode(kind, i); g += '<circle class="cf-guide-node" cx="' + p.x + '" cy="' + p.y + '" r="2.2"/>'; }
+        guides += g + '</g>';
+    });
     let lines = '';
     STAR_KINDS.forEach((kind, k) => {
         const mark = STAR_MARK[kind];
         const mine = links.filter(l => l.kind === kind);
         if (!mine.length) return;
-        lines += '<g class="cf-star-lines cf-star-lines--' + kind.replace('/', '-') + '" style="--k:' + k + '" stroke="' + mark.fill + '" stroke-linecap="round" stroke-opacity=".55" stroke-width=".9" fill="none">';
-        for (const link of mine) {
-            lines += '<path' + (link.toId === highlightId ? ' class="cf-line-new"' : '') + ' pathLength="1" d="' + curvePath(link) + '"/>';
-        }
-        lines += '</g>';
+        const whole = progress.get(kind).whole;
+        let d = '';
+        for (const link of mine) d += '<path' + (link.toId === highlightId ? ' class="cf-line-new"' : '') + ' pathLength="1" d="' + curvePath(link) + '"/>';
+        // A soft wide stroke under the fine one: a glow without a filter (cheap on weak laptops).
+        lines += '<g class="cf-star-lines cf-star-lines--' + kind.replace('/', '-') + (whole ? ' is-whole' : '') + '" style="--k:' + k + '" stroke="' + mark.fill + '" stroke-linecap="round" fill="none">' +
+            '<g class="cf-line-glow" stroke-opacity=".16" stroke-width="4">' + d + '</g><g class="cf-line-ink" stroke-opacity=".7" stroke-width="1.1">' + d + '</g></g>';
     });
     let stars = '';
     let i = 0;
@@ -222,16 +304,30 @@ export function constellationMarkup(oaths, { highlightId = '', students = [] } =
         for (const o of byKind.get(kind)) {
             const { x, y } = points.get(o.id);
             const peek = constellationPeek(o, studentById(students, o.studentId));
-            stars += '<g class="cf-star cf-star--' + catClass + (o.id === highlightId ? ' is-new' : '') + '" data-star="' + esc(o.id) + '" data-kind="' + kind + '" data-name="' + esc(peek.name) + '" data-line="' + esc(peek.line) + '" style="--i:' + (i++) + ';--k:' + k + '" transform="translate(' + x + ' ' + y + ')">' +
-                '<title>' + esc(peek.name ? peek.name + ' · ' + peek.line : peek.line) + '</title>' +
+            const tw = (hash32(o.id) % 1000) / 1000;
+            stars += '<g class="cf-star cf-star--' + catClass + (o.id === highlightId ? ' is-new' : '') + '" data-star="' + esc(o.id) + '" data-kind="' + kind + '" data-name="' + esc(peek.name) + '" data-line="' + esc(peek.line) + '" style="--i:' + (i++) + ';--k:' + k + ';--tw:' + tw.toFixed(3) + '" transform="translate(' + x + ' ' + y + ')">' +
                 '<circle class="cf-star-hit" r="16" fill="transparent"/>' +
                 '<g class="cf-star-mark">' +
+                '<circle class="cf-star-aura" r="26" fill="url(#cf-glow-' + catClass + ')"/>' +
                 '<circle class="cf-star-halo" r="9" fill="' + mark.halo + '"/>' +
+                '<path class="cf-star-glint" d="' + sparklePath(22) + '" fill="' + mark.fill + '"/>' +
                 starBody(kind) +
-                '<circle r="1.7" fill="#fffdf8"/>' +
+                '<circle r="1.9" fill="#fffdf8"/>' +
                 '</g></g>';
         }
     });
+    // Each figure's name, and how far it is drawn (shown when the class looks up).
+    let labels = '';
+    STAR_KINDS.forEach((kind, k) => {
+        const group = byKind.get(kind), fig = progress.get(kind);
+        if (!group.length) return;
+        // Beside the stars already shining (the waiting shape is only a hint).
+        const pts = group.map(o => points.get(o.id));
+        const cx = pts.reduce((a, p) => a + p.x, 0) / pts.length, top = Math.min(...pts.map(p => p.y));
+        const y = top > 44 ? top - 24 : Math.max(...pts.map(p => p.y)) + 32;
+        const count = fig.whole ? (fig.completions > 1 ? ' ✦×' + fig.completions : ' ✦') : ' · ' + group.length + '/' + FIGURE_SIZE;
+        labels += '<text class="cf-figure-name' + (fig.whole ? ' is-whole' : '') + '" style="--k:' + k + '" x="' + clamp(Math.round(cx), 70, 930) + '" y="' + clamp(Math.round(y), 12, 252) + '" text-anchor="middle" fill="' + STAR_MARK[kind].fill + '">' + esc(FIGURE_NAMES[kind]) + esc(count) + '</text>';
+    });
     return '<svg class="cf-constellation" viewBox="0 0 1000 260" preserveAspectRatio="xMidYMid meet" role="img" aria-label="' + (kept.length ? 'Our constellation: ' + kept.length + ' promises kept this year' : 'Our constellation is waiting for its first star') + '">' +
-        lines + stars + '</svg>';
+        defs + guides + lines + stars + labels + '</svg>';
 }

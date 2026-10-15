@@ -464,3 +464,71 @@
   .cf-footer{padding:10px 12px;gap:.5rem}.cf-next{padding:11px 16px}.cf-quiet{padding:9px 10px}
 }
 .cf-scene.cf-still .cf-word-ghost,.cf-scene.cf-still .cf-feed-ring{display:none}
+
+/* ══ Our sky of promises, revamped: every star has an aura and a glint, every kind of promise draws a
+   named figure of seven, and the places still waiting show as a faint dotted shape. ══ */
+.cf-star-aura{opacity:.0;transform-box:fill-box;transform-origin:center}
+.cf-star-glint{opacity:0;transform-box:fill-box;transform-origin:center;transform:scale(.4)}
+.cf-figure-guide,.cf-figure-name{opacity:0;transition:opacity .8s}
+.cf-guide-line{fill:none;stroke-width:.9;stroke-dasharray:2 7;stroke-linecap:round;stroke-opacity:.42}
+.cf-guide-node{fill-opacity:.4;stroke:none;transform-box:fill-box;transform-origin:center}
+.cf-figure-name{font-family:"Fredoka One",sans-serif;font-size:13px;letter-spacing:.06em;paint-order:stroke;stroke:#0b0d22;stroke-width:3px;stroke-linejoin:round;fill-opacity:.9}
+.cf-figure-name.is-whole{fill:#ffe3a0;font-size:14px}
+.cf-line-glow .cf-line-new{stroke-width:6;stroke-opacity:.3}
+.cf-star-lines.is-whole .cf-line-ink{stroke:#ffe3a0;stroke-opacity:.95}
+.cf-star-lines.is-whole .cf-line-glow{stroke:#ffcf7a;stroke-opacity:.26}
+.cf-scene.is-sky-featured .cf-star-aura,.cf-scene.is-sky-gaze .cf-star-aura,.cf-scene[data-stage=kept] .cf-star-aura{opacity:.9}
+.cf-scene.is-sky-featured .cf-figure-guide,.cf-scene.is-sky-gaze .cf-figure-guide,
+.cf-scene.is-sky-featured .cf-figure-name,.cf-scene.is-sky-gaze .cf-figure-name{opacity:1;transition-delay:.9s}
+.cf-scene.has-moment .cf-figure-guide,.cf-scene.has-moment .cf-figure-name{opacity:0;transition-delay:0s}
+.cf-scene.is-sky-featured .cf-star-glint,.cf-scene.is-sky-gaze .cf-star-glint{animation:cf-glint 6.5s ease-in-out infinite;animation-delay:calc(var(--tw) * -6.5s)}
+.cf-scene.is-sky-featured .cf-star-aura,.cf-scene.is-sky-gaze .cf-star-aura{animation:cf-aura 4.2s ease-in-out infinite;animation-delay:calc(var(--tw) * -4.2s)}
+.cf-scene.is-sky-featured .cf-guide-node,.cf-scene.is-sky-gaze .cf-guide-node{animation:cf-guide-breathe 3s ease-in-out infinite;animation-delay:calc(var(--k) * -.5s)}
+.cf-star-lines.is-whole .cf-line-glow{animation:cf-whole-glow 3.6s ease-in-out infinite}
+.cf-star-lines.is-celebrating .cf-line-ink{stroke:#fff3c4;stroke-width:2.2;animation:cf-whole-flash 1.4s ease-out 3}
+.cf-star-lines.is-celebrating .cf-line-glow{stroke:#ffd27a;stroke-width:9;animation:cf-whole-flash 1.4s ease-out 3}
+@keyframes cf-glint{0%,78%,100%{opacity:0;transform:scale(.3) rotate(0)}86%{opacity:.7;transform:scale(1) rotate(45deg)}93%{opacity:0;transform:scale(.5) rotate(90deg)}}
+@keyframes cf-aura{50%{opacity:.45;transform:scale(.8)}}
+@keyframes cf-guide-breathe{50%{fill-opacity:.12;transform:scale(.6)}}
+@keyframes cf-whole-glow{50%{stroke-opacity:.45}}
+@keyframes cf-whole-flash{0%{stroke-opacity:1}100%{stroke-opacity:.35}}
+.cf-scene.cf-lite .cf-star-glint,.cf-scene.cf-lite .cf-star-aura,.cf-scene.cf-lite .cf-guide-node,.cf-scene.cf-lite .cf-star-lines .cf-line-glow{animation:none!important}
+.cf-scene.cf-still .cf-star-glint,.cf-scene.cf-still .cf-star-aura,.cf-scene.cf-still .cf-guide-node,.cf-scene.cf-still .cf-star-lines *{animation:none!important}
+
+/* The constellation banner: the class drew a whole figure. */
+.cf-figure-banner{position:absolute;left:50%;top:clamp(84px,13vh,130px);z-index:8;display:flex;align-items:center;gap:1rem;padding:.85rem 1.6rem .85rem 1rem;border-radius:1.4rem;
+  background:linear-gradient(100deg,#1a1536f2,#3a2440f2);border:1px solid #ffd98a99;box-shadow:0 0 0 1px #ffd98a33,0 0 60px #ffb45c55,0 18px 40px #000a;color:#f3e6d6;
+  transform:translateX(-50%);animation:cf-banner-in .8s cubic-bezier(.2,.9,.3,1.3) both;pointer-events:none}
+.cf-figure-banner.is-leaving{animation:cf-banner-out .7s ease-in forwards}
+.cf-figure-banner__mark{display:grid;place-items:center;width:3rem;height:3rem;border-radius:50%;font-size:1.6rem;color:#3a1e0c;background:radial-gradient(circle at 35% 30%,#fff3c4,#f5b53d 60%,#c9781e);box-shadow:0 0 30px #ffb45c}
+.cf-figure-banner small{display:block;font-size:.68rem;letter-spacing:.2em;color:#d8b98a}
+.cf-figure-banner b{display:block;font-family:"Fredoka One",sans-serif;font-weight:400;font-size:1.6rem;line-height:1.1;color:#ffe9c2}
+.cf-figure-banner em{display:block;font-style:normal;font-size:.9rem;color:#eadfd6}
+@keyframes cf-banner-in{from{opacity:0;transform:translate(-50%,-20px) scale(.9)}}
+@keyframes cf-banner-out{to{opacity:0;transform:translate(-50%,-14px)}}
+
+/* ══ A promise kept: the Star-Ember, the child's face in its light, their own constellation and gifts ══ */
+.cf-moment{gap:clamp(4px,1.2vh,14px);padding:clamp(56px,8vh,80px) 2rem 1.5rem}
+.cf-moment-stage{width:clamp(150px,25vmin,270px);margin-top:0}
+.cf-moment-stage .cf-moment-avatar{position:absolute;left:50%;bottom:-14%;width:clamp(64px,8.5vmin,92px);height:clamp(64px,8.5vmin,92px);margin:0;transform:translateX(-50%) scale(.3);opacity:0;z-index:2;
+  transition:opacity .6s .35s,transform .8s .35s cubic-bezier(.2,1.5,.4,1)}
+.cf-moment.is-bloomed .cf-moment-stage .cf-moment-avatar{opacity:1;transform:translateX(-50%) scale(1)}
+.cf-moment-text{max-width:min(960px,100%);transition:opacity .7s .3s,transform .7s .3s}
+.cf-moment-text .cf-eyebrow{margin-top:clamp(20px,4.2vh,40px)}
+.cf-moment-text h2{font-size:clamp(30px,3.7vw,58px)}
+.cf-moment-quote{margin:8px auto 10px}
+.cf-moment-story{margin:0 0 6px}
+.cf-moment-path{display:grid;grid-template-columns:minmax(180px,250px) minmax(0,1fr);align-items:center;gap:clamp(14px,2.4vw,34px);width:min(820px,100%);margin:clamp(6px,1.6vh,16px) auto clamp(10px,2vh,20px);
+  padding:clamp(12px,1.8vh,20px) clamp(16px,2vw,26px);border-radius:1.6rem;background:linear-gradient(160deg,#ffffff0f,#ffffff05);border:1px solid #ffd9a033;box-shadow:inset 0 1px 0 #ffffff14,0 20px 50px #0007;backdrop-filter:blur(2px)}
+.cf-moment-sky{min-height:120px}
+.cf-moment-sky .sp-sky svg{max-height:min(26vh,210px)}
+.cf-moment-perks .sp-perks{justify-items:start}
+.cf-moment-perks .sp-gifts{justify-content:flex-start}
+.cf-moment-burst i{--a:calc(var(--i) * 16.36deg)}
+.cf-moment-continue:disabled{opacity:.7;cursor:progress;filter:saturate(.7)}
+.cf-medallion.is-rising{animation:cf-medallion-rise .7s cubic-bezier(.4,0,.2,1) forwards}
+.cf-medallion.is-rising button{pointer-events:none}
+@keyframes cf-medallion-rise{30%{transform:scale(1.05);box-shadow:0 0 80px #ffcf7aaa}100%{transform:translateY(-30px) scale(.94);opacity:.35}}
+@media(max-height:760px){.cf-moment-stage{width:clamp(130px,21vmin,220px)}.cf-moment-text h2{font-size:clamp(26px,3.2vw,44px)}.cf-moment-sky .sp-sky svg{max-height:22vh}}
+@media(max-width:760px){.cf-moment-path{grid-template-columns:1fr;justify-items:center}.cf-moment-perks .sp-perks{justify-items:center}.cf-moment-perks .sp-gifts{justify-content:center}.cf-moment-sky .sp-sky svg{max-height:150px}}
+.cf-scene.cf-still .cf-medallion.is-rising{animation:none}

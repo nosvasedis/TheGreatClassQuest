@@ -10,7 +10,10 @@ import { SKY_ZOOM_REST, SKY_ZOOM_LOOK, zoomSky } from '../campfireSkyCamera.mjs'
 import { createCampfireFire } from './campfireFire.js';
 import { FIRE_H, FIRE_BASE } from './fireParticlesCore.mjs';
 import { createCampfireAudio } from './campfireAudio.js';
-import { checkInEmberOath, keepEmberOath, getOathFacts } from '../../db/actions/emberOaths.js';
+import { checkInEmberOath, keepEmberOath, getOathFacts, completeClassFigure } from '../../db/actions/emberOaths.js';
+import { figureCompletedBy, FIGURE_TEAM_QUEST_BONUS } from '../campfireConstellation.mjs';
+import { oathPerkFor } from '../oathStarPath.mjs';
+import { personalSkyMarkup, perkMarkup, countUpGifts } from './oathStarPathView.js';
 import { getGuildById } from '../guilds.js';
 
 const MOODS = [['flame', '🔥', 'I tried', 1.35], ['candle', '🕯️', 'Still growing', 0.85], ['moon', '🌙', 'A quiet day', 0.55]];
@@ -390,29 +393,60 @@ export function openCampfireScene({ session, students = [], oaths = [], oathFact
         const lines = emberStory(evaluateOathEvidence(oath, factsById.get(oath.id) || { today: session.date }).days);
         return lines.length ? '<p class="cf-moment-story">' + lines.map(l => '<span>' + esc(l.icons) + ' ' + esc(day(l.date)) + '</span>').join('') + '</p>' : '';
     }
-    async function keptMoment(oath) {
+    /** Promises this child had kept before this one (their Star Path count). */
+    const keptBeforeOf = studentId => localOaths.filter(o => o.studentId === studentId && o.status === 'kept').length;
+    /**
+     * A promise kept. The ember leaves the fire the moment the teacher taps (the save runs underneath),
+     * blooms into the Star-Ember, then the child's own constellation lights star by star and the Star
+     * Path's gifts arrive. "Place it in our sky" waits only if the save is somehow still on its way.
+     */
+    async function keptMoment(oath, saving, keptBefore) {
         const student = students.find(s => s.id === oath.studentId);
-        const keptNow = localOaths.find(o => o.id === oath.id);
+        const who = { name: student?.name || '', heroClass: student?.heroClass || '', studentId: oath.studentId };
+        let perk = oathPerkFor(keptBefore + 1, { studentId: oath.studentId }), saved = null, failed = null;
+        const settled = saving.then(k => { saved = k; return k; }, e => { failed = e; return null; });
         moment.hidden = false;
+        moment.className = 'cf-moment';
         moment.innerHTML = '<div class="cf-moment-stage"><div class="cf-moment-glow"></div><div class="cf-moment-rays" aria-hidden="true"></div>' +
             '<img class="cf-moment-star" src="' + starEmberUrl + '" alt="" aria-hidden="true">' +
-            '<div class="cf-moment-burst" aria-hidden="true">' + Array.from({ length: 18 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</div></div>' +
-            '<div class="cf-moment-text"><div class="cf-moment-avatar">' + avatar(student) + '</div>' +
+            '<div class="cf-moment-avatar">' + avatar(student) + '</div>' +
+            '<div class="cf-moment-burst" aria-hidden="true">' + Array.from({ length: 22 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</div></div>' +
+            '<div class="cf-moment-text">' +
             '<p class="cf-eyebrow">A PROMISE KEPT</p><h2>' + esc(student?.name || 'A hero') + ' kept a promise!</h2>' +
-            '<p class="cf-moment-quote">' + esc('“' + (keptNow?.text || keptNow?.projectorText || '') + '”') + '</p>' +
+            '<p class="cf-moment-quote">' + esc('“' + (oath.text || oath.projectorText || '') + '”') + '</p>' +
             // The days they kept their word, not a score.
-            storyLine(keptNow) +
-            '<button class="cf-next cf-moment-continue" data-moment-continue>✦ Place it in our sky</button></div>';
+            storyLine(oath) +
+            '<section class="cf-moment-path" aria-label="' + esc((student?.name || 'Their') + ' Star Path') + '"><div class="cf-moment-sky"></div><div class="cf-moment-perks"></div></section>' +
+            '<button class="cf-next cf-moment-continue" data-moment-continue disabled>✦ Sealing it in the stars…</button></div>';
         root.classList.add('has-moment', 'is-sky-featured');
         fire.setIdle(true);
-        // The ember leaves the fire and climbs to the centre of the sky.
+        // The ember leaves the fire at once and climbs to the centre of the sky, while the promise is saved.
         const stage = moment.querySelector('.cf-moment-stage').getBoundingClientRect();
         const ember = document.createElement('span'); ember.className = 'cf-rising-ember';
-        audio?.whoosh(); fire.flare('#fff0c2', 0.5);
-        await fly(ember, coalPoint(), { x: stage.left + stage.width / 2, y: stage.top + stage.height / 2 }, reducedMotion ? 0 : 1500, { arc: -40, endScale: 1.6, easing: 'cubic-bezier(.3,.1,.3,1)' });
+        audio?.whoosh(); fire.flare('#fff0c2', 0.7); setFire(1.35);
+        await fly(ember, coalPoint(), { x: stage.left + stage.width / 2, y: stage.top + stage.height * 0.42 }, reducedMotion ? 0 : 1200, { arc: -40, endScale: 1.6, easing: 'cubic-bezier(.3,.1,.3,1)', trail: !lite });
         if (disposed) return;
-        moment.classList.add('is-bloomed'); audio?.chime();
-        await new Promise(resolve => moment.querySelector('[data-moment-continue]').addEventListener('click', resolve, { once: true }));
+        if (failed) return undoMoment(failed);
+        if (saved?.perk) perk = saved.perk;
+        const paintPath = () => {
+            moment.querySelector('.cf-moment-sky').innerHTML = personalSkyMarkup(perk.n, who, { animate: !reducedMotion });
+            moment.querySelector('.cf-moment-perks').innerHTML = perkMarkup(perk, { name: student?.name, pending: !saved });
+            countUpGifts(moment.querySelector('.cf-moment-perks'), { reduced: reducedMotion });
+        };
+        paintPath();
+        moment.classList.add('is-bloomed'); audio?.chime(); setFire(1);
+        // A tink as each gift lands; a milestone rank sings a little longer.
+        if (!reducedMotion) [700, 920, 1140].slice(0, perk.keepsake ? 3 : 2).forEach(ms => later(() => audio?.tink(), ms + 400));
+        if (perk.milestone) later(() => audio?.twinkle(), 900);
+        const continueBtn = moment.querySelector('[data-moment-continue]');
+        const result = await settled;
+        if (disposed) return;
+        if (!result) return undoMoment(failed);
+        if (result.perk && result.perk.n !== perk.n) { perk = result.perk; paintPath(); }
+        else moment.querySelector('.sp-perks')?.classList.remove('is-pending');
+        continueBtn.disabled = false; continueBtn.textContent = '✦ Place it in our sky';
+        continueBtn.focus({ preventScroll: true });
+        await new Promise(resolve => continueBtn.addEventListener('click', resolve, { once: true }));
         if (disposed) return;
         // The star flies to ITS place in the constellation (measured after the sky is laid out), leaving a trail.
         paintSky(oath.id);
@@ -426,7 +460,7 @@ export function openCampfireScene({ session, students = [], oaths = [], oathFact
             const to = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
             const traveller = document.createElement('span'); traveller.className = 'cf-traveller'; traveller.innerHTML = SPARKLE;
             audio?.whoosh();
-            await fly(traveller, { x: imgRect.left + imgRect.width / 2, y: imgRect.top + imgRect.height / 2 }, to, 1700, { arc: -140, endScale: 0.16, easing: 'cubic-bezier(.55,0,.25,1)', trail: true });
+            await fly(traveller, { x: imgRect.left + imgRect.width / 2, y: imgRect.top + imgRect.height / 2 }, to, 1500, { arc: -140, endScale: 0.16, easing: 'cubic-bezier(.55,0,.25,1)', trail: true });
             if (disposed) return;
             const land = document.createElement('span'); land.className = 'cf-land'; land.style.left = to.x + 'px'; land.style.top = to.y + 'px';
             land.innerHTML = '<i></i><i></i>' + Array.from({ length: 8 }, (_, i) => '<b style="--a:' + (i * 45) + 'deg"></b>').join('');
@@ -440,6 +474,47 @@ export function openCampfireScene({ session, students = [], oaths = [], oathFact
         moment.hidden = true; moment.className = 'cf-moment'; root.classList.remove('has-moment');
         fire.setIdle(gazing);
         await showStage(step, { animate: true, force: true });
+        celebrateFigure(result);
+    }
+    /** The save failed: the ember sinks back, the medallion returns, and the teacher sees why. */
+    function undoMoment(e) {
+        moment.hidden = true; moment.className = 'cf-moment'; moment.innerHTML = ''; root.classList.remove('has-moment');
+        fire.setIdle(gazing); setFire(1);
+        showStage(step, { animate: false });
+        error.textContent = e?.message || 'That promise could not be kept just now. Please try again.'; error.hidden = false;
+    }
+    /** The class drew a whole figure of one kind: it shines gold, and the Team Quest gains bonus stars. */
+    function celebrateFigure(keptOath) {
+        const fig = figureCompletedBy(localOaths, keptOath);
+        if (!fig) return;
+        if (!preview && keptOath.perkPaid !== false) completeClassFigure(session.classId, fig.kind, fig.completions, { name: fig.name }).catch(() => {});
+        if (early) return;
+        const lines = skyEl.querySelector('.cf-star-lines--' + fig.kind.replace('/', '-'));
+        lines?.classList.add('is-celebrating');
+        const banner = document.createElement('div');
+        banner.className = 'cf-figure-banner'; banner.setAttribute('role', 'status');
+        banner.innerHTML = '<span class="cf-figure-banner__mark" aria-hidden="true">✦</span><div><small>A CONSTELLATION IS DRAWN WHOLE</small><b>' + esc(fig.name) + '</b><em>Seven promises kept together · +' + FIGURE_TEAM_QUEST_BONUS + ' Team Quest stars this month</em></div>';
+        root.append(banner); audio?.chime(); later(() => audio?.twinkle(), 500);
+        later(() => banner.classList.add('is-leaving'), 6000); later(() => banner.remove(), 6800);
+    }
+    /** Let it rise: everything starts on the tap; the save happens underneath the moment. */
+    function keepPromise(b) {
+        if (busy || !moment.hidden || moving) return;
+        const oath = localOaths.find(o => o.id === b.dataset.keep); if (!oath) return;
+        error.hidden = true;
+        b.disabled = true; b.textContent = '✦ Rising…';
+        b.closest('.cf-medallion')?.classList.add('is-rising');
+        const keptBefore = keptBeforeOf(oath.studentId);
+        const saving = (preview
+            ? new Promise(r => setTimeout(r, 300)).then(() => ({ ...oath, status: 'kept', legendLine: 'Kept a promise: ' + (oath.text || ''), keptAt: { seconds: Date.now() / 1000 }, perk: oathPerkFor(keptBefore + 1, { studentId: oath.studentId }) }))
+            : keepEmberOath(oath.id, { confirmed: true, oath, facts: factsById.get(oath.id) || null, keptBefore }))
+            .then(kept => {
+                if (disposed) return kept;
+                localOaths = localOaths.map(o => o.id === kept.id ? kept : o); keptOathIds.add(kept.id);
+                if (!preview) onSave({ keptOathIds: [...keptOathIds] }).catch(() => {});
+                return kept;
+            });
+        return keptMoment(oath, saving, keptBefore).catch(e => { if (!disposed) undoMoment(e); });
     }
 
     // ─── Render ──────────────────────────────────────────────────────────────────
@@ -620,13 +695,7 @@ export function openCampfireScene({ session, students = [], oaths = [], oathFact
             content.querySelectorAll('.cf-glow-orb').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.mood === mood)));
             if (!preview) await onSave({ selfCheck });
         });
-        if (b.dataset.keep) return guard(async () => {
-            const kept = preview ? { ...localOaths.find(o => o.id === b.dataset.keep), status: 'kept', keptAt: { seconds: Date.now() / 1000 } } : await keepEmberOath(b.dataset.keep, { confirmed: true });
-            localOaths = localOaths.map(o => o.id === kept.id ? kept : o); keptOathIds.add(kept.id);
-            if (!preview) await onSave({ keptOathIds: [...keptOathIds] });
-            busy = false; // the moment has its own continue button
-            await keptMoment(kept);
-        });
+        if (b.dataset.keep) return keepPromise(b);
     });
     // Oath circle check-ins never wait for each other: the teacher can go round every seat at once.
     // Taps on the same seat queue, so the last mood tapped is the one saved.

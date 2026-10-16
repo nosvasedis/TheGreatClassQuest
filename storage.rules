@@ -94,9 +94,16 @@ service firebase.storage {
       );
     }
 
+    // A teacher's own diary folder needs no Firestore lookup: the page itself (and who may
+    // attach a picture to it) is guarded by firestore.rules, and live uploads were refused
+    // with the profile lookup in place although the profile was an active teacher.
+    function ownsFolder(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
     match /adventure_logs/{userId}/{allPaths=**} {
-      allow read: if hasActiveProfile();
-      allow write: if hasActiveProfile() && isValidImageWrite() && (request.auth.uid == userId || (hasFullSecretaryConsole() && sameSchoolUser(userId)));
+      allow read: if ownsFolder(userId) || hasActiveProfile();
+      allow write: if isValidImageWrite() && (ownsFolder(userId) || (hasFullSecretaryConsole() && sameSchoolUser(userId)));
     }
 
     match /avatars/{studentId}/{fileName} {

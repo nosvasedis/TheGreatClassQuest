@@ -1,5 +1,9 @@
 rules_version = '2';
 
+// These rules read Firestore (user_profiles, classes, students). That needs the Storage
+// service agent to hold roles/firebaserules.firestoreServiceAgent. The Firebase CLI only
+// offers to grant it in an interactive deploy that uploads changed rules; without it every
+// firestore.* lookup fails and all uploads get storage/unauthorized.
 service firebase.storage {
   match /b/{bucket}/o {
     function signedIn() {

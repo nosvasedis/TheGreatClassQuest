@@ -1,12 +1,12 @@
 // features/familiarForge.mjs — the Familiar Forge: hand-built SVG companions, assembled from parts.
 //
 // Every familiar is a small rig of layered parts (body, head, ears or horns, eyes, wings, tail,
-// markings, a keepsake) painted with a palette. Each of the 8 classes has 10 palettes x 3 forms
+// markings, a keepsake) painted with a palette. Each of the 10 classes has 10 palettes x 3 forms
 // = 30 named presets, and every individual also rolls its own eyes, markings, keepsake, blush,
 // a rare cross-breed part borrowed from another class and a very rare Shiny coat, so two
 // children almost never share the same companion. It grows through 5 forms: the last two wear
 // regalia (a ring of fire, an aurora, a canopy, a crescent moon, a sun disc, a tide halo, a
-// storm crown, a prism arc) and the Mythic form gathers Starbond marks for every 150 stars
+// storm crown, a prism arc, a turning galaxy, a lucky golden horseshoe) and the Mythic form gathers Starbond marks for every 150 stars
 // earned together after it. The look is stored as { v, preset, seed } and redrawn on the fly,
 // so the art can keep improving without touching saved data.
 //
@@ -191,6 +191,32 @@ export const FAMILIAR_PALETTES = {
         P('jadeshell', 'Jadeshell', '#65a30d', '#15803d', '#ecfccb', '#86efac', '#166534', '#86efac'),
         P('opal', 'Opal', '#cbd5e1', '#7dd3fc', '#ffffff', '#f0abfc', '#0ea5e9', '#e9d5ff'),
         P('mossback', 'Mossback', '#78716c', '#4d7c0f', '#e7e5e4', '#a3e635', '#3f6212', '#bef264')
+    ],
+    // Starfoal: main = coat, second = mane and tail, accent = horn and stars.
+    starfoal: [
+        P('stardust', 'Stardust', '#f5f3ff', '#a78bfa', '#ffffff', '#fde68a', '#6d28d9', '#c4b5fd'),
+        P('nebula', 'Nebula', '#c7d2fe', '#f472b6', '#eef2ff', '#fde047', '#4338ca', '#f9a8d4'),
+        P('cometblue', 'Cometblue', '#bfdbfe', '#38bdf8', '#eff6ff', '#e0f2fe', '#1d4ed8', '#7dd3fc'),
+        P('rosecomet', 'Rosecomet', '#fce7f3', '#fb7185', '#fff1f2', '#fcd34d', '#be185d', '#fda4af'),
+        P('galaxy', 'Galaxy', '#3730a3', '#e879f9', '#a5b4fc', '#fde047', '#f0abfc', '#c084fc'),
+        P('aurorafoal', 'Aurora', '#ecfeff', '#2dd4bf', '#ffffff', '#c4b5fd', '#0f766e', '#5eead4'),
+        P('sunrisefoal', 'Sunrise', '#ffedd5', '#fb923c', '#fff7ed', '#fde047', '#c2410c', '#fdba74'),
+        P('moonsilver', 'Moonsilver', '#e2e8f0', '#94a3b8', '#f8fafc', '#c7d2fe', '#334155', '#cbd5e1'),
+        P('twilight', 'Twilight', '#7c3aed', '#fbcfe8', '#ddd6fe', '#fef08a', '#fde68a', '#e9d5ff'),
+        P('cottoncandy', 'Cotton Candy', '#fbcfe8', '#7dd3fc', '#fdf2f8', '#fde68a', '#db2777', '#bae6fd')
+    ],
+    // Cloverhop: main = fur, second = clover, accent = lucky gold.
+    cloverhop: [
+        P('clovermint', 'Clovermint', '#f5f5f4', '#22c55e', '#ffffff', '#facc15', '#15803d', '#86efac'),
+        P('honeyhop', 'Honeyhop', '#e7b97a', '#4ade80', '#fef3c7', '#fbbf24', '#78350f', '#fde68a'),
+        P('cocoa', 'Cocoa', '#8b5e3c', '#65a30d', '#f5deb3', '#facc15', '#3f2a1d', '#bef264'),
+        P('snowdrop', 'Snowdrop', '#ffffff', '#34d399', '#fdf2f8', '#f9a8d4', '#be185d', '#a7f3d0'),
+        P('lilachop', 'Lilac', '#ddd6fe', '#4ade80', '#f5f3ff', '#fde047', '#6d28d9', '#c4b5fd'),
+        P('peachfuzz', 'Peachfuzz', '#fed7aa', '#22c55e', '#fff7ed', '#fbbf24', '#c2410c', '#fdba74'),
+        P('greymist', 'Greymist', '#a8a29e', '#16a34a', '#f5f5f4', '#fde047', '#1c1917', '#86efac'),
+        P('goldrush', 'Goldrush', '#fcd34d', '#15803d', '#fffbeb', '#fef08a', '#92400e', '#fde047'),
+        P('moonhare', 'Moonhare', '#cbd5e1', '#2dd4bf', '#f8fafc', '#e0e7ff', '#334155', '#99f6e4'),
+        P('rosebud', 'Rosebud', '#fbcfe8', '#4ade80', '#fff1f2', '#fde047', '#9d174d', '#f9a8d4')
     ]
 };
 
@@ -236,12 +262,22 @@ export const FAMILIAR_FORMS = {
         { key: 'pebble', label: 'Pebble', crown: [], tail: 'stub' },
         { key: 'geode', label: 'Geode', crown: ['gemSpike'], tail: 'stub' },
         { key: 'moss', label: 'Mossy', crown: ['leafSprout'], tail: 'stub' }
+    ],
+    starfoal: [
+        { key: 'dreamer', label: 'Dreamer', crown: ['ponyEars', 'unicornHorn'], tail: 'maneTail' },
+        { key: 'comet', label: 'Comet', crown: ['ponyEars', 'blazeStar'], tail: 'maneTail' },
+        { key: 'moonlit', label: 'Moonlit', crown: ['ponyEars', 'moonClip'], tail: 'maneTail' }
+    ],
+    cloverhop: [
+        { key: 'meadow', label: 'Meadow', crown: ['hopEars'], tail: 'cottonTail' },
+        { key: 'lop', label: 'Lop', crown: ['lopEars'], tail: 'cottonTail' },
+        { key: 'sprig', label: 'Sprig', crown: ['hopEars', 'cloverSprig'], tail: 'cottonTail' }
     ]
 };
 
 const TYPE_LABELS = {
     emberfang: 'Emberfang', frostpaw: 'Frostpaw', thornback: 'Thornback', veilshade: 'Veilshade', sparkling: 'Sparkling',
-    tidefin: 'Tidefin', stormwing: 'Stormwing', gemshell: 'Gemshell'
+    tidefin: 'Tidefin', stormwing: 'Stormwing', gemshell: 'Gemshell', starfoal: 'Starfoal', cloverhop: 'Cloverhop'
 };
 
 // Parts each class can lend to another (the rare cross-breed).
@@ -253,7 +289,9 @@ const CROSS_PARTS = {
     sparkling: { tail: 'plume', crown: 'heartCrest', wings: 'fairy', noun: { tail: 'plume tail', crown: 'heart crest', wings: 'fairy wings' } },
     tidefin: { tail: 'flukeTail', crown: 'finEars', wings: 'fin', noun: { tail: 'fish tail', crown: 'fin ears', wings: 'sea fins' } },
     stormwing: { tail: 'owlTail', crown: 'boltCrest', wings: 'storm', noun: { tail: 'owl tail', crown: 'lightning crest', wings: 'storm wings' } },
-    gemshell: { tail: 'stub', crown: 'gemSpike', wings: 'crystal', noun: { tail: 'stubby tail', crown: 'crystal spike', wings: 'crystal wings' } }
+    gemshell: { tail: 'stub', crown: 'gemSpike', wings: 'crystal', noun: { tail: 'stubby tail', crown: 'crystal spike', wings: 'crystal wings' } },
+    starfoal: { tail: 'maneTail', crown: 'unicornHorn', wings: 'astral', noun: { tail: 'starry mane', crown: 'unicorn horn', wings: 'astral wings' } },
+    cloverhop: { tail: 'cottonTail', crown: 'cloverSprig', wings: 'clover', noun: { tail: 'cotton tail', crown: 'four-leaf clover', wings: 'clover wings' } }
 };
 
 const EYE_STYLES = {
@@ -264,7 +302,9 @@ const EYE_STYLES = {
     sparkling: [['big', 3], ['star', 3], ['round', 2], ['happy', 2]],
     tidefin: [['round', 3], ['big', 3], ['happy', 2], ['star', 1], ['gem', 1]],
     stormwing: [['big', 5], ['round', 2], ['star', 2], ['gem', 1]],
-    gemshell: [['round', 3], ['happy', 3], ['gem', 2], ['big', 1], ['star', 1]]
+    gemshell: [['round', 3], ['happy', 3], ['gem', 2], ['big', 1], ['star', 1]],
+    starfoal: [['big', 3], ['star', 3], ['round', 2], ['happy', 2]],
+    cloverhop: [['round', 3], ['big', 3], ['happy', 3], ['star', 1]]
 };
 const EYE_LABELS = { round: 'Bright eyes', big: 'Wide eyes', gem: 'Gem eyes', star: 'Starry eyes', happy: 'Smiling eyes', moon: 'Moonglow eyes' };
 
@@ -377,7 +417,9 @@ const FACE = {
     otter: { eyeY: 47, gap: 8.6, eye: 4.6, earL: [45, 40], top: [60, 32], blushY: 55 },
     owl: { eyeY: 49, gap: 8.8, eye: 5.2, earL: [47, 39], top: [60, 32], blushY: 58 },
     owlet: { eyeY: 75, gap: 8.6, eye: 5.2, earL: [47, 63], top: [60, 57], blushY: 84, mouthY: 85 },
-    turtle: { eyeY: 49, gap: 8.4, eye: 4.6, earL: [46, 42], top: [60, 35], blushY: 57 }
+    turtle: { eyeY: 49, gap: 8.4, eye: 4.6, earL: [46, 42], top: [60, 35], blushY: 57 },
+    foal: { eyeY: 45, gap: 8.2, eye: 4.6, earL: [47, 34], top: [60, 31], blushY: 52 },
+    bunny: { eyeY: 50, gap: 8.4, eye: 4.8, earL: [51, 37], top: [60, 34], blushY: 57 }
 };
 
 export const FAMILIAR_FORM_COUNT = 5;
@@ -414,6 +456,12 @@ function planFor(typeId, level, form) {
     }
     if (typeId === 'gemshell') {
         return { ...base, body: 'stout', head: 'turtle', feet: 'stumps', face: FACE.turtle, shell: true, neck: 65 };
+    }
+    if (typeId === 'starfoal') {
+        return { ...base, body: 'foal', head: 'foal', feet: 'hooves', paws: false, face: FACE.foal, shoulder: [45, 74], neck: 64, tail: [76, 92], headOrigin: [60, 66] };
+    }
+    if (typeId === 'cloverhop') {
+        return { ...base, body: 'round', head: 'bunny', feet: 'bunnyFeet', face: FACE.bunny, tail: [77, 97], neck: 67 };
     }
     return { ...base, body: 'round', head: 'bear', face: FACE.bear };
 }
@@ -489,6 +537,19 @@ function partsFor(genome, level) {
         if (lvl >= 2 && !crown.includes('leafSprout')) addCrown('gemSpike');
         if (lvl === 5) { swapCrown('gemSpike', 'prismCrown'); regalia.push('prismArc'); }
     }
+    if (typeId === 'starfoal') {
+        if (lvl === 1 && crown.includes('unicornHorn')) swapCrown('unicornHorn', 'hornlet');
+        if (lvl >= 2) addCrown('unicornHorn');
+        if (lvl >= 3) { wings = 'astral'; wingScale = [0.88, 1.02, 1.14][lvl - 3]; }
+        if (lvl >= 4) { tail = 'cometTail'; regalia.push('constellation'); }
+        if (lvl === 5) { swapCrown('unicornHorn', 'starHorn'); regalia.unshift('galaxySpiral'); }
+    }
+    if (typeId === 'cloverhop') {
+        if (lvl >= 2 && !crown.includes('cloverSprig')) addCrown('cloverBud');
+        if (lvl >= 3) addCrown('jackAntlers');
+        if (lvl >= 4) { wings = 'clover'; wingScale = lvl === 4 ? 0.85 : 1.05; tail = 'cloverTail'; regalia.push('cloverRing'); }
+        if (lvl === 5) { swapCrown('jackAntlers', 'goldAntlers'); regalia.unshift('horseshoe'); }
+    }
     if (lvl === 5) front.push('mythicGlints');
 
     const cross = genome.crossbreed;
@@ -546,6 +607,7 @@ function bodyShape(kind) {
         case 'bark': return '<path d="M41 102C38 90 40 74 47 67C52 63 68 63 73 67C80 74 82 90 79 102C72 99 66 104 60 101C54 104 48 99 41 102Z"/>';
         case 'otter': return '<path d="M60 63C72 63 80 72 80 86C80 98 72 104 60 104S40 98 40 86C40 72 48 63 60 63Z"/>';
         case 'owl': return '<path d="M60 63C73 63 81 74 81 87C81 98 72 104 60 104S39 98 39 87C39 74 47 63 60 63Z"/>';
+        case 'foal': return '<path d="M60 63C71 63 78 72 78 85C78 97 71 103 60 103S42 97 42 85C42 72 49 63 60 63Z"/>';
         default: return '<ellipse cx="60" cy="84" rx="21" ry="19"/>';
     }
 }
@@ -561,6 +623,7 @@ function bellyShape(kind, c) {
         case 'otter': return `<path d="M60 70C68 70 72 78 72 88C72 97 67 101 60 101S48 97 48 88C48 78 52 70 60 70Z" fill="${c.b}"/>`;
         case 'owl': return `<path d="M60 71C68 71 72 79 72 88C72 97 67 101 60 101S48 97 48 88C48 79 52 71 60 71Z" fill="${c.b}"/>`
             + [76, 83, 90].map((y) => `<path d="M${53 + (y - 76) * 0.1} ${y}l2.4 2.4 2.4-2.4M58 ${y + 1.5}l2 2 2-2M62.6 ${y}l2.4 2.4 2.4-2.4" stroke="${c.dark}" stroke-width="0.9" fill="none" opacity="0.4" stroke-linecap="round"/>`).join('');
+        case 'foal': return `<ellipse cx="60" cy="86" rx="11" ry="12.5" fill="${c.b}"/>`;
         case 'plastron': return `<path d="M60 70C69 70 74 78 74 88C74 97 68 101 60 101S46 97 46 88C46 78 51 70 60 70Z" fill="${c.b}" stroke="${c.dark}" stroke-width="0.8"/>
             <path d="M60 70V101M47.5 80H72.5M46.4 91H73.6" stroke="${c.dark}" stroke-width="0.9" opacity="0.45" fill="none"/>`;
         default: return `<ellipse cx="60" cy="88" rx="12.5" ry="12" fill="${c.b}"/>`;
@@ -626,6 +689,15 @@ function feetSvg(kind, c, o) {
         }
         case 'stumps': {
             const foot = `<ellipse cx="47" cy="101" rx="9" ry="5" fill="${c.m}"${o}/><path d="M41.5 103.2h2M45.5 104.2h2M49.5 103.8h2" stroke="#fff" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>`;
+            return foot + mirror(foot);
+        }
+        case 'hooves': {
+            const haunch = `<ellipse cx="43.5" cy="96" rx="8.6" ry="7" fill="${c.m}"${o}/>`;
+            const leg = `<path d="M48.4 84C47.6 90 47.8 95.6 48.4 99.6H56.2C56.8 95.6 56.6 90 55.6 84Z" fill="${c.m}"${o}/><path d="M50 88.6C50 92 50.2 95 50.6 97.6" stroke="#fff" stroke-width="1" opacity="0.35" fill="none" stroke-linecap="round"/><path d="M48.2 98.6H56.4V102.6Q56.4 104.4 54.6 104.4H50Q48.2 104.4 48.2 102.6Z" fill="${c.a}" stroke="${c.ink}" stroke-width="0.6"/><path d="M49.6 100.4h5.4" stroke="#fff" stroke-width="0.7" opacity="0.6"/>`;
+            return haunch + mirror(haunch) + leg + mirror(leg);
+        }
+        case 'bunnyFeet': {
+            const foot = `<ellipse cx="46.6" cy="101.4" rx="9.6" ry="4.4" fill="${c.m}"${o}/><ellipse cx="43.6" cy="101.8" rx="2.6" ry="1.7" fill="#fbcfe8"/><circle cx="47.6" cy="100.2" r="0.9" fill="#fbcfe8"/><circle cx="49.8" cy="101.2" r="0.9" fill="#fbcfe8"/>`;
             return foot + mirror(foot);
         }
         case 'none': return '';
@@ -710,6 +782,28 @@ function headSvg(kind, c, o, face) {
             <path d="M53.5 58.6q6.5 4.6 13 0" stroke="${c.ink}" stroke-width="1.3" fill="none" stroke-linecap="round"/>
             <path d="M47 43c2-1 3 1 5 0M68 43c2 1 3-1 5 0" stroke="${c.dark}" stroke-width="0.8" fill="none" opacity="0.4"/>
             <ellipse cx="51.5" cy="40" rx="6" ry="3" fill="#fff" opacity="0.26" transform="rotate(-22 51.5 40)"/>`;
+        case 'foal': {
+            const mane = `<path d="M61 29C49 25 38 33 37 45C36 53 40 59 35 67C42 68 47 63 47 57C44 51 46 41 55 35Z" fill="${c.s}"${o}/><path d="M55 31C46 31 41 38 41 46M51 33C45 37 44 46 45 54" stroke="#fff" stroke-width="1" fill="none" opacity="0.4" stroke-linecap="round"/>`;
+            return `${mane}
+            <ellipse cx="60" cy="45" rx="17" ry="15" fill="${c.m}"${o}/>
+            <ellipse cx="60" cy="56.5" rx="11.5" ry="8.6" fill="${c.m}"${o}/>
+            <ellipse cx="60" cy="58" rx="9.6" ry="6.6" fill="${c.b}"/>
+            <ellipse cx="56.4" cy="57.6" rx="1.1" ry="1.6" fill="${c.dark}" opacity="0.6"/><ellipse cx="63.6" cy="57.6" rx="1.1" ry="1.6" fill="${c.dark}" opacity="0.6"/>
+            <path d="M56.4 61.4q3.6 2.6 7.2 0" stroke="${c.ink}" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+            <path d="M51 33C55 27 66 27 70 33C66 32 63 35 58 39C58 35 55 33 51 33Z" fill="${c.s}"${o}/>
+            <ellipse cx="51" cy="40" rx="5.4" ry="2.8" fill="#fff" opacity="0.28" transform="rotate(-22 51 40)"/>`;
+        }
+        case 'bunny': {
+            const cheek = `<ellipse cx="44.6" cy="57" rx="5.6" ry="4.6" fill="${c.m}"${o}/>`;
+            return `${cheek}${mirror(cheek)}
+            <ellipse cx="60" cy="50.5" rx="18.5" ry="16.5" fill="${c.m}"${o}/>
+            <ellipse cx="60" cy="58.6" rx="8" ry="5.4" fill="${c.b}"/>
+            <path d="M57.4 55.2h5.2L60 58Z" fill="#f472b6" stroke="${c.ink}" stroke-width="0.4" stroke-linejoin="round"/>
+            <path d="M60 58V59.6M56.8 60.4q1.6 1.5 3.2 0q1.6 1.5 3.2 0" stroke="${c.ink}" stroke-width="1" fill="none" stroke-linecap="round"/>
+            <rect x="58.3" y="60.6" width="3.4" height="3.4" rx="0.9" fill="#fff" stroke="${c.ink}" stroke-width="0.5"/><path d="M60 60.8V63.8" stroke="${c.ink}" stroke-width="0.4"/>
+            <path d="M51 58l-9 -1.6M51 60l-9 1.4M69 58l9 -1.6M69 60l9 1.4" stroke="${c.ink}" stroke-width="0.55" opacity="0.45" stroke-linecap="round"/>
+            <ellipse cx="51" cy="40.6" rx="6" ry="3" fill="#fff" opacity="0.28" transform="rotate(-22 51 40.6)"/>`;
+        }
         case 'none': {
             const y = face.mouthY || 82;
             return `<path d="M57 ${y}q3 2.4 6 0" stroke="${c.ink}" stroke-width="1.3" fill="none" stroke-linecap="round"/>`;
@@ -746,6 +840,14 @@ function eyeSvg(style, x, y, s, c) {
     }
 }
 
+// A four-leaf clover (heart-shaped leaves) centred on (cx, cy); k scales it (1 = about 15px across).
+function cloverSvg(cx, cy, k, fill, stroke, rot = 0) {
+    const heart = 'M0 0C-1.2 -1.6 -4.6 -2.6 -4.4 -5.6C-4.2 -7.6 -1.6 -8 0 -6C1.6 -8 4.2 -7.6 4.4 -5.6C4.6 -2.6 1.2 -1.6 0 0Z';
+    return `<g transform="translate(${f(cx)} ${f(cy)}) rotate(${rot}) scale(${f(k)})">${[0, 90, 180, 270].map((a) => `<path d="${heart}" fill="${fill}" stroke="${stroke}" stroke-width="0.7" transform="rotate(${a})"/>`).join('')}<path d="M0 -4.6V-1.2M0 1.2V4.6M-4.6 0H-1.2M1.2 0H4.6" stroke="#fff" stroke-width="0.6" opacity="0.55"/><circle r="1" fill="${stroke}" opacity="0.6"/></g>`;
+}
+const star4 = (x, y, r, fill, extra = '') => `<path d="M${f(x)} ${f(y - r)}Q${f(x + r * 0.18)} ${f(y - r * 0.18)} ${f(x + r)} ${f(y)}Q${f(x + r * 0.18)} ${f(y + r * 0.18)} ${f(x)} ${f(y + r)}Q${f(x - r * 0.18)} ${f(y + r * 0.18)} ${f(x - r)} ${f(y)}Q${f(x - r * 0.18)} ${f(y - r * 0.18)} ${f(x)} ${f(y - r)}Z" fill="${fill}"${extra}/>`;
+const antlerPath = (bx, by) => `M${bx} ${by}C${bx - 1} ${by - 5} ${bx - 1.4} ${by - 10} ${bx - 4} ${by - 15}M${bx - 1} ${by - 7}L${bx - 5.6} ${by - 9}M${bx - 1.6} ${by - 11}L${bx + 1.6} ${by - 14.6}`;
+
 // Pair parts are drawn on the left at anchor (ax, ay) and mirrored to the right.
 const PAIR_PARTS = {
     nubHorns: (ax, ay, c, o) => `<path d="M${ax - 3} ${ay + 5}Q${ax - 5} ${ay - 5} ${ax - 1} ${ay - 10}Q${ax + 2} ${ay - 3} ${ax + 4} ${ay + 3}Z" fill="${c.a}"${o}/>`,
@@ -772,7 +874,22 @@ const PAIR_PARTS = {
         }).join('') + `<circle cx="${ax + dx}" cy="${ay + dy}" r="${f(r * 0.5)}" fill="#fde047"/>`).join(''),
     otterEars: (ax, ay, c, o) => `<circle cx="${ax - 1}" cy="${ay + 1}" r="5" fill="${c.m}"${o}/><circle cx="${ax - 0.6}" cy="${ay + 1.6}" r="2.4" fill="${c.s}" opacity="0.8"/>`,
     finEars: (ax, ay, c, o) => `<path d="M${ax + 5} ${ay + 5}C${ax - 5} ${ay + 4} ${ax - 13} ${ay - 4} ${ax - 12} ${ay - 14}C${ax - 8} ${ay - 9} ${ax - 5} ${ay - 12} ${ax - 2} ${ay - 9}C${ax} ${ay - 5} ${ax + 3} ${ay - 2} ${ax + 7} ${ay + 1}Z" fill="${c.s}"${o}/><path d="M${ax + 4} ${ay + 3}L${ax - 10} ${ay - 11}M${ax + 4} ${ay + 3}L${ax - 3} ${ay - 7}" stroke="${c.accentHex}" stroke-width="0.9" opacity="0.8" stroke-linecap="round"/>`,
-    owlEars: (ax, ay, c, o) => `<path d="M${ax + 4} ${ay + 6}L${ax - 7} ${ay - 12}Q${ax - 5} ${ay - 7} ${ax - 1} ${ay - 9}Q${ax} ${ay - 4} ${ax + 3} ${ay - 5}L${ax + 8} ${ay + 3}Z" fill="${c.s}"${o}/><path d="M${ax + 3} ${ay + 3}L${ax - 4} ${ay - 7}" stroke="${c.dark}" stroke-width="0.8" opacity="0.5"/>`
+    owlEars: (ax, ay, c, o) => `<path d="M${ax + 4} ${ay + 6}L${ax - 7} ${ay - 12}Q${ax - 5} ${ay - 7} ${ax - 1} ${ay - 9}Q${ax} ${ay - 4} ${ax + 3} ${ay - 5}L${ax + 8} ${ay + 3}Z" fill="${c.s}"${o}/><path d="M${ax + 3} ${ay + 3}L${ax - 4} ${ay - 7}" stroke="${c.dark}" stroke-width="0.8" opacity="0.5"/>`,
+    ponyEars: (ax, ay, c, o) => `<path d="M${ax - 5} ${ay + 7}C${ax - 7} ${ay} ${ax - 6} ${ay - 7} ${ax - 3} ${ay - 11}C${ax + 1} ${ay - 7} ${ax + 5} ${ay - 1} ${ax + 6} ${ay + 4}Z" fill="${c.m}"${o}/><path d="M${ax - 3} ${ay + 4}C${ax - 4} ${ay - 1} ${ax - 3.4} ${ay - 5} ${ax - 2.4} ${ay - 7}C${ax} ${ay - 4} ${ax + 2.6} ${ay} ${ax + 3} ${ay + 3}Z" fill="${c.s}" opacity="0.75"/>`,
+    hopEars: (ax, ay, c, o) => `<path d="M${ax + 4} ${ay + 6}C${ax - 5} ${ay + 2} ${ax - 10} ${ay - 14} ${ax - 7} ${ay - 25}C${ax - 5} ${ay - 31} ${ax + 1} ${ay - 29} ${ax + 2} ${ay - 20}C${ax + 3} ${ay - 10} ${ax + 6} ${ay - 2} ${ax + 8} ${ay + 3}Z" fill="${c.m}"${o}/>
+        <path d="M${ax + 3} ${ay + 2}C${ax - 3} ${ay - 2} ${ax - 6.4} ${ay - 14} ${ax - 5} ${ay - 22}C${ax - 3.6} ${ay - 26} ${ax - 0.4} ${ay - 24} ${ax} ${ay - 18}C${ax + 0.6} ${ay - 10} ${ax + 3} ${ay - 4} ${ax + 5} ${ay + 1}Z" fill="#fbcfe8" opacity="0.85"/>`,
+    lopEars: (ax, ay, c, o) => `<path d="M${ax + 6} ${ay + 2}C${ax - 3} ${ay - 4} ${ax - 13} ${ay - 1} ${ax - 16} ${ay + 9}C${ax - 18} ${ay + 18} ${ax - 13} ${ay + 25} ${ax - 8} ${ay + 21}C${ax - 4} ${ay + 17} ${ax - 1} ${ay + 9} ${ax + 7} ${ay + 7}Z" fill="${c.m}"${o}/>
+        <path d="M${ax + 2} ${ay + 3}C${ax - 4} ${ay + 1} ${ax - 10} ${ay + 4} ${ax - 12} ${ay + 11}C${ax - 13} ${ay + 16} ${ax - 11} ${ay + 19} ${ax - 9} ${ay + 17}C${ax - 6} ${ay + 13} ${ax - 3} ${ay + 7} ${ax + 3} ${ay + 6}Z" fill="#fbcfe8" opacity="0.8"/>`,
+    jackAntlers: (ax, ay, c) => {
+        const d = antlerPath(ax + 6, ay + 2);
+        return `<path d="${d}" stroke="${shade(c.accentHex, -0.35)}" stroke-width="3.6" stroke-linecap="round" fill="none"/><path d="${d}" stroke="${c.accentHex}" stroke-width="2.2" stroke-linecap="round" fill="none"/>`;
+    },
+    goldAntlers: (ax, ay, c) => {
+        const bx = ax + 6, by = ay + 2;
+        const d = `M${bx} ${by}C${bx - 1} ${by - 7} ${bx - 2} ${by - 14} ${bx - 6} ${by - 21}M${bx - 1} ${by - 8}L${bx - 8} ${by - 11}M${bx - 2} ${by - 14}L${bx + 2} ${by - 20}M${bx - 4} ${by - 18}L${bx - 9} ${by - 20}`;
+        return `<path d="${d}" stroke="#92400e" stroke-width="4" stroke-linecap="round" fill="none"/><path d="${d}" stroke="#fbbf24" stroke-width="2.6" stroke-linecap="round" fill="none"/><path d="M${bx - 0.6} ${by - 2}C${bx - 1.2} ${by - 9} ${bx - 2.2} ${by - 14} ${bx - 5.4} ${by - 20}" stroke="#fef3c7" stroke-width="0.8" fill="none" opacity="0.8"/>`
+            + `<circle cx="${bx - 6}" cy="${by - 21}" r="1.6" fill="${c.secondHex}" stroke="#fff" stroke-width="0.5" class="fc-twinkle"/><circle cx="${bx + 2}" cy="${by - 20}" r="1.2" fill="#fff7d6" class="fc-twinkle"/>`;
+    }
 };
 
 // Centre parts sit on the crown of the head at (tx, ty). `back` ones are drawn behind the head.
@@ -811,6 +928,18 @@ const CENTER_PARTS = {
     boltCrest: { spark: true, draw: (tx, ty, c) => `<path d="M${tx - 1} ${ty + 3}L${tx + 4} ${ty - 6}L${tx} ${ty - 6}L${tx + 5} ${ty - 17}L${tx - 5} ${ty - 3}L${tx - 1} ${ty - 3}L${tx - 4} ${ty + 3}Z" fill="${c.accentHex}" stroke="#fff" stroke-width="0.7" stroke-linejoin="round"/>` },
     stormCrown: { spark: true, draw: (tx, ty, c) => [[-10, -16], [0, 0], [10, 16]].map(([dx, rot]) => `<path d="M${tx - 1} ${ty + 3}L${tx + 4} ${ty - 6}L${tx} ${ty - 6}L${tx + 5} ${ty - 18}L${tx - 5} ${ty - 3}L${tx - 1} ${ty - 3}L${tx - 4} ${ty + 3}Z" fill="${c.accentHex}" stroke="#fff" stroke-width="0.7" stroke-linejoin="round" transform="translate(${dx} ${Math.abs(dx) * 0.3}) rotate(${rot} ${tx} ${ty + 3})"/>`).join('') },
     gemSpike: { glow: true, draw: (tx, ty, c) => `<path d="M${tx - 4} ${ty + 3}L${tx - 3} ${ty - 6}L${tx} ${ty - 12}L${tx + 3} ${ty - 6}L${tx + 4} ${ty + 3}Z" fill="${c.accentHex}" stroke="${c.ink}" stroke-width="0.6"/><path d="M${tx} ${ty - 12}V${ty + 2}M${tx - 3} ${ty - 6}L${tx} ${ty - 3}L${tx + 3} ${ty - 6}" stroke="#fff" stroke-width="0.6" opacity="0.75" fill="none"/>` },
+    hornlet: { glow: true, draw: (tx, ty, c) => `<path d="M${tx - 2.6} ${ty + 3}L${tx} ${ty - 7}L${tx + 2.6} ${ty + 3}Z" fill="${c.a}" stroke="${c.ink}" stroke-width="0.5" stroke-linejoin="round"/><path d="M${tx - 1.8} ${ty}L${tx + 2} ${ty + 1}M${tx - 1.1} ${ty - 3.4}L${tx + 1.2} ${ty - 2.6}" stroke="#fff" stroke-width="0.7" opacity="0.8"/>` },
+    unicornHorn: { glow: true, draw: (tx, ty, c) => `<path d="M${tx - 3.6} ${ty + 3}L${tx} ${ty - 19}L${tx + 3.6} ${ty + 3}Z" fill="${c.a}" stroke="${c.ink}" stroke-width="0.5" stroke-linejoin="round"/>
+        <path d="M${tx - 3} ${ty - 0.6}L${tx + 3.2} ${ty + 1.4}M${tx - 2.3} ${ty - 5.6}L${tx + 2.5} ${ty - 3.8}M${tx - 1.6} ${ty - 10.4}L${tx + 1.8} ${ty - 9}M${tx - 0.9} ${ty - 14.8}L${tx + 1} ${ty - 13.8}" stroke="#fff" stroke-width="0.8" opacity="0.75"/>` },
+    starHorn: { glow: true, draw: (tx, ty, c) => `<circle cx="${tx}" cy="${ty - 21}" r="6.4" fill="${c.accentHex}" opacity="0.28"/>
+        <path d="M${tx - 4} ${ty + 3}L${tx} ${ty - 19}L${tx + 4} ${ty + 3}Z" fill="${c.a}" stroke="#fff" stroke-width="0.6" stroke-linejoin="round"/>
+        <path d="M${tx - 3.3} ${ty - 0.6}L${tx + 3.5} ${ty + 1.6}M${tx - 2.6} ${ty - 6}L${tx + 2.8} ${ty - 4}M${tx - 1.8} ${ty - 11.4}L${tx + 2} ${ty - 9.8}M${tx - 1} ${ty - 16.6}L${tx + 1.2} ${ty - 15.4}" stroke="#fff" stroke-width="0.8" opacity="0.8"/>
+        ${star4(tx, ty - 21, 5.4, '#fff7d6', ` stroke="${c.accentHex}" stroke-width="0.6"`)}` },
+    blazeStar: { glow: true, draw: (tx, ty, c) => `<path d="M${tx} ${ty + 5}l1.4 3 3.2 .3-2.4 2.1 .7 3.2-2.9-1.6-2.9 1.6 .7-3.2-2.4-2.1 3.2-.3z" fill="${c.accentHex}" stroke="#fff" stroke-width="0.6"/>` },
+    moonClip: { draw: (tx, ty, c) => `<mask id="${c.uid}-clip-moon"><rect x="${tx - 24}" y="${ty - 12}" width="20" height="20" fill="#fff"/><circle cx="${tx - 11}" cy="${ty - 1.6}" r="4.6" fill="#000"/></mask>
+        <circle cx="${tx - 13.4}" cy="${ty + 0.4}" r="5.4" fill="${c.accentHex}" stroke="#fff" stroke-width="0.7" mask="url(#${c.uid}-clip-moon)"/>${star4(tx - 7.4, ty - 3.6, 2, '#fff')}` },
+    cloverSprig: { sway: true, draw: (tx, ty, c) => `<path d="M${tx} ${ty + 3}q-1.6 -5 0 -8" stroke="#166534" stroke-width="1.6" fill="none" stroke-linecap="round"/>${cloverSvg(tx, ty - 9, 0.82, c.secondHex, shade(c.secondHex, -0.3), 12)}` },
+    cloverBud: { sway: true, draw: (tx, ty, c) => cloverSvg(tx + 8.4, ty + 1.2, 0.48, c.secondHex, shade(c.secondHex, -0.3), -18) },
     prismCrown: { glow: true, draw: (tx, ty, c) => [[-8, 8, -18], [0, 14, 0], [8, 8, 18]].map(([dx, h, rot]) => `<g transform="rotate(${rot} ${tx + dx} ${ty + 3})"><path d="M${tx + dx - 3.4} ${ty + 3}L${tx + dx - 2.6} ${ty - h + 4}L${tx + dx} ${ty - h}L${tx + dx + 2.6} ${ty - h + 4}L${tx + dx + 3.4} ${ty + 3}Z" fill="${c.accentHex}" stroke="#fff" stroke-width="0.6"/><path d="M${tx + dx} ${ty - h}V${ty + 2}" stroke="#fff" stroke-width="0.6" opacity="0.7"/></g>`).join('') }
 };
 
@@ -833,6 +962,17 @@ function wingSvg(kind, wx, wy, c, o) {
             + [[-26, -14], [-18, -6], [-28, 0], [-14, 4], [-22, -18]].map(([dx, dy], i) => `<circle cx="${wx + dx}" cy="${wy + dy}" r="${i % 2 ? 0.9 : 1.3}" fill="#fff" class="fc-twinkle"/>`).join('');
         case 'fin': return `<path d="M${wx} ${wy}C${wx - 8} ${wy - 10} ${wx - 22} ${wy - 16} ${wx - 30} ${wy - 10}C${wx - 24} ${wy - 6} ${wx - 27} ${wy + 1} ${wx - 21} ${wy + 4}C${wx - 14} ${wy + 7} ${wx - 6} ${wy + 7} ${wx} ${wy + 6}Z" fill="${c.s}" opacity="0.92"${o}/>
             <path d="M${wx} ${wy + 2}L${wx - 27} ${wy - 9}M${wx} ${wy + 3}L${wx - 24} ${wy - 1}M${wx} ${wy + 4}L${wx - 18} ${wy + 5}" stroke="${c.accentHex}" stroke-width="0.9" opacity="0.75" stroke-linecap="round"/>`;
+        case 'astral': return [[54, 22, 's'], [35, 20, 'm'], [17, 17, 's'], [0, 13, 'm']].map(([rot, len, fill], i) => `<g transform="translate(${wx} ${wy}) rotate(${rot})">
+            <path d="M0 0C-6 -4.6 -${f(len * 0.7)} -5 -${len} -1.6C-${f(len * 0.7)} 3.2 -6 3.2 0 0Z" fill="${c[fill]}"${o}/>
+            <path d="M-2 -0.2L-${len - 3} -1.4" stroke="#fff" stroke-width="0.7" opacity="0.55"/>
+            ${i % 2 ? '' : star4(-len + 0.6, -1.6, 2.6, '#fff', ` class="fc-twinkle" style="animation-delay:${-i * 0.5}s"`)}</g>`).join('');
+        case 'clover': {
+            const heart = 'M0 0C-1.2 -1.6 -4.6 -2.6 -4.4 -5.6C-4.2 -7.6 -1.6 -8 0 -6C1.6 -8 4.2 -7.6 4.4 -5.6C4.6 -2.6 1.2 -1.6 0 0Z';
+            return [[-64, 2.3, -6, -7], [-112, 1.6, -7, 3]].map(([rot, k, dx, dy]) => `<g transform="translate(${wx + dx} ${wy + dy}) rotate(${rot}) scale(${k})">
+                <path d="${heart}" fill="${c.secondHex}" stroke="${shade(c.secondHex, -0.36)}" stroke-width="0.6"/>
+                <path d="M-3.6 -5.8C-3.2 -6.8 -2 -7 -1.2 -6.4" stroke="#fff" stroke-width="0.5" fill="none" opacity="0.7" stroke-linecap="round"/>
+                <path d="M0 -0.6V-5.6M0 -3L-2.2 -5M0 -3L2.2 -5" stroke="#fff" stroke-width="0.35" opacity="0.6" fill="none"/></g>`).join('');
+        }
         case 'storm': return wingSvg('feather', wx, wy, c, o)
             + `<path d="M${wx - 28} ${wy - 15}l4 3-3 1 4 3" stroke="${c.accentHex}" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" class="fc-spark"/><path d="M${wx - 25} ${wy + 1}l3 2-2.4 1 3 2.4" stroke="${c.accentHex}" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round" class="fc-spark"/>`;
         default: return '';
@@ -867,6 +1007,13 @@ function tailSvg(kind, tx, ty, c, o) {
             + `<path d="M${tx} ${ty - 2}C${tx + 14} ${ty - 14} ${tx + 26} ${ty + 6} ${tx + 38} ${ty - 10}" stroke="${c.accentHex}" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M${tx} ${ty + 2}C${tx + 12} ${ty + 12} ${tx + 24} ${ty - 4} ${tx + 36} ${ty + 6}" stroke="${c.secondHex}" stroke-width="2" fill="none" stroke-linecap="round"/>`
             + flame(tx + 38, ty - 10, 0.55) + flame(tx + 36, ty + 6, 0.5);
         case 'stub': return `<circle cx="${tx + 2}" cy="${ty}" r="5.5" fill="${c.m}"${o}/>`;
+        case 'maneTail': return `<path d="M${tx - 6} ${ty - 2}C${tx + 6} ${ty - 6} ${tx + 12} ${ty - 18} ${tx + 10} ${ty - 30}C${tx + 18} ${ty - 24} ${tx + 24} ${ty - 12} ${tx + 22} ${ty - 2}C${tx + 26} ${ty + 2} ${tx + 28} ${ty + 8} ${tx + 24} ${ty + 12}C${tx + 16} ${ty + 12} ${tx + 4} ${ty + 8} ${tx - 6} ${ty + 4}Z" fill="${c.s}"${o}/>
+            <path d="M${tx + 2} ${ty - 2}C${tx + 10} ${ty - 8} ${tx + 14} ${ty - 16} ${tx + 13} ${ty - 24}M${tx + 8} ${ty + 3}C${tx + 16} ${ty - 1} ${tx + 20} ${ty - 7} ${tx + 20} ${ty - 13}" stroke="#fff" stroke-width="1.1" fill="none" opacity="0.45" stroke-linecap="round"/>`;
+        case 'cometTail': return tailSvg('maneTail', tx, ty, c, o)
+            + `<path d="M${tx + 10} ${ty - 30}C${tx + 14} ${ty - 38} ${tx + 22} ${ty - 42} ${tx + 30} ${ty - 42}" stroke="${c.accentHex}" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.7"/>`
+            + [[30, -42, 3.4], [22, -36, 2], [32, -30, 1.6]].map(([dx, dy, r], i) => star4(tx + dx, ty + dy, r, i ? '#fff' : c.accentHex, ` class="fc-twinkle" style="animation-delay:${-i * 0.45}s"`)).join('');
+        case 'cottonTail': return `<g${o.replace('stroke-width="1.2"', 'stroke-width="0.9"')}><circle cx="${tx + 3}" cy="${ty - 1}" r="5.6" fill="${c.b}"/><circle cx="${tx + 7.4}" cy="${ty - 4.4}" r="4.2" fill="${c.b}"/><circle cx="${tx + 7}" cy="${ty + 2}" r="4" fill="${c.b}"/></g>`;
+        case 'cloverTail': return tailSvg('cottonTail', tx, ty, c, o) + cloverSvg(tx + 10, ty - 9, 0.5, c.secondHex, shade(c.secondHex, -0.3), 20);
         case 'leafTail': return `<path d="M${tx - 2} ${ty}C${tx + 8} ${ty - 2} ${tx + 12} ${ty - 10} ${tx + 14} ${ty - 16}" stroke="${c.mainHex}" stroke-width="3.4" fill="none" stroke-linecap="round"/><path d="M${tx + 14} ${ty - 16}C${tx + 10} ${ty - 26} ${tx + 22} ${ty - 30} ${tx + 24} ${ty - 22}C${tx + 22} ${ty - 16} ${tx + 18} ${ty - 14} ${tx + 14} ${ty - 16}Z" fill="${c.s}"${o}/>`;
         case 'wisp': return `<path d="M${tx - 4} ${ty - 2}C${tx + 10} ${ty} ${tx + 14} ${ty - 12} ${tx + 8} ${ty - 18}C${tx + 16} ${ty - 16} ${tx + 20} ${ty - 4} ${tx + 12} ${ty + 3}C${tx + 6} ${ty + 7} ${tx} ${ty + 5} ${tx - 4} ${ty + 4}Z" fill="${c.m}" opacity="0.92"${o}/><circle cx="${tx + 9}" cy="${ty - 15}" r="1.6" fill="${c.accentHex}" class="fc-twinkle"/>`;
         case 'curl': return `<path d="M${tx - 2} ${ty + 2}C${tx + 14} ${ty + 2} ${tx + 18} ${ty - 12} ${tx + 12} ${ty - 20}C${tx + 8} ${ty - 25} ${tx + 16} ${ty - 28} ${tx + 19} ${ty - 24}" stroke="${c.ink}" stroke-width="6.6" fill="none" stroke-linecap="round"/><path d="M${tx - 2} ${ty + 2}C${tx + 14} ${ty + 2} ${tx + 18} ${ty - 12} ${tx + 12} ${ty - 20}C${tx + 8} ${ty - 25} ${tx + 16} ${ty - 28} ${tx + 19} ${ty - 24}" stroke="${c.mainHex}" stroke-width="4.8" fill="none" stroke-linecap="round"/><circle cx="${tx + 19}" cy="${ty - 24}" r="2.2" fill="${c.accentHex}"/>`;
@@ -905,7 +1052,9 @@ const MOTE_SHAPES = {
     sparkling: (x, y) => `<path d="M${x} ${y - 2.6}l.7 1.9 1.9 .7-1.9 .7-.7 1.9-.7-1.9-1.9-.7 1.9-.7z" fill="#fef08a"/>`,
     tidefin: (x, y) => `<circle cx="${x}" cy="${y}" r="2.2" fill="#e0f2fe" fill-opacity="0.25" stroke="#e0f2fe" stroke-width="0.7"/><circle cx="${x - 0.7}" cy="${y - 0.7}" r="0.6" fill="#fff"/>`,
     stormwing: (x, y, c) => `<path d="M${x - 1} ${y - 3}l2.4 2.4-1.6 .4 2 2.8" stroke="${c.accentHex}" stroke-width="1" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
-    gemshell: (x, y, c) => `<path d="M${x} ${y - 2.6}l1.8 2.6-1.8 2.6-1.8-2.6z" fill="${c.accentHex}" stroke="#fff" stroke-width="0.4"/>`
+    gemshell: (x, y, c) => `<path d="M${x} ${y - 2.6}l1.8 2.6-1.8 2.6-1.8-2.6z" fill="${c.accentHex}" stroke="#fff" stroke-width="0.4"/>`,
+    starfoal: (x, y, c) => star4(x, y, 2.8, (x + y) % 2 ? '#fff' : c.secondHex),
+    cloverhop: (x, y, c) => (x + y) % 3 ? cloverSvg(x, y, 0.32, c.secondHex, shade(c.secondHex, -0.3), x * 7) : `<circle cx="${x}" cy="${y}" r="2" fill="#facc15" stroke="#b45309" stroke-width="0.5"/>`
 };
 
 function motesSvg(typeId, level, c, shiny) {
@@ -972,6 +1121,43 @@ const REGALIA = {
     },
     boltRing: (c) => `<circle cx="60" cy="60" r="45" fill="none" stroke="${c.accentHex}" stroke-width="1" opacity="0.45" stroke-dasharray="1 5"/>
         <g class="fc-regalia-spin fc-regalia-spin--slow" style="transform-origin:60px 60px">${ring(10, 46, 60, 60, () => bolt(c.accentHex, 2))}</g>`,
+    constellation: (c) => {
+        const pts = [[14, 56], [22, 34], [38, 18], [60, 12], [82, 18], [98, 34], [106, 56]];
+        return `<path d="M${pts.map(([x, y]) => `${x} ${y}`).join('L')}" stroke="${c.accentHex}" stroke-width="0.8" fill="none" opacity="0.55" stroke-dasharray="2 2.4" class="fc-regalia-flow"/>`
+            + pts.map(([x, y], i) => star4(x, y, i % 3 ? 2.4 : 3.6, i % 2 ? '#fff' : c.accentHex, ` class="fc-twinkle" style="animation-delay:${-i * 0.37}s"`)).join('');
+    },
+    galaxySpiral: (c) => {
+        const arm = (phase) => {
+            const pts = [];
+            for (let t = 0; t <= Math.PI * 2.4; t += 0.18) {
+                const r = 7 + t * 5.4;
+                pts.push(`${f(60 + Math.cos(t + phase) * r)} ${f(56 + Math.sin(t + phase) * r)}`);
+            }
+            return `M${pts.join('L')}`;
+        };
+        const arms = [0, Math.PI].map((ph) => `<path d="${arm(ph)}" stroke="${c.secondHex}" stroke-width="8" fill="none" opacity="0.22" stroke-linecap="round"/><path d="${arm(ph)}" stroke="${c.accentHex}" stroke-width="1.6" fill="none" opacity="0.55" stroke-linecap="round"/>`).join('');
+        const dust = Array.from({ length: 14 }, (_, i) => {
+            const t = 0.6 + i * 0.5;
+            const r = 7 + t * 5.4;
+            const ph = i % 2 ? Math.PI : 0;
+            return `<circle cx="${f(60 + Math.cos(t + ph) * r)}" cy="${f(56 + Math.sin(t + ph) * r)}" r="${i % 3 ? 0.9 : 1.4}" fill="#fff"/>`;
+        }).join('');
+        return `<circle cx="60" cy="56" r="16" fill="${c.accentHex}" opacity="0.16"/><g class="fc-regalia-spin fc-regalia-spin--slow" style="transform-origin:60px 56px">${arms}${dust}</g>`;
+    },
+    cloverRing: (c) => `<circle cx="60" cy="62" r="45" fill="none" stroke="${c.secondHex}" stroke-width="1" opacity="0.4" stroke-dasharray="1 4"/>
+        <g class="fc-regalia-spin fc-regalia-spin--slow" style="transform-origin:60px 62px">${ring(10, 45, 60, 62, (i) => i % 2
+            ? '<circle r="3.2" fill="#facc15" stroke="#b45309" stroke-width="0.6"/><circle r="1.8" fill="none" stroke="#fef3c7" stroke-width="0.5"/>'
+            : cloverSvg(0, 0, 0.6, c.secondHex, shade(c.secondHex, -0.3)))}</g>`,
+    horseshoe: () => {
+        const d = 'M24 30C18 66 36 96 60 96C84 96 102 66 96 30';
+        const holes = [[25.4, 46], [30, 66], [40, 82], [94.6, 46], [90, 66], [80, 82]];
+        return `<path d="${d}" stroke="#fde047" stroke-width="20" fill="none" opacity="0.2" stroke-linecap="round" class="fc-regalia-glow"/>
+            <path d="${d}" stroke="#92400e" stroke-width="12.6" fill="none" stroke-linecap="round"/>
+            <path d="${d}" stroke="#fbbf24" stroke-width="10.4" fill="none" stroke-linecap="round"/>
+            <path d="M22.6 34C18.6 64 34 90 56 93.6" stroke="#fef3c7" stroke-width="2" fill="none" opacity="0.75" stroke-linecap="round"/>
+            ${holes.map(([x, y]) => `<rect x="${x - 1.2}" y="${y - 1.8}" width="2.4" height="3.6" rx="0.8" fill="#92400e"/>`).join('')}
+            ${[[16, 22], [104, 22], [60, 12], [8, 60], [112, 60]].map(([x, y], i) => star4(x, y, i === 2 ? 4 : 2.8, i % 2 ? '#fff7d6' : '#fde047', ` class="fc-twinkle" style="animation-delay:${-i * 0.4}s"`)).join('')}`;
+    },
     prismArc: () => ['#f87171', '#fb923c', '#facc15', '#4ade80', '#38bdf8', '#a78bfa']
         .map((col, i) => `<path d="M${10 + i * 4} 92A${50 - i * 4} ${50 - i * 4} 0 0 1 ${110 - i * 4} 92" stroke="${col}" stroke-width="3.4" fill="none" opacity="0.5"/>`).join('')
         + '<g class="fc-regalia-glow"><path d="M10 92A50 50 0 0 1 110 92" stroke="#fff" stroke-width="0.8" fill="none" opacity="0.7"/></g>'
@@ -1149,6 +1335,10 @@ const EGG_MARKS = {
     tidefin: (c) => [52, 70, 88].map((y) => `<path d="M24 ${y}q6-6 12 0t12 0 12 0 12 0 12 0 12 0" stroke="${c.a}" stroke-width="3" fill="none" stroke-linecap="round"/>`).join('')
         + '<circle cx="46" cy="40" r="3" fill="#fff" opacity="0.6"/><circle cx="54" cy="32" r="1.8" fill="#fff" opacity="0.6"/>',
     stormwing: (c) => `<path d="M38 52c0-7 8-9 12-5 2-6 12-6 14 1 6-2 10 4 7 8H40c-2 0-2-2-2-4z" fill="#e2e8f0" opacity="0.85"/><path d="M58 60l-6 12h6l-4 14 12-18h-6l4-8z" fill="${c.a}" stroke="#fff" stroke-width="1" stroke-linejoin="round"/>`,
+    starfoal: (c) => `<path d="M30 92C44 76 56 64 72 52" stroke="${c.a}" stroke-width="5" fill="none" stroke-linecap="round" opacity="0.45"/><path d="M36 88C48 74 58 64 72 52" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round" opacity="0.7"/>`
+        + star4(74, 50, 9, '#fff7d6', ` stroke="${c.a}" stroke-width="1.2"`) + [[44, 40], [86, 74], [54, 96], [82, 94], [40, 66]].map(([x, y], i) => star4(x, y, i % 2 ? 2.4 : 3.4, c.a)).join(''),
+    cloverhop: (c) => [[46, 46, 1.1, 10], [76, 64, 1.3, -20], [48, 86, 1.2, 25], [80, 94, 0.8, 0]].map(([x, y, k, r]) => cloverSvg(x, y, k, c.a, shade(c.a, -0.3), r)).join('')
+        + '<circle cx="66" cy="38" r="3.4" fill="#facc15" stroke="#b45309" stroke-width="0.8"/>',
     gemshell: (c) => `<path d="M40 60l10-8 10 8 10-8 10 8M40 60l10 10 10-10 10 10 10-10M40 80l10-10M80 80l-10-10M50 90l10-10 10 10" stroke="${c.a}" stroke-width="2.2" fill="none" stroke-linejoin="round"/><path d="M60 40l5 7-5 7-5-7z" fill="${c.a}" stroke="#fff" stroke-width="0.8"/>`
 };
 
@@ -1162,9 +1352,11 @@ export function buildFamiliarEggSvg(genome, opts = {}) {
     const uid = `fe${(++uidCounter).toString(36)}`;
     const pal = genome.palette;
     const progress = Math.max(0, Math.min(100, Number(opts.progress) || 0));
-    const paleShell = ['frostpaw', 'sparkling', 'stormwing'].includes(genome.typeId);
+    const paleShell = ['frostpaw', 'sparkling', 'stormwing', 'cloverhop'].includes(genome.typeId);
     const c = { a: paleShell ? shade(pal.second, -0.08) : genome.typeId === 'gemshell' ? pal.accent : pal.accent === '#3b3440' ? '#f97316' : pal.accent };
     if (genome.typeId === 'stormwing') c.a = pal.accent;
+    if (genome.typeId === 'starfoal') c.a = pal.second;
+    if (genome.typeId === 'cloverhop') c.a = pal.second;
     const shellBase = paleShell ? pal.belly : genome.typeId === 'gemshell' ? pal.second : genome.typeId === 'tidefin' ? pal.second : pal.main;
     const shell = `<path d="M60 16C82 16 94 56 94 76C94 96 79 106 60 106S26 96 26 76C26 56 38 16 60 16Z"/>`;
     const cracks = [
@@ -1198,7 +1390,7 @@ export function buildFamiliarEggSvg(genome, opts = {}) {
 
 /** Sound recipe for the familiar's voice: one per class, pitched by the individual and its stage. */
 export function familiarVoice(genome, level = 1) {
-    const kinds = { emberfang: 'chirr', frostpaw: 'yip', thornback: 'croak', veilshade: 'hum', sparkling: 'trill', tidefin: 'squeak', stormwing: 'hoot', gemshell: 'chime' };
+    const kinds = { emberfang: 'chirr', frostpaw: 'yip', thornback: 'croak', veilshade: 'hum', sparkling: 'trill', tidefin: 'squeak', stormwing: 'hoot', gemshell: 'chime', starfoal: 'whinny', cloverhop: 'boing' };
     const lvl = lvlOf(level);
     return { kind: kinds[genome?.typeId] || 'trill', pitch: (genome?.voice || 1) * [1.18, 1.04, 0.92, 0.85, 0.8][lvl - 1], shiny: Boolean(genome?.shiny), mythic: lvl === 5 };
 }
@@ -1212,7 +1404,9 @@ export const FAMILIAR_TRICKS = {
     sparkling: { name: 'Sunbeam', verb: 'shines a light that fades a wrong answer' },
     tidefin: { name: 'Bubble Pop', verb: 'pops a wrong answer inside a bubble' },
     stormwing: { name: 'Thunderclap', verb: 'strikes a wrong answer with a tiny bolt' },
-    gemshell: { name: 'Crystal Seal', verb: 'seals a wrong answer in crystal' }
+    gemshell: { name: 'Crystal Seal', verb: 'seals a wrong answer in crystal' },
+    starfoal: { name: 'Wishing Star', verb: 'wishes a wrong answer away on a falling star' },
+    cloverhop: { name: 'Lucky Hop', verb: 'hops on a wrong answer and it vanishes' }
 };
 
 export const FAMILIAR_TRICK_LEVEL = 3;

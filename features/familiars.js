@@ -147,6 +147,30 @@ export const FAMILIAR_TYPES = {
         desc: 'A pebble turtle whose shell grows crystals until it becomes a prism colossus.',
         flavorHint: 'Patient • Steady • Brilliant',
         levelNames: ['Pebble Tortle', 'Crystal Tortoise', 'Geode Guardian', 'Mountain Tortoise', 'Prism Colossus']
+    },
+    starfoal: {
+        id: 'starfoal',
+        name: 'Starfoal',
+        price: 50,
+        eggIcon: '🥚',
+        eggColor: '#8b5cf6',
+        eggAccent: '#f9a8d4',
+        personality: 'Dreamy and gentle — it wishes on every star.',
+        desc: 'A sleepy star foal that grows a unicorn horn, astral wings and, at last, carries a galaxy.',
+        flavorHint: 'Dreamy • Gentle • Hopeful',
+        levelNames: ['Star Foal', 'Comet Pony', 'Nebula Steed', 'Astral Unicorn', 'Galaxy Alicorn']
+    },
+    cloverhop: {
+        id: 'cloverhop',
+        name: 'Cloverhop',
+        price: 30,
+        eggIcon: '🥚',
+        eggColor: '#10b981',
+        eggAccent: '#fde047',
+        personality: 'Bouncy and cheerful — luck follows every hop.',
+        desc: 'A clover bunny that sprouts jackalope antlers, clover wings and a golden lucky horseshoe.',
+        flavorHint: 'Lucky • Bouncy • Cheerful',
+        levelNames: ['Clover Kit', 'Meadow Hare', 'Lucky Jackalope', 'Fortune Jackalope', 'Golden Luckbringer']
     }
 };
 
@@ -589,7 +613,9 @@ export const FAMILIAR_DEN_THEMES = {
     sparkling: { sigil: '☀️', element: 'Sunlight', burst: ['#fde047', '#fbbf24', '#fff7ed'] },
     tidefin: { sigil: '🌊', element: 'Tide', burst: ['#7dd3fc', '#e0f2fe', '#2dd4bf'] },
     stormwing: { sigil: '⚡', element: 'Storm', burst: ['#fde047', '#e2e8f0', '#93c5fd'] },
-    gemshell: { sigil: '💎', element: 'Crystal', burst: ['#5eead4', '#f0abfc', '#fde68a'] }
+    gemshell: { sigil: '💎', element: 'Crystal', burst: ['#5eead4', '#f0abfc', '#fde68a'] },
+    starfoal: { sigil: '🌌', element: 'Cosmos', burst: ['#f9a8d4', '#c4b5fd', '#fde68a'] },
+    cloverhop: { sigil: '🍀', element: 'Luck', burst: ['#4ade80', '#fde047', '#ffffff'] }
 };
 
 function spawnBurst(host, typeId, colours) {
@@ -637,7 +663,24 @@ export function openFamiliarStatsOverlay(studentId, { skipMoment = false } = {})
     openDen(studentId);
 }
 
+// The Den's stylesheet is fetched the first time a Den opens, so it stays out of the first paint.
+let denStylesPromise = null;
+function ensureDenStyles() {
+    if (!denStylesPromise) {
+        denStylesPromise = import('../styles/familiar_modal.css').catch((e) => {
+            denStylesPromise = null;
+            console.warn('Familiar Den styles failed to load:', e);
+        });
+    }
+    return denStylesPromise;
+}
+
 function openDen(studentId) {
+    ensureFamiliarStyles();
+    ensureDenStyles().finally(() => renderDen(studentId));
+}
+
+function renderDen(studentId) {
     const scoreData = scoreFor(studentId);
     const student = state.get('allStudents').find((s) => s.id === studentId);
     if (!scoreData?.familiar || !student) return;

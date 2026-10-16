@@ -109,6 +109,33 @@
     --mote-color: #fef08a;
     --mote-anim: fam-mote-zap;
 }
+.fam-den[data-fam-type="starfoal"] {
+    --den-sky-top: #120a2e;
+    --den-sky-mid: #4c1d95;
+    --den-sky-low: #f472b6;
+    --den-glow: #f9a8d4;
+    --den-glow-2: #a5b4fc;
+    --den-ink: #fdf4ff;
+    --den-body: #160b2e;
+    --den-ground: #2e1065;
+    --den-rays: 0.2;
+    --mote-color: #fde68a;
+    --mote-anim: fam-mote-wisp;
+}
+.fam-den[data-fam-type="cloverhop"] {
+    --den-sky-top: #0c2a3f;
+    --den-sky-mid: #0f766e;
+    --den-sky-low: #fde68a;
+    --den-glow: #fde047;
+    --den-glow-2: #4ade80;
+    --den-ink: #f0fdf4;
+    --den-body: #052e16;
+    --den-ground: #166534;
+    --den-rays: 0.24;
+    --mote-color: #86efac;
+    --mote-anim: fam-mote-leaf;
+    --mote-shape: 0 80% 0 80%;
+}
 .fam-den[data-fam-type="gemshell"] {
     --den-sky-top: #04140f;
     --den-sky-mid: #134e4a;
@@ -309,6 +336,44 @@
         radial-gradient(ellipse 70% 40% at 50% 100%, rgba(20, 184, 166, 0.45), transparent 70%),
         linear-gradient(180deg, #021411 0%, #0f3b36 65%, #134e4a 100%);
 }
+/* Starfoal — a pastel nebula with a shooting star */
+.fam-den[data-fam-type="starfoal"] .fam-den-sky {
+    background:
+        radial-gradient(1.4px 1.4px at 14% 24%, #fff, transparent),
+        radial-gradient(1.2px 1.2px at 32% 12%, #fde68a, transparent),
+        radial-gradient(1.6px 1.6px at 70% 18%, #fff, transparent),
+        radial-gradient(1.2px 1.2px at 86% 34%, #f9a8d4, transparent),
+        radial-gradient(1.2px 1.2px at 52% 30%, #fff, transparent),
+        radial-gradient(ellipse 46% 30% at 24% 30%, rgba(244, 114, 182, 0.42), transparent 70%),
+        radial-gradient(ellipse 50% 32% at 78% 22%, rgba(129, 140, 248, 0.45), transparent 70%),
+        radial-gradient(ellipse 60% 30% at 50% 60%, rgba(192, 132, 252, 0.3), transparent 70%),
+        linear-gradient(180deg, #120a2e 0%, #3b0764 60%, #581c87 100%);
+    background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 140% 100%, 140% 100%, 100% 100%, 100% 100%;
+    animation: fam-nebula-drift 16s ease-in-out infinite alternate;
+}
+.fam-den[data-fam-type="starfoal"] .fam-den-sky::after {
+    content: '';
+    position: absolute;
+    top: 14%;
+    left: 8%;
+    width: 70px;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, transparent, #fff7d6);
+    transform: rotate(-24deg);
+    opacity: 0;
+    animation: fam-shooting-star 7s ease-in 2s infinite;
+}
+/* Cloverhop — a sunny clover meadow under a soft rainbow */
+.fam-den[data-fam-type="cloverhop"] .fam-den-sky {
+    background:
+        radial-gradient(circle at 50% 118%, transparent 50%, rgba(248, 113, 113, 0.28) 50.5% 53%, rgba(250, 204, 21, 0.28) 53% 55.5%, rgba(74, 222, 128, 0.28) 55.5% 58%, rgba(56, 189, 248, 0.28) 58% 60.5%, rgba(167, 139, 250, 0.26) 60.5% 63%, transparent 63.5%),
+        radial-gradient(circle at 17% 30%, #fef9c3 0 6%, rgba(253, 224, 71, 0.35) 7%, transparent 20%),
+        radial-gradient(ellipse 70% 40% at 50% 100%, rgba(253, 230, 138, 0.4), transparent 70%),
+        linear-gradient(180deg, #0c4a6e 0%, #0f766e 58%, #65a30d 100%);
+}
+@keyframes fam-nebula-drift { from { background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0% 0, 100% 0, 0 0, 0 0; } to { background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 100% 0, 0% 0, 0 0, 0 0; } }
+@keyframes fam-shooting-star { 0% { opacity: 0; transform: rotate(-24deg) translateX(0); } 4% { opacity: 1; } 14% { opacity: 0; transform: rotate(-24deg) translateX(180px); } 100% { opacity: 0; transform: rotate(-24deg) translateX(180px); } }
 @keyframes fam-caustics { from { background-position: 0 0, 0 0, 0 0; } to { background-position: 100% 0, 0 0, 0 0; } }
 @keyframes fam-storm-flash { 0%, 100% { filter: none; } 62% { filter: brightness(1.7); } 64% { filter: none; } 66% { filter: brightness(1.4); } 68% { filter: none; } }
 
@@ -359,6 +424,20 @@
 .fam-den[data-fam-type="gemshell"] .fam-den-stage::after {
     background: linear-gradient(180deg, #2dd4bf 0 2px, #292524 2px, #1c1917);
     clip-path: polygon(0 50%, 6% 20%, 10% 46%, 18% 10%, 24% 44%, 40% 40%, 50% 48%, 62% 40%, 76% 44%, 82% 8%, 88% 42%, 94% 18%, 100% 46%, 100% 100%, 0 100%);
+}
+.fam-den[data-fam-type="starfoal"] .fam-den-stage::after {
+    background: radial-gradient(ellipse 30% 40% at 20% 30%, #f5d0fe, transparent 70%), radial-gradient(ellipse 30% 40% at 80% 30%, #c7d2fe, transparent 70%), linear-gradient(180deg, #e9d5ff, #a78bfa 45%, #4c1d95);
+    clip-path: polygon(0 52%, 8% 38%, 16% 44%, 24% 30%, 34% 40%, 44% 32%, 56% 40%, 66% 30%, 76% 40%, 86% 30%, 94% 42%, 100% 36%, 100% 100%, 0 100%);
+    opacity: 0.9;
+}
+.fam-den[data-fam-type="cloverhop"] .fam-den-stage::after {
+    background:
+        radial-gradient(2px 2px at 18% 62%, #fde047, transparent),
+        radial-gradient(2px 2px at 40% 74%, #fff, transparent),
+        radial-gradient(2px 2px at 66% 64%, #f9a8d4, transparent),
+        radial-gradient(2px 2px at 84% 76%, #fde047, transparent),
+        linear-gradient(180deg, #84cc16 0 3px, #16a34a 3px, #14532d);
+    clip-path: polygon(0 46%, 12% 36%, 26% 42%, 40% 34%, 52% 40%, 64% 32%, 78% 40%, 90% 34%, 100% 42%, 100% 100%, 0 100%);
 }
 .fam-den[data-fam-type="sparkling"] .fam-den-stage::after {
     background: linear-gradient(180deg, #7c2d12, #2a0f12);
@@ -1075,7 +1154,7 @@
         opacity: 1;
     }
     .fam-den-rays { opacity: var(--den-rays); }
-    .fam-den-motes { display: none; }
+    .fam-den-motes, .fam-den-sky::after { display: none; }
     .fam-modal-progress-bar {
         animation: none !important;
         width: var(--fam-progress, 0%) !important;

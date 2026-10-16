@@ -946,7 +946,7 @@ function glide(synth, t, points, end) {
     synth.triggerRelease(t + end);
 }
 
-/** A familiar's call: { kind: 'chirr' | 'yip' | 'croak' | 'hum' | 'trill' | 'squeak' | 'hoot' | 'chime', pitch, shiny, mythic }. */
+/** A familiar's call: { kind: 'chirr' | 'yip' | 'croak' | 'hum' | 'trill' | 'squeak' | 'hoot' | 'chime' | 'whinny' | 'boing', pitch, shiny, mythic }. */
 export function playFamiliarVoice(voice = {}) {
     if (!soundsReady || !audioRunning()) return;
     const v = getFamiliarVoices();
@@ -972,6 +972,12 @@ export function playFamiliarVoice(voice = {}) {
         } else if (voice.kind === 'hoot') {
             glide(v.lead, t, [[0, 420 * p], [0.12, 470 * p], [0.3, 400 * p]], 0.32);
             glide(v.lead, t + 0.42, [[0, 400 * p], [0.18, 450 * p], [0.42, 360 * p]], 0.46);
+        } else if (voice.kind === 'whinny') {
+            glide(v.lead, t, [[0, 640 * p], [0.07, 1080 * p], [0.15, 900 * p], [0.22, 1040 * p], [0.3, 860 * p], [0.38, 980 * p], [0.56, 620 * p]], 0.58);
+            [1568, 2093, 2637].forEach((freq, i) => v.bell.triggerAttackRelease(freq * p, 0.3, t + 0.5 + i * 0.08, 0.4));
+        } else if (voice.kind === 'boing') {
+            [0, 0.2].forEach((dt, i) => glide(v.lead, t + dt, [[0, (300 + i * 80) * p], [0.09, (980 + i * 140) * p], [0.13, (860 + i * 120) * p]], 0.14));
+            v.bell.triggerAttackRelease([1319 * p, 1976 * p], 0.25, t + 0.4, 0.4);
         } else if (voice.kind === 'chime') {
             [523, 784, 1047, 1568].forEach((freq, i) => v.bell.triggerAttackRelease(freq * p, 0.5, t + i * 0.09, 0.55));
         } else {

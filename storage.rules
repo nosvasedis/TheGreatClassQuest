@@ -4,6 +4,13 @@ rules_version = '2';
 // service agent to hold roles/firebaserules.firestoreServiceAgent. The Firebase CLI only
 // offers to grant it in an interactive deploy that uploads changed rules; without it every
 // firestore.* lookup fails and all uploads get storage/unauthorized.
+//
+// Storage rules may make at most 2 firestore.exists()/get() calls per request; going over is a
+// permission denied. Only repeated identical calls "may" be cached, so an exists() + get() pair
+// on the same document can already use both. Every lookup here is therefore one firestore.get()
+// per document, never an exists() first: a missing document makes get() fail, which denies,
+// exactly where the old exists() check returned false. A teacher's own uploads read only their
+// profile (plus the student or class doc for avatars, familiars and story pictures).
 service firebase.storage {
   match /b/{bucket}/o {
     function signedIn() {
@@ -14,20 +21,16 @@ service firebase.storage {
       return /databases/(default)/documents/user_profiles/$(request.auth.uid);
     }
 
-    function hasProfile() {
-      return signedIn() && firestore.exists(profilePath());
-    }
-
     function currentProfile() {
-      return hasProfile() ? firestore.get(profilePath()).data : null;
+      return firestore.get(profilePath()).data;
     }
 
     function currentRole() {
-      return hasProfile() ? currentProfile().role : null;
+      return currentProfile().role;
     }
 
     function hasActiveProfile() {
-      return hasProfile() &&
+      return signedIn() &&
         currentProfile().status == 'active' &&
         currentRole() in ['teacher', 'secretary', 'parent'];
     }
@@ -38,9 +41,8 @@ service firebase.storage {
     }
 
     function sameSchoolUser(userId) {
-      let other = /databases/(default)/documents/user_profiles/$(userId);
-      return firestore.exists(other) &&
-        firestore.get(other).data.get('schoolId', 'great-class-quest') == profileSchoolId();
+      return firestore.get(/databases/(default)/documents/user_profiles/$(userId)).data
+        .get('schoolId', 'great-class-quest') == profileSchoolId();
     }
 
     function isTeacher() {
@@ -51,7 +53,6 @@ service firebase.storage {
       let rolePath = /databases/(default)/documents/artifacts/$(profileSchoolId())/public/data/school_roles/secretary;
       return hasActiveProfile() &&
         currentRole() == 'secretary' &&
-        firestore.exists(rolePath) &&
         firestore.get(rolePath).data.uid == request.auth.uid &&
         firestore.get(rolePath).data.status == 'active';
     }
@@ -62,8 +63,8 @@ service firebase.storage {
       let legacyPath = /databases/(default)/documents/appConfig/subscription;
       let schoolPath = /databases/(default)/documents/schools/$(profileSchoolId());
       return profileSchoolId() == 'great-class-quest'
-        ? (firestore.exists(legacyPath) ? firestore.get(legacyPath).data : {})
-        : (firestore.exists(schoolPath) ? firestore.get(schoolPath).data.get('subscription', {}) : {});
+        ? firestore.get(legacyPath).data
+        : firestore.get(schoolPath).data.get('subscription', {});
     }
 
     function hasFullSecretaryConsole() {
@@ -73,17 +74,21 @@ service firebase.storage {
       );
     }
 
+    // The student / class must exist (a missing doc makes get() fail, which denies). The teacher
+    // branch comes first so a teacher never reaches the Secretary lookups.
     function canManageStudent(studentId) {
       let studentPath = /databases/(default)/documents/artifacts/$(profileSchoolId())/public/data/students/$(studentId);
-      return hasActiveProfile() && firestore.exists(studentPath) && (
-        hasFullSecretaryConsole() || (isTeacher() && firestore.get(studentPath).data.createdBy.uid == request.auth.uid)
+      return hasActiveProfile() && firestore.get(studentPath) != null && (
+        (isTeacher() && firestore.get(studentPath).data.createdBy.uid == request.auth.uid) ||
+        hasFullSecretaryConsole()
       );
     }
 
     function canManageClass(classId) {
       let classPath = /databases/(default)/documents/artifacts/$(profileSchoolId())/public/data/classes/$(classId);
-      return hasActiveProfile() && firestore.exists(classPath) && (
-        hasFullSecretaryConsole() || (isTeacher() && firestore.get(classPath).data.createdBy.uid == request.auth.uid)
+      return hasActiveProfile() && firestore.get(classPath) != null && (
+        (isTeacher() && firestore.get(classPath).data.createdBy.uid == request.auth.uid) ||
+        hasFullSecretaryConsole()
       );
     }
 

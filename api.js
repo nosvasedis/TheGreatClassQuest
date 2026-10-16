@@ -625,7 +625,8 @@ export async function callCloudflareAiImageApi(prompt, negativePrompt = "", opti
             return result;
 
         } catch (error) {
-            if (shouldCountAsCircuitFailure(error)) {
+            // Optional background pictures never trip the shared breaker for teacher-requested AI.
+            if (!requestOptions.background && shouldCountAsCircuitFailure(error)) {
                 recordAiFailure();
             }
             console.error('Error in callCloudflareAiImageApi:', error);

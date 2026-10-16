@@ -75,6 +75,18 @@ test('service worker uses revisioned caches and safe request strategies', () => 
   assert.match(worker, /SKIP_WAITING/);
 });
 
+test('service worker caching never fails a response when storage is full', () => {
+  const worker = read('service-worker.js');
+  // Cache writes run beside the response, never in its path.
+  const responders = worker.slice(worker.indexOf('async function networkFirst'));
+  assert.doesNotMatch(responders, /await cache\.put/);
+  assert.match(worker, /event\.waitUntil\(putSafely\(/);
+  assert.match(worker, /QuotaExceededError/);
+  // Opaque <img> responses cost Chrome several MB of quota each; never cache them.
+  assert.doesNotMatch(worker, /type === 'opaque'/);
+  assert.match(worker, /mode: 'cors'/);
+});
+
 test('service-worker update control mounts in the header without covering app actions', () => {
   const bootstrap = read('bootstrap.js');
   const header = read('templates/app/header.js');

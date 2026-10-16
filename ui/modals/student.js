@@ -18,6 +18,16 @@ import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 import { escapeHtml } from '../../features/roles/shared.js';
 import { isSecretaryOfficeActive } from '../../features/secretary/officeModal.js';
 import { openMoveStudentModal } from './moveStudent.js';
+
+// The passport closes before a lazily loaded window opens, so a failed load would
+// otherwise look like a dead button. Say so; the rethrow lets the app's stale-build
+// recovery see the chunk error too.
+function lazyOpen(loading, open) {
+    return loading.then(open).catch((error) => {
+        showToast('That window could not load. Check the connection and try again.', 'error');
+        throw error;
+    });
+}
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 import { setupLeagueHomeworkImport } from './questBoardImport.js';
 import { prepareStarfall } from './starfall.js';
@@ -410,7 +420,7 @@ export function openEditStudentModal(studentId, options = {}) {
                 });
                 return;
             }
-            import('./heroClass.js').then((h) => h.openHeroClassSelectModal(studentId, { restoreEditStudent: true }));
+            lazyOpen(import('./heroClass.js'), (h) => h.openHeroClassSelectModal(studentId, { restoreEditStudent: true }));
         };
     }
 
@@ -471,7 +481,7 @@ export function openEditStudentModal(studentId, options = {}) {
             return;
         }
         hideModal('edit-student-modal');
-        import('../../features/avatar.js').then(a => a.openAvatarMaker(studentId));
+        lazyOpen(import('../../features/avatar.js'), a => a.openAvatarMaker(studentId));
     };
 
     if (openAvatarBtn) openAvatarBtn.onclick = handleOpenAvatar;
@@ -484,7 +494,7 @@ export function openEditStudentModal(studentId, options = {}) {
     const handleMove = () => {
         hideModal('edit-student-modal');
         if (officeMode) {
-            import('../../features/secretary/studentDesk.js').then(d => d.openStudentMove(studentId));
+            lazyOpen(import('../../features/secretary/studentDesk.js'), d => d.openStudentMove(studentId));
             return;
         }
         openMoveStudentModal(studentId);
@@ -503,7 +513,7 @@ export function openEditStudentModal(studentId, options = {}) {
     const quickGuildBtn = document.getElementById('edit-student-quick-guild-btn');
     const handleGuildQuiz = () => {
         hideModal('edit-student-modal');
-        import('./sortingQuiz.js').then(sq => sq.openSortingQuizModal(studentId));
+        lazyOpen(import('./sortingQuiz.js'), sq => sq.openSortingQuizModal(studentId));
     };
     if (quickGuildBtn) {
         quickGuildBtn.onclick = handleGuildQuiz;
@@ -516,7 +526,7 @@ export function openEditStudentModal(studentId, options = {}) {
     if (officeNotesBtn) {
         officeNotesBtn.onclick = () => {
             hideModal('edit-student-modal');
-            import('../../features/secretary/studentDesk.js').then(d => d.openStudentNotes(studentId));
+            lazyOpen(import('../../features/secretary/studentDesk.js'), d => d.openStudentNotes(studentId));
         };
     }
     if (officeNotesCount) {
@@ -529,7 +539,7 @@ export function openEditStudentModal(studentId, options = {}) {
         officeFamilyBtn.classList.toggle('hidden', !canUseFeature('parentAccess'));
         officeFamilyBtn.onclick = () => {
             hideModal('edit-student-modal');
-            import('../../features/secretary/familyLogins.js').then(f => f.openFamilyLogin(studentId));
+            lazyOpen(import('../../features/secretary/familyLogins.js'), f => f.openFamilyLogin(studentId));
         };
     }
     const officeGradesBtn = document.getElementById('edit-student-office-grades-btn');
@@ -537,14 +547,14 @@ export function openEditStudentModal(studentId, options = {}) {
         officeGradesBtn.onclick = () => {
             hideModal('edit-student-modal');
             state.setSecretaryView({ gradesBoardSubTab: 'scroll', gradesSearch: student.name || '', gradesPage: 0 });
-            import('../../features/secretaryConsole.js').then(c => c.activateSecretaryTab('grades'));
+            lazyOpen(import('../../features/secretaryConsole.js'), c => c.activateSecretaryTab('grades'));
         };
     }
     const officeLeaveBtn = document.getElementById('edit-student-office-leave-btn');
     if (officeLeaveBtn) {
         officeLeaveBtn.onclick = () => {
             hideModal('edit-student-modal');
-            import('../../features/secretary/formerStudents.js').then(f => f.openLeaveDialog(studentId));
+            lazyOpen(import('../../features/secretary/formerStudents.js'), f => f.openLeaveDialog(studentId));
         };
     }
 
@@ -560,7 +570,7 @@ export function openEditStudentModal(studentId, options = {}) {
             return;
         }
         hideModal('edit-student-modal');
-        import('./skillTree.js').then(st => st.openSkillTreeModal(studentId));
+        lazyOpen(import('./skillTree.js'), st => st.openSkillTreeModal(studentId));
     };
     if (openSkillTreeBtn) openSkillTreeBtn.onclick = handleSkillTree;
     if (hubSkillTreeBtn) hubSkillTreeBtn.onclick = handleSkillTree;
@@ -569,7 +579,7 @@ export function openEditStudentModal(studentId, options = {}) {
     if (hubChronicleBtn) {
         hubChronicleBtn.onclick = () => {
             hideModal('edit-student-modal');
-            import('./hero.js').then(h => h.openHeroChronicleModal(studentId));
+            lazyOpen(import('./hero.js'), h => h.openHeroChronicleModal(studentId));
         };
     }
 
@@ -577,7 +587,7 @@ export function openEditStudentModal(studentId, options = {}) {
     if (hubAnalyticsBtn) {
         hubAnalyticsBtn.onclick = () => {
             hideModal('edit-student-modal');
-            import('./studentAnalytics.js').then(sa => sa.openStudentAnalyticsModal(studentId));
+            lazyOpen(import('./studentAnalytics.js'), sa => sa.openStudentAnalyticsModal(studentId));
         };
     }
 
@@ -585,7 +595,7 @@ export function openEditStudentModal(studentId, options = {}) {
     if (hubCertificateBtn) {
         hubCertificateBtn.onclick = () => {
             hideModal('edit-student-modal');
-            import('./reports.js').then(r => r.handleGenerateCertificate(studentId));
+            lazyOpen(import('./reports.js'), r => r.handleGenerateCertificate(studentId));
         };
     }
 

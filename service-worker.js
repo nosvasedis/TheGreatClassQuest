@@ -14,8 +14,39 @@ function isStorageMediaRequest(url) {
   return url.protocol === 'https:' && STORAGE_MEDIA_HOSTS.has(url.hostname) && url.pathname.startsWith('/v0/b/');
 }
 
+// Storage is small in some browsers (Incognito Chrome allows only a few dozen MB),
+// so caching is always best-effort: a full cache must never fail the response.
+const MEDIA_CACHE_LIMIT = 250;
+
+function isQuotaError(error) {
+  return error?.name === 'QuotaExceededError' || /quota/i.test(String(error?.message || ''));
+}
+
+async function putSafely(cacheName, request, response) {
+  try {
+    const cache = await caches.open(cacheName);
+    await cache.put(request, response);
+  } catch (error) {
+    if (!isQuotaError(error)) return;
+    // Out of room: drop the portrait cache, which is the bulk and refetches freely.
+    try { await caches.delete(MEDIA_CACHE); } catch { /* ignore */ }
+  }
+}
+
+async function trimMediaCache() {
+  try {
+    const cache = await caches.open(MEDIA_CACHE);
+    const keys = await cache.keys();
+    const extra = keys.length - MEDIA_CACHE_LIMIT;
+    for (let i = 0; i < extra; i += 1) await cache.delete(keys[i]);
+  } catch { /* ignore */ }
+}
+
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(STATIC_CACHE).then((cache) => cache.addAll(PRECACHE_URLS)));
+  // Precache what fits; a quota error must not stop the new worker installing.
+  event.waitUntil(caches.open(STATIC_CACHE)
+    .then((cache) => Promise.all(PRECACHE_URLS.map((url) => cache.add(url).catch(() => {}))))
+    .catch(() => {}));
 });
 
 self.addEventListener('activate', (event) => {
@@ -33,13 +64,10 @@ self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
-async function networkFirst(request, fallbackUrl) {
+async function networkFirst(event, request, fallbackUrl) {
   try {
     const response = await fetch(request);
-    if (response.ok) {
-      const cache = await caches.open(RUNTIME_CACHE);
-      await cache.put(request, response.clone());
-    }
+    if (response.ok) event.waitUntil(putSafely(RUNTIME_CACHE, request, response.clone()));
     return response;
   } catch (error) {
     return (await caches.match(request)) || (fallbackUrl ? await caches.match(fallbackUrl) : undefined) || Promise.reject(error);
@@ -52,26 +80,30 @@ function isHtmlResponse(response) {
   return String(response.headers.get('content-type') || '').includes('text/html');
 }
 
-async function cacheFirst(request) {
-  const cached = await caches.match(request);
+async function cacheFirst(event, request) {
+  const cached = await caches.match(request).catch(() => undefined);
   if (cached && !isHtmlResponse(cached)) return cached;
   const response = await fetch(request);
   if (response.ok && !isHtmlResponse(response)) {
-    const cache = await caches.open(RUNTIME_CACHE);
-    await cache.put(request, response.clone());
+    event.waitUntil(putSafely(RUNTIME_CACHE, request, response.clone()));
   }
   return response;
 }
 
-// <img> requests are cross-origin and opaque (status 0), so `response.ok` is false
-// but the bytes are still cacheable. A token URL never changes its contents.
-async function cacheFirstMedia(request) {
-  const cache = await caches.open(MEDIA_CACHE);
-  const cached = await cache.match(request);
+// A token URL never changes its contents. Fetch it with CORS (the bucket allows any
+// origin) so the cached copy counts at its real size: Chrome charges every opaque
+// <img> response several MB of quota, which filled Incognito storage in a few portraits.
+async function cacheFirstMedia(event, request) {
+  const cached = await caches.match(request, { cacheName: MEDIA_CACHE }).catch(() => undefined);
   if (cached) return cached;
-  const response = await fetch(request);
-  if (response.ok || response.type === 'opaque') {
-    await cache.put(request, response.clone());
+  let response;
+  try {
+    response = await fetch(request.url, { mode: 'cors', credentials: 'omit' });
+  } catch {
+    return fetch(request);
+  }
+  if (response.ok) {
+    event.waitUntil(putSafely(MEDIA_CACHE, request, response.clone()).then(trimMediaCache));
   }
   return response;
 }
@@ -82,25 +114,25 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) {
-    if (isStorageMediaRequest(url)) event.respondWith(cacheFirstMedia(request));
+    if (isStorageMediaRequest(url)) event.respondWith(cacheFirstMedia(event, request));
     return;
   }
 
   if (url.pathname.endsWith('/config.json')) {
-    event.respondWith(networkFirst(new Request(request, { cache: 'no-store' })));
+    event.respondWith(networkFirst(event, new Request(request, { cache: 'no-store' })));
     return;
   }
 
   if (request.mode === 'navigate') {
     const fallback = new URL('./index.html', self.registration.scope).toString();
-    event.respondWith(networkFirst(request, fallback));
+    event.respondWith(networkFirst(event, request, fallback));
     return;
   }
 
   if (/\/assets\/.*-[A-Za-z0-9_-]{8,}\.(?:js|css|woff2?|ttf|svg|png|webp)$/.test(url.pathname)) {
-    event.respondWith(cacheFirst(request));
+    event.respondWith(cacheFirst(event, request));
     return;
   }
 
-  event.respondWith(networkFirst(request));
+  event.respondWith(networkFirst(event, request));
 });

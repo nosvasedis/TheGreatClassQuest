@@ -13,6 +13,7 @@ import {
     computeGuildAffinity,
     orbColorsForShares,
     buildRevealSequence,
+    revealDuration,
     buildAffinityEcho,
     splitOptionGlyph,
     questionLabel,
@@ -357,6 +358,7 @@ function chooseOption(idx) {
         if (step >= questions.length) {
             setStage('seal');
             sound('quiz_open');
+            import('../../audio.js').then((a) => a.warmSortingMusic?.()).catch(() => {});
             return;
         }
         const wrap = $('sorting-quiz-question');
@@ -436,13 +438,16 @@ async function startReveal() {
     const sequence = reducedMotion()
         ? [{ guildId, delay: 700 }]
         : buildRevealSequence(guildId);
-    if (!reducedMotion()) audio?.playDrumRoll?.();
+    const leadIn = reducedMotion() ? 200 : 900;
+    if (!reducedMotion()) audio?.playSortingMusic?.('gather', { seconds: (leadIn + revealDuration(sequence)) / 1000 });
 
     let i = 0;
     const tick = () => {
         const stepInfo = sequence[i];
         lightSeat(stepInfo.guildId);
-        if (!reducedMotion() && stepInfo.delay >= 160) sound('click');
+        if (!reducedMotion()) {
+            audio?.playSortingMusic?.('flash', { guildId: stepInfo.guildId, step: i, steps: sequence.length, gap: stepInfo.delay / 1000 });
+        }
         if (i === Math.floor(sequence.length * 0.6) && line) line.textContent = 'Almost there…';
         i += 1;
         if (i < sequence.length) {
@@ -451,7 +456,7 @@ async function startReveal() {
             later(() => land(audio), stepInfo.delay);
         }
     };
-    later(tick, reducedMotion() ? 200 : 900);
+    later(tick, leadIn);
 }
 
 async function land(audio) {
@@ -460,12 +465,12 @@ async function land(audio) {
         await ctx.savePromise;
     } catch (err) {
         console.error('Sorting Ceremony: could not save the guild', err);
-        audio?.stopDrumRoll?.();
+        audio?.stopSortingMusic?.();
         ctx.busy = false;
         setStage('error');
         return;
     }
-    audio?.stopDrumRoll?.();
+    audio?.playSortingMusic?.('land', { guildId });
     fillResult(guildId);
 
     const modal = modalEl();
@@ -481,8 +486,8 @@ async function land(audio) {
     modal?.classList.add('is-flashing');
 
     setStage('result');
-    sound('star3');
-    playGuildVoice(guildId);
+    // The guild's own call answers once the fanfare's first chord has rung.
+    later(() => playGuildVoice(guildId), reducedMotion() ? 0 : 1100);
     ctx.busy = false;
 
     if (!reducedMotion() && g) {
@@ -758,7 +763,7 @@ export function closeSortingCeremony() {
     clearTimers();
     stopSparks();
     stopFrameWatch();
-    import('../../audio.js').then((a) => a.stopDrumRoll?.()).catch(() => {});
+    import('../../audio.js').then((a) => a.stopSortingMusic?.()).catch(() => {});
     const saved = ctx.saved;
     ctx.busy = false;
 

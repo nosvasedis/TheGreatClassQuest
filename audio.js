@@ -1274,6 +1274,230 @@ export function stopQuizShowSound() {
     gain.linearRampToValueAtTime(0, now + 0.25);
 }
 
+// ─── Sorting Ceremony (guild placement reveal) ──────────────────────────────
+// "The stars are deciding": a held drone opens as the spotlight starts racing round the four guild
+// seats. Every guild has its own chord, so the racing spotlight plays a real progression
+// (Dragon Dm · Grizzly B♭ · Owl F · Phoenix A, the old i–VI–III–V of film scores): a bell climbs
+// that guild's chord on each flash, the bass names its root, and a shaker fills the gap to the next
+// seat. As the spotlight slows, a heartbeat drum joins and the last gap swells into the landing,
+// where the chosen guild gets its own fanfare in its own key. Everything is on one bus, so closing
+// the ceremony fades it, and every note goes straight on the audio clock (no Transport, no PolySynth).
+const SORTING_HARMONY = {
+    dragon_flame: {
+        flash: ['D4', 'F4', 'A4', 'D5', 'F5', 'A5', 'D6'],
+        root: 'D2',
+        land: ['D3', 'A3', 'D4', 'F#4', 'A4', 'D5'],
+        boom: 'D1',
+        // Fierce rising fourths, then the brass hits the chord twice like a dragon's wingbeat.
+        motif: [['A4', 0, 0.14], ['D5', 0.16, 0.14], ['A5', 0.32, 0.5]],
+        sparkle: ['D6', 'F#6', 'A6', 'D7'],
+    },
+    grizzly_might: {
+        flash: ['Bb3', 'D4', 'F4', 'Bb4', 'D5', 'F5', 'Bb5'],
+        root: 'Bb1',
+        land: ['Bb2', 'F3', 'Bb3', 'D4', 'F4', 'Bb4'],
+        boom: 'Bb0',
+        // Heavy, low and steady: three stomps up the chord.
+        motif: [['F3', 0, 0.22], ['Bb3', 0.26, 0.22], ['D4', 0.52, 0.6]],
+        sparkle: ['Bb5', 'D6', 'F6', 'Bb6'],
+    },
+    owl_wisdom: {
+        flash: ['F4', 'A4', 'C5', 'F5', 'A5', 'C6', 'F6'],
+        root: 'F2',
+        land: ['F3', 'C4', 'F4', 'A4', 'C5', 'F5'],
+        boom: 'F1',
+        // A gentle "hoo-hoo" on the bells (a falling third, twice), then home.
+        motif: [['C6', 0, 0.2], ['A5', 0.22, 0.3], ['C6', 0.6, 0.2], ['A5', 0.82, 0.3], ['F6', 1.18, 0.7]],
+        sparkle: ['F6', 'A6', 'C7', 'F7'],
+        bells: true,
+    },
+    phoenix_rising: {
+        flash: ['A3', 'C#4', 'E4', 'A4', 'C#5', 'E5', 'A5'],
+        root: 'A1',
+        land: ['A2', 'E3', 'A3', 'C#4', 'E4', 'A4'],
+        boom: 'A0',
+        // A harp sweeps up two octaves like a bird taking off, then the brass soars.
+        motif: [['E5', 0.34, 0.16], ['A5', 0.5, 0.7]],
+        sparkle: ['A6', 'C#7', 'E7', 'A7'],
+        rise: ['A4', 'C#5', 'E5', 'A5', 'C#6', 'E6', 'A6'],
+    },
+};
+
+let sortingChassis = null;
+const sortingBank = createVoiceBank((keep) => {
+    if (!sortingChassis) {
+        const bus = new Tone.Gain(0.9).toDestination();
+        sortingChassis = { bus, reverb: new Tone.Reverb({ decay: 3.2, wet: 0.34 }).connect(bus) };
+    }
+    const { bus, reverb } = sortingChassis;
+    const v = lazyVoices({
+        padFilter: () => keep(new Tone.Filter({ type: 'lowpass', frequency: 280, Q: 0.8 }).connect(reverb)),
+        pad: () => pool(keep, Tone.Synth, {
+            oscillator: { type: 'fatsawtooth', count: 3, spread: 26 },
+            envelope: { attack: 1.1, decay: 0.4, sustain: 0.85, release: 1.4 },
+            volume: -25
+        }, 8).connect(v.padFilter),
+        bell: () => pool(keep, Tone.FMSynth, {
+            harmonicity: 3.01,
+            modulationIndex: 4,
+            envelope: { attack: 0.002, decay: 0.9, sustain: 0, release: 0.9 },
+            modulationEnvelope: { attack: 0.002, decay: 0.25, sustain: 0, release: 0.3 },
+            volume: -15
+        }, 14).connect(reverb),
+        harp: () => pool(keep, Tone.Synth, {
+            oscillator: { type: 'triangle' },
+            envelope: { attack: 0.003, decay: 0.6, sustain: 0, release: 0.5 },
+            volume: -15
+        }, 12).connect(reverb),
+        bass: () => pool(keep, Tone.Synth, {
+            oscillator: { type: 'triangle' },
+            envelope: { attack: 0.005, decay: 0.35, sustain: 0.1, release: 0.3 },
+            volume: -16
+        }, 4).connect(bus),
+        shakerFilter: () => keep(new Tone.Filter({ type: 'highpass', frequency: 6500 }).connect(bus)),
+        shaker: () => mono(keep, new Tone.NoiseSynth({
+            noise: { type: 'white' },
+            envelope: { attack: 0.004, decay: 0.045, sustain: 0, release: 0.02 },
+            volume: -24
+        }).connect(v.shakerFilter)),
+        heart: () => mono(keep, new Tone.MembraneSynth({
+            pitchDecay: 0.05,
+            octaves: 2.5,
+            envelope: { attack: 0.002, decay: 0.4, sustain: 0, release: 0.2 },
+            volume: -17
+        }).connect(bus)),
+        swellFilter: () => keep(new Tone.Filter({ type: 'bandpass', frequency: 800, Q: 0.6 }).connect(reverb)),
+        swell: () => mono(keep, new Tone.NoiseSynth({
+            noise: { type: 'pink' },
+            envelope: { attack: 0.6, decay: 0.1, sustain: 1, release: 0.15 },
+            volume: -20
+        }).connect(v.swellFilter)),
+        brassFilter: () => keep(new Tone.Filter({ type: 'lowpass', frequency: 2400, Q: 0.7 }).connect(reverb)),
+        brass: () => pool(keep, Tone.Synth, {
+            oscillator: { type: 'fatsawtooth', count: 3, spread: 18 },
+            envelope: { attack: 0.025, decay: 0.2, sustain: 0.7, release: 0.6 },
+            volume: -19
+        }, 12).connect(v.brassFilter),
+        boom: () => mono(keep, new Tone.MembraneSynth({
+            pitchDecay: 0.08,
+            octaves: 3,
+            envelope: { attack: 0.002, decay: 0.9, sustain: 0, release: 0.4 },
+            volume: -6
+        }).connect(bus)),
+        cymbalFilter: () => keep(new Tone.Filter({ type: 'highpass', frequency: 4800 }).connect(reverb)),
+        cymbal: () => mono(keep, new Tone.NoiseSynth({
+            noise: { type: 'white' },
+            envelope: { attack: 0.002, decay: 2.2, sustain: 0, release: 0.5 },
+            volume: -24
+        }).connect(v.cymbalFilter)),
+        bus: () => bus,
+    });
+    return v;
+}, { idle: 8, span: 6 });
+
+/** Builds the ceremony band ahead of time (the reverb takes a moment), so the reveal starts on time. */
+export function warmSortingMusic() {
+    if (!isAudioReady() || ceremonyMuted) return;
+    sortingBank.get(20);
+}
+
+/**
+ * The Sorting Ceremony reveal music.
+ * 'gather' the spotlight is about to race ({ seconds } until the landing, roughly) · 'flash' a seat
+ * lights up ({ guildId, step, steps, gap } with gap in seconds until the next seat) · 'land' the
+ * chosen guild ({ guildId }).
+ */
+export function playSortingMusic(name, opts = {}) {
+    if (ceremonyMuted || !isAudioReady()) return;
+    const v = sortingBank.get(8);
+    const now = Tone.now();
+    const t = now + 0.03;
+    try {
+        if (name === 'gather') {
+            sortingBank.hold();
+            v.bus.gain.cancelScheduledValues(now);
+            v.bus.gain.setValueAtTime(0.9, now);
+            const seconds = Math.max(1.5, Number(opts.seconds) || 5);
+            v.pad.releaseAll(t);
+            v.padFilter.frequency.cancelScheduledValues(t);
+            v.padFilter.frequency.setValueAtTime(260, t);
+            v.padFilter.frequency.exponentialRampToValueAtTime(2000, t + seconds);
+            v.pad.triggerAttack(['D2', 'A2', 'D3', 'A3'], t, 0.8);
+            // A descending sparkle as the stars "wake", and a first soft heartbeat.
+            ['A6', 'F6', 'D6', 'A5', 'F5', 'D5'].forEach((n, i) => v.bell.triggerAttackRelease(n, 0.5, t + i * 0.08, 0.25 + i * 0.05));
+            v.heart.triggerAttackRelease('D2', 0.3, t + 0.55, 0.45);
+        } else if (name === 'flash') {
+            const h = SORTING_HARMONY[opts.guildId];
+            if (!h) return;
+            const steps = Math.max(1, Number(opts.steps) || 1);
+            const step = Math.max(0, Math.min(Number(opts.step) || 0, steps - 1));
+            const k = steps > 1 ? step / (steps - 1) : 1;
+            const gap = Math.max(0.05, Number(opts.gap) || 0.08);
+            const last = step === steps - 1;
+            // The bell climbs the guild's chord as the spotlight slows; the bass names the chord.
+            const rung = Math.min(h.flash.length - 1, Math.floor(k * (h.flash.length - 1) + (step % 2) * 0.5));
+            v.bell.triggerAttackRelease(h.flash[rung], Math.min(0.6, gap + 0.2), t, 0.3 + 0.45 * k);
+            v.bass.triggerAttackRelease(h.root, Math.min(0.5, gap * 0.9), t, 0.35 + 0.5 * k);
+            if (gap >= 0.2) {
+                // Slow enough to hear each guild: a harp plays its chord and the heart beats.
+                v.harp.triggerAttackRelease(h.flash.slice(0, 3), Math.min(0.6, gap), t, 0.35 + 0.35 * k);
+                v.heart.triggerAttackRelease(h.root.replace(/\d$/, '2'), 0.25, t, 0.4 + 0.5 * k);
+            }
+            if (last) {
+                // Hold your breath: the swell and a quickening heartbeat carry straight into the landing.
+                v.swellFilter.frequency.cancelScheduledValues(t);
+                v.swellFilter.frequency.setValueAtTime(500, t);
+                v.swellFilter.frequency.exponentialRampToValueAtTime(4200, t + gap);
+                v.swell.triggerAttackRelease(gap, t, 0.9);
+                [0.42, 0.66, 0.8, 0.9].forEach((x) => v.heart.triggerAttackRelease(h.root.replace(/\d$/, '2'), 0.15, t + gap * x, 0.5 + 0.4 * x));
+            } else {
+                for (let dt = 0.04; dt < gap - 0.015; dt += 0.04) {
+                    v.shaker.triggerAttackRelease(0.03, t + dt, 0.25 + 0.5 * k);
+                }
+            }
+        } else if (name === 'land') {
+            const h = SORTING_HARMONY[opts.guildId] || SORTING_HARMONY.dragon_flame;
+            v.bus.gain.cancelScheduledValues(now);
+            v.bus.gain.setValueAtTime(0.9, now);
+            // The drone resolves into the guild's own chord.
+            v.pad.releaseAll(t);
+            v.padFilter.frequency.cancelScheduledValues(t);
+            v.padFilter.frequency.setValueAtTime(2200, t);
+            v.padFilter.frequency.exponentialRampToValueAtTime(700, t + 3.5);
+            v.pad.triggerAttackRelease(h.land.slice(0, 4), 2.6, t, 0.9);
+            v.boom.triggerAttackRelease(h.boom, 0.9, t, 0.95);
+            v.cymbal.triggerAttackRelease(2, t, 0.9);
+            v.brass.triggerAttackRelease(h.land, 0.9, t, 0.95);
+            (h.rise || []).forEach((n, i) => v.harp.triggerAttackRelease(n, 0.5, t + 0.04 + i * 0.045, 0.6));
+            const motifStart = t + 0.5;
+            h.motif.forEach(([note, at, len]) => {
+                if (h.bells) v.bell.triggerAttackRelease(note, len + 0.3, motifStart + at, 0.7);
+                else v.brass.triggerAttackRelease(note, len, motifStart + at, 0.85);
+            });
+            const endAt = motifStart + h.motif[h.motif.length - 1][1];
+            v.brass.triggerAttackRelease(h.land.slice(1), 1.4, endAt + 0.02, 0.8);
+            v.boom.triggerAttackRelease(h.boom, 0.9, endAt + 0.02, 0.7);
+            h.sparkle.forEach((n, i) => v.bell.triggerAttackRelease(n, 0.9, t + 0.12 + i * 0.07, 0.45));
+            h.sparkle.forEach((n, i) => v.bell.triggerAttackRelease(n, 1.2, endAt + 0.1 + i * 0.09, 0.35));
+            sortingBank.release(6);
+        }
+    } catch (_) { /* overlapping triggers are harmless */ }
+}
+
+/** Fade out the reveal music (the ceremony closed or the save failed). */
+export function stopSortingMusic() {
+    if (!Tone || !sortingChassis) return;
+    const now = Tone.now();
+    const gain = sortingChassis.bus.gain;
+    gain.cancelScheduledValues(now);
+    gain.setValueAtTime(gain.value, now);
+    gain.linearRampToValueAtTime(0, now + 0.35);
+    if (sortingBank.awake) {
+        try { sortingBank.get(1).pad.releaseAll(now + 0.3); } catch (_) { /* gone */ }
+    }
+    sortingBank.release(2);
+}
+
 // ─── Showdown Arena (Quest Remote) ──────────────────────────────────────────
 // Its own game-show voice on the quiz bus: every team has a signature motif in its own key (so the class
 // hears WHO scored without looking), a clock that ticks like a stage clock and beats like a heart at the

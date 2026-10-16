@@ -6,6 +6,7 @@
 
 import * as state from '../../state.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
+import '../../styles/market_till.css';
 
 export const SHOPPER_PLACEHOLDER = 'Choose your adventurer…';
 const TILL_PLACEHOLDER_HTML = `<span class="mm-till__ph-long">${SHOPPER_PLACEHOLDER}</span><span class="mm-till__ph-short">Tap to choose</span>`;

@@ -127,7 +127,6 @@
 /* 26. Bounty cards, shop item cards, inventory grid, coin-pill */
 @import url('./styles/shop.css');
 @import url('./styles/mystic_market.css');
-@import url('./styles/market_till.css');
 
 /* 26b. Tab signs: a crafted title piece for every tab, in the Mystic Market's family */
 @import url('./styles/tab_headers.css');

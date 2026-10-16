@@ -12,6 +12,9 @@ import {
     playCeremonyTrack,
     playCeremonySfx,
     stopCeremonyMusic,
+    stopCeremonyOneShots,
+    duckCeremonyMusic,
+    playCeremonyTally,
     stopCeremonyAudio,
     startCeremonyDrumroll,
     stopCeremonyDrumroll,
@@ -36,6 +39,8 @@ import { getQuestMapZoneForProgressPercent } from './worldMap.js';
 import { isGrowthStarfallNote } from './growthStarfallCore.mjs';
 import { resolveCeremonyMode, buildGrowthSpotlights, chooseCanonicalWinners, chooseRisingStar, seededShuffle, seededHash, resolvePendingCeremonyMonth } from './ceremonyDomain.js';
 import { getCeremonyStarVerdict, ensureCeremonyStarVerdict } from './ceremonyStarCheck.js';
+import { rankForLevel } from './questRanksCore.mjs';
+import { buildQuestAscent, crossedPortalInMonth, hasNextQuestMonth, nextMonthKeyOf } from './ceremonyAscentCore.mjs';
 import { prepareCeremonySnapshot, lockCeremonySnapshot, saveCeremonyPlayback, ceremonySnapshotId, stripUndefinedDeep } from './ceremonySnapshots.js';
 import {
     arenaBackdropHtml,
@@ -185,12 +190,14 @@ async function loadCeremonyResults() {
     try {
         if (ceremonyData.snapshot && ['locked', 'completed'].includes(ceremonyData.snapshot.status)) {
             hydrateCeremonyFromSnapshot(ceremonyData.snapshot, ceremonyData.replay);
+            await loadQuestAscent();
             ceremonyData.loaded = true;
             return true;
         }
         if (ceremonyData.mode === 'growth_festival') {
             await loadGrowthCeremonyData();
             await persistPreparedCeremonySnapshot();
+            await loadQuestAscent();
             ceremonyData.loaded = true;
             return true;
         }
@@ -208,6 +215,7 @@ async function loadCeremonyResults() {
             where('schoolYearKey', '==', activeYearKey)
         ));
         const questHistoryRecords = questHistorySnap.docs.map(docSnap => docSnap.data());
+        ceremonyData.questHistoryRecords = questHistoryRecords;
         const fromLogs = sumMonthlyStarCreditsByStudentFromAwardLogs(logs);
         const monthlyScores = mergeMonthlyStarsFromArchivedHistoryAndAwardLogs(fromLogs, archived || {});
 
@@ -301,6 +309,7 @@ async function loadCeremonyResults() {
         ceremonyData.risingStar = await findRisingStar(studentsInClass, logs, monthlyScores, studentStats);
         ceremonyData.phase = 'class_reveal';
         await persistPreparedCeremonySnapshot();
+        await loadQuestAscent();
         ceremonyData.loaded = true;
         return true;
     } catch (e) {
@@ -348,6 +357,77 @@ async function findRisingStar(studentsInClass, logs, monthlyScores, rankedStuden
     } catch (error) {
         console.warn('Rising Star skipped:', error);
         return null;
+    }
+}
+
+/**
+ * The Portal Ascent (features/ceremonyAscentCore.mjs): did the watching class step through the
+ * Crystal Portal in the ceremony month, and what does next month's quest ask? Read live (not
+ * from the locked snapshot), so a ceremony prepared before a late crossing still tells it.
+ * Also marks every league class that rose a rank that month for its reveal card.
+ */
+async function loadQuestAscent() {
+    ceremonyData.ascent = null;
+    try {
+        const monthKey = ceremonyData.monthKey;
+        let records = ceremonyData.questHistoryRecords;
+        if (!records) {
+            const snap = await getDocs(query(
+                collection(db, `${PUBLIC_DATA_PATH}/quest_history`),
+                where('schoolYearKey', '==', state.getActiveSchoolYearKey())
+            ));
+            records = snap.docs.map((d) => d.data());
+            ceremonyData.questHistoryRecords = records;
+        }
+        const classes = state.get('allSchoolClasses') || [];
+        const classData = classes.find((c) => c.id === ceremonyData.classId);
+        if (!classData) return;
+        const { monthStart } = getCeremonyMonthBounds(monthKey);
+        const nextKey = nextMonthKeyOf(monthKey);
+        const nextStart = getCeremonyMonthBounds(nextKey).monthStart;
+        const ranges = state.get('schoolHolidayRanges') || [];
+        const overrides = state.get('allScheduleOverrides') || [];
+        const allStudents = state.get('allStudents') || [];
+        const garden = ceremonyData.mode === 'growth_festival';
+
+        // Every class of the league that rose a rank that month gets a mark on its card.
+        (ceremonyData.classQueue || []).forEach((entry) => {
+            const c = classes.find((item) => item.id === entry.id);
+            if (!c) return;
+            const level = Math.max(1, Number(entry.level) || (utils.getHistoricalDifficultyForMonth(c, monthStart, records) + 1));
+            if (crossedPortalInMonth(c, monthKey, records)) entry.rankUp = level + 1;
+            else delete entry.rankUp;
+        });
+
+        const monthHeroes = allStudents.filter((s) => s.classId === classData.id && existedByMonthEnd(s, monthKey));
+        const level = utils.getHistoricalDifficultyForMonth(classData, monthStart, records) + 1;
+        const nextLevel = utils.getHistoricalDifficultyForMonth(classData, nextStart, records) + 1;
+        const fromQueue = (ceremonyData.classQueue || []).find((entry) => entry.id === classData.id)
+            || (ceremonyData.growthGardenClasses || []).find((entry) => entry.id === classData.id);
+        const goal = Number(fromQueue?.goal) || utils.calculateMonthlyClassGoalForDate(classData, monthHeroes.length, ranges, overrides, monthStart, records);
+        const score = Number(fromQueue?.score) || 0;
+        let nextGoal = 0;
+        if (hasNextQuestMonth(monthKey)) {
+            const heroesNow = allStudents.filter((s) => s.classId === classData.id && s.enrollmentStatus !== 'inactive');
+            if (heroesNow.length) nextGoal = utils.calculateMonthlyClassGoalForDate(classData, heroesNow.length, ranges, overrides, nextStart, records);
+        }
+        ceremonyData.ascent = buildQuestAscent({
+            monthName: ceremonyData.monthName,
+            nextMonthName: nextStart.toLocaleString('en-GB', { month: 'long' }),
+            level,
+            nextLevel,
+            crossed: crossedPortalInMonth(classData, monthKey, records),
+            score,
+            goal,
+            nextGoal,
+            spoilsGold: Number(classData.portalCrossings?.[monthKey]?.gold) || 0,
+            young: garden || utils.isYoungLearnerLeague(ceremonyData.league)
+        });
+        // Fetch the scene (and its stylesheet, which also styles the rank-up chips) early.
+        import('./ceremonyAscent.js').catch(() => {});
+    } catch (error) {
+        console.warn('Portal Ascent skipped:', error);
+        ceremonyData.ascent = null;
     }
 }
 
@@ -649,13 +729,14 @@ function cancelTimeline() {
     timeline = null;
 }
 
-function countUp(el, to, { fast = false, duration = 900 } = {}) {
+function countUp(el, to, { fast = false, duration = 900, tally = false } = {}) {
     if (!el) return;
     const target = Number(to) || 0;
     if (fast || target <= 0 || typeof requestAnimationFrame !== 'function') {
         el.textContent = String(target);
         return;
     }
+    if (tally) playCeremonyTally({ seconds: duration / 1000, steps: Math.min(12, Math.max(3, Math.round(target / 6))) });
     const start = performance.now();
     const step = (now) => {
         const t = Math.min(1, (now - start) / duration);
@@ -876,11 +957,18 @@ function revealRank(entry, type) {
                 ceremonyFx?.burst(p.x, p.y, { colors: METAL_SPARKS[metal] || METAL_SPARKS.steel, count: entry.rank <= 3 ? 90 : 50, speed: 300 });
                 replay(screen, 'is-cheering');
             }
-            countUp(card.querySelector('.cer-count'), entry.score, { fast });
+            countUp(card.querySelector('.cer-count'), entry.score, { fast, tally: true });
         } },
-        { at: 1650, run: () => {
+        { at: 1650, run: (fast) => {
             reveal.classList.add('is-settled');
             ladderAdd(entry, type);
+            // A class that stepped through the Portal this month: its rank-up mark lands.
+            const mark = card.querySelector('.cer-chip--rankup');
+            if (mark && !fast) {
+                playCeremonySfx('stamp');
+                const p = fxPoint(mark);
+                ceremonyFx?.burst(p.x, p.y, { colors: ['#fef3c7', '#a5f3fc', '#c4b5fd'], count: 28, speed: 160 });
+            }
         } }
     ]);
 }
@@ -1008,7 +1096,7 @@ function handleDuelReveal() {
         delete screen.dataset.spot;
     } });
     runTimeline(steps, () => {
-        setAction(finishedClassShowdown ? "On to the Hero's Challenge" : (ceremonyData.risingStar ? 'One more star rises…' : 'Show Final Standings'), advanceCeremony);
+        setAction(finishedClassShowdown ? afterTeamQuestLabel() : (ceremonyData.risingStar ? 'One more star rises…' : 'Show Final Standings'), advanceCeremony);
     });
 }
 
@@ -1020,6 +1108,7 @@ function renderTransition() {
     setHeading('Individual Honours', 'Who went above and beyond?');
     setHerald('');
     triggerAICommentary('transition', {});
+    stopCeremonyOneShots({ fade: 1.2 });
     ceremonyData.music = 'heroes_theme';
     playCeremonyTrack('heroes_theme', { fade: 1.6 });
     playCeremonySfx('whoosh');
@@ -1062,6 +1151,119 @@ async function renderRisingStar() {
     });
 }
 
+// ---------------------------------------------------------------- THE PORTAL ASCENT
+
+let ascentView = null;
+
+function afterTeamQuestPhase() {
+    return ceremonyData.ascent ? 'class_ascent' : 'transition';
+}
+
+function afterTeamQuestLabel() {
+    if (!ceremonyData.ascent) return "On to the Hero's Challenge";
+    return ceremonyData.ascent.crossed ? 'Our New Quest Rank ✦' : 'Our Next Quest';
+}
+
+/**
+ * The watching class's quest rank: the old crest bursts into the new one when it stepped
+ * through the Portal (or the road it walked when it did not), then next month's quest.
+ * `nextLabel` is the button that follows (the phase is already set by the caller).
+ */
+async function renderAscent(nextLabel) {
+    const ascent = ceremonyData.ascent;
+    const stage = $('ceremony-stage-area');
+    const garden = ceremonyData.mode === 'growth_festival';
+    if (!ascent || !stage) { advanceCeremony(); return; }
+    setAction('Opening the Portal…', null, { disabled: true });
+    try { ascentView = ascentView || await import('./ceremonyAscent.js'); } catch (error) { console.warn('Portal Ascent view unavailable:', error); advanceCeremony(); return; }
+    if (!ceremonyData.active) return;
+    ladderOff();
+    silenceAICommentary();
+    setScene('ascent', { realm: garden ? 'day' : 'violet' });
+    stage.innerHTML = ascentView.questAscentHtml(ascent, { className: ceremonyData.className, classLogo: ceremonyData.classLogo, garden });
+    setHeading('', '');
+    setHerald('');
+    setAction(nextLabel, advanceCeremony);
+    const box = stage.querySelector('.cer-asc');
+    const screen = screenEl();
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const [light, mid] = ascent.rank.colors;
+    const crestPoint = () => fxPoint(box.querySelector('.cer-asc__emblem'));
+    stopCeremonyOneShots({ fade: 0.8 });
+    const questStep = (at) => ({ at, run: (fast) => {
+        box.classList.add('is-quest');
+        const count = box.querySelector('.cer-asc__goal .cer-count');
+        if (count) count.textContent = '0';
+        countUp(count, ascent.nextGoal, { fast, duration: 1100, tally: true });
+        if (fast) return;
+        duckCeremonyMusic(false);
+        playCeremonySfx('quest_horn');
+    } });
+    if (ascent.crossed) {
+        runTimeline([
+            { at: 120, run: (fast) => {
+                box.classList.add('is-open');
+                if (fast) return;
+                playCeremonySfx('portal_open');
+                if (!reduced) ceremonyFx?.stars({ count: 30, colors: [light, '#a5f3fc', '#ffffff'], duration: 1800 });
+            } },
+            { at: 1050, run: (fast) => {
+                if (fast) return;
+                box.classList.add('is-charging');
+                duckCeremonyMusic(true);
+                playCeremonySfx('charge');
+            } },
+            { at: 2200, run: (fast) => {
+                box.classList.remove('is-charging');
+                box.classList.add('is-ascended');
+                setHerald(ascent.line);
+                if (fast) return;
+                playCeremonySfx('rankup');
+                playCeremonyTrack(garden ? 'garden_theme' : 'victory', { fade: 1.2 });
+                const p = crestPoint();
+                ceremonyFx?.burst(p.x, p.y, { colors: [light, mid, '#ffffff', '#fde68a'], count: reduced ? 40 : 150, speed: 380, ring: true });
+                if (garden) ceremonyFx?.petals({ count: 40, duration: 2400 });
+                else if (!reduced) ceremonyFx?.fireworks({ count: 5, spread: 2200 });
+                replay(screen, 'is-flashing');
+                replay(screen, 'is-cheering');
+            } },
+            { at: 2750, run: (fast) => {
+                box.classList.add('is-stamped');
+                if (!fast) playCeremonySfx('stamp');
+            } },
+            questStep(4000)
+        ]);
+    } else {
+        if (!garden) playCeremonyTrack('arena_theme', { fade: 1.2 });
+        runTimeline([
+            { at: 120, run: (fast) => {
+                box.classList.add('is-open');
+                if (!fast) playCeremonySfx('road');
+            } },
+            { at: 600, run: (fast) => {
+                box.classList.add('is-filled');
+                if (!fast && ascent.progress > 0) playCeremonyTally({ seconds: 1.3, steps: Math.max(3, Math.round(ascent.progress / 9)) });
+            } },
+            { at: 2100, run: (fast) => {
+                setHerald(ascent.line);
+                if (!fast && !reduced) {
+                    const p = crestPoint();
+                    ceremonyFx?.burst(p.x, p.y, { colors: [light, mid, '#ffffff'], count: 50, speed: 220 });
+                }
+            } },
+            questStep(2300)
+        ]);
+    }
+}
+
+function addAscentRibbon(host) {
+    const ascent = ceremonyData.ascent;
+    if (!host || !ascent || !(ascent.nextGoal > 0)) return;
+    const add = (view) => { if (host.isConnected) host.insertAdjacentHTML('beforeend', view.questAscentRibbonHtml(ascent)); };
+    if (ascentView) add(ascentView);
+    else import('./ceremonyAscent.js').then((view) => { ascentView = view; add(view); }).catch(() => {});
+}
+
 function renderStandings() {
     const stage = $('ceremony-stage-area');
     ladderOff();
@@ -1085,6 +1287,7 @@ function renderArenaOutro() {
     setScene('outro', { realm: 'violet' });
     const champions = (ceremonyData.studentQueue || []).filter((s) => s.rank === 1 && Number(s.score) > 0).map((s) => s.name);
     stage.innerHTML = arenaOutroHtml({ className: ceremonyData.className, classLogo: ceremonyData.classLogo, monthName: ceremonyData.monthName, champions });
+    addAscentRibbon(stage.querySelector('.cer-outro'));
     setHeading('Ceremony Complete', 'Until the next moon');
     triggerAICommentary('outro', {});
     ceremonyFx?.fireworks({ count: 6, spread: 3000 });
@@ -1106,7 +1309,7 @@ function advanceCeremony() {
     if (ceremonyData.phase === 'class_reveal') {
         const queue = ceremonyData.classQueue || [];
         if (!queue.length) {
-            ceremonyData.phase = 'transition';
+            ceremonyData.phase = afterTeamQuestPhase();
             advanceCeremony();
             return;
         }
@@ -1117,8 +1320,8 @@ function advanceCeremony() {
         if (queue.length === 1) {
             revealRank(queue[0], 'class');
             setHeading(`League ${ceremonyData.league}`, 'Champion of the League');
-            ceremonyData.phase = 'transition';
-            setAction("On to the Hero's Challenge", advanceCeremony);
+            ceremonyData.phase = afterTeamQuestPhase();
+            setAction(afterTeamQuestLabel(), advanceCeremony);
             return;
         }
         const pointer = ceremonyData.classPointer;
@@ -1132,15 +1335,21 @@ function advanceCeremony() {
         const entry = queue[pointer];
         revealRank(entry, 'class');
         setHeading(`Team Quest · League ${ceremonyData.league}`, 'The League Rises');
-        triggerAICommentary('class_rank', { id: entry.id, name: entry.name, rank: entry.rank, score: entry.score, progress: formatPercent(entry.progress) });
+        triggerAICommentary('class_rank', { id: entry.id, name: entry.name, rank: entry.rank, score: entry.score, progress: formatPercent(entry.progress), rankUp: entry.rankUp ? rankForLevel(entry.rankUp).title : '' });
         ceremonyData.classPointer += 1;
         setAction('Next', advanceCeremony);
         return;
     }
 
     if (ceremonyData.phase === 'class_showdown_done') {
-        ceremonyData.phase = 'transition';
+        ceremonyData.phase = afterTeamQuestPhase();
         advanceCeremony();
+        return;
+    }
+
+    if (ceremonyData.phase === 'class_ascent') {
+        ceremonyData.phase = 'transition';
+        renderAscent("On to the Hero's Challenge");
         return;
     }
 
@@ -1450,6 +1659,7 @@ function renderGardenEnd() {
     const stage = $('ceremony-stage-area');
     setScene('end', { realm: 'dusk' });
     stage.innerHTML = gardenEndHtml({ className: ceremonyData.className });
+    addAscentRibbon(stage.querySelector('.gdn-end'));
     setHeading('Ceremony Complete', 'Sleep well, little garden');
     setHerald('Our classroom garden will keep blooming bright all year long! 🌿💖');
     ceremonyFx?.stars({ count: 36, colors: ['#fef9c3', '#fde68a', '#fbcfe8'], duration: 4000 });
@@ -1498,8 +1708,18 @@ function advanceGrowthCeremony() {
     }
     if (ceremonyData.phase === 'growth_final') {
         renderGardenFinale();
-        setAction('Finish Ceremony 🌿', advanceCeremony);
+        if (ceremonyData.ascent) {
+            setAction(ceremonyData.ascent.crossed ? 'Our Garden Grows 🌱' : 'Our Next Adventure 🌱', advanceCeremony);
+            ceremonyData.phase = 'growth_ascent';
+        } else {
+            setAction('Finish Ceremony 🌿', advanceCeremony);
+            ceremonyData.phase = 'growth_end';
+        }
+        return;
+    }
+    if (ceremonyData.phase === 'growth_ascent') {
         ceremonyData.phase = 'growth_end';
+        renderAscent('Finish Ceremony 🌿');
         return;
     }
     if (ceremonyData.phase === 'growth_end') {
@@ -1570,6 +1790,13 @@ let aiDebounce = null;
 
 let heraldToken = 0;
 
+/** A late herald line from the last scene must not cover this one's own words. */
+function silenceAICommentary() {
+    if (aiDebounce) clearTimeout(aiDebounce);
+    aiDebounce = null;
+    heraldToken += 1;
+}
+
 async function triggerAICommentary(phase, data) {
     if (aiDebounce) clearTimeout(aiDebounce);
     const token = ++heraldToken;
@@ -1599,6 +1826,7 @@ async function triggerAICommentary(phase, data) {
             } else {
                 userPrompt = `Class '${data.name}' got Rank #${data.rank}. Hype them up!`;
             }
+            if (data.rankUp) userPrompt += ` They also stepped through the Crystal Portal this month and rose to the quest rank '${data.rankUp}'. Mention it.`;
         }
         else if (phase === 'class_winner') {
             const isMyClass = data.id === state.get('globalSelectedClassId');
@@ -1624,7 +1852,7 @@ async function triggerAICommentary(phase, data) {
 
         const genericByPhase = {
             intro: `Welcome to the ${data.month} Ceremony!`,
-            class_rank: `Rank #${data.rank} — ${data.name}!`,
+            class_rank: data.rankUp ? `Rank #${data.rank}: ${data.name}, now ${data.rankUp}!` : `Rank #${data.rank} — ${data.name}!`,
             class_winner: `${data.name} wins! You did it!`,
             transition: 'Who will be our Prodigy?',
             student_rank: `Shout out to ${data.name}!`,

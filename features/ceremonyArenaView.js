@@ -261,6 +261,11 @@ export function arenaClassChipsHtml(entry, { compact = false } = {}) {
     const lvl = Math.min(6, level);
     const rank = rankForLevel(level);
     chips.push(chip(`lvl-${lvl}`, `${rankCrestSvg(level, { className: 'cer-chip__crest' })} ${compact ? `Lv ${level}` : `${esc(rank.title)} · Lv ${level}`}`, `Quest Level ${level}: ${rank.title}`));
+    // Stepped through the Crystal Portal that month (the ceremony sets it when it loads).
+    if (Number(entry.rankUp) > level) {
+        const up = rankForLevel(entry.rankUp);
+        chips.push(chip('rankup', `<i class="fas fa-angles-up" aria-hidden="true"></i>${rankCrestSvg(entry.rankUp, { className: 'cer-chip__crest' })} ${compact ? `Lv ${up.displayLevel}` : `Rose to ${esc(up.title)}`}`, `Stepped through the Crystal Portal: now Quest Level ${up.displayLevel}, ${up.title}`));
+    }
     if (entry.zone) chips.push(chip(`zone-${esc(entry.zone.id || 'bronze')}`, compact ? esc(entry.zone.icon || '') : `${esc(entry.zone.icon || '')} ${esc(entry.zone.label || '')}`, entry.zone.desc || ''));
     if (!compact && Number(entry.avgPerHero) > 0) chips.push(chip('avg', `<i class="fas fa-user-group" aria-hidden="true"></i>${Number(entry.avgPerHero).toFixed(1)} per hero`, 'Average stars per hero'));
     if (Number(entry.teamBonus) > 0) {

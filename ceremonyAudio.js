@@ -86,6 +86,8 @@ const fxBank = createVoiceBank((keep) => {
         }, 8).connect(v.brassFilter),
         gong: () => mono(new Tone.FMSynth({ harmonicity: 1.41, modulationIndex: 18, envelope: { attack: 0.002, decay: 3.5, sustain: 0, release: 2 }, modulationEnvelope: { attack: 0.002, decay: 2.5, sustain: 0, release: 1 }, volume: -10 }).connect(reverb)),
         glide: () => mono(new Tone.Synth({ oscillator: { type: 'sine' }, portamento: 0.35, envelope: { attack: 0.02, decay: 0.4, sustain: 0.2, release: 0.4 }, volume: -16 }).connect(reverb)),
+        // The Portal Ascent: a rising swell under the charging crest.
+        riser: () => mono(new Tone.Synth({ oscillator: { type: 'fattriangle', count: 2, spread: 14 }, envelope: { attack: 0.3, decay: 0.2, sustain: 0.8, release: 0.25 }, volume: -17 }).connect(reverb)),
     });
     return v;
 }, { idle: 8, span: 4 });
@@ -174,6 +176,18 @@ export function duckCeremonyMusic(on = true) {
     } catch (_) { /* not playing */ }
 }
 
+/** Fade out the one-shot clips still sounding (a long victory fanfare under the next scene). */
+export function stopCeremonyOneShots({ fade = 0.8 } = {}) {
+    if (!Tone) return;
+    players.forEach((player) => {
+        if (player.__def?.loop || player.state !== 'started') return;
+        try {
+            player.volume.rampTo(-60, fade);
+            player.stop(Tone.now() + fade + 0.05);
+        } catch (_) { /* already stopped */ }
+    });
+}
+
 export function stopCeremonyAudio({ fade = 0.5 } = {}) {
     stopCeremonyDrumroll({ crash: false });
     stopCeremonyMusic({ fade });
@@ -227,6 +241,26 @@ export function stopCeremonyDrumroll({ crash = true } = {}) {
         fx.crash.triggerAttackRelease('2n', now);
         fx.boom.triggerAttackRelease('C1', '4n', now);
     }
+}
+
+/**
+ * Soft rising ticks while a number counts up (eased like the count, so the ticks slow down
+ * with it). Every tick goes straight onto the audio clock.
+ */
+export function playCeremonyTally({ seconds = 0.9, steps = 10 } = {}) {
+    if (muted || !fxReady || !Tone) return;
+    const fx = getFx(seconds + 2);
+    const n = Math.max(3, Math.min(16, Math.round(steps)));
+    const scale = ['C4', 'D4', 'E4', 'G4', 'A4', 'C5', 'D5', 'E5', 'G5', 'A5', 'C6', 'D6', 'E6', 'G6', 'A6', 'C7'];
+    const now = Tone.now() + 0.02;
+    try {
+        for (let i = 1; i <= n; i += 1) {
+            const at = now + seconds * (1 - Math.cbrt(1 - i / n));
+            const note = scale[Math.min(scale.length - 1, i - 1)];
+            fx.tick.triggerAttackRelease(note, '64n', at, 0.55 + (i / n) * 0.45);
+        }
+        fx.bells.triggerAttackRelease(scale[Math.min(scale.length - 1, n)], '16n', now + seconds + 0.02, 0.7);
+    } catch (_) { /* audio node busy */ }
 }
 
 const NOTE_SETS = {
@@ -301,6 +335,58 @@ export function playCeremonySfx(name) {
             case 'gong':
                 fx.gong.triggerAttackRelease('C2', 3, now);
                 fx.boom.triggerAttackRelease('C1', '4n', now);
+                break;
+            // ---- The Portal Ascent (a class's quest rank) ----
+            case 'portal_open':
+                fx.whooshFilter.frequency.cancelScheduledValues(now);
+                fx.whooshFilter.frequency.setValueAtTime(220, now);
+                fx.whooshFilter.frequency.exponentialRampToValueAtTime(1800, now + 0.7);
+                fx.whooshNoise.triggerAttackRelease(0.7, now);
+                fx.boom.triggerAttackRelease('F1', '8n', now + 0.05);
+                ['C5', 'G5', 'D6', 'A6'].forEach((note, i) => fx.bells.triggerAttackRelease(note, '8n', now + 0.25 + i * 0.09, 0.6));
+                break;
+            case 'charge': {
+                // A swell that climbs for ~1.1s with a sparkle ladder on top.
+                fx.riser.triggerAttack('C3', now);
+                fx.riser.frequency.exponentialRampToValueAtTime(Tone.Frequency('C6').toFrequency(), now + 1.1);
+                fx.riser.triggerRelease(now + 1.12);
+                ['C5', 'E5', 'G5', 'C6', 'E6', 'G6', 'C7'].forEach((note, i) => fx.bells.triggerAttackRelease(note, '32n', now + 0.35 + i * 0.11, 0.35 + i * 0.09));
+                fx.snare.triggerAttackRelease('32n', now + 0.9, 0.5);
+                fx.snare.triggerAttackRelease('32n', now + 0.98, 0.7);
+                fx.snare.triggerAttackRelease('32n', now + 1.05, 0.9);
+                break;
+            }
+            case 'rankup':
+                fx.boom.triggerAttackRelease('C1', '4n', now);
+                fx.crash.triggerAttackRelease('2n', now);
+                fx.gong.triggerAttackRelease('C2', 2.6, now + 0.02);
+                fx.brass.triggerAttackRelease(['G3', 'C4', 'E4'], 0.16, now);
+                fx.brass.triggerAttackRelease(['G3', 'C4', 'E4'], 0.16, now + 0.19);
+                fx.brass.triggerAttackRelease(['A3', 'D4', 'F4'], 0.3, now + 0.38);
+                fx.brass.triggerAttackRelease(['C4', 'E4', 'G4', 'C5'], 1.7, now + 0.72);
+                NOTE_SETS.gold.forEach((note, i) => fx.bells.triggerAttackRelease(note, '4n', now + 0.72 + i * 0.06));
+                break;
+            case 'stamp':
+                fx.boom.triggerAttackRelease('G1', '16n', now);
+                fx.crackNoise.triggerAttackRelease('32n', now);
+                fx.tick.triggerAttackRelease('C3', '32n', now + 0.01);
+                break;
+            case 'quest_horn':
+                // "Next quest!": a rising horn call that ends on an open, hopeful chord.
+                fx.brass.triggerAttackRelease('G3', 0.12, now);
+                fx.brass.triggerAttackRelease('C4', 0.12, now + 0.15);
+                fx.brass.triggerAttackRelease('E4', 0.12, now + 0.3);
+                fx.brass.triggerAttackRelease(['C4', 'G4', 'D5'], 1.3, now + 0.45);
+                fx.boom.triggerAttackRelease('C2', '8n', now + 0.45);
+                ['G5', 'D6', 'G6'].forEach((note, i) => fx.bells.triggerAttackRelease(note, '8n', now + 0.5 + i * 0.08, 0.6));
+                break;
+            case 'road':
+                // The road so far: two gentle low bells, open and unfinished.
+                fx.bells.triggerAttackRelease('G4', '4n', now, 0.6);
+                fx.bells.triggerAttackRelease('D5', '4n', now + 0.18, 0.6);
+                fx.glide.triggerAttack('G4', now + 0.1);
+                fx.glide.setNote('D5', now + 0.3);
+                fx.glide.triggerRelease(now + 0.8);
                 break;
             default:
                 break;

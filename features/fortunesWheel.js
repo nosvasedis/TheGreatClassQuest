@@ -1278,7 +1278,8 @@ export function animateWheelSpin(canvas, segments, winnerIndex, guildDef, onTick
                 canvas.style.willChange = '';
                 // The winner's spotlight is painted in wheel space; the canvas keeps its rotation.
                 drawWheel(canvas, segments, 0, guildDef, winnerIndex);
-                setTimeout(() => resolve({ rotationAngle: finalAngle }), 650);
+                // Resolve on the landing frame itself: the fate follows the stop with no gap.
+                resolve({ rotationAngle: finalAngle });
             }
         }
 
@@ -1552,13 +1553,14 @@ async function _landingMoment(seg) {
         if (seg.rarity === 'twist') {
             playSound('magic_chime');
             fxTwist(frame);
-            await new Promise((r) => setTimeout(r, 600));
+            // A staged twist lets its shimmer breathe; a plain one shows its fate at once.
+            if (seg.stage) await new Promise((r) => setTimeout(r, 600));
             return;
         }
         if (seg.rarity === 'trial') {
             playSound('quiz_open');
             fxTrial(frame);
-            await new Promise((r) => setTimeout(r, 600));
+            if (seg.stage) await new Promise((r) => setTimeout(r, 600));
             return;
         }
         if (seg.rarity === 'mythic' || seg.rarity === 'legendary') playHeroFanfare();
@@ -1699,6 +1701,9 @@ export async function triggerSpin({ power = null } = {}) {
     const previous = _wheelState.results[_wheelState.results.length - 1] || null;
     // Closing while the fate is being written waits for it, so it lands in the log too.
     _wheelState.phase = 'applying';
+    // The card turns over the moment the wheel (or the stage) settles; the numbers
+    // follow onto the same card as soon as the fate has been written.
+    _renderWheelPending(winningSeg, guildDef, { whirlwind: Boolean(whirlwind), braved: Boolean(decision?.braved) });
     const result = await applyWheelResult(guildId, winningSeg, _wheelState.classId, { favored: Boolean(_wheelState.favored), decision, previous });
     if (whirlwind) {
         result.segmentLabel = `${whirlwind.emoji} ${whirlwind.label} → ${result.segmentLabel}`;
@@ -1970,7 +1975,8 @@ function _showResultReveal({ cardHtml, rarity = 'common', rarityColor = null, ra
     const secondaryBtn = document.getElementById('fw-reveal-secondary-btn');
     if (!revealLayer || !revealCard || !primaryBtn || !secondaryBtn) return;
 
-    revealCard.innerHTML = cardHtml;
+    // null keeps the card already on show (the pending fate card being filled in).
+    if (cardHtml !== null) revealCard.innerHTML = cardHtml;
 
     // Apply rarity theming to the shell (the framed outer container)
     const shell = revealLayer.querySelector('.fw-reveal-layer__shell');
@@ -2011,7 +2017,42 @@ function _showResultReveal({ cardHtml, rarity = 'common', rarityColor = null, ra
     revealLayer.classList.remove('hidden');
 }
 
+/** The fate card shown at once on landing, while its Glory, gold and stars are written. */
+function _renderWheelPending(segment, guildDef, { whirlwind = false, braved = false } = {}) {
+    const rarityConf = getRarityPalette(segment.rarity, segment.paletteIndex);
+    const emblemUrl = getGuildEmblemUrl(guildDef?.id);
+    const family = ['storm', 'twist', 'trial'].includes(segment.rarity) ? segment.rarity : 'treasure';
+    const ribbon = braved ? 'Storm braved!' : whirlwind ? `Whirlwind · ${rarityConf.label}` : rarityConf.label;
+    const cardHtml = `
+        <div class="fw-result-card fw-result-card--v2 is-pending${segment.isPrismatic ? ' is-prismatic' : ''}"
+             data-rarity="${segment.rarity}" data-family="${family}" data-outcome="${braved ? 'braved' : 'gain'}"
+             style="--rarity-color:${rarityConf.color};--rarity-glow:${rarityConf.glow};--rarity-bg:${rarityConf.bg};border-color:${rarityConf.color};">
+            <div class="fw-result-ribbon">${ribbon}</div>
+            <div class="fw-result-emoji-orb">${braved ? '🛡️' : segment.emoji}</div>
+            <div class="fw-result-guild-row">
+                ${emblemUrl ? `<img src="${emblemUrl}" alt="${guildDef?.name || ''}" class="fw-result-guild-row__image">` : ''}
+                <span class="fw-result-guild-row__name">${guildDef?.name || ''}</span>
+            </div>
+            <div class="fw-result-title">${segment.label}</div>
+            <div class="fw-result-description">${segment.description}</div>
+            <div class="fw-result-inking" aria-live="polite"><span></span><span></span><span></span></div>
+        </div>`;
+    _setStageCaption(`${guildDef?.name || 'The guild'} receives ${segment.label}…`);
+    _setCardPhase('revealed');
+    _updateSpinButton(true, 'Fate Revealed', 'Prepare the next presentation');
+    _showResultReveal({
+        cardHtml,
+        rarity: segment.rarity,
+        rarityColor: rarityConf.color,
+        rarityGlow: rarityConf.glow,
+        rarityBg: rarityConf.bg,
+        isPrismatic: segment.isPrismatic === true,
+    });
+}
+
 function _renderWheelResult(segment, result, guildDef) {
+    // Already on show as the pending card: fill it in place instead of dealing it again.
+    const settled = Boolean(document.querySelector('#fw-reveal-card .fw-result-card.is-pending'));
     const rarityConf = getRarityPalette(segment.rarity, segment.paletteIndex);
     const emblemUrl = getGuildEmblemUrl(guildDef?.id);
 
@@ -2120,7 +2161,7 @@ function _renderWheelResult(segment, result, guildDef) {
 
     // ── Full card HTML ────────────────────────────────────────────────────
     const cardHtml = `
-        <div class="fw-result-card fw-result-card--v2${segment.isPrismatic ? ' is-prismatic' : ''}"
+        <div class="fw-result-card fw-result-card--v2${settled ? ' is-settled' : ''}${segment.isPrismatic ? ' is-prismatic' : ''}"
              data-rarity="${segment.rarity}" data-family="${family}" data-outcome="${outcome}"
              style="--rarity-color:${rarityConf.color};--rarity-glow:${rarityConf.glow};--rarity-bg:${rarityConf.bg};border-color:${rarityConf.color};">
             <div class="fw-result-ribbon">${ribbon}</div>
@@ -2145,8 +2186,9 @@ function _renderWheelResult(segment, result, guildDef) {
             : `${guildName} has received ${segment.label}. Advance when you are ready for the next reveal.`);
     _setCardPhase('revealed');
     _updateSpinButton(true, 'Fate Revealed', 'Prepare the next presentation');
+    if (settled) _fillPendingCard(cardHtml);
     _showResultReveal({
-        cardHtml,
+        cardHtml: settled ? null : cardHtml,
         rarity: segment.rarity,
         rarityColor: rarityConf.color,
         rarityGlow: rarityConf.glow,
@@ -2174,6 +2216,24 @@ function _renderWheelResult(segment, result, guildDef) {
     });
 
     _playOutcome(segment, result, outcome);
+}
+
+/** Moves the finished fate into the pending card, keeping its floating orb so nothing jumps. */
+function _fillPendingCard(cardHtml) {
+    const cur = document.querySelector('#fw-reveal-card .fw-result-card.is-pending');
+    if (!cur) return;
+    const tpl = document.createElement('template');
+    tpl.innerHTML = cardHtml.trim();
+    const next = tpl.content.firstElementChild;
+    if (!next) return;
+    for (const { name, value } of [...next.attributes]) cur.setAttribute(name, value);
+    const orb = cur.querySelector('.fw-result-emoji-orb');
+    const nextOrb = next.querySelector('.fw-result-emoji-orb');
+    if (orb && nextOrb) {
+        if (orb.textContent !== nextOrb.textContent) orb.textContent = nextOrb.textContent;
+        nextOrb.replaceWith(orb);
+    }
+    cur.replaceChildren(...next.childNodes);
 }
 
 /** The result card's moment: a shield for a braved storm, rain for a loss, a burst for a gift. */

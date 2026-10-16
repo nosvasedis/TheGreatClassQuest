@@ -2478,3 +2478,39 @@
         transition: none !important;
     }
 }
+
+/* ── Seamless landing: the fate card is dealt the moment the wheel stops, then filled in place ── */
+.fw-result-card--v2.is-settled,
+.fw-result-card--v2.is-settled .fw-result-title {
+    animation: none;
+}
+
+.fw-result-inking {
+    display: flex;
+    justify-content: center;
+    gap: 0.45rem;
+    margin: 1rem auto 0.2rem;
+    height: 0.6rem;
+}
+
+.fw-result-inking span {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--rarity-color, #fbbf24);
+    box-shadow: 0 0 10px var(--rarity-glow, rgba(251, 191, 36, 0.5));
+    opacity: 0.35;
+    animation: fw-inking 1s ease-in-out infinite;
+}
+
+.fw-result-inking span:nth-child(2) { animation-delay: 0.15s; }
+.fw-result-inking span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes fw-inking {
+    0%, 100% { opacity: 0.35; transform: translateY(0); }
+    50% { opacity: 1; transform: translateY(-3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fw-result-inking span { animation: none; opacity: 0.7; }
+}

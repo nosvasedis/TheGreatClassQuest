@@ -42,6 +42,9 @@ import '../../styles/festival_stall.css';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 import { initMarketKeeperFloat, keeperFloatSay } from './marketKeeperFloat.js';
 import { closeMarketCurtains, openMarketCurtains, shopStageIsLive } from './marketCurtains.js';
+import { bindShopperLedger, populateShopStudentPicker } from './marketShopperLedger.js';
+
+export { populateShopStudentPicker };
 
 // --- SHOP UI HELPERS ---
 
@@ -171,8 +174,6 @@ function syncShopAffordToggle(hasShopper) {
     if (countEl) countEl.textContent = String(count);
 }
 
-const SHOPPER_PLACEHOLDER = 'Choose your adventurer…';
-
 const SHOP_CURTAIN_SLEEPING = {
     icon: '🔮',
     title: 'The Market Sleeps',
@@ -252,134 +253,10 @@ function syncShopRestockButton() {
         : '<i class="fas fa-sync-alt" aria-hidden="true"></i>';
 }
 
-function setShopStudentPanelOpen(open) {
-    const trigger = document.getElementById('shop-shopper-trigger');
-    const panel = document.getElementById('shop-shopper-listbox');
-    const pill = document.querySelector('.shop-selector-pill--shopper');
-    if (!trigger || !panel) return;
-    trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
-    panel.classList.toggle('is-open', open);
-    panel.setAttribute('aria-hidden', open ? 'false' : 'true');
-    pill?.classList.toggle('shop-selector-pill--dropdown-open', open);
-}
-
-function closeShopStudentDropdown() {
-    setShopStudentPanelOpen(false);
-}
-
-function toggleShopStudentDropdown() {
-    const panel = document.getElementById('shop-shopper-listbox');
-    if (!panel) return;
-    setShopStudentPanelOpen(!panel.classList.contains('is-open'));
-}
-
-function syncShopStudentOptionHighlight(value) {
-    const panel = document.getElementById('shop-shopper-listbox');
-    if (!panel) return;
-    panel.querySelectorAll('.shop-shopper__option').forEach(btn => {
-        const v = btn.dataset.value ?? '';
-        btn.classList.toggle('is-selected', v === value);
-        btn.setAttribute('aria-selected', v === value ? 'true' : 'false');
-    });
-}
-
-function syncShopStudentTriggerLabel() {
-    const sel = document.getElementById('shop-student-select');
-    const display = document.getElementById('shop-shopper-display');
-    if (!sel || !display) return;
-    const opt = sel.options[sel.selectedIndex];
-    display.textContent = opt?.textContent || SHOPPER_PLACEHOLDER;
-    syncShopStudentOptionHighlight(sel.value);
-}
-
-function applyShopStudentSelection(value) {
-    const sel = document.getElementById('shop-student-select');
-    if (!sel) return;
-    sel.value = value;
-    syncShopStudentTriggerLabel();
-    closeShopStudentDropdown();
-    sel.dispatchEvent(new Event('change', { bubbles: true }));
-}
-
-/** Keeps hidden native select and custom listbox in sync with student ids + labels. */
-export function populateShopStudentPicker(validStudents) {
-    const sel = document.getElementById('shop-student-select');
-    const panel = document.getElementById('shop-shopper-listbox');
-    if (!sel || !panel) return;
-
-    const previousValue = sel.value;
-
-    sel.innerHTML = '';
-    const opt0 = document.createElement('option');
-    opt0.value = '';
-    opt0.textContent = SHOPPER_PLACEHOLDER;
-    sel.appendChild(opt0);
-    validStudents.forEach(s => {
-        const o = document.createElement('option');
-        o.value = s.id;
-        o.textContent = s.name;
-        sel.appendChild(o);
-    });
-
-    panel.innerHTML = '';
-    const mkBtn = (value, label, isPlaceholder) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.setAttribute('role', 'option');
-        btn.dataset.value = value;
-        btn.className = isPlaceholder
-            ? 'shop-shopper__option shop-shopper__option--placeholder'
-            : 'shop-shopper__option';
-        btn.textContent = label;
-        btn.setAttribute('aria-selected', 'false');
-        return btn;
-    };
-    panel.appendChild(mkBtn('', SHOPPER_PLACEHOLDER, true));
-    validStudents.forEach(s => {
-        panel.appendChild(mkBtn(s.id, s.name, false));
-    });
-
-    const shouldRestore = previousValue && validStudents.some(s => s.id === previousValue);
-    sel.value = shouldRestore ? previousValue : '';
-    syncShopStudentTriggerLabel();
-    closeShopStudentDropdown();
-}
-
 function ensureShopStudentDropdownListeners() {
     if (shopStudentDropdownListenersBound) return;
     shopStudentDropdownListenersBound = true;
-
-    document.body.addEventListener('click', (e) => {
-        const root = document.getElementById('shop-shopper-root');
-        const trigger = document.getElementById('shop-shopper-trigger');
-        const panel = document.getElementById('shop-shopper-listbox');
-        if (!root || !trigger || !panel) return;
-
-        if (trigger.contains(e.target)) {
-            e.preventDefault();
-            toggleShopStudentDropdown();
-            return;
-        }
-
-        const optBtn = e.target.closest('.shop-shopper__option');
-        if (panel.contains(e.target) && optBtn) {
-            applyShopStudentSelection(optBtn.dataset.value ?? '');
-            return;
-        }
-
-        if (!root.contains(e.target)) {
-            closeShopStudentDropdown();
-        }
-    });
-
-    document.body.addEventListener('keydown', (e) => {
-        if (e.key !== 'Escape') return;
-        const panel = document.getElementById('shop-shopper-listbox');
-        if (!panel?.classList.contains('is-open')) return;
-        closeShopStudentDropdown();
-        document.getElementById('shop-shopper-trigger')?.focus();
-    });
-
+    bindShopperLedger();
     bindShopStorefrontListeners();
 }
 
@@ -459,7 +336,7 @@ function bindShopStorefrontListeners() {
 /** A few coins hop out of the purse when gold is spent. */
 function spillShopCoins() {
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-    const purse = document.querySelector('#shop-command-deck .mm-purse');
+    const purse = document.querySelector('#shop-command-deck .mm-till__purse');
     if (!purse) return;
     for (let i = 0; i < 7; i++) {
         const coin = document.createElement('span');
@@ -775,17 +652,10 @@ function resetShopWareCard(card) {
 export async function updateShopStudentDisplay(studentId) {
     const goldDisplay = document.getElementById('shop-student-gold');
     const buyBtns = document.querySelectorAll('.shop-buy-btn');
-    const shopHeader = document.getElementById('shop-student-select')?.closest('.shop-selector-pill');
+    const till = document.getElementById('shop-till');
     const container = document.getElementById('shop-items-container');
 
     // Sale themes follow the shopper's standing (Hero of the Day, or Hero-of-the-Day legend tier)
-    const ringMap = {
-        hero: 'ring-red-500',
-        mythic: 'ring-fuchsia-500',
-        golden: 'ring-amber-400',
-        rising: 'ring-sky-400',
-        none: 'ring-slate-400'
-    };
     const gradientMap = {
         hero: 'from-red-500 to-orange-500',
         mythic: 'from-fuchsia-500 to-indigo-600',
@@ -794,16 +664,7 @@ export async function updateShopStudentDisplay(studentId) {
         none: 'from-slate-400 to-slate-500'
     };
 
-    // Trigger magical reflow effect on header pill (hero / legend rings)
-    if (shopHeader) {
-        shopHeader.classList.remove('scale-105', 'animate-pulse');
-        void shopHeader.offsetWidth;
-        shopHeader.classList.add('transition-all', 'duration-500', 'scale-105');
-        setTimeout(() => shopHeader.classList.remove('scale-105'), 500);
-
-        shopHeader.className = shopHeader.className.replace(/ring-[a-z]+-\d+/g, '').replace(/bg-[a-z]+-50/g, '').trim();
-        shopHeader.classList.remove('ring-4', 'ring-2', 'rounded-xl', 'p-2');
-    }
+    if (till) delete till.dataset.standing;
     document.getElementById('shop-hero-badge')?.remove();
     document.getElementById('shop-legend-badge')?.remove();
 
@@ -846,23 +707,22 @@ export async function updateShopStudentDisplay(studentId) {
 
     const legendMeta = getSeasonalShopPriceMeta(100, { isReigningHero: false, heroOfDayWins });
     const isMythic = legendMeta.legendTier.key === 'mythic';
-    const themeKey = isHero ? 'hero' : (ringMap[legendMeta.legendTier.key] ? legendMeta.legendTier.key : 'none');
+    const themeKey = isHero ? 'hero' : (gradientMap[legendMeta.legendTier.key] ? legendMeta.legendTier.key : 'none');
 
-    if (shopHeader) {
+    if (till) {
+        const badge = document.createElement('div');
         if (isHero) {
-            shopHeader.classList.add('ring-2', ringMap.hero, 'transition-all');
-            const badge = document.createElement('div');
+            till.dataset.standing = 'hero';
             badge.id = 'shop-hero-badge';
             badge.className = `shop-status-badge bg-gradient-to-r ${gradientMap.hero} text-white ${isMythic ? 'animate-pulse' : ''}`;
             badge.innerHTML = '<i class="fas fa-crown"></i><span>Hero of the Day</span>';
-            shopHeader.appendChild(badge);
+            till.appendChild(badge);
         } else if (legendMeta.legendDiscount > 0) {
-            shopHeader.classList.add('ring-2', ringMap[themeKey], 'transition-all');
-            const badge = document.createElement('div');
+            till.dataset.standing = themeKey;
             badge.id = 'shop-legend-badge';
             badge.className = `shop-status-badge bg-gradient-to-r ${gradientMap[themeKey]} text-white ${isMythic ? 'animate-pulse' : ''}`;
             badge.innerHTML = `<i class="fas fa-trophy"></i><span>${legendMeta.legendTier.label} ${legendMeta.legendDiscount}% off</span>`;
-            shopHeader.appendChild(badge);
+            till.appendChild(badge);
         }
     }
 

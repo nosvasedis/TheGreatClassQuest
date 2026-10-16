@@ -410,103 +410,6 @@
     min-width: 0;
 }
 
-/* Inlaid plaques: shopper + purse share one height, dark wood inset, brass rim */
-.mm-counter__bar .mm-plaque,
-.mm-counter__bar .shop-selector-pill.shop-selector-pill--dark {
-    height: 3.25rem;
-    min-height: 3.25rem;
-    margin: 0;
-    border-radius: 0.8rem;
-    border: 2px solid var(--mm-brass);
-    background:
-        var(--mm-grain),
-        linear-gradient(180deg, var(--mm-wood-900) 0%, #341e10 100%);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    box-shadow:
-        inset 0 2px 6px rgba(0, 0, 0, 0.6),
-        0 1px 0 rgba(255, 255, 255, 0.2);
-}
-
-.mm-counter__bar .shop-selector-pill.shop-selector-pill--dark:focus-within,
-.mm-counter__bar .shop-selector-pill--dropdown-open {
-    border-color: var(--mm-brass-light);
-    box-shadow:
-        0 0 0 3px rgba(247, 217, 139, 0.35),
-        inset 0 2px 6px rgba(0, 0, 0, 0.6);
-}
-
-.mm-counter__bar .shop-selector-pill--shopper {
-    flex: 1 1 14rem;
-    max-width: 22rem;
-    align-items: center;
-    padding: 0 0.35rem 0 0.8rem;
-}
-
-.mm-counter__bar .shop-sel-icon--shopper {
-    color: var(--mm-brass-light);
-    font-size: 1rem;
-}
-
-.mm-counter__bar .shop-shopper__trigger,
-.mm-counter__bar .shop-shopper__trigger:hover {
-    padding: 0.3rem 0.35rem;
-    border: 0;
-    background: transparent;
-    box-shadow: none;
-}
-
-.mm-counter__bar .shop-shopper__trigger:focus-visible {
-    box-shadow: none;
-}
-
-.mm-counter__bar .shop-shopper__trigger-label,
-.mm-counter__bar .shop-purse-glass__label {
-    font-size: 0.55rem;
-    letter-spacing: 0.16em;
-    color: var(--mm-brass);
-    text-shadow: none;
-}
-
-.mm-counter__bar .shop-shopper__trigger-value {
-    color: var(--mm-parchment);
-}
-
-.mm-counter__bar .shop-shopper__chev {
-    color: var(--mm-brass-light);
-    background: rgba(217, 168, 78, 0.14);
-    border-color: rgba(217, 168, 78, 0.4);
-}
-
-.mm-counter__bar .shop-selector-pill--dropdown-open .shop-shopper__chev {
-    background: rgba(217, 168, 78, 0.28);
-    border-color: var(--mm-brass);
-}
-
-.mm-counter__bar .mm-purse {
-    gap: 0.6rem;
-    padding: 0 0.95rem 0 0.4rem;
-}
-
-.mm-counter__bar .shop-purse-glass__amount {
-    font-size: 1.2rem;
-    color: #fff7e0;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-}
-
-/* purse: a leather coin pouch */
-.mm-purse {
-    position: relative;
-    overflow: visible;
-}
-
-.mm-purse__pouch {
-    border-radius: 45% 45% 40% 40% / 38% 38% 55% 55%;
-    background: radial-gradient(circle at 40% 30%, #c08a55 0%, #8b5a2b 55%, #5b3616 100%);
-    border: 2px solid #f7d98b;
-    color: #fde68a;
-}
-
 .mm-coin-spill {
     position: absolute;
     left: 1.1rem;
@@ -1871,15 +1774,12 @@
     .mm-keeper__art { width: 6.4rem; height: 8.8rem; }
     .mm-keeper__bubble { margin-bottom: 2.4rem; }
     .mm-counter__controls { justify-content: flex-start; }
-    .mm-counter__bar .shop-selector-pill--shopper { max-width: none; }
 }
 
 @media (max-width: 768px) {
-    /* shopper gets its own row; restock and purse share the next one */
-    .mm-counter__bar .shop-selector-pill--shopper { flex-basis: 100%; }
-    .mm-counter__bar .shop-selector-pill--shopper { order: -2; }
-    .mm-counter__bar .mm-purse { flex: 1 1 0; min-width: 0; }
-    .mm-counter__bar .mm-restock-btn { flex: 0 0 auto; width: 3.25rem; margin-right: 0; }
+    /* restock and the till share one row; the till takes the rest */
+    .mm-counter__controls { flex-wrap: nowrap; gap: 0.6rem; }
+    .mm-counter__bar .mm-restock-btn { flex: 0 0 auto; margin-right: 0; }
 }
 
 @media (max-width: 640px) {

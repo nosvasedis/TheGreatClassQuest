@@ -190,18 +190,13 @@ export function showUndoToast(message, onUndo, { key = 'undo', duration = 9000 }
 }
 
 export async function showWelcomeBackMessage(firstName, stars) {
-    const modal = document.getElementById('welcome-back-modal');
-    const messageEl = document.getElementById('welcome-back-message');
-    const starsEl = document.getElementById('welcome-back-stars');
-
-    starsEl.textContent = stars;
-    modal.classList.remove('hidden');
-
-    messageEl.textContent = `We're so glad you're back, ${firstName}!`;
-
-    setTimeout(() => {
-        document.getElementById('welcome-back-modal').classList.add('hidden'); // Simplified hideModal
-    }, 4000);
+    try {
+        const { showWelcomeBack } = await import('../features/welcomeBack.js');
+        showWelcomeBack(firstName, stars);
+    } catch (e) {
+        console.warn('Welcome back card failed to load:', e);
+        showToast(`Welcome back, ${firstName}! +${stars} bonus stars`, 'success');
+    }
 }
 
 export function triggerDynamicPraise(studentName, starCount, reason) {

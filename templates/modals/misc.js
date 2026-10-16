@@ -1,5 +1,5 @@
 // templates/modals/misc.js
-// Quest update, milestone, welcome back, celebration bonus, quest assignment,
+// Quest update, milestone, celebration bonus, quest assignment,
 // starfall, overview, bounty, bestow boon
 import { planPriceCopy } from '../../config/tiers/pricing.mjs';
 
@@ -62,41 +62,6 @@ export const miscModalsHTML = `
                     class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold w-10 h-10 rounded-full bubbly-button">&times;</button>
             </div>
             <div id="milestone-modal-content" class="space-y-4 text-center">
-            </div>
-        </div>
-    </div>
-
-    <div id="welcome-back-modal"
-        class="fixed inset-0 bg-black/70 backdrop-blur-md z-[72] flex items-center justify-center p-4 hidden">
-        <div class="welcome-back-shell pop-in">
-            <!-- Animated gradient backdrop -->
-            <div class="welcome-back-shell__backdrop"></div>
-
-            <!-- Floating particles -->
-            <div class="welcome-back-particles" aria-hidden="true">
-                <span class="wb-particle wb-particle--1">✨</span>
-                <span class="wb-particle wb-particle--2">⭐</span>
-                <span class="wb-particle wb-particle--3">🌟</span>
-                <span class="wb-particle wb-particle--4">✦</span>
-                <span class="wb-particle wb-particle--5">✧</span>
-                <span class="wb-particle wb-particle--6">🎉</span>
-            </div>
-
-            <div id="welcome-back-content" class="welcome-back-content">
-                <!-- Waving hand icon -->
-                <div class="welcome-back-icon" aria-hidden="true">👋</div>
-
-                <h2 id="welcome-back-title" class="welcome-back-title">Welcome Back!</h2>
-                <p id="welcome-back-message" class="welcome-back-message"></p>
-
-                <!-- Stars display -->
-                <div class="welcome-back-stars-badge">
-                    <div class="welcome-back-stars-ring">
-                        <i class="fas fa-star welcome-back-star-icon"></i>
-                        <span id="welcome-back-stars" class="welcome-back-stars-num">3</span>
-                    </div>
-                    <p class="welcome-back-stars-label">Bonus Stars Awarded!</p>
-                </div>
             </div>
         </div>
     </div>

@@ -1,7 +1,7 @@
 // /ui/modals/ai.js
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
-import { showAnimatedModal, hideModal } from './base.js';
+import { showAnimatedModal } from './base.js';
 import { showToast } from '../effects.js';
 import { callGeminiApi } from '../../api.js';
 import { ensureHistoryLoaded } from '../../db/actions.js';
@@ -328,20 +328,6 @@ export async function openMilestoneModal(markerElement) {
     modalContent.className = 'space-y-4 text-center';
 
     showAnimatedModal('milestone-details-modal');
-}
-
-export async function showWelcomeBackMessage(firstName, stars) {
-    const messageEl = document.getElementById('welcome-back-message');
-    const starsEl = document.getElementById('welcome-back-stars');
-
-    starsEl.textContent = stars;
-    showAnimatedModal('welcome-back-modal');
-
-    messageEl.textContent = `We're so glad you're back, ${firstName}!`;
-
-    setTimeout(() => {
-        hideModal('welcome-back-modal');
-    }, 4000);
 }
 
 export async function handleGenerateClassName() {

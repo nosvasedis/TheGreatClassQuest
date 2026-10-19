@@ -594,7 +594,24 @@ export function extractJsonFromAiText(text) {
     throw new SyntaxError(`Could not extract JSON from AI response: ${cleaned.slice(0, 120)}`);
 }
 
+// Optional extras (Campfire word art) step aside while any other picture is being painted,
+// so a diary picture never has to share the free image model with them.
+let _priorityImagesInFlight = 0;
+
 export async function callCloudflareAiImageApi(prompt, negativePrompt = "", options = {}, requestOptions = {}) {
+    if (requestOptions.lowPriority) {
+        while (_priorityImagesInFlight > 0) await new Promise((res) => setTimeout(res, 1000));
+    } else {
+        _priorityImagesInFlight += 1;
+    }
+    try {
+        return await paintCloudflareAiImage(prompt, negativePrompt, options, requestOptions);
+    } finally {
+        if (!requestOptions.lowPriority) _priorityImagesInFlight -= 1;
+    }
+}
+
+function paintCloudflareAiImage(prompt, negativePrompt, options, requestOptions) {
     return runImageRequest(async () => {
         if (!requestOptions.ignoreCircuit && isAiCircuitOpen()) throw createCircuitBreakerError();
         const rateLimitWaitMs = getGlobalRateLimitRemainingMs();

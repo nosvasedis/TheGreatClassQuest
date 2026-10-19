@@ -85,7 +85,7 @@ export async function prepareCampfireWordImages(classId, embellishments = []) {
                 campfireWordImagePrompt(item.word, item.example),
                 'text, letters, words, watermark, collage, scary, violence, extra people, logo',
                 { width: 512, height: 512 },
-                { retries: 0, timeoutMs: 45000, background: true }
+                { retries: 0, timeoutMs: 45000, background: true, lowPriority: true }
             );
             if (dataUrl) {
                 await putCampfireWordImage(classId, item.word, dataUrl);

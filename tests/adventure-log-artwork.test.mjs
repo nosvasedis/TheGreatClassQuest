@@ -56,9 +56,44 @@ test('automatic retries respect removal and existing pictures', async () => {
 
 test('picture failures stay separate from text generation and allow a later retry', async () => {
     const h = harness(async () => { throw new Error('Provider unavailable'); });
-    await assert.rejects(h.generateAdventureLogArtwork(h.page.id), /unavailable/);
+    await assert.rejects(h.generateAdventureLogArtwork(h.page.id, { retryDelaysMs: [] }), /unavailable/);
     assert.equal(h.page.artworkStatus, 'failed');
     assert.equal(h.page.imageUrl, null); assert.equal(h.page.generationStatus, undefined);
+});
+
+test('a busy first attempt is retried and never trips or waits on the AI breaker', async () => {
+    const seen = [];
+    const h = harness(async (...args) => { seen.push(args[3]); if (seen.length === 1) throw new Error('timed out'); return 'data:image/jpeg;base64,aGVsbG8='; });
+    await h.generateAdventureLogArtwork(h.page.id, { retryDelaysMs: [0] });
+    assert.equal(seen.length, 2);
+    assert.equal(seen[1].background, true); assert.equal(seen[1].ignoreCircuit, true); assert.equal(seen[1].timeoutMs, 45000);
+    assert.equal(h.page.artworkStatus, 'ready'); assert.equal(h.page.artworkSource, 'ai');
+    assert.match(h.page.imageUrl, /adventure_logs\/teacher\/page-1\//);
+});
+
+test('a teacher save during the wait stops the automatic retry without marking it failed', async () => {
+    let calls = 0;
+    const h = harness(async () => { calls += 1; h.page.artworkRequestId = 'teacher-save'; h.page.artworkStatus = 'ready'; h.page.imageUrl = 'mine'; throw new Error('timed out'); });
+    await h.generateAdventureLogArtwork(h.page.id, { retryDelaysMs: [0, 0] });
+    assert.equal(calls, 1); assert.equal(h.page.artworkStatus, 'ready'); assert.equal(h.page.imageUrl, 'mine');
+});
+
+test('a page left generating by a closed tab can be painted again later, a fresh one cannot', async () => {
+    const h = harness();
+    h.page.artworkStatus = 'generating'; h.page.artworkUpdatedAt = { toMillis: () => Date.now() - 60_000 };
+    await h.generateAdventureLogArtwork(h.page.id);
+    assert.equal(h.uploaded.length, 0);
+    h.page.artworkUpdatedAt = { toMillis: () => Date.now() - 11 * 60_000 };
+    await h.generateAdventureLogArtwork(h.page.id);
+    assert.equal(h.page.artworkStatus, 'ready'); assert.equal(h.uploaded.length, 1);
+});
+
+test('Elite and ownership problems are not retried', async () => {
+    let calls = 0;
+    const h = harness(async () => { calls += 1; return 'x'; });
+    h.values.currentUserId = 'someone-else';
+    await assert.rejects(h.generateAdventureLogArtwork(h.page.id, { retryDelaysMs: [0, 0] }), /another teacher/);
+    assert.equal(calls, 0);
 });
 
 test('upload rejects unsupported types and oversized files before reading them', async () => {

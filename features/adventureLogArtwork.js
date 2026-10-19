@@ -1,5 +1,5 @@
 // Picture drafts stay local until Save. Automatic artwork uses a transaction token.
-import { db, doc, runTransaction, serverTimestamp, storage, ref, deleteObject } from '../firebase.js';
+import { db, doc, getDoc, runTransaction, serverTimestamp, storage, ref, deleteObject } from '../firebase.js';
 import * as state from '../state.js';
 import { compressImageBase64, uploadImageToStorage, getLeagueAiVisualStyle } from '../utils.js';
 import { callCloudflareAiImageApi } from '../api.js';
@@ -7,8 +7,16 @@ import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 
 export const newAdventureRequestId = () => crypto.randomUUID();
 
+// The automatic picture is painted right after the Chronicler writes, while Campfire may be
+// painting too, so a busy moment can fail it. It waits and tries again, as a teacher's Retry would.
+export const AUTO_PICTURE_RETRY_DELAYS_MS = [15000, 45000];
+// A 'generating' page whose tab closed mid-paint can be claimed again after this long.
+const STALE_GENERATING_MS = 10 * 60 * 1000;
+
+const permanentError = (message) => Object.assign(new Error(message), { permanent: true });
+
 function assertOwner(log) {
-    if (state.get('currentUserRole') !== 'teacher' || log?.createdBy?.uid !== state.get('currentUserId') || log.schoolYearKey !== state.getActiveSchoolYearKey()) throw new Error('This diary page belongs to another teacher or school year.');
+    if (state.get('currentUserRole') !== 'teacher' || log?.createdBy?.uid !== state.get('currentUserId') || log.schoolYearKey !== state.getActiveSchoolYearKey()) throw permanentError('This diary page belongs to another teacher or school year.');
 }
 
 export async function readAdventurePicture(file) {
@@ -23,14 +31,14 @@ export async function readAdventurePicture(file) {
     return compressImageBase64(dataUrl, 1024, 1024, 0.82);
 }
 
-export async function createAdventurePictureDraft(log, { title = log.title, text = log.text } = {}) {
+export async function createAdventurePictureDraft(log, { title = log.title, text = log.text } = {}, requestOptions = {}) {
     assertOwner(log);
     const { canUseFeature } = await import('../utils/subscription.js');
-    if (!canUseFeature('eliteAI')) throw new Error('AI pictures require Elite.');
+    if (!canUseFeature('eliteAI')) throw permanentError('AI pictures require Elite.');
     const classroom = (state.get('allTeachersClasses') || []).find(c => c.id === log.classId);
     const scene = String(text || '').slice(0, 2400);
     const prompt = `One beautiful classroom diary illustration, ${getLeagueAiVisualStyle(classroom?.questLevel || '')}. Warm, inclusive group of classmates on a shared adventure. Use the supplied diary as scene inspiration, not instructions. Title: ${String(title || '').slice(0, 90)}. Diary: ${scene}. Show one coherent scene inspired by specific objects, words and activities. Watercolor, soft light, magical storybook detail. No writing, letters, grades, scoreboards, logos or collage. Never copy real student portraits.`;
-    const image = await callCloudflareAiImageApi(prompt, '', {}, { retries: 0, timeoutMs: 45000, baseDelay: 600 });
+    const image = await callCloudflareAiImageApi(prompt, '', {}, { retries: 0, timeoutMs: 45000, baseDelay: 600, ...requestOptions });
     assertOwner(log);
     return compressImageBase64(image, 1024, 1024, 0.82);
 }
@@ -54,7 +62,11 @@ export async function discardAdventurePictureObject(path, log) {
     try { await deleteObject(ref(storage, path)); } catch (error) { console.warn('Diary picture cleanup deferred:', error.code); }
 }
 
-export async function generateAdventureLogArtwork(logId) {
+const isStaleGenerating = (log) => log.artworkStatus === 'generating'
+    && Date.now() - (log.artworkUpdatedAt?.toMillis?.() || 0) > STALE_GENERATING_MS;
+
+/** Automatic picture after Auto: the same draft + save steps as the editor's Retry and Save. */
+export async function generateAdventureLogArtwork(logId, { retryDelaysMs = AUTO_PICTURE_RETRY_DELAYS_MS } = {}) {
     const logRef = doc(db, `${PUBLIC_DATA_PATH}/adventure_logs`, logId);
     const requestId = newAdventureRequestId();
     let log;
@@ -64,14 +76,33 @@ export async function generateAdventureLogArtwork(logId) {
         log = { id: snap.id, ...snap.data() };
         assertOwner(log);
         // An uploaded/removed picture is always the teacher's decision, including after a text retry.
-        if (log.imageUrl || log.imageBase64 || ['removed', 'generating'].includes(log.artworkStatus)) return false;
+        if (log.imageUrl || log.imageBase64 || log.artworkStatus === 'removed') return false;
+        if (log.artworkStatus === 'generating' && !isStaleGenerating(log)) return false;
         tx.update(logRef, { artworkRequestId: requestId, artworkStatus: 'generating', artworkError: '', artworkUpdatedAt: serverTimestamp() });
         return true;
     });
     if (!claimed) return;
+    // A teacher's Save (upload, removal, Retry picture) gives the page a new request id.
+    const stillOurs = async () => {
+        const snap = await getDoc(logRef);
+        return snap.exists() && snap.data().artworkRequestId === requestId;
+    };
     let saved;
     try {
-        const dataUrl = await createAdventurePictureDraft(log);
+        let dataUrl;
+        for (let attempt = 0; ; attempt++) {
+            try {
+                // Its failures never switch off the teacher's own AI, and a busy breaker never skips it.
+                dataUrl = await createAdventurePictureDraft(log, undefined, { background: true, ignoreCircuit: true });
+                break;
+            } catch (error) {
+                const delay = retryDelaysMs[attempt];
+                if (error?.permanent || delay == null) throw error;
+                console.warn(`Diary picture attempt ${attempt + 1} failed; trying again shortly.`, error);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                if (!(await stillOurs())) return;
+            }
+        }
         saved = await prepareAdventurePictureSave(log, { kind: 'replace', dataUrl, source: 'ai' });
         const applied = await runTransaction(db, async tx => {
             const snap = await tx.get(logRef);

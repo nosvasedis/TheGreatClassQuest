@@ -1145,6 +1145,41 @@ export function playStarfallSfx(name, opts = {}) {
     }
 }
 
+/**
+ * Birthday and name-day popups. 'open' a greeting chime · 'gift' birthday: a breath, then the
+ * "Happy Birthday" opening phrase on bells · name day: a bouzouki-style tremolo climbing to a D-major chord.
+ */
+export function playOccasionSfx(type, phase) {
+    if (!soundsReady || !audioRunning()) return;
+    const sounds = getSounds(4);
+    const t = Tone.now() + 0.03;
+    const bell = (note, dur, at, vel) => sounds.award_bell.triggerAttackRelease(note, dur, t + at, vel);
+    try {
+        if (phase === 'open') {
+            sounds.award_sparkle.triggerAttackRelease('8n', t);
+            const notes = type === 'nameday' ? ['D6', 'F#6', 'A6', 'D7'] : ['G6', 'B6', 'D7', 'G7'];
+            notes.forEach((n, i) => bell(n, '32n', i * 0.08, 0.3 + i * 0.08));
+        } else if (type === 'birthday') {
+            sounds.award_sparkle.triggerAttackRelease('4n', t);
+            const beat = 0.27;
+            [['G5', 0, 0.75], ['G5', 0.75, 0.25], ['A5', 1, 1], ['G5', 2, 1], ['C6', 3, 1], ['B5', 4, 2]]
+                .forEach(([n, at, len]) => bell(n, len * beat * 0.9, 0.35 + at * beat, 0.7));
+            sounds.award_pad.triggerAttackRelease(['C5', 'E5', 'G5'], 0.9, t + 0.35 + 3 * beat);
+            sounds.award_pad.triggerAttackRelease(['G4', 'D5', 'B5'], 1.1, t + 0.35 + 4 * beat);
+            sounds.award_sparkle.triggerAttackRelease('8n', t + 0.35 + 6 * beat);
+        } else {
+            ['A5', 'D6', 'F#6'].forEach((n, step) => {
+                for (let k = 0; k < 4; k += 1) bell(n, '64n', step * 0.3 + k * 0.065, 0.35 + k * 0.08);
+            });
+            bell(['D6', 'F#6', 'A6', 'D7'], '4n', 0.95, 0.75);
+            sounds.award_pad.triggerAttackRelease(['D5', 'F#5', 'A5'], 1.2, t + 0.95);
+            sounds.award_sparkle.triggerAttackRelease('8n', t + 0.95);
+        }
+    } catch (e) {
+        console.warn('Occasion sound skipped:', e);
+    }
+}
+
 /** Builds the quiz voices ahead of time (the reverb takes a moment), so the first sound doesn't stall a frame. */
 export function warmQuizShowAudio() {
     if (!isAudioReady()) return;

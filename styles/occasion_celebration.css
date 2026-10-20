@@ -1,0 +1,407 @@
+/* Birthday and name-day bonus popups (ui/modals/occasionCelebration.js). Prefix: occ- */
+
+#celebration-bonus-modal {
+    background: rgba(24, 8, 36, 0.62);
+    backdrop-filter: blur(3px);
+}
+#celebration-bonus-modal[data-occasion="nameday"] {
+    background: rgba(8, 26, 56, 0.58);
+}
+
+.occ-card {
+    --occ-ink: #fff;
+    --occ-soft: rgba(255, 255, 255, 0.82);
+    position: relative;
+    width: min(26rem, 100%);
+    max-height: calc(100dvh - 1.5rem);
+    overflow: hidden auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+    border-radius: 2rem;
+    padding: 3.1rem 1.6rem 1.4rem;
+    text-align: center;
+    color: var(--occ-ink);
+    font-family: 'Fredoka', 'Open Sans', sans-serif;
+    box-shadow: 0 30px 60px -18px rgba(20, 0, 30, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.14) inset;
+    isolation: isolate;
+}
+.occ-card::-webkit-scrollbar { display: none; }
+
+/* ---------- Birthday: a party at dusk ---------- */
+.occ-card--birthday {
+    background:
+        radial-gradient(120% 70% at 50% 42%, rgba(255, 196, 120, 0.32), transparent 60%),
+        radial-gradient(60% 40% at 15% 85%, rgba(244, 114, 182, 0.35), transparent 70%),
+        radial-gradient(60% 40% at 85% 85%, rgba(167, 139, 250, 0.35), transparent 70%),
+        linear-gradient(180deg, #2a0f4a 0%, #5b1a6b 46%, #a3286f 100%);
+}
+
+.occ-lights {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 2.4rem;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 0.9rem;
+    pointer-events: none;
+    z-index: 0;
+}
+.occ-lights::before {
+    content: '';
+    position: absolute;
+    left: -2%;
+    right: -2%;
+    top: -1.1rem;
+    height: 2.6rem;
+    border-bottom: 1.5px solid rgba(255, 255, 255, 0.35);
+    border-radius: 0 0 50% 50%;
+}
+.occ-lights i {
+    position: relative;
+    width: 0.42rem;
+    height: 0.6rem;
+    border-radius: 50% 50% 45% 45%;
+    margin-top: calc(1.05rem + (0.45rem * (1 - ((var(--i) - 6.5) * (var(--i) - 6.5)) / 42.25)));
+    background: hsl(calc(var(--i) * 47) 95% 70%);
+    box-shadow: 0 0 10px 2px hsl(calc(var(--i) * 47) 95% 65% / 0.75);
+    animation: occ-twinkle 2.4s ease-in-out infinite;
+    animation-delay: calc(var(--i) * -0.37s);
+}
+
+.occ-bunting {
+    position: absolute;
+    top: 0.25rem;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 0.15rem;
+    pointer-events: none;
+    z-index: 0;
+    transform-origin: 50% 0;
+}
+.occ-bunting i {
+    width: 1.55rem;
+    height: 1.6rem;
+    margin-top: calc(1.1rem + (0.9rem * (1 - ((var(--i) - 5.5) * (var(--i) - 5.5)) / 30.25)) - 1.1rem);
+    background: var(--c);
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    opacity: 0.92;
+    transform-origin: 50% 0;
+    animation: occ-flutter 3.2s ease-in-out infinite;
+    animation-delay: calc(var(--i) * -0.27s);
+}
+
+.occ-stage {
+    position: relative;
+    z-index: 1;
+    margin: 0 auto;
+}
+.occ-card--birthday .occ-stage { width: min(15rem, 76%); }
+.occ-cake { display: block; width: 100%; height: auto; overflow: visible; }
+.occ-cake__glow { animation: occ-glow 2.8s ease-in-out infinite; transform-origin: 100px 70px; }
+.occ-cake__name {
+    font-family: 'Caveat', 'Fredoka', cursive;
+    font-weight: 700;
+    font-size: 25px;
+    fill: #fff;
+    paint-order: stroke;
+    stroke: #be185d;
+    stroke-width: 1.2px;
+}
+.occ-flame { transform-box: fill-box; }
+.occ-flame__body, .occ-flame__halo {
+    transform-box: fill-box;
+    transform-origin: 50% 90%;
+    animation: occ-flicker 0.9s ease-in-out infinite alternate;
+    animation-delay: calc(var(--i) * -0.3s);
+    transition: transform 0.25s ease-in, opacity 0.25s ease-in;
+}
+.occ-flame__halo { animation-name: occ-halo; }
+.occ-flame > path:last-child { transition: opacity 0.2s ease-in; }
+.occ-smoke { opacity: 0; }
+
+.occ-card--birthday.is-giving .occ-flame__body,
+.occ-card--birthday.is-giving .occ-flame__halo {
+    animation: none;
+    transform: scale(0.05) skewX(-25deg);
+    opacity: 0;
+}
+.occ-card--birthday.is-giving .occ-flame > path:last-child { opacity: 0; }
+.occ-card--birthday.is-giving .occ-candle:nth-child(n) .occ-flame__body { transition-delay: calc(var(--i) * 0.08s); }
+.occ-card--birthday.is-giving .occ-smoke {
+    animation: occ-smoke 1.6s ease-out 0.25s both;
+}
+.occ-card--birthday.is-giving .occ-cake__glow { animation: occ-glow-out 1.2s ease-out both; }
+
+/* ---------- Name day: Aegean whitewash, olive wreath ---------- */
+.occ-card--nameday {
+    --occ-ink: #12325f;
+    --occ-soft: #35507a;
+    padding-top: 1.6rem;
+    background:
+        linear-gradient(180deg, #8fd0ff 0%, #c8eaff 30%, #f7fbff 46%, #ffffff 100%);
+    box-shadow: 0 30px 60px -18px rgba(5, 25, 60, 0.6), 0 0 0 4px #fff inset, 0 0 0 5.5px #1d4ed8 inset;
+}
+.occ-sun {
+    position: absolute;
+    top: -5.5rem;
+    left: 50%;
+    width: 15rem;
+    height: 15rem;
+    margin-left: -7.5rem;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle, #fff6c9 0 22%, rgba(255, 230, 140, 0.55) 23% 30%, transparent 31%),
+        repeating-conic-gradient(from 0deg, rgba(255, 236, 160, 0.55) 0 6deg, transparent 6deg 18deg);
+    -webkit-mask: radial-gradient(circle, #000 0 45%, transparent 70%);
+    mask: radial-gradient(circle, #000 0 45%, transparent 70%);
+    animation: occ-spin 40s linear infinite;
+    z-index: 0;
+    pointer-events: none;
+}
+.occ-sea {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 8.6rem;
+    height: 2.4rem;
+    background:
+        radial-gradient(14px 5px at 25% 40%, rgba(255, 255, 255, 0.7), transparent 70%),
+        radial-gradient(18px 5px at 70% 60%, rgba(255, 255, 255, 0.6), transparent 70%),
+        linear-gradient(180deg, #2b7bd6, #5aa9ee 60%, rgba(247, 251, 255, 0));
+    opacity: 0.7;
+    z-index: 0;
+    pointer-events: none;
+}
+.occ-card--nameday .occ-stage { width: 11.5rem; }
+.occ-wreath { position: relative; width: 100%; aspect-ratio: 1; }
+.occ-wreath svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.occ-wreath__face {
+    position: absolute;
+    inset: 24%;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    background: radial-gradient(circle at 35% 30%, #ffffff, #dbeafe 60%, #bfdbfe);
+    box-shadow: 0 0 0 4px #fff, 0 0 0 6px #facc15, 0 10px 22px -8px rgba(18, 50, 95, 0.55);
+}
+.occ-wreath__face img { width: 100%; height: 100%; object-fit: cover; }
+.occ-wreath__face span {
+    font-family: 'Fredoka One', 'Open Sans', sans-serif;
+    font-size: 3rem;
+    color: #1d4ed8;
+    line-height: 1;
+}
+.occ-leaf, .occ-olive { transform-box: fill-box; transform-origin: center; }
+.occ-card--nameday.is-arriving .occ-leaf,
+.occ-card--nameday.is-arriving .occ-olive {
+    animation: occ-leaf-in 0.6s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+    animation-delay: calc(0.15s + var(--k) * 0.07s);
+}
+.occ-card--nameday.is-giving .occ-wreath__face { animation: occ-face-glow 1.6s ease-out both; }
+.occ-card--nameday.is-giving .occ-bow { animation: occ-bow 0.6s ease-in-out 2; transform-box: fill-box; transform-origin: center; }
+
+.occ-meander {
+    position: relative;
+    z-index: 1;
+    height: 0.75rem;
+    margin: 0.5rem -1.6rem 0.4rem;
+    background:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='12' viewBox='0 0 24 12'%3E%3Cpath d='M0 11h4V1h12v8H8V5h4' fill='none' stroke='%231d4ed8' stroke-width='1.6'/%3E%3Cpath d='M12 5v0M16 9v2h8' fill='none' stroke='%231d4ed8' stroke-width='1.6'/%3E%3C/svg%3E") repeat-x center / auto 100%;
+    opacity: 0.85;
+}
+
+/* ---------- Words ---------- */
+.occ-eyebrow {
+    position: relative;
+    z-index: 1;
+    margin: 0.35rem 0 0.1rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #fde68a;
+}
+.occ-card--nameday .occ-eyebrow {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 1.05rem;
+    letter-spacing: 0.06em;
+    text-transform: none;
+    color: #b45309;
+}
+.occ-title {
+    position: relative;
+    z-index: 1;
+    margin: 0;
+    font-family: 'Fredoka One', 'Open Sans', sans-serif;
+    font-weight: 400;
+    font-size: 1.35rem;
+    line-height: 1.15;
+    color: var(--occ-soft);
+}
+.occ-title__name {
+    display: block;
+    font-size: clamp(2rem, 9vw, 2.6rem);
+    color: var(--occ-ink);
+    overflow-wrap: anywhere;
+}
+.occ-card--birthday .occ-title__name {
+    background: linear-gradient(180deg, #fff 30%, #ffd9ec);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 3px 0 rgba(120, 20, 80, 0.55));
+}
+.occ-line {
+    position: relative;
+    z-index: 1;
+    margin: 0.55rem auto 1.1rem;
+    max-width: 21rem;
+    font-size: 0.98rem;
+    line-height: 1.45;
+    color: var(--occ-soft);
+}
+.occ-line b { color: var(--occ-ink); font-weight: 600; }
+
+/* ---------- Buttons ---------- */
+.occ-actions { position: relative; z-index: 2; display: grid; gap: 0.35rem; }
+.occ-gift {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    min-height: 3.4rem;
+    padding: 0.5rem 0.6rem 0.5rem 0.9rem;
+    border: 0;
+    border-radius: 1.2rem;
+    font-family: 'Fredoka One', 'Open Sans', sans-serif;
+    font-size: 1.15rem;
+    color: #4a1d05;
+    background: linear-gradient(180deg, #ffe48a 0%, #ffb547 55%, #ff8a3d 100%);
+    box-shadow: 0 5px 0 #c2410c, 0 12px 24px -8px rgba(255, 140, 60, 0.7), inset 0 2px 0 rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.2s;
+}
+.occ-gift:hover { filter: brightness(1.05); transform: translateY(-1px); }
+.occ-gift:active { transform: translateY(4px); box-shadow: 0 1px 0 #c2410c, 0 6px 14px -8px rgba(255, 140, 60, 0.7), inset 0 2px 0 rgba(255, 255, 255, 0.6); }
+.occ-gift:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+.occ-gift:disabled { cursor: default; transform: none; }
+.occ-gift__icon { font-size: 1.5rem; line-height: 1; }
+.occ-gift__label { flex: 1; text-align: left; }
+.occ-gift__stars {
+    flex: none;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    font-size: 1.05rem;
+    color: #fff;
+    background: linear-gradient(180deg, #7c2d12, #9a3412);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.occ-gift__stars b { color: #fde047; }
+.occ-card--nameday .occ-gift {
+    color: #fff;
+    background: linear-gradient(180deg, #4f8ff7 0%, #1d4ed8 60%, #1e3fae 100%);
+    box-shadow: 0 5px 0 #1e3a8a, 0 12px 24px -8px rgba(29, 78, 216, 0.6), inset 0 2px 0 rgba(255, 255, 255, 0.35);
+}
+.occ-card--nameday .occ-gift:active { box-shadow: 0 1px 0 #1e3a8a, 0 6px 14px -8px rgba(29, 78, 216, 0.6), inset 0 2px 0 rgba(255, 255, 255, 0.35); }
+.occ-card--nameday .occ-gift:focus-visible { outline-color: #1d4ed8; }
+.occ-card--nameday .occ-gift__stars { background: #fff; color: #1e3a8a; }
+.occ-card--nameday .occ-gift__stars b { color: #eab308; }
+.occ-gift__label [lang="el"] { font-family: 'Open Sans', sans-serif; font-weight: 700; }
+
+.is-giving .occ-gift { animation: occ-gift-pop 0.5s ease-out; }
+.is-giving .occ-gift__stars { animation: occ-stars-glow 1s ease-in-out infinite alternate; }
+
+.occ-later {
+    justify-self: center;
+    padding: 0.45rem 1rem;
+    border: 0;
+    background: none;
+    font: 600 0.9rem 'Fredoka', sans-serif;
+    color: var(--occ-soft);
+    opacity: 0.8;
+    cursor: pointer;
+    border-radius: 999px;
+}
+.occ-later:hover { opacity: 1; text-decoration: underline; }
+.occ-later:focus-visible { outline: 2px solid currentColor; }
+.occ-later:disabled { visibility: hidden; }
+
+/* ---------- Burst ---------- */
+.occ-burst { position: absolute; left: 50%; top: 45%; width: 0; height: 0; z-index: 3; pointer-events: none; }
+.occ-bit {
+    position: absolute;
+    left: -4px;
+    top: -6px;
+    width: 9px;
+    height: 14px;
+    border-radius: 2px;
+    box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.08);
+    will-change: transform, opacity;
+}
+.occ-bit--star {
+    width: 16px;
+    height: 16px;
+    left: -8px;
+    top: -8px;
+    background: #fde047;
+    clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    filter: drop-shadow(0 0 4px rgba(253, 224, 71, 0.9));
+}
+.occ-bit--leaf {
+    width: 16px;
+    height: 7px;
+    left: -8px;
+    top: -3px;
+    border-radius: 100% 0;
+    background: linear-gradient(135deg, #a3b86c, #5f7a2e);
+}
+
+/* ---------- Arrival ---------- */
+.occ-card.is-arriving .occ-bunting { animation: occ-bunting-in 0.8s cubic-bezier(0.3, 1.4, 0.5, 1) both; }
+.occ-card.is-arriving .occ-stage { animation: occ-rise 0.7s cubic-bezier(0.3, 1.3, 0.5, 1) 0.1s both; }
+.occ-card.is-arriving .occ-eyebrow,
+.occ-card.is-arriving .occ-title,
+.occ-card.is-arriving .occ-line,
+.occ-card.is-arriving .occ-actions { animation: occ-fade-up 0.5s ease-out both; }
+.occ-card.is-arriving .occ-title { animation-delay: 0.25s; }
+.occ-card.is-arriving .occ-line { animation-delay: 0.35s; }
+.occ-card.is-arriving .occ-actions { animation-delay: 0.45s; }
+
+@keyframes occ-twinkle { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+@keyframes occ-flutter { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+@keyframes occ-flicker { from { transform: scale(1, 1) rotate(-3deg); } to { transform: scale(0.9, 1.1) rotate(3deg); } }
+@keyframes occ-halo { from { transform: scale(0.92); opacity: 0.8; } to { transform: scale(1.1); opacity: 1; } }
+@keyframes occ-glow { 0%, 100% { opacity: 0.85; } 50% { opacity: 1; } }
+@keyframes occ-glow-out { to { opacity: 0.25; } }
+@keyframes occ-smoke {
+    0% { opacity: 0; transform: translateY(4px) scale(0.6); }
+    25% { opacity: 0.85; }
+    100% { opacity: 0; transform: translateY(-22px) scale(1.2); }
+}
+@keyframes occ-spin { to { transform: rotate(360deg); } }
+@keyframes occ-leaf-in { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes occ-face-glow {
+    0% { box-shadow: 0 0 0 4px #fff, 0 0 0 6px #facc15, 0 0 0 0 rgba(250, 204, 21, 0.8); }
+    60% { box-shadow: 0 0 0 4px #fff, 0 0 0 6px #facc15, 0 0 0 26px rgba(250, 204, 21, 0); }
+    100% { box-shadow: 0 0 0 4px #fff, 0 0 0 6px #facc15, 0 10px 22px -8px rgba(18, 50, 95, 0.55); }
+}
+@keyframes occ-bow { 50% { transform: rotate(-8deg) scale(1.08); } }
+@keyframes occ-gift-pop { 40% { transform: scale(1.04); } }
+@keyframes occ-stars-glow { to { box-shadow: 0 0 16px 2px rgba(253, 224, 71, 0.75); } }
+@keyframes occ-bunting-in { from { transform: translateY(-110%); } }
+@keyframes occ-rise { from { transform: translateY(18px) scale(0.9); opacity: 0; } }
+@keyframes occ-fade-up { from { transform: translateY(10px); opacity: 0; } }
+
+@media (max-width: 420px) {
+    .occ-card { padding: 2.8rem 1.1rem 1.1rem; border-radius: 1.6rem; }
+    .occ-card--nameday { padding-top: 1.3rem; }
+    .occ-meander { margin-left: -1.1rem; margin-right: -1.1rem; }
+    .occ-gift { font-size: 1.02rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .occ-card *, .occ-card *::before { animation: none !important; transition: none !important; }
+}

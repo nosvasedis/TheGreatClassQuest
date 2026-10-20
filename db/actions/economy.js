@@ -876,7 +876,6 @@ export async function handleSpecialOccasionBonus(studentId, type) {
         reconcileFamiliarLifecycle(studentId, { announce: true, source: 'special-occasion' }).catch((e) => console.warn('Special occasion familiar reconciliation failed:', e));
         showToast(`${student.name} received +${bonus} Stars for their special day!`, 'success');
         import('../../ui/modals.js').then(m => m.hideModal('celebration-bonus-modal'));
-        playSound('magic_chime');
 
     } catch (error) {
         console.error("Bonus Error:", error);

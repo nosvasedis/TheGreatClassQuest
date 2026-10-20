@@ -67,27 +67,10 @@ export const miscModalsHTML = `
     </div>
 
     <div id="celebration-bonus-modal"
-        class="fixed inset-0 bg-black bg-opacity-60 z-[90] flex items-center justify-center p-4 hidden">
-        <div
-            class="bg-white rounded-3xl shadow-2xl max-w-sm w-full pop-in border-4 border-white relative overflow-hidden text-center">
-            <div
-                class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/confetti.png')] opacity-20">
-            </div>
-            <div id="celebration-header" class="bg-gradient-to-r from-pink-500 to-rose-500 p-6">
-                <div class="text-6xl mb-2 animate-bounce">🎂</div>
-                <h2 id="celebration-title" class="font-title text-3xl text-white drop-shadow-md">Happy Birthday!</h2>
-            </div>
-            <div class="p-6">
-                <p id="celebration-message" class="text-gray-600 mb-6 text-lg">It's <b>Student's</b> special day! Would
-                    you like to award a gift?</p>
-                <button id="celebration-award-btn"
-                    class="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white font-title text-xl py-3 rounded-xl bubbly-button shadow-lg mb-3">
-                    <i class="fas fa-gift mr-2"></i> Award +<span id="celebration-points">2.5</span> Stars
-                </button>
-                <button id="celebration-cancel-btn" class="text-gray-400 text-sm hover:text-gray-600 underline">Not
-                    now</button>
-            </div>
-        </div>
+        class="fixed inset-0 z-[90] flex items-center justify-center p-3 hidden"
+        role="dialog" aria-modal="true" aria-labelledby="occ-title">
+        <!-- Filled by ui/modals/occasionCelebration.js (birthday cake or name-day wreath). -->
+        <div id="celebration-bonus-content" class="occ-card pop-in"></div>
     </div>
 
     <div id="quest-assignment-modal"

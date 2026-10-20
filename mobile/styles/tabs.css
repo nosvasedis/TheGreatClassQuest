@@ -211,16 +211,14 @@ body.gcq-mobile #edit-class-form > .relative {
 
 body.gcq-mobile #fortunes-wheel-modal,
 body.gcq-mobile #hero-celebration-modal,
-body.gcq-mobile #hero-level-up-modal,
-body.gcq-mobile #celebration-bonus-modal {
+body.gcq-mobile #hero-level-up-modal {
     align-items: center;
     padding: 1rem;
 }
 
 body.gcq-mobile #fortunes-wheel-modal > *,
 body.gcq-mobile #hero-celebration-modal > *,
-body.gcq-mobile #hero-level-up-modal > *,
-body.gcq-mobile #celebration-bonus-modal > * {
+body.gcq-mobile #hero-level-up-modal > * {
     width: auto;
     max-width: 100%;
     max-height: none;

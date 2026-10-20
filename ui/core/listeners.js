@@ -871,52 +871,23 @@ export function setupUIListeners() {
             triggerDynamicPraise(student.name, starValue, reason);
             saveAwardWithOptimisticCloud(studentId, starValue, reason);
 
-            // --- BIRTHDAY CHECK ---
-            if (utils.isSpecialOccasion(student.birthday, schedule)) {
-                const todayLogs = state.get('allAwardLogs').filter(l => l.studentId === studentId && l.date === utils.getTodayDateString() && l.note && l.note.includes('Birthday'));
-
-                if (todayLogs.length === 0) {
-                    // Trigger Modal
-                    document.getElementById('celebration-title').innerText = "Happy Birthday!";
-                    document.getElementById('celebration-message').innerHTML = `It's <b>${student.name}'s</b> birthday! Wish them well?`;
-                    document.getElementById('celebration-points').innerText = "2.5";
-
-                    const btn = document.getElementById('celebration-award-btn');
-                    const newBtn = btn.cloneNode(true);
-                    btn.parentNode.replaceChild(newBtn, btn);
-
-                    newBtn.onclick = () => {
-                        import('../../db/actions.js').then(a => a.handleSpecialOccasionBonus(studentId, 'birthday'));
-                    };
-
-                    document.getElementById('celebration-cancel-btn').onclick = () => modals.hideModal('celebration-bonus-modal');
+            // --- BIRTHDAY / NAMEDAY CHECK (birthday wins if both fall today) ---
+            const occasion = ['birthday', 'nameday'].find((type) => {
+                if (!utils.isSpecialOccasion(student[type], schedule)) return false;
+                const tag = type === 'birthday' ? 'Birthday' : 'Nameday';
+                return !state.get('allAwardLogs').some(l => l.studentId === studentId && l.date === utils.getTodayDateString() && l.note && l.note.includes(tag));
+            });
+            if (occasion) {
+                import('../modals/occasionCelebration.js').then(({ prepareOccasionCelebration }) => {
+                    prepareOccasionCelebration({
+                        type: occasion,
+                        student,
+                        bonus: occasion === 'birthday' ? 2.5 : 1.5,
+                        onGift: () => import('../../db/actions.js').then(a => a.handleSpecialOccasionBonus(studentId, occasion)),
+                        close: () => modals.hideModal('celebration-bonus-modal'),
+                    });
                     modals.showAnimatedModal('celebration-bonus-modal');
-                    return; // STOP standard award logic
-                }
-            }
-
-            // --- NAMEDAY CHECK ---
-            if (utils.isSpecialOccasion(student.nameday, schedule)) {
-                const todayLogs = state.get('allAwardLogs').filter(l => l.studentId === studentId && l.date === utils.getTodayDateString() && l.note && l.note.includes('Nameday'));
-
-                if (todayLogs.length === 0) {
-                    // Trigger Modal
-                    document.getElementById('celebration-title').innerText = "Happy Nameday!";
-                    document.getElementById('celebration-message').innerHTML = `It's <b>${student.name}'s</b> Name Day! Wish them well?`;
-                    document.getElementById('celebration-points').innerText = "1.5";
-
-                    const btn = document.getElementById('celebration-award-btn');
-                    const newBtn = btn.cloneNode(true);
-                    btn.parentNode.replaceChild(newBtn, btn);
-
-                    newBtn.onclick = () => {
-                        import('../../db/actions.js').then(a => a.handleSpecialOccasionBonus(studentId, 'nameday'));
-                    };
-
-                    document.getElementById('celebration-cancel-btn').onclick = () => modals.hideModal('celebration-bonus-modal');
-                    modals.showAnimatedModal('celebration-bonus-modal');
-                    return; // STOP standard award logic
-                }
+                });
             }
 
             return;

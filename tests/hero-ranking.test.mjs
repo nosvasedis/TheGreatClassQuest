@@ -202,3 +202,22 @@ test('podium heroes carry their longest word so long names shrink instead of spl
     assert.match(html, /data-hcs-id="b"[^>]*--lw:15/);
     assert.match(html, /data-hcs-id="a"[^>]*--lw:4/);
 });
+
+test('half stars show and rank exactly on the Hero\'s Challenge board', async () => {
+    const { formatStandingsStars } = await import('../ui/tabs/heroStandings.js');
+    assert.equal(formatStandingsStars(19.5), '19.5');
+    assert.equal(formatStandingsStars(20), '20');
+    assert.equal(formatStandingsStars(0.1 + 0.2), '0.3');
+
+    const ranked = rankHeroes([hero('a', 19.5), hero('b', 20)]);
+    assert.deepEqual(ranked.map((h) => [h.id, h.rank]), [['b', 1], ['a', 2]]);
+
+    const entries = ranked.map((h, i) => ({
+        id: h.id, name: h.id, rank: h.rank, score: h.stars, gold: 0, slot: i, fromSlot: i,
+        fromScore: h.stars, gain: 0, climb: 0, avatarHtml: '', avatarLargeHtml: '', showClass: false
+    }));
+    const html = renderStandingsSectionHtml({ id: 'c1', title: 'Owls', entries }, { monthName: 'October' });
+    assert.match(html, /data-to="19\.5">19\.5</);
+    assert.match(html, /data-to="20">20</);
+    assert.match(html, /Leads by 0\.5/);
+});

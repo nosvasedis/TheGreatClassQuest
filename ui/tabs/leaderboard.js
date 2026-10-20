@@ -42,6 +42,7 @@ import {
     renderHeroTraitsHtml,
     renderStandingsHeraldHtml,
     renderStandingsSectionHtml,
+    formatStandingsStars,
     writeStandingsSnapshot
 } from './heroStandings.js';
 import { getMonthFinaleClassIds } from '../../features/monthFinale.js';
@@ -945,9 +946,11 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
         .map(s => {
             const studentClass = state.get('allSchoolClasses').find(c => c.id === s.classId);
             const scoreData = allStudentScores.find(sc => sc.id === s.id) || {};
-            const score = state.get('studentStarMetric') === 'monthly'
+            // Kept to two decimals so half stars (19.5) rank and tie exactly.
+            const rawScore = state.get('studentStarMetric') === 'monthly'
                 ? currentMonthStarsFromScore(scoreData, monthStart)
                 : (Number(scoreData.totalStars) || 0);
+            const score = Math.round(rawScore * 100) / 100;
             const totalStars = scoreData.totalStars || 0;
 
             // NEW: Get Gold
@@ -1088,7 +1091,7 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
     ).map((s) => toEntry(s, s.rank, opts));
 
     const sumStars = (students) => students.reduce((sum, s) => sum + (Number(s.score) || 0), 0);
-    const starFact = (n) => `<i class="fas fa-star" aria-hidden="true"></i>${n} ${starMetric === 'monthly' ? `star${n === 1 ? '' : 's'} in ${escapeLeaderboardHtml(monthName)}` : `star${n === 1 ? '' : 's'} all-time`}`;
+    const starFact = (n) => `<i class="fas fa-star" aria-hidden="true"></i>${formatStandingsStars(n)} ${starMetric === 'monthly' ? `star${n === 1 ? '' : 's'} in ${escapeLeaderboardHtml(monthName)}` : `star${n === 1 ? '' : 's'} all-time`}`;
     const heroFact = (n) => `<i class="fas fa-users" aria-hidden="true"></i>${n} hero${n === 1 ? '' : 'es'}`;
 
     // A class's last lesson of the month: its standings stay sealed so the

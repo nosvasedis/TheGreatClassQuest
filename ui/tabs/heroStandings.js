@@ -19,6 +19,20 @@ export function escapeStandingsHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
+/**
+ * A star count as the board shows it. Bonus awards (birthday +2½, name day
+ * +1½...) leave half stars, so 19.5 must read 19.5, never 20. Float noise is
+ * trimmed to two decimals.
+ */
+export function formatStandingsStars(value) {
+    const n = Math.round((Number(value) || 0) * 100) / 100;
+    return String(n);
+}
+
+function starWord(n) {
+    return Number(n) === 1 ? 'star' : 'stars';
+}
+
 // Ranks come from the shared hero ranking rules (same as the Ceremony).
 export { assignHeroRanks } from '../../features/heroRanking.js';
 
@@ -117,11 +131,11 @@ function moveChipHtml(e) {
 
 function gainChipHtml(e) {
     if (!(e.gain > 0)) return '';
-    return `<span class="hcs-gain" title="${e.gain} new star${e.gain === 1 ? '' : 's'} since your last look">+${e.gain}</span>`;
+    return `<span class="hcs-gain" title="${formatStandingsStars(e.gain)} new ${starWord(e.gain)} since your last look">+${formatStandingsStars(e.gain)}</span>`;
 }
 
 function countHtml(e) {
-    return `<span class="hcs-count" data-hcs-count data-from="${e.fromScore ?? e.score}" data-to="${e.score}">${e.score}</span>`;
+    return `<span class="hcs-count" data-hcs-count data-from="${e.fromScore ?? e.score}" data-to="${e.score}">${formatStandingsStars(e.score)}</span>`;
 }
 
 /**
@@ -225,7 +239,7 @@ function podiumNoteHtml(e, group, entries) {
     if (!next) return '';
     const leadBy = e.score - next.score;
     return leadBy > 0
-        ? `<span class="hcs-figure__lead">Leads by ${leadBy}</span>`
+        ? `<span class="hcs-figure__lead">Leads by ${formatStandingsStars(leadBy)}</span>`
         : '<span class="hcs-figure__lead" title="Level on stars: more 3-star and 2-star awards, more kinds of awards, then the better test average decide">Wins the tie-break</span>';
 }
 
@@ -374,11 +388,11 @@ export function renderHeroRoleBadgesHtml({ champion = false, topHero = false, co
 function roadHtml(e, { leaderScore, podiumFloor }) {
     const pct = leaderScore > 0 ? Math.round((e.score / leaderScore) * 100) : 0;
     const flag = podiumFloor > 0 && podiumFloor < leaderScore
-        ? `<span class="hcs-road__flag" style="--at:${(podiumFloor / leaderScore).toFixed(3)}" title="The podium starts at ${podiumFloor} star${podiumFloor === 1 ? '' : 's'}"></span>`
+        ? `<span class="hcs-road__flag" style="--at:${(podiumFloor / leaderScore).toFixed(3)}" title="The podium starts at ${formatStandingsStars(podiumFloor)} ${starWord(podiumFloor)}"></span>`
         : '';
     const label = e.score > 0 ? `${pct}% of the way to 1st` : 'No stars yet';
     return `
-        <div class="hcs-road" title="${e.score} of the leader's ${leaderScore} stars">
+        <div class="hcs-road" title="${formatStandingsStars(e.score)} of the leader's ${formatStandingsStars(leaderScore)} stars">
             <span class="hcs-road__track" aria-hidden="true">
                 <span class="hcs-road__fill"></span>
                 ${flag}
@@ -393,9 +407,9 @@ function rowHtml(e, above, { firstBelowPodium = false, leaderScore = 0, podiumFl
     if (above) {
         const gap = above.score - e.score;
         if (gap > 0 && firstBelowPodium) {
-            gapHtml = `<span class="hcs-row__gap hcs-row__gap--podium" title="Stars to draw level with ${escapeStandingsHtml(above.name)} on the podium"><i class="fas fa-flag" aria-hidden="true"></i>${gap} from the podium</span>`;
+            gapHtml = `<span class="hcs-row__gap hcs-row__gap--podium" title="Stars to draw level with ${escapeStandingsHtml(above.name)} on the podium"><i class="fas fa-flag" aria-hidden="true"></i>${formatStandingsStars(gap)} from the podium</span>`;
         } else if (gap > 0) {
-            gapHtml = `<span class="hcs-row__gap" title="Stars to draw level with ${escapeStandingsHtml(above.name)}"><i class="fas fa-arrow-up" aria-hidden="true"></i>${gap} to catch ${escapeStandingsHtml(above.name)}</span>`;
+            gapHtml = `<span class="hcs-row__gap" title="Stars to draw level with ${escapeStandingsHtml(above.name)}"><i class="fas fa-arrow-up" aria-hidden="true"></i>${formatStandingsStars(gap)} to catch ${escapeStandingsHtml(above.name)}</span>`;
         } else if (above.rank === e.rank) {
             gapHtml = `<span class="hcs-row__gap hcs-row__gap--tie" title="Same stars and the same tie-breakers"><i class="fas fa-equals" aria-hidden="true"></i>Tied for ${ordinal(e.rank)}</span>`;
         } else {
@@ -557,7 +571,7 @@ export function renderStandingsHeraldHtml(sections, { byClass = true } = {}) {
     if (!gainers && !bestClimb) return '';
     const bits = [];
     if (gainers) {
-        bits.push(`<b>${gainers} hero${gainers === 1 ? '' : 'es'}</b> earned <b>${starsGained} star${starsGained === 1 ? '' : 's'}</b>`);
+        bits.push(`<b>${gainers} hero${gainers === 1 ? '' : 'es'}</b> earned <b>${formatStandingsStars(starsGained)} ${starWord(starsGained)}</b>`);
     }
     const where = (section) => (byClass ? ` in ${escapeStandingsHtml(section.title)}` : '');
     if (newLeaders.length) {
@@ -586,15 +600,18 @@ function reducedMotion() {
 
 function countUp(el, from, to, duration) {
     if (from === to) {
-        el.textContent = String(to);
+        el.textContent = formatStandingsStars(to);
         return;
     }
+    // Tick in half stars when either end has one, and always land on the exact count.
+    const unit = Number.isInteger(from) && Number.isInteger(to) ? 1 : 0.5;
     const start = performance.now();
     const step = (now) => {
         if (!el.isConnected) return;
         const t = Math.min(1, (now - start) / duration);
         const eased = 1 - Math.pow(1 - t, 3);
-        el.textContent = String(Math.round(from + (to - from) * eased));
+        const value = t < 1 ? Math.round((from + (to - from) * eased) / unit) * unit : to;
+        el.textContent = formatStandingsStars(value);
         if (t < 1) requestAnimationFrame(step);
     };
     requestAnimationFrame(step);

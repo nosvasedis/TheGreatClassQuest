@@ -1438,6 +1438,10 @@ async function initApp() {
         import('./features/realmMoments.js')
             .then(({ startRealmMoments }) => startRealmMoments())
             .catch((e) => console.warn('Realm moments failed to start', e));
+        // The Crystal Portal: celebrates a class stepping through, also when another device saved it.
+        import('./features/portalMoments.js')
+            .then(({ startPortalMoments }) => startPortalMoments())
+            .catch((e) => console.warn('Portal moments failed to start', e));
         // Hero Seals: presses each child's personal milestones and tells the teacher.
         import('./features/heroSeals.js')
             .then(({ startHeroSeals }) => startHeroSeals())

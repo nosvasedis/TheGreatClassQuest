@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Portal story preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Fredoka+One&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    html, body { margin: 0; min-height: 100%; }
+    body { background: linear-gradient(180deg, #e0e7ff 0%, #f5f3ff 40%, #faf5ff 100%); font-family: 'Fredoka', sans-serif; }
+    .pv-fake { padding: 2rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: 1rem; }
+    .pv-fake div { height: 7rem; border-radius: 1rem; background: #fff; box-shadow: 0 4px 14px rgba(80,60,160,.12); }
+    .pv-bar { position: fixed; left: 12px; bottom: 12px; display: flex; gap: 8px; z-index: 1; }
+    .pv-bar button { padding: 6px 12px; border-radius: 10px; border: 1px solid #a78bfa; background: #fff; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="pv-fake"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+  <div class="pv-bar"><button id="pv-sound">Sound on</button><button id="pv-banner">Banner</button><button id="pv-story">Story</button></div>
+  <script type="module" src="/portal-story-preview.js"></script>
+</body>
+</html>

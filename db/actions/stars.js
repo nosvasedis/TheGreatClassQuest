@@ -824,9 +824,8 @@ export async function checkAndRecordQuestCompletion(classId) {
         crossing = await recordPortalCrossing(classData, studentsInClass, status, { payGold: false });
     }
     if (!crossing) return;
-    playSound("magic_chime");
     import("../../features/portalMoments.js")
-        .then(({ announcePortalCrossing }) => announcePortalCrossing(classData, crossing))
+        .then(({ announcePortalCrossing }) => announcePortalCrossing(classData, crossing, status))
         .catch(() => {});
 }
 

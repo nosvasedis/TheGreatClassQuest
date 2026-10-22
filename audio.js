@@ -1180,6 +1180,78 @@ export function playOccasionSfx(type, phase) {
     }
 }
 
+/**
+ * The Portal story (features/portalMoments.js, ui/modals/portalStory.js), all in D major.
+ * 'banner' bells climb and, as the class reaches the Portal, a chord blooms ({ gate } holds it
+ * unresolved) · 'rune' one bell per rune ({ step, lit }) · 'open' the Portal swells open ·
+ * 'step' one hero steps through ({ step }) · 'flash' · 'crest' a I-IV-V-I fanfare for the new
+ * rank · 'gold' coins · 'sealed' a hopeful suspended chord · 'guardian' a low call at the gate.
+ */
+const PORTAL_STEPS = ['D6', 'E6', 'F#6', 'A6', 'B6', 'D7', 'E7', 'F#7', 'A7'];
+
+export function playPortalSfx(name, opts = {}) {
+    if (!soundsReady || !audioRunning()) return;
+    const sounds = getSounds(name === 'crest' || name === 'banner' ? 5 : 3);
+    const t = Tone.now() + 0.03;
+    const bell = (note, dur, at, vel) => sounds.award_bell.triggerAttackRelease(note, dur, t + at, vel);
+    const pad = (notes, dur, at) => sounds.award_pad.triggerAttackRelease(notes, dur, t + at);
+    try {
+        if (name === 'banner') {
+            sounds.award_sparkle.triggerAttackRelease('8n', t);
+            ['A5', 'D6', 'F#6', 'A6'].forEach((n, i) => bell(n, '32n', i * 0.09, 0.3 + i * 0.08));
+            const at = Number(opts.arriveAt) || 2.1;
+            sounds.award_swell.triggerAttackRelease('D2', '4n', t + at);
+            if (opts.gate) {
+                pad(['D5', 'G5', 'A5'], 1.4, at);
+                bell(['G6', 'A6'], '8n', at + 0.05, 0.5);
+            } else {
+                pad(['D5', 'F#5', 'A5', 'D6'], 1.6, at);
+                bell(['D7', 'F#7', 'A7'], '8n', at + 0.05, 0.6);
+                sounds.award_sparkle.triggerAttackRelease('4n', t + at);
+            }
+        } else if (name === 'rune') {
+            const step = Math.max(0, Number(opts.step) || 0);
+            if (opts.lit === false) bell('A5', '16n', 0, 0.22);
+            else bell(PORTAL_STEPS[(step * 2) % PORTAL_STEPS.length], '16n', 0, 0.55);
+        } else if (name === 'open') {
+            sounds.award_swell.triggerAttackRelease('D2', '2n', t);
+            pad(['D4', 'A4', 'F#5'], 2.2, 0);
+            sounds.award_sparkle.triggerAttackRelease('2n', t + 0.1);
+            ['A7', 'F#7', 'D7', 'A6', 'F#6', 'D6'].forEach((n, i) => bell(n, '32n', 0.25 + i * 0.07, 0.18 + i * 0.05));
+        } else if (name === 'step') {
+            const step = Math.max(0, Number(opts.step) || 0);
+            bell(PORTAL_STEPS[step % PORTAL_STEPS.length], '32n', 0, 0.32);
+        } else if (name === 'flash') {
+            sounds.award_swell.triggerAttackRelease('A1', '2n', t);
+            sounds.award_sparkle.triggerAttackRelease('2n', t);
+            bell(['D6', 'A6', 'D7'], '8n', 0.02, 0.6);
+        } else if (name === 'crest') {
+            ['D6', 'F#6', 'A6', 'D7'].forEach((n, i) => bell(n, '32n', i * 0.11, 0.45 + i * 0.08));
+            pad(['D4', 'F#4', 'A4'], 0.6, 0);
+            pad(['G4', 'B4', 'D5'], 0.55, 0.62);
+            bell(['G6', 'B6'], '16n', 0.62, 0.5);
+            pad(['A4', 'C#5', 'E5'], 0.55, 1.12);
+            bell(['A6', 'C#7'], '16n', 1.12, 0.55);
+            pad(['D5', 'F#5', 'A5', 'D6'], 2.4, 1.62);
+            bell(['D7', 'F#7', 'A7'], '4n', 1.62, 0.75);
+            sounds.award_swell.triggerAttackRelease('D2', '2n', t + 1.62);
+            sounds.award_sparkle.triggerAttackRelease('2n', t + 1.62);
+        } else if (name === 'gold') {
+            [['B6', 'E7'], ['C7', 'G7'], ['D7', 'A7']].forEach((pair, i) => sounds.cash.triggerAttackRelease(pair, '16n', t + i * 0.09));
+        } else if (name === 'sealed') {
+            pad(['D4', 'G4', 'A4'], 2, 0);
+            ['A6', 'G6', 'E6', 'D6'].forEach((n, i) => bell(n, '16n', i * 0.16, 0.42 - i * 0.05));
+            bell(['D6', 'G6', 'A6'], '4n', 0.75, 0.35);
+        } else if (name === 'guardian') {
+            sounds.award_swell.triggerAttackRelease('D2', '2n', t);
+            pad(['D4', 'F4', 'A4'], 1.8, 0);
+            ['A5', 'F5', 'D5'].forEach((n, i) => bell(n, '8n', 0.2 + i * 0.22, 0.45));
+        }
+    } catch (e) {
+        console.warn('Portal sound skipped:', e);
+    }
+}
+
 /** Builds the quiz voices ahead of time (the reverb takes a moment), so the first sound doesn't stall a frame. */
 export function warmQuizShowAudio() {
     if (!isAudioReady()) return;

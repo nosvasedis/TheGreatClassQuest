@@ -1,0 +1,469 @@
+/* The Crystal Portal banner (features/portalMoments.js). Loaded lazily with that module.
+   A night-crystal strip: on the left a tiny scene (the class token walks the glowing road into
+   the Portal, a flash, the new rank crest rises); on the right the words and "watch" button.
+   Motion only moves transform and opacity; the lite tier drops the spin, the sparks and the halo. */
+
+.pe-host {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    pointer-events: none;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: clamp(12px, 6vh, 64px) 12px 0;
+}
+
+.pe-banner {
+    --pe-tone: #a78bfa;
+    --pe-tone-light: #ede9fe;
+    --pe-stage: clamp(150px, 30vw, 300px);
+    position: relative;
+    pointer-events: auto;
+    cursor: pointer;
+    display: flex;
+    align-items: stretch;
+    width: min(880px, 100%);
+    min-height: clamp(118px, 17vw, 150px);
+    border-radius: 28px;
+    color: #f5f3ff;
+    background:
+        radial-gradient(90% 140% at 24% 50%, rgba(129, 140, 248, 0.45), transparent 60%),
+        linear-gradient(118deg, #0f0a2e 0%, #24135c 45%, #3b1a75 100%);
+    border: 2px solid rgba(196, 181, 253, 0.75);
+    box-shadow: 0 24px 60px rgba(15, 10, 46, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 0 0 4px rgba(167, 139, 250, 0.18);
+    overflow: hidden;
+    outline: none;
+    animation: pe-arrive 0.7s cubic-bezier(0.2, 0.9, 0.25, 1.15) both;
+    will-change: transform, opacity;
+}
+
+.pe-banner:focus-visible { box-shadow: 0 24px 60px rgba(15, 10, 46, 0.5), 0 0 0 4px #fde68a; }
+.pe-banner.is-leaving { animation: pe-leave 0.38s ease-in both; }
+
+@keyframes pe-arrive {
+    from { opacity: 0; transform: translateY(-40px) scale(0.9); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes pe-leave {
+    to { opacity: 0; transform: translateY(-24px) scale(0.96); }
+}
+
+/* Rank tones (the new rank on a crossing, the waiting rank at the gate). */
+.qr-tone--wayfinders { --pe-tone: #4ade80; --pe-tone-light: #dcfce7; }
+.qr-tone--torchbearers { --pe-tone: #fb923c; --pe-tone-light: #ffedd5; }
+.qr-tone--shieldbearers { --pe-tone: #60a5fa; --pe-tone-light: #dbeafe; }
+.qr-tone--starseekers { --pe-tone: #a78bfa; --pe-tone-light: #ede9fe; }
+.qr-tone--stormriders { --pe-tone: #22d3ee; --pe-tone-light: #cffafe; }
+.qr-tone--dragonhearts { --pe-tone: #fb7185; --pe-tone-light: #ffe4e6; }
+.qr-tone--sovereigns { --pe-tone: #facc15; --pe-tone-light: #fef9c3; }
+
+/* Tiny painted stars (one static layer). */
+.pe-banner__sky {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(1.4px 1.4px at 8% 22%, #fff, transparent),
+        radial-gradient(1px 1px at 18% 70%, #e0e7ff, transparent),
+        radial-gradient(1.6px 1.6px at 31% 14%, #fff, transparent),
+        radial-gradient(1px 1px at 44% 82%, #c7d2fe, transparent),
+        radial-gradient(1.3px 1.3px at 57% 30%, #fff, transparent),
+        radial-gradient(1px 1px at 66% 64%, #e9d5ff, transparent),
+        radial-gradient(1.5px 1.5px at 78% 18%, #fff, transparent),
+        radial-gradient(1px 1px at 88% 76%, #ddd6fe, transparent),
+        radial-gradient(1.2px 1.2px at 95% 40%, #fff, transparent);
+    opacity: 0.8;
+    pointer-events: none;
+}
+
+/* ── The scene ── */
+.pe-banner__stage {
+    position: relative;
+    flex: 0 0 var(--pe-stage);
+    width: var(--pe-stage);
+    overflow: hidden;
+}
+
+.pe-banner__road {
+    position: absolute;
+    left: 2%;
+    right: 26%;
+    top: 62%;
+    height: 6px;
+    border-radius: 6px;
+    background: repeating-linear-gradient(90deg, rgba(253, 230, 138, 0.95) 0 12px, transparent 12px 20px);
+    box-shadow: 0 0 12px rgba(253, 224, 71, 0.55);
+    transform-origin: left center;
+    animation: pe-road 0.7s 0.25s ease-out both;
+}
+
+@keyframes pe-road {
+    from { transform: scaleX(0); opacity: 0; }
+    to { transform: scaleX(1); opacity: 1; }
+}
+
+.pe-banner__portal {
+    position: absolute;
+    left: 74%;
+    top: 50%;
+    width: calc(var(--pe-stage) * 0.46);
+    height: calc(var(--pe-stage) * 0.46);
+    max-width: 128px;
+    max-height: 128px;
+    transform: translate(-50%, -50%);
+}
+
+.pe-banner__halo {
+    position: absolute;
+    inset: -22%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(196, 181, 253, 0.7), rgba(129, 140, 248, 0.25) 45%, transparent 70%);
+    animation: pe-halo 2.4s ease-in-out infinite alternate;
+}
+
+@keyframes pe-halo {
+    from { opacity: 0.55; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1.06); }
+}
+
+.pe-banner__vortex,
+.pe-banner__veil {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.pe-banner__vortex { animation: pe-spin 7s linear infinite; }
+.pe-banner__veil { opacity: 0; }
+
+@keyframes pe-spin {
+    to { transform: rotate(-360deg); }
+}
+
+.pe-banner__flash {
+    position: absolute;
+    inset: -40%;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff 0%, rgba(255, 255, 255, 0.85) 25%, rgba(196, 181, 253, 0) 65%);
+    opacity: 0;
+    animation: pe-flash 0.9s 2.45s ease-out both;
+}
+
+@keyframes pe-flash {
+    0% { opacity: 0; transform: scale(0.3); }
+    25% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.5); }
+}
+
+.pe-banner__spark {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 7px;
+    height: 7px;
+    margin: -3.5px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 8px 2px var(--pe-tone);
+    opacity: 0;
+    animation: pe-spark 1s calc(2.5s + var(--i) * 0.025s) ease-out both;
+}
+
+@keyframes pe-spark {
+    0% { opacity: 0; transform: rotate(calc(var(--i) * 36deg)) translateY(0) scale(0.4); }
+    25% { opacity: 1; }
+    100% { opacity: 0; transform: rotate(calc(var(--i) * 36deg)) translateY(-68px) scale(1); }
+}
+
+/* The walker spans the stage, so translateX(%) is a share of the stage's width. */
+.pe-banner__walker {
+    position: absolute;
+    inset: 0;
+    animation: pe-walk 2s 0.5s cubic-bezier(0.45, 0.05, 0.4, 1) both;
+}
+
+@keyframes pe-walk {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(64%); }
+}
+
+.pe-banner__token {
+    position: absolute;
+    left: 2%;
+    top: 62%;
+    width: calc(var(--pe-stage) * 0.2);
+    height: calc(var(--pe-stage) * 0.2);
+    max-width: 56px;
+    max-height: 56px;
+    margin-top: calc(var(--pe-stage) * -0.17);
+    display: grid;
+    place-items: center;
+    animation: pe-hop 0.34s 0.5s ease-in-out 6 alternate, pe-enter 0.5s 2.45s cubic-bezier(0.6, 0, 0.8, 0.4) forwards;
+}
+
+.pe-banner__token img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.pe-banner__token b {
+    position: relative;
+    font-size: calc(var(--pe-stage) * 0.08);
+    line-height: 1;
+    margin-top: 12%;
+}
+
+@keyframes pe-hop {
+    to { transform: translateY(-6px); }
+}
+
+@keyframes pe-enter {
+    to { transform: scale(0.1) rotate(300deg); opacity: 0; }
+}
+
+.pe-banner__crest {
+    position: absolute;
+    left: 74%;
+    top: 50%;
+    width: calc(var(--pe-stage) * 0.36);
+    height: calc(var(--pe-stage) * 0.36);
+    max-width: 104px;
+    max-height: 104px;
+    margin: calc(var(--pe-stage) * -0.18) 0 0 calc(var(--pe-stage) * -0.18);
+    opacity: 0;
+    animation: pe-crest 0.9s 2.75s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+
+.pe-banner__crest .qrc { width: 100%; height: 100%; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45)); }
+
+@keyframes pe-crest {
+    from { opacity: 0; transform: scale(0.2) translateY(20%); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ── The words ── */
+.pe-banner__copy {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    padding: 14px 52px 16px 8px;
+    padding-right: clamp(52px, 17vw, 170px);
+}
+
+.pe-banner__copy small {
+    font-size: clamp(0.72rem, 1.35vw, 0.95rem);
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--pe-tone-light);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    animation: pe-rise 0.5s 0.35s ease-out both;
+}
+
+.pe-banner__logo { margin-right: 0.4em; }
+
+.pe-banner__copy strong {
+    font-size: clamp(1.6rem, 4.4vw, 3rem);
+    line-height: 1.05;
+    color: #fff;
+    text-shadow: 0 0 18px var(--pe-tone), 0 2px 0 rgba(15, 10, 46, 0.6);
+    animation: pe-title 0.7s 2.7s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
+
+.pe-banner__copy em {
+    font-style: normal;
+    font-weight: 700;
+    font-size: clamp(0.8rem, 1.5vw, 1.02rem);
+    color: #e0e7ff;
+    opacity: 0.92;
+    animation: pe-rise 0.5s 3s ease-out both;
+}
+
+.pe-banner__cta {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 8px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: clamp(0.78rem, 1.3vw, 0.92rem);
+    color: #1e1b4b;
+    background: linear-gradient(135deg, #fef3c7, #fcd34d);
+    box-shadow: 0 4px 0 #b45309, 0 0 0 0 rgba(253, 224, 71, 0.6);
+    animation: pe-rise 0.5s 3.4s ease-out both, pe-call 1.6s 4s ease-in-out 4;
+}
+
+.pe-banner__cta i { font-size: 0.75em; }
+
+@keyframes pe-rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes pe-title {
+    from { opacity: 0; transform: scale(0.7); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes pe-call {
+    50% { transform: scale(1.06); }
+}
+
+.pe-banner:hover .pe-banner__cta { background: linear-gradient(135deg, #fff7d6, #fde047); }
+
+.pe-banner__close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 0;
+    display: grid;
+    place-items: center;
+    color: #e0e7ff;
+    background: rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+}
+
+.pe-banner__close:hover { background: rgba(255, 255, 255, 0.22); color: #fff; }
+
+.pe-banner__timer {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 4px;
+    width: 100%;
+    background: linear-gradient(90deg, var(--pe-tone), #fde68a);
+    transform-origin: left center;
+    animation: pe-timer var(--pe-life, 12s) linear both;
+}
+
+.pe-banner.is-held .pe-banner__timer { animation-play-state: paused; opacity: 0.4; }
+
+@keyframes pe-timer {
+    to { transform: scaleX(0); }
+}
+
+/* The level stamp on the right. */
+.pe-banner__stamp {
+    position: absolute;
+    right: 58px;
+    top: 50%;
+    width: clamp(70px, 9vw, 92px);
+    height: clamp(70px, 9vw, 92px);
+    margin-top: clamp(-46px, -4.5vw, -35px);
+    display: grid;
+    place-content: center;
+    text-align: center;
+    border-radius: 50%;
+    border: 3px double var(--pe-tone-light);
+    color: var(--pe-tone-light);
+    opacity: 0;
+    transform: rotate(-14deg) scale(2.2);
+    animation: pe-stamp 0.42s 3.2s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+}
+
+.pe-banner__stamp b { font-size: clamp(1.5rem, 3vw, 2.1rem); line-height: 1; color: #fff; }
+.pe-banner__stamp span { font-size: 0.58rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; }
+
+@keyframes pe-stamp {
+    to { opacity: 0.9; transform: rotate(-14deg) scale(1); }
+}
+
+.pe-banner--sealed .pe-banner__stamp,
+.pe-banner--guardian .pe-banner__stamp { animation-delay: 2.6s; }
+
+/* ── At the gate: the token stops short, the Portal stays veiled, the runes flicker ── */
+.pe-banner--sealed .pe-banner__walker,
+.pe-banner--guardian .pe-banner__walker { animation-name: pe-walk-gate; }
+.pe-banner--sealed .pe-banner__token,
+.pe-banner--guardian .pe-banner__token { animation: pe-hop 0.34s 0.5s ease-in-out 6 alternate; }
+.pe-banner--sealed .pe-banner__flash,
+.pe-banner--guardian .pe-banner__flash { display: none; }
+.pe-banner--sealed .pe-banner__vortex,
+.pe-banner--guardian .pe-banner__vortex { opacity: 0.35; animation-duration: 16s; }
+.pe-banner--sealed .pe-banner__veil,
+.pe-banner--guardian .pe-banner__veil { opacity: 1; }
+.pe-banner--sealed .pe-banner__copy strong,
+.pe-banner--guardian .pe-banner__copy strong { animation-delay: 1.9s; }
+.pe-banner--sealed .pe-banner__copy em,
+.pe-banner--guardian .pe-banner__copy em { animation-delay: 2.2s; }
+.pe-banner--sealed .pe-banner__cta,
+.pe-banner--guardian .pe-banner__cta { animation-delay: 2.5s, 3.1s; }
+
+@keyframes pe-walk-gate {
+    to { transform: translateX(40%); }
+}
+
+.pe-banner__runes {
+    position: absolute;
+    left: 74%;
+    top: 9%;
+    display: flex;
+    gap: 4px;
+    transform: translateX(-50%);
+}
+
+.pe-banner__runes i {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-size: 11px;
+    color: #c4b5fd;
+    background: #2a1d6b;
+    border: 1px dashed rgba(196, 181, 253, 0.5);
+    opacity: 0;
+    animation: pe-rise 0.4s calc(1.6s + var(--i) * 0.2s) ease-out both;
+}
+
+.pe-banner__runes i.is-lit {
+    color: #1e1b4b;
+    background: radial-gradient(circle, #fff, var(--pe-tone-light) 55%, var(--pe-tone));
+    border: 1px solid #fff;
+    box-shadow: 0 0 10px var(--pe-tone);
+}
+
+/* ── Phones ── */
+@media (max-width: 760px) {
+    .pe-banner__stamp { display: none; }
+    .pe-banner__copy { padding-right: 48px; }
+}
+
+@media (max-width: 600px) {
+    .pe-banner { --pe-stage: 112px; border-radius: 22px; }
+    .pe-banner__copy { padding: 10px 40px 14px 4px; }
+    .pe-banner__copy small { white-space: normal; letter-spacing: 0.03em; }
+    .pe-banner__close { top: 6px; right: 6px; width: 30px; height: 30px; }
+    .pe-banner__runes i { width: 16px; height: 16px; font-size: 8px; }
+}
+
+/* ── Weaker laptops: no spin, no sparks, no breathing halo ── */
+.pe--lite .pe-banner__vortex,
+.pe--lite .pe-banner__halo { animation: none; }
+.pe--lite .pe-banner__spark { display: none; }
+.pe--lite .pe-banner__stamp { animation: none; opacity: 0.9; transform: rotate(-14deg); }
+.pe--lite.pe-banner { box-shadow: 0 12px 30px rgba(15, 10, 46, 0.45); }
+.pe--lite .pe-banner__cta { animation: pe-rise 0.5s 3.4s ease-out both; }
+.pe--lite.pe-banner--sealed .pe-banner__cta,
+.pe--lite.pe-banner--guardian .pe-banner__cta { animation-delay: 2.5s; }
+
+@media (prefers-reduced-motion: reduce) {
+    .pe-banner, .pe-banner * { animation-duration: 0.01ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; }
+    .pe-banner__timer { animation: pe-timer var(--pe-life, 12s) linear both !important; }
+}

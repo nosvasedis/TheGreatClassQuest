@@ -3265,6 +3265,28 @@ exports.saveStudentAvatar = callable((request) => getAvatarForge().saveStudentAv
   timeoutSeconds: 60
 });
 
+// The Adventure Log's Auto picture is painted and stored on the server, so it finishes even
+// when the teacher's tab closes. Low memory: it mostly waits on the AI Worker.
+let adventurePicture = null;
+function getAdventurePicture() {
+  if (!adventurePicture) {
+    const { createAdventurePictureHandlers } = require('./adventurePicture');
+    adventurePicture = createAdventurePictureHandlers({
+      requireAuthedCaller,
+      requireFeatureEnabled,
+      getActiveSchoolYearKey,
+      publicDataPath: dataRoot,
+      getBucket: () => storage.bucket()
+    });
+  }
+  return adventurePicture;
+}
+exports.paintAdventureLogPicture = callable((request) => getAdventurePicture().paintAdventureLogPicture(request), {
+  timeoutSeconds: 300,
+  memory: '512MB',
+  secrets: ['GCQ_AI_SERVICE_KEY']
+});
+
 // ---- Operator console and teacher join codes (functions/platform.js) ----
 let platformHandlers = null;
 function getPlatform() {

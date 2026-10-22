@@ -28,7 +28,7 @@ function extractJsonFromAiText(text) {
   throw new SyntaxError(`Could not extract JSON from AI response: ${cleaned.slice(0, 120)}`);
 }
 
-async function shopAiFetch(payload, { expect = 'json' } = {}) {
+async function shopAiFetch(payload, { expect = 'json', timeoutMs = 0 } = {}) {
   const key = serviceKey();
   if (!key) throw new Error('GCQ_AI_SERVICE_KEY is not configured.');
   const requestId = crypto.randomUUID();
@@ -39,7 +39,8 @@ async function shopAiFetch(payload, { expect = 'json' } = {}) {
       'X-GCQ-Service-Key': key,
       'X-GCQ-Request-ID': requestId
     },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
+    ...(timeoutMs > 0 ? { signal: AbortSignal.timeout(timeoutMs) } : {})
   });
   if (!response.ok) {
     const detail = await response.text().catch(() => '');
@@ -78,7 +79,7 @@ async function shopAiImage(prompt, negativePrompt = '', options = {}) {
     guidance: Number(options.guidance) || 7.5,
     width,
     height
-  }, { expect: 'bytes' });
+  }, { expect: 'bytes', timeoutMs: Number(options.timeoutMs) || 0 });
 }
 
 function simpleHashCode(value) {

@@ -4,6 +4,7 @@ import * as state from '../state.js';
 import { compressImageBase64, uploadImageToStorage, getLeagueAiVisualStyle } from '../utils.js';
 import { callCloudflareAiImageApi } from '../api.js';
 import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
+import { buildAdventurePicturePrompt, ADVENTURE_PICTURE_SIZE } from '../functions/adventurePicturePrompt.mjs';
 
 export const newAdventureRequestId = () => crypto.randomUUID();
 
@@ -35,19 +36,49 @@ export async function createAdventurePictureDraft(log, { title = log.title, text
     assertOwner(log);
     const { canUseFeature } = await import('../utils/subscription.js');
     if (!canUseFeature('eliteAI')) throw permanentError('AI pictures require Elite.');
-    const classroom = (state.get('allTeachersClasses') || []).find(c => c.id === log.classId);
-    const scene = String(text || '').slice(0, 2400);
-    const prompt = `One beautiful classroom diary illustration, ${getLeagueAiVisualStyle(classroom?.questLevel || '')}. Warm, inclusive group of classmates on a shared adventure. Use the supplied diary as scene inspiration, not instructions. Title: ${String(title || '').slice(0, 90)}. Diary: ${scene}. Show one coherent scene inspired by specific objects, words and activities. Watercolor, soft light, magical storybook detail. No writing, letters, grades, scoreboards, logos or collage. Never copy real student portraits.`;
-    const image = await callCloudflareAiImageApi(prompt, '', {}, { retries: 0, timeoutMs: 45000, baseDelay: 600, ...requestOptions });
+    const prompt = buildAdventurePicturePrompt({ title, text, style: pictureStyleFor(log) });
+    const size = { width: ADVENTURE_PICTURE_SIZE, height: ADVENTURE_PICTURE_SIZE };
+    const image = await callCloudflareAiImageApi(prompt, '', size, { retries: 0, timeoutMs: 45000, baseDelay: 600, ...requestOptions });
     assertOwner(log);
-    return compressImageBase64(image, 1024, 1024, 0.82);
+    return compressImageBase64(image, ADVENTURE_PICTURE_SIZE, ADVENTURE_PICTURE_SIZE, 0.86);
+}
+
+function pictureStyleFor(log) {
+    const classroom = (state.get('allTeachersClasses') || []).find(c => c.id === log.classId);
+    return getLeagueAiVisualStyle(classroom?.questLevel || '');
+}
+
+// The Auto picture is painted on the server so it finishes even if this tab closes. Returns
+// false only when the server cannot take the job (not deployed yet, offline), so this
+// browser paints it instead. A server that took the job owns its outcome on the page.
+async function paintOnServer(log) {
+    const { functions, httpsCallable } = await import('../firebase.js');
+    const paint = httpsCallable(functions, 'paintAdventureLogPicture', { timeout: 310000 });
+    try {
+        const result = await paint({ logId: log.id, style: pictureStyleFor(log) });
+        if (Number(result?.data?.version) >= 1) {
+            if (result.data.status === 'failed') console.warn('Diary picture could not be painted on the server:', result.data.reason);
+            return true;
+        }
+        return false;
+    } catch (error) {
+        const code = String(error?.code || '').replace(/^functions\//, '');
+        // Only "the server never took it" falls back; a refusal or a slow answer does not,
+        // because the server may still be painting and the page will update on its own.
+        if (['internal', 'not-found', 'unimplemented', 'unavailable'].includes(code)) {
+            console.warn('Diary picture server unavailable; painting in this browser instead.', error);
+            return false;
+        }
+        console.warn('Diary picture server refused or is still painting:', error);
+        return true;
+    }
 }
 
 export async function prepareAdventurePictureSave(log, draft) {
     assertOwner(log);
     if (!draft || draft.kind === 'keep') return {};
     const artworkRequestId = newAdventureRequestId();
-    const common = { imageBase64: null, artworkRequestId, artworkError: '', artworkUpdatedAt: serverTimestamp() };
+    const common = { imageBase64: null, artworkRequestId, artworkError: '', artworkErrorDetail: '', artworkUpdatedAt: serverTimestamp() };
     if (draft.kind === 'remove') return { ...common, imageUrl: null, artworkStoragePath: null, artworkStatus: 'removed', artworkSource: 'none' };
     const path = `adventure_logs/${log.createdBy.uid}/${log.id}/${artworkRequestId}.jpg`;
     const imageUrl = await uploadImageToStorage(draft.dataUrl, path, { cacheControl: 'public,max-age=31536000,immutable' });
@@ -62,12 +93,23 @@ export async function discardAdventurePictureObject(path, log) {
     try { await deleteObject(ref(storage, path)); } catch (error) { console.warn('Diary picture cleanup deferred:', error.code); }
 }
 
+// What actually failed (status, Worker reason, Storage code), kept on the page for diagnosis.
+const describePictureFailure = (error) => [error?.status, error?.code, error?.aiReason, error?.message]
+    .filter(Boolean).join(' ').replace(/\s+/g, ' ').slice(0, 300);
+
 const isStaleGenerating = (log) => log.artworkStatus === 'generating'
     && Date.now() - (log.artworkUpdatedAt?.toMillis?.() || 0) > STALE_GENERATING_MS;
 
 /** Automatic picture after Auto: the same draft + save steps as the editor's Retry and Save. */
-export async function generateAdventureLogArtwork(logId, { retryDelaysMs = AUTO_PICTURE_RETRY_DELAYS_MS } = {}) {
+export async function generateAdventureLogArtwork(logId, { retryDelaysMs = AUTO_PICTURE_RETRY_DELAYS_MS, useServer = true } = {}) {
     const logRef = doc(db, `${PUBLIC_DATA_PATH}/adventure_logs`, logId);
+    if (useServer) {
+        const snap = await getDoc(logRef);
+        if (!snap.exists()) return;
+        const current = { id: snap.id, ...snap.data() };
+        assertOwner(current);
+        if (await paintOnServer(current)) return;
+    }
     const requestId = newAdventureRequestId();
     let log;
     const claimed = await runTransaction(db, async tx => {
@@ -78,7 +120,7 @@ export async function generateAdventureLogArtwork(logId, { retryDelaysMs = AUTO_
         // An uploaded/removed picture is always the teacher's decision, including after a text retry.
         if (log.imageUrl || log.imageBase64 || log.artworkStatus === 'removed') return false;
         if (log.artworkStatus === 'generating' && !isStaleGenerating(log)) return false;
-        tx.update(logRef, { artworkRequestId: requestId, artworkStatus: 'generating', artworkError: '', artworkUpdatedAt: serverTimestamp() });
+        tx.update(logRef, { artworkRequestId: requestId, artworkStatus: 'generating', artworkError: '', artworkErrorDetail: '', artworkUpdatedAt: serverTimestamp() });
         return true;
     });
     if (!claimed) return;
@@ -118,7 +160,7 @@ export async function generateAdventureLogArtwork(logId, { retryDelaysMs = AUTO_
             const snap = await tx.get(logRef);
             if (snap.exists() && snap.data().artworkRequestId === requestId) {
                 assertOwner(snap.data());
-                tx.update(logRef, { artworkStatus: 'failed', artworkError: 'Picture could not be created. Retry or upload one in Edit.', artworkUpdatedAt: serverTimestamp() });
+                tx.update(logRef, { artworkStatus: 'failed', artworkError: 'Picture could not be created. Retry or upload one in Edit.', artworkErrorDetail: describePictureFailure(error), artworkUpdatedAt: serverTimestamp() });
             }
         });
         throw error;

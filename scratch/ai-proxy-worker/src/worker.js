@@ -732,9 +732,16 @@ function sniffImageType(bytes) {
   return '';
 }
 
+// Workers Free allows 10 ms of CPU per request, and FLUX answers in base64. A per-character
+// callback (Uint8Array.from(atob(...), fn)) spent most of that on one 1024 picture, so the
+// whole request could be cut off after the model had already been paid for. Decode natively.
 function decodeBase64Image(value) {
   const base64 = String(value).replace(/^data:image\/[a-z+]+;base64,/i, '').replace(/\s+/g, '');
-  return Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
+  if (typeof Uint8Array.fromBase64 === 'function') return Uint8Array.fromBase64(base64);
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return bytes;
 }
 
 // Workers AI has returned images as { image: base64 }, { result: { image } }, raw

@@ -1,5 +1,6 @@
 // Quest World preview (dev only): the real Team Quest map with a fake league,
 // driven by the app's real sky pipeline (skyWeatherStage) with a chosen weather and time.
+// &inside=owls,books marks those parties as already through the Portal this month.
 import { evaluatePortal } from './features/questRanksCore.mjs';
 import './styles/sky_weather.css';
 import './styles/team_quest_map_living.css';
@@ -72,7 +73,8 @@ function league(leaderPercent) {
                 level: ([2, 3, 0, 4, 6][index] ?? 0) + 1,
                 goal,
                 heroStars: Array.from({ length: 10 }, (_, i) => (index === 0 && i > 6 ? 1 : (index === 0 ? stars / 7 : stars / 10))),
-                virtueStars: { teamwork: stars / 4, creativity: stars / 4, respect: stars / 4, focus: index === 1 ? 2 : stars / 4 }
+                virtueStars: { teamwork: stars / 4, creativity: stars / 4, respect: stars / 4, focus: index === 1 ? 2 : stars / 4 },
+                completed: (params.get('inside') || '').split(',').includes(party.id)
             }),
             createdBy: { uid: 'preview' },
             topHeroes: [{ name: 'Anna Papadopoulou', stars: 14 }, { name: 'Nikos K', stars: 11 }]

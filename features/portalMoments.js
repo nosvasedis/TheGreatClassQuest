@@ -16,6 +16,7 @@ import * as utils from '../utils.js';
 import { detectLowPowerTier } from '../utils/devicePerformance.mjs';
 import { rankCrestSvg } from './questRankCrest.mjs';
 import { buildPortalStory, normalizeCrossing, portalMomentKey } from './portalStoryCore.mjs';
+import { displayLevelOf } from './questRanksCore.mjs';
 
 const VORTEX = new URL('../assets/team-quest-map/living-atlas/portal-vortex.webp', import.meta.url).href;
 const VEIL = new URL('../assets/team-quest-map/living-atlas/portal-vortex-veiled.webp', import.meta.url).href;
@@ -284,6 +285,21 @@ function announceCrossingStory(classData, normalized) {
 export function announcePortalCrossing(classData, crossing, status = null) {
     if (!classData?.id || !crossing) return;
     announceCrossingStory(classData, normalizeCrossing({ crossing, status }));
+}
+
+/**
+ * Replays this month's crossing of a class already inside the Portal (its Team Quest map card).
+ * Reads classes.portalCrossings[month]; an older crossing without that record is told from
+ * the class's level alone.
+ */
+export function openCrossingStory(classData) {
+    if (!classData?.id) return;
+    const fresh = (state.get('allSchoolClasses') || []).find((c) => c.id === classData.id) || classData;
+    const roster = rosterOf(fresh.id);
+    const entry = fresh.portalCrossings?.[utils.getMonthKey()]
+        || { level: Math.max(1, displayLevelOf(fresh.difficultyLevel) - 1), gold: 0 };
+    const crossing = normalizeCrossing({ entry, classData: fresh, heroes: roster.length });
+    openStory(buildPortalStory({ kind: 'crossing', classData: fresh, roster, crossing, monthName: monthName(), lite: detectLowPowerTier() }), fresh);
 }
 
 // ─── Crossings saved on another device ───────────────────────────────────────

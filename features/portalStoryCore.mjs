@@ -11,9 +11,6 @@
 
 import { rankForLevel, newAtLevel, portalSpoilsGold, runesForLevel, displayLevelOf, PORTAL_RUNES } from './questRanksCore.mjs';
 
-/** How many heroes walk in the story (the rest are counted on a banner). */
-export const MARCHERS = { full: 12, lite: 6 };
-
 function num(value) {
     const n = Number(value);
     return Number.isFinite(n) ? n : 0;
@@ -23,14 +20,25 @@ function firstName(name) {
     return String(name || '').trim().split(/\s+/)[0] || '';
 }
 
-/** Heroes in a stable order (by name), at most `max`, with how many stay off stage. */
-export function marchingHeroes(roster = [], max = MARCHERS.full) {
+function lastInitial(name) {
+    const parts = String(name || '').trim().split(/\s+/);
+    return parts.length > 1 ? `${parts[parts.length - 1].charAt(0).toUpperCase()}.` : '';
+}
+
+/**
+ * Every hero of the class, in a stable order (by name): nobody is left off the story.
+ * Two heroes with the same first name get their surname's initial ("Maria P.").
+ */
+export function marchingHeroes(roster = []) {
     const list = (roster || [])
         .filter((s) => s && s.id)
-        .map((s) => ({ id: s.id, name: firstName(s.name) || 'Hero', avatar: typeof s.avatar === 'string' && /^(https?:|data:image\/|\/|\.\/|assets\/)/.test(s.avatar) ? s.avatar : '' }))
+        .map((s) => ({ id: s.id, full: String(s.name || ''), name: firstName(s.name) || 'Hero', avatar: typeof s.avatar === 'string' && /^(https?:|data:image\/|\/|\.\/|assets\/)/.test(s.avatar) ? s.avatar : '' }));
+    const counts = new Map();
+    list.forEach((h) => counts.set(h.name, (counts.get(h.name) || 0) + 1));
+    const shown = list
+        .map(({ full, ...h }) => (counts.get(h.name) > 1 && lastInitial(full) ? { ...h, name: `${h.name} ${lastInitial(full)}` } : h))
         .sort((a, b) => a.name.localeCompare(b.name));
-    const shown = list.slice(0, Math.max(0, max));
-    return { shown, more: Math.max(0, list.length - shown.length), total: list.length };
+    return { shown, total: shown.length };
 }
 
 /**
@@ -96,7 +104,7 @@ function starsText(value) {
 export function buildPortalStory({ kind = 'crossing', classData = {}, roster = [], crossing = null, status = null, sleepingLine = '', monthName = '', lite = false } = {}) {
     const who = String(classData?.name || 'Our class');
     const logo = String(classData?.logo || '📚');
-    const heroes = marchingHeroes(roster, lite ? MARCHERS.lite : MARCHERS.full);
+    const heroes = marchingHeroes(roster);
     const base = { kind, classId: classData?.id || '', who, logo, heroes, monthName, lite: Boolean(lite) };
 
     if (kind === 'crossing' && crossing) {

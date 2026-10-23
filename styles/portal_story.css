@@ -29,7 +29,7 @@
     --pe-tone: #a78bfa;
     --pe-tone-light: #ede9fe;
     position: relative;
-    width: min(1100px, calc(100vw - 24px), max(320px, calc((100dvh - 250px) * 1.78)));
+    width: min(1100px, calc(100vw - 24px), max(320px, calc((100dvh - 290px) * 1.78)));
     max-height: calc(100dvh - 24px);
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -360,6 +360,17 @@
 }
 
 .ps-hero--lead .ps-hero__name { font-size: max(11px, 1.3cqw); background: #fde68a; }
+.ps-hero--up .ps-hero__name { top: auto; bottom: 100%; margin: 0 0 3px; }
+
+/* A bigger class walks smaller, so every hero fits on the road and in the crowd. */
+.ps-frame[data-crowd="m"] .ps-hero:not(.ps-hero--lead) { width: 4.8%; margin: -3.8% 0 0 -2.4%; }
+.ps-frame[data-crowd="l"] .ps-hero:not(.ps-hero--lead) { width: 4%; margin: -3.2% 0 0 -2%; }
+.ps-frame[data-crowd="m"] .ps-hero__name { font-size: max(9px, 0.95cqw); padding: 0 5px; }
+.ps-frame[data-crowd="l"] .ps-hero__name { font-size: max(9px, 0.85cqw); padding: 0 4px; }
+.ps-frame[data-crowd="m"] .ps-hero__initial { font-size: 1.9cqw; }
+.ps-frame[data-crowd="l"] .ps-hero__initial { font-size: 1.6cqw; }
+.ps-frame[data-crowd="m"] .ps-hero--lead .ps-hero__name,
+.ps-frame[data-crowd="l"] .ps-hero--lead .ps-hero__name { font-size: max(10px, 1.15cqw); }
 
 /* Stepping through: walk the road (84% of the time), then spin into the light. */
 .ps--open.is-ch3 .ps-walker { animation: ps-walk calc(var(--walk) + 450ms) calc(var(--i) * var(--gap)) linear both; }
@@ -719,6 +730,61 @@
 
 .ps-btn--main:hover { background: linear-gradient(135deg, #fff7d6, #fde047); color: #1e1b4b; }
 
+/* Everyone's name under the story. */
+.ps-roll {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(196, 181, 253, 0.22);
+}
+
+.ps-roll small {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #c4b5fd;
+}
+
+.ps-roll ul {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.ps-roll li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 10px 2px 2px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.ps-roll li img,
+.ps-roll li span {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: grid;
+    place-items: center;
+    font-size: 0.7rem;
+    background: var(--tint, #7c3aed);
+}
+
+.ps-frame.is-end .ps-roll li { animation: ps-card 0.4s calc(0.3s + var(--n, 0) * 20ms) ease-out both; }
+
 /* ── Phones ── */
 @media (max-width: 640px) {
     .ps-host { padding: 6px; }
@@ -741,6 +807,7 @@
 .ps-frame[data-tier="lite"] .ps-ascent__rays { display: none; }
 .ps-frame[data-tier="lite"] .ps-road__glow { filter: none; }
 .ps-frame[data-tier="lite"] .ps-vortex { animation-duration: 20s !important; }
+.ps-frame[data-tier="lite"] .ps-hero__body { animation: none !important; }
 .ps-frame[data-tier="lite"] .ps-ascent__new .qrc { filter: none; }
 .ps-frame[data-tier="lite"] { box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5); }
 

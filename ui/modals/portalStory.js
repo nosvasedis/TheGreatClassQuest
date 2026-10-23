@@ -72,30 +72,73 @@ function heroFace(hero) {
     return `<span class="ps-hero__initial" style="--tint:${tintFor(hero.name)}">${esc(hero.name.charAt(0).toUpperCase() || '★')}</span>`;
 }
 
-/** Where each hero stops at the gate: a loose crowd on the road before the sealed Portal. */
-function gatherSpot(i, total) {
-    const perRow = Math.min(6, Math.max(3, Math.ceil(total / 3)));
-    const row = Math.floor(i / perRow);
-    const col = i % perRow;
-    const t = 0.76 - col * (0.34 / perRow) - (row % 2) * (0.17 / perRow);
-    const p = roadAt(Math.max(0.3, t));
-    const start = roadAt(0);
-    return { dx: p.x - start.x + row * 2.2, dy: p.y - start.y + row * 7.5 };
+/** Walkers on stage: the class token and every hero (nobody is left off). */
+function walkerCount(story) {
+    return 1 + story.heroes.shown.length;
 }
 
-function walkersHtml(story, tier) {
+/** Time between two heroes setting off: a big class walks closer together. */
+function walkGap(story) {
+    const count = walkerCount(story);
+    return story.variant === 'open'
+        ? Math.round(Math.min(480, Math.max(170, 5200 / count)))
+        : Math.round(Math.min(230, Math.max(90, 2600 / count)));
+}
+
+/** Small classes walk big; a class of 25+ gets smaller tokens so everyone fits. */
+function crowdSize(story) {
+    const count = walkerCount(story);
+    return count <= 15 ? 's' : count <= 25 ? 'm' : 'l';
+}
+
+/**
+ * Where each hero stops at the gate: rows of a crowd on the meadow before the sealed Portal,
+ * every second row shifted half a step, the class token in front. Percentages of the stage.
+ */
+function gatherSpot(i, total) {
+    const start = roadAt(0);
+    if (i === 0) {
+        const front = roadAt(0.8);
+        return { dx: front.x - start.x, dy: front.y - start.y };
+    }
+    const k = i - 1;
+    const heroes = Math.max(1, total - 1);
+    const cols = Math.min(10, Math.max(5, Math.ceil(heroes / 3)));
+    const row = Math.floor(k / cols);
+    const col = k % cols;
+    const step = cols > 8 ? 4.1 : 5.2;
+    const x = 58 - (cols - 1 - col) * step - (row % 2) * (step / 2);
+    const y = 60 + row * (cols > 8 ? 9.5 : 11);
+    return { dx: x - start.x, dy: y - start.y };
+}
+
+function walkersHtml(story) {
     const heroes = [{ lead: true, name: story.who, logo: story.logo }, ...story.heroes.shown];
-    if (story.heroes.more) heroes.push({ more: story.heroes.more, name: `+${story.heroes.more}` });
     const gate = story.variant !== 'open';
     return heroes.map((hero, i) => {
         const spot = gate ? gatherSpot(i, heroes.length) : null;
         const face = hero.lead
             ? `<span class="ps-hero__token"><img src="${TOKEN}" alt="" draggable="false"><b>${esc(hero.logo)}</b></span>`
-            : (hero.more ? `<span class="ps-hero__more">${esc(hero.name)}</span>` : heroFace(hero));
-        const label = hero.more ? '' : `<span class="ps-hero__name">${esc(hero.name)}</span>`;
+            : heroFace(hero);
+        const label = `<span class="ps-hero__name">${esc(hero.name)}</span>`;
         const style = `--i:${i}${spot ? `;--gx:${spot.dx.toFixed(2)}%;--gy:${spot.dy.toFixed(2)}%` : ''}`;
-        return `<span class="ps-walker" style="${style}"><span class="ps-hero${hero.lead ? ' ps-hero--lead' : ''}${hero.more ? ' ps-hero--more' : ''}"><span class="ps-hero__body">${face}${tier === 'full' || hero.lead ? label : ''}</span></span></span>`;
+        const cls = `ps-hero${hero.lead ? ' ps-hero--lead' : ''}${!hero.lead && !gate && i % 2 === 0 ? ' ps-hero--up' : ''}`;
+        return `<span class="ps-walker" style="${style}"><span class="${cls}"><span class="ps-hero__body">${face}${label}</span></span></span>`;
     }).join('');
+}
+
+/** Every hero's name under the story, so each child finds themselves. */
+function rollHtml(story) {
+    const heroes = story.heroes.shown;
+    if (!heroes.length) return '';
+    const title = story.variant === 'open'
+        ? `Every hero who stepped through · ${heroes.length}`
+        : `Every hero waiting at the gate · ${heroes.length}`;
+    return `
+        <div class="ps-roll">
+            <small><i class="fas fa-users" aria-hidden="true"></i>${esc(title)}</small>
+            <ul>${heroes.map((hero, n) => `<li style="--n:${n}">${hero.avatar ? `<img src="${esc(hero.avatar)}" alt="" loading="lazy" decoding="async">` : `<span style="--tint:${tintFor(hero.name)}">${esc(hero.name.charAt(0).toUpperCase())}</span>`}${esc(hero.name)}</li>`).join('')}</ul>
+        </div>`;
 }
 
 function runesHtml(story) {
@@ -124,6 +167,7 @@ function endHtml(story) {
             : `<li class="ps-card ps-card--next"><i class="fas fa-road" aria-hidden="true"></i><span><small>Next month</small><b>A longer road</b><em>The goal grows a little; the Portal pays ${story.nextSpoils} Gold.</em></span></li>`;
         return `
             <ul class="ps-cards">${rank}${spoils}${next}</ul>
+            ${rollHtml(story)}
             <div class="ps-actions">
                 <button type="button" class="ps-btn ps-btn--ghost" data-ps="replay"><i class="fas fa-rotate-right" aria-hidden="true"></i>Watch again</button>
                 <button type="button" class="ps-btn ps-btn--ghost" data-ps="portal"><i class="fas fa-door-open" aria-hidden="true"></i>Open the Portal</button>
@@ -142,6 +186,7 @@ function endHtml(story) {
             ${lit ? `<li class="ps-card"><i class="fas fa-gem" aria-hidden="true"></i><span><small>Already glowing</small><b>${lit}</b></span></li>` : ''}
             <li class="ps-card ps-card--rank"><span class="ps-card__crests">${rankCrestSvg(story.toLevel)}</span><span><small>Beyond the Portal</small><b>${esc(story.toRank.title)}</b><em>+${story.spoils} Gold for every hero</em></span></li>
         </ul>
+        ${rollHtml(story)}
         <div class="ps-actions">
             <button type="button" class="ps-btn ps-btn--ghost" data-ps="replay"><i class="fas fa-rotate-right" aria-hidden="true"></i>Watch again</button>
             ${guardian
@@ -153,13 +198,12 @@ function endHtml(story) {
 
 export function portalStoryHtml(story, tier = 'full') {
     const open = story.variant === 'open';
-    const count = 1 + story.heroes.shown.length + (story.heroes.more ? 1 : 0);
-    const gap = open ? Math.round(Math.min(480, 4400 / Math.max(1, count))) : 230;
+    const gap = walkGap(story);
     const starsA = tier === 'still' ? '' : starField(70, 7);
     const starsB = tier === 'still' ? '' : starField(50, 31);
     return `
         <div class="ps-backdrop" data-ps="close"></div>
-        <section class="ps-frame ps--${story.variant} qr-tone--${story.toRank.id}" data-tier="${tier}" role="dialog" aria-modal="true" aria-label="${esc(story.headline)}" style="--gap:${gap}ms;--walk:${WALK_MS}ms">
+        <section class="ps-frame ps--${story.variant} qr-tone--${story.toRank.id}" data-tier="${tier}" data-crowd="${crowdSize(story)}" role="dialog" aria-modal="true" aria-label="${esc(story.headline)}" style="--gap:${gap}ms;--walk:${WALK_MS}ms">
             <div class="ps-stage">
                 <span class="ps-sky" aria-hidden="true"></span>
                 <span class="ps-stars ps-stars--a" aria-hidden="true" style="box-shadow:${starsA}"></span>
@@ -186,7 +230,7 @@ export function portalStoryHtml(story, tier = 'full') {
                     ${story.variant === 'sealed' ? '<span class="ps-seal"><i class="fas fa-lock"></i></span>' : ''}
                     <span class="ps-runes">${runesHtml(story)}</span>
                 </span>
-                <span class="ps-walkers" aria-hidden="true">${walkersHtml(story, tier)}</span>
+                <span class="ps-walkers" aria-hidden="true">${walkersHtml(story)}</span>
                 <span class="ps-flash" aria-hidden="true"></span>
                 ${open ? `
                 <span class="ps-ascent" aria-hidden="true">
@@ -207,9 +251,9 @@ export function portalStoryHtml(story, tier = 'full') {
 
 /** The story's beats: [ms, chapter class, caption index or null, sound, sound options]. */
 function beatsFor(story, tier) {
-    const count = 1 + story.heroes.shown.length + (story.heroes.more ? 1 : 0);
+    const count = walkerCount(story);
+    const gap = walkGap(story);
     if (story.variant === 'open') {
-        const gap = Math.round(Math.min(480, 4400 / Math.max(1, count)));
         const runes = story.runes.length;
         const tRunes = 2400;
         const tOpen = tRunes + runes * 380 + 500;
@@ -230,7 +274,7 @@ function beatsFor(story, tier) {
         return beats;
     }
     const gather = 2300;
-    const tRunes = gather + (count - 1) * 230 + WALK_MS * 0.9;
+    const tRunes = gather + (count - 1) * gap + WALK_MS * 0.9;
     const guardian = story.variant === 'guardian';
     return [
         [0, 'is-ch0', 0],

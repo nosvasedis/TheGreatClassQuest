@@ -38,8 +38,28 @@ test('the Portal card counts the parties who stepped through', () => {
     const portal = describePlace('portal', [...parties, { name: 'Finishers', logo: '🐉', progress: 100 }]);
     assert.equal(portal.title, 'The Crystal Portal');
     assert.deepEqual(portal.here.map((p) => p.name), ['Finishers']);
-    assert.match(placeTipHtml(portal), /Stepped through/);
+    assert.match(placeTipHtml(portal), /Inside the Portal/);
     assert.equal(describePlace('portal', parties).status, 'ahead');
+});
+
+test('only parties that stepped through are inside; a full party still outside waits at the gate', () => {
+    const map = [
+        { name: 'Inside', logo: '🦉', progress: 100, inside: true },
+        { name: 'AtGate', logo: '🦊', progress: 100, inside: false },
+        { name: 'Road', logo: '📚', progress: 50, inside: false }
+    ];
+    const portal = describePlace('portal', map);
+    assert.deepEqual(portal.here.map((p) => p.name), ['Inside']);
+    assert.deepEqual(portal.gate.map((p) => p.name), ['AtGate']);
+    const html = placeTipHtml(portal);
+    assert.match(html, /Inside the Portal/);
+    assert.match(html, /Waiting at the sealed gate/);
+    assert.deepEqual(describePlace('crystal', map).here.map((p) => p.name), ['AtGate']);
+    // Every party inside is named, never "+N".
+    const many = Array.from({ length: 6 }, (_, i) => ({ name: `C${i}`, progress: 100, inside: true }));
+    const tip = placeTipHtml(describePlace('portal', many));
+    assert.doesNotMatch(tip, /chip--more/);
+    assert.match(tip, /6 parties inside the Portal/);
 });
 
 test('the card escapes names and marks the active class', () => {

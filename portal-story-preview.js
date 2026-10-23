@@ -10,7 +10,7 @@ const moment = ['open', 'sealed', 'guardian'].includes(params.get('moment')) ? p
 const level = Math.max(1, Number(params.get('level')) || 2);
 const heroCount = Math.max(1, Number(params.get('heroes')) || 14);
 const lite = params.has('lite');
-const NAMES = ['Maria Papadopoulou', 'Giorgos K.', 'Eleni', 'Nikos', 'Sofia', 'Dimitris', 'Katerina', 'Yannis', 'Anna', 'Petros', 'Ioanna', 'Christos', 'Despina', 'Alexandros', 'Zoe', 'Stavros', 'Irini', 'Manolis'];
+const NAMES = ['Maria Papadopoulou', 'Giorgos Kostas', 'Eleni', 'Nikos', 'Sofia', 'Dimitris', 'Katerina', 'Yannis', 'Anna', 'Petros', 'Ioanna', 'Christos', 'Despina', 'Alexandros', 'Zoe', 'Stavros', 'Irini', 'Manolis', 'Vasiliki', 'Thanos', 'Myrto', 'Kostas', 'Eirini', 'Lefteris', 'Chara', 'Panos', 'Dafni', 'Michalis', 'Maria Kosta', 'Spyros'];
 const roster = Array.from({ length: heroCount }, (_, i) => ({ id: `s${i}`, name: NAMES[i % NAMES.length], classId: 'c1' }));
 const classData = { id: 'c1', name: params.get('name') || 'Dragon Riders 5A', logo: '🐉', questLevel: 'A', difficultyLevel: level - 1 };
 

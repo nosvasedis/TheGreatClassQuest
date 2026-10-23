@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildPortalStory, marchingHeroes, normalizeCrossing, portalMomentKey, MARCHERS } from '../features/portalStoryCore.mjs';
+import { buildPortalStory, marchingHeroes, normalizeCrossing, portalMomentKey } from '../features/portalStoryCore.mjs';
 import { evaluatePortal } from '../features/questRanksCore.mjs';
 
 const roster = Array.from({ length: 15 }, (_, i) => ({ id: `s${i}`, name: `Hero${String(i).padStart(2, '0')} Last`, classId: 'c1' }));
@@ -71,14 +71,16 @@ test('the Guardian waits once every rune glows', () => {
     assert.match(story.subtitle, /2 of 3 riddles/);
 });
 
-test('heroes march in name order, a few on weaker laptops, the rest counted', () => {
-    const full = marchingHeroes(roster);
-    assert.equal(full.shown.length, MARCHERS.full);
-    assert.equal(full.more, 3);
-    assert.equal(full.shown[0].name, 'Hero00');
-    const lite = marchingHeroes(roster, MARCHERS.lite);
-    assert.equal(lite.shown.length, 6);
-    assert.equal(lite.more, 9);
+test('every hero marches, in name order, on every laptop', () => {
+    const big = Array.from({ length: 31 }, (_, i) => ({ id: `b${i}`, name: `Kid${String(i).padStart(2, '0')}` }));
+    const all = marchingHeroes(big);
+    assert.equal(all.shown.length, 31);
+    assert.equal(all.total, 31);
+    assert.equal(all.shown[0].name, 'Kid00');
+    assert.equal(buildPortalStory({ kind: 'crossing', classData, roster: big, crossing: normalizeCrossing({ crossing: { fromLevel: 1, toLevel: 2 } }), lite: true }).heroes.shown.length, 31);
+    // Same first name: the surname's initial tells them apart.
+    const twins = marchingHeroes([{ id: 'a', name: 'Maria Papa' }, { id: 'b', name: 'Maria Kosta' }, { id: 'c', name: 'Nikos' }]);
+    assert.deepEqual(twins.shown.map((h) => h.name), ['Maria K.', 'Maria P.', 'Nikos']);
     // Only picture links are kept as avatars.
     const odd = marchingHeroes([{ id: 'a', name: 'X', avatar: 'javascript:alert(1)' }, { id: 'b', name: 'Y', avatar: 'https://x.test/a.png' }]);
     assert.equal(odd.shown[0].avatar, '');

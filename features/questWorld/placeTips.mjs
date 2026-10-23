@@ -34,7 +34,13 @@ export function describePlace(placeId, parties = []) {
     const [min, max] = RANGES[placeId] || RANGES.bronze;
     const zone = QUEST_MAP_ZONES.find((candidate) => candidate.id === placeId);
     const place = REALM_PLACES.find((candidate) => candidate.id === placeId);
-    const safe = parties.map((party) => ({ ...party, progress: Math.min(100, Math.max(0, Number(party.progress) || 0)) }));
+    // When the map says who is inside the Portal, only they are there: a full party still
+    // outside waits at the sealed gate, in the Crystal Realm.
+    const knowsInside = parties.some((party) => typeof party.inside === 'boolean');
+    const safe = parties.map((party) => {
+        const progress = Math.min(100, Math.max(0, Number(party.progress) || 0));
+        return { ...party, progress: knowsInside ? (party.inside ? 100 : Math.min(99.99, progress)) : progress };
+    });
     const here = safe
         .filter((party) => party.progress >= min && party.progress < max)
         .sort((a, b) => b.progress - a.progress);
@@ -42,13 +48,17 @@ export function describePlace(placeId, parties = []) {
     let status = 'here';
     if (!here.length) status = leader < min ? 'ahead' : 'passed';
     if (placeId === 'portal') {
+        const gate = knowsInside
+            ? parties.filter((party) => !party.inside && (Number(party.progress) || 0) >= 100)
+            : [];
         return {
             id: 'portal',
             title: 'The Crystal Portal',
             kind: 'The end of the quest',
-            desc: 'It opens when a party gathers its whole month of stars.',
+            desc: 'It opens when a party gathers its whole month of stars and lights its runes.',
             from: 'At 100% of the month’s goal',
             here,
+            gate,
             status: here.length ? 'here' : 'ahead',
             gap: Math.max(0, 100 - leader),
             hint: 'Click to open the Portal'
@@ -69,15 +79,21 @@ export function describePlace(placeId, parties = []) {
 
 /** The tooltip card's inner markup. `badge` is the realm crest image URL. */
 export function placeTipHtml(info, { badge = '' } = {}) {
-    const chips = info.here.slice(0, 4).map((party) => (
-        `<span class="tq-tip__chip${party.isMine ? ' is-mine' : ''}"><span aria-hidden="true">${escapeHtml(party.logo || '★')}</span>${escapeHtml(party.name || 'Class')}</span>`
-    )).join('') + (info.here.length > 4 ? `<span class="tq-tip__chip tq-tip__chip--more">+${info.here.length - 4}</span>` : '');
+    const chip = (party) => `<span class="tq-tip__chip${party.isMine ? ' is-mine' : ''}"><span aria-hidden="true">${escapeHtml(party.logo || '★')}</span>${escapeHtml(party.name || 'Class')}</span>`;
+    // The Portal names every party inside it; a realm shows four and counts the rest.
+    const limit = info.id === 'portal' ? Infinity : 4;
+    const chips = info.here.slice(0, limit).map(chip).join('') + (info.here.length > limit ? `<span class="tq-tip__chip tq-tip__chip--more">+${info.here.length - limit}</span>` : '');
+    const gate = info.gate?.length
+        ? `<span class="tq-tip__status tq-tip__status--gate"><small><i class="fas fa-lock" aria-hidden="true"></i>${info.gate.length === 1 ? 'Waiting at the sealed gate' : `${info.gate.length} parties at the sealed gate`}</small><span class="tq-tip__chips">${info.gate.map(chip).join('')}</span></span>`
+        : '';
     let status = '';
     if (info.status === 'here') {
         const label = info.id === 'portal'
-            ? (info.here.length === 1 ? 'Stepped through' : `${info.here.length} parties stepped through`)
+            ? (info.here.length === 1 ? 'Inside the Portal' : `${info.here.length} parties inside the Portal`)
             : (info.here.length === 1 ? 'Here now' : `${info.here.length} parties here now`);
-        status = `<span class="tq-tip__status"><small>${label}</small><span class="tq-tip__chips">${chips}</span></span>`;
+        status = `<span class="tq-tip__status${info.id === 'portal' ? ' tq-tip__status--inside' : ''}"><small>${label}</small><span class="tq-tip__chips">${chips}</span></span>${gate}`;
+    } else if (info.id === 'portal' && gate) {
+        status = gate;
     } else if (info.status === 'ahead' && info.id === 'portal') {
         status = `<span class="tq-tip__status tq-tip__status--asleep"><i class="fas fa-hourglass-half" aria-hidden="true"></i>${info.gap > 0
             ? `Sealed until a party finishes: the leading party is ${formatPercent(info.gap)} away`

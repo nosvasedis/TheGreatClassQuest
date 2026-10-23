@@ -254,6 +254,17 @@ function assignStableMapLanes(items) {
     return items;
 }
 
+// Parties inside the Portal this month, by class id (their card can replay the Portal story).
+const insideClasses = new Map();
+
+/** "14 Oct" for the day a party stepped through, or ''. */
+function steppedThroughOn(c) {
+    const at = c?.questCompletedAt;
+    if (!at) return '';
+    const d = typeof at.toDate === 'function' ? at.toDate() : new Date(at?.seconds ? at.seconds * 1000 : at);
+    return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
 function buildMapItems(classes, { activeClassId = null } = {}) {
     const gaps = describeQuestRaceGaps(classes.map((c, index) => ({
         ...c,
@@ -273,17 +284,24 @@ function buildMapItems(classes, { activeClassId = null } = {}) {
             isMine: Boolean(activeClassId) && c.id === activeClassId,
             displayLevel: (Number(c.difficulty) || 0) + 1,
             portal: c.portal || null,
+            // Stepped through the Portal this month: the party waits inside it, not on the road.
+            inside: Boolean(c.portal?.completed),
             weeklyStars: Number(c.weeklyStars) || 0,
             topHeroes: Array.isArray(c.topHeroes) ? c.topHeroes : [],
             gap: gaps.get(c.id) || null,
             tokenKey: encodeURIComponent(String(c.id || c.name || leagueIndex)),
             lane: 0
         };
-    }));
+    })).map((item, _, all) => {
+        if (!item.inside) return item;
+        if (item.c?.id) insideClasses.set(String(item.c.id), item.c);
+        const inside = all.filter((other) => other.inside);
+        return { ...item, insideIndex: inside.indexOf(item), insideCount: inside.length };
+    });
 }
 
 function renderMapToken(item) {
-    const { c, pct, isLeader, isMine, pinTier, progressDisplay, starsDisplay, goal, rankPosition, tokenKey, lane, liveMonthlyStars, displayLevel, portal } = item;
+    const { c, pct, isLeader, isMine, pinTier, progressDisplay, starsDisplay, goal, rankPosition, tokenKey, lane, liveMonthlyStars, displayLevel, portal, inside, insideIndex, insideCount } = item;
     const zone = getQuestMapZoneForProgressPercent(pct);
     const safeName = escapeMapHtml(c.name || 'Class');
     const safeLogo = escapeMapHtml(c.logo || '📚');
@@ -295,10 +313,12 @@ function renderMapToken(item) {
         `tq-token--tier-${pinTier}`,
         isLeader ? 'is-leader' : '',
         isMine ? 'is-mine' : '',
-        pct >= 100 && portalOpen ? 'is-complete' : '',
-        pct >= 100 && !portalOpen ? 'is-sealed' : ''
+        (pct >= 100 && portalOpen) || inside ? 'is-complete' : '',
+        pct >= 100 && !portalOpen ? 'is-sealed' : '',
+        inside ? 'is-inside' : ''
     ].filter(Boolean).join(' ');
-    const ariaLabel = `${safeName}: league rank ${rankPosition}, ${escapeMapHtml(rank.title)} (Quest Level ${displayLevel}), ${Math.round(Number(progressDisplay))}% of the monthly quest, ${starsDisplay} of ${goal} stars, in ${escapeMapHtml(zone.label)}.`;
+    const where = inside ? `inside the Crystal Portal, now ${escapeMapHtml(rank.title)} (Quest Level ${displayLevel})` : `in ${escapeMapHtml(zone.label)}`;
+    const ariaLabel = `${safeName}: league rank ${rankPosition}, ${escapeMapHtml(rank.title)} (Quest Level ${displayLevel}), ${Math.round(Number(progressDisplay))}% of the monthly quest, ${starsDisplay} of ${goal} stars, ${where}.`;
 
     return `
         <button type="button"
@@ -312,12 +332,14 @@ function renderMapToken(item) {
                 data-logo="${safeLogo}"
                 data-name="${safeName}"
                 data-lane="${lane}"
+                ${inside ? `data-inside="${insideIndex}" data-inside-count="${insideCount}"` : ''}
                 aria-label="${ariaLabel}"
                 aria-haspopup="dialog"
                 aria-expanded="false">
             <span class="tq-token__shadow" aria-hidden="true"></span>
             <span class="tq-token__ring" aria-hidden="true"></span>
             <span class="tq-token__body" aria-hidden="true">
+                ${inside ? `<span class="tq-token__swirl"><img src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" decoding="async"></span><span class="tq-token__motes"><i></i><i></i><i></i><i></i></span>` : ''}
                 <span class="tq-token__aura"></span>
                 <span class="tq-token__disc">
                     <span class="tq-token__logo">${safeLogo}</span>
@@ -326,6 +348,7 @@ function renderMapToken(item) {
                 <span class="tq-token__rank">${rankPosition}</span>
                 <span class="tq-token__crest">${rankCrestSvg(displayLevel)}</span>
                 ${pct >= 100 && !portalOpen ? '<span class="tq-token__seal"><i class="fas fa-lock"></i></span>' : ''}
+                ${inside ? `<span class="tq-token__inside"><i class="fas fa-wand-magic-sparkles"></i>${insideCount > 1 ? 'Inside' : 'In the Portal'}</span>` : ''}
                 ${isMine ? '<span class="tq-token__pennant"><i class="fas fa-flag"></i>Active</span>' : ''}
             </span>
         </button>`;
@@ -346,8 +369,10 @@ function renderRouteStrip(pct) {
 }
 
 function renderTokenCard(item) {
-    const { c, pct, isLeader, isMine, pinTier, starsDisplay, goal, liveMonthlyStars, rankPosition, displayLevel, classQuestBonus, weeklyStars, topHeroes, gap, tokenKey, portal } = item;
+    const { c, pct, isLeader, isMine, pinTier, starsDisplay, goal, liveMonthlyStars, rankPosition, displayLevel, classQuestBonus, weeklyStars, topHeroes, gap, tokenKey, portal, inside } = item;
     const zone = getQuestMapZoneForProgressPercent(pct);
+    const crossing = inside ? c.portalCrossings?.[utils.getMonthKey()] || null : null;
+    const steppedOn = inside ? steppedThroughOn(c) : '';
     const rank = rankForLevel(displayLevel);
     const stop = getQuestNextStop(pct, liveMonthlyStars, goal);
     // Stars full but the Portal still sealed: the card says what the Portal waits for.
@@ -375,7 +400,7 @@ function renderTokenCard(item) {
 
     return `
         <template data-card-for="${tokenKey}">
-            <div class="tq-card tq-card--${zone.id}${isLeader ? ' tq-card--leader' : ''}">
+            <div class="tq-card tq-card--${zone.id}${isLeader ? ' tq-card--leader' : ''}${inside ? ' tq-card--inside' : ''}">
                 <span class="tq-card__ribbon">
                     <span class="tq-card__seal tq-card__seal--${pinTier}">${isLeader ? '<i class="fas fa-crown" aria-hidden="true"></i>' : rankPosition}</span>
                     <span class="tq-card__ribbon-text">${rankWord}${isMine ? ' · <b>Active class</b>' : ''}</span>
@@ -385,7 +410,7 @@ function renderTokenCard(item) {
                     <span class="tq-card__logo" aria-hidden="true">${safeLogo}</span>
                     <span class="tq-card__identity">
                         <strong class="tq-card__name">${safeName}</strong>
-                        <span class="tq-card__zone"><img src="${ZONE_BADGE_BY_ID[zone.id]}" alt="" aria-hidden="true" draggable="false">${escapeMapHtml(zone.label)}</span>
+                        <span class="tq-card__zone"><img src="${inside ? LIVING_MAP_ASSETS.portalVortex : ZONE_BADGE_BY_ID[zone.id]}" alt="" aria-hidden="true" draggable="false">${inside ? 'Inside the Crystal Portal' : escapeMapHtml(zone.label)}</span>
                     </span>
                     <span class="tq-card__pct">${Math.floor(pct)}<small>%</small></span>
                 </span>
@@ -394,6 +419,15 @@ function renderTokenCard(item) {
                     <span class="tq-card__fact tq-card__fact--stars"><i class="fas fa-star" aria-hidden="true"></i><strong>${starsDisplay}</strong><small>of ${formatQuestStars(goal)} stars</small></span>
                     <span class="tq-card__fact tq-card__fact--week"><i class="fas fa-fire" aria-hidden="true"></i><strong>+${formatQuestStars(weeklyStars)}</strong><small>this week</small></span>
                 </span>
+                ${inside ? `
+                <span class="tq-card__inside">
+                    <span class="tq-card__inside-swirl" aria-hidden="true"><img src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false"><span>${rankCrestSvg(displayLevel)}</span></span>
+                    <span>
+                        <small>Stepped through the Portal${steppedOn ? ` · ${escapeMapHtml(steppedOn)}` : ''}</small>
+                        <strong>Now ${escapeMapHtml(rank.title)}</strong>
+                        <em>Quest Level ${displayLevel}${crossing?.gold > 0 ? ` · +${Number(crossing.gold)} Gold for every hero` : ''}</em>
+                    </span>
+                </span>` : `
                 <span class="tq-card__next${next.complete ? ' is-complete' : ''}${next.sealed ? ' is-sealed' : ''}">
                     <img src="${ROAD_STOP_BADGE[next.id] || LIVING_MAP_ASSETS.badgeCrystal}" alt="" aria-hidden="true" draggable="false">
                     <span>
@@ -401,14 +435,20 @@ function renderTokenCard(item) {
                         <strong>${next.complete ? 'Quest complete!' : next.sealed ? escapeMapHtml(portalStatusLine(portal)) : escapeMapHtml(next.label)}</strong>
                     </span>
                     <em>${next.complete ? '<i class="fas fa-trophy" aria-hidden="true"></i>' : next.sealed ? '<i class="fas fa-lock" aria-hidden="true"></i>' : `${next.starsNeeded}★ to go`}</em>
-                </span>
-                ${portal?.runes?.length ? `<span class="tq-card__runes"><small>Portal runes</small>${renderRuneMarks(portal)}<em>${portal.runesLit} of ${portal.runes.length} lit</em></span>` : ''}
+                </span>`}
+                ${portal?.runes?.length ? (inside
+                    ? `<span class="tq-card__runes"><small>Portal runes</small>${renderRuneMarks({ ...portal, runes: portal.runes.map((r) => ({ ...r, met: true })), runesLit: portal.runes.length })}<em>All passed</em></span>`
+                    : `<span class="tq-card__runes"><small>Portal runes</small>${renderRuneMarks(portal)}<em>${portal.runesLit} of ${portal.runes.length} lit</em></span>`) : ''}
                 ${raceLine ? `<span class="tq-card__race"><i class="fas fa-flag-checkered" aria-hidden="true"></i>${escapeMapHtml(raceLine)}</span>` : ''}
                 ${heroesHtml}
                 ${classQuestBonus > 0 ? `<span class="tq-card__bonus"><i class="fas fa-compass" aria-hidden="true"></i>+${formatQuestStars(classQuestBonus)} Pathfinder bonus</span>` : ''}
                 ${portal?.guardian?.canTry && c.createdBy?.uid && c.createdBy.uid === state.get('currentUserId') ? `
                 <button type="button" class="tq-card__cta tq-card__cta--guardian" data-face-guardian="${escapeMapHtml(c.id || '')}">
                     <i class="fas fa-dungeon" aria-hidden="true"></i><span>Face the Portal Guardian</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
+                </button>` : ''}
+                ${inside ? `
+                <button type="button" class="tq-card__cta tq-card__cta--portal" data-portal-story="${escapeMapHtml(c.id || '')}">
+                    <i class="fas fa-play" aria-hidden="true"></i><span>Watch them step through</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
                 </button>` : ''}
                 <button type="button" class="tq-card__cta" data-open-chronicle="${escapeMapHtml(c.id || '')}">
                     <i class="fas fa-book-open" aria-hidden="true"></i><span>Open in Quest Chronicles</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
@@ -647,6 +687,22 @@ function getLanePoint(routeSegments, progress, lane) {
     return { anchor, point };
 }
 
+/**
+ * Where a party inside the Portal floats: the Portal's heart for one party, a row across
+ * its light for several. Null for parties still on the road.
+ */
+function insidePoint(token) {
+    if (token?.dataset.inside === undefined) return null;
+    const index = Number(token.dataset.inside) || 0;
+    const count = Math.max(1, Number(token.dataset.insideCount) || 1);
+    if (count === 1) return { x: PORTAL.x, y: PORTAL.y + 6 };
+    // Side by side across the Portal's light, the outer ones dipping a little (the Portal
+    // sits near the map's top edge).
+    const spread = Math.min(92, 260 / (count - 1));
+    const offset = index - (count - 1) / 2;
+    return constrainMapPoint({ x: PORTAL.x + offset * spread, y: PORTAL.y + 10 + Math.abs(offset) * 14 });
+}
+
 function mapTransform(point, rootRect) {
     const x = (point.x / MAP_VIEWBOX_WIDTH) * rootRect.width;
     const y = (point.y / MAP_VIEWBOX_HEIGHT) * rootRect.height;
@@ -799,7 +855,8 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             name: token.dataset.name,
             logo: token.dataset.logo,
             isMine: token.classList.contains('is-mine'),
-            isLeader: token.classList.contains('is-leader')
+            isLeader: token.classList.contains('is-leader'),
+            inside: token.dataset.inside !== undefined
         };
     });
     const mountMagic = () => {
@@ -1002,7 +1059,8 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
 
     const placeToken = (token, rect) => {
         const { key, progress, lane } = tokenState(token);
-        const { anchor, point } = getLanePoint(routeSegments, progress, lane);
+        const inside = insidePoint(token);
+        const { anchor, point } = inside ? { anchor: inside, point: inside } : getLanePoint(routeSegments, progress, lane);
         token.style.transform = mapTransform(point, rect);
         token.style.zIndex = String(60 + Math.round(progress) + Math.abs(lane) + (token.classList.contains('is-mine') ? 30 : 0));
         token.dataset.positioned = 'true';
@@ -1012,7 +1070,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             connector.setAttribute('y1', anchor.y.toFixed(1));
             connector.setAttribute('x2', point.x.toFixed(1));
             connector.setAttribute('y2', point.y.toFixed(1));
-            connector.classList.toggle('is-visible', lane !== 0);
+            connector.classList.toggle('is-visible', lane !== 0 && !inside);
         }
     };
 
@@ -1037,8 +1095,15 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         if (!rect.width || !rect.height) return;
         const distance = Math.abs(to - from);
         const duration = Math.min(3000, 650 + distance * 17);
+        let frames = sampleTokenJourney(routeSegments, from, to, fromLane, toLane, rect, fadeIn);
+        // A party through the Portal walks the road to its end, then steps into the light.
+        const inside = insidePoint(token);
+        if (inside) {
+            frames = frames.map((frame) => ({ ...frame, offset: frame.offset * 0.86 }));
+            frames.push({ transform: mapTransform(inside, rect), opacity: 1, offset: 1 });
+        }
         const animation = token.animate(
-            sampleTokenJourney(routeSegments, from, to, fromLane, toLane, rect, fadeIn),
+            frames,
             { duration, delay, easing: 'cubic-bezier(0.37, 0.08, 0.22, 1)', fill: 'backwards' }
         );
         if (to > from) magic?.walk({ from, to, delay, duration, ease: easeTravel });
@@ -1304,6 +1369,13 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
                 const classId = guardian.dataset.faceGuardian;
                 closePopover();
                 import('./portalGuardian.js').then(({ openPortalGuardian }) => openPortalGuardian(classId)).catch(() => {});
+                return;
+            }
+            const story = event.target.closest('[data-portal-story]');
+            if (story) {
+                const classData = insideClasses.get(story.dataset.portalStory);
+                closePopover();
+                if (classData) import('./portalMoments.js').then(({ openCrossingStory }) => openCrossingStory(classData)).catch(() => {});
                 return;
             }
             const cta = event.target.closest('[data-open-chronicle]');
@@ -1581,7 +1653,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
                 openPopover(token, { pin: true });
                 token.focus({ preventScroll: true });
                 const { progress, lane } = tokenState(token);
-                const { point } = getLanePoint(routeSegments, progress, lane);
+                const point = insidePoint(token) || getLanePoint(routeSegments, progress, lane).point;
                 scene?.glideTo(point.x, point.y).then(() => {
                     if (!destroyed && openToken === token) positionPopover();
                 });

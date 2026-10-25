@@ -8,7 +8,7 @@ import { callGeminiApi } from '../api.js';
 import { getAgeGroupForLeague } from '../utils.js';
 import { canUseFeature } from '../utils/subscription.js';
 import { requireEliteAI } from '../utils/upgradePrompt.js';
-import { assignClassTeacher, listSchoolTeachers } from '../utils/adminRuntime.js';
+import { allocateReturningStudents, assignClassTeacher, listSchoolTeachers, releaseStudentToPlacement } from '../utils/adminRuntime.js';
 import {
     createClass,
     deleteEmptyClass,
@@ -16,7 +16,8 @@ import {
     updateClassDetails
 } from '../db/actions/classes.js';
 import { escapeHtml, initials, setBusyState } from './roles/shared.js';
-import { formatClassSchedule } from './secretary/helpers.js';
+import { formatClassSchedule, renderOfficeAvatar } from './secretary/helpers.js';
+import { notifyRecordsChanged, showUndoBar } from './secretary/formerStudents.js';
 
 const WIZARD_ID = 'class-desk-wizard';
 const DAYS = [
@@ -66,6 +67,9 @@ const wizardState = {
     // straight into a new class or one class's edit sheet (Back then leaves).
     entry: 'list',
     confirmDeleteId: '',
+    // The student whose "send to the waiting list" is waiting to be confirmed.
+    confirmReleaseId: '',
+    releasingId: '',
     teacherSearch: '',
     nameSuggestions: [],
     teachers: [],
@@ -75,6 +79,7 @@ const wizardState = {
 };
 
 let onClassDeskRerender = null;
+let unsubscribeRoster = null;
 // Set when the student desk opened a class on the way: hand the new class back.
 let onClassCreated = null;
 let onClassCancelled = null;
@@ -94,6 +99,12 @@ function rosterCount(classId) {
     return (state.get('allStudents') || []).filter((student) => (
         student.classId === classId && student.enrollmentStatus !== 'inactive'
     )).length;
+}
+
+function classRoster(classId) {
+    return (state.get('allStudents') || [])
+        .filter((student) => student.classId === classId && student.enrollmentStatus !== 'inactive')
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
 }
 
 function classById(classId) {
@@ -139,6 +150,7 @@ function loadEditDraft(classData) {
     wizardState.timeStart = classData.timeStart || '';
     wizardState.timeEnd = classData.timeEnd || '';
     wizardState.confirmDeleteId = '';
+    wizardState.confirmReleaseId = '';
     wizardState.nameSuggestions = [];
 }
 
@@ -579,18 +591,19 @@ function renderEditBody() {
     `;
     return `
         ${renderSummaryCard()}
-        ${classData ? `
-            <button type="button" class="class-desk-next__btn class-desk-next__btn--enrol class-desk-edit-enrol" data-class-desk-enrol="${escapeHtml(classData.id)}">
-                <span class="class-desk-next__icon" aria-hidden="true"><i class="fas fa-user-plus"></i></span>
-                <span><strong>Enrol a new student here</strong><small>${count} ${count === 1 ? 'student' : 'students'} in ${escapeHtml(classData.name)} so far.</small></span>
-            </button>` : ''}
+        <div data-class-desk-roster>${classData ? renderRosterSection(classData) : ''}</div>
         <div class="class-desk-edit-stack">
             ${section('fa-chalkboard-user', 'Teacher', renderTeacherPicker({ includeSearch: true }))}
             ${section('fa-pen-nib', 'Name and emblem', renderIdentityBody())}
             ${section('fa-crown', 'Quest League', renderLeagueBody())}
             ${section('fa-clock', 'Lesson days and times', renderScheduleBody())}
         </div>
-        ${count === 0 ? `
+        <div data-class-desk-danger>${renderDangerBody(count, confirming)}</div>
+    `;
+}
+
+function renderDangerBody(count, confirming) {
+    return count === 0 ? `
             <div class="class-desk-danger">
                 ${confirming ? `
                     <p>Remove this empty class? This cannot be undone.</p>
@@ -602,8 +615,149 @@ function renderEditBody() {
                     <button type="button" class="secretary-chip-btn secretary-chip-btn--rose" data-class-desk-delete>Remove empty class</button>
                 `}
             </div>
-        ` : `<p class="placement-hint">${count} ${count === 1 ? 'student is' : 'students are'} seated here. Move them before removing the class.</p>`}
+        ` : `<p class="placement-hint">${count} ${count === 1 ? 'student is' : 'students are'} seated here. Move them before removing the class.</p>`;
+}
+
+function renderRosterRow(student, classData) {
+    const id = escapeHtml(student.id);
+    const name = escapeHtml(student.name || 'Student');
+    const busy = wizardState.releasingId === student.id;
+    if (wizardState.confirmReleaseId === student.id || busy) {
+        return `
+            <li class="office-row class-desk-roster__row is-confirming">
+                ${renderOfficeAvatar(student)}
+                <span class="office-row__copy">
+                    <strong>Send ${name} to the waiting list?</strong>
+                    <small>They leave ${escapeHtml(classData.name)} and wait in Student placement. Stars, gold, guild and notes stay with them.</small>
+                </span>
+                <span class="office-row__actions">
+                    <button type="button" class="office-icon-btn" data-class-desk-release-cancel ${busy ? 'disabled' : ''}>Keep here</button>
+                    <button type="button" class="office-icon-btn office-icon-btn--leave" data-class-desk-release-confirm="${id}" ${busy ? 'disabled' : ''}>
+                        <i class="fas ${busy ? 'fa-spinner fa-spin' : 'fa-hourglass-half'}" aria-hidden="true"></i>${busy ? 'Sending...' : 'Send'}
+                    </button>
+                </span>
+            </li>
+        `;
+    }
+    const action = (key, icon, label, title, extra = '') => `
+        <button type="button" class="office-icon-btn${extra}" data-class-desk-student="${key}" data-student-id="${id}" title="${title}" aria-label="${title}">
+            <i class="fas ${icon}" aria-hidden="true"></i><span>${label}</span>
+        </button>
     `;
+    return `
+        <li class="office-row class-desk-roster__row">
+            ${renderOfficeAvatar(student)}
+            <span class="office-row__copy">
+                <strong>${name}</strong>
+                <small>${escapeHtml(student.heroClass ? `${student.heroClass} hero` : 'Hero path not chosen yet')}</small>
+            </span>
+            <span class="office-row__actions">
+                ${action('edit', 'fa-pen', 'Edit', `Edit ${name}`)}
+                ${action('notes', 'fa-note-sticky', 'Notes', `Office notes for ${name}`)}
+                ${action('move', 'fa-arrow-right-arrow-left', 'Move', `Move ${name} to another class`)}
+                ${action('release', 'fa-hourglass-half', 'Waiting list', `Send ${name} to the waiting list`)}
+                ${action('leave', 'fa-door-open', 'Leaves', `${name} is leaving the school`, ' office-icon-btn--leave')}
+            </span>
+        </li>
+    `;
+}
+
+function renderRosterSection(classData) {
+    const students = classRoster(classData.id);
+    const count = students.length;
+    return `
+        <button type="button" class="class-desk-next__btn class-desk-next__btn--enrol class-desk-edit-enrol" data-class-desk-enrol="${escapeHtml(classData.id)}">
+            <span class="class-desk-next__icon" aria-hidden="true"><i class="fas fa-user-plus"></i></span>
+            <span><strong>Enrol a new student here</strong><small>${count} ${count === 1 ? 'student' : 'students'} in ${escapeHtml(classData.name)} so far.</small></span>
+        </button>
+        ${count ? `
+            <section class="class-desk-roster" aria-label="Students in ${escapeHtml(classData.name)}">
+                <h4 class="class-desk-group__title"><i class="fas fa-users" aria-hidden="true"></i>Students <span>${count}</span></h4>
+                <ul class="office-rows class-desk-roster__rows">
+                    ${students.map((student) => renderRosterRow(student, classData)).join('')}
+                </ul>
+            </section>
+        ` : ''}
+    `;
+}
+
+// Students change under the open desk (an edit, a move, a leave): redraw only the roster
+// and the remove-class note, so a half-typed name or the sheet's scroll never jumps.
+function paintRoster() {
+    if (wizardState.step !== STEPS.EDIT) return;
+    const classData = classById(wizardState.editClassId);
+    const roster = document.querySelector(`#${WIZARD_ID} [data-class-desk-roster]`);
+    const danger = document.querySelector(`#${WIZARD_ID} [data-class-desk-danger]`);
+    if (!classData || !roster) return;
+    if (wizardState.confirmReleaseId && !classRoster(classData.id).some((item) => item.id === wizardState.confirmReleaseId)) {
+        wizardState.confirmReleaseId = '';
+    }
+    roster.innerHTML = renderRosterSection(classData);
+    if (danger) {
+        danger.innerHTML = renderDangerBody(rosterCount(classData.id), wizardState.confirmDeleteId === wizardState.editClassId);
+    }
+}
+
+function patchLocalStudent(studentId, changes) {
+    state.setAllStudents((state.get('allStudents') || []).map((item) => (item.id === studentId ? { ...item, ...changes } : item)));
+    notifyRecordsChanged();
+}
+
+async function runRelease(studentId) {
+    const student = (state.get('allStudents') || []).find((item) => item.id === studentId);
+    const classData = classById(wizardState.editClassId);
+    if (!student || !classData || wizardState.releasingId) return;
+    wizardState.releasingId = studentId;
+    paintRoster();
+    try {
+        await releaseStudentToPlacement({ studentId });
+        patchLocalStudent(studentId, {
+            classId: null,
+            enrollmentStatus: 'pendingPlacement',
+            previousClassId: classData.id,
+            previousClassName: classData.name || ''
+        });
+        showUndoBar(`${student.name} is waiting in Student placement.`, async () => {
+            await allocateReturningStudents({ classId: classData.id, studentIds: [studentId] });
+            patchLocalStudent(studentId, { classId: classData.id, createdBy: classData.createdBy || student.createdBy, enrollmentStatus: 'active' });
+            showToast(`${student.name} is back in ${classData.name}.`, 'success');
+        });
+    } catch (error) {
+        console.error('Could not send student to the waiting list:', error);
+        showToast(error?.message || 'Could not send that student to the waiting list. Please try again.', 'error');
+    } finally {
+        wizardState.releasingId = '';
+        wizardState.confirmReleaseId = '';
+        paintRoster();
+    }
+}
+
+// A student's own windows open over this desk (the passport is lifted above it by
+// body.class-desk-open; the office desks already sit higher), so closing them comes
+// back to the class file.
+function openStudentAction(action, studentId) {
+    const fail = (error) => {
+        console.error('Class desk: a student window could not open:', error);
+        showToast('That window could not open. Check the connection, reload the page and try again.', 'error');
+    };
+    if (action === 'edit') {
+        import('../ui/modals/student.js').then(({ openEditStudentModal }) => openEditStudentModal(studentId)).catch(fail);
+        return;
+    }
+    if (action === 'notes' || action === 'move') {
+        import('./secretary/studentDesk.js').then((desk) => (
+            action === 'notes' ? desk.openStudentNotes(studentId) : desk.openStudentMove(studentId)
+        )).catch(fail);
+        return;
+    }
+    if (action === 'leave') {
+        import('./secretary/formerStudents.js').then(({ openLeaveDialog }) => openLeaveDialog(studentId)).catch(fail);
+        return;
+    }
+    if (action === 'release') {
+        wizardState.confirmReleaseId = studentId;
+        paintRoster();
+    }
 }
 
 function renderCreatedBody() {
@@ -924,6 +1078,21 @@ function handleWizardClick(event) {
         closeClassWizard();
         return;
     }
+    const studentBtn = event.target.closest('[data-class-desk-student]');
+    if (studentBtn) {
+        openStudentAction(studentBtn.dataset.classDeskStudent, studentBtn.dataset.studentId);
+        return;
+    }
+    if (event.target.closest('[data-class-desk-release-cancel]')) {
+        wizardState.confirmReleaseId = '';
+        paintRoster();
+        return;
+    }
+    const releaseBtn = event.target.closest('[data-class-desk-release-confirm]');
+    if (releaseBtn) {
+        runRelease(releaseBtn.dataset.classDeskReleaseConfirm);
+        return;
+    }
     const enrolBtn = event.target.closest('[data-class-desk-enrol]');
     if (enrolBtn) {
         const classId = enrolBtn.dataset.classDeskEnrol;
@@ -1130,7 +1299,11 @@ export async function openClassWizard({ onRerender, classId, create = false, onC
     // spinner meanwhile), so a slow read can never leave the button doing nothing.
     const loadingTeachers = ensureTeachers();
     paintWizard();
-    document.body.classList.add('placement-wizard-open');
+    document.body.classList.add('placement-wizard-open', 'class-desk-open');
+    unsubscribeRoster?.();
+    unsubscribeRoster = state.subscribe('allStudents', () => {
+        if (isClassWizardOpen()) paintRoster();
+    });
     openOfficeModal(modal);
     await loadingTeachers;
     if (isClassWizardOpen()) paintWizard();
@@ -1139,7 +1312,11 @@ export async function openClassWizard({ onRerender, classId, create = false, onC
 export function closeClassWizard() {
     const modal = document.getElementById(WIZARD_ID);
     closeOfficeModal(modal, { onClosed: releaseOfficeScrollLock });
+    document.body.classList.remove('class-desk-open');
+    unsubscribeRoster?.();
+    unsubscribeRoster = null;
     wizardState.confirmDeleteId = '';
+    wizardState.confirmReleaseId = '';
     onClassCreated = null;
     onClassCancelled = null;
 }

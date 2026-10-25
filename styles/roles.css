@@ -3740,6 +3740,25 @@ body.placement-wizard-open { overflow: hidden; }
 .class-desk-edit-section { display: grid; gap: 0.7rem; padding-top: 1rem; border-top: 1px dashed rgba(148, 163, 184, 0.35); }
 .class-desk-edit-section:first-child { padding-top: 0; border-top: 0; }
 .class-desk-edit-enrol { width: 100%; margin-bottom: 1.25rem; }
+
+/* The class file's roster: every student with Edit / Notes / Move / Waiting list / Leaves. */
+.class-desk-roster { display: grid; gap: 0.6rem; margin: -0.25rem 0 1.5rem; }
+.class-desk-roster__rows {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 36rem), 1fr));
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  background: #fff;
+}
+.class-desk-roster__row { flex-wrap: wrap; }
+.class-desk-roster__row .office-row__actions { flex-wrap: wrap; margin-left: auto; }
+.class-desk-roster__row.is-confirming { background: #fffbeb; }
+.class-desk-roster__row.is-confirming .office-row__copy strong,
+.class-desk-roster__row.is-confirming .office-row__copy small { white-space: normal; }
+.class-desk-roster__row.is-confirming .office-icon-btn { width: auto; padding: 0 0.75rem; }
+.class-desk-roster__row .office-icon-btn:disabled { opacity: 0.6; cursor: wait; }
+/* A student's passport opens from the class desk, so it sits above it (office desks sit higher still). */
+body.class-desk-open #edit-student-modal { z-index: 2240; }
 .class-desk-summary__meta > span:not(.placement-league-chip) { font-size: 0.8rem; font-weight: 700; color: #475569; }
 
 /* After a class is opened: the natural next steps, side by side. */

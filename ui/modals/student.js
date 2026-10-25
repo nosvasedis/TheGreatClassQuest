@@ -546,6 +546,10 @@ export function openEditStudentModal(studentId, options = {}) {
     if (officeGradesBtn) {
         officeGradesBtn.onclick = () => {
             hideModal('edit-student-modal');
+            // Opened from a class file: step out of the class desk so the grades tab is visible.
+            if (document.body.classList.contains('class-desk-open')) {
+                lazyOpen(import('../../features/classWizard.js'), w => w.closeClassWizard());
+            }
             state.setSecretaryView({ gradesBoardSubTab: 'scroll', gradesSearch: student.name || '', gradesPage: 0 });
             lazyOpen(import('../../features/secretaryConsole.js'), c => c.activateSecretaryTab('grades'));
         };

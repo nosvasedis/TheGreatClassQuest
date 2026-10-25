@@ -62,7 +62,7 @@ The **class teacher** owns the student, exactly as if they had tapped **New Stud
 1. Chip tracker (**Teacher**, **Name**, **League**, **Schedule**, **Review**; finished chips jump back). Pick the teacher, then name + logo, **Quest League** chips, schedule days and times, review, create. The teacher owns the class in their Teacher App
 2. Once the class is open, two next steps sit side by side: **Enrol its students** (opens the student desk on the new class) and **Open another class** (keeps the same teacher picked)
 
-**Edit** on a class card opens the class's file: **Enrol a new student here** on top, then **Teacher** (including moving the class to another teacher), **Name and emblem**, **Quest League**, and **Lesson days and times**. **Save class** or **Cancel** returns to the list. Empty classes can be removed.
+**Edit** on a class card opens the class's file: **Enrol a new student here** on top, then the class's **Students**, each with **Edit** (the student record), **Notes** (office notes), **Move** (to another class; stars, gold, guild and notes go with them), **Waiting list** (asks first, then they wait in Student placement; Undo puts them back) and **Leaves** (left the school). Closing any of these comes back to the class file. Then **Teacher** (including moving the class to another teacher), **Name and emblem**, **Quest League**, and **Lesson days and times**. **Save class** or **Cancel** returns to the list. Empty classes can be removed.
 
 The School tab does **not** create or edit classes. Use the Classes lane for that, or **Open class desk** from a class view.
 

@@ -98,6 +98,7 @@ import {
   showGuildAnthem,
   showGuildBanner,
   showOffice,
+  showOfficeClassFile,
   showPassport,
   showTeacherBoon,
   showHeroBoon
@@ -268,6 +269,7 @@ window.__gcqCapture = {
   showTeacherBoon,
   showHeroBoon,
   showOffice,
+  showOfficeClassFile,
   showAdventurersGuide
 };
 document.documentElement.classList.add('capture-ready');

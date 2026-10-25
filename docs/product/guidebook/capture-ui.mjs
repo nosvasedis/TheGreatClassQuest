@@ -182,7 +182,7 @@ try {
   const REDESIGN_SHOTS = new Set([
     'adventure-log.png', 'campfire-entry.png', 'bounty-poster.png', 'bounty-poster-timer.png',
     'adventurers-passport.png', 'avatar-forge.png', 'class-charter.png', 'class-emblem-case.png',
-    'guild-banner.png', 'guild-anthem.png', 'teacher-boon-modal.png', 'heros-boon-modal.png', 'office-home.png', 'office-registry.png', 'adventurers-guide.png'
+    'guild-banner.png', 'guild-anthem.png', 'teacher-boon-modal.png', 'heros-boon-modal.png', 'office-home.png', 'office-registry.png', 'office-class-file.png', 'adventurers-guide.png'
   ]);
 
   async function captureExtra(label, run, locator, file) {
@@ -276,6 +276,7 @@ try {
   await captureExtra("Hero's Boon", () => window.__gcqCapture.showHeroBoon(), '#bestow-boon-modal.capture-hb', 'heros-boon-modal.png');
   await captureExtra('Office front desk', () => window.__gcqCapture.showOffice('home'), '#secretary-screen.capture-office', 'office-home.png');
   await captureExtra('Office Students & Classes', () => window.__gcqCapture.showOffice('registry'), '#secretary-screen.capture-office', 'office-registry.png');
+  await captureExtra('Office class file', () => window.__gcqCapture.showOfficeClassFile(), '#class-desk-wizard.capture-desk .class-desk-panel', 'office-class-file.png');
   await captureExtra("Adventurer's Guide", () => window.__gcqCapture.showAdventurersGuide(), '#app-info-modal.capture-ag .ag-book', 'adventurers-guide.png');
   // Quest Remote last: its capture layer sits above everything until the shoot ends.
   await captureExtra('Quest Remote binding circle', () => window.__gcqCapture.showProjectorRemote('bind'), '#capture-quest-remote .qr-bind', 'quest-remote-bind.png');

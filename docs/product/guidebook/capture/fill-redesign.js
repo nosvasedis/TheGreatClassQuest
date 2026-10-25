@@ -131,6 +131,7 @@ const CAPTURE_TARGETS = [
   ['teacher-boon-modal', 'capture-tb'],
   ['bestow-boon-modal', 'capture-hb'],
   ['secretary-screen', 'capture-office'],
+  ['class-desk-wizard', 'capture-desk'],
   ['app-info-modal', 'capture-ag']
 ];
 
@@ -356,6 +357,17 @@ export async function showOffice(view = 'home') {
   renderSecretaryConsole(tab);
   const schoolName = screen.querySelector('[data-school-name]');
   if (schoolName) schoolName.textContent = 'Northwind Language School';
+}
+
+/** The Office's class file for Junior B: the student list with its row buttons, above the class settings. */
+export async function showOfficeClassFile() {
+  startShow();
+  const { openClassWizard } = await import('../../../../features/classWizard.js');
+  // Opens at once; the teacher list (a server read the stage cannot make) fills in later, below the frame.
+  void openClassWizard({ classId: CLASS_ID });
+  await new Promise((resolve) => setTimeout(resolve, 60));
+  frame('class-desk-wizard', 'capture-desk');
+  await settleFocus();
 }
 
 // ── Adventure Log diary ──────────────────────────────────────────────────────

@@ -79,16 +79,6 @@ body {
     will-change: transform;
 }
 
-@keyframes hover-pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.03); }
-}
-
-.date-time-hover-group:hover .gcq-header-date,
-.date-time-hover-group:hover .gcq-header-time {
-    animation: hover-pulse 0.8s ease-in-out;
-}
-
 /* Date/time — identical face treatment to #main-app-title (same depth +
    soft white halo, same hard rim, same SVG inner carve). No colored
    illumination. Painted as glyphs by ui/headerClock.js, each glyph

@@ -99,7 +99,7 @@
     filter: drop-shadow(0 1px 1px rgba(30, 58, 138, 0.55)) drop-shadow(0 0 3px rgba(255, 236, 170, 0.6));
 }
 .gcq-swash--title { left: 0.1em; width: 17rem; }
-.gcq-swash--date { right: 0; width: min(58%, 15rem); }
+.gcq-swash--date { right: 0; bottom: -0.4rem; width: min(58%, 15rem); }
 .gcq-swash path:first-of-type {
     stroke-dasharray: 260;
     stroke-dashoffset: 0;
@@ -280,10 +280,12 @@ header.header-night .gcq-header-pill {
         0 0 0 1px rgba(199, 210, 254, 0.12);
 }
 
-/* The saying: gold stars either side and a slow glint crossing the glass */
+/* The saying: a slow glint crosses the glass now and then. Hovering it lifts the
+   pill, sends the glint across at once and lets two gold stars bloom at its ends. */
 .gcq-quote {
     overflow: hidden;
-    padding-inline: 0.95rem;
+    padding-inline: 1.65rem;
+    transition: translate 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, border-color 0.3s ease;
 }
 .gcq-quote::after {
     content: '';
@@ -301,27 +303,62 @@ header.header-night .gcq-header-pill {
     0% { transform: translateX(-120%) skewX(-18deg); }
     16%, 100% { transform: translateX(420%) skewX(-18deg); }
 }
+.gcq-quote:hover::after {
+    animation: gcq-quote-glint-now 1.1s cubic-bezier(0.45, 0, 0.25, 1) both;
+}
+@keyframes gcq-quote-glint-now {
+    from { transform: translateX(-120%) skewX(-18deg); }
+    to { transform: translateX(420%) skewX(-18deg); }
+}
 .gcq-quote > p {
     position: relative;
     z-index: 1;
     letter-spacing: 0.035em;
     text-shadow: 0 1px 3px rgba(15, 23, 42, 0.28);
 }
+.gcq-header-pill.gcq-quote:hover {
+    translate: 0 -1px;
+    border-color: rgba(253, 230, 138, 0.75);
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 240, 190, 0.55),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6),
+        0 10px 22px -8px rgba(15, 23, 42, 0.38),
+        0 0 14px -2px rgba(253, 224, 120, 0.65);
+}
+/* The stars sit in the pill's padding, folded away until the pill is hovered. */
 .gcq-pill-star {
-    position: relative;
+    position: absolute;
+    top: 50%;
     z-index: 1;
-    flex: none;
-    width: 0.85rem;
-    height: 0.85rem;
+    width: 0.8rem;
+    height: 0.8rem;
+    margin-top: -0.4rem;
+    opacity: 0;
+    transform: scale(0.2) rotate(-120deg);
+    filter: drop-shadow(0 0 1px rgba(146, 64, 14, 0.55)) drop-shadow(0 0 4px rgba(253, 224, 120, 0.95));
+    transition: opacity 0.25s ease, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: none;
+}
+.gcq-pill-star--l { left: 0.48rem; }
+.gcq-pill-star--r { right: 0.48rem; transition-delay: 0.08s; }
+.gcq-pill-star::before {
+    content: '';
+    position: absolute;
+    inset: 0;
     background: linear-gradient(135deg, #fff7d6 0%, #fcd34d 40%, #f59e0b 75%, #d97706 100%);
     clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
-    filter: drop-shadow(0 0 1px rgba(146, 64, 14, 0.55)) drop-shadow(0 0 4px rgba(253, 224, 120, 0.95));
-    animation: gcq-pill-star 5s ease-in-out infinite;
 }
-.gcq-pill-star--r { animation-delay: -2.5s; }
+.gcq-quote:hover .gcq-pill-star {
+    opacity: 1;
+    transform: none;
+}
+.gcq-quote:hover .gcq-pill-star::before {
+    animation: gcq-pill-star 2.6s ease-in-out 0.5s infinite;
+}
+.gcq-quote:hover .gcq-pill-star--r::before { animation-delay: 1.8s; }
 @keyframes gcq-pill-star {
-    0%, 100% { transform: scale(0.8) rotate(0deg); opacity: 0.78; }
-    50% { transform: scale(1.12) rotate(45deg); opacity: 1; }
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    50% { transform: scale(0.75) rotate(45deg); }
 }
 /* A new saying settles in softly (features/home.js#updateHeaderQuote) */
 .gcq-quote > p.gcq-quote-new {
@@ -348,17 +385,17 @@ header.header-night .gcq-header-pill {
     position: relative;
     background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0.04) 100%);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 1px 2px rgba(15, 23, 42, 0.14);
-    transition: background-color 0.3s ease, box-shadow 0.25s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: background-color 0.3s ease, box-shadow 0.25s ease, translate 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), scale 0.12s ease-out;
 }
 .gcq-header-pill .gcq-hbtn:hover,
 .gcq-header-pill .gcq-hbtn:focus-visible {
-    transform: translateY(-1px);
+    translate: 0 -2px;
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.65),
         0 0 0 2px rgba(253, 230, 138, 0.6),
         0 4px 12px -2px rgba(253, 224, 120, 0.6);
 }
-.gcq-header-pill .gcq-hbtn:active { transform: scale(0.95); }
+.gcq-header-pill .gcq-hbtn:active { transform: none; scale: 0.93; translate: 0 0; }
 .gcq-header-pill .gcq-hbtn--danger {
     background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0) 100%);
 }
@@ -369,13 +406,78 @@ header.header-night .gcq-header-pill {
         0 0 0 2px rgba(254, 202, 202, 0.7),
         0 4px 12px -2px rgba(239, 68, 68, 0.55);
 }
+/* Each icon answers the hover in its own way */
 .gcq-hbtn > i { transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
 .gcq-hbtn:hover > i { transform: scale(1.12); }
-#header-settings-btn:hover > i { transform: rotate(80deg) scale(1.06); }
-#app-info-btn:hover > i { transform: translateY(-1px) scale(1.14); }
-#logout-btn:hover > i,
-.gcq-hbtn--danger:hover > i { transform: translateX(1.5px) scale(1.08); }
-#header-class-selector-btn:hover > i { transform: translateY(1px); }
+#header-settings-btn:hover > i { transform: rotate(90deg) scale(1.06); }
+#app-info-btn:hover > i { animation: gcq-icon-hop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+#projector-mode-btn:hover > i { animation: gcq-icon-glow 0.7s ease-out; }
+#quiet-dragon-btn:hover > i { animation: gcq-icon-wiggle 0.7s ease-in-out; }
+#quest-remote-btn:hover > i { animation: gcq-icon-wand 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.gcq-hbtn--danger:hover > i { animation: gcq-icon-exit 0.7s ease-in-out; }
+#header-class-selector-btn:hover > i { transform: translateY(1.5px); }
+#header-class-selector-btn:hover > #header-class-selector-logo { animation: gcq-icon-wiggle 0.6s ease-in-out; }
+@keyframes gcq-icon-hop {
+    0%, 100% { transform: none; }
+    40% { transform: translateY(-3px) scale(1.12); }
+    70% { transform: translateY(0.5px) scale(0.98, 1.04); }
+}
+@keyframes gcq-icon-glow {
+    0%, 100% { transform: none; }
+    35% { transform: scale(1.2); }
+    60% { transform: scale(0.96); }
+}
+@keyframes gcq-icon-wiggle {
+    0%, 100% { transform: none; }
+    25% { transform: rotate(-14deg) scale(1.1); }
+    55% { transform: rotate(10deg) scale(1.1); }
+    80% { transform: rotate(-4deg); }
+}
+@keyframes gcq-icon-wand {
+    0%, 100% { transform: none; }
+    45% { transform: rotate(-24deg) scale(1.18); }
+    75% { transform: rotate(8deg); }
+}
+@keyframes gcq-icon-exit {
+    0%, 100% { transform: none; opacity: 1; }
+    45% { transform: translateX(4px); opacity: 0; }
+    46% { transform: translateX(-4px); opacity: 0; }
+}
+
+/* The button pill's gold edge warms while the pointer is over it */
+.gcq-header-controls { transition: border-color 0.3s ease, box-shadow 0.3s ease; }
+.gcq-header-controls:hover {
+    border-color: rgba(253, 230, 138, 0.6);
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 240, 190, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6),
+        0 8px 18px -6px rgba(15, 23, 42, 0.34),
+        0 0 12px -3px rgba(253, 224, 120, 0.55);
+}
+
+/* ---------- Title: lifts a touch, and a gold sweep runs across the letters ---------- */
+.gcq-sky-header h1.font-title { transition: translate 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.gcq-title-wrap:hover h1.font-title { translate: 0 -2px; }
+.gcq-title-wrap:hover h1.font-title::after { animation: gcq-title-sheen 1.1s ease-in-out both; }
+.gcq-swash--title { transform-origin: 0 50%; transition: scale 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.gcq-title-wrap:hover .gcq-swash--title { scale: 1.05 1; }
+
+/* ---------- Date and clock: a little wave through the words or digits ---------- */
+.gcq-date-wrap:hover .gcq-header-date .gcq-glyph:not(.is-in):not(.is-out),
+.gcq-header-time:hover .gcq-glyph:not(.is-in):not(.is-out) {
+    animation: gcq-glyph-wave 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) calc(var(--i, 0) * 60ms) both;
+}
+@keyframes gcq-glyph-wave {
+    0%, 100% { transform: none; }
+    40% { transform: translateY(-4px) scale(1.04); }
+    70% { transform: translateY(1px); }
+}
+.gcq-date-wrap:hover .gcq-twinkle { animation: gcq-twinkle-now 0.9s ease-out both; }
+@keyframes gcq-twinkle-now {
+    0% { opacity: 0; transform: scale(0.3) rotate(0deg); }
+    40% { opacity: 1; transform: scale(1.2) rotate(40deg); }
+    100% { opacity: 0; transform: scale(0.6) rotate(90deg); }
+}
 
 /* ---------- Date and clock glyphs (ui/headerClock.js) ---------- */
 .gcq-glyph-cell,
@@ -454,7 +556,7 @@ header.header-night .gcq-header-pill {
 .gcq-hdr-intro .gcq-title-wrap {
     animation: gcq-hdr-rise 850ms cubic-bezier(0.22, 1, 0.36, 1) 60ms both;
 }
-.gcq-hdr-intro h1.font-title::after {
+.gcq-hdr-weave h1.font-title::after {
     animation: gcq-title-sheen 1400ms ease-in-out 900ms both;
 }
 .gcq-hdr-intro .gcq-swash path:first-of-type {
@@ -467,12 +569,6 @@ header.header-night .gcq-header-pill {
 }
 .gcq-hdr-intro .gcq-quote > p:not(.gcq-quote-new) {
     animation: gcq-hdr-fade-up 700ms cubic-bezier(0.22, 1, 0.36, 1) 700ms both;
-}
-.gcq-hdr-intro .gcq-pill-star {
-    animation: gcq-star-pop 600ms cubic-bezier(0.34, 1.56, 0.64, 1) 650ms both, gcq-pill-star 5s ease-in-out 1.3s infinite;
-}
-.gcq-hdr-intro .gcq-pill-star--r {
-    animation: gcq-star-pop 600ms cubic-bezier(0.34, 1.56, 0.64, 1) 950ms both, gcq-pill-star 5s ease-in-out 1.6s infinite;
 }
 .gcq-hdr-intro .gcq-header-date .gcq-glyph-cell {
     animation: gcq-hdr-fade-up 750ms cubic-bezier(0.22, 1, 0.36, 1) calc(240ms + var(--i, 0) * 110ms) both;
@@ -734,11 +830,24 @@ header.header-night .gcq-swash { filter: drop-shadow(0 0 3px rgba(199, 210, 254,
     .gcq-trim-spark,
     .gcq-trim-glimmer { display: none; }
     .gcq-quote::after,
-    .gcq-pill-star,
+    .gcq-pill-star::before,
+    .gcq-hbtn > i,
+    .gcq-glyph,
+    .gcq-twinkle,
     .gcq-header-time .gcq-glyph-cell--colon > .gcq-glyph,
-    .gcq-glyph-cell.is-turning::after { animation: none; }
+    .gcq-sky-header h1.font-title::after,
+    .gcq-glyph-cell.is-turning::after { animation: none !important; }
     .gcq-quote::after { display: none; }
-    .gcq-hbtn > i { transition: none; }
+    .gcq-hbtn > i,
+    .gcq-pill-star,
+    .gcq-quote,
+    .gcq-header-pill .gcq-hbtn,
+    .gcq-sky-header h1.font-title,
+    .gcq-swash--title { transition: none; }
+    .gcq-header-pill.gcq-quote:hover,
+    .gcq-header-pill .gcq-hbtn:hover,
+    .gcq-title-wrap:hover h1.font-title { translate: none; }
+    .gcq-title-wrap:hover .gcq-swash--title { scale: none; }
     #app-screen.award-sky-active :is(.gcq-header-trim__thread, .gcq-header-trim__bead, .gcq-header-trim__gem, .m-header__thread, .m-header__bead, .m-header__gem) { animation: none !important; }
     #app-screen.award-sky-active:not(.award-sky-leaving) :is(.gcq-header-trim, .m-header__trim) { opacity: 0; transition: opacity 200ms ease; }
 }

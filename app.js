@@ -29,6 +29,7 @@ import {
     signOut
 } from './firebaseAuth.js';
 import { updateDateTime, getTodayDateString, fetchSolarCycle } from './utils.js';
+import { playHeaderIntroWhenRevealed } from './ui/headerClock.js';
 import * as utils from './utils.js';
 import { buildSyntheticRoleEmail, getRoleFromSyntheticEmail, isRoleLogin, normalizeUsername, ROLE_PARENT, ROLE_SECRETARY, ROLE_TEACHER } from './utils/roles.js';
 import {
@@ -554,6 +555,8 @@ async function openMainAppForTeacher({ user, loadingScreen, authScreen, appScree
     appScreen.classList.remove('hidden');
     appScreen.classList.add('app-screen-in');
     setTimeout(() => appScreen.classList.remove('app-screen-in'), 500);
+    updateDateTime();
+    playHeaderIntroWhenRevealed(appScreen.querySelector('header.gcq-sky-header'));
     const tabs = await import('./ui/tabs.js');
     // Register readiness before the first tab render so a fast cached render
     // cannot win the race and leave the loading screen waiting forever.
@@ -583,6 +586,8 @@ async function openSecretaryConsole({ loadingScreen, authScreen }) {
     if (secretaryScreen) secretaryScreen.classList.remove('hidden');
     activateSecretaryTab('home');
     renderSecretaryConsole();
+    updateDateTime();
+    playHeaderIntroWhenRevealed(secretaryScreen?.querySelector('header.gcq-sky-header'));
     resetAuthSubmitState();
     animateLoadingScreenOut(loadingScreen);
 }

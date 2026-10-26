@@ -2,6 +2,7 @@ import { getLocalMonthKey, isTeacherBoonWindow } from './utils/teacherBoonWindow
 import { getQuestLeagueDefinition } from './constants.js';
 import { HEADER_WEATHER_CLASSES } from './features/weatherTheme.js';
 import { refreshSkyLight } from './features/skyWeatherStage.js';
+import { paintHeaderDateTime } from './ui/headerClock.js';
 import {
     defaultSolarTimes,
     isNightTime,
@@ -218,8 +219,6 @@ let lastSkyLightMinute = -1;
 
 export function updateDateTime() {
     const now = new Date();
-    const dateEl = document.getElementById('current-date');
-    const timeEl = document.getElementById('current-time');
     const header = document.querySelector('#award-header-atmosphere header')
         || document.querySelector('header');
     const wallScreen = document.getElementById('dynamic-wallpaper-screen');
@@ -233,6 +232,7 @@ export function updateDateTime() {
     const isNight = isNightTime(nowTime, sunrise, sunset);
 
     // 2. Apply Global Classes IMMEDIATELY
+    document.querySelectorAll('header.gcq-sky-header').forEach((el) => el.classList.toggle('header-night', isNight));
     if (isNight) {
         document.body.classList.add('night-mode');
         if (header) header.classList.add('header-night');
@@ -251,18 +251,9 @@ export function updateDateTime() {
         refreshSkyLight({ now: nowTime, sunrise, sunset });
     }
 
-    if (dateEl && timeEl) {
-        const dateText = now.toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-        const timeText = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-        // data-text drives the ::before face (same SVG carve as the title).
-        // Outer depth/halo come from CSS — no colored illumination.
-        dateEl.style.removeProperty('text-shadow');
-        timeEl.style.removeProperty('text-shadow');
-        dateEl.dataset.text = dateText;
-        timeEl.dataset.text = timeText;
-        dateEl.textContent = dateText;
-        timeEl.textContent = timeText;
-    }
+    // Date words and clock digits are painted as glyphs, so a turning minute or hour
+    // fades only the digits that changed (ui/headerClock.js). Teacher + School Office.
+    paintHeaderDateTime(now);
 
     // 4. Force Wallpaper Re-Check (updates weather visuals in night mode)
     if (wallScreen && !wallScreen.classList.contains('hidden')) {

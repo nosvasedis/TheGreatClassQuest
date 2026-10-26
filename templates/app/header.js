@@ -22,6 +22,18 @@ export const svgFiltersHTML = `
     <svg class="gcq-svg-filters" width="0" height="0" aria-hidden="true" focusable="false"
          style="position:absolute;width:0;height:0;overflow:hidden;pointer-events:none">
         <defs>
+            <!-- Shared gilt gradients for the trim gem and the swashes (both headers use them) -->
+            <linearGradient id="gcq-gem-gold" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#fffbe6"/>
+                <stop offset="0.45" stop-color="#fcd34d"/>
+                <stop offset="1" stop-color="#d97706"/>
+            </linearGradient>
+            <linearGradient id="gcq-swash-gold" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stop-color="#fff7d6" stop-opacity="0.2"/>
+                <stop offset="0.35" stop-color="#fde68a"/>
+                <stop offset="0.7" stop-color="#ffffff"/>
+                <stop offset="1" stop-color="#fcd34d"/>
+            </linearGradient>
             <filter id="gcq-inner-soft-stroke" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
                 <!-- Thin soft inner rim -->
                 <feGaussianBlur in="SourceAlpha" stdDeviation="0.5" result="blur"/>
@@ -55,25 +67,13 @@ export const svgFiltersHTML = `
     </svg>
 `;
 
-export const headerHTML = `
-    <header class="relative z-[1] flex w-full items-center justify-between gap-3 bg-transparent p-4 shadow-none overflow-visible">
-            <div class="header-night-stars absolute inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden="true"></div>
-            <div class="header-sky-clouds wx-clouds absolute inset-0 z-[1] overflow-hidden pointer-events-none" aria-hidden="true">${buildCloudsHtml(DEFAULT_SKY_SCENE, 'header')}</div>
-            <div class="wx-stage wx-stage--header" aria-hidden="true"></div>
-            <div class="sky-theater-sky absolute inset-0 z-[2] overflow-hidden pointer-events-none" aria-hidden="true"></div>
-
+/** The gilded thread along the header's lower edge (styles/header_flourish.css). */
+export const headerTrimHTML = `
             <div class="gcq-header-trim" aria-hidden="true">
                 <span class="gcq-header-trim__thread"></span>
                 <span class="gcq-header-trim__bead" style="--x: 9%; --d: -0.4s"></span>
                 <span class="gcq-header-trim__bead" style="--x: 28%; --d: -2.1s"></span>
                 <svg class="gcq-header-trim__gem" style="--x: 50%" viewBox="0 0 96 20" focusable="false">
-                    <defs>
-                        <linearGradient id="gcq-gem-gold" x1="0" y1="0" x2="1" y2="1">
-                            <stop offset="0" stop-color="#fffbe6"/>
-                            <stop offset="0.45" stop-color="#fcd34d"/>
-                            <stop offset="1" stop-color="#d97706"/>
-                        </linearGradient>
-                    </defs>
                     <path d="M4 10 C 16 10, 26 5, 38 9 C 30 8.5, 22 13, 4 10 Z" fill="#fff7d6"/>
                     <path d="M92 10 C 80 10, 70 5, 58 9 C 66 8.5, 74 13, 92 10 Z" fill="#fff7d6"/>
                     <circle cx="14" cy="10" r="1.3" fill="#fde68a"/>
@@ -84,21 +84,11 @@ export const headerHTML = `
                 <span class="gcq-header-trim__bead" style="--x: 72%; --d: -1.3s"></span>
                 <span class="gcq-header-trim__bead" style="--x: 91%; --d: -3s"></span>
                 ${trimSparksHTML}
-            </div>
+            </div>`;
 
-            <div class="z-10 min-w-0 flex flex-1 flex-col justify-between">
-                <div class="gcq-title-wrap">
-                    <h1 id="main-app-title" class="font-title text-2xl text-white sm:text-4xl"
-                        data-text="The Great Class Quest">The Great Class Quest</h1>
+/** Gold swash under the title, with the star the pixie lands on, and the pixie herself. */
+export const titleFlourishHTML = `
                     <svg class="gcq-swash gcq-swash--title" viewBox="0 0 260 18" aria-hidden="true" focusable="false">
-                        <defs>
-                            <linearGradient id="gcq-swash-gold" x1="0" y1="0" x2="1" y2="0">
-                                <stop offset="0" stop-color="#fff7d6" stop-opacity="0.2"/>
-                                <stop offset="0.35" stop-color="#fde68a"/>
-                                <stop offset="0.7" stop-color="#ffffff"/>
-                                <stop offset="1" stop-color="#fcd34d"/>
-                            </linearGradient>
-                        </defs>
                         <path d="M4 11 C 46 15, 86 4, 128 9 S 206 14, 238 7" fill="none" stroke="url(#gcq-swash-gold)" stroke-width="2.6" stroke-linecap="round"/>
                         <path d="M60 13.2 C 92 15.5, 118 10.5, 150 12.4" fill="none" stroke="url(#gcq-swash-gold)" stroke-width="1" stroke-linecap="round" opacity="0.7"/>
                         <path class="gcq-swash__star" d="M249 7 l2 -5 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 z" fill="#fff7d6"/>
@@ -115,36 +105,60 @@ export const headerHTML = `
                             <span class="gcq-pixie__wing gcq-pixie__wing--r"></span>
                             <span class="gcq-pixie__body"></span>
                         </span>
-                    </span>
+                    </span>`;
+
+/** The two little gold stars that bracket a header pill's words. */
+export const pillStarHTML = (side) => `<span class="gcq-pill-star gcq-pill-star--${side}" aria-hidden="true"></span>`;
+
+/** The date line with its swash and twinkle. The words are painted by ui/headerClock.js. */
+export const headerDateHTML = (idAttr = '') => `
+                <div class="gcq-date-wrap relative z-[4]">
+                    <div ${idAttr} class="gcq-header-date relative z-[4] text-right text-lg font-bold text-white sm:text-2xl md:text-4xl" style="word-spacing: 0.1em;" data-text="">
+                    </div>
+                    <svg class="gcq-swash gcq-swash--date" viewBox="0 0 260 18" aria-hidden="true" focusable="false">
+                        <path d="M256 11 C 214 15, 174 4, 132 9 S 54 14, 22 7" fill="none" stroke="url(#gcq-swash-gold)" stroke-width="2.6" stroke-linecap="round"/>
+                        <path d="M11 7 l-2 -5 l-2 5 l-5 2 l5 2 l2 5 l2 -5 l-5 -2 z" fill="#fff7d6"/>
+                    </svg>
+                    <span class="gcq-twinkle gcq-twinkle--date" aria-hidden="true"></span>
+                </div>`;
+
+/** The clock. Each digit is its own glyph so a changing one can fade out as the new one fades in. */
+export const headerTimeHTML = (idAttr = '') => `
+                    <div ${idAttr} class="gcq-header-time text-xl font-bold leading-none text-white sm:text-3xl md:text-4xl" data-text=""></div>`;
+
+export const headerHTML = `
+    <header class="gcq-sky-header relative z-[1] flex w-full items-center justify-between gap-3 bg-transparent p-4 shadow-none overflow-visible">
+            <div class="header-night-stars absolute inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden="true"></div>
+            <div class="header-sky-clouds wx-clouds absolute inset-0 z-[1] overflow-hidden pointer-events-none" aria-hidden="true">${buildCloudsHtml(DEFAULT_SKY_SCENE, 'header')}</div>
+            <div class="wx-stage wx-stage--header" aria-hidden="true"></div>
+            <div class="sky-theater-sky absolute inset-0 z-[2] overflow-hidden pointer-events-none" aria-hidden="true"></div>
+${headerTrimHTML}
+
+            <div class="z-10 min-w-0 flex flex-1 flex-col justify-between">
+                <div class="gcq-title-wrap">
+                    <h1 id="main-app-title" class="font-title text-2xl text-white sm:text-4xl"
+                        data-text="The Great Class Quest">The Great Class Quest</h1>
+${titleFlourishHTML}
                 </div>
                 <div id="header-quote-container"
-                    class="hidden self-start md:inline-flex items-center gap-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full px-4 py-1.5 shadow-md mt-2">
-                    <span class="text-lg text-white/80">✨</span>
-                    <p id="header-quote-text" class="font-title text-sm text-white tracking-wide"
-                        style="text-shadow: 0 1px 3px rgba(0,0,0,0.2);">Loading wisdom...</p>
-                    <span class="text-lg text-white/80">✨</span>
+                    class="gcq-header-pill gcq-quote hidden self-start md:inline-flex items-center gap-3 rounded-full px-4 py-1.5 mt-2">
+                    ${pillStarHTML('l')}
+                    <p id="header-quote-text" class="font-title text-sm text-white tracking-wide">Loading wisdom...</p>
+                    ${pillStarHTML('r')}
                 </div>
             </div>
 
             <div class="z-10 ml-auto flex shrink-0 flex-col justify-between items-end font-title date-time-hover-group relative">
                 <div class="sky-theater-cameo absolute inset-0 z-[3] overflow-visible pointer-events-none" aria-hidden="true"></div>
-                <div class="gcq-date-wrap relative z-[4]">
-                    <div id="current-date" class="relative z-[4] text-right text-lg font-bold text-white sm:text-2xl md:text-4xl" style="word-spacing: 0.1em;" data-text="">
-                    </div>
-                    <svg class="gcq-swash gcq-swash--date" viewBox="0 0 260 18" aria-hidden="true" focusable="false">
-                        <path d="M256 11 C 214 15, 174 4, 132 9 S 54 14, 22 7" fill="none" stroke="url(#gcq-swash-gold)" stroke-width="2.6" stroke-linecap="round"/>
-                        <path d="M11 7 l-2 -5 l-2 5 l-5 2 l5 2 l2 5 l2 -5 l5 -2 z" fill="#fff7d6"/>
-                    </svg>
-                    <span class="gcq-twinkle gcq-twinkle--date" aria-hidden="true"></span>
-                </div>
+${headerDateHTML('id="current-date"')}
 
                 <div class="relative z-[4] mt-2 flex items-center gap-2 sm:gap-4">
                     <div id="gcq-update-ready-mount" class="hidden shrink-0" aria-live="polite"></div>
                     <div
-                        class="gcq-header-controls flex items-center gap-1 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full p-1 shadow-md overflow-visible">
+                        class="gcq-header-controls gcq-header-pill flex items-center gap-1 rounded-full p-1 overflow-visible">
                         <div id="header-class-selector-wrap" class="relative z-20 flex items-center overflow-visible">
                             <button type="button" id="header-class-selector-btn"
-                                class="hover:bg-white/40 text-white max-w-[9.5rem] sm:max-w-[13rem] h-7 sm:h-8 pl-2 pr-2 sm:pl-3 sm:pr-2 rounded-full bubbly-button transition-colors duration-300 flex items-center gap-1.5 border border-white/30 font-title leading-none"
+                                class="gcq-hbtn hover:bg-white/40 text-white max-w-[9.5rem] sm:max-w-[13rem] h-7 sm:h-8 pl-2 pr-2 sm:pl-3 sm:pr-2 rounded-full bubbly-button transition-colors duration-300 flex items-center gap-1.5 border border-white/30 font-title leading-none"
                                 title="Choose class" aria-expanded="false" aria-haspopup="dialog" aria-controls="header-class-selector-panel">
                                 <span id="header-class-selector-logo" class="leading-none shrink-0" aria-hidden="true">🏫</span>
                                 <span id="header-class-selector-text" class="truncate text-left font-bold leading-none">Class…</span>
@@ -154,37 +168,37 @@ export const headerHTML = `
                             <div id="header-class-selector-panel" class="gcq-cd hidden" role="dialog" aria-label="Choose a class"></div>
                         </div>
                         <button id="app-info-btn"
-                            class="hover:bg-white/40 text-white h-7 w-7 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
+                            class="gcq-hbtn hover:bg-white/40 text-white h-7 w-7 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
                             title="The Adventurer's Guide" aria-label="Open The Adventurer's Guide">
                             <i class="fas fa-info"></i>
                         </button>
                         <button id="quiet-dragon-btn" type="button"
-                            class="hidden hover:bg-white/40 text-white h-7 w-7 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
+                            class="gcq-hbtn hidden hover:bg-white/40 text-white h-7 w-7 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
                             title="The Quiet Dragon" aria-label="Open The Quiet Dragon">
                             <i class="fas fa-dragon"></i>
                         </button>
                         <button id="quest-remote-btn" type="button"
-                            class="hidden hover:bg-white/40 text-white h-7 w-7 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
+                            class="gcq-hbtn hidden hover:bg-white/40 text-white h-7 w-7 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
                             title="Quest Remote: your phone runs the projector" aria-label="Quest Remote" aria-pressed="false">
                             <i class="fas fa-wand-magic-sparkles"></i>
                         </button>
                         <button id="projector-mode-btn"
-                            class="hover:bg-white/40 text-white h-7 w-7 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
+                            class="gcq-hbtn hover:bg-white/40 text-white h-7 w-7 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
                             title="Projector Mode" aria-label="Toggle Projector Mode">
                             <i class="fas fa-tv"></i>
                         </button>
                         <button id="header-settings-btn"
-                            class="hover:bg-white/40 text-white h-7 w-7 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
+                            class="gcq-hbtn hover:bg-white/40 text-white h-7 w-7 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
                             title="Settings" aria-label="Settings">
                             <i class="fas fa-cog"></i>
                         </button>
                         <button id="logout-btn"
-                            class="bg-red-500/80 hover:bg-red-500 text-white h-7 w-7 rounded-full bubbly-button flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
+                            class="gcq-hbtn gcq-hbtn--danger bg-red-500/80 hover:bg-red-500 text-white h-7 w-7 rounded-full bubbly-button flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
                             title="Logout" aria-label="Logout">
                             <i class="fas fa-sign-out-alt"></i>
                         </button>
                     </div>
-                    <div id="current-time" class="text-xl font-bold leading-none text-white sm:text-3xl md:text-4xl" data-text=""></div>
+${headerTimeHTML('id="current-time"')}
                 </div>
             </div>
         </header>

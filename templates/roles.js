@@ -1,23 +1,36 @@
-import { DEFAULT_SKY_SCENE } from './app/header.js';
+import { DEFAULT_SKY_SCENE, headerTrimHTML, titleFlourishHTML, pillStarHTML, headerDateHTML, headerTimeHTML } from './app/header.js';
 import { buildCloudsHtml } from '../features/skyWeatherArt.js';
 
+// Same sky, trim, title face, pill, date and clock as the teacher header (templates/app/header.js).
 const roleHeader = (role, titleAttr, subtitleAttr, logoutId) => `
-    <div class="role-header-atmosphere role-header-atmosphere--${role} relative z-[60] flex shrink-0 flex-col overflow-visible shadow-md"
-         style="background: linear-gradient(to right, #89f7fe 0%, #66a6ff 100%);">
-        <header class="relative z-[1] flex w-full items-center justify-between gap-3 bg-transparent p-4 shadow-none overflow-visible">
-            <div class="header-sky-clouds wx-clouds absolute inset-0 z-[1] overflow-hidden pointer-events-none" aria-hidden="true">${buildCloudsHtml(DEFAULT_SKY_SCENE, 'header', { count: 4 })}</div>
-            <div class="role-header-brand z-10 min-w-0 flex flex-1 items-center gap-3 overflow-visible">
-                <div class="min-w-0 overflow-visible">
-                    <p class="text-white/80 text-xs font-bold uppercase tracking-widest mb-1">School Office</p>
+    <div class="role-header-atmosphere role-header-atmosphere--${role} gcq-sky-atmosphere relative z-[60] flex shrink-0 flex-col overflow-visible shadow-md">
+        <header class="gcq-sky-header relative z-[1] flex w-full items-center justify-between gap-3 bg-transparent p-4 shadow-none overflow-visible">
+            <div class="header-night-stars absolute inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden="true"></div>
+            <div class="header-sky-clouds wx-clouds absolute inset-0 z-[1] overflow-hidden pointer-events-none" aria-hidden="true">${buildCloudsHtml(DEFAULT_SKY_SCENE, 'header')}</div>
+${headerTrimHTML}
+            <div class="role-header-brand z-10 min-w-0 flex flex-1 flex-col justify-between overflow-visible">
+                <div class="gcq-title-wrap">
                     <h1 class="font-title text-2xl text-white sm:text-4xl whitespace-nowrap" ${titleAttr} data-text="Loading...">Loading...</h1>
-                    <p class="text-white/90 text-sm font-semibold mt-1 truncate" ${subtitleAttr}></p>
+${titleFlourishHTML}
+                </div>
+                <div class="gcq-header-pill gcq-quote gcq-office-pill self-start inline-flex items-center gap-3 rounded-full px-4 py-1.5 mt-2 min-w-0 max-w-full">
+                    ${pillStarHTML('l')}
+                    <p class="font-title text-sm text-white tracking-wide truncate"><span class="gcq-office-pill__eyebrow">School Office</span><span class="gcq-office-pill__dot" aria-hidden="true">·</span><span ${subtitleAttr}></span></p>
+                    ${pillStarHTML('r')}
                 </div>
             </div>
-            <div class="z-10 flex shrink-0 items-center gap-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full p-1 shadow-md">
-                <button type="button" id="${logoutId}"
-                    class="role-header-icon-btn role-header-icon-btn--danger bubbly-button" title="Log Out" aria-label="Log Out">
-                    <i class="fas fa-sign-out-alt text-xs"></i>
-                </button>
+            <div class="z-10 ml-auto flex shrink-0 flex-col justify-between items-end font-title date-time-hover-group relative">
+${headerDateHTML()}
+                <div class="relative z-[4] mt-2 flex items-center gap-2 sm:gap-4">
+                    <div class="gcq-header-controls gcq-header-pill flex items-center gap-1 rounded-full p-1 overflow-visible">
+                        <button type="button" id="${logoutId}"
+                            class="gcq-hbtn gcq-hbtn--danger bg-red-500/80 hover:bg-red-500 text-white h-7 w-7 rounded-full bubbly-button flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
+                            title="Log Out" aria-label="Log Out">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </button>
+                    </div>
+${headerTimeHTML()}
+                </div>
             </div>
         </header>
     </div>`;

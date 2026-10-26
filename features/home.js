@@ -202,7 +202,16 @@ function updateHeaderQuote(quote) {
     const container = document.getElementById('header-quote-container');
     const textEl = document.getElementById('header-quote-text');
     if (container && textEl) {
-        textEl.innerText = quote;
+        const wasShown = !container.classList.contains('hidden');
+        if (textEl.innerText !== quote) {
+            textEl.innerText = quote;
+            // A new saying fades in with a soft rise (styles/header_flourish.css).
+            if (wasShown) {
+                textEl.classList.remove('gcq-quote-new');
+                void textEl.offsetWidth;
+                textEl.classList.add('gcq-quote-new');
+            }
+        }
         container.classList.remove('hidden');
     }
 }

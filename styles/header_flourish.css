@@ -245,24 +245,317 @@
     52%, 100% { transform: scale(1) rotate(90deg); filter: none; }
 }
 
-/* ---------- Control pill: gilt hairline + glass highlight ---------- */
-.gcq-header-controls {
+/* ---------- Header pills (quote + controls): gilded glass ----------
+   One look for the saying, the School Office line and the button pill. */
+.gcq-header-pill {
     position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.14) 100%);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
     box-shadow:
-        inset 0 0 0 1px rgba(255, 240, 190, 0.35),
-        inset 0 1px 0 rgba(255, 255, 255, 0.45),
-        0 4px 6px -1px rgba(0, 0, 0, 0.1),
-        0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        inset 0 0 0 1px rgba(255, 240, 190, 0.34),
+        inset 0 1px 0 rgba(255, 255, 255, 0.55),
+        inset 0 -1px 0 rgba(30, 58, 138, 0.08),
+        0 6px 16px -6px rgba(15, 23, 42, 0.32),
+        0 0 0 1px rgba(253, 230, 138, 0.14);
 }
-.gcq-header-controls::before {
+/* Glass highlight across the top half */
+.gcq-header-pill::before {
     content: '';
     position: absolute;
-    inset: 1px 10% auto;
-    height: 45%;
+    inset: 1px 8% auto;
+    height: 46%;
     border-radius: 999px;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0));
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0));
     pointer-events: none;
 }
+header.header-night .gcq-header-pill {
+    border-color: rgba(199, 210, 254, 0.34);
+    background: linear-gradient(180deg, rgba(224, 231, 255, 0.2) 0%, rgba(165, 180, 252, 0.08) 100%);
+    box-shadow:
+        inset 0 0 0 1px rgba(253, 230, 138, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.28),
+        0 6px 18px -6px rgba(2, 6, 23, 0.55),
+        0 0 0 1px rgba(199, 210, 254, 0.12);
+}
+
+/* The saying: gold stars either side and a slow glint crossing the glass */
+.gcq-quote {
+    overflow: hidden;
+    padding-inline: 0.95rem;
+}
+.gcq-quote::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 32%;
+    background: linear-gradient(100deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.34) 50%, rgba(255, 255, 255, 0) 100%);
+    transform: translateX(-120%) skewX(-18deg);
+    animation: gcq-quote-glint 13s ease-in-out 4s infinite;
+    pointer-events: none;
+}
+@keyframes gcq-quote-glint {
+    0% { transform: translateX(-120%) skewX(-18deg); }
+    16%, 100% { transform: translateX(420%) skewX(-18deg); }
+}
+.gcq-quote > p {
+    position: relative;
+    z-index: 1;
+    letter-spacing: 0.035em;
+    text-shadow: 0 1px 3px rgba(15, 23, 42, 0.28);
+}
+.gcq-pill-star {
+    position: relative;
+    z-index: 1;
+    flex: none;
+    width: 0.85rem;
+    height: 0.85rem;
+    background: linear-gradient(135deg, #fff7d6 0%, #fcd34d 40%, #f59e0b 75%, #d97706 100%);
+    clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+    filter: drop-shadow(0 0 1px rgba(146, 64, 14, 0.55)) drop-shadow(0 0 4px rgba(253, 224, 120, 0.95));
+    animation: gcq-pill-star 5s ease-in-out infinite;
+}
+.gcq-pill-star--r { animation-delay: -2.5s; }
+@keyframes gcq-pill-star {
+    0%, 100% { transform: scale(0.8) rotate(0deg); opacity: 0.78; }
+    50% { transform: scale(1.12) rotate(45deg); opacity: 1; }
+}
+/* A new saying settles in softly (features/home.js#updateHeaderQuote) */
+.gcq-quote > p.gcq-quote-new {
+    animation: gcq-quote-text-in 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes gcq-quote-text-in {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: none; }
+}
+/* School Office line: a small-caps eyebrow before the school's name */
+.gcq-office-pill__eyebrow {
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #fffbeb;
+}
+.gcq-office-pill__dot {
+    margin: 0 0.5em;
+    color: #fde68a;
+}
+
+/* ---------- Header buttons: glass beads with a gold halo on hover ---------- */
+.gcq-header-pill .gcq-hbtn {
+    position: relative;
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0.04) 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 1px 2px rgba(15, 23, 42, 0.14);
+    transition: background-color 0.3s ease, box-shadow 0.25s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.gcq-header-pill .gcq-hbtn:hover,
+.gcq-header-pill .gcq-hbtn:focus-visible {
+    transform: translateY(-1px);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.65),
+        0 0 0 2px rgba(253, 230, 138, 0.6),
+        0 4px 12px -2px rgba(253, 224, 120, 0.6);
+}
+.gcq-header-pill .gcq-hbtn:active { transform: scale(0.95); }
+.gcq-header-pill .gcq-hbtn--danger {
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0) 100%);
+}
+.gcq-header-pill .gcq-hbtn--danger:hover,
+.gcq-header-pill .gcq-hbtn--danger:focus-visible {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.55),
+        0 0 0 2px rgba(254, 202, 202, 0.7),
+        0 4px 12px -2px rgba(239, 68, 68, 0.55);
+}
+.gcq-hbtn > i { transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.gcq-hbtn:hover > i { transform: scale(1.12); }
+#header-settings-btn:hover > i { transform: rotate(80deg) scale(1.06); }
+#app-info-btn:hover > i { transform: translateY(-1px) scale(1.14); }
+#logout-btn:hover > i,
+.gcq-hbtn--danger:hover > i { transform: translateX(1.5px) scale(1.08); }
+#header-class-selector-btn:hover > i { transform: translateY(1px); }
+
+/* ---------- Date and clock glyphs (ui/headerClock.js) ---------- */
+.gcq-glyph-cell,
+.gcq-glyph {
+    position: relative;
+    display: inline-block;
+}
+.gcq-header-time { font-variant-numeric: tabular-nums; }
+.gcq-header-time .gcq-glyph-cell--colon { margin: 0 0.02em; }
+.gcq-header-time .gcq-glyph-cell--colon > .gcq-glyph {
+    animation: gcq-colon 2s ease-in-out infinite;
+}
+@keyframes gcq-colon {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+/* A turning minute or hour: the old digit drifts up and fades as the new one rises in */
+.gcq-glyph.is-out {
+    position: absolute;
+    left: 0;
+    top: 0;
+    animation: gcq-glyph-out 560ms cubic-bezier(0.4, 0, 0.2, 1) calc(var(--o, 0) * 110ms) both;
+}
+.gcq-glyph.is-in {
+    animation: gcq-glyph-in 700ms cubic-bezier(0.22, 1, 0.36, 1) calc(var(--o, 0) * 110ms + 140ms) both;
+}
+@keyframes gcq-glyph-out {
+    from { opacity: 1; transform: none; }
+    to { opacity: 0; transform: translateY(-0.3em) scale(0.92); }
+}
+@keyframes gcq-glyph-in {
+    from { opacity: 0; transform: translateY(0.3em) scale(0.92); }
+    to { opacity: 1; transform: none; }
+}
+/* ...and a small gold glint winks over it */
+.gcq-glyph-cell.is-turning::after {
+    content: '';
+    position: absolute;
+    top: -0.12em;
+    right: -0.12em;
+    width: 0.34em;
+    height: 0.34em;
+    background: #fffbe8;
+    clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
+    filter: drop-shadow(0 0 2px rgba(253, 230, 138, 0.95));
+    pointer-events: none;
+    animation: gcq-glyph-glint 900ms ease-out calc(var(--o, 0) * 110ms + 300ms) both;
+}
+@keyframes gcq-glyph-glint {
+    0% { opacity: 0; transform: scale(0.2) rotate(0deg); }
+    35% { opacity: 1; transform: scale(1.15) rotate(40deg); }
+    100% { opacity: 0; transform: scale(0.5) rotate(90deg); }
+}
+
+/* ---------- Title: a light sweep of gold across the letters on open ---------- */
+.gcq-sky-header h1.font-title::after {
+    content: attr(data-text);
+    position: absolute;
+    inset: 0;
+    color: transparent !important;
+    -webkit-text-fill-color: transparent;
+    text-shadow: none !important;
+    background: linear-gradient(105deg, rgba(255, 255, 255, 0) 40%, rgba(255, 251, 230, 0.95) 48%, rgba(253, 224, 120, 0.9) 52%, rgba(255, 255, 255, 0) 60%);
+    background-size: 300% 100%;
+    background-position: 100% 0;
+    -webkit-background-clip: text;
+    background-clip: text;
+    opacity: 0;
+    pointer-events: none;
+    user-select: none;
+}
+
+/* ---------- Entrance when the app opens (ui/headerClock.js#playHeaderIntro) ----------
+   Transform and opacity only, every one ending on transform: none so nothing keeps
+   a containing block (the class picker panel is fixed-position). */
+.gcq-hdr-intro .gcq-title-wrap {
+    animation: gcq-hdr-rise 850ms cubic-bezier(0.22, 1, 0.36, 1) 60ms both;
+}
+.gcq-hdr-intro h1.font-title::after {
+    animation: gcq-title-sheen 1400ms ease-in-out 900ms both;
+}
+.gcq-hdr-intro .gcq-swash path:first-of-type {
+    animation: gcq-swash-redraw 1.5s cubic-bezier(0.22, 1, 0.36, 1) 450ms both;
+}
+.gcq-hdr-intro .gcq-swash--date path:first-of-type { animation-delay: 800ms; }
+.gcq-hdr-intro .gcq-quote {
+    transform-origin: 0 50%;
+    animation: gcq-pill-unfurl 800ms cubic-bezier(0.22, 1, 0.36, 1) 380ms both;
+}
+.gcq-hdr-intro .gcq-quote > p:not(.gcq-quote-new) {
+    animation: gcq-hdr-fade-up 700ms cubic-bezier(0.22, 1, 0.36, 1) 700ms both;
+}
+.gcq-hdr-intro .gcq-pill-star {
+    animation: gcq-star-pop 600ms cubic-bezier(0.34, 1.56, 0.64, 1) 650ms both, gcq-pill-star 5s ease-in-out 1.3s infinite;
+}
+.gcq-hdr-intro .gcq-pill-star--r {
+    animation: gcq-star-pop 600ms cubic-bezier(0.34, 1.56, 0.64, 1) 950ms both, gcq-pill-star 5s ease-in-out 1.6s infinite;
+}
+.gcq-hdr-intro .gcq-header-date .gcq-glyph-cell {
+    animation: gcq-hdr-fade-up 750ms cubic-bezier(0.22, 1, 0.36, 1) calc(240ms + var(--i, 0) * 110ms) both;
+}
+.gcq-hdr-intro .gcq-header-controls {
+    transform-origin: 100% 50%;
+    animation: gcq-pill-unfurl-r 700ms cubic-bezier(0.22, 1, 0.36, 1) 520ms both;
+}
+.gcq-hdr-intro .gcq-header-controls > * {
+    animation: gcq-btn-pop 520ms cubic-bezier(0.34, 1.56, 0.64, 1) calc(700ms + var(--b, 0) * 75ms) both;
+}
+.gcq-header-controls > :nth-child(2) { --b: 1; }
+.gcq-header-controls > :nth-child(3) { --b: 2; }
+.gcq-header-controls > :nth-child(4) { --b: 3; }
+.gcq-header-controls > :nth-child(5) { --b: 4; }
+.gcq-header-controls > :nth-child(6) { --b: 5; }
+.gcq-header-controls > :nth-child(7) { --b: 6; }
+.gcq-hdr-intro .gcq-header-time .gcq-glyph-cell {
+    animation: gcq-digit-drop 650ms cubic-bezier(0.34, 1.4, 0.64, 1) calc(900ms + var(--i, 0) * 95ms) both;
+}
+/* The gold thread weaves out from the gem to both edges, beads lighting as it passes */
+.gcq-hdr-weave .gcq-header-trim__thread {
+    animation: gcq-thread-weave 1300ms cubic-bezier(0.45, 0, 0.25, 1) 420ms both;
+}
+.gcq-hdr-weave .gcq-header-trim__gem {
+    animation: gcq-gem-glimmer 700ms ease-out 200ms both;
+}
+.gcq-hdr-weave .gcq-header-trim__bead {
+    animation: gcq-bead-in 420ms cubic-bezier(0.3, 1.6, 0.5, 1) calc(420ms + var(--weave, 0.5) * 1300ms) both;
+}
+.gcq-hdr-weave .gcq-header-trim__bead:is([style*="--x: 28%"], [style*="--x: 72%"]) { --weave: 0.32; }
+.gcq-hdr-weave .gcq-header-trim__bead:is([style*="--x: 9%"], [style*="--x: 91%"]) { --weave: 0.68; }
+
+@keyframes gcq-hdr-rise {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes gcq-hdr-fade-up {
+    from { opacity: 0; transform: translateY(0.35em); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes gcq-title-sheen {
+    from { opacity: 1; background-position: 100% 0; }
+    to { opacity: 1; background-position: 0 0; }
+}
+@keyframes gcq-swash-redraw {
+    from { stroke-dashoffset: 260; }
+    to { stroke-dashoffset: 0; }
+}
+@keyframes gcq-pill-unfurl {
+    from { opacity: 0; transform: translateX(-10px) scaleX(0.7); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes gcq-pill-unfurl-r {
+    from { opacity: 0; transform: translateX(10px) scaleX(0.7); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes gcq-star-pop {
+    from { opacity: 0; transform: scale(0.2) rotate(-90deg); }
+    to { opacity: 0.9; transform: scale(1) rotate(0deg); }
+}
+@keyframes gcq-btn-pop {
+    from { opacity: 0; transform: translateY(6px) scale(0.6); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes gcq-digit-drop {
+    from { opacity: 0; transform: translateY(-0.45em) scale(0.85); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes gcq-thread-weave {
+    from { clip-path: polygon(50% -300%, 50% -300%, 50% 400%, 50% 400%, 50% -300%, 50% -300%, 50% 400%, 50% 400%); }
+    to { clip-path: polygon(0 -300%, 50% -300%, 50% 400%, 50% 400%, 50% -300%, 100% -300%, 100% 400%, 0 400%); }
+}
+
+/* ---------- School Office: the same live sky as the teacher header ---------- */
+.gcq-sky-atmosphere.role-header-atmosphere {
+    background:
+        radial-gradient(ellipse 42% 160% at 88% 0%, var(--wx-glow) 0%, transparent 70%),
+        linear-gradient(to right, var(--wx-sky-1) 0%, var(--wx-sky-2) 55%, var(--wx-sky-3) 100%) !important;
+    border-bottom: 0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1) !important;
+}
+.role-header-atmosphere > header.gcq-sky-header { background: transparent !important; }
 
 /* ---------- Night: the gold cools to moonlit silver-gold ---------- */
 header.header-night .gcq-header-trim__thread {
@@ -440,6 +733,12 @@ header.header-night .gcq-swash { filter: drop-shadow(0 0 3px rgba(199, 210, 254,
     .gcq-swash__star { animation: none; }
     .gcq-trim-spark,
     .gcq-trim-glimmer { display: none; }
+    .gcq-quote::after,
+    .gcq-pill-star,
+    .gcq-header-time .gcq-glyph-cell--colon > .gcq-glyph,
+    .gcq-glyph-cell.is-turning::after { animation: none; }
+    .gcq-quote::after { display: none; }
+    .gcq-hbtn > i { transition: none; }
     #app-screen.award-sky-active :is(.gcq-header-trim__thread, .gcq-header-trim__bead, .gcq-header-trim__gem, .m-header__thread, .m-header__bead, .m-header__gem) { animation: none !important; }
     #app-screen.award-sky-active:not(.award-sky-leaving) :is(.gcq-header-trim, .m-header__trim) { opacity: 0; transition: opacity 200ms ease; }
 }

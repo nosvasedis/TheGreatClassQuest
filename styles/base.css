@@ -84,15 +84,17 @@ body {
     50% { transform: scale(1.03); }
 }
 
-.date-time-hover-group:hover #current-date,
-.date-time-hover-group:hover #current-time {
+.date-time-hover-group:hover .gcq-header-date,
+.date-time-hover-group:hover .gcq-header-time {
     animation: hover-pulse 0.8s ease-in-out;
 }
 
 /* Date/time — identical face treatment to #main-app-title (same depth +
    soft white halo, same hard rim, same SVG inner carve). No colored
-   illumination — JS only updates the text. */
-#current-date, #current-time {
+   illumination. Painted as glyphs by ui/headerClock.js, each glyph
+   carrying its own face (styles/header_flourish.css); plain text keeps
+   the host face below. */
+.gcq-header-date, .gcq-header-time {
     position: relative;
     color: transparent !important;
     -webkit-text-fill-color: transparent;
@@ -100,8 +102,9 @@ body {
     -webkit-text-stroke: 0;
 }
 
-#current-date::before,
-#current-time::before {
+.gcq-header-date:not(.gcq-glyphs)::before,
+.gcq-header-time:not(.gcq-glyphs)::before,
+.gcq-glyph::before {
     content: attr(data-text);
     position: absolute;
     inset: 0;
@@ -119,6 +122,7 @@ body {
 
 /* Header quote + class-picker label — lighter soft INNER carve */
 #header-quote-text,
+.gcq-office-pill p,
 #header-class-selector-text,
 #header-class-selector-btn > .fa-chevron-down {
     -webkit-text-stroke: 0;

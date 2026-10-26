@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Header preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Fredoka+One&family=Open+Sans:wght@400;600;700&family=Cinzel:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    html, body { margin: 0; min-height: 100%; }
+    body { background: linear-gradient(to bottom, #F0F9FF 0%, #E0F2FE 50%, #D6F9E3 100%); }
+    #app-screen, #secretary-screen { display: flex !important; position: relative !important; inset: auto !important; height: auto !important; overflow: visible !important; }
+    #secretary-screen { padding-bottom: 60px; }
+    .pv-label { font: 700 12px system-ui; color: #475569; padding: 18px 16px 6px; text-transform: uppercase; letter-spacing: .08em; }
+    .pv-toolbar { position: fixed; right: 10px; bottom: 10px; z-index: 999; display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; border-radius: 14px; background: rgba(15, 23, 42, 0.82); font: 600 12px system-ui; }
+    .pv-toolbar button, .pv-toolbar select { border: 0; border-radius: 999px; padding: 5px 10px; font: inherit; cursor: pointer; }
+    body.pv-shot .pv-toolbar { display: none; }
+  </style>
+</head>
+<body>
+  <div id="app-root"></div>
+  <div class="pv-toolbar">
+    <select id="pv-time">
+      <option value="09:40">Morning</option><option value="14:00">Afternoon</option>
+      <option value="19:50">Sunset</option><option value="23:00">Night</option><option value="06:40">Dawn</option>
+    </select>
+    <button id="pv-intro">Replay intro</button>
+    <button id="pv-minute">Next minute</button>
+    <button id="pv-hour">Next hour</button>
+  </div>
+  <script type="module" src="/header-preview.js"></script>
+</body>
+</html>

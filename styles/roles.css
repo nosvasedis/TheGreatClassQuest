@@ -366,29 +366,6 @@
   animation: card-appear 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
-.role-header-icon-btn {
-  width: 2rem;
-  height: 2rem;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.15);
-  color: white;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s ease, transform 0.2s ease;
-  cursor: pointer;
-}
-
-.role-header-icon-btn:hover {
-  background: rgba(255, 255, 255, 0.35);
-  transform: scale(1.05);
-}
-
-.role-header-icon-btn--danger:hover {
-  background: rgba(254, 226, 226, 0.35);
-}
-
 .role-bottom-nav .nav-button .text {
   font-size: 0.62rem;
 }
@@ -2219,29 +2196,6 @@
     linear-gradient(180deg, #f8fcff 0%, #f5f7ff 52%, #f8fafc 100%);
 }
 
-.role-header-atmosphere--secretary {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.42);
-  background:
-    radial-gradient(circle at 82% 15%, rgba(255, 255, 255, 0.3), transparent 22%),
-    linear-gradient(115deg, #0891b2 0%, #0ea5e9 42%, #6366f1 100%) !important;
-  box-shadow: 0 12px 35px rgba(14, 116, 144, 0.2) !important;
-}
-
-.role-header-brand__mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  width: 2.75rem;
-  height: 2.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.48);
-  border-radius: 1rem;
-  color: #fff;
-  background: rgba(255, 255, 255, 0.2);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 8px 20px rgba(30, 64, 175, 0.16);
-  backdrop-filter: blur(10px);
-}
-
 .secretary-role-main {
   background:
     linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3)),
@@ -2504,7 +2458,6 @@
 }
 
 @media (max-width: 640px) {
-  .role-header-brand__mark { width: 2.35rem; height: 2.35rem; border-radius: 0.8rem; }
   .role-bottom-nav--secretary { gap: 0.22rem !important; padding: 0.45rem !important; }
   .role-bottom-nav--secretary .nav-button { height: 3.35rem; border-radius: 1rem; }
   .role-subtab-bar { width: 100%; flex-wrap: nowrap; }

@@ -39,15 +39,6 @@
     --wx-card-ink: #ffffff;
 }
 
-/* Secretary / other role headers keep their own fair-day clouds whatever the weather. */
-html .role-header-atmosphere {
-    --wx-cloud-shade: #afc6e9;
-    --wx-cloud-body: #e4eefb;
-    --wx-cloud-lit: #ffffff;
-    --wx-cloud-glint: #ffffff;
-    --wx-cloud-alpha: 0.96;
-}
-
 html[data-wx-light="dawn"] {
     --wx-sky-1: #ffcfb0;
     --wx-sky-2: #f5b5cf;
@@ -273,6 +264,7 @@ html[data-wx-dir="w"] { --wx-gust-flip: -1; }
 @property --wx-card-ink { syntax: '<color>'; inherits: true; initial-value: #ffffff; }
 
 #award-header-atmosphere,
+.gcq-sky-atmosphere,
 #award-immersive-sky,
 .weather-card--v3,
 .m-header,

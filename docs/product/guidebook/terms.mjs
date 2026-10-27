@@ -675,6 +675,18 @@ export const TERMS = [
     confuse: { en: 'Quiz of the Week (Elite, one hero answers at a time); Bounties (class star-vs-timer)', el: 'Quiz of the Week (Elite, ένας ήρωας τη φορά)· Bounties (αστέρια τάξης κόντρα στον χρόνο)' }
   },
   {
+    id: 'hero-duels',
+    chapter: 'home',
+    widget: 'none',
+    names: { en: 'Hero Duels', el: 'Hero Duels' },
+    aliases: ['hero duels', 'duels', 'duel', 'face off', 'individual game', 'every hero on their own', 'big teams'],
+    def: {
+      en: 'A projector game from Class Actions where every hero plays on their own: pick 2 to 6 heroes, give them points, crown the winner and pick the next ones. Optional big teams collect every duel’s points. Optional Showdown stars at the finale.',
+      el: 'Παιχνίδι στον προβολέα από τις ενέργειες τμήματος όπου κάθε ήρωας παίζει μόνος του: διαλέγεις 2 έως 6 ήρωες, δίνεις πόντους, στέφεις τον νικητή και διαλέγεις τους επόμενους. Προαιρετικές μεγάλες ομάδες μαζεύουν τους πόντους κάθε μονομαχίας. Προαιρετικά αστέρια Showdown στο τέλος.'
+    },
+    confuse: { en: 'Showdown Arena (teams, run from the Wand); Fair Picker (one child answers)', el: 'Showdown Arena (ομάδες, από το Ραβδί)· Fair Picker (ένα παιδί απαντά)' }
+  },
+  {
     id: 'class-greenhouse',
     chapter: 'settings',
     widget: 'none',

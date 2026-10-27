@@ -36,12 +36,13 @@ test('gated tools drop out and settings shortcuts fill the space', () => {
 
 test('class actions skip bottom-nav tabs and carry the class id', () => {
     const tools = getHomeClassActions({ classId: 'c1', heroCount: 12, absentToday: 2 });
-    assert.deepEqual(tools.map(t => t.id), ['roll-call', 'team-maker', 'fair-picker', 'roster', 'report', 'edit', 'prodigies']);
+    assert.deepEqual(tools.map(t => t.id), ['roll-call', 'team-maker', 'fair-picker', 'hero-duels', 'roster', 'report', 'edit', 'prodigies']);
     assert.ok(tools.every(t => t.classId === 'c1' && !t.tab));
     assert.equal(tools[0].hint, '2 away today');
     assert.equal(tools[1].hint, 'Split 10 into teams');
     assert.equal(tools[2].hint, 'Everyone gets a turn');
-    assert.equal(tools[3].hint, '12 heroes');
+    assert.equal(tools[3].hint, 'Heroes face off');
+    assert.equal(tools[4].hint, '12 heroes');
     assert.equal(getHomeClassActions({ classId: 'c1', absentToday: 1 })[0].hint, '1 away today');
     assert.equal(getHomeClassActions({ classId: 'c1' })[0].hint, 'Mark who is away');
 });
@@ -61,5 +62,12 @@ test('Team Maker and Fair Picker hints follow today\'s teams and the turn round'
     assert.equal(tools.find(t => t.id === 'fair-picker').hint, '5 still waiting');
     // Class tools only: they always follow the selected class, so Global Tools never offer them.
     const global = getHomeGlobalTools({ canUseFeature: all, myClassCount: 2 });
-    assert.ok(!global.some(t => t.id === 'team-maker' || t.id === 'fair-picker'));
+    assert.ok(!global.some(t => t.id === 'team-maker' || t.id === 'fair-picker' || t.id === 'hero-duels'));
+});
+
+test('Hero Duels is a projector game: the phone keeps its eight class actions without it', () => {
+    const phone = getHomeClassActions({ classId: 'c1', heroCount: 12, boonWindow: true, projector: false });
+    assert.ok(!phone.some(t => t.id === 'hero-duels'));
+    assert.equal(phone.length, 8);
+    assert.equal(getHomeClassActions({ classId: 'c1', heroCount: 12 }).find(t => t.id === 'hero-duels').action, 'open-hero-duels');
 });

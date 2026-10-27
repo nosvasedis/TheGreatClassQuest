@@ -1106,6 +1106,7 @@ async function handleAction(action, data) {
     else if (action === 'open-teacher-boon') modals.openTeacherBoonModal();
     else if (action === 'open-team-maker') import('../ui/modals/teamMaker.js').then(m => m.openTeamMaker(data?.id || null));
     else if (action === 'open-fair-picker') import('../ui/modals/fairPicker.js').then(m => m.openFairPicker(data?.id || null));
+    else if (action === 'open-hero-duels') import('../ui/modals/heroDuels.js').then(m => m.openHeroDuels(data?.id || null));
 }
 
 function applyScheduleBasedClassSync() {

@@ -6,8 +6,10 @@ import { teamsForDay } from './teamMakerCore.mjs';
 import { fairStatus, normalizeFairPicker } from './fairPickerCore.mjs';
 
 export const HOME_GLOBAL_TOOL_LIMIT = 6;
-/** Class Actions hold two more: Team Maker and Fair Picker live only here, for the selected class. */
-export const HOME_CLASS_ACTION_LIMIT = 8;
+/** Class Actions hold more: Team Maker, Fair Picker and Hero Duels live only here, for the selected class. */
+export const HOME_CLASS_ACTION_LIMIT = 9;
+/** The phone has no projector game (Hero Duels), so it keeps the old eight. */
+export const MOBILE_CLASS_ACTION_LIMIT = 8;
 
 function plural(n, one, many) {
     return `${n} ${n === 1 ? one : many}`;
@@ -77,9 +79,10 @@ export function getHomeGlobalTools({ canUseFeature, myLessonsToday = 0, myClassC
  * @param {number} [ctx.teamsToday] teams the Team Maker saved for this class today
  * @param {number} [ctx.waitingTurns] heroes here who are still waiting for a Fair Picker turn this round
  * @param {boolean} [ctx.fairRoundStarted] at least one Fair Picker turn has been given this round
+ * @param {boolean} [ctx.projector] false on the phone: no Hero Duels tile (it is a projector game)
  * @returns {{ id: string, icon: string, label: string, hint: string, tone: string, action: string, classId: string }[]}
  */
-export function getHomeClassActions({ classId, heroCount = 0, absentToday = 0, boonWindow = false, boonGivenTo = '', teamsToday = 0, waitingTurns = 0, fairRoundStarted = false }) {
+export function getHomeClassActions({ classId, heroCount = 0, absentToday = 0, boonWindow = false, boonGivenTo = '', teamsToday = 0, waitingTurns = 0, fairRoundStarted = false, projector = true }) {
     const here = Math.max(0, heroCount - absentToday);
     const catalog = [
         boonWindow && {
@@ -102,6 +105,11 @@ export function getHomeClassActions({ classId, heroCount = 0, absentToday = 0, b
             action: 'open-fair-picker',
             hint: fairRoundStarted && waitingTurns > 0 ? `${waitingTurns} still waiting` : 'Everyone gets a turn',
         },
+        projector && {
+            id: 'hero-duels', icon: 'fa-bolt', label: 'Hero Duels', tone: 'amber',
+            action: 'open-hero-duels',
+            hint: here >= 2 ? 'Heroes face off' : 'Needs two heroes',
+        },
         {
             id: 'roster', icon: 'fa-users', label: 'Class Roster', tone: 'emerald',
             action: 'open-class-roster',
@@ -120,7 +128,7 @@ export function getHomeClassActions({ classId, heroCount = 0, absentToday = 0, b
             action: 'open-prodigies', hint: 'Past Prodigies',
         },
     ];
-    return catalog.filter(Boolean).slice(0, HOME_CLASS_ACTION_LIMIT).map((tool) => ({ ...tool, classId }));
+    return catalog.filter(Boolean).slice(0, projector ? HOME_CLASS_ACTION_LIMIT : MOBILE_CLASS_ACTION_LIMIT).map((tool) => ({ ...tool, classId }));
 }
 
 /** Live hint numbers for the Team Maker and Fair Picker tiles of one class. */

@@ -264,6 +264,7 @@ function getMobileClassActions(classId) {
         boonWindow: utils.isTeacherBoonWindow(),
         boonGivenTo: boonHero ? String(boonHero.name || '').split(/\s+/)[0] : '',
         ...getClassToolCounts({ classData, studentIds: students.map((s) => s.id), absentIds, dateKey: today }),
+        projector: false,
     });
 }
 

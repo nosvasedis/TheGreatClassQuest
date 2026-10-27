@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Award moments preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Fredoka+One&family=Open+Sans:wght@400;600;700&family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    html, body { margin: 0; min-height: 100%; }
+    body { background: linear-gradient(to bottom, #F0F9FF 0%, #E0F2FE 50%, #D6F9E3 100%); }
+    #pv-grid { padding: 4rem 1.5rem; max-width: 80rem; margin: 0 auto; }
+    .pv-toolbar { position: fixed; left: 10px; bottom: 10px; z-index: 3000; display: flex; gap: 6px; padding: 8px; border-radius: 14px; background: rgba(15, 23, 42, 0.82); font: 600 12px system-ui; }
+    .pv-toolbar button { border: 0; border-radius: 999px; padding: 5px 10px; font: inherit; cursor: pointer; }
+    body.pv-shot .pv-toolbar { display: none; }
+  </style>
+</head>
+<body>
+  <div id="toast-container"></div>
+  <div id="pv-grid" class="aw-sky-grid"></div>
+  <div class="pv-toolbar">
+    <button id="pv-boon">Hero's Boon</button>
+    <button id="pv-boon-fail">Boon refused</button>
+    <button id="pv-hero">Hero of the Day bonus</button>
+    <button id="pv-hero-away">Hero bonus (cloud out of view)</button>
+  </div>
+  <script type="module" src="/award-moments-preview.js"></script>
+</body>
+</html>

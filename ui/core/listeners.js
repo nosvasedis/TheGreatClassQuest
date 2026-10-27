@@ -24,7 +24,7 @@ import { playSound } from '../../audio.js';
 import { clearLocalAppData, getDeviceCacheChoice } from '../../utils/deviceCache.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 import { withSchoolYear } from '../../utils/schoolYear.js';
-import { showToast, triggerDynamicPraise, showWelcomeBackMessage, createFloatingHearts } from '../effects.js';
+import { showToast, triggerDynamicPraise, showWelcomeBackMessage } from '../effects.js';
 import { triggerAwardEffects, playVirtuePick } from '../awardFx.js';
 import { confirmAwardPending, markAwardPending, runAwardWriteInOrder, settleAwardPending } from '../../features/awardPending.mjs';
 import { confirmAttendancePending, markAttendancePending, settleAttendancePending, withPendingAttendance } from '../../features/attendancePending.mjs';
@@ -504,17 +504,26 @@ export function setupUIListeners() {
         const senderId = document.getElementById('boon-sender-select').value;
 
         if (senderId && receiverId) {
-            playSound('star3');
-            createFloatingHearts(e.clientX, e.clientY);
-
             const sender = state.get('allStudents').find(s => s.id === senderId);
             const receiver = state.get('allStudents').find(s => s.id === receiverId);
+            const confirmBtn = e.currentTarget;
+            confirmBtn.disabled = true;
+            const r = confirmBtn.getBoundingClientRect();
+            const origin = e.clientX || e.clientY ? { x: e.clientX, y: e.clientY } : { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+            modals.hideModal('bestow-boon-modal');
 
-            // Directly bestow the boon - confirmation is implicit in the modal UI
-            import('../../features/boons.js').then(m => {
-                m.handleBestowBoon(senderId, receiverId);
-                modals.hideModal('bestow-boon-modal');
-            });
+            // The heart leaves the giver at once and waits over the receiver until the save answers.
+            Promise.all([import('../../features/boons.js'), import('../awardMoments.js')]).then(([m, fx]) => {
+                const moment = fx.startBoonMoment({
+                    giver: { id: senderId, name: sender?.name, avatar: sender?.avatar },
+                    receiver: { id: receiverId, name: receiver?.name, avatar: receiver?.avatar },
+                    origin
+                });
+                return m.handleBestowBoon(senderId, receiverId).then((result) => {
+                    if (result) moment.land(result);
+                    else moment.fizzle();
+                }, () => moment.fizzle());
+            }).catch((error) => console.error('Hero\'s Boon failed:', error));
         }
     });
 

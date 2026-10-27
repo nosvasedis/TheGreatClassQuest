@@ -94,6 +94,7 @@ async function writeStudentStarsForToday(
     starValue,
     reason = null,
 ) {
+    const awardStartedAt = Date.now();
     const today = getTodayDateString();
     const publicDataPath = PUBLIC_DATA_PATH;
     const activeYearKey = state.getActiveSchoolYearKey();
@@ -494,18 +495,17 @@ async function writeStudentStarsForToday(
             const student = state
                 .get("allStudents")
                 .find((s) => s.id === studentId);
-            const firstName = student ? student.name.split(" ")[0] : "Hero";
-
-            // Delayed visual for dramatic effect
+            // The crown waits for the star burst of the award itself to settle first.
+            const sinceTap = Date.now() - awardStartedAt;
             setTimeout(() => {
-                import("../../ui/effects.js").then((m) => {
-                    m.showPraiseToast(
-                        `${firstName} activated their Hero's Boon! +1 Star added to the coffers!`,
-                        "🛡️",
-                    );
-                });
-                playSound("magic_chime");
-            }, 800);
+                import("../../ui/awardMoments.js")
+                    .then((m) => m.playHeroBonusMoment({
+                        studentId,
+                        name: student?.name || "Hero",
+                        avatar: student?.avatar || "",
+                    }))
+                    .catch((e) => console.warn("Hero bonus moment failed:", e));
+            }, Math.max(200, 1150 - sinceTap));
         }
 
         // --- Side Effects (After Transaction) ---

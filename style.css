@@ -271,6 +271,9 @@
 /* 48b. Boons: Hero's Boon and Teacher Boon modals, in the Award Stars sky */
 @import url('./styles/boons.css');
 
+/* 48c. Award moments: the Hero's Boon gift and the Hero of the Day bonus (ui/awardMoments.js) */
+@import url('./styles/award_moments.css');
+
 /* 48. Secretary Office: the school's front office (signs, registry, dialogs, modal motion) */
 @import url('./styles/secretary_office.css');
 

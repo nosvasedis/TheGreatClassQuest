@@ -140,6 +140,16 @@ const baseBank = createVoiceBank((keep) => {
             envelope: { attack: 0.04, decay: 0.5, sustain: 0.25, release: 1.1 },
             volume: -20
         }, 6).connect(reverb),
+        // The Hero of the Day bonus: a soft brass for the royal call (FM at harmonicity 1).
+        royal_brass: () => pool(keep, Tone.FMSynth, {
+            harmonicity: 1,
+            modulationIndex: 3.2,
+            oscillator: { type: 'sine' },
+            envelope: { attack: 0.03, decay: 0.18, sustain: 0.55, release: 0.45 },
+            modulation: { type: 'square' },
+            modulationEnvelope: { attack: 0.06, decay: 0.25, sustain: 0.45, release: 0.35 },
+            volume: -19
+        }, 6).connect(reverb),
     });
     return v;
 }, { idle: 6, span: 3 });
@@ -308,6 +318,62 @@ export function playSound(sound) {
     } catch (e) { 
         // Suppress overlapping errors silently now that we have a queue
         // console.error('Audio ignored:', e); 
+    }
+}
+
+/**
+ * The two big award moments (ui/awardMoments.js).
+ * Hero's Boon, in A major: 'boon_launch' a lub-dub and a harp lifting the heart ·
+ * 'boon_fly' a glide of bells across the sky · 'boon_land' a warm bloom of bells, pad and sparkle ·
+ * 'boon_fizzle' a soft falling pair when the boon could not be given.
+ * 'hero_bonus' the Hero of the Day: a brass call, the crown landing on a D-major chord, a cascade.
+ */
+export function playAwardMomentSfx(name) {
+    if (!soundsReady || !audioRunning()) return;
+    const sounds = getSounds(name === 'hero_bonus' ? 5 : 3);
+    const t = Tone.now() + 0.03;
+    const bell = (note, dur, at, vel) => sounds.award_bell.triggerAttackRelease(note, dur, t + at, vel);
+    const harp = (note, at, vel = 0.6) => sounds.pluck.triggerAttackRelease(note, '16n', t + at, vel);
+    try {
+        if (name === 'boon_launch') {
+            sounds.award_swell.triggerAttackRelease('A1', '16n', t, 0.55);
+            sounds.award_swell.triggerAttackRelease('A1', '16n', t + 0.16, 0.38);
+            ['A4', 'C#5', 'E5', 'A5', 'C#6', 'E6'].forEach((n, i) => harp(n, 0.42 + i * 0.07, 0.45 + i * 0.06));
+            sounds.award_sparkle.triggerAttackRelease('8n', t + 0.8);
+        } else if (name === 'boon_fly') {
+            ['E6', 'F#6', 'A6', 'B6', 'C#7', 'E7'].forEach((n, i) => bell(n, '32n', i * 0.2, 0.18 + i * 0.04));
+            sounds.award_sparkle.triggerAttackRelease('4n', t + 0.3);
+        } else if (name === 'boon_land') {
+            sounds.award_swell.triggerAttackRelease('A1', '8n', t, 0.6);
+            bell(['A5', 'C#6', 'E6', 'G#6'], '4n', 0.02, 0.75);
+            sounds.award_pad.triggerAttackRelease(['A4', 'E5', 'C#6'], '2n', t + 0.02);
+            sounds.award_sparkle.triggerAttackRelease('4n', t + 0.04);
+            ['A7', 'G#7', 'E7', 'C#7', 'A6'].forEach((n, i) => bell(n, '64n', 0.36 + i * 0.09, 0.32 - i * 0.03));
+        } else if (name === 'boon_fizzle') {
+            bell('E6', '32n', 0, 0.3);
+            bell('B5', '16n', 0.14, 0.26);
+        } else if (name === 'hero_bonus') {
+            // A herald's call: ta-ta-taaa, rising.
+            const brass = (notes, dur, at, vel = 0.7) => sounds.royal_brass.triggerAttackRelease(notes, dur, t + at, vel);
+            brass('A4', 0.1, 0, 0.55);
+            brass('A4', 0.1, 0.13, 0.55);
+            brass('D5', 0.32, 0.26, 0.7);
+            sounds.award_sparkle.triggerAttackRelease('8n', t + 0.1);
+            ['D6', 'F#6', 'A6', 'D7'].forEach((n, i) => bell(n, '32n', 0.5 + i * 0.07, 0.3 + i * 0.08));
+            // The crown lands.
+            const land = 0.98;
+            sounds.award_swell.triggerAttackRelease('D2', '8n', t + land, 0.85);
+            brass(['D5', 'F#5', 'A5'], 0.7, land, 0.75);
+            bell(['D6', 'F#6', 'A6', 'D7'], '4n', land + 0.02, 0.9);
+            sounds.award_pad.triggerAttackRelease(['D5', 'A5', 'F#6'], '2n', t + land);
+            sounds.award_sparkle.triggerAttackRelease('4n', t + land + 0.02);
+            sounds.star3.triggerAttackRelease('D7', '32n', t + land + 0.2);
+            // The bonus star flies into the tally.
+            ['A7', 'F#7', 'D7', 'A6', 'F#6'].forEach((n, i) => bell(n, '64n', land + 0.55 + i * 0.1, 0.34 - i * 0.04));
+            bell(['D7', 'A7'], '8n', land + 1.55, 0.5);
+        }
+    } catch (e) {
+        console.warn('Award moment sound skipped:', e);
     }
 }
 

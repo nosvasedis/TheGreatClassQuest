@@ -53,7 +53,7 @@ export function formatTeacherBoonReason(boon) {
 export async function handleBestowBoon(senderId, receiverId) {
     if (senderId === receiverId) {
         showToast("An adventurer cannot bestow a boon on themselves!", "error");
-        return;
+        return false;
     }
 
     const sender = state.get('allStudents').find(s => s.id === senderId);
@@ -70,7 +70,7 @@ export async function handleBestowBoon(senderId, receiverId) {
     const existingSnap = await getDocs(logsQuery);
     if (existingSnap.size >= PEER_BOON_DAILY_CAP) {
         showToast('Daily boon limit reached — max 4 per class per day!', 'error');
-        return;
+        return false;
     }
 
     try {
@@ -232,10 +232,19 @@ export async function handleBestowBoon(senderId, receiverId) {
         if (patronLevelUpInfo) {
             showHeroLevelUpCelebration(patronLevelUpInfo);
         }
-        playSound('magic_chime');
-        showToast(`${receiver.name} received a Hero's Boon!`, 'success');
+        // The heart's landing (ui/awardMoments.js) plays the sound; this is the lasting word.
+        import('../ui/awardMoments.js')
+            .then((fx) => fx.announceBoon({
+                giverName: sender.name,
+                receiverName: receiver.name,
+                stars: receiverStarDelta,
+                patronGoldBack: patronGiftResult.applies ? patronGiftResult.giverGoldBonus : 0
+            }))
+            .catch(() => showToast(`${receiver.name} received a Hero's Boon!`, 'success'));
+        return { stars: receiverStarDelta };
     } catch (error) {
         showToast(typeof error === 'string' ? error : "The magic failed!", "error");
+        return false;
     }
 }
 

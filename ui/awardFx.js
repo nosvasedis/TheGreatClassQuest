@@ -2,7 +2,8 @@
 // One, two or three stars escalate: a spark, a shine, a supernova. Every piece is a small
 // element in one fixed layer, animated with the Web Animations API on transform and opacity
 // only (compositor work), then removed. Glows are pre-drawn gradients, never filters.
-// Styles: styles/award_stars.css (.aw-fx-*).
+// Styles: styles/award_stars.css (.aw-fx-*). The Hero's Boon gift and the Hero of the Day
+// bonus (ui/awardMoments.js) share this layer and these helpers.
 
 import { playSound } from '../audio.js';
 import { buildAwardCloudSvg } from '../features/awardCloudCard.mjs';
@@ -49,7 +50,7 @@ const TIERS = {
 
 let fxLayer = null;
 
-function getLayer() {
+export function getLayer() {
     if (fxLayer?.isConnected) return fxLayer;
     fxLayer = document.createElement('div');
     fxLayer.className = 'aw-fx-layer';
@@ -58,23 +59,23 @@ function getLayer() {
     return fxLayer;
 }
 
-function prefersReducedMotion() {
+export function prefersReducedMotion() {
     return typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 }
 
 /** Weak machines still get the full sequence, with fewer particles. */
-function isLitePower() {
+export function isLitePower() {
     const cores = Number(navigator.hardwareConcurrency) || 4;
     const memory = Number(navigator.deviceMemory) || 4;
     return cores <= 2 || memory <= 2;
 }
 
-function centerOf(el) {
+export function centerOf(el) {
     const r = el.getBoundingClientRect();
     return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
 }
 
-function spawn(layer, className, x, y, style = {}) {
+export function spawn(layer, className, x, y, style = {}) {
     const el = document.createElement('span');
     el.className = className;
     el.style.left = `${x}px`;
@@ -84,7 +85,7 @@ function spawn(layer, className, x, y, style = {}) {
     return el;
 }
 
-function run(el, keyframes, options) {
+export function run(el, keyframes, options) {
     if (typeof el.animate !== 'function') {
         el.remove();
         return null;
@@ -151,7 +152,7 @@ function landingTwinkle(layer, target, tier) {
     ], { duration: 420, easing: 'ease-out' });
 }
 
-function popElement(el, scale = 1.16) {
+export function popElement(el, scale = 1.16) {
     el?.animate?.([
         { transform: 'scale(1)' },
         { transform: `scale(${scale}) translateY(-2px)`, offset: 0.4 },
@@ -309,7 +310,7 @@ export function readCloudPalette(card) {
     return palette;
 }
 
-function isOnScreen(el) {
+export function isOnScreen(el) {
     const r = el.getBoundingClientRect();
     return r.bottom > 0 && r.top < window.innerHeight && r.right > 0 && r.left < window.innerWidth && r.width > 0;
 }

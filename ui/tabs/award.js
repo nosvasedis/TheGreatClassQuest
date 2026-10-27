@@ -35,6 +35,8 @@ import {
 } from '../../features/awardLogReasonMeta.js';
 import { buildHeroTieStats, pickProdigyWinners, rankHeroes } from '../../features/heroRanking.js';
 import { withPendingAwards } from '../../features/awardPending.mjs';
+import { withPendingAttendance } from '../../features/attendancePending.mjs';
+import { playAttendanceTurn, readCloudPalette } from '../awardFx.js';
 import { bindAwardRollTips, hideAwardRollTip, refreshAwardRollTip, registerAwardTipBuilder } from '../awardRollTip.js';
 
 // --- REIGNING PRODIGY CACHE (previous month, with tie-breaker) ---
@@ -239,7 +241,8 @@ function buildAwardClassContext(classId, studentsInClass) {
 
     const absentTodaySet = new Set();
     const absentPrevSet = new Set();
-    for (const r of state.get('allAttendanceRecords') || []) {
+    // Marks still saving count already, so a tap turns the cloud at once.
+    for (const r of withPendingAttendance(state.get('allAttendanceRecords') || [])) {
         if (r.date === today) absentTodaySet.add(r.studentId);
         if (previousLessonDate && r.date === previousLessonDate) absentPrevSet.add(r.studentId);
     }
@@ -832,8 +835,12 @@ export function refreshAwardCloud(studentId) {
     if (!fresh) return;
     const openReason = card.classList.contains('is-locked') ? null : card.querySelector('.reason-btn.active')?.dataset.reason;
     if (card.classList.contains('is-afloat')) fresh.classList.add('is-afloat');
+    // Away <-> here: the old cloud's colours melt into the new one (read before it leaves).
+    const turning = card.classList.contains('is-absent') !== fresh.classList.contains('is-absent');
+    const wasPalette = turning ? readCloudPalette(card) : null;
     card.replaceWith(fresh);
     restoreAwardOpenCloud(fresh, openReason);
+    if (turning) playAttendanceTurn(fresh, { toAbsent: view.isAbsent, wasPalette, cloud: view.cloud });
     awardCardSignatures.set(String(studentId), signature);
     awardFloatObserver?.observe(fresh);
     renderAwardSkySummary(classId);

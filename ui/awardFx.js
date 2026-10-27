@@ -5,6 +5,7 @@
 // Styles: styles/award_stars.css (.aw-fx-*).
 
 import { playSound } from '../audio.js';
+import { buildAwardCloudSvg } from '../features/awardCloudCard.mjs';
 
 const TIERS = {
     1: {
@@ -174,18 +175,18 @@ function floatLabel(layer, origin, tier) {
     ], { duration: tier.title ? 1500 : 1100, easing: 'ease-out' });
 }
 
-function sunburst(layer, origin) {
+function sunburst(layer, origin, size = 1) {
     const rays = spawn(layer, 'aw-fx-rays', origin.x, origin.y);
     run(rays, [
-        { transform: 'translate(-50%, -50%) scale(0.2) rotate(0deg)', opacity: 0 },
-        { transform: 'translate(-50%, -50%) scale(1) rotate(40deg)', opacity: 1, offset: 0.3 },
-        { transform: 'translate(-50%, -50%) scale(1.35) rotate(95deg)', opacity: 0 }
+        { transform: `translate(-50%, -50%) scale(${0.2 * size}) rotate(0deg)`, opacity: 0 },
+        { transform: `translate(-50%, -50%) scale(${size}) rotate(40deg)`, opacity: 1, offset: 0.3 },
+        { transform: `translate(-50%, -50%) scale(${1.35 * size}) rotate(95deg)`, opacity: 0 }
     ], { duration: 1300, easing: 'cubic-bezier(0.2, 0.7, 0.3, 1)' });
     const core = spawn(layer, 'aw-fx-core', origin.x, origin.y);
     run(core, [
-        { transform: 'translate(-50%, -50%) scale(0.3)', opacity: 0 },
-        { transform: 'translate(-50%, -50%) scale(1.25)', opacity: 1, offset: 0.2 },
-        { transform: 'translate(-50%, -50%) scale(1.6)', opacity: 0 }
+        { transform: `translate(-50%, -50%) scale(${0.3 * size})`, opacity: 0 },
+        { transform: `translate(-50%, -50%) scale(${1.25 * size})`, opacity: 1, offset: 0.2 },
+        { transform: `translate(-50%, -50%) scale(${1.6 * size})`, opacity: 0 }
     ], { duration: 900, easing: 'ease-out' });
 }
 
@@ -290,4 +291,150 @@ export function playVirtuePick(button, reason) {
         { transform: 'translate(-50%, -50%) scale(0.3)', opacity: 0.9 },
         { transform: 'translate(-50%, -50%) scale(0.7)', opacity: 0 }
     ], { duration: 460, easing: 'ease-out' });
+}
+
+// ───────────── Away <-> here: the cloud turns ─────────────
+
+const CLOUD_PALETTE_VARS = ['--awc-top', '--awc-mid', '--awc-bot', '--awc-rim', '--awc-shelf', '--awc-glint', '--awc-sheen'];
+
+/** The colours a cloud wears right now, read before it is replaced. */
+export function readCloudPalette(card) {
+    if (!card || typeof getComputedStyle !== 'function') return null;
+    const style = getComputedStyle(card);
+    const palette = {};
+    for (const name of CLOUD_PALETTE_VARS) {
+        const value = style.getPropertyValue(name).trim();
+        if (value) palette[name] = value;
+    }
+    return palette;
+}
+
+function isOnScreen(el) {
+    const r = el.getBoundingClientRect();
+    return r.bottom > 0 && r.top < window.innerHeight && r.right > 0 && r.left < window.innerWidth && r.width > 0;
+}
+
+/** The old cloud laid over the new one and melted away, so the colours morph. */
+function meltOldCloud(card, { toAbsent, wasPalette, cloud }, duration) {
+    const cloudEl = card.querySelector('.aw-cloud');
+    if (!cloudEl || !wasPalette) return;
+    const ghost = document.createElement('div');
+    ghost.className = `aw-cloud aw-turn-was${toAbsent ? '' : ' aw-turn-was--rain'}`;
+    ghost.setAttribute('aria-hidden', 'true');
+    for (const [name, value] of Object.entries(wasPalette)) ghost.style.setProperty(name, value);
+    ghost.innerHTML = buildAwardCloudSvg(cloud, `${card.dataset.studentid || 'x'}-was`);
+    cloudEl.after(ghost);
+    run(ghost, [{ opacity: 1 }, { opacity: 0 }], { duration, easing: 'ease-in-out' });
+}
+
+function settleCloudContent(card, toAbsent, reduce) {
+    const dim = toAbsent ? [{ opacity: 1 }, { opacity: 0.62 }] : [{ opacity: 0.62 }, { opacity: 1 }];
+    card.querySelectorAll('.aw-portrait, .aw-card__nameplate, .aw-tally, .aw-card__head .aw-purse').forEach((el) => {
+        el.animate?.(dim, { duration: reduce ? 260 : 760, easing: 'ease-in-out' });
+    });
+    if (reduce) return;
+    const arrive = (el, delay, from) => el?.animate?.([
+        { opacity: 0, transform: from },
+        { opacity: 1, transform: 'none' }
+    ], { duration: 520, delay, easing: 'cubic-bezier(0.34, 1.4, 0.64, 1)', fill: 'backwards' });
+    if (toAbsent) {
+        arrive(card.querySelector('.aw-desk'), 260, 'translateY(-10px) scale(0.94)');
+    } else {
+        card.querySelectorAll('.aw-virtues > *').forEach((el, i) => arrive(el, 280 + i * 60, 'translateY(10px) scale(0.9)'));
+        arrive(card.querySelector('.absence-controls .aw-att'), 520, 'scale(0.4)');
+        arrive(card.querySelector('.aw-card__desk .aw-desk'), 200, 'translateY(-6px)');
+    }
+}
+
+function swayCard(card, toAbsent) {
+    const lift = card.querySelector('.aw-card__lift');
+    if (!lift?.animate) return;
+    if (toAbsent) {
+        // A heavy sigh: the cloud sinks a little and settles.
+        lift.animate([
+            { transform: 'none' },
+            { transform: 'translateY(8px) scale(0.975)', offset: 0.45 },
+            { transform: 'translateY(-1px) scale(1.004)', offset: 0.8 },
+            { transform: 'none' }
+        ], { duration: 900, easing: 'ease-in-out' });
+    } else {
+        // A happy hop as the sun comes out.
+        lift.animate([
+            { transform: 'none' },
+            { transform: 'translateY(-14px) scale(1.045)', offset: 0.35 },
+            { transform: 'translateY(3px) scale(0.99)', offset: 0.7 },
+            { transform: 'none' }
+        ], { duration: 780, easing: 'ease-out' });
+    }
+}
+
+function rainShower(layer, cloudEl, count) {
+    const r = cloudEl.getBoundingClientRect();
+    for (let i = 0; i < count; i += 1) {
+        const x = r.left + r.width * (0.2 + (0.6 * (i + Math.random() * 0.8)) / count);
+        const y = r.top + r.height * (0.72 + Math.random() * 0.08);
+        const drop = spawn(layer, 'aw-fx-drop', x, y);
+        const fall = 46 + Math.random() * 44;
+        run(drop, [
+            { transform: 'translate(-50%, -50%) rotate(14deg) scaleY(0.4)', opacity: 0 },
+            { transform: `translate(calc(-50% - ${fall * 0.12}px), calc(-50% + ${fall * 0.35}px)) rotate(14deg) scaleY(1)`, opacity: 0.95, offset: 0.3 },
+            { transform: `translate(calc(-50% - ${fall * 0.25}px), calc(-50% + ${fall}px)) rotate(14deg) scaleY(0.7)`, opacity: 0 }
+        ], { duration: 620 + Math.random() * 260, delay: 120 + Math.random() * 620, easing: 'cubic-bezier(0.5, 0, 0.9, 0.6)' });
+    }
+}
+
+function sleepyZs(layer, origin) {
+    ['z', 'z', 'Z'].forEach((letter, i) => {
+        const z = spawn(layer, 'aw-fx-zzz', origin.x + 18, origin.y - 10);
+        z.textContent = letter;
+        const size = 0.7 + i * 0.25;
+        run(z, [
+            { transform: `translate(-50%, -50%) scale(${size * 0.4}) rotate(-12deg)`, opacity: 0 },
+            { transform: `translate(calc(-50% + ${10 + i * 8}px), calc(-50% - ${22 + i * 6}px)) scale(${size}) rotate(6deg)`, opacity: 1, offset: 0.35 },
+            { transform: `translate(calc(-50% + ${28 + i * 14}px), calc(-50% - ${62 + i * 12}px)) scale(${size * 1.08}) rotate(-8deg)`, opacity: 0 }
+        ], { duration: 1500, delay: 200 + i * 260, easing: 'ease-out' });
+    });
+}
+
+function cloudsPart(layer, origin) {
+    [-1, 1].forEach((side) => {
+        const puff = spawn(layer, 'aw-fx-puff', origin.x, origin.y);
+        run(puff, [
+            { transform: 'translate(-50%, -50%) scale(0.9)', opacity: 0.95 },
+            { transform: `translate(calc(-50% + ${side * 70}px), calc(-50% - 6px)) scale(1.15)`, opacity: 0.75, offset: 0.45 },
+            { transform: `translate(calc(-50% + ${side * 118}px), calc(-50% - 10px)) scale(1.3)`, opacity: 0 }
+        ], { duration: 900, easing: 'cubic-bezier(0.2, 0.7, 0.3, 1)' });
+    });
+}
+
+const HERE_TIER = { spread: [46, 104], colors: ['#fefce8', '#fde047', '#fbbf24', '#86efac', '#6ee7b7'] };
+
+/**
+ * A cloud has just turned: grey and rainy when a hero is marked away, sunny again when
+ * they are back. Call right after the new cloud is in the page. Transform and opacity only.
+ * @param {HTMLElement} card the fresh .student-cloud-card
+ * @param {{ toAbsent: boolean, wasPalette: object|null, cloud: string }} turn
+ */
+export function playAttendanceTurn(card, turn) {
+    if (!card?.isConnected) return;
+    const reduce = prefersReducedMotion();
+    meltOldCloud(card, turn, reduce ? 280 : 950);
+    settleCloudContent(card, turn.toAbsent, reduce);
+    if (reduce || !isOnScreen(card)) return;
+
+    swayCard(card, turn.toAbsent);
+    const lite = isLitePower();
+    const layer = getLayer();
+    const portrait = card.querySelector('.aw-portrait') || card;
+    const origin = centerOf(portrait);
+    if (turn.toAbsent) {
+        const cloudEl = card.querySelector('.aw-cloud');
+        if (cloudEl) rainShower(layer, cloudEl, lite ? 6 : 12);
+        sleepyZs(layer, { x: origin.x + portrait.getBoundingClientRect().width * 0.35, y: origin.y - portrait.getBoundingClientRect().height * 0.3 });
+    } else {
+        cloudsPart(layer, origin);
+        sunburst(layer, origin, 0.72);
+        burstSparks(layer, origin, HERE_TIER, lite ? 8 : 16);
+        floatLabel(layer, origin, { star: 'here', label: 'Here!' });
+    }
 }

@@ -26,7 +26,8 @@ import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 import { withSchoolYear } from '../../utils/schoolYear.js';
 import { showToast, triggerDynamicPraise, showWelcomeBackMessage, createFloatingHearts } from '../effects.js';
 import { triggerAwardEffects, playVirtuePick } from '../awardFx.js';
-import { confirmAwardPending, markAwardPending, settleAwardPending } from '../../features/awardPending.mjs';
+import { confirmAwardPending, markAwardPending, runAwardWriteInOrder, settleAwardPending } from '../../features/awardPending.mjs';
+import { confirmAttendancePending, markAttendancePending, settleAttendancePending, withPendingAttendance } from '../../features/attendancePending.mjs';
 import { updateShopStudentDisplay, isShopSeasonLive } from './shop.js';
 import { setupCloudDock } from './cloudDock.js';
 import { confirmWord, handleWordInputChange, updateStudentCardAttendanceState } from './misc.js';
@@ -658,6 +659,27 @@ export function setupUIListeners() {
             });
     };
 
+    // Absent / present turns the cloud the moment it is tapped (the turn is the feedback,
+    // so no toast); the save runs behind it, after any star write for the same hero.
+    // A failed save turns the cloud back and the error toast explains.
+    const saveAttendanceWithOptimisticCloud = (studentId, classId, absent) => {
+        const date = utils.getTodayDateString();
+        const token = markAttendancePending(studentId, { absent, date, classId });
+        tabs.updateStudentCardAttendanceState(studentId);
+        return runAwardWriteInOrder(studentId, () => handleMarkAbsent(studentId, classId, absent, date, { silent: true }))
+            .catch((error) => {
+                console.error('Attendance save failed:', error);
+                return undefined;
+            })
+            .then((result) => {
+                const current = result
+                    ? confirmAttendancePending(studentId, token)
+                    : settleAttendancePending(studentId, token);
+                if (current) tabs.updateStudentCardAttendanceState(studentId);
+                return result;
+            });
+    };
+
     document.getElementById('award-stars-student-list').addEventListener('click', async (e) => {
 
         const boonBtn = e.target.closest('.boon-btn');
@@ -684,8 +706,7 @@ export function setupUIListeners() {
             // --- CASE 1: MARK ABSENT ---
             if (actionBtn.dataset.action === 'mark-absent') {
                 playSound('click');
-                await handleMarkAbsent(studentId, student.classId, true);
-                updateStudentCardAttendanceState(studentId, true);
+                await saveAttendanceWithOptimisticCloud(studentId, student.classId, true);
                 return;
             }
 
@@ -693,14 +714,13 @@ export function setupUIListeners() {
             if (actionBtn.dataset.action === 'mark-present') {
                 playSound('click');
                 const today = utils.getTodayDateString();
-                const isMarkedAbsentToday = state.get('allAttendanceRecords').some(r => r.studentId === studentId && r.date === today);
+                const isMarkedAbsentToday = withPendingAttendance(state.get('allAttendanceRecords')).some(r => r.studentId === studentId && r.date === today);
 
                 if (isMarkedAbsentToday) {
-                    await handleMarkAbsent(studentId, student.classId, false);
-                    updateStudentCardAttendanceState(studentId, false);
+                    await saveAttendanceWithOptimisticCloud(studentId, student.classId, false);
                 } else {
-                    await setStudentStarsForToday(studentId, 0, 'marked_present');
-                    showToast(`${student.name} marked present.`, 'success');
+                    // Away last lesson, here today: a zero-star present mark turns the cloud.
+                    await saveAwardWithOptimisticCloud(studentId, 0, 'marked_present');
                 }
                 return;
             }

@@ -10,11 +10,9 @@ import { canUseFeature } from '../utils/subscription.js';
 
 
 let clockInterval = null;
-let updateMirrorObserver = null;
 let desktopPillObserver = null;
 let subtabObserver = null;
 let wired = false;
-let updateMirrorWired = false;
 
 function setSheetOpen(sheet, open) {
     if (!sheet) return;
@@ -407,44 +405,6 @@ function measureHeaderHeight() {
     }
 }
 
-function mirrorUpdateReady() {
-    const source = document.getElementById('gcq-update-ready-mount');
-    const target = document.getElementById('m-gcq-update-ready-mount');
-    if (!source || !target) {
-        window.setTimeout(mirrorUpdateReady, 400);
-        return;
-    }
-
-    const copy = () => {
-        target.replaceChildren();
-        source.childNodes.forEach((node) => {
-            const clone = node.cloneNode(true);
-            if (clone.removeAttribute) clone.removeAttribute('id');
-            target.appendChild(clone);
-        });
-        target.classList.toggle('hidden', source.classList.contains('hidden'));
-        const hasUpdate = source.childNodes.length > 0;
-        target.classList.toggle('has-update', hasUpdate);
-        // The update orb takes the Game Guide's seat (the guide is still in More),
-        // so the class pill and clock keep their room.
-        target.closest('.m-header__actions')?.classList.toggle('m-header__actions--update', hasUpdate);
-    };
-
-    copy();
-    if (updateMirrorObserver) updateMirrorObserver.disconnect();
-    updateMirrorObserver = new MutationObserver(copy);
-    updateMirrorObserver.observe(source, { childList: true, subtree: true, attributes: true });
-
-    if (!updateMirrorWired) {
-        updateMirrorWired = true;
-        target.addEventListener('click', (event) => {
-            if (!event.target.closest('button')) return;
-            event.preventDefault();
-            source.querySelector('button')?.click();
-        });
-    }
-}
-
 function observeDesktopClassPill() {
     const desktopText = document.getElementById('header-class-selector-text');
     if (!desktopText) return;
@@ -629,7 +589,6 @@ function wire() {
     import('../features/skyTheater.js')
         .then(({ startSkyTheater }) => startSkyTheater())
         .catch((e) => console.warn('Sky Theater failed to start (mobile)', e));
-    mirrorUpdateReady();
     observeDesktopClassPill();
     observeOptionsSubtabs();
     observeMoreActive();

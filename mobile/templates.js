@@ -71,7 +71,7 @@ const teacherHeaderHTML = `
             </div>
 
             <div class="m-header__actions">
-                <div id="m-gcq-update-ready-mount" class="m-header__update-mount"></div>
+                <div id="m-gcq-update-ready-mount" data-gcq-update-mount class="m-header__update-mount" aria-live="polite"></div>
                 ${HEADER_ACTION_BTN('m-app-info-btn', 'fa-info', 'Game Guide')}
                 ${HEADER_ACTION_BTN('m-header-settings-btn', 'fa-cog', 'Settings')}
             </div>
@@ -225,7 +225,8 @@ const secretaryHeaderHTML = roleHeaderHTML(
     'School Office',
     'm-secretary-title',
     'm-school-name',
-    HEADER_ACTION_BTN('m-secretary-logout-btn', 'fa-sign-out-alt', 'Log out', 'm-header-btn--danger')
+    '<div data-gcq-update-mount class="m-header__update-mount" aria-live="polite"></div>'
+    + HEADER_ACTION_BTN('m-secretary-logout-btn', 'fa-sign-out-alt', 'Log out', 'm-header-btn--danger')
 );
 
 const secretaryDockHTML = `

@@ -22,6 +22,7 @@ ${titleFlourishHTML}
             <div class="z-10 ml-auto flex shrink-0 flex-col justify-between items-end font-title date-time-hover-group relative">
 ${headerDateHTML()}
                 <div class="relative z-[4] mt-2 flex items-center gap-2 sm:gap-4">
+                    <div data-gcq-update-mount class="gcq-update-mount hidden shrink-0" aria-live="polite"></div>
                     <div class="gcq-header-controls gcq-header-pill flex items-center gap-1 rounded-full p-1 overflow-visible">
                         <button type="button" id="${logoutId}"
                             class="gcq-hbtn gcq-hbtn--danger bg-red-500/80 hover:bg-red-500 text-white h-7 w-7 rounded-full bubbly-button flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"

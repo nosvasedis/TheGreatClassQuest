@@ -91,14 +91,19 @@ test('service-worker update control mounts in the header without covering app ac
   const bootstrap = read('bootstrap.js');
   const header = read('templates/app/header.js');
   const navStyles = read('styles/nav.css');
-  assert.match(header, /id="gcq-update-ready-mount"/);
-  assert.match(bootstrap, /getElementById\('gcq-update-ready-mount'\)/);
-  assert.match(bootstrap, /gcq-update-ready-button/);
+  assert.match(header, /id="gcq-update-ready-mount" data-gcq-update-mount/);
+  assert.match(read('templates/roles.js'), /data-gcq-update-mount/);
+  assert.match(read('mobile/templates.js'), /data-gcq-update-mount/);
+  const badge = read('ui/updateBadge.js');
+  assert.match(bootstrap, /showUpdateBadge\(/);
+  assert.match(badge, /querySelectorAll\('\[data-gcq-update-mount\]'\)/);
+  assert.match(badge, /gcq-update-ready-button/);
   assert.match(bootstrap, /watchForServiceWorkerUpdates/);
   assert.match(bootstrap, /registration\.update\(\)/);
   assert.match(bootstrap, /visibilitychange/);
   assert.doesNotMatch(bootstrap, /fixed bottom-4 right-4/);
-  assert.match(navStyles, /@keyframes gcqUpdateGlow/);
+  assert.match(navStyles, /@keyframes gcqUpdateArrive/);
+  assert.match(navStyles, /@keyframes gcqUpdatePress/);
   assert.match(navStyles, /prefers-reduced-motion: reduce/);
 });
 

@@ -153,7 +153,7 @@ ${titleFlourishHTML}
 ${headerDateHTML('id="current-date"')}
 
                 <div class="relative z-[4] mt-2 flex items-center gap-2 sm:gap-4">
-                    <div id="gcq-update-ready-mount" class="hidden shrink-0" aria-live="polite"></div>
+                    <div id="gcq-update-ready-mount" data-gcq-update-mount class="gcq-update-mount hidden shrink-0" aria-live="polite"></div>
                     <div
                         class="gcq-header-controls gcq-header-pill flex items-center gap-1 rounded-full p-1 overflow-visible">
                         <div id="header-class-selector-wrap" class="relative z-20 flex items-center overflow-visible">

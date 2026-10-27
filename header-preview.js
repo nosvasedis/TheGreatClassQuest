@@ -4,6 +4,7 @@ import { headerHTML, svgFiltersHTML } from './templates/app/header.js';
 import { roleShellsHTML } from './templates/roles.js';
 import { applySkyReading } from './features/skyWeatherStage.js';
 import { paintHeaderDateTime, playHeaderIntro } from './ui/headerClock.js';
+import { showUpdateBadge } from './ui/updateBadge.js';
 
 const params = new URLSearchParams(location.search);
 const state = { time: params.get('time') || '09:40' };
@@ -50,6 +51,10 @@ const intro = () => document.querySelectorAll('header.gcq-sky-header').forEach(p
 document.getElementById('pv-intro').addEventListener('click', intro);
 document.getElementById('pv-minute').addEventListener('click', () => shift(1));
 document.getElementById('pv-hour').addEventListener('click', () => shift(60));
-window.__pv = { shift, intro, render, state };
+// The update badge lands in both headers; pressing it plays the burst (reload to replay).
+const update = () => showUpdateBadge({ title: 'A new version is ready', onPress: () => {} });
+document.getElementById('pv-update').addEventListener('click', update);
+if (params.get('update') === '1') update();
+window.__pv = { shift, intro, render, state, update };
 document.getElementById('pv-time').addEventListener('change', (e) => { state.time = e.target.value; render(); });
 render();

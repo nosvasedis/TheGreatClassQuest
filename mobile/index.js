@@ -135,6 +135,8 @@ export function initMobileLayer() {
     initialized = true;
 
     injectMobileShells();
+    // The phone headers carry their own update badge mounts (bootstrap.js).
+    window.dispatchEvent(new Event('gcq:update-mounts'));
     initTeacherMobile();
     initRoleMobile();
     initMobileHome();

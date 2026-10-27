@@ -6,6 +6,7 @@
  */
 
 import { setupQuestCursor } from './ui/questCursor.js';
+import { showUpdateBadge } from './ui/updateBadge.js';
 
 setupQuestCursor();
 window.__GCQ_BUILD_ID__ = typeof __GCQ_BUILD_ID__ === 'string' ? __GCQ_BUILD_ID__ : 'development';
@@ -50,23 +51,10 @@ function isTeacherBusy() {
 }
 
 function showStaleBuildReload() {
-    if (document.getElementById('gcq-update-ready')) return;
-    const button = document.createElement('button');
-    button.id = 'gcq-update-ready';
-    button.type = 'button';
-    button.className = 'gcq-update-ready-button font-title';
-    button.setAttribute('aria-label', 'A new version is out. Reload the app.');
-    button.title = 'A new version is out. Reload when you are done here.';
-    button.innerHTML = '<span class="gcq-update-ready-sparkle" aria-hidden="true">✦</span><i class="fas fa-rotate gcq-update-ready-icon" aria-hidden="true"></i><span class="gcq-update-ready-label">Update ready</span>';
-    button.addEventListener('click', () => window.location.reload());
-    const mount = document.getElementById('gcq-update-ready-mount');
-    if (mount) {
-        mount.classList.remove('hidden');
-        mount.appendChild(button);
-    } else {
-        button.classList.add('gcq-update-ready-button--fallback');
-        document.body.appendChild(button);
-    }
+    showUpdateBadge({
+        title: 'A new version is out. Reload when you are done here.',
+        onPress: () => window.location.reload(),
+    });
 }
 
 function recoverFromStaleBuild() {
@@ -162,28 +150,15 @@ async function bootApplication() {
 }
 
 function showUpdateAvailable(registration) {
-    if (!registration?.waiting || document.getElementById('gcq-update-ready')) return;
-    const button = document.createElement('button');
-    button.id = 'gcq-update-ready';
-    button.type = 'button';
-    button.className = 'gcq-update-ready-button font-title';
-    button.setAttribute('aria-label', 'Update ready. Reload the app.');
-    button.title = 'A new version is ready';
-    button.innerHTML = '<span class="gcq-update-ready-sparkle" aria-hidden="true">✦</span><i class="fas fa-rotate gcq-update-ready-icon" aria-hidden="true"></i><span class="gcq-update-ready-label">Update ready</span>';
-    button.addEventListener('click', () => {
-        button.disabled = true;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin gcq-update-ready-icon" aria-hidden="true"></i><span class="gcq-update-ready-label">Updating…</span>';
-        registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
+    if (!registration?.waiting) return;
+    showUpdateBadge({
+        title: 'A new version is ready',
+        onPress: () => {
+            // controllerchange reloads once the new worker takes over.
+            if (registration.waiting) registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+            else window.location.reload();
+        },
     });
-    const mount = document.getElementById('gcq-update-ready-mount');
-    if (mount) {
-        mount.classList.remove('hidden');
-        mount.appendChild(button);
-    } else {
-        // Defensive fallback for a future shell that does not include the header mount.
-        button.classList.add('gcq-update-ready-button--fallback');
-        document.body.appendChild(button);
-    }
 }
 
 function watchForServiceWorkerUpdates(registration) {

@@ -137,36 +137,24 @@ test.describe('mobile experience layer', () => {
     await expect(page.locator('#m-class-selector-btn')).toHaveClass(/m-class-pill--follow/);
   });
 
-  test('SW update mirror proxies clicks to the desktop mount', async ({ page }, testInfo) => {
+  test('SW update badge has a seat in the phone headers that stays empty until an update', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'mobile', 'Mobile shell interactions only exist in the mobile project');
     await page.goto('/', { waitUntil: 'networkidle' });
 
-    const clicked = await page.evaluate(async () => {
+    const mounts = await page.evaluate(() => {
       document.getElementById('auth-screen').classList.add('hidden');
       document.getElementById('app-screen').classList.remove('hidden');
-
-      const source = document.getElementById('gcq-update-ready-mount');
       const target = document.getElementById('m-gcq-update-ready-mount');
-      if (!source || !target) return { ok: false, reason: 'missing mounts' };
-
-      let fired = false;
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.id = 'gcq-update-ready-btn';
-      btn.textContent = 'Update ready';
-      btn.addEventListener('click', () => { fired = true; });
-      source.appendChild(btn);
-      source.classList.remove('hidden');
-
-      await new Promise((r) => setTimeout(r, 80));
-      const mirrored = target.querySelector('button');
-      if (!mirrored) return { ok: false, reason: 'no mirrored button', hasUpdate: target.classList.contains('has-update') };
-      mirrored.click();
-      return { ok: fired, reason: fired ? 'ok' : 'proxy miss', hasUpdate: target.classList.contains('has-update') };
+      return {
+        teacher: Boolean(target?.hasAttribute('data-gcq-update-mount')),
+        secretary: Boolean(document.querySelector('#m-secretary-header [data-gcq-update-mount]')),
+        hidden: target ? getComputedStyle(target).display === 'none' : false,
+      };
     });
 
-    expect(clicked.ok).toBe(true);
-    expect(clicked.hasUpdate).toBe(true);
+    expect(mounts.teacher).toBe(true);
+    expect(mounts.secretary).toBe(true);
+    expect(mounts.hidden).toBe(true);
   });
 
   test('FAB clusters keep left/right sides above the dock when revealed', async ({ page }, testInfo) => {

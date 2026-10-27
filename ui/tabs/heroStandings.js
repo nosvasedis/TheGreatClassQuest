@@ -500,7 +500,7 @@ function resealButtonHtml() {
 }
 
 /**
- * section: { id, title, logo, facts: [html], mine, entries, seal }
+ * section: { id, title, logo, facts: [html], mine, live, entries, seal }
  * seal: null, or 'sealed' (curtain drawn) / 'open' (finale day, peeked at)
  * entry: { id, name, rank, score, gold, heroIcon, heroClass, accent, avatarHtml, avatarLargeHtml,
  *          familiarHtml, guildBadgeHtml, titleBadgeHtml, roleBadgesHtml, pillsHtml,
@@ -526,7 +526,9 @@ export function renderStandingsSectionHtml(section, { monthName = '', metric = '
             podiumFloor: podiumCount > 0 ? spots[podiumCount - 1].score : 0
         }))
         .join('');
-    const mine = section.mine ? '<span class="hcs-section__mine"><i class="fas fa-chalkboard-teacher" aria-hidden="true"></i>Your class</span>' : '';
+    const mine = section.live
+        ? '<span class="hcs-section__mine hcs-section__mine--live"><span class="hcs-section__live-dot" aria-hidden="true"></span>In session now</span>'
+        : (section.mine ? '<span class="hcs-section__mine"><i class="fas fa-chalkboard-teacher" aria-hidden="true"></i>Your class</span>' : '');
     const facts = (section.facts || []).map((f) => `<span class="hcs-section__fact">${f}</span>`).join('');
     const logo = section.logo
         ? `<span class="hcs-section__crest" aria-hidden="true"><span class="hcs-section__logo">${section.logo}</span></span>`

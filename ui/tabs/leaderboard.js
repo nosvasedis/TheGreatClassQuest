@@ -1128,7 +1128,15 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
             entries
         });
     } else {
-        // === BY CLASS VIEW === (the teacher's own classes first)
+        // === BY CLASS VIEW === (the teacher's class in session now first, then
+        // the rest of their own classes, then everyone else's)
+        const myLessonsToday = utils.getClassesOnDay(
+            utils.getTodayDateString(),
+            state.get('allSchoolClasses') || [],
+            state.get('allScheduleOverrides') || [],
+            state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {}
+        ).filter((c) => myClassIdSet.has(c.id));
+        const liveClassId = utils.findLessonClassWithGrace(myLessonsToday, now)?.id || null;
         const classesMap = studentsInLeague.reduce((acc, student) => {
             if (!acc[student.classId]) acc[student.classId] = { name: student.className, logo: student.classLogo, students: [] };
             acc[student.classId].students.push(student);
@@ -1137,7 +1145,8 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
         const allClassIds = Object.keys(classesMap);
         const myClassIds = allClassIds.filter((id) => myClassIdSet.has(id));
         const otherClassIds = allClassIds.filter((id) => !myClassIdSet.has(id));
-        const nameSort = (a, b) => classesMap[a].name.localeCompare(classesMap[b].name);
+        const nameSort = (a, b) => (b === liveClassId) - (a === liveClassId)
+            || classesMap[a].name.localeCompare(classesMap[b].name);
         [...myClassIds.sort(nameSort), ...otherClassIds.sort(nameSort)].forEach((classId) => {
             const classData = classesMap[classId];
             sections.push({
@@ -1146,6 +1155,7 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
                 logo: classData.logo,
                 facts: [heroFact(classData.students.length), starFact(sumStars(classData.students))],
                 mine: myClassIdSet.has(classId),
+                live: classId === liveClassId,
                 seal: sealFor(classId, finaleClassIds.has(classId)),
                 entries: rankGroup(classData.students, { showClass: false })
             });

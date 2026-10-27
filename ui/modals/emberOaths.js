@@ -22,7 +22,7 @@ import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 import { oathPerkFor, rankFor, nextRank } from '../../features/oathStarPath.mjs';
 import { figureCompletedBy } from '../../features/campfireConstellation.mjs';
 import { personalSkyMarkup, perkMarkup, rankLadderMarkup, countUpGifts } from '../../features/campfire/oathStarPathView.js';
-import starEmberUrl from '../../assets/campfire/star-ember.png?url';
+import { keptStarMarkup } from '../../features/campfire/keptStarArt.js';
 
 const MODAL_ID = 'ember-oaths-modal';
 // Today's check-in answers one question: "Did you keep your promise today?" Only 🔥 lights an ember; the others never take one away.
@@ -472,7 +472,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
         setView('<div class="eo-kept eo-kept--sky' + (pending ? ' is-pending' : '') + '" data-kept="' + esc(oath.id) + '" data-n="' + perk.n + '">' +
             '<span class="eo-kept-night" aria-hidden="true"></span><div class="eo-kept-rays" aria-hidden="true"></div>' +
             '<div class="eo-kept-burst" aria-hidden="true">' + Array.from({ length: 16 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</div>' +
-            '<div class="eo-kept-crest"><img class="eo-kept-ember" src="' + starEmberUrl + '" alt="" aria-hidden="true">' + avatarHtml(student, 'lg') + '</div>' +
+            '<div class="eo-kept-crest">' + keptStarMarkup(oath, { className: 'eo-kept-ember' }) + avatarHtml(student, 'lg') + '</div>' +
             '<p class="eo-kept-eyebrow">' + esc(oathName(oath).title) + ' · kept</p><h3 class="font-title">' + esc(student?.name) + ' kept a promise!</h3><p class="eo-kept-quote font-title">“' + esc(oath.text) + '”</p>' +
             (days.length ? '<p class="eo-kept-days">' + days.map(l => '<span>' + esc(l.icons) + ' ' + esc(prettyDate(l.date)) + '</span>').join('') + '</p>' : '') +
             '<section class="eo-kept-path"><div class="eo-kept-sky">' + personalSkyMarkup(perk.n, who, { animate: !reduced }) + '</div><div class="eo-kept-perks">' + perkMarkup(perk, { name: student?.name, pending }) + '</div></section>' +

@@ -289,20 +289,16 @@
 .cf-medallion h3{font-family:"Fredoka One",sans-serif;font-weight:400;font-size:1.3rem;color:#ffe9c2}
 .cf-medallion p{margin:6px 0 14px;font-size:.95rem;line-height:1.4;color:#eadfd6}
 .cf-medallion button{border:0;border-radius:999px;padding:11px 20px;font-family:"Fredoka One",sans-serif;color:#3a1e0c;background:linear-gradient(135deg,#ffe39a,#f5a54a);box-shadow:0 0 24px #ffb45c88;animation:cf-glow-pulse 2.2s ease-in-out infinite}
-.cf-moment{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(8px,2vh,24px);padding:2rem;background:radial-gradient(ellipse at 50% 40%,#1c1532f0,#05060efa 70%);animation:cf-fade .6s ease both}
+.cf-moment{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:stretch;overflow:hidden;background:radial-gradient(ellipse at 50% 40%,#1c1532f0,#05060efa 70%);animation:cf-fade .6s ease both}
 .cf-scene.has-moment .cf-footer,.cf-scene.has-moment .cf-content,.cf-scene.has-moment .cf-top{opacity:0;pointer-events:none;transition:opacity .5s}
+/* The hidden footer/top buttons sit above the moment; none of them may catch the moment's taps. */
+.cf-scene.has-moment .cf-footer *,.cf-scene.has-moment .cf-content *,.cf-scene.has-moment .cf-top *{pointer-events:none!important}
 .cf-moment[hidden]{display:none}
-.cf-moment-glow{position:absolute;left:50%;top:50%;width:min(90vmin,900px);aspect-ratio:1;transform:translate(-50%,-50%) scale(.3);border-radius:50%;background:radial-gradient(circle,#ffcf7a55,#ff8a3d1a 45%,transparent 70%);opacity:0;pointer-events:none;transition:opacity 1.2s,transform 1.6s cubic-bezier(.2,.8,.2,1)}
-.cf-moment-rays{position:absolute;left:50%;top:50%;width:min(110vmin,1100px);aspect-ratio:1;transform:translate(-50%,-50%) scale(.2);opacity:0;border-radius:50%;pointer-events:none;
+.cf-moment-glow{position:absolute;left:var(--cf-star-x,50%);top:var(--cf-star-y,30%);width:min(90vmin,900px);aspect-ratio:1;transform:translate(-50%,-50%) scale(.3);border-radius:50%;background:radial-gradient(circle,#ffcf7a55,#ff8a3d1a 45%,transparent 70%);opacity:0;pointer-events:none;transition:opacity 1.2s,transform 1.6s cubic-bezier(.2,.8,.2,1)}
+.cf-moment-rays{position:absolute;left:var(--cf-star-x,50%);top:var(--cf-star-y,30%);width:min(110vmin,1100px);aspect-ratio:1;transform:translate(-50%,-50%) scale(.2);opacity:0;border-radius:50%;pointer-events:none;
   background:repeating-conic-gradient(from 0deg,#ffe7a01c 0deg 5deg,transparent 5deg 16deg);-webkit-mask:radial-gradient(circle,#000 18%,transparent 62%);mask:radial-gradient(circle,#000 18%,transparent 62%);transition:opacity 1.4s,transform 1.8s cubic-bezier(.2,.8,.2,1)}
 .cf-moment-stage{position:relative;width:clamp(200px,34vmin,380px);aspect-ratio:1;flex:none;margin-top:-2vh;overflow:visible}
-.cf-moment-star{
-  /* Painted core of star-ember.png is 2.6% below the file midpoint. max-width:none
-     beats Tailwind img{max-width:100%}, which was shifting the 136% asset left of the burst. */
-  --cf-star-core-y: 52.6%;
-  position:absolute;left:-18%;width:136%;height:136%;max-width:none;max-height:none;top:calc(-18% - 3.54%);
-  object-fit:contain;opacity:0;transform:scale(.2) rotate(-40deg);
-  transform-origin:50% var(--cf-star-core-y);transition:opacity .9s,transform 1.4s cubic-bezier(.2,1.4,.3,1)}
+.cf-moment-star{position:absolute;inset:-22%;opacity:0;transform:scale(.2) rotate(-40deg);transition:opacity .9s,transform 1.4s cubic-bezier(.2,1.4,.3,1)}
 .cf-moment-burst{position:absolute;left:50%;top:50%}
 .cf-moment-burst i{position:absolute;width:10px;height:10px;margin:-5px;border-radius:50%;background:hsl(calc(30 + var(--i) * 3) 100% 70%);box-shadow:0 0 12px #ffcf7a;opacity:0;--a:calc(var(--i) * 20deg)}
 .cf-moment-text{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;opacity:0;transform:translateY(20px);transition:opacity .8s .5s,transform .8s .5s}
@@ -316,7 +312,7 @@
 .cf-moment.is-bloomed .cf-moment-burst i{animation:cf-burst 1.5s cubic-bezier(.1,.7,.3,1) forwards}
 .cf-moment.is-bloomed .cf-moment-text{opacity:1;transform:none}
 .cf-moment.is-leaving .cf-moment-star,.cf-moment.is-leaving .cf-moment-rays,.cf-moment.is-leaving .cf-moment-glow{opacity:0;transition:opacity .5s}
-.cf-moment.is-leaving .cf-moment-text{opacity:0;transition:opacity .4s;transform:none}
+.cf-moment.is-leaving .cf-moment-text,.cf-moment.is-leaving .cf-moment-actions{opacity:0;transition:opacity .4s;transform:none}
 
 .cf-sleep-mark{width:24px;margin:22px auto 0;opacity:.6}
 
@@ -508,17 +504,24 @@
 @keyframes cf-banner-out{to{opacity:0;transform:translate(-50%,-14px)}}
 
 /* ══ A promise kept: the Star-Ember, the child's face in its light, their own constellation and gifts ══ */
-.cf-moment{gap:clamp(4px,1.2vh,14px);padding:clamp(56px,8vh,80px) 2rem 1.5rem}
+/* Content scrolls if a small screen needs it (auto margins keep it centred when it fits); the button sits in its own bar, always in reach. */
+.cf-moment-scroll{position:relative;flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;align-items:center;gap:clamp(4px,1.2vh,14px);padding:clamp(40px,7vh,80px) clamp(16px,2vw,32px) 8px;scrollbar-width:thin;scrollbar-color:#ffd9a044 transparent}
+.cf-moment-scroll>:first-child{margin-top:auto}
+.cf-moment-scroll>:last-child{margin-bottom:auto}
+.cf-moment-actions{position:relative;flex:none;display:flex;justify-content:center;padding:clamp(8px,1.6vh,16px) 16px max(clamp(12px,2.4vh,26px),env(safe-area-inset-bottom));opacity:0;transform:translateY(12px);transition:opacity .7s .5s,transform .7s .5s}
+.cf-moment-actions::before{content:"";position:absolute;inset:-26px 0 0;background:linear-gradient(transparent,#05060ecc 40%);pointer-events:none;z-index:-1}
+.cf-moment.is-bloomed .cf-moment-actions{opacity:1;transform:none}
+.cf-moment-continue{min-width:min(280px,100%);font-size:clamp(1rem,1.3vw,1.25rem);padding:14px 30px}
 .cf-moment-stage{width:clamp(150px,25vmin,270px);margin-top:0}
 .cf-moment-stage .cf-moment-avatar{position:absolute;left:50%;bottom:-14%;width:clamp(64px,8.5vmin,92px);height:clamp(64px,8.5vmin,92px);margin:0;transform:translateX(-50%) scale(.3);opacity:0;z-index:2;
   transition:opacity .6s .35s,transform .8s .35s cubic-bezier(.2,1.5,.4,1)}
 .cf-moment.is-bloomed .cf-moment-stage .cf-moment-avatar{opacity:1;transform:translateX(-50%) scale(1)}
 .cf-moment-text{max-width:min(960px,100%);transition:opacity .7s .3s,transform .7s .3s}
-.cf-moment-text .cf-eyebrow{margin-top:clamp(20px,4.2vh,40px)}
+.cf-moment-text .cf-eyebrow{margin-top:clamp(18px,4.2vh,40px)}
 .cf-moment-text h2{font-size:clamp(30px,3.7vw,58px)}
 .cf-moment-quote{margin:8px auto 10px}
 .cf-moment-story{margin:0 0 6px}
-.cf-moment-path{display:grid;grid-template-columns:minmax(180px,250px) minmax(0,1fr);align-items:center;gap:clamp(14px,2.4vw,34px);width:min(820px,100%);margin:clamp(6px,1.6vh,16px) auto clamp(10px,2vh,20px);
+.cf-moment-path{display:grid;grid-template-columns:minmax(180px,250px) minmax(0,1fr);align-items:center;gap:clamp(14px,2.4vw,34px);width:min(820px,100%);margin:clamp(6px,1.6vh,16px) auto 0;
   padding:clamp(12px,1.8vh,20px) clamp(16px,2vw,26px);border-radius:1.6rem;background:linear-gradient(160deg,#ffffff0f,#ffffff05);border:1px solid #ffd9a033;box-shadow:inset 0 1px 0 #ffffff14,0 20px 50px #0007;backdrop-filter:blur(2px)}
 .cf-moment-sky{min-height:120px}
 .cf-moment-sky .sp-sky svg{max-height:min(26vh,210px)}
@@ -529,6 +532,8 @@
 .cf-medallion.is-rising{animation:cf-medallion-rise .7s cubic-bezier(.4,0,.2,1) forwards}
 .cf-medallion.is-rising button{pointer-events:none}
 @keyframes cf-medallion-rise{30%{transform:scale(1.05);box-shadow:0 0 80px #ffcf7aaa}100%{transform:translateY(-30px) scale(.94);opacity:.35}}
-@media(max-height:760px){.cf-moment-stage{width:clamp(130px,21vmin,220px)}.cf-moment-text h2{font-size:clamp(26px,3.2vw,44px)}.cf-moment-sky .sp-sky svg{max-height:22vh}}
+@media(max-height:820px){.cf-moment-scroll{padding-top:clamp(24px,5vh,44px)}.cf-moment-sky .sp-sky svg{max-height:20vh}}
+@media(max-height:760px){.cf-moment-stage{width:clamp(110px,19vmin,200px)}.cf-moment-text .cf-eyebrow{margin-top:14px;margin-bottom:6px}.cf-moment-quote{font-size:17px;margin:4px auto 6px}.cf-moment-text h2{font-size:clamp(26px,3.2vw,44px)}.cf-moment-sky .sp-sky svg{max-height:22vh}}
+@media(max-height:620px){.cf-moment-scroll{padding-top:24px}.cf-moment-stage{width:clamp(90px,17vmin,150px)}.cf-moment-stage .cf-moment-avatar{width:54px;height:54px}.cf-moment-sky .sp-sky svg{max-height:18vh}}
 @media(max-width:760px){.cf-moment-path{grid-template-columns:1fr;justify-items:center}.cf-moment-perks .sp-perks{justify-items:center}.cf-moment-perks .sp-gifts{justify-content:center}.cf-moment-sky .sp-sky svg{max-height:150px}}
 .cf-scene.cf-still .cf-medallion.is-rising{animation:none}

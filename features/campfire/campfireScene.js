@@ -1,7 +1,6 @@
 // Hero Campfire projector scene (lazy). Seven teacher-paced moments; nothing is spoken, everything is visual.
 // Immersion first: no book codes, units, pages, timers or admin text ever appear on the projector.
 import './campfire.css';
-import starEmberUrl from '../../assets/campfire/star-ember.png?url';
 import { CAMPFIRE_STAGES, campfireWordHint } from '../heroCampfireCore.mjs';
 import { evaluateOathEvidence, emberStory, CATEGORY_META } from '../emberOathCore.mjs';
 import { campfireScenery, campfireMoon, constellationMarkup, constellationKinds, flameMark, telescopeMark, escapeCampfire as esc } from './campfireArt.js';
@@ -15,6 +14,7 @@ import { figureCompletedBy, FIGURE_TEAM_QUEST_BONUS } from '../campfireConstella
 import { oathPerkFor } from '../oathStarPath.mjs';
 import { personalSkyMarkup, perkMarkup, countUpGifts } from './oathStarPathView.js';
 import { getGuildById } from '../guilds.js';
+import { keptStarMarkup } from './keptStarArt.js';
 
 const MOODS = [['flame', '🔥', 'I tried', 1.35], ['candle', '🕯️', 'Still growing', 0.85], ['moon', '🌙', 'A quiet day', 0.55]];
 // The Oath Circle asks each child one question: "Did you keep your promise today?" Only 🔥 lights an ember.
@@ -407,8 +407,11 @@ export function openCampfireScene({ session, students = [], oaths = [], oathFact
         const settled = saving.then(k => { saved = k; return k; }, e => { failed = e; return null; });
         moment.hidden = false;
         moment.className = 'cf-moment';
-        moment.innerHTML = '<div class="cf-moment-stage"><div class="cf-moment-glow"></div><div class="cf-moment-rays" aria-hidden="true"></div>' +
-            '<img class="cf-moment-star" src="' + starEmberUrl + '" alt="" aria-hidden="true">' +
+        // The star is drawn for the kind of promise kept. The page scrolls if a small screen needs it,
+        // and the button lives in its own bar at the bottom so it is always in reach.
+        moment.innerHTML = '<div class="cf-moment-glow"></div><div class="cf-moment-rays" aria-hidden="true"></div>' +
+            '<div class="cf-moment-scroll"><div class="cf-moment-stage">' +
+            keptStarMarkup(oath, { className: 'cf-moment-star' }) +
             '<div class="cf-moment-avatar">' + avatar(student) + '</div>' +
             '<div class="cf-moment-burst" aria-hidden="true">' + Array.from({ length: 22 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</div></div>' +
             '<div class="cf-moment-text">' +
@@ -416,12 +419,15 @@ export function openCampfireScene({ session, students = [], oaths = [], oathFact
             '<p class="cf-moment-quote">' + esc('“' + (oath.text || oath.projectorText || '') + '”') + '</p>' +
             // The days they kept their word, not a score.
             storyLine(oath) +
-            '<section class="cf-moment-path" aria-label="' + esc((student?.name || 'Their') + ' Star Path') + '"><div class="cf-moment-sky"></div><div class="cf-moment-perks"></div></section>' +
-            '<button class="cf-next cf-moment-continue" data-moment-continue disabled>✦ Sealing it in the stars…</button></div>';
+            '<section class="cf-moment-path" aria-label="' + esc((student?.name || 'Their') + ' Star Path') + '"><div class="cf-moment-sky"></div><div class="cf-moment-perks"></div></section></div></div>' +
+            '<div class="cf-moment-actions"><button class="cf-next cf-moment-continue" data-moment-continue disabled>✦ Sealing it in the stars…</button></div>';
         root.classList.add('has-moment', 'is-sky-featured');
         fire.setIdle(true);
         // The ember leaves the fire at once and climbs to the centre of the sky, while the promise is saved.
         const stage = moment.querySelector('.cf-moment-stage').getBoundingClientRect();
+        const box = moment.getBoundingClientRect();
+        moment.style.setProperty('--cf-star-x', (stage.left + stage.width / 2 - box.left) + 'px');
+        moment.style.setProperty('--cf-star-y', (stage.top + stage.height / 2 - box.top) + 'px');
         const ember = document.createElement('span'); ember.className = 'cf-rising-ember';
         audio?.whoosh(); fire.flare('#fff0c2', 0.7); setFire(1.35);
         await fly(ember, coalPoint(), { x: stage.left + stage.width / 2, y: stage.top + stage.height * 0.42 }, reducedMotion ? 0 : 1200, { arc: -40, endScale: 1.6, easing: 'cubic-bezier(.3,.1,.3,1)', trail: !lite });

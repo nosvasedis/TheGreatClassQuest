@@ -1,0 +1,30 @@
+/* The kept-promise star (keptStarArt.js). Everything that moves is opacity or transform. */
+.ks-star{display:block;pointer-events:none}
+.ks-star svg{display:block;width:100%;height:100%;overflow:visible}
+.ks-star .ks-glints,.ks-star .ks-orbit,.ks-star .ks-ripple,.ks-star .ks-crown{transform-box:fill-box;transform-origin:center}
+.ks-star .ks-halo{animation:ks-breathe 3.6s ease-in-out infinite}
+.ks-star .ks-glints{animation:ks-turn 48s linear infinite}
+.ks-star .ks-orbit{animation:ks-turn 36s linear infinite}
+.ks-star .ks-orbit--slow{animation-duration:70s;animation-direction:reverse}
+.ks-star .ks-wave{opacity:.25;animation:ks-wave 2.4s ease-in-out infinite;animation-delay:calc(var(--i) * .28s)}
+.ks-star .ks-ripple{opacity:0;animation:ks-ripple 3.6s ease-out infinite;animation-delay:calc(var(--i) * 1.2s)}
+.ks-star .ks-crown{animation:ks-bob 3.2s ease-in-out infinite}
+.ks-star .ks-ink{opacity:.8}
+.ks-star .ks-sparkle{opacity:.2;animation:ks-twinkle 2.6s ease-in-out infinite}
+.ks-star .ks-s2{animation-delay:.7s}.ks-star .ks-s3{animation-delay:1.3s}.ks-star .ks-s4{animation-delay:1.9s}
+@keyframes ks-breathe{50%{opacity:.72}}
+@keyframes ks-turn{to{transform:rotate(360deg)}}
+@keyframes ks-wave{40%{opacity:1}}
+@keyframes ks-ripple{0%{opacity:.85;transform:scale(.45)}100%{opacity:0;transform:scale(1.3)}}
+@keyframes ks-bob{50%{transform:translateY(-4px)}}
+@keyframes ks-twinkle{45%{opacity:1}}
+/* Weak laptops and still mode: the star stays drawn, nothing inside it moves. */
+.cf-scene.cf-lite .ks-star *,.cf-scene.cf-still .ks-star *,.eo-shell.is-lite .ks-star *{animation:none!important}
+.cf-scene.cf-lite .ks-star .ks-ripple,.cf-scene.cf-still .ks-star .ks-ripple,.eo-shell.is-lite .ks-star .ks-ripple{opacity:.45;transform:scale(calc(.55 + var(--i) * .3))}
+.cf-scene.cf-lite .ks-star .ks-wave,.cf-scene.cf-still .ks-star .ks-wave,.eo-shell.is-lite .ks-star .ks-wave{opacity:.8}
+.cf-scene.cf-lite .ks-star .ks-sparkle,.cf-scene.cf-still .ks-star .ks-sparkle,.eo-shell.is-lite .ks-star .ks-sparkle{opacity:.85}
+@media (prefers-reduced-motion: reduce){
+  .ks-star *{animation:none!important}
+  .ks-star .ks-ripple{opacity:.45;transform:scale(calc(.55 + var(--i) * .3))}
+  .ks-star .ks-wave,.ks-star .ks-sparkle{opacity:.85}
+}

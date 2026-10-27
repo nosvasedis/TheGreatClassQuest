@@ -1,7 +1,7 @@
 // /features/storyWeaver.js
 
 // --- IMPORTS ---
-import { db, doc, getDocs, collection, query, orderBy, setDoc, updateDoc, writeBatch, serverTimestamp, increment, limit, onSnapshot } from '../firebase.js';
+import { db, auth, doc, getDocs, collection, query, orderBy, setDoc, updateDoc, writeBatch, serverTimestamp, increment, limit, onSnapshot } from '../firebase.js';
 
 import * as state from '../state.js';
 import * as modals from '../ui/modals.js';
@@ -533,7 +533,9 @@ async function paintStoryPage(classId, sentence, recentHistory, onStep = setLoom
 
     onStep(3);
     const { uploadImageToStorage } = await import('../utils.js');
-    const imagePath = `story_images/${classId}/${Date.now()}.jpg`;
+    // The teacher's own folder needs no Firestore lookup in storage.rules.
+    const uid = auth.currentUser?.uid || state.get('currentUserId');
+    const imagePath = `story_images/${classId}/${uid}/${Date.now()}.jpg`;
     return uploadImageToStorage(compressedImageBase64, imagePath);
 }
 
@@ -647,7 +649,14 @@ export async function handleLockInSentence() {
     setLoomStep(1);
 
     try {
-        const imageUrl = await paintStoryPage(classId, newSentence, recentHistory);
+        // A failed picture never costs the class its sentence: the page is saved without one
+        // and Redraw can paint it later.
+        let imageUrl = null;
+        try {
+            imageUrl = await paintStoryPage(classId, newSentence, recentHistory);
+        } catch (imageError) {
+            console.error("Story picture failed; saving the sentence without it:", imageError);
+        }
 
         const storyDocRef = storyRef(classId);
         const newHistoryDoc = doc(historyRef(classId));
@@ -685,9 +694,10 @@ export async function handleLockInSentence() {
         const newAdditionsCount = (currentStory.storyAdditionsCount || 0) + 1;
         if (newAdditionsCount > 0 && newAdditionsCount % 2 === 0) {
             modals.showModal('Story Milestone!', 'Award a +0.5 Creativity Bonus Star to every student in the class?', () => awardStoryWeaverBonusStarToClass(classId), 'Yes, Award Bonus!', 'No, Thanks');
-        } else {
+        } else if (imageUrl) {
             showToast("Story updated successfully!", "success");
         }
+        if (!imageUrl) showToast("The sentence is saved, but the picture could not be painted. Press Redraw to try again.", "info");
     } catch (error) {
         console.error("Error locking in sentence:", error);
         showToast("Failed to save the story. Please try again.", "error");

@@ -431,6 +431,17 @@ rulesTest('diary picture objects allow owner upload and cleanup while blocking o
   await assertSucceeds(deleteObject(picture));
 });
 
+rulesTest('story pictures upload into the teacher\'s own class folder with no Firestore lookup', async () => {
+  const teacherStorage = env.authenticatedContext('teacher').storage();
+  const picture = ref(teacherStorage, 'story_images/any-class/teacher/1.jpg');
+  await assertSucceeds(uploadBytes(picture, new Uint8Array([255, 216, 255]), { contentType: 'image/jpeg' }));
+  await assertSucceeds(getBytes(picture));
+  await assertFails(uploadBytes(ref(teacherStorage, 'story_images/any-class/another-teacher/1.jpg'), new Uint8Array([255]), { contentType: 'image/jpeg' }));
+  await assertFails(uploadBytes(ref(teacherStorage, 'story_images/any-class/teacher/large.jpg'), new Uint8Array(1024 * 1024 + 1), { contentType: 'image/jpeg' }));
+  await assertFails(uploadBytes(ref(teacherStorage, 'story_images/any-class/teacher/note.txt'), new Uint8Array([1]), { contentType: 'text/plain' }));
+  await assertFails(uploadBytes(ref(env.unauthenticatedContext().storage(), 'story_images/any-class/teacher/2.jpg'), new Uint8Array([255]), { contentType: 'image/jpeg' }));
+});
+
 // ---- Two schools in one project: every school sees and changes only its own data. ----
 const DATA_B = 'artifacts/school-b/public/data';
 

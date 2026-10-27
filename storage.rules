@@ -121,9 +121,18 @@ service firebase.storage {
       allow write: if false;
     }
 
+    // Older story pictures sit straight in the class folder; reading them stays open to the school.
     match /story_images/{classId}/{fileName} {
       allow read: if hasActiveProfile();
       allow write: if canManageClass(classId) && isValidImageWrite();
+    }
+
+    // New story pictures go into the uploading teacher's own folder inside the class folder, with
+    // no Firestore lookup (the class-ownership lookup above was refused live, like the diary's
+    // profile lookup). firestore.rules still decides who may put a picture on a class's story.
+    match /story_images/{classId}/{userId}/{fileName} {
+      allow read: if ownsFolder(userId) || hasActiveProfile();
+      allow write: if ownsFolder(userId) && isValidImageWrite();
     }
 
     match /pet_images/{allPaths=**} {

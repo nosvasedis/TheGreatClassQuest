@@ -223,7 +223,7 @@ function teamsToday(classId) {
         title: "Today's Teams",
         html: `<div class="qc-teams${many ? ' qc-teams--many' : ''}">
                 ${today.teams.map((ids, i) => {
-                    const b = teamBanner(i);
+                    const b = teamBanner(i, cls?.teamLooks);
                     const names = ids.map(studentById).filter(Boolean).map(firstName);
                     return `<section class="qc-team" style="--c:${b.primary};--cd:${b.deep};--cs:${b.soft}">
                         <header><span aria-hidden="true">${b.emoji}</span>${esc(b.short)}</header>

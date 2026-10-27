@@ -49,6 +49,29 @@ if (params.has('wand')) (async () => {
     let timer = 0;
     new MutationObserver(() => { clearTimeout(timer); timer = setTimeout(draw, 60); }).observe(document.body, { subtree: true, childList: true, attributes: true, characterData: true });
     draw();
+    // The team name sheet, as on the phone (saved through the same path the projector uses).
+    const sheet = wand.querySelector('[data-qw-sheet]');
+    const [{ TEAM_BANNERS, TEAM_ICONS, teamBanner }, { applyTeamLook }, { readClassField }, { teamLookSheetHtml }] = await Promise.all([
+        import('./features/teamMakerCore.mjs'), import('./ui/modals/teamLookEditor.js'), import('./ui/modals/classTools.js'), import('./features/questRemote/duelsWandView.mjs')]);
+    let edit = null;
+    wand.addEventListener('click', (e) => {
+        const open = e.target.closest('[data-qw-teamlook]');
+        if (open) {
+            const slot = Number(open.dataset.qwTeamlook);
+            const now = teamBanner(slot, readClassField('c1', 'teamLooks'));
+            edit = { slot, name: now.name !== TEAM_BANNERS[slot].name ? now.name : '', emoji: now.emoji };
+            sheet.innerHTML = teamLookSheetHtml(edit, TEAM_BANNERS[slot], TEAM_ICONS);
+            sheet.classList.add('is-open');
+            return;
+        }
+        const icon = e.target.closest('[data-qw-tlicon]');
+        if (icon && edit) { edit.emoji = icon.dataset.qwTlicon; edit.name = sheet.querySelector('[data-qw-tlname]').value; sheet.innerHTML = teamLookSheetHtml(edit, TEAM_BANNERS[edit.slot], TEAM_ICONS); sheet.classList.add('is-open'); return; }
+        if (e.target.closest('[data-qw="tl-save"]') && edit) {
+            applyTeamLook('c1', edit.slot, { name: sheet.querySelector('[data-qw-tlname]').value, emoji: edit.emoji });
+            sheet.classList.remove('is-open');
+            edit = null;
+        }
+    });
     wand.addEventListener('click', async (e) => {
         const el = e.target.closest('[data-qw-cmd]');
         if (!el || el.disabled) return;

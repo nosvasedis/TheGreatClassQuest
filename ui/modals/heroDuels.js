@@ -19,6 +19,7 @@ import {
 import { esc, classById, classRoster, selectedToolClassId, followSelectedClass, faceHtml, readClassField, reducedMotion, enterFullscreen, leaveFullscreen } from './classTools.js';
 // The Wand's tiny DOM morph: a live update changes only what differs, so running animations go on.
 import { morphInto } from '../../features/questRemote/wandMorph.mjs';
+import { openTeamLookEditor, TEAM_LOOKS_EVENT } from './teamLookEditor.js';
 
 const ROOT_ID = 'hero-duels';
 const STORE_KEY = 'gcq.heroDuels.v1';
@@ -61,7 +62,9 @@ function savePrefs() {
 const hero = (id) => ui.byId.get(id) || { id, name: 'Hero', first: 'Hero' };
 const firstOf = (id) => hero(id).first;
 const teamOf = (id) => (ui.game ? teamIndexOf(ui.game, id) : -1);
-const teamLook = (i) => (i >= 0 ? teamBanner(i) : null);
+/** Team `i`'s banner, with the class's own names and icons. */
+const banner = (i) => teamBanner(i, ui ? readClassField(ui.classId, 'teamLooks') : null);
+const teamLook = (i) => (i >= 0 ? banner(i) : null);
 const lite = () => !ui || ui.lite;
 /** The arena's motion is transform/opacity only, so ordinary school laptops get the whole show;
  * only the weakest machines (2 cores or 2 GB) drop it, as Award Stars does. */
@@ -208,9 +211,9 @@ function setupHtml() {
                 ${s.source === 'today' ? '' : '<button type="button" class="hd-mini" data-hd-shuffle><i class="fas fa-shuffle"></i> Shuffle</button>'}</div>
             <p class="hd-hint">Tap a hero to move them to the next team.${resuming ? ' A hero who moves takes their points along.' : ''}</p>
             <div class="hd-teamprev" style="--cols:${Math.min(3, s.teams?.length || 2)}">${(s.teams || []).map((ids, i) => {
-                const b = teamBanner(i);
+                const b = banner(i);
                 return `<div class="hd-teamprev__team" style="--c:${b.primary};--cd:${b.deep};--cs:${b.soft}">
-                    <header><span aria-hidden="true">${b.emoji}</span> ${esc(b.name)} <b>${ids.length}</b></header>
+                    <header><span aria-hidden="true">${b.emoji}</span> ${esc(b.name)} <button type="button" class="hd-rename" data-hd-rename="${i}" title="Rename the ${esc(b.short)} or change the icon" aria-label="Rename this team"><i class="fas fa-pen"></i></button><b>${ids.length}</b></header>
                     <div>${ids.map((id) => `<button type="button" class="hd-chip is-on" data-hd-move="${esc(id)}">${faceHtml(hero(id), 'ct-face ct-face--sm')}<span>${esc(firstOf(id))}</span></button>`).join('')}</div>
                 </div>`;
             }).join('')}</div>` : ''}
@@ -240,12 +243,13 @@ function teamBarHtml() {
     if (!rows.length) return '';
     const top = Math.max(1, ...rows.map((r) => r.points));
     return `<div class="hd-teams" style="--n:${rows.length}">${rows.map((r) => {
-        const b = teamBanner(r.index);
+        const b = banner(r.index);
         const lead = r.place === 1 && r.points > 0;
         return `<div class="hd-team${lead ? ' is-lead' : ''}" data-hd-team="${r.index}" data-qw-key="t-${r.index}" style="--c:${b.primary};--cd:${b.deep};--cs:${b.soft};--fill:${(r.points / top).toFixed(3)}">
             <span class="hd-team__fill" aria-hidden="true"></span><span class="hd-team__shine" aria-hidden="true"></span>
             <span class="hd-team__emoji" aria-hidden="true">${b.emoji}</span>
             <span class="hd-team__name">${esc(b.name)}</span>
+            <button type="button" class="hd-rename" data-hd-rename="${r.index}" title="Rename the ${esc(b.short)} or change the icon" aria-label="Rename this team"><i class="fas fa-pen"></i></button>
             ${lead ? '<i class="fas fa-crown hd-team__crown" aria-label="In front"></i>' : ''}
             <b class="hd-team__pts" data-hd-team-pts>${r.points}</b>
         </div>`;
@@ -287,7 +291,7 @@ function rosterHtml({ compact = false } = {}) {
     const g = ui.game;
     if (g.teams) {
         return `<div class="hd-roster hd-roster--teams${compact ? ' is-compact' : ''}" style="--n:${g.teams.length}">${g.teams.map((ids, i) => {
-            const b = teamBanner(i);
+            const b = banner(i);
             return `<div class="hd-rostercol" data-qw-key="col-${i}" style="--c:${b.primary};--cd:${b.deep};--cs:${b.soft}">
                 ${compact ? '' : `<header><span aria-hidden="true">${b.emoji}</span> ${esc(b.short)}</header>`}
                 <div class="hd-rostergrid">${byName(ids).map((id) => heroCardHtml(id, { compact })).join('')}</div>
@@ -303,7 +307,7 @@ function lastDuelHtml() {
     const names = d.winners.map(firstOf).join(' & ');
     const bank = {};
     if (ui.game.teams) d.ids.forEach((id) => { const ti = teamOf(id); if (ti >= 0 && d.gains[id]) bank[ti] = (bank[ti] || 0) + d.gains[id]; });
-    const chips = Object.entries(bank).map(([ti, pts]) => { const b = teamBanner(Number(ti)); return `<span class="hd-bank" style="--c:${b.primary}">${b.emoji} +${pts}</span>`; }).join('');
+    const chips = Object.entries(bank).map(([ti, pts]) => { const b = banner(Number(ti)); return `<span class="hd-bank" style="--c:${b.primary}">${b.emoji} +${pts}</span>`; }).join('');
     return `<p class="hd-lastduel"><i class="fas fa-crown"></i> Duel ${d.n}: <b>${esc(names)}</b> ${d.winners.length > 1 ? 'share the crown' : 'took the crown'} ${chips}</p>`;
 }
 
@@ -343,7 +347,7 @@ function duellistHtml(id, i) {
     const ti = teamOf(id);
     const b = teamLook(ti);
     // On their own, each duellist still gets a colour of their own for the duel.
-    const look = b || teamBanner(i);
+    const look = b || banner(i);
     const target = g.rules.target;
     return `
         ${i ? '<span class="hd-vs" aria-hidden="true"><b>VS</b></span>' : ''}
@@ -395,7 +399,7 @@ function ringHtml() {
 function finaleHtml() {
     const g = ui.game;
     const f = duelsFinale(g, firstOf);
-    const champs = f.winningTeams.map((i) => teamBanner(i));
+    const champs = f.winningTeams.map((i) => banner(i));
     const top = Math.max(1, ...f.teams.map((t) => t.points));
     const r = ui.reward;
     const groups = [
@@ -417,7 +421,7 @@ function finaleHtml() {
                 <h2 class="font-title">${champs.length > 1 ? `${champs.map((c) => esc(c.name)).join(' & ')} share the win!` : `The ${esc(champs[0].name)} win!`}</h2>
             </div>
             <div class="hd-finale__teams">${f.teams.map((t) => {
-                const b = teamBanner(t.index);
+                const b = banner(t.index);
                 return `<div class="hd-finale__team" style="--c:${b.primary};--cd:${b.deep};--fill:${(t.points / top).toFixed(3)};--i:${t.index}">
                     <span class="hd-finale__place">${PLACE_WORDS[t.place] || ''}</span><span aria-hidden="true">${b.emoji}</span><span class="hd-finale__tname">${esc(b.name)}</span>
                     <span class="hd-finale__bar"><i></i></span><b>${t.points}</b></div>`;
@@ -513,7 +517,7 @@ function flyToTeams(from, before = []) {
         const pill = document.querySelector(`#${ROOT_ID} [data-hd-team="${ti}"]`);
         if (!pill || !gain) continue;
         const to = pill.getBoundingClientRect();
-        const b = teamBanner(ti);
+        const b = banner(ti);
         const chip = document.createElement('span');
         chip.className = 'hd-flychip';
         chip.dataset.qwTransient = '';
@@ -678,7 +682,7 @@ function showClash(cur) {
         <div class="hd-clash__flash"></div>
         <p class="hd-clash__title font-title">Duel ${cur.n}</p>
         <div class="hd-clash__row">${cur.ids.map((id, i) => {
-            const look = teamLook(teamOf(id)) || teamBanner(i);
+            const look = teamLook(teamOf(id)) || banner(i);
             const side = i < n / 2 ? -1 : 1;
             return `${i ? '<span class="hd-clash__vs font-title">VS</span>' : ''}<span class="hd-clash__hero" style="--side:${side};--i:${i};--c:${look.primary}">${faceHtml(hero(id), 'ct-face ct-face--xl')}<b class="font-title">${esc(firstOf(id))}</b></span>`;
         }).join('')}</div>
@@ -702,7 +706,7 @@ function givePoint(id, delta) {
     if (!commit(game)) return;
     const after = duelLeaders(game.current);
     const ti = teamOf(id);
-    const color = (teamLook(ti) || teamBanner(game.current.ids.indexOf(id))).primary;
+    const color = (teamLook(ti) || banner(game.current.ids.indexOf(id))).primary;
     if (delta > 0) playShowdownSfx('score', { team: ti >= 0 ? ti : game.current.ids.indexOf(id), points: delta });
     else playShowdownSfx('minus');
     if (delta > 0 && after.length === 1 && after[0] === id && before[0] !== id && before.length) setTimeout(() => playShowdownSfx('lead'), 380);
@@ -913,6 +917,8 @@ export async function openHeroDuels(classId = null) {
         const t = e.target;
         if (t.closest('[data-hd-close]')) return close();
         if (t.closest('[data-hd-fresh]')) return freshGame();
+        const rename = t.closest('[data-hd-rename]');
+        if (rename && !ui.rolling) { openTeamLookEditor({ classId: ui.classId, index: Number(rename.dataset.hdRename) }); return undefined; }
         if (ui.view === 'setup' || !ui.game) return onSetupClick(t);
         return onArenaClick(t);
     };
@@ -929,11 +935,14 @@ export async function openHeroDuels(classId = null) {
         if (!next) { close(); return; }
         if (next !== ui?.classId) { loadClass(next); render(); }
     });
+    const onLooks = (e) => { if (ui && e.detail?.classId === ui.classId) render(); };
     root.addEventListener('click', onClick);
     document.addEventListener('keydown', onKey, true);
+    window.addEventListener(TEAM_LOOKS_EVENT, onLooks);
     session = {
         dispose() {
             root.removeEventListener('click', onClick);
+            window.removeEventListener(TEAM_LOOKS_EVENT, onLooks);
             document.removeEventListener('keydown', onKey, true);
             unfollow();
             session = null;
@@ -970,19 +979,19 @@ export function getHeroDuelsPanel() {
             teamCount: s.teamCount || 0, source: s.source, canToday: Boolean(ui.today), size: s.rules.size, bonus: s.rules.winBonus,
             target: s.rules.target, bank: s.rules.bank,
             teams: (s.teamCount && s.teams ? s.teams : []).map((ids, i) => {
-                const b = teamBanner(i);
-                return { name: b.name, emoji: b.emoji, color: b.primary, size: ids.length, names: byName(ids).map(firstOf).join(', ').slice(0, 78) };
+                const b = banner(i);
+                return { slot: i, name: b.name, emoji: b.emoji, color: b.primary, size: ids.length, names: byName(ids).map(firstOf).join(', ').slice(0, 78) };
             })
         };
     }
     const totals = teamTotals(g);
     const teams = totals.map((r) => {
-        const b = teamBanner(r.index);
+        const b = banner(r.index);
         return { name: b.short, emoji: b.emoji, color: b.primary, pts: r.points, lead: r.place === 1 && r.points > 0 };
     });
     if (ui.finale) {
         const f = duelsFinale(g, firstOf);
-        const champs = f.winningTeams.map((i) => teamBanner(i));
+        const champs = f.winningTeams.map((i) => banner(i));
         const groups = [
             g.teams && f.winningTeams.length && { key: 'team', label: champs.length > 1 ? 'Winning teams' : `The ${champs[0]?.short || 'winners'}` },
             f.podium.length && { key: 'podium', label: 'The podium' },
@@ -1003,7 +1012,7 @@ export function getHeroDuelsPanel() {
             leader: leaders.length === 1 ? leaders[0] : '',
             fighters: cur.ids.map((id, i) => {
                 const b = teamLook(teamOf(id));
-                return { id, n: firstOf(id), s: cur.scores[id] || 0, color: (b || teamBanner(i)).primary, team: b ? `${b.emoji} ${b.short}` : '', lead: leaders.includes(id) };
+                return { id, n: firstOf(id), s: cur.scores[id] || 0, color: (b || banner(i)).primary, team: b ? `${b.emoji} ${b.short}` : '', lead: leaders.includes(id) };
             })
         };
     }

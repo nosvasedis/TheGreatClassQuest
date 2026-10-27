@@ -4,13 +4,15 @@
 // The phone sends small commands; the projector PC is the only executor (it runs the app's own
 // code paths, so every guard, celebration and transaction is reused and nothing is written twice).
 
+import { TEAM_BANNERS, TEAM_ICONS, TEAM_NAME_MAX } from '../teamMakerCore.mjs';
+
 /** Every command the Wand may send. firestore.rules keeps the same list (validRemoteCommand). */
 export const REMOTE_COMMAND_TYPES = Object.freeze([
     'bind', 'pad', 'key', 'cast', 'class', 'scroll', 'award', 'undo', 'attendance', 'crown',
     'wheel', 'picker', 'timer', 'blackout', 'dragon', 'wall', 'showdown', 'quiz', 'charm'
 ]);
 
-/** What the Wand can ask of a Showdown. */
+/** What the Wand can ask of a Showdown (and `team-look`: rename a Team Maker banner for the class). */
 export const SHOWDOWN_ACTIONS = Object.freeze(['open', 'point', 'minus', 'next', 'finish', 'close', 'reward', 'timer', 'golden', 'undo', 'blind', 'pass', 'rematch', 'reveal', 'stopclock', 'miss']);
 /**
  * Hero Duels (ui/modals/heroDuels.js) rides on the Showdown command type, so it needs no new
@@ -38,6 +40,14 @@ export function duelCommandProblem(p) {
     if (p.action === 'duel-point' && ![-1, 1, 2, 3].includes(p.delta)) return 'bad-points';
     if (p.action === 'duel-rule' && !(DUEL_RULES[p.rule] || []).includes(p.value)) return 'bad-rule';
     if (p.action === 'duel-pay' && !DUEL_PAY_SCOPES.includes(p.scope)) return 'bad-scope';
+    return '';
+}
+
+/** Why a team rename from the Wand is malformed ('' when fine): a banner slot, a short name, a listed icon. */
+export function teamLookProblem(p) {
+    if (!(Number.isInteger(p.team) && p.team >= 0 && p.team < TEAM_BANNERS.length)) return 'bad-team';
+    if (p.name != null && !(typeof p.name === 'string' && p.name.length <= TEAM_NAME_MAX * 2)) return 'bad-name';
+    if (p.emoji != null && p.emoji !== '' && !TEAM_ICONS.includes(p.emoji)) return 'bad-icon';
     return '';
 }
 
@@ -192,6 +202,7 @@ export function validateCommand(cmd) {
                 const problem = duelCommandProblem(p);
                 return problem ? fail(problem) : { ok: true };
             }
+            if (p.action === 'team-look') return teamLookProblem(p) ? fail(teamLookProblem(p)) : { ok: true };
             if (!SHOWDOWN_ACTIONS.includes(p.action)) return fail('bad-action');
             if (p.team != null && !(Number.isInteger(p.team) && p.team >= 0 && p.team < 8)) return fail('bad-team');
             // several teams got it at once: a point to each, in one step (one undo)
@@ -677,7 +688,9 @@ export function createShowdown(teams, { growth = false, title = 'Showdown', rule
                 outAt: 0,
                 color: HEX_RE.test(t?.color || '') ? t.color : SHOWDOWN_COLORS[i % SHOWDOWN_COLORS.length],
                 shape: SHOWDOWN_SHAPES[i % SHOWDOWN_SHAPES.length],
-                emoji: typeof t?.emoji === 'string' ? t.emoji.slice(0, 4) : ''
+                emoji: typeof t?.emoji === 'string' ? t.emoji.slice(0, 4) : '',
+                // the Team Maker banner it wears (renamable from the Wand), or -1 (a guild, the class, the Dragon)
+                slot: Number.isInteger(t?.slot) && t.slot >= 0 ? t.slot : -1
             };
         }),
         lastScorer: -1,
@@ -1193,7 +1206,7 @@ export function showdownTeamLooks(split, teams, { guildOf = () => null, bannerOf
             if (g) return { name: g.name || 'Guild', color: g.primary || SHOWDOWN_COLORS[i % SHOWDOWN_COLORS.length], emoji: g.emoji || '🛡️' };
         }
         const b = bannerOf(i);
-        return b ? { name: b.short || b.name, color: b.primary, emoji: b.emoji } : { name: `Team ${i + 1}`, color: SHOWDOWN_COLORS[i % SHOWDOWN_COLORS.length], emoji: '' };
+        return b ? { name: b.short || b.name, color: b.primary, emoji: b.emoji, slot: i } : { name: `Team ${i + 1}`, color: SHOWDOWN_COLORS[i % SHOWDOWN_COLORS.length], emoji: '' };
     });
 }
 

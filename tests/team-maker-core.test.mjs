@@ -80,3 +80,23 @@ test('describe and move heroes by hand', () => {
     assert.equal(d[1].banner.key, TEAM_BANNERS[1].key);
     assert.deepEqual(moveHero([['a', 'b'], ['c']], 'b', 1), [['a'], ['c', 'b']]);
 });
+
+test('a class can rename its teams and change their icons; the colours stay', async () => {
+    const { teamBanner, setTeamLook, normalizeTeamLooks, cleanTeamName, teamLooksAreDefault, TEAM_ICONS, bannersFor } = await import('../features/teamMakerCore.mjs');
+    assert.equal(teamBanner(0).name, 'Coral Foxes');
+    const looks = setTeamLook(null, 1, { name: '  The   Comets <b> ', emoji: '☄️' });
+    assert.deepEqual(looks[1], { name: 'The Comets b', emoji: '☄️' });
+    const b = teamBanner(1, looks);
+    assert.equal(b.name, 'The Comets b');
+    assert.equal(b.short, 'The Comets b');
+    assert.equal(b.emoji, '☄️');
+    assert.equal(b.primary, teamBanner(1).primary, 'colours never change');
+    assert.equal(teamBanner(0, looks).name, 'Coral Foxes', 'other teams keep their defaults');
+    assert.equal(teamBanner(7, looks).name, 'The Comets b', 'slots wrap like the banners');
+    assert.equal(setTeamLook(looks, 1, { emoji: '🐉' })[1].emoji, '', 'unlisted icons are refused');
+    assert.equal(cleanTeamName('x'.repeat(40)).length, 18);
+    assert.equal(normalizeTeamLooks('junk').length, 6);
+    assert.equal(teamLooksAreDefault(setTeamLook(looks, 1, {})), true);
+    assert.ok(TEAM_ICONS.every((ic) => !['🔥', '🐻', '🦉', '🦅', '🐉'].includes(ic)), 'never a guild emblem or the Dragon');
+    assert.equal(bannersFor({ teamLooks: looks })(1).emoji, '☄️');
+});

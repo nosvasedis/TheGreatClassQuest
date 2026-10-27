@@ -202,6 +202,8 @@
 }
 .tm-team__emoji { width: 2.2rem; height: 2.2rem; border-radius: 0.8rem; display: grid; place-items: center; background: rgba(255, 255, 255, 0.25); font-size: 1.3rem; }
 .tm-team__name { flex: 1; font-size: 1.15rem; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2); }
+.tm-team__rename { width: 1.8rem; height: 1.8rem; border-radius: 999px; display: grid; place-items: center; flex: none; background: rgba(255, 255, 255, 0.25); color: #fff; font-size: 0.75rem; transition: transform 0.12s ease, background-color 0.15s ease; }
+.tm-team__rename:hover { transform: rotate(-12deg) scale(1.1); background: rgba(255, 255, 255, 0.4); }
 .tm-team__count { min-width: 1.8rem; height: 1.8rem; border-radius: 999px; display: grid; place-items: center; background: rgba(255, 255, 255, 0.9); color: var(--cd); font-weight: 800; }
 .tm-team__heroes { list-style: none; margin: 0; padding: 0.6rem; display: flex; flex-direction: column; gap: 0.3rem; flex: 1; background: linear-gradient(to bottom, var(--cs), #fff 70%); }
 .tm-hero {

@@ -86,7 +86,9 @@ export function forgeHtml(model) {
     const movable = teams.filter((t) => !t.dragon).length > 1;
     const teamCards = teams.map((t, i) => `
         <div class="qw-fteam${t.dragon ? ' qw-fteam--dragon' : ''}" style="--team:${esc(t.color)};--i:${i}" data-qw-key="fteam-${i}">
-            <div class="qw-fteam__head"><span class="qw-fteam__badge" aria-hidden="true">${esc(t.emoji || '★')}</span><b>${esc(t.name)}</b>
+            <div class="qw-fteam__head">${Number.isInteger(t.slot) && t.slot >= 0
+        ? `<button type="button" class="qw-fteam__badge qw-fteam__badge--edit" data-qw-teamlook="${t.slot}" aria-label="Rename ${esc(t.name)} or change the icon">${esc(t.emoji || '★')}<i class="fas fa-pen" aria-hidden="true"></i></button>`
+        : `<span class="qw-fteam__badge" aria-hidden="true">${esc(t.emoji || '★')}</span>`}<b>${esc(t.name)}</b>
                 <small>${t.dragon ? 'Scores when the class misses' : `${t.members.length}${m.split === 'fair' ? ` · <i class="fas fa-star" aria-hidden="true"></i> ${esc(t.stars)}` : ''}`}</small></div>
             ${t.dragon ? '<p class="qw-fteam__dragon" aria-hidden="true">🐉</p>' : `<div class="qw-fteam__members">${t.members.map((h) => movable
         ? `<button type="button" class="qw-fhero" data-qw-move="${esc(h.id)}" aria-label="Move ${esc(h.first)} to the next team">${esc(h.first)}</button>`

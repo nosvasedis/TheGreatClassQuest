@@ -385,6 +385,14 @@
 .hd-teamprev__team { border-radius: 1rem; overflow: hidden; background: var(--cs); box-shadow: 0 0 0 2px var(--c); }
 .hd-teamprev__team header { display: flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.7rem; background: linear-gradient(135deg, var(--c), var(--cd)); color: #fff; font-weight: 700; font-size: 0.9rem; }
 .hd-teamprev__team header b { margin-left: auto; }
+/* Rename a team: a small pen beside its name, on the setup columns and the arena's team bars */
+.hd-rename {
+    flex: none; display: grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 999px;
+    font-size: 0.7rem; color: #fff; background: rgba(255, 255, 255, 0.22); transition: transform 0.12s ease, background-color 0.15s ease;
+}
+.hd-rename:hover { transform: rotate(-12deg) scale(1.1); background: rgba(255, 255, 255, 0.4); }
+.hd-team .hd-rename { position: relative; opacity: 0.55; }
+.hd-team:hover .hd-rename { opacity: 1; }
 .hd-teamprev__team > div { display: flex; flex-wrap: wrap; gap: 0.25rem; padding: 0.45rem; }
 .hd-rules { display: flex; flex-direction: column; gap: 0.65rem; }
 .hd-rule { display: flex; flex-direction: column; gap: 0.3rem; }

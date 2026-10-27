@@ -91,3 +91,25 @@
 .qwd-pay small { padding: 1px 7px; border-radius: 999px; background: rgba(252, 211, 77, 0.2); color: var(--qw-gold); font-weight: 700; }
 
 .qw-lite .qwd-launch__swords span, .qw-still .qwd-launch__swords span, .qw-lite .qwd.is-rolling .qwd-heroes { animation: none; }
+
+/* Rename a team (Hero Duels setup, the Team Forge) and the sheet that does it */
+.qwd-preview__team { grid-template-columns: 1fr auto; align-items: center; }
+.qwd-preview__team small { grid-column: 1 / -1; }
+.qwd-rename { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; color: #fff; font-size: 0.8rem; background: rgba(255, 255, 255, 0.14) !important; box-shadow: inset 0 0 0 1px var(--qw-line); transition: transform 0.15s ease; }
+.qwd-rename:active { transform: scale(0.9); }
+.qw-fteam__badge--edit { position: relative; }
+.qw-fteam__badge--edit i { position: absolute; right: -5px; bottom: -5px; display: grid; place-items: center; width: 17px; height: 17px; border-radius: 50%; font-size: 0.5rem; color: #422006; background: var(--qw-gold); box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4); }
+.qw-fteam__badge--edit:active { transform: scale(0.92); }
+
+.qwd-tl { display: grid; gap: 8px; }
+.qwd-tl__banner { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 18px; background: linear-gradient(135deg, var(--team), var(--team-deep, var(--team))); box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.2); }
+.qwd-tl__emoji { display: grid; place-items: center; flex: none; width: 52px; height: 52px; border-radius: 50%; font-size: 1.8rem; background: rgba(255, 255, 255, 0.92); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25); }
+.qwd-tl__name { font: 400 1.4rem/1.1 var(--qw-title); color: #fff; min-width: 0; overflow-wrap: anywhere; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25); }
+.qwd-tl__input { width: 100%; min-height: 50px; padding: 0 14px; border-radius: 14px; border: 0; font: 600 1.05rem var(--qw-ui); color: #fff; background: rgba(0, 0, 0, 0.3); box-shadow: inset 0 0 0 1.5px var(--qw-line); -webkit-user-select: text; user-select: text; }
+.qwd-tl__input::placeholder { color: var(--qw-mute); }
+.qwd-tl__input:focus { outline: none; box-shadow: inset 0 0 0 2px var(--qw-gold); }
+.qwd-tl__icons { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.qwd-tl__icon { aspect-ratio: 1; display: grid; place-items: center; border-radius: 14px; font-size: 1.45rem; background: var(--qw-glass) !important; box-shadow: inset 0 0 0 1px var(--qw-line); transition: transform 0.15s ease; }
+.qwd-tl__icon.is-on { background: color-mix(in srgb, var(--team) 45%, transparent) !important; box-shadow: inset 0 0 0 2.5px var(--qw-gold); transform: scale(1.06); }
+.qwd-tl__icon:active { transform: scale(0.9); }
+.qwd-tl__foot { display: grid; grid-template-columns: auto 1fr; gap: 8px; margin-top: 4px; }

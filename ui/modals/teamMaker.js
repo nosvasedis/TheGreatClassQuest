@@ -19,6 +19,7 @@ import {
     esc, classById, classRoster, selectedToolClassId, followSelectedClass, faceHtml,
     readClassField, saveClassField, reducedMotion, enterFullscreen, leaveFullscreen
 } from './classTools.js';
+import { openTeamLookEditor, TEAM_LOOKS_EVENT } from './teamLookEditor.js';
 
 const MODAL_ID = 'team-maker-modal';
 const STAGE_ID = 'team-maker-stage';
@@ -27,6 +28,9 @@ const MODE_ICONS = { guild: 'fa-shield-halved', stars: 'fa-scale-balanced', rand
 
 let ui = null;
 let session = null;
+
+/** This class's own team names and icons. */
+const looks = (classId = ui?.classId) => readClassField(classId, 'teamLooks');
 
 function readPrefs() {
     try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}') || {}; } catch { return {}; }
@@ -145,13 +149,13 @@ function teamsHtml() {
     if (!ui.teams) {
         const enough = ui.here.size >= MIN_TEAMS;
         return `<div class="tm-empty">
-            <div class="tm-empty__banners" aria-hidden="true">${[0, 1, 2, 3].map((i) => `<span style="--c:${teamBanner(i).primary}">${teamBanner(i).emoji}</span>`).join('')}</div>
+            <div class="tm-empty__banners" aria-hidden="true">${[0, 1, 2, 3].map((i) => teamBanner(i, looks())).map((b) => `<span style="--c:${b.primary}">${b.emoji}</span>`).join('')}</div>
             <p>${enough ? 'Choose how many teams and how to mix them, then make the teams.' : 'At least two heroes need to be here to make teams.'}</p>
             <button type="button" class="ct-btn ct-btn--hero" data-tm-make ${enough ? '' : 'disabled'}><i class="fas fa-wand-magic-sparkles"></i> Make teams</button>
         </div>`;
     }
     const byId = heroesById();
-    const described = describeTeams(ui.teams, byId);
+    const described = describeTeams(ui.teams, byId, looks());
     const showStars = ui.mode === 'stars';
     return `<div class="tm-teams${ui.fresh && !ui.lite ? ' is-fresh' : ''}${ui.selected ? ' is-moving' : ''}" style="--tm-cols:${Math.min(3, ui.teams.length)}">
         ${described.map((t) => `
@@ -159,6 +163,7 @@ function teamsHtml() {
                 <header class="tm-team__banner">
                     <span class="tm-team__emoji" aria-hidden="true">${t.banner.emoji}</span>
                     <span class="tm-team__name font-title">${esc(t.banner.name)}</span>
+                    <button type="button" class="tm-team__rename" data-tm-rename="${t.index}" title="Rename the ${esc(t.banner.short)} or change the icon" aria-label="Rename this team"><i class="fas fa-pen"></i></button>
                     <span class="tm-team__count">${t.size}</span>
                 </header>
                 <ul class="tm-team__heroes">
@@ -242,7 +247,7 @@ function setClass(classId) {
 async function openBountyForTeam(index) {
     if (!ui?.teams?.[index]) return;
     if (!ui.saved) await save();
-    const banner = teamBanner(index);
+    const banner = teamBanner(index, looks());
     const classId = ui.classId;
     const team = { ids: [...ui.teams[index]], label: banner.name };
     close();
@@ -258,7 +263,7 @@ async function openBountyForTeam(index) {
 export function showTeamsStage(classId, teams) {
     const cls = classById(classId);
     const byId = new Map(classRoster(classId).map((h) => [h.id, h]));
-    const described = describeTeams(teams, byId);
+    const described = describeTeams(teams, byId, looks(classId));
     document.getElementById(STAGE_ID)?.remove();
     const stage = document.createElement('div');
     stage.id = STAGE_ID;
@@ -380,6 +385,8 @@ export async function openTeamMaker(classId = null) {
             if (ui?.teams) showTeamsStage(ui.classId, ui.teams);
             return;
         }
+        const rename = t.closest('[data-tm-rename]');
+        if (rename) { openTeamLookEditor({ classId: ui.classId, index: Number(rename.dataset.tmRename) }); return; }
         const bounty = t.closest('[data-tm-bounty]');
         if (bounty) return openBountyForTeam(Number(bounty.dataset.tmBounty));
         const hero = t.closest('[data-tm-hero]');
@@ -425,11 +432,14 @@ export async function openTeamMaker(classId = null) {
         if (ui?.selected) { ui.selected = null; render(); return; }
         close();
     };
+    const onLooks = (e) => { if (ui && e.detail?.classId === ui.classId && !modal.classList.contains('hidden')) render(); };
     modal.addEventListener('click', onClick);
     document.addEventListener('keydown', onKey, true);
+    window.addEventListener(TEAM_LOOKS_EVENT, onLooks);
     session = {
         dispose() {
             modal.removeEventListener('click', onClick);
+            window.removeEventListener(TEAM_LOOKS_EVENT, onLooks);
             unfollow();
             document.removeEventListener('keydown', onKey, true);
             session = null;

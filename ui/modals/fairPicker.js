@@ -111,7 +111,7 @@ function poolHtml() {
     return `<div class="fpk-pools" role="group" aria-label="Pick from">
         <span class="fpk-pools__label">Pick from</span>
         ${chip('null', 'Everyone', '🏰', '')}
-        ${ui.teams.map((ids, i) => ids.length ? chip(i, teamBanner(i).short, teamBanner(i).emoji, teamBanner(i).primary) : '').join('')}
+        ${ui.teams.map((ids, i) => { const b = teamBanner(i, readClassField(ui.classId, 'teamLooks')); return ids.length ? chip(i, b.short, b.emoji, b.primary) : ''; }).join('')}
     </div>`;
 }
 
@@ -136,7 +136,7 @@ function spotlightHtml(st) {
                 <span class="fpk-thinks" role="group" aria-label="Thinking time">${THINK_CHOICES.map((s) => `<button type="button" class="fpk-thinkbtn" data-fpk-think="${s}"><i class="fas fa-hourglass-half"></i>${s}s</button>`).join('')}</span>` : ''}
         </div>
         <div class="fpk-progress" aria-label="${st.had.length} of ${total} have had a turn this round">
-            <span class="fpk-progress__label">Round ${st.round} · <b>${st.had.length}</b> of ${total} have had a turn${ui.pool != null ? ` in the ${esc(teamBanner(ui.pool).short)}` : ''}</span>
+            <span class="fpk-progress__label">Round ${st.round} · <b>${st.had.length}</b> of ${total} have had a turn${ui.pool != null ? ` in the ${esc(teamBanner(ui.pool, readClassField(ui.classId, 'teamLooks')).short)}` : ''}</span>
             <span class="fpk-progress__bar"><i style="transform:scaleX(${doneShare.toFixed(3)})"></i></span>
         </div>
     </section>`;

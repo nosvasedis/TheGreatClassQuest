@@ -70,7 +70,7 @@ function setupHtml(panel) {
             ${seg('teams', String(panel.teamCount), teamOpts)}
             ${panel.teamCount ? `${seg('source', panel.source, sources)}
             ${panel.source === 'today' ? '' : `<button type="button" class="qw-chip" ${cmd('duel-shuffle')}><i class="fas fa-dice" aria-hidden="true"></i> Shuffle the teams</button>`}
-            <div class="qwd-preview">${(panel.teams || []).map((t) => `<div class="qwd-preview__team" style="--team:${esc(t.color)}"><b>${esc(t.emoji)} ${esc(t.name)} · ${esc(t.size)}</b><small>${esc(t.names)}</small></div>`).join('')}</div>`
+            <div class="qwd-preview">${(panel.teams || []).map((t, i) => `<div class="qwd-preview__team" style="--team:${esc(t.color)}"><b>${esc(t.emoji)} ${esc(t.name)} · ${esc(t.size)}</b>${teamLookButton(t.slot ?? i, t.name)}<small>${esc(t.names)}</small></div>`).join('')}</div>`
         : '<p class="qw-hint">Everyone plays for themselves.</p>'}
         </div>
         <div class="qw-forge__card">
@@ -188,5 +188,34 @@ export function showGamesHtml(game = 'showdown') {
     return `<div class="qwd-games" role="tablist" aria-label="Which game">
         <button type="button" class="qwd-games__tab${game === 'showdown' ? ' is-on' : ''}" role="tab" aria-selected="${game === 'showdown'}" data-qw-game="showdown"><i class="fas fa-people-group" aria-hidden="true"></i> Showdown <small>teams</small></button>
         <button type="button" class="qwd-games__tab${game === 'duels' ? ' is-on' : ''}" role="tab" aria-selected="${game === 'duels'}" data-qw-game="duels"><span aria-hidden="true">⚔️</span> Hero Duels <small>everyone</small></button>
+    </div>`;
+}
+
+/** The little pen that opens the team name & icon sheet (Hero Duels setup, the Showdown's Team Forge). */
+export function teamLookButton(slot, name) {
+    return `<button type="button" class="qwd-rename" data-qw-teamlook="${esc(slot)}" aria-label="Rename ${esc(name)} or change the icon"><i class="fas fa-pen" aria-hidden="true"></i></button>`;
+}
+
+/**
+ * The sheet that renames a team and picks its icon. edit: { slot, name, emoji }; base: the banner's
+ * defaults { name, emoji, primary, deep }; icons: the icons to offer. Saved on the class by the projector.
+ */
+export function teamLookSheetHtml(edit, base, icons) {
+    const shown = String(edit.name || '').trim() || base.name;
+    return `<div class="qw-sheet__panel qwd-tl" role="dialog" aria-label="Name this team" style="--team:${esc(base.primary)};--team-deep:${esc(base.deep)}">
+        <button type="button" class="qw-sheet__grab" data-qw="sheet-close" aria-label="Close"></button>
+        <div class="qwd-tl__banner"><span class="qwd-tl__emoji" data-qw-tl-emoji aria-hidden="true">${esc(edit.emoji || base.emoji)}</span><b class="qwd-tl__name" data-qw-tl-shown>${esc(shown)}</b></div>
+        <label class="qw-forge__label" for="qwd-tl-name">Team name</label>
+        <input id="qwd-tl-name" class="qwd-tl__input" data-qw-tlname type="text" maxlength="18" autocomplete="off" enterkeyhint="done" value="${esc(edit.name || '')}" placeholder="${esc(base.name)}" />
+        <p class="qw-forge__label">Icon</p>
+        <div class="qwd-tl__icons" role="radiogroup" aria-label="Team icon">${icons.map((ic) => {
+        const on = ic === (edit.emoji || base.emoji);
+        return `<button type="button" class="qwd-tl__icon${on ? ' is-on' : ''}" role="radio" aria-checked="${on}" data-qw-tlicon="${esc(ic)}">${esc(ic)}</button>`;
+    }).join('')}</div>
+        <div class="qwd-tl__foot">
+            <button type="button" class="qw-btn qw-btn--ghost" data-qw="tl-reset"><i class="fas fa-rotate-left" aria-hidden="true"></i> Default</button>
+            <button type="button" class="qw-btn qw-btn--gold" data-qw="tl-save"><i class="fas fa-check" aria-hidden="true"></i> Save</button>
+        </div>
+        <p class="qw-hint qw-hint--center">The colours stay. The new name shows on the projector, in Team Maker, Hero Duels and the Showdown.</p>
     </div>`;
 }

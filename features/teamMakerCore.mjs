@@ -24,8 +24,62 @@ export const TEAM_MODES = Object.freeze([
 ]);
 export const TEAM_MODE_KEYS = Object.freeze(TEAM_MODES.map((m) => m.key));
 
-export function teamBanner(index) {
-    return TEAM_BANNERS[((Number(index) || 0) % TEAM_BANNERS.length + TEAM_BANNERS.length) % TEAM_BANNERS.length];
+/**
+ * Icons a teacher may give a team instead of its creature. Kept short, and clear of the guild
+ * emblems (🔥 🐻 🦉 🦅) and the Showdown's dragon, so a team never looks like a guild.
+ */
+export const TEAM_ICONS = Object.freeze([
+    '🦊', '🐬', '🐢', '🐝', '🦄', '🐞', '🦁', '🐺', '🐙', '🦋', '🐧', '🐼',
+    '⚡', '🌊', '🌟', '🚀', '🛡️', '👑', '💎', '🌈', '🍀', '🏰', '🎯', '☄️'
+]);
+export const TEAM_NAME_MAX = 18;
+
+/** A team name as typed: one line, no markup, at most TEAM_NAME_MAX characters ('' = the default). */
+export function cleanTeamName(value) {
+    return [...String(value ?? '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim()].slice(0, TEAM_NAME_MAX).join('').trim();
+}
+
+/**
+ * The class's own team looks (`teamLooks` on the class document): one { name, emoji } per banner
+ * slot, '' where the slot keeps its default. Anything unknown is dropped.
+ */
+export function normalizeTeamLooks(raw) {
+    const list = Array.isArray(raw) ? raw : [];
+    return TEAM_BANNERS.map((_, i) => {
+        const look = list[i] && typeof list[i] === 'object' ? list[i] : {};
+        return { name: cleanTeamName(look.name), emoji: TEAM_ICONS.includes(look.emoji) ? look.emoji : '' };
+    });
+}
+
+/** The looks with one slot changed (an empty name or icon goes back to the default). */
+export function setTeamLook(raw, index, { name = '', emoji = '' } = {}) {
+    const looks = normalizeTeamLooks(raw);
+    const i = slotOf(index);
+    looks[i] = { name: cleanTeamName(name), emoji: TEAM_ICONS.includes(emoji) ? emoji : '' };
+    return looks;
+}
+
+/** True when no slot is customised (nothing worth saving). */
+export function teamLooksAreDefault(raw) {
+    return normalizeTeamLooks(raw).every((l) => !l.name && !l.emoji);
+}
+
+function slotOf(index) {
+    return ((Math.floor(Number(index)) || 0) % TEAM_BANNERS.length + TEAM_BANNERS.length) % TEAM_BANNERS.length;
+}
+
+/** Team `index`'s banner; with the class's `teamLooks`, its own name and icon (the colours stay). */
+export function teamBanner(index, looks = null) {
+    const base = TEAM_BANNERS[slotOf(index)];
+    const own = looks ? normalizeTeamLooks(looks)[slotOf(index)] : null;
+    if (!own || (!own.name && !own.emoji)) return base;
+    return { ...base, name: own.name || base.name, short: own.name || base.short, emoji: own.emoji || base.emoji, custom: true };
+}
+
+/** A banner lookup for one class: (index) => banner, using the class's own team looks. */
+export function bannersFor(cls) {
+    const looks = cls?.teamLooks || null;
+    return (index) => teamBanner(index, looks);
 }
 
 /** The team count actually used: 2–6, and never more teams than children. */
@@ -271,7 +325,7 @@ export function teamsForDay(raw, dateKey) {
 }
 
 /** Per-team numbers for the cards: size, stars and guild spread. */
-export function describeTeams(teams, heroesById) {
+export function describeTeams(teams, heroesById, looks = null) {
     const lookup = (id) => (heroesById instanceof Map ? heroesById.get(id) : heroesById?.[id]) || null;
     return (teams || []).map((ids, index) => {
         const heroes = ids.map(lookup).filter(Boolean);
@@ -279,7 +333,7 @@ export function describeTeams(teams, heroesById) {
         heroes.forEach((h) => { if (h.guildId) guilds[h.guildId] = (guilds[h.guildId] || 0) + 1; });
         return {
             index,
-            banner: teamBanner(index),
+            banner: teamBanner(index, looks),
             ids: [...ids],
             size: ids.length,
             stars: Math.round(heroes.reduce((sum, h) => sum + (Number(h.stars) || 0), 0) * 10) / 10,

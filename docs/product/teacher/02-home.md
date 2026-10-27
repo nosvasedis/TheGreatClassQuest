@@ -82,7 +82,7 @@ Open **Team Maker** from Class Actions (select a class first; it always works on
 - **Teams**: 2 to 6 (it suggests teams of about four and says how big each team will be).
 - **Mix**: **Mix the guilds** (every team gets heroes from different guilds), **Balance by stars** (teams even out on this month's stars; each team shows its total), or **Pure luck**.
 - **Never the same pairs**: keeps apart children who were in the same team last time. If that cannot be done with this many teams, a note says how many pairs repeat.
-- Press **Make teams**. The teams appear as coloured banners: Coral Foxes, Azure Dolphins, Jade Turtles, Golden Bees, Violet Unicorns and Ruby Ladybirds (never the guild colours). To move a child, tap them and then tap the team they should join. **Shuffle again** makes a new split.
+- Press **Make teams**. The teams appear as coloured banners: Coral Foxes, Azure Dolphins, Jade Turtles, Golden Bees, Violet Unicorns and Ruby Ladybirds (never the guild colours). The **pen** on a banner renames that team and lets you pick another icon from a short list (animals, stars, rockets, crowns…); the colours stay. The new name is kept for the class and shows everywhere teams appear: Team Maker, Hero Duels, the Showdown, the Fair Picker, bounties and the projector card. To move a child, tap them and then tap the team they should join. **Shuffle again** makes a new split.
 - **Use these teams** saves them as today's teams for this class. **Show on projector** fills the screen with the teams, big and in their colours (Esc or × closes it), and the Projector wallpaper shows a **Today's Teams** card next.
 - **Bounty** on a team opens the bounty poster already aimed at that team.
 

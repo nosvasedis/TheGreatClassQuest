@@ -1187,3 +1187,12 @@ test('the duels panel keeps the whole class on the Wand', () => {
     const other = buildStageSummary({ panel: { kind: 'wheel', items: Array.from({ length: 20 }, (_, i) => `x${i}`) } });
     assert.equal(other.panel.items.length, 8, 'other panels keep the short cap');
 });
+
+test('the Wand can rename a team (a banner slot, a short name, a listed icon)', () => {
+    const ok = (payload) => validateCommand({ type: 'showdown', payload, clientSeq: 1 }).ok;
+    assert.equal(ok({ action: 'team-look', team: 0, name: 'Comets', emoji: '☄️' }), true);
+    assert.equal(ok({ action: 'team-look', team: 2, name: '', emoji: '' }), true, 'back to the default');
+    assert.equal(ok({ action: 'team-look', team: 6, name: 'x' }), false);
+    assert.equal(ok({ action: 'team-look', team: 1, emoji: '🐉' }), false);
+    assert.equal(ok({ action: 'team-look', team: 1, name: 'x'.repeat(80) }), false);
+});

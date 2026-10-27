@@ -1,0 +1,45 @@
+/* The team name & icon editor (ui/modals/teamLookEditor.js). It sits over every game window,
+ * in the team's own colours. Motion is transform/opacity only. */
+.tle {
+    position: fixed; inset: 0; z-index: 2147482000;
+    display: grid; place-items: center; padding: 16px;
+    background: rgba(11, 16, 38, 0.6);
+    font-family: 'Fredoka', 'Open Sans', sans-serif; color: #1e293b;
+    animation: tle-fade 0.18s ease both;
+}
+.tle.is-leaving { animation: tle-fade 0.16s ease reverse both; }
+@keyframes tle-fade { from { opacity: 0; } }
+.tle__card {
+    width: min(30rem, 100%); max-height: calc(100vh - 32px); overflow-y: auto;
+    display: grid; gap: 0.6rem; padding: 0 1.25rem 1.1rem;
+    border-radius: 1.6rem; background: #f8fafc;
+    box-shadow: 0 0 0 4px var(--c), 0 40px 80px -24px rgba(0, 0, 0, 0.6);
+    animation: tle-pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    user-select: none;
+}
+@keyframes tle-pop { from { transform: scale(0.85) translateY(12px); opacity: 0; } }
+.tle__head {
+    display: flex; align-items: center; gap: 0.7rem; margin: 0 -1.25rem 0.3rem; padding: 0.9rem 1.25rem;
+    background: linear-gradient(135deg, var(--c), var(--cd)); color: #fff;
+}
+.tle__emoji {
+    display: grid; place-items: center; width: 3.2rem; height: 3.2rem; flex: none; border-radius: 50%;
+    font-size: 1.9rem; background: rgba(255, 255, 255, 0.92); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+.tle__title { font-size: 1.7rem; line-height: 1.1; min-width: 0; overflow-wrap: anywhere; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.2); }
+.tle__label { margin: 0.2rem 0 0; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #64748b; }
+.tle__input {
+    width: 100%; padding: 0.7rem 1rem; border-radius: 1rem; font: 600 1.15rem 'Fredoka', sans-serif; color: #1e293b;
+    border: 2px solid #e2e8f0; background: #fff; user-select: text;
+}
+.tle__input:focus { outline: none; border-color: var(--c); box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 25%, transparent); }
+.tle__icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(2.9rem, 1fr)); gap: 0.4rem; }
+.tle__icon {
+    aspect-ratio: 1; display: grid; place-items: center; border-radius: 0.9rem; font-size: 1.5rem;
+    background: #fff; border: 2px solid #e2e8f0; transition: transform 0.12s ease;
+}
+.tle__icon:hover { transform: translateY(-2px); }
+.tle__icon.is-on { border-color: var(--c); background: var(--cs); transform: scale(1.08); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 30%, transparent); }
+.tle__foot { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.4rem; }
+.tle__gap { flex: 1; }
+@media (prefers-reduced-motion: reduce) { .tle, .tle__card { animation: none; } }

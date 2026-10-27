@@ -85,8 +85,8 @@ async function buildTeams(classId) {
         const sets = (today?.teams || []).map((t) => (Array.isArray(t) ? t : t?.ids || []).filter((id) => here.has(id))).filter((t) => t.length);
         if (sets.length >= 2) {
             return sets.map((ids, i) => {
-                const b = teamBanner(i);
-                return { name: b.short, color: b.primary, emoji: b.emoji, members: ids };
+                const b = teamBanner(i, cls?.teamLooks);
+                return { name: b.short, color: b.primary, emoji: b.emoji, slot: i, members: ids };
             });
         }
     } catch { /* fall through */ }
@@ -117,9 +117,11 @@ async function forgedTeams(classId, p) {
     const cls = classById(classId);
     const inClass = new Set(classRosterNow(classId).map((s) => s.id));
     const packed = p.teams.map((t) => ({ ...t, ids: (t.ids || []).filter((id) => inClass.has(id)) }));
-    const [{ getGuildById }, { teamBanner }] = await Promise.all([import('../guilds.js'), import('../teamMakerCore.mjs')]);
+    const [{ getGuildById }, { teamBanner }, { readClassField }] = await Promise.all([
+        import('../guilds.js'), import('../teamMakerCore.mjs'), import('../../ui/modals/classTools.js')]);
+    const own = readClassField(classId, 'teamLooks');
     const looks = showdownTeamLooks(p.split, packed, {
-        guildOf: getGuildById, bannerOf: teamBanner, classLook: cls ? { name: cls.name, emoji: cls.logo } : null
+        guildOf: getGuildById, bannerOf: (i) => teamBanner(i, own), classLook: cls ? { name: cls.name, emoji: cls.logo } : null
     });
     return packed.map((t, i) => ({ ...looks[i], members: t.ids }));
 }
@@ -762,6 +764,20 @@ function pointMessage(team, gain) {
  * Runs one Showdown command from the Wand. `ctx` comes from remoteHost.js:
  * { sparkTo, scheduleStage, payStars({ classId, showId, heroIds, stars, noteOf }) → Promise<{ paid[], already[] }> }.
  */
+/** A team renamed from the Wand: the running show of that class wears the new name and icon at once. */
+export function renameShowdownTeam(classId, slot, banner) {
+    if (!sd || !banner || showClassId !== classId) return false;
+    let hit = false;
+    sd.teams.forEach((t) => {
+        if (t.slot !== slot) return;
+        t.name = banner.short || banner.name;
+        t.emoji = banner.emoji;
+        hit = true;
+    });
+    if (hit) { render({ finale: sd.finished }); lastCtx?.scheduleStage?.(0); }
+    return hit;
+}
+
 export async function runShowdownCommand(p, ctx) {
     lastCtx = ctx;
     switch (p.action) {

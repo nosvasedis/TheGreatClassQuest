@@ -20,7 +20,10 @@ import {
     SHOWDOWN_SPLITS, SHOWDOWN_GOAL_MIN, SHOWDOWN_GOAL_MAX, normalizeShowdownRules, forgeShowdownTeams, showdownTeamLooks,
     packShowdownTeams, isGrowthLeague, showdownModeFor
 } from './remoteCore.mjs';
-import { makeTeams, moveHero, teamBanner, teamsForDay, pastTeamSets, clampTeamCount, suggestTeamCount, MIN_TEAMS, MAX_TEAMS } from '../teamMakerCore.mjs';
+import {
+    makeTeams, moveHero, teamBanner, teamsForDay, pastTeamSets, clampTeamCount, suggestTeamCount, MIN_TEAMS, MAX_TEAMS,
+    TEAM_BANNERS, TEAM_ICONS, setTeamLook, cleanTeamName
+} from '../teamMakerCore.mjs';
 import { getGuildById } from '../guilds.js';
 import { defaultWordChoice, cleanWordChoice, reachedUnit, wordKindsForBook, WORD_KINDS, shortBookTitle } from './showdownDeck.mjs';
 import {
@@ -29,7 +32,7 @@ import {
 } from './remoteWandView.mjs';
 import { morphInto } from './wandMorph.mjs';
 import '../../styles/quest_remote_duels.css';
-import { duelsWandHtml, duelsLauncherHtml, showGamesHtml } from './duelsWandView.mjs';
+import { duelsWandHtml, duelsLauncherHtml, showGamesHtml, teamLookSheetHtml } from './duelsWandView.mjs';
 
 const GAME_KEY = 'gcq.questRemote.showGame';
 function savedGame() { try { return localStorage.getItem(GAME_KEY) === 'duels' ? 'duels' : 'showdown'; } catch { return 'showdown'; } }
@@ -102,6 +105,9 @@ export async function openWand({ sessionId = '' } = {}) {
         spells: [],
         forge: savedForge(),
         showGame: savedGame(),
+        // a team being renamed on the phone, and the names just sent (shown until the class document catches up)
+        teamEdit: null,
+        looks: null,
         sdPoints: 1,
         // "Several teams": team taps pick, one button gives them all the point (or, in Survivor, the miss)
         sdMulti: false,
@@ -630,7 +636,8 @@ function forgeModel({ reroll = false } = {}) {
         f.present = present;
     }
     const byId = new Map(heroes.map((h) => [h.id, h]));
-    const looks = showdownTeamLooks(f.split, f.teams, { guildOf: getGuildById, bannerOf: teamBanner, classLook: cls ? { name: cls.name, emoji: cls.logo } : null });
+    const own = wandLooks(classId);
+    const looks = showdownTeamLooks(f.split, f.teams, { guildOf: getGuildById, bannerOf: (i) => teamBanner(i, own), classLook: cls ? { name: cls.name, emoji: cls.logo } : null });
     const teams = f.teams.map((t, i) => ({
         ...looks[i],
         members: t.ids.map((id) => ({ id, first: byId.get(id)?.first || 'Hero' })),
@@ -952,6 +959,60 @@ function tickClocks() {
 
 // ─── Sheets ─────────────────────────────────────────────────────────────────
 
+// ─── Team names and icons (saved on the class by the projector) ───────────────
+
+/** The class's team looks: the ones this phone just sent, until the class document changes. */
+function wandLooks(classId) {
+    const doc = classObj(classId)?.teamLooks ?? null;
+    const sent = wand?.looks;
+    if (sent && sent.classId === classId && sent.seen === JSON.stringify(doc)) return sent.looks;
+    return doc;
+}
+
+function baseBanner(slot) {
+    return TEAM_BANNERS[((Number(slot) || 0) % TEAM_BANNERS.length + TEAM_BANNERS.length) % TEAM_BANNERS.length];
+}
+
+function openTeamLook(slot) {
+    const classId = currentClassId();
+    if (!classId || !Number.isInteger(slot)) return;
+    const base = baseBanner(slot);
+    const now = teamBanner(slot, wandLooks(classId));
+    wand.teamEdit = { slot, classId, name: now.name !== base.name ? now.name : '', emoji: now.emoji };
+    openSheet('team-look', teamLookSheetHtml(wand.teamEdit, base, TEAM_ICONS));
+}
+
+/** The sheet follows the typing and the icon taps without being redrawn (the keyboard stays up). */
+function refreshTeamLook() {
+    const e = wand?.teamEdit;
+    if (!e || wand.sheetKind !== 'team-look') return;
+    const base = baseBanner(e.slot);
+    const shown = wand.sheet.querySelector('[data-qw-tl-shown]');
+    if (shown) shown.textContent = cleanTeamName(e.name) || base.name;
+    const emoji = wand.sheet.querySelector('[data-qw-tl-emoji]');
+    if (emoji) emoji.textContent = e.emoji;
+    wand.sheet.querySelectorAll('[data-qw-tlicon]').forEach((b) => {
+        const on = b.dataset.qwTlicon === e.emoji;
+        b.classList.toggle('is-on', on);
+        b.setAttribute('aria-checked', String(on));
+    });
+}
+
+function saveTeamLook() {
+    const e = wand?.teamEdit;
+    if (!e) return;
+    const base = baseBanner(e.slot);
+    const clean = cleanTeamName(e.name);
+    const look = { name: clean === base.name || clean === base.short ? '' : clean, emoji: e.emoji === base.emoji ? '' : e.emoji };
+    if (!send('showdown', { action: 'team-look', team: e.slot, name: look.name, emoji: look.emoji })) return;
+    const doc = classObj(e.classId)?.teamLooks ?? null;
+    wand.looks = { classId: e.classId, looks: setTeamLook(wandLooks(e.classId), e.slot, look), seen: JSON.stringify(doc) };
+    wand.teamEdit = null;
+    buzz([10, 30, 10]);
+    closeSheet();
+    render();
+}
+
 /** The Wand behind an open sheet: out of reach for taps, keys and screen readers. */
 function setBackdropInert(on) {
     wand?.root.querySelectorAll(':scope > .qw-top, :scope > .qw-now, :scope > .qw-main, :scope > .qw-modes').forEach((n) => { n.inert = on; });
@@ -1089,6 +1150,18 @@ function wireEvents(root) {
         if (act === 'leave') { buzz(10); closeWand(); return; }
         if (act === 'refresh') { showChooser(); return; }
         if (act === 'sheet-close') { closeSheet(); return; }
+        const teamLook = t.closest('[data-qw-teamlook]');
+        if (teamLook) { buzz(6); openTeamLook(Number(teamLook.dataset.qwTeamlook)); return; }
+        const tlIcon = t.closest('[data-qw-tlicon]');
+        if (tlIcon && wand.teamEdit) { wand.teamEdit.emoji = tlIcon.dataset.qwTlicon; buzz(6); refreshTeamLook(); return; }
+        if (act === 'tl-reset' && wand.teamEdit) {
+            wand.teamEdit.name = '';
+            wand.teamEdit.emoji = baseBanner(wand.teamEdit.slot).emoji;
+            const field = wand.sheet.querySelector('[data-qw-tlname]');
+            if (field) field.value = '';
+            buzz(6); refreshTeamLook(); return;
+        }
+        if (act === 'tl-save') { saveTeamLook(); return; }
         if (act === 'to-stage') { buzz(6); setMode('stage'); return; }
         if (act === 'to-stars') { buzz(6); setMode('stars'); return; }
         if (act === 'pad-toggle') { wand.padOpen = !wand.padOpen; render(); return; }
@@ -1209,8 +1282,14 @@ function wireEvents(root) {
             field?.blur();
         }
     });
+    root.addEventListener('input', (e) => {
+        if (!wand?.teamEdit || !e.target?.matches?.('[data-qw-tlname]')) return;
+        wand.teamEdit.name = e.target.value;
+        refreshTeamLook();
+    });
     root.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && wand?.sheetKind) { e.preventDefault(); closeSheet(); return; }
+        if (e.key === 'Enter' && e.target?.matches?.('[data-qw-tlname]')) { e.preventDefault(); saveTeamLook(); return; }
         // Enter in a one-line box sends; in a text area it is a new line.
         if (e.key === 'Enter' && e.target?.matches?.('[data-qw-text] input')) {
             e.preventDefault();

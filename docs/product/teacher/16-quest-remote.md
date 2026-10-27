@@ -36,7 +36,7 @@ Settings, the student roster and other forms are never cast to the projector and
 
 ## Showdown Arena
 
-A Kahoot-style team race, with no student devices. You ask a question out loud (or let the arena bring one). The team that answers well gets your tap, and on the projector its bar leaps, game-show stings play and a flame shows a streak of three. The Show mode opens on the **Team Forge**, where you set everything up before a single thing is saved.
+A Kahoot-style team race, with no student devices. You ask a question out loud (or let the arena bring one). The team that answers well gets your tap, and on the projector its bar leaps, game-show stings play and a flame shows a streak of three. The Show mode opens on the **Team Forge**, where you set everything up before a single thing is saved. Tap a team's badge (it has a small pen) to rename it or give it another icon; the name is kept for the class (guild teams keep their guild names).
 
 **1 · Teams for this show.** Split the class six ways: **Fair** (even on this month's stars), **Mixed** (guilds mixed), **Luck**, **Guilds** (as they are, for this show only), **Today** (today's Team Maker teams) or **Dragon** (the whole class against the Dragon). Choose 2 to 6 teams and **Shuffle** (teammates from last time are kept apart). Tap a name to move a hero to the next team. Heroes marked away today are never put in a team; the Forge names who is away. Guild membership is never changed.
 

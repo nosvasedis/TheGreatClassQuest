@@ -64,7 +64,7 @@ function classTeams() {
     if (!today) return [];
     const known = new Set(classStudents().map(s => s.id));
     return today.teams
-        .map((ids, index) => ({ index, banner: teamBanner(index), ids: ids.filter(id => known.has(id)) }))
+        .map((ids, index) => ({ index, banner: teamBanner(index, readClassField(classId, 'teamLooks')), ids: ids.filter(id => known.has(id)) }))
         .filter(t => t.ids.length);
 }
 

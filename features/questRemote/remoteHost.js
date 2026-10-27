@@ -565,6 +565,7 @@ async function run(cmd) {
                 scheduleStage(0);
                 return report(cmd, result.ok, result.message || '');
             }
+            if (p.action === 'team-look') return runTeamLook(cmd, p);
             const sd = await import('./showdown.js');
             const message = await sd.runShowdownCommand(p, { sparkTo, scheduleStage, payStars: payShowdownStars });
             return report(cmd, true, message || '');
@@ -851,6 +852,18 @@ async function runWall(cmd, action) {
     await sparkTo(isShown(btn) ? btn : screen, { color: '#93c5fd', size: 16, duration: 380, burst: 8 });
     pressKey(key);
     return report(cmd, true, '');
+}
+
+/** A team renamed on the Wand: saved on the class, so Team Maker, Hero Duels and the Showdown all wear it. */
+async function runTeamLook(cmd, p) {
+    const classId = state.get('globalSelectedClassId') || '';
+    if (!classId) return report(cmd, false, 'Choose a class first');
+    const [{ applyTeamLook }, sd] = await Promise.all([import('../../ui/modals/teamLookEditor.js'), import('./showdown.js')]);
+    const banner = await applyTeamLook(classId, p.team, { name: p.name || '', emoji: p.emoji || '' });
+    if (!banner) return report(cmd, false, 'The team name could not be saved');
+    sd.renameShowdownTeam(classId, p.team, banner);
+    scheduleStage(0);
+    return report(cmd, true, `${banner.emoji} ${banner.name}`);
 }
 
 async function runQuiz(cmd, { action, index }) {

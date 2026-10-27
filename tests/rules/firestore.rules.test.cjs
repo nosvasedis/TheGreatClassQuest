@@ -442,6 +442,21 @@ rulesTest('story pictures upload into the teacher\'s own class folder with no Fi
   await assertFails(uploadBytes(ref(env.unauthenticatedContext().storage(), 'story_images/any-class/teacher/2.jpg'), new Uint8Array([255]), { contentType: 'image/jpeg' }));
 });
 
+rulesTest('browser avatar saves and quiz pictures upload into the teacher\'s own folder with no Firestore lookup', async () => {
+  const teacherStorage = env.authenticatedContext('teacher').storage();
+  const jpeg = new Uint8Array([255, 216, 255]);
+  const avatar = ref(teacherStorage, 'avatars/student-1/teacher/avatar.webp');
+  await assertSucceeds(uploadBytes(avatar, new Uint8Array([82, 73, 70, 70]), { contentType: 'image/webp' }));
+  await assertSucceeds(getBytes(avatar));
+  await assertFails(uploadBytes(ref(teacherStorage, 'avatars/student-1/another-teacher/avatar.webp'), jpeg, { contentType: 'image/webp' }));
+  await assertFails(uploadBytes(ref(teacherStorage, 'avatars/student-1/teacher/avatar.txt'), jpeg, { contentType: 'text/plain' }));
+  const quizPicture = ref(teacherStorage, 'quiz_images/teacher/q1_1.jpg');
+  await assertSucceeds(uploadBytes(quizPicture, jpeg, { contentType: 'image/jpeg' }));
+  await assertSucceeds(getBytes(quizPicture));
+  await assertFails(uploadBytes(ref(teacherStorage, 'quiz_images/another-teacher/q1_1.jpg'), jpeg, { contentType: 'image/jpeg' }));
+  await assertFails(uploadBytes(ref(teacherStorage, 'quiz_images/teacher/large.jpg'), new Uint8Array(1024 * 1024 + 1), { contentType: 'image/jpeg' }));
+});
+
 // ---- Two schools in one project: every school sees and changes only its own data. ----
 const DATA_B = 'artifacts/school-b/public/data';
 

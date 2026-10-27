@@ -1,7 +1,7 @@
 // /features/avatar.js
 
 // --- IMPORTS ---
-import { db, doc, updateDoc } from '../firebase.js';
+import { db, auth, doc, updateDoc } from '../firebase.js';
 
 import * as state from '../state.js';
 import * as modals from '../ui/modals.js';
@@ -9,7 +9,7 @@ import { showToast } from '../ui/effects.js';
 import { playSound } from '../audio.js';
 import { callGeminiApi, callCloudflareAiImageApi } from '../api.js';
 import { compressAvatarImageBase64 } from '../utils.js';
-import { AVATAR_IMAGE_CACHE_CONTROL, studentAvatarStoragePath } from '../constants.js';
+import { AVATAR_IMAGE_CACHE_CONTROL, studentAvatarUploadPath } from '../constants.js';
 import { requireEliteAI } from '../utils/upgradePrompt.js';
 
 import {
@@ -466,7 +466,7 @@ export async function handleSaveAvatar() {
             if (!avatarCallableMissing(serverError)) throw serverError;
             console.warn('Avatar save callable is not deployed; uploading from the browser.', serverError?.code || serverError);
             const { uploadImageToStorage } = await import('../utils.js');
-            imageUrl = await uploadImageToStorage(compressedAvatar, studentAvatarStoragePath(studentId), { cacheControl: AVATAR_IMAGE_CACHE_CONTROL });
+            imageUrl = await uploadImageToStorage(compressedAvatar, studentAvatarUploadPath(studentId, auth.currentUser?.uid || state.get('currentUserId')), { cacheControl: AVATAR_IMAGE_CACHE_CONTROL });
             const studentRef = doc(db, `${PUBLIC_DATA_PATH}/students`, studentId);
             await updateDoc(studentRef, { avatar: imageUrl });
         }

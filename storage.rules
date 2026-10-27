@@ -116,6 +116,14 @@ service firebase.storage {
       allow write: if canManageStudent(studentId) && isValidImageWrite();
     }
 
+    // A portrait saved from the browser (only when the saveStudentAvatar callable is missing)
+    // goes into the teacher's own folder inside the student's folder: no Firestore lookup.
+    // firestore.rules still decides who may set a student's avatar.
+    match /avatars/{studentId}/{userId}/{fileName} {
+      allow read: if ownsFolder(userId) || hasActiveProfile();
+      allow write: if ownsFolder(userId) && isValidImageWrite();
+    }
+
     match /avatars/{legacyFileName} {
       allow read: if hasActiveProfile();
       allow write: if false;
@@ -141,8 +149,8 @@ service firebase.storage {
     }
 
     match /shop_items/{userId}/{allPaths=**} {
-      allow read: if hasActiveProfile();
-      allow write: if isValidImageWrite() && (isTeacher() || hasFullSecretaryConsole()) && (request.auth.uid == userId || (hasFullSecretaryConsole() && sameSchoolUser(userId)));
+      allow read: if ownsFolder(userId) || hasActiveProfile();
+      allow write: if isValidImageWrite() && (ownsFolder(userId) || (hasFullSecretaryConsole() && sameSchoolUser(userId)));
     }
 
     match /familiars/{studentId}/{fileName} {
@@ -155,9 +163,10 @@ service firebase.storage {
       allow write: if false;
     }
 
+    // Quiz pictures, like diary pictures, live in the teacher's own folder: no Firestore lookup.
     match /quiz_images/{userId}/{fileName} {
-      allow read: if hasActiveProfile();
-      allow write: if isValidImageWrite() && (isTeacher() || hasFullSecretaryConsole()) && (request.auth.uid == userId || (hasFullSecretaryConsole() && sameSchoolUser(userId)));
+      allow read: if ownsFolder(userId) || hasActiveProfile();
+      allow write: if isValidImageWrite() && (ownsFolder(userId) || (hasFullSecretaryConsole() && sameSchoolUser(userId)));
     }
 
     match /{allPaths=**} {

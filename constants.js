@@ -12,6 +12,8 @@ export const AVATAR_IMAGE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 
 /** Canonical Storage path for a student portrait. The server derives the same path. */
 export const studentAvatarStoragePath = (studentId) => `avatars/${studentId}/avatar.webp`;
+// Browser uploads go one folder deeper, into the uploading teacher's own folder (see storage.rules).
+export const studentAvatarUploadPath = (studentId, uid) => `avatars/${studentId}/${uid}/avatar.webp`;
 
 // Use optional config from bootstrap (config.json) when present; otherwise this default (e.g. your school).
 const DEFAULT_FIREBASE_CONFIG = {

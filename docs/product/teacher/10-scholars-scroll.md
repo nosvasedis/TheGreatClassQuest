@@ -41,9 +41,11 @@ Secretary sets the school picture. **Class Grading** is your override when this 
 
 **Trial History**: toggle Tests / Dictations, sort by date, students, or score. Edit or delete **your** entries. Load full history when you need the long view.
 
-### Make-ups
+### Test desk and make-ups
 
-**Pending Makeups** (tests): if a large share of the class sat a paper and someone has no mark, they appear on the list (recent months only). Log a result, or dismiss the entry on this device. Separate from the **pending grading** queue for advertised Quest Board tests.
+The **Test desk** is one card at the top of the Scroll. It holds the test announced with **Schedule a Test** (coming up, live, or **Ready to mark** with a **Log results** button) and every marked test someone still owes (**Pending Makeups**).
+
+The rule: **once a test has marks, it is marked; anyone left out is a makeup.** Log the class on any day (the date stays the test day), leave out whoever was absent, and the announced test steps aside. The paper then shows "6 of 7 marked", the missing child ("Absent Mon 26 Oct" when the register says so) and **Log makeup** / **×** (no makeup needed, with Undo; remembered on this device). Marks logged on the test day under a fuller name ("Unit 7 (CPP1)" for "Unit 7") still count for the announced test; the paper notes "Announced as Unit 7". Other papers appear when a good share of the class sat them (recent months only). Home, Quest Board and the projector read the same status ("3/4 marked · 1 makeup").
 
 ## A scholar’s folio
 

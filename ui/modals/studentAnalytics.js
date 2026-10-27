@@ -554,7 +554,7 @@ function renderTrials(model) {
 
     const missed = folio.missed.length ? `
         <div class="sf-missed" id="sf-missed">
-            <p class="sf-missed__title"><i class="fas fa-hourglass-half" aria-hidden="true"></i>No mark yet <b>${folio.missed.length}</b><small>Papers most of the class sat.${folio.missed.some((m) => m.type === 'test') ? ' Tests can be made up from Pending Makeups on the Scholar’s Scroll.' : ''}</small></p>
+            <p class="sf-missed__title"><i class="fas fa-hourglass-half" aria-hidden="true"></i>No mark yet <b>${folio.missed.length}</b><small>Papers most of the class sat.${folio.missed.some((m) => m.type === 'test') ? ' Tests can be made up from the Test desk on the Scholar’s Scroll.' : ''}</small></p>
             <div class="sf-missed__list">${folio.missed.map((m) => `
                 <span class="sf-missed__chip"><i class="fas ${kindIcon(m.type)}" aria-hidden="true"></i><span>${esc(m.name)}</span><em>${shortDate(m.time)} · class ${pct0(m.classAvg)}</em></span>`).join('')}
             </div>

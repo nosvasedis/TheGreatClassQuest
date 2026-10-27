@@ -1,6 +1,7 @@
 import * as state from '../state.js';
 import * as utils from '../utils.js';
 import { EARLY_LEAGUES, JUNIOR_LEAGUES, questLeagues } from '../constants.js';
+import { normalizePaperTitle, paperTitlesForScheduledTest } from './testDeskCore.mjs';
 
 export const ASSESSMENT_NONE_MIGRATION_KEY = 'assessmentNoneMigrationV1';
 
@@ -475,14 +476,52 @@ function getCreatedAtTime(value) {
     return Number.isNaN(parsed) ? 0 : parsed;
 }
 
+function toDayKey(dateValue) {
+    const d = utils.parseFlexibleDate(dateValue);
+    if (!d) return '';
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * Every (normalised) name an announced test was logged under: the announced title, plus
+ * marks logged on the test day under a matching name ("Unit 7" → "Unit 7 (CPP1)").
+ */
+export function getScheduledPaperTitles(assignment) {
+    const dayKey = toDayKey(assignment?.testData?.date);
+    if (!dayKey) return new Set();
+    const ownTitle = normalizePaperTitle(assignment.testData.title);
+    const otherTitlesThatDay = (state.get('allQuestAssignments') || [])
+        .filter((item) => item.classId === assignment.classId && item.testData && toDayKey(item.testData.date) === dayKey)
+        .map((item) => item.testData.title)
+        .filter((t) => normalizePaperTitle(t) !== ownTitle);
+    const testScores = (state.get('allWrittenScores') || [])
+        .filter((score) => score.classId === assignment.classId && score.type === 'test')
+        .map((score) => ({ title: score.title, dayKey: toDayKey(score.date) }));
+    return paperTitlesForScheduledTest({ title: assignment.testData.title, dayKey }, testScores, { otherTitlesThatDay });
+}
+
+/** Normalised logged title → the title it was announced with, for this class's announced tests. */
+export function getAnnouncedPaperLinks(classId) {
+    const links = new Map();
+    dedupeScheduledAssignments((state.get('allQuestAssignments') || [])
+        .filter((item) => item.classId === classId && item.testData?.date))
+        .forEach((assignment) => {
+            const announced = String(assignment.testData.title || '').trim();
+            getScheduledPaperTitles(assignment).forEach((title) => {
+                if (!links.has(title)) links.set(title, announced);
+            });
+        });
+    return links;
+}
+
 function getAssessmentScoreMatches(assignment, type = 'test') {
     const scheduledDate = assignment?.testData?.date;
-    const scheduledTitle = String(assignment?.testData?.title || '').trim();
+    const paperTitles = type === 'test' ? getScheduledPaperTitles(assignment) : null;
     return (state.get('allWrittenScores') || []).filter((score) => {
         if (score.classId !== assignment.classId || score.type !== type) return false;
         if (!utils.datesMatch(score.date, scheduledDate)) return false;
         if (type !== 'test') return true;
-        return String(score.title || '').trim() === scheduledTitle;
+        return paperTitles.has(normalizePaperTitle(score.title));
     });
 }
 
@@ -507,13 +546,15 @@ function getScoresFulfillingScheduledAssessment(assignment, type = 'test', eligi
     if (type !== 'test') return getAssessmentScoreMatches(assignment, type);
 
     const scheduledTitle = String(assignment.testData.title || '').trim();
+    const scheduledKey = normalizePaperTitle(scheduledTitle);
     const scheduledDate = utils.parseFlexibleDate(assignment.testData.date);
     if (!scheduledDate) return [];
+    const paperTitles = getScheduledPaperTitles(assignment);
 
     const scheduledAssignments = dedupeScheduledAssignments(
         (state.get('allQuestAssignments') || [])
             .filter((item) => item.classId === assignment.classId && item.testData)
-            .filter((item) => String(item.testData?.title || '').trim() === scheduledTitle)
+            .filter((item) => normalizePaperTitle(item.testData?.title) === scheduledKey)
     ).sort((a, b) => {
         const timeA = utils.parseFlexibleDate(a.testData?.date)?.getTime() || 0;
         const timeB = utils.parseFlexibleDate(b.testData?.date)?.getTime() || 0;
@@ -523,9 +564,9 @@ function getScoresFulfillingScheduledAssessment(assignment, type = 'test', eligi
         return String(a.id || '').localeCompare(String(b.id || ''));
     });
 
-    const assignmentKey = `${assignment.classId}__${assignment.testData.date || ''}__${scheduledTitle}`;
+    const assignmentKey = `${assignment.classId}__${assignment.testData.date || ''}__${scheduledKey}`;
     const occurrenceIndex = Math.max(0, scheduledAssignments.findIndex((item) => (
-        `${item.classId}__${item.testData?.date || ''}__${String(item.testData?.title || '').trim()}` === assignmentKey
+        `${item.classId}__${item.testData?.date || ''}__${normalizePaperTitle(item.testData?.title)}` === assignmentKey
     )));
     const firstOccurrenceDate = utils.parseFlexibleDate(scheduledAssignments[0]?.testData?.date) || scheduledDate;
     const allowedStudents = eligibleStudentIds ? new Set(eligibleStudentIds) : null;
@@ -534,7 +575,7 @@ function getScoresFulfillingScheduledAssessment(assignment, type = 'test', eligi
     (state.get('allWrittenScores') || [])
         .filter((score) => {
             if (score.classId !== assignment.classId || score.type !== type) return false;
-            if (String(score.title || '').trim() !== scheduledTitle) return false;
+            if (!paperTitles.has(normalizePaperTitle(score.title))) return false;
             if (allowedStudents && !allowedStudents.has(score.studentId)) return false;
             const scoreDate = utils.parseFlexibleDate(score.date);
             return !!scoreDate && scoreDate >= firstOccurrenceDate;
@@ -664,7 +705,7 @@ export function getScheduledAssessmentStatus(assignment, options = {}) {
     const scoredStudentIds = new Set(matchingScores.map(s => s.studentId));
     const expectedScoreCount = studentsAtTestTime.length;
     const hasResults = matchingScores.length > 0;
-    const isConcluded = expectedScoreCount > 0
+    const allScored = expectedScoreCount > 0
         ? studentsAtTestTime.every(s => scoredStudentIds.has(s.id))
         : hasResults;
 
@@ -673,6 +714,12 @@ export function getScheduledAssessmentStatus(assignment, options = {}) {
     const todayOnly = new Date(now);
     todayOnly.setHours(0, 0, 0, 0);
     const dayDiff = Math.round((dateOnly.getTime() - todayOnly.getTime()) / 86400000);
+    // Once a sat test has marks it is marked; anyone left out is a makeup (Pending Makeups).
+    const isConcluded = allScored || (hasResults && dayDiff <= 0);
+    const makeupCount = isConcluded ? Math.max(0, expectedScoreCount - matchingScores.length) : 0;
+    const markedChip = makeupCount > 0
+        ? `${matchingScores.length}/${expectedScoreCount} marked · ${makeupCount} makeup${makeupCount === 1 ? '' : 's'}`
+        : `${matchingScores.length}/${expectedScoreCount || matchingScores.length} logged`;
 
     let phase = 'scheduled';
     if (isConcluded) {
@@ -721,23 +768,22 @@ export function getScheduledAssessmentStatus(assignment, options = {}) {
     } else if (phase === 'completed_today') {
         statusLabel = 'Completed Today';
         detailLabel = timeRangeLabel ? `${dateLabel} • ${timeRangeLabel}` : dateLabel;
-        chipLabel = `${matchingScores.length}/${expectedScoreCount || matchingScores.length} logged`;
+        chipLabel = markedChip;
         tone = 'emerald';
         icon = 'check-circle';
     } else if (phase === 'completed') {
         statusLabel = 'Completed';
         detailLabel = timeRangeLabel ? `${dateLabel} • ${timeRangeLabel}` : dateLabel;
-        chipLabel = `${matchingScores.length}/${expectedScoreCount || matchingScores.length} logged`;
+        chipLabel = markedChip;
         tone = 'emerald';
         icon = 'check-circle';
     } else if (phase === 'missed') {
-        statusLabel = 'Date Passed';
+        // The test was sat but no marks are in yet (with marks it would be marked, above).
+        statusLabel = 'Ready to mark';
         detailLabel = timeRangeLabel ? `${dateLabel} • ${timeRangeLabel}` : dateLabel;
-        chipLabel = matchingScores.length > 0
-            ? `${matchingScores.length}/${expectedScoreCount || matchingScores.length} logged`
-            : 'No results logged';
-        tone = 'slate';
-        icon = 'calendar-times';
+        chipLabel = dayDiff === -1 ? 'Sat yesterday' : `Sat ${Math.abs(dayDiff)} days ago`;
+        tone = 'orange';
+        icon = 'clipboard-check';
     } else if (phase === 'today') {
         statusLabel = 'Today';
         detailLabel = dateLabel;
@@ -775,6 +821,7 @@ export function getScheduledAssessmentStatus(assignment, options = {}) {
         phase,
         hasResults,
         isConcluded,
+        makeupCount,
         matchingScores,
         scoreCount: matchingScores.length,
         expectedScoreCount,

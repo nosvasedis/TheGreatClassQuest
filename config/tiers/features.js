@@ -58,7 +58,7 @@ export const FEATURE_DEFINITIONS = {
     makeupTracking: {
         name: 'Pending Makeups',
         emoji: '🔄',
-        description: 'Track missing test grades',
+        description: 'Test desk: who still owes a marked test',
         tier: 'Pro',
     },
     advancedAttendance: {

@@ -93,7 +93,7 @@ import { db, doc, addDoc, updateDoc, collection, serverTimestamp, writeBatch, ru
 
 import * as state from '../state.js';
 import * as utils from '../utils.js';
-import { showToast } from '../ui/effects.js';
+import { showToast, showUndoToast } from '../ui/effects.js';
 import { playSound } from '../audio.js';
 import * as modals from '../ui/modals.js';
 import { wrapAvatarWithLevelUpIndicator } from '../ui/core/avatar.js';
@@ -111,8 +111,11 @@ import {
     isUnmarkableScore,
     normalizeAssessmentScheme,
     getUpcomingScheduledAssessment,
+    getAnnouncedPaperLinks,
     listScheduledAssessmentsNeedingGrades
 } from './assessmentConfig.js';
+import { buildMakeupGroups, makeupDismissKey } from './testDeskCore.mjs';
+import { testDeskHtml } from './testDeskView.mjs';
 import {
     trialDateLabel,
     trialRowHtml,
@@ -477,8 +480,6 @@ function resetTrialBoard({ tabsFor = null, scheme = null } = {}) {
 const rollPrefs = { metric: 'overall', range: '3m', sort: 'rank', tier: 'all' };
 /** Rows only animate in when what they show changes (class, metric, period), not on every live update. */
 let lastRollRenderKey = '';
-/** Pending Makeups folded shut, per class, for this session. */
-const collapsedMakeups = new Set();
 
 const RANGE_LABEL = { '30d': 'last 30 days', '3m': 'last 3 months' };
 const METRIC_LABEL = { overall: 'Overall', test: 'Tests', dictation: 'Dictations' };
@@ -538,7 +539,7 @@ export async function renderScholarsScrollTab(selectedClassId = null, opts = {})
         setScrollPanelStack(true);
 
         const runRender = () => {
-            renderMissingWorkDashboard(currentVal);
+            renderTestDesk(currentVal);
             renderScrollDashboard(currentVal);
         };
 
@@ -628,8 +629,6 @@ function renderScrollDashboard(classId) {
     const legendEl = document.getElementById('scroll-chart-legend');
     const rollEl = document.getElementById('scroll-chart-section');
     if (!chartEl || !classData) return;
-
-    renderUpcomingTestNotice(classId, classData);
 
     const model = buildScrollModel(classId, classData, rollPrefs.range);
     const { usage, showTests, showDictations } = model;
@@ -926,40 +925,136 @@ function wireScrollControls(classId) {
     };
 }
 
-function renderUpcomingTestNotice(classId, classData) {
-    const queuesHost = getScrollQueuesHost();
-    document.getElementById('scroll-test-alert')?.remove();
-    const upcoming = classUsesTests(classData) ? getUpcomingScheduledAssessment(classId) : null;
-    if (!upcoming || !queuesHost) return;
+// --- TEST DESK (announced test + makeups, one card) ---
 
-    const canLog = ['today', 'later_today', 'in_progress', 'window_passed', 'missed'].includes(upcoming.phase);
-    const note = upcoming.phase === 'missed'
-        ? 'Announced with <strong>Schedule a Test</strong> on the Quest Board. Log results for everyone who wrote it so Pending Makeups stay accurate.'
-        : (upcoming.phase === 'window_passed'
-            ? 'The lesson has ended. Capture the grades while memory is fresh; title and date stay tied to what you announced.'
-            : '');
-    const notice = document.createElement('article');
-    notice.id = 'scroll-test-alert';
-    notice.className = 'ss-notice ss-notice--test';
-    notice.dataset.tone = upcoming.tone || 'amber';
-    notice.innerHTML = `
-        <span class="ss-notice__seal" aria-hidden="true"><i class="fas fa-${esc(upcoming.icon)}"></i></span>
-        <div class="ss-notice__body">
-            <p class="ss-notice__kicker"><span>${esc(upcoming.statusLabel)}</span><em>${esc(upcoming.chipLabel)}</em></p>
-            <h4 class="ss-notice__title">${esc(upcoming.testData.title || 'Scheduled test')}</h4>
-            <p class="ss-notice__text"><i class="far fa-calendar" aria-hidden="true"></i> ${esc(upcoming.detailLabel)}</p>
-            ${note ? `<p class="ss-notice__hint">${note}</p>` : ''}
-            ${upcoming.testData.curriculum ? `<p class="ss-notice__topics"><b>Topics</b> ${esc(upcoming.testData.curriculum)}</p>` : ''}
-        </div>
-        ${canLog ? `<button type="button" class="ss-btn ss-btn--seal ss-notice__cta"><i class="fas fa-feather-alt" aria-hidden="true"></i> Log results</button>` : ''}
-    `;
-    notice.querySelector('.ss-notice__cta')?.addEventListener('click', () => {
-        openBulkLogModal(classId, 'test', {
-            presetDate: formatYmdFromAnyDateString(upcoming.testData.date),
-            presetTitle: String(upcoming.testData.title || '').trim()
+/** Test Desk folded shut, per class, for this session. */
+const collapsedDesks = new Set();
+
+function readDismissedMakeups(classId) {
+    try { return JSON.parse(localStorage.getItem(`dismissed_makeups_${classId}`) || '{}'); } catch (_) { return {}; }
+}
+
+function writeDismissedMakeups(classId, saved) {
+    try { localStorage.setItem(`dismissed_makeups_${classId}`, JSON.stringify(saved)); } catch (_) { /* private mode */ }
+}
+
+function dayKeyOf(dateValue) {
+    const d = utils.parseFlexibleDate(dateValue);
+    return d ? formatYmdFromAnyDateString(dateValue) : '';
+}
+
+const DESK_HINTS = {
+    missed: 'Log the marks of everyone who sat it. Anyone you leave out stays here as a makeup.',
+    window_passed: 'The lesson has ended. Log the marks while they are fresh; the name and date are filled in.'
+};
+
+/** Everything the Test Desk shows for one class. */
+function buildTestDeskModel(classId, classData) {
+    if (!classUsesTests(classData)) return null;
+    const upcoming = getUpcomingScheduledAssessment(classId);
+    const scheduled = upcoming ? {
+        title: String(upcoming.testData.title || '').trim(),
+        statusLabel: upcoming.statusLabel,
+        chipLabel: upcoming.chipLabel,
+        detailLabel: upcoming.detailLabel,
+        tone: upcoming.tone,
+        icon: upcoming.icon,
+        curriculum: upcoming.testData.curriculum || '',
+        date: upcoming.scheduledDate,
+        canLog: ['today', 'later_today', 'in_progress', 'window_passed', 'missed'].includes(upcoming.phase),
+        hint: DESK_HINTS[upcoming.phase] || '',
+        presetDate: formatYmdFromAnyDateString(upcoming.testData.date)
+    } : null;
+
+    const since = new Date();
+    since.setMonth(since.getMonth() - 3);
+    since.setHours(0, 0, 0, 0);
+    const students = (state.get('allStudents') || [])
+        .filter((s) => s.classId === classId)
+        .map((s) => {
+            const joined = s.createdAt ? (s.createdAt.toDate ? s.createdAt.toDate() : new Date(s.createdAt)) : null;
+            return { id: s.id, name: s.name || '', avatar: s.avatar, joinedAt: joined && !Number.isNaN(joined.getTime()) ? joined.getTime() : null };
         });
+    const testScores = (state.get('allWrittenScores') || [])
+        .filter((s) => s.classId === classId && s.type === 'test')
+        .map((s) => {
+            const date = utils.parseFlexibleDate(s.date);
+            return date ? { studentId: s.studentId, title: s.title, dayKey: dayKeyOf(s.date), time: date.getTime() } : null;
+        })
+        .filter(Boolean);
+    const absences = new Set((state.get('allAttendanceRecords') || [])
+        .filter((r) => r.classId === classId)
+        .map((r) => `${r.studentId}|${dayKeyOf(r.date)}`));
+    const groups = buildMakeupGroups({
+        students,
+        testScores,
+        dismissed: readDismissedMakeups(classId),
+        absences,
+        since: since.getTime(),
+        announced: getAnnouncedPaperLinks(classId)
     });
-    queuesHost.prepend(notice);
+    if (!scheduled && !groups.length) return null;
+    return { scheduled, groups };
+}
+
+function renderTestDesk(classId) {
+    const host = getScrollQueuesHost();
+    const existing = document.getElementById('scroll-test-desk');
+    const model = host ? buildTestDeskModel(classId, findScrollClass(classId)) : null;
+    if (!model) {
+        existing?.remove();
+        return;
+    }
+    const { html, tone, folded } = testDeskHtml({
+        ...model,
+        collapsed: collapsedDesks.has(classId),
+        avatar: (student) => avatarMarkup(student, 'ss-makeup__av')
+    });
+    // Live updates redraw only when what the desk shows changed (no replayed entrance).
+    const key = `${classId}|${html}`;
+    if (existing && existing.dataset.renderKey === key) return;
+
+    const desk = existing || document.createElement('article');
+    desk.id = 'scroll-test-desk';
+    desk.className = `ss-notice ss-testdesk${folded ? ' is-collapsed' : ''}${existing ? ' is-settled' : ''}`;
+    desk.dataset.tone = tone;
+    desk.dataset.renderKey = key;
+    desk.innerHTML = html;
+    if (!existing) host.prepend(desk);
+
+    desk.onclick = (e) => {
+        const toggle = e.target.closest('.ss-testdesk-toggle');
+        if (toggle) {
+            const nowCollapsed = !desk.classList.contains('is-collapsed');
+            desk.classList.toggle('is-collapsed', nowCollapsed);
+            toggle.setAttribute('aria-expanded', String(!nowCollapsed));
+            toggle.querySelector('span').textContent = nowCollapsed ? 'Show' : 'Hide';
+            if (nowCollapsed) collapsedDesks.add(classId); else collapsedDesks.delete(classId);
+            return;
+        }
+        if (e.target.closest('.ss-testdesk-log') && model.scheduled) {
+            openBulkLogModal(classId, 'test', { presetDate: model.scheduled.presetDate, presetTitle: model.scheduled.title });
+            return;
+        }
+        const log = e.target.closest('.makeup-trigger');
+        if (log) {
+            openMakeupModal(classId, log.dataset.studentId, log.dataset.type, log.dataset.title);
+            return;
+        }
+        const dismiss = e.target.closest('.makeup-dismiss-btn');
+        if (!dismiss) return;
+        const dismissKey = makeupDismissKey(dismiss.dataset.title, dismiss.dataset.studentId, dismiss.dataset.type);
+        const name = dismiss.closest('.scroll-makeup-item')?.querySelector('.ss-makeup__name')?.textContent || 'This scholar';
+        writeDismissedMakeups(classId, { ...readDismissedMakeups(classId), [dismissKey]: true });
+        dismiss.closest('.scroll-makeup-item')?.classList.add('is-leaving');
+        setTimeout(() => renderTestDesk(classId), scrollMotionReduced() ? 0 : 260);
+        showUndoToast(`${name}: no makeup for ${dismiss.dataset.title}.`, () => {
+            const saved = readDismissedMakeups(classId);
+            delete saved[dismissKey];
+            writeDismissedMakeups(classId, saved);
+            renderTestDesk(classId);
+        }, { key: `makeup-${classId}` });
+    };
 }
 
 // --- NEW MODAL LOGIC ---
@@ -1767,169 +1862,12 @@ export function openSingleTrialEditModal(classId, trialId) {
 }
 
 
-// --- MAKEUP / MISSING WORK ---
-
-function readDismissedMakeups(classId) {
-    try { return JSON.parse(localStorage.getItem(`dismissed_makeups_${classId}`) || '{}'); } catch (_) { return {}; }
-}
-
-function renderMissingWorkDashboard(classId) {
-    const dashboard = getScrollQueuesHost();
-    let container = document.getElementById('makeup-work-container');
-    if (!container) {
-        container = document.createElement('section');
-        container.id = 'makeup-work-container';
-    }
-    container.innerHTML = '';
-
-    const classData = findScrollClass(classId);
-    if (!classUsesTests(classData)) {
-        container.remove();
-        return;
-    }
-
-    const studentsInClass = state.get('allStudents').filter((s) => s.classId === classId);
-    const scoresForClass = state.get('allWrittenScores').filter((s) => s.classId === classId);
-
-    // 1. Unique tests (by title)
-    const uniqueAssessments = {};
-    scoresForClass.forEach((score) => {
-        if (score.type !== 'test') return;
-        const key = `${score.type}-${score.title || 'Untitled'}`;
-        if (!uniqueAssessments[key]) {
-            uniqueAssessments[key] = { type: score.type, title: score.title || 'Untitled', originalDate: score.date, count: 0 };
-        }
-        uniqueAssessments[key].count++;
-    });
-
-    // Tests only one or two scholars took are most likely makeups themselves.
-    const threshold = Math.max(2, Math.floor(studentsInClass.length * 0.3));
-    // Only the past 3 months (matches the loaded window)
-    const threeMonthsAgo = new Date();
-    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-    threeMonthsAgo.setHours(0, 0, 0, 0);
-
-    const validAssessments = Object.values(uniqueAssessments).filter((a) => {
-        if (a.count < threshold) return false;
-        const aDate = utils.parseFlexibleDate(a.originalDate);
-        return !!aDate && aDate >= threeMonthsAgo;
-    });
-
-    // 2. Who missed each one (skipping scholars who joined after it, and dismissed records)
-    const dismissed = readDismissedMakeups(classId);
-    const groups = validAssessments.map((assessment) => {
-        const testDate = utils.parseFlexibleDate(assessment.originalDate);
-        const missing = studentsInClass.filter((student) => {
-            if (student.createdAt) {
-                const joinDate = student.createdAt.toDate ? student.createdAt.toDate() : new Date(student.createdAt);
-                const endOfTestDay = new Date(testDate);
-                endOfTestDay.setHours(23, 59, 59, 999);
-                if (joinDate > endOfTestDay) return false;
-            }
-            if (dismissed[`${assessment.type}-${assessment.title}-${student.id}`]) return false;
-            return !scoresForClass.some((s) =>
-                s.studentId === student.id
-                && s.type === assessment.type
-                && (s.title === assessment.title || (!s.title && assessment.title === 'Untitled')));
-        }).sort((a, b) => a.name.localeCompare(b.name));
-        return { assessment, testDate, missing };
-    }).filter((g) => g.missing.length).sort((a, b) => b.testDate - a.testDate);
-
-    const total = groups.reduce((n, g) => n + g.missing.length, 0);
-    if (!total) {
-        container.remove();
-        return;
-    }
-
-    const collapsed = collapsedMakeups.has(classId);
-    container.className = `ss-notice ss-notice--makeup${collapsed ? ' is-collapsed' : ''}`;
-    container.dataset.tone = 'amber';
-    container.innerHTML = `
-        <header class="ss-notice__row">
-            <span class="ss-notice__seal" aria-hidden="true"><i class="fas fa-hourglass-half"></i></span>
-            <div class="ss-notice__body">
-                <p class="ss-notice__kicker"><span>Scholastic alert</span></p>
-                <h4 class="ss-notice__title">Pending Makeups</h4>
-                <p class="ss-notice__text"><b class="ss-makeup-count">${total}</b> makeup${total === 1 ? "" : "s"} to log across ${groups.length} test${groups.length === 1 ? '' : 's'}</p>
-            </div>
-            <button type="button" class="ss-btn ss-btn--ghost ss-makeup-toggle" aria-expanded="${!collapsed}" aria-controls="ss-makeup-groups">
-                <span>${collapsed ? 'Show' : 'Hide'}</span><i class="fas fa-chevron-down" aria-hidden="true"></i>
-            </button>
-        </header>
-        <div class="ss-makeups" id="ss-makeup-groups">
-            ${groups.map(({ assessment, testDate, missing }) => `
-                <div class="ss-makeup-group">
-                    <p class="ss-makeup-group__head">
-                        <i class="fas fa-file-alt" aria-hidden="true"></i>
-                        <b>${esc(assessment.title)}</b>
-                        <span>${esc(shortDate(testDate))}</span>
-                        <em>${missing.length} to catch up</em>
-                    </p>
-                    <ul class="ss-makeup-group__list">
-                        ${missing.map((student) => `
-                            <li class="scroll-makeup-item ss-makeup">
-                                ${avatarMarkup(student, 'ss-makeup__av')}
-                                <span class="ss-makeup__name">${esc(student.name)}</span>
-                                <button type="button" class="makeup-trigger ss-makeup__log"
-                                    data-student-id="${esc(student.id)}" data-title="${esc(assessment.title)}" data-type="${esc(assessment.type)}"
-                                    title="Log ${esc(student.name)}'s makeup result">
-                                    <i class="fas fa-feather-alt" aria-hidden="true"></i><span>Log</span>
-                                </button>
-                                <button type="button" class="makeup-dismiss-btn ss-makeup__dismiss"
-                                    data-student-id="${esc(student.id)}" data-title="${esc(assessment.title)}" data-type="${esc(assessment.type)}"
-                                    title="Dismiss: no makeup needed" aria-label="Dismiss ${esc(student.name)}'s makeup">
-                                    <i class="fas fa-times" aria-hidden="true"></i>
-                                </button>
-                            </li>`).join('')}
-                    </ul>
-                </div>`).join('')}
-        </div>
-    `;
-    // Sits after the upcoming-test notice when there is one.
-    const testAlert = document.getElementById('scroll-test-alert');
-    if (testAlert && testAlert.parentNode === dashboard) testAlert.insertAdjacentElement('afterend', container);
-    else dashboard.prepend(container);
-
-    container.onclick = (e) => {
-        const toggle = e.target.closest('.ss-makeup-toggle');
-        if (toggle) {
-            const nowCollapsed = !container.classList.contains('is-collapsed');
-            container.classList.toggle('is-collapsed', nowCollapsed);
-            toggle.setAttribute('aria-expanded', String(!nowCollapsed));
-            toggle.querySelector('span').textContent = nowCollapsed ? 'Show' : 'Hide';
-            if (nowCollapsed) collapsedMakeups.add(classId); else collapsedMakeups.delete(classId);
-            return;
-        }
-        const log = e.target.closest('.makeup-trigger');
-        if (log) {
-            openMakeupModal(classId, log.dataset.studentId, log.dataset.type, log.dataset.title);
-            return;
-        }
-        const dismiss = e.target.closest('.makeup-dismiss-btn');
-        if (!dismiss) return;
-        const saved = readDismissedMakeups(classId);
-        saved[`${dismiss.dataset.type}-${dismiss.dataset.title}-${dismiss.dataset.studentId}`] = true;
-        try { localStorage.setItem(`dismissed_makeups_${classId}`, JSON.stringify(saved)); } catch (_) { /* private mode */ }
-        const item = dismiss.closest('.scroll-makeup-item');
-        if (!item) return;
-        item.classList.add('is-leaving');
-        setTimeout(() => {
-            const group = item.closest('.ss-makeup-group');
-            item.remove();
-            if (group && !group.querySelector('.scroll-makeup-item')) group.remove();
-            const remaining = container.querySelectorAll('.scroll-makeup-item').length;
-            if (!remaining) container.remove();
-            else {
-                const countEl = container.querySelector('.ss-makeup-count');
-                if (countEl) countEl.textContent = remaining;
-            }
-        }, scrollMotionReduced() ? 0 : 260);
-    };
-}
+// --- MAKEUP ---
 
 function openMakeupModal(classId, studentId, type, title) {
     const classData = state.get('allSchoolClasses').find(c => c.id === classId);
     const student = state.get('allStudents').find(s => s.id === studentId);
+    if (!classData || !student) return;
     const assessmentScheme = getAssessmentSchemeForClass(classData, type);
 
     // Reuse the marking board, configured for one makeup line

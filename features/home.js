@@ -39,6 +39,10 @@ import {
 } from '../utils/scheduleEmptyState.js';
 import { buildScheduleEmptySceneHtml } from '../utils/scheduleEmptyScene.js';
 import { getGreetingSkyHtml, getDayRingEmblemHtml, startDayRingClock, syncDayRing } from './homeGreetingScene.js';
+import {
+    currentHomeGreeting, greetingTitleInnerHtml, greetingLineInnerHtml, greetingGlintHtml, greetingBadgesHtml,
+    classNudge, playGreetingIntro, followSkyWithGreeting, keepGreetingPart, GREETING_SCRIPT_CLASSES
+} from './homeGreeting.js';
 import { isSchoolYearAwaitingOpen } from '../utils/schoolYear.js';
 import { sumLiveYearGoldFromAppState } from '../utils/yearGold.js';
 import {
@@ -295,7 +299,6 @@ async function executeRenderHome() {
 
     // --- CONTEXT ---
     const activeClassId = state.get('globalSelectedClassId');
-    const teacherName = state.get('currentTeacherName') || "Quest Master";
     const schoolName = state.get('schoolName') || DEFAULT_SCHOOL_NAME;
 
     // Dynamic Weather/Theme. The sky already on screen is the source: opening Home
@@ -314,11 +317,8 @@ async function executeRenderHome() {
     theme.sky = skyReading ? getSkyScene() : applyLiveSky(weatherData);
     theme.sun = utils.getSolarTimes();
 
-    // --- STEP 3: GREETING (same day/night source as the weather card) ---
-    theme.greeting = dayPartInfo.greeting;
+    // --- STEP 3: GREETING (same day/night source as the weather card; words in features/homeGreeting.js) ---
     theme.dayPart = dayPartInfo.part; // morning | afternoon | evening | night
-    theme.greetingGradient = dayPartInfo.gradient;
-    theme.nameGradient = "from-slate-700 to-slate-500";
 
     // --- STEP 4: FETCH SPICE & RENDER (non-blocking) ---
     const spice = { headerQuote: getCuratedDailyQuote(utils.getLocalIsoDateString()) };
@@ -334,10 +334,10 @@ async function executeRenderHome() {
         const classData = allClasses.find(c => c.id === activeClassId);
         if (classData) {
             viewId = `class_${activeClassId}`;
-            contentHtml = getActiveDashboard(classData, teacherName, theme, spice);
-        } else contentHtml = getGeneralDashboard(teacherName, theme, spice);
+            contentHtml = getActiveDashboard(classData, theme, spice);
+        } else contentHtml = getGeneralDashboard(theme, spice);
     } else {
-        contentHtml = getGeneralDashboard(teacherName, theme, spice);
+        contentHtml = getGeneralDashboard(theme, spice);
     }
 
     // DOM Update. A new view (another class, General) or opening the tab redraws the whole
@@ -356,7 +356,9 @@ async function executeRenderHome() {
         fresh.className = isViewChange ? 'home-fade w-full h-full' : 'w-full h-full';
         fresh.appendChild(fragment);
         container.replaceChildren(fresh);
+        playGreetingIntro(fresh.querySelector('.greeting-panel'));
     }
+    followSkyWithGreeting();
 
     // The coherent dashboard is now visible. Everything below enhances it and
     // must not hold the authenticated loading screen open.
@@ -386,7 +388,7 @@ async function executeRenderHome() {
 }
 
 /** Classes Home's scripts add for a while (an unfolded Chronicle page, its ink bloom): a patch keeps them. */
-const HOME_SCRIPT_CLASSES = ['is-open', 'has-open', 'is-inking', 'date-pill--quest-tone-shift', 'date-pill--quest-exit'];
+const HOME_SCRIPT_CLASSES = ['is-open', 'has-open', 'is-inking', 'date-pill--quest-tone-shift', 'date-pill--quest-exit', ...GREETING_SCRIPT_CLASSES];
 
 function hashMarkup(text) {
     let h = 0;
@@ -426,6 +428,7 @@ function patchHomeDashboard(wrapper, fragment, theme) {
                 return true;
             }
             if (from.classList.contains('greeting-sky') && to.classList.contains('greeting-sky')) return true;
+            if (keepGreetingPart(from, to)) return true;
             if (from.hasAttribute('data-day-ring') && to.hasAttribute('data-day-ring')) return syncDayRing(from, to);
             return false;
         },
@@ -517,7 +520,7 @@ function homeToolTileHtml(t, i, activeLeague = '') {
                     </button>`;
 }
 
-function getGeneralDashboard(name, theme, spice) {
+function getGeneralDashboard(theme, spice) {
     const today = utils.getTodayDateString();
     const activeLeague = resolveActiveHomeLeague();
 
@@ -543,7 +546,7 @@ function getGeneralDashboard(name, theme, spice) {
     const tools = getHomeGlobalTools({ canUseFeature, myLessonsToday, myClassCount: myClasses.length });
 
     return getLayout(
-        name, theme, '',
+        theme, '',
         `
         <div class="vibrant-card h-span-6 stat-card-pop card-gradient-sun home-stat home-stat--sun">
             <i class="fas fa-star home-stat__watermark" aria-hidden="true"></i>
@@ -599,7 +602,7 @@ function getGeneralDashboard(name, theme, spice) {
     );
 }
 
-function getActiveDashboard(classData, name, theme, spice) {
+function getActiveDashboard(classData, theme, spice) {
     const classId = classData.id;
     const today = utils.getTodayDateString();
 
@@ -692,8 +695,9 @@ function getActiveDashboard(classData, name, theme, spice) {
         ...getClassToolCounts({ classData, studentIds: students.map(s => s.id), absentIds: absentTodayIds, dateKey: today }),
     });
 
+    theme.greetingNudge = classNudge(monthlyStarsWithBonus, goal);
     return getLayout(
-        name, theme, getHomeBountyPillHtml(),
+        theme, getHomeBountyPillHtml(),
         `
         ${buildHomeQuestRoadCardHtml({ stars: monthlyStarsWithBonus, goal, bonus: classBonus, logo: classData.logo || '📚' })}
         
@@ -731,17 +735,11 @@ function getActiveDashboard(classData, name, theme, spice) {
     );
 }
 
-/** Chips under the greeting: school · today's context (class or school-wide). The header already shows the date. */
-function getGreetingChipsHtml() {
-    const selectedId = state.get('globalSelectedClassId');
-    const selectedClass = selectedId ? (state.get('allSchoolClasses') || []).find(c => c.id === selectedId) : null;
-    const chips = [
-        `<span class="greeting-chip greeting-chip--school"><i class="fas fa-university"></i><span data-school-name>${escapeHtml(state.get('schoolName') || DEFAULT_SCHOOL_NAME)}</span></span>`
-    ];
-
-    if (selectedClass) {
-        chips.push(`<span class="greeting-chip greeting-chip--class"><span class="greeting-chip__emoji">${escapeHtml(selectedClass.logo || '📚')}</span>${escapeHtml(selectedClass.name)}${selectedClass.questLevel ? `<small>${escapeHtml(selectedClass.questLevel)}</small>` : ''}</span>`);
-    } else if (!isSchoolYearAwaitingOpen(state.get('schoolYearState'))) {
+/** Badges under the greeting: school and teacher, then the class's month or today's lessons school-wide. */
+function getGreetingChipsHtml(theme) {
+    if (state.get('globalSelectedClassId')) return greetingBadgesHtml({ nudge: theme.greetingNudge });
+    let todayChip = '';
+    if (!isSchoolYearAwaitingOpen(state.get('schoolYearState'))) {
         const todays = utils.getClassesOnDay(
             utils.getTodayDateString(),
             state.get('allSchoolClasses') || [],
@@ -751,25 +749,27 @@ function getGreetingChipsHtml() {
         if (todays.length) {
             const myIds = new Set((state.get('allTeachersClasses') || []).map(c => c.id));
             const mine = todays.filter(c => myIds.has(c.id)).length;
-            chips.push(`<span class="greeting-chip greeting-chip--today"><i class="fas fa-school"></i>${todays.length} ${todays.length === 1 ? 'class' : 'classes'} today${mine ? `<small>${mine} yours</small>` : ''}</span>`);
+            todayChip = `<span class="greeting-chip greeting-chip--today" style="--ci:2"><i class="fas fa-school"></i>${todays.length} ${todays.length === 1 ? 'class' : 'classes'} today${mine ? `<small>${mine} yours</small>` : ''}</span>`;
         }
     }
-    return chips.join('');
+    return greetingBadgesHtml({ todayChip });
 }
 
-function getLayout(name, theme, selector, row2, row3) {
+function getLayout(theme, selector, row2, row3) {
     const heroEmoji = state.get('globalSelectedClassId')
         ? (state.get('allSchoolClasses').find(c => c.id === state.get('globalSelectedClassId'))?.logo || '✨')
         : '🏫';
     const dayPart = theme.dayPart || 'afternoon';
+    const greeting = currentHomeGreeting();
 
     return `
     <div class="w-full max-w-7xl mx-auto p-4">
         <div class="horizons-grid">
 
-            <div class="vibrant-card h-span-8 greeting-panel greeting-panel--${dayPart}">
+            <div class="vibrant-card h-span-8 greeting-panel greeting-panel--${dayPart}" data-greeting-key="${escapeHtml(greeting.key)}">
                 <div class="greeting-bg-mesh"></div>
                 ${getGreetingSkyHtml()}
+                ${greetingGlintHtml()}
                 ${getDayRingEmblemHtml(escapeHtml(heroEmoji))}
                 <div class="relative z-10 flex flex-col justify-between h-full">
 
@@ -783,11 +783,9 @@ function getLayout(name, theme, selector, row2, row3) {
                     </div>
 
                     <div class="greeting-main">
-                        <h1 class="greeting-title font-title text-4xl md:text-5xl text-slate-800 drop-shadow-sm mb-2">
-                            <span class="text-transparent bg-clip-text bg-gradient-to-r ${theme.greetingGradient}">${theme.greeting}</span>,
-                            <span class="text-transparent bg-clip-text bg-gradient-to-r ${theme.nameGradient} whitespace-nowrap">${escapeHtml(name)}</span>!
-                        </h1>
-                        <div class="greeting-chips">${getGreetingChipsHtml()}</div>
+                        <h1 class="greeting-title font-title text-4xl md:text-5xl text-slate-800" data-greeting-title data-text="${escapeHtml(`${greeting.hello}|${greeting.name}`)}">${greetingTitleInnerHtml(greeting)}</h1>
+                        <p class="greeting-line" data-greeting-line data-text="${escapeHtml(greeting.line)}">${greetingLineInnerHtml(greeting)}</p>
+                        <div class="greeting-chips">${getGreetingChipsHtml(theme)}</div>
                     </div>
                 </div>
             </div>

@@ -353,7 +353,7 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'home', icon: 'fa-house', name: 'Home', tier: 'starter',
                     where: 'The first cloud', go: 'tab:about-tab',
-                    text: `The command centre. General view shows the whole school and today's schedule; tap any class for its roster. With a class selected you see its Quest progress road, the class photo, the latest Chronicle, class actions, and reminders for birthdays, tests and the ceremony.`,
+                    text: `The command centre. The greeting speaks to whoever is on screen: the class you have open ("Good Morning, Owls!") or the whole school in General view, with a line that changes with the weather and a badge for how the class's month is going. Your name sits in a badge beside the school's. General view shows the whole school and today's schedule; tap any class for its roster. With a class selected you see its Quest progress road, the class photo, the latest Chronicle, class actions, and reminders for birthdays, tests and the ceremony.`,
                     keys: 'home dashboard reminders schedule greeting weather'
                 },
                 {

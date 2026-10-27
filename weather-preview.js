@@ -10,7 +10,9 @@ import { applySkyReading, paintSkySurface } from './features/skyWeatherStage.js'
 import { getWeatherCardHtml } from './features/weatherCard.js';
 import { wallpaperHTML } from './templates/app/screens/wallpaper.js';
 import { getGreetingSkyHtml, getDayRingEmblemHtml } from './features/homeGreetingScene.js';
-import { resolveDayPart, greetingForDayPart, gradientForDayPart } from './utils/dayPart.mjs';
+import { resolveDayPart } from './utils/dayPart.mjs';
+import { composeHomeGreeting, questNudge } from './features/homeGreetingWords.mjs';
+import { greetingTitleInnerHtml, greetingLineInnerHtml, greetingGlintHtml, playGreetingIntro } from './features/homeGreeting.js';
 
 const params = new URLSearchParams(location.search);
 const state = {
@@ -20,7 +22,13 @@ const state = {
     wall: params.get('wall') === '1',
     wind: Number(params.get('wind') ?? 9),
     windDir: Number(params.get('dir') ?? 270),
-    cover: params.get('cover') === null ? undefined : Number(params.get('cover'))
+    cover: params.get('cover') === null ? undefined : Number(params.get('cover')),
+    // ?cls=Owls greets a class (class view); without it the general view greets the school.
+    cls: params.get('cls') || '',
+    young: params.get('young') === '1',
+    stars: Number(params.get('stars') ?? 31),
+    goal: Number(params.get('goal') ?? 48),
+    intro: params.get('intro') === '1'
 };
 if (params.get('shot') === '1') document.body.classList.add('pv-shot');
 
@@ -89,11 +97,20 @@ function render() {
 
     // Same markup as features/home.js#getLayout.
     const part = resolveDayPart(sun.now, sun.sunrise, sun.sunset);
+    const g = composeHomeGreeting({ mode: state.cls ? 'class' : 'general', className: state.cls, young: state.young, part, scene, reading, now });
+    const nudge = state.cls ? questNudge({ monthStars: state.stars, goal: state.goal, now }) : null;
+    const badges = `<span class="greeting-chip greeting-chip--school" style="--ci:0"><i class="fas fa-university"></i><span data-school-name>Rentis English School</span></span>`
+        + `<span class="greeting-chip greeting-chip--teacher" style="--ci:1"><span class="greeting-chip__crest">N</span><span class="greeting-chip__name">Nasos</span></span>`
+        + (nudge
+            ? `<span class="greeting-chip greeting-chip--quest greeting-chip--quest-${nudge.tone}" style="--ci:2"><i class="fas ${nudge.icon}"></i>${nudge.text}</span>`
+            : '<span class="greeting-chip greeting-chip--today" style="--ci:2"><i class="fas fa-school"></i>4 classes today<small>2 yours</small></span>');
+    const words = `data-greeting-key="${g.key}"`;
     const greetingHtml = `
-        <div class="vibrant-card h-span-8 greeting-panel greeting-panel--${part}" >
+        <div class="vibrant-card h-span-8 greeting-panel greeting-panel--${part}" ${words}>
             <div class="greeting-bg-mesh"></div>
             ${getGreetingSkyHtml()}
-            ${getDayRingEmblemHtml('🦉', { now: sun.now, sunrise: sun.sunrise, sunset: sun.sunset, intro: false })}
+            ${greetingGlintHtml()}
+            ${getDayRingEmblemHtml(state.cls ? '🦉' : '🏫', { now: sun.now, sunrise: sun.sunrise, sunset: sun.sunset, intro: false })}
             <div class="relative z-10 flex flex-col justify-between h-full">
                 <div class="greeting-top-row">
                     <div class="greeting-top-row__reminders flex flex-wrap items-center gap-3 py-1">
@@ -101,28 +118,28 @@ function render() {
                     </div>
                 </div>
                 <div class="greeting-main">
-                    <h1 class="greeting-title font-title text-4xl md:text-5xl text-slate-800 drop-shadow-sm mb-2">
-                        <span class="text-transparent bg-clip-text bg-gradient-to-r ${gradientForDayPart(part)}">${greetingForDayPart(part)}</span>,
-                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-slate-700 to-slate-500 whitespace-nowrap">Nasos</span>!
-                    </h1>
-                    <div class="greeting-chips"><span class="greeting-chip greeting-chip--school"><i class="fas fa-landmark"></i><span data-school-name>Rentis English School</span></span><span class="greeting-chip greeting-chip--today"><i class="fas fa-school"></i>4 classes today<small>2 yours</small></span></div>
+                    <h1 class="greeting-title font-title text-4xl md:text-5xl text-slate-800" data-greeting-title data-text="${g.hello}|${g.name}">${greetingTitleInnerHtml(g)}</h1>
+                    <p class="greeting-line" data-greeting-line data-text="${g.line}">${greetingLineInnerHtml(g)}</p>
+                    <div class="greeting-chips">${badges}</div>
                 </div>
             </div>
         </div>`;
 
-    // Phone: same markup as mobile/home.js#renderClassView's hero.
+    // Phone: same markup as mobile/home.js#heroHtml.
     const phoneHero = `
-        <section class="m-home-hero m-home-card greeting-panel greeting-panel--${part}" style="grid-column: 1 / -1">
+        <section class="m-home-hero m-home-card greeting-panel greeting-panel--${part}" style="grid-column: 1 / -1" ${words}>
             ${getGreetingSkyHtml()}
-            ${getDayRingEmblemHtml('🦉', { now: sun.now, sunrise: sun.sunrise, sunset: sun.sunset, intro: false })}
-            <p class="m-home-hero__greeting">
-                <span class="text-transparent bg-clip-text bg-gradient-to-r ${gradientForDayPart(part)}">${greetingForDayPart(part)}</span>, Nasos!
-            </p>
-            <p class="m-home-hero__school"><i class="fas fa-university" aria-hidden="true"></i> Rentis English School</p>
+            ${greetingGlintHtml()}
+            ${getDayRingEmblemHtml(state.cls ? '🦉' : '🏫', { now: sun.now, sunrise: sun.sunrise, sunset: sun.sunset, intro: false })}
+            <p class="m-home-hero__greeting" data-greeting-title data-text="${g.hello}|${g.name}">${greetingTitleInnerHtml(g)}</p>
+            <p class="greeting-line m-home-hero__line" data-greeting-line data-text="${g.line}">${greetingLineInnerHtml(g)}</p>
+            <div class="greeting-chips m-home-hero__badges">${badges}</div>
         </section>`;
     const phone = params.get('mobile') === '1';
     document.getElementById('pv-home-grid').innerHTML = (phone ? phoneHero : greetingHtml) + getWeatherCardHtml(theme, scene, { reading, sun, now });
     paintSkySurface('card');
+    paintSkySurface('greeting');
+    if (state.intro) playGreetingIntro(document.querySelector('#pv-home-grid .greeting-panel'));
 
     const app = document.getElementById('app-screen');
     app.classList.toggle('award-sky-active', state.sky);
@@ -157,3 +174,10 @@ document.getElementById('pv-sky').addEventListener('click', () => { state.sky = 
 
 render();
 window.__pvRender = (next) => { Object.assign(state, next); render(); };
+// The live path: a new reading melts in and the greeting follows it in place (general view).
+window.__pvShift = async (code) => {
+    const { refreshGreetingsInPlace } = await import('./features/homeGreeting.js');
+    const now = atTime(state.time);
+    applySkyReading({ code, temp: 17, cloudCover: undefined, windSpeed: state.wind, windDirection: state.windDir }, { now: now.getTime(), sunrise: atTime('07:20').getTime(), sunset: atTime('20:30').getTime() });
+    refreshGreetingsInPlace();
+};

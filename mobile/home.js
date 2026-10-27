@@ -1,6 +1,5 @@
 import * as state from '../state.js';
 import * as utils from '../utils.js';
-import { DEFAULT_SCHOOL_NAME } from '../constants.js';
 import { escapeHtml } from '../features/roles/shared.js';
 import { normalizeChroniclerText } from '../features/adventurePageCore.mjs';
 import { sumLiveMonthlyStarsFromStudentScores } from '../features/awardLogReasonMeta.js';
@@ -16,6 +15,10 @@ import { isSchoolYearAwaitingOpen } from '../utils/schoolYear.js';
 import { sumLiveYearGoldFromAppState } from '../utils/yearGold.js';
 import { getGreetingSkyHtml, getDayRingEmblemHtml, startDayRingClock, syncDayRing } from '../features/homeGreetingScene.js';
 import { morphInto } from '../utils/domMorph.mjs';
+import {
+    currentHomeGreeting, greetingTitleInnerHtml, greetingLineInnerHtml, greetingGlintHtml, greetingBadgesHtml,
+    classNudge, playGreetingIntro, followSkyWithGreeting, keepGreetingPart, GREETING_SCRIPT_CLASSES
+} from '../features/homeGreeting.js';
 import { getCuratedDailyQuote, isCuratedDailyQuote } from '../utils/dailyQuote.mjs';
 
 const SCHEDULE_GRADIENTS = [
@@ -52,10 +55,11 @@ let lastViewKey = null;
 const MOBILE_HOME_MORPH = {
     keep(from, to) {
         if (from.classList.contains('greeting-sky') && to.classList.contains('greeting-sky')) return true;
+        if (keepGreetingPart(from, to)) return true;
         if (from.hasAttribute('data-day-ring') && to.hasAttribute('data-day-ring')) return syncDayRing(from, to);
         return false;
     },
-    keepClasses: ['m-home-quest--entered', 'm-home-chronicle--expanded', 'm-home-pop'],
+    keepClasses: ['m-home-quest--entered', 'm-home-chronicle--expanded', 'm-home-pop', ...GREETING_SCRIPT_CLASSES],
 };
 let cachedQuote = '';
 let cachedQuoteDay = null;
@@ -108,11 +112,21 @@ function getGreeting() {
     return { label: greeting, gradient, part: part || 'afternoon' };
 }
 
-/** The desktop greeting's painted hills and live day ring, sized for the phone hero card. */
-function heroSceneHtml(greeting, logo) {
+/**
+ * The phone hero: the desktop greeting's painted hills and live day ring, the same words
+ * (greeting the class or the whole school) and the school and teacher badges. Left open:
+ * the caller adds the reminders and closes the section.
+ */
+function heroHtml(greeting, logo, badges) {
+    const words = currentHomeGreeting();
     return `
+        <section class="m-home-hero m-home-card greeting-panel greeting-panel--${greeting.part} card-appear-m" style="--stagger:0" data-greeting-key="${escapeHtml(words.key)}">
             ${getGreetingSkyHtml()}
-            ${getDayRingEmblemHtml(escapeHtml(logo), { intro: false })}`;
+            ${greetingGlintHtml()}
+            ${getDayRingEmblemHtml(escapeHtml(logo), { intro: false })}
+            <p class="m-home-hero__greeting" data-greeting-title data-text="${escapeHtml(`${words.hello}|${words.name}`)}">${greetingTitleInnerHtml(words)}</p>
+            <p class="greeting-line m-home-hero__line" data-greeting-line data-text="${escapeHtml(words.line)}">${greetingLineInnerHtml(words)}</p>
+            <div class="greeting-chips m-home-hero__badges">${badges}</div>`;
 }
 
 function getTopSkill(classId) {
@@ -286,8 +300,6 @@ function getQuickActionHtml(classId) {
 }
 
 function renderClassView(classData) {
-    const teacherName = state.get('currentTeacherName') || 'Quest Master';
-    const schoolName = state.get('schoolName') || DEFAULT_SCHOOL_NAME;
     const greeting = getGreeting();
     const students = (state.get('allStudents') || []).filter((s) => s.classId === classData.id);
     const scores = state.get('allStudentScores') || [];
@@ -307,12 +319,7 @@ function renderClassView(classData) {
     const reminders = getTodayReminders(classData.id);
 
     return `
-        <section class="m-home-hero m-home-card greeting-panel greeting-panel--${greeting.part} card-appear-m" style="--stagger:0">
-            ${heroSceneHtml(greeting, classData.logo || '✨')}
-            <p class="m-home-hero__greeting">
-                <span class="text-transparent bg-clip-text bg-gradient-to-r ${greeting.gradient}">${greeting.label}</span>, ${escapeHtml(teacherName)}!
-            </p>
-            <p class="m-home-hero__school"><i class="fas fa-university" aria-hidden="true"></i> ${escapeHtml(schoolName)}</p>
+        ${heroHtml(greeting, classData.logo || '✨', greetingBadgesHtml({ nudge: classNudge(monthlyStars, goal) }))}
             ${reminders.length ? `<div class="m-home-hero__reminders">${reminders.join('')}</div>` : ''}
         </section>
 
@@ -365,8 +372,6 @@ function renderClassView(classData) {
 }
 
 function renderGeneralView() {
-    const teacherName = state.get('currentTeacherName') || 'Quest Master';
-    const schoolName = state.get('schoolName') || DEFAULT_SCHOOL_NAME;
     const greeting = getGreeting();
     const allScores = state.get('allStudentScores') || [];
     const schoolStars = sumLiveMonthlyStarsFromStudentScores(allScores);
@@ -374,12 +379,7 @@ function renderGeneralView() {
     const reminders = getTodayReminders(null);
 
     return `
-        <section class="m-home-hero m-home-card greeting-panel greeting-panel--${greeting.part} card-appear-m" style="--stagger:0">
-            ${heroSceneHtml(greeting, '🏫')}
-            <p class="m-home-hero__greeting">
-                <span class="text-transparent bg-clip-text bg-gradient-to-r ${greeting.gradient}">${greeting.label}</span>, ${escapeHtml(teacherName)}!
-            </p>
-            <p class="m-home-hero__school"><i class="fas fa-university" aria-hidden="true"></i> ${escapeHtml(schoolName)}</p>
+        ${heroHtml(greeting, '🏫', greetingBadgesHtml())}
             ${reminders.length ? `<div class="m-home-hero__reminders">${reminders.join('')}</div>` : ''}
         </section>
 
@@ -448,7 +448,9 @@ function render() {
         morphInto(container, html, MOBILE_HOME_MORPH);
     } else {
         container.innerHTML = html;
+        playGreetingIntro(container.querySelector('.m-home-hero'));
     }
+    followSkyWithGreeting();
     lastViewKey = viewKey;
     startDayRingClock(container);
     requestAnimationFrame(() => {
@@ -582,7 +584,7 @@ export function initMobileHome() {
             'allSchoolClasses', 'allTeachersClasses', 'allStudents', 'allStudentScores',
             'allAwardLogs', 'allAdventureLogs', 'allQuestAssignments', 'currentStoryData',
             'schoolName', 'schoolHolidayRanges', 'allScheduleOverrides', 'teacherSettings',
-            'globalSelectedClassId', 'schoolYearState'
+            'globalSelectedClassId', 'schoolYearState', 'currentTeacherName'
         ],
         () => renderMobileHome()
     );

@@ -1,0 +1,237 @@
+/* =====================================================================
+   Home greeting words (desktop card + phone hero), features/homeGreeting.js.
+   The greeting speaks to the class on the projector: "Good Morning, Owls!",
+   a line that follows the live sky, then the school and teacher badges.
+   The sky, hills and ink colours stay in sky_weather.css (7b); this file only
+   adds the words, the gradient and their motion. Motion is transform/opacity only.
+   ===================================================================== */
+
+@property --gp-accent-2 { syntax: '<color>'; inherits: true; initial-value: #7c3aed; }
+
+/* ---- The hello's gradient: a second colour per light of the hour, melting like the sky ---- */
+.greeting-panel { --gp-accent-2: #7c3aed; }
+html[data-wx-light="dawn"] .greeting-panel { --gp-accent-2: #db2777; }
+html[data-wx-light="golden"] .greeting-panel { --gp-accent-2: #be123c; }
+html[data-wx-light="twilight"] .greeting-panel { --gp-accent-2: #c4b5fd; }
+html[data-wx-light="night"] .greeting-panel { --gp-accent-2: #a5f3fc; }
+html[data-wx-night="0"][data-wx-tone="grey"] .greeting-panel { --gp-accent-2: #6d28d9; }
+html[data-wx-night="0"]:is([data-wx-tone="snow"], [data-wx-tone="fog"]) .greeting-panel { --gp-accent-2: #7c3aed; }
+html[data-wx-night="0"]:is([data-wx-tone="rain"], [data-wx-tone="storm"], [data-wx-tone="ice"]) .greeting-panel { --gp-accent-2: #fde68a; }
+
+.greeting-panel [data-greeting-title] {
+    letter-spacing: -0.01em;
+    line-height: 1.08;
+    transition: --gp-accent-2 8s ease-in-out;
+}
+.greeting-panel .greeting-title { margin-bottom: 0.4rem; }
+.greeting-panel .gw-word { display: inline-block; }
+.greeting-panel .gw-hello .gw-word {
+    color: transparent;
+    background-image: linear-gradient(100deg, var(--gp-accent) 0%, var(--gp-accent-2) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    /* Room for descenders inside the clipped box. */
+    padding-bottom: 0.08em;
+}
+.greeting-panel .gw-name {
+    position: relative;
+    display: inline-block;
+    color: var(--gp-ink);
+}
+/* A soft brush-stroke of light under the class's name. */
+.greeting-panel .gw-name::after {
+    content: '';
+    position: absolute;
+    left: 0.05em;
+    right: 0.05em;
+    bottom: -0.04em;
+    height: 0.16em;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, var(--gp-accent-2) 18%, var(--gp-accent) 82%, transparent);
+    opacity: 0.55;
+    transform-origin: left center;
+}
+.greeting-panel .gw-punct { color: var(--gp-ink); -webkit-text-fill-color: var(--gp-ink); }
+/* The underline stops before the "!". */
+.greeting-panel .gw-name { padding-right: 0; }
+.greeting-panel .gw-name::after { right: 0.4em; }
+
+/* ---- The line under the greeting: what the sky (or the day) is saying ---- */
+.greeting-line {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin: 0 0 0.75rem;
+    min-height: 1.9rem;
+    font-family: 'Fredoka', 'Fredoka One', system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 1.06rem;
+    line-height: 1.3;
+    color: var(--gp-ink);
+    opacity: 0.92;
+    -webkit-user-select: none;
+    user-select: none;
+}
+.greeting-line__icon {
+    flex: 0 0 auto;
+    display: inline-grid;
+    place-items: center;
+    width: 1.9rem;
+    height: 1.9rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    color: var(--gp-accent);
+    background: color-mix(in srgb, var(--gp-shadow), #ffffff 35%);
+    border: 1px solid color-mix(in srgb, #ffffff 70%, transparent);
+    box-shadow: 0 4px 12px -6px rgba(15, 23, 42, 0.45);
+}
+html[data-wx-night="1"] .greeting-line__icon,
+html[data-wx-night="0"]:is([data-wx-tone="rain"], [data-wx-tone="storm"], [data-wx-tone="ice"]) .greeting-line__icon {
+    color: var(--gp-accent-2);
+    background: rgba(15, 23, 42, 0.32);
+    border-color: rgba(255, 255, 255, 0.22);
+}
+.greeting-line__text { min-width: 0; }
+/* The line that is leaving, laid over the new one while it fades away. */
+.greeting-line__swap {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    pointer-events: none;
+}
+
+/* ---- Badges: school and teacher side by side ---- */
+.greeting-chip--teacher { gap: 0.45rem; padding-left: 0.3rem; }
+.greeting-chip__crest {
+    display: inline-grid;
+    place-items: center;
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 999px;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: #fff;
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 45%, #b45309 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 2px 6px -2px rgba(180, 83, 9, 0.6);
+    text-shadow: 0 1px 1px rgba(120, 53, 15, 0.45);
+}
+.greeting-chip__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.greeting-chip--quest i { color: #f59e0b; }
+.greeting-chip--quest-won { color: #92400e; background: linear-gradient(135deg, rgba(254, 243, 199, 0.95), rgba(253, 230, 138, 0.9)); }
+.greeting-chip--quest-won i { color: #d97706; }
+.greeting-chip--quest-close i { color: #e11d48; }
+.greeting-chip--quest-fresh i { color: #16a34a; }
+.greeting-chip--quest-rush i { color: #7c3aed; }
+.greeting-chip--quest-road i { color: #0ea5e9; }
+
+/* ---- Phone hero ---- */
+.m-home-hero .m-home-hero__greeting[data-greeting-title] { padding-right: 5.6rem; }
+.m-home-hero .greeting-line {
+    position: relative;
+    z-index: 2;
+    margin: 0.35rem 0 0;
+    padding-right: 5.6rem;
+    min-height: 1.6rem;
+    font-size: 0.86rem;
+    gap: 0.4rem;
+}
+.m-home-hero .greeting-line__icon { width: 1.55rem; height: 1.55rem; font-size: 0.7rem; }
+.m-home-hero .greeting-line__swap { right: 5.6rem; gap: 0.4rem; }
+.m-home-hero .m-home-hero__badges {
+    position: relative;
+    z-index: 2;
+    margin-top: 0.55rem;
+    gap: 0.35rem;
+}
+.m-home-hero .m-home-hero__badges .greeting-chip { font-size: 0.7rem; padding: 0.24rem 0.6rem; }
+.m-home-hero .m-home-hero__badges .greeting-chip--teacher { padding-left: 0.24rem; }
+.m-home-hero .greeting-chip__crest { width: 1.15rem; height: 1.15rem; font-size: 0.62rem; }
+
+/* ---- The light sweep (entrance and a change in the sky) ---- */
+.greeting-glint {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    overflow: hidden;
+    border-radius: inherit;
+    pointer-events: none;
+}
+.greeting-glint__band {
+    position: absolute;
+    top: -30%;
+    bottom: -30%;
+    left: 0;
+    width: 38%;
+    background: linear-gradient(100deg, transparent 0%, rgba(255, 255, 255, 0.34) 50%, transparent 100%);
+    opacity: 0;
+    transform: translate3d(-110%, 0, 0) skewX(-14deg);
+    will-change: transform, opacity;
+}
+html[data-wx-night="1"] .greeting-glint__band {
+    background: linear-gradient(100deg, transparent 0%, rgba(199, 210, 254, 0.26) 50%, transparent 100%);
+}
+@keyframes greeting-glint-sweep {
+    0% { opacity: 0; transform: translate3d(-110%, 0, 0) skewX(-14deg); }
+    18% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { opacity: 0; transform: translate3d(290%, 0, 0) skewX(-14deg); }
+}
+
+/* ---- Entrance: the words rise in one by one, the line follows, the badges pop ---- */
+@keyframes gw-rise {
+    0% { opacity: 0; transform: translate3d(0, 0.55em, 0) rotate(-5deg) scale(0.86); }
+    60% { opacity: 1; transform: translate3d(0, -0.06em, 0) rotate(1deg) scale(1.04); }
+    100% { opacity: 1; transform: none; }
+}
+@keyframes gw-stroke { from { transform: scaleX(0); opacity: 0; } to { transform: scaleX(1); opacity: 0.55; } }
+@keyframes gw-line-in { from { opacity: 0; transform: translate3d(0, 0.6rem, 0); } to { opacity: 1; transform: none; } }
+@keyframes gw-line-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translate3d(0, -0.7rem, 0); } }
+@keyframes gw-chip-pop {
+    0% { opacity: 0; transform: translate3d(0, 0.5rem, 0) scale(0.8); }
+    70% { opacity: 1; transform: translate3d(0, -0.06rem, 0) scale(1.04); }
+    100% { opacity: 1; transform: none; }
+}
+@keyframes gw-icon-pop {
+    0% { transform: scale(0.4) rotate(-90deg); opacity: 0; }
+    65% { transform: scale(1.15) rotate(8deg); opacity: 1; }
+    100% { transform: none; opacity: 1; }
+}
+
+.greeting-panel.is-greeting-await :is(.gw-word, .greeting-line, .greeting-chip),
+.greeting-panel.is-greeting-await .gw-name::after { opacity: 0; }
+
+.greeting-panel.is-greeting-intro .gw-word {
+    animation: gw-rise 0.72s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+    animation-delay: calc(140ms + var(--i, 0) * 95ms);
+}
+.greeting-panel.is-greeting-intro .gw-name::after { animation: gw-stroke 0.6s cubic-bezier(0.3, 0.8, 0.3, 1) 0.85s both; }
+.greeting-panel.is-greeting-intro .greeting-line { animation: gw-line-in 0.6s cubic-bezier(0.2, 0.8, 0.3, 1) 0.7s both; }
+.greeting-panel.is-greeting-intro .greeting-line__icon { animation: gw-icon-pop 0.6s cubic-bezier(0.3, 1.4, 0.5, 1) 0.8s both; }
+.greeting-panel.is-greeting-intro .greeting-chip {
+    animation: gw-chip-pop 0.5s cubic-bezier(0.3, 1.3, 0.5, 1) both;
+    animation-delay: calc(1s + var(--ci, 0) * 90ms);
+}
+.greeting-panel.is-greeting-intro .greeting-glint__band { animation: greeting-glint-sweep 1.4s cubic-bezier(0.45, 0.05, 0.3, 1) 0.45s both; }
+
+/* ---- The sky changed: the light sweeps, the old line drifts up and the new one arrives ---- */
+.greeting-panel.is-sky-shift .greeting-glint__band { animation: greeting-glint-sweep 1.3s cubic-bezier(0.45, 0.05, 0.3, 1) both; }
+.greeting-line.is-shifting > .greeting-line__icon { animation: gw-icon-pop 0.6s cubic-bezier(0.3, 1.4, 0.5, 1) 0.2s both; }
+.greeting-line.is-shifting > .greeting-line__text { animation: gw-line-in 0.55s cubic-bezier(0.2, 0.8, 0.3, 1) 0.25s both; }
+.greeting-line.is-shifting > .greeting-line__swap { animation: gw-line-out 0.45s ease-in both; }
+[data-greeting-title].is-shifting .gw-word {
+    animation: gw-rise 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+    animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .greeting-panel.is-greeting-await :is(.gw-word, .greeting-line, .greeting-chip),
+    .greeting-panel.is-greeting-await .gw-name::after { opacity: 1; }
+    .greeting-panel :is(.gw-word, .greeting-line, .greeting-line__icon, .greeting-line__text, .greeting-chip, .greeting-glint__band),
+    .greeting-panel .gw-name::after { animation: none !important; }
+    .greeting-line__swap { display: none; }
+    [data-greeting-title] { transition: none; }
+}

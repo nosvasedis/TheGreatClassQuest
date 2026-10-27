@@ -10,7 +10,6 @@ import '../../styles/class_tools.css';
 import '../../styles/hero_duels.css';
 import * as utils from '../../utils.js';
 import { playSound, playShowdownSfx } from '../../audio.js';
-import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 import { makeTeams, teamsForDay, teamBanner, TEAM_MODES, MAX_TEAMS } from '../../features/teamMakerCore.mjs';
 import {
     MIN_DUEL, MAX_DUEL, WIN_BONUSES, DUEL_TARGETS, BANK_MODES, DEFAULT_RULES, normalizeRules,
@@ -18,6 +17,8 @@ import {
     teamIndexOf, teamTotals, suggestDuel, duelsFinale, rewardIds, waitingHeroes
 } from '../../features/heroDuelsCore.mjs';
 import { esc, classById, classRoster, selectedToolClassId, followSelectedClass, faceHtml, readClassField, reducedMotion, enterFullscreen, leaveFullscreen } from './classTools.js';
+// The Wand's tiny DOM morph: a live update changes only what differs, so running animations go on.
+import { morphInto } from '../../features/questRemote/wandMorph.mjs';
 
 const ROOT_ID = 'hero-duels';
 const STORE_KEY = 'gcq.heroDuels.v1';
@@ -62,6 +63,13 @@ const firstOf = (id) => hero(id).first;
 const teamOf = (id) => (ui.game ? teamIndexOf(ui.game, id) : -1);
 const teamLook = (i) => (i >= 0 ? teamBanner(i) : null);
 const lite = () => !ui || ui.lite;
+/** The arena's motion is transform/opacity only, so ordinary school laptops get the whole show;
+ * only the weakest machines (2 cores or 2 GB) drop it, as Award Stars does. */
+function veryWeakMachine() {
+    const cores = Number(navigator.hardwareConcurrency) || 4;
+    const memory = Number(navigator.deviceMemory) || 4;
+    return cores <= 2 || memory <= 2;
+}
 
 function todaysTeams() {
     const today = teamsForDay(readClassField(ui.classId, 'teamMaker'), utils.getTodayDateString());
@@ -109,7 +117,7 @@ function loadClass(classId) {
         picked: [],
         finale: false,
         reward: { stars: 1, paid: new Set(), busy: false },
-        lite: detectLowPowerTier() || reducedMotion(),
+        lite: veryWeakMachine() || reducedMotion(),
         today: null,
         setup: null
     };
@@ -234,8 +242,8 @@ function teamBarHtml() {
     return `<div class="hd-teams" style="--n:${rows.length}">${rows.map((r) => {
         const b = teamBanner(r.index);
         const lead = r.place === 1 && r.points > 0;
-        return `<div class="hd-team${lead ? ' is-lead' : ''}" data-hd-team="${r.index}" style="--c:${b.primary};--cd:${b.deep};--cs:${b.soft};--fill:${(r.points / top).toFixed(3)}">
-            <span class="hd-team__fill" aria-hidden="true"></span>
+        return `<div class="hd-team${lead ? ' is-lead' : ''}" data-hd-team="${r.index}" data-qw-key="t-${r.index}" style="--c:${b.primary};--cd:${b.deep};--cs:${b.soft};--fill:${(r.points / top).toFixed(3)}">
+            <span class="hd-team__fill" aria-hidden="true"></span><span class="hd-team__shine" aria-hidden="true"></span>
             <span class="hd-team__emoji" aria-hidden="true">${b.emoji}</span>
             <span class="hd-team__name">${esc(b.name)}</span>
             ${lead ? '<i class="fas fa-crown hd-team__crown" aria-label="In front"></i>' : ''}
@@ -258,11 +266,11 @@ function heroCardHtml(id, { compact = false } = {}) {
     const cls = ['hd-hero', picked && 'is-picked', inDuel && 'is-in', !played && 'is-new', crowned && 'is-crowned'].filter(Boolean).join(' ');
     const style = b ? `--c:${b.primary};--cd:${b.deep};--cs:${b.soft}` : '';
     if (compact) {
-        return `<button type="button" class="${cls} hd-hero--mini" data-hd-hero="${esc(id)}" style="${style}" title="${esc(h.name)}: ${g.points[id] || 0} points">
+        return `<button type="button" class="${cls} hd-hero--mini" data-hd-hero="${esc(id)}" data-qw-key="h-${esc(id)}" style="${style}" title="${esc(h.name)}: ${g.points[id] || 0} points">
             ${faceHtml(h, 'ct-face')}<b>${g.points[id] || 0}</b></button>`;
     }
     const pickNo = picked ? ui.picked.indexOf(id) + 1 : 0;
-    return `<button type="button" class="${cls}" data-hd-hero="${esc(id)}" style="${style}" aria-pressed="${picked}" title="${esc(h.name)}">
+    return `<button type="button" class="${cls}" data-hd-hero="${esc(id)}" data-qw-key="h-${esc(id)}" style="${style}" aria-pressed="${picked}" title="${esc(h.name)}">
         ${pickNo ? `<span class="hd-hero__pick" aria-hidden="true">${pickNo}</span>` : ''}
         ${wins ? `<span class="hd-hero__crowns" title="${wins} ${wins === 1 ? 'crown' : 'crowns'}"><i class="fas fa-crown"></i>${wins > 1 ? `<b>${wins}</b>` : ''}</span>` : ''}
         ${faceHtml(h, 'ct-face ct-face--lg')}
@@ -280,7 +288,7 @@ function rosterHtml({ compact = false } = {}) {
     if (g.teams) {
         return `<div class="hd-roster hd-roster--teams${compact ? ' is-compact' : ''}" style="--n:${g.teams.length}">${g.teams.map((ids, i) => {
             const b = teamBanner(i);
-            return `<div class="hd-rostercol" style="--c:${b.primary};--cd:${b.deep};--cs:${b.soft}">
+            return `<div class="hd-rostercol" data-qw-key="col-${i}" style="--c:${b.primary};--cd:${b.deep};--cs:${b.soft}">
                 ${compact ? '' : `<header><span aria-hidden="true">${b.emoji}</span> ${esc(b.short)}</header>`}
                 <div class="hd-rostergrid">${byName(ids).map((id) => heroCardHtml(id, { compact })).join('')}</div>
             </div>`;
@@ -313,7 +321,7 @@ function pickHtml() {
                 ${lastDuelHtml()}
             </div>
             <div class="hd-tray" aria-live="polite">
-                ${ui.picked.length ? ui.picked.map((id, i) => `${i ? '<span class="hd-tray__vs">VS</span>' : ''}<button type="button" class="hd-tray__hero" data-hd-hero="${esc(id)}" title="Take ${esc(firstOf(id))} out">${faceHtml(hero(id), 'ct-face')}<span>${esc(firstOf(id))}</span></button>`).join('')
+                ${ui.picked.length ? ui.picked.map((id, i) => `${i ? '<span class="hd-tray__vs">VS</span>' : ''}<button type="button" class="hd-tray__hero" data-hd-hero="${esc(id)}" data-qw-key="tr-${esc(id)}" title="Take ${esc(firstOf(id))} out">${faceHtml(hero(id), 'ct-face')}<span>${esc(firstOf(id))}</span></button>`).join('')
                     : `<span class="hd-tray__empty">Tap ${MIN_DUEL} to ${MAX_DUEL} heroes</span>`}
             </div>
             <div class="hd-pick__actions">
@@ -339,10 +347,10 @@ function duellistHtml(id, i) {
     const target = g.rules.target;
     return `
         ${i ? '<span class="hd-vs" aria-hidden="true"><b>VS</b></span>' : ''}
-        <article class="hd-duellist${lead ? ' is-lead' : ''}${lead && leaders.length > 1 ? ' is-tied' : ''}${b ? ' has-team' : ''}" data-hd-duellist="${esc(id)}" style="--i:${i};--c:${look.primary};--cd:${look.deep};--cs:${look.soft}">
+        <article class="hd-duellist${lead ? ' is-lead' : ''}${lead && leaders.length > 1 ? ' is-tied' : ''}${b ? ' has-team' : ''}" data-hd-duellist="${esc(id)}" data-qw-key="f-${esc(id)}" style="--i:${i};--c:${look.primary};--cd:${look.deep};--cs:${look.soft}">
             ${b ? `<span class="hd-duellist__team"><span aria-hidden="true">${b.emoji}</span> ${esc(b.short)}</span>` : ''}
             <span class="hd-duellist__crown" aria-hidden="true"><i class="fas fa-crown"></i></span>
-            <span class="hd-duellist__face">${faceHtml(hero(id), 'ct-face ct-face--xl')}</span>
+            <span class="hd-duellist__face"><span class="hd-duellist__aura" aria-hidden="true"></span>${faceHtml(hero(id), 'ct-face ct-face--xl')}</span>
             <strong class="hd-duellist__name font-title">${esc(firstOf(id))}</strong>
             <span class="hd-duellist__score font-title" data-hd-score aria-live="polite">${score}</span>
             ${target ? `<span class="hd-pips" aria-label="${score} of ${target}">${Array.from({ length: target }, (_, k) => `<i class="${k < score ? 'is-on' : ''}"></i>`).join('')}</span>` : ''}
@@ -377,7 +385,7 @@ function ringHtml() {
     const cur = ui.game.current;
     return `
     <section class="hd-ring" style="--n:${cur.ids.length}">
-        <div class="hd-ring__floor" aria-hidden="true"></div>
+        <div class="hd-ring__floor" aria-hidden="true"><i class="hd-ring__runes"></i></div>
         <div class="hd-ring__fighters">${cur.ids.map((id, i) => duellistHtml(id, i)).join('')}</div>
         ${ringFootHtml()}
     </section>
@@ -402,6 +410,7 @@ function finaleHtml() {
         <div class="hd-finale__rays" aria-hidden="true"></div>
         <div class="hd-finale__card">
             <p class="hd-finale__kicker">${f.duels} ${f.duels === 1 ? 'duel' : 'duels'} fought</p>
+            <span class="hd-finale__trophy" aria-hidden="true"><i class="fas fa-trophy"></i></span>
             ${champs.length ? `
             <div class="hd-finale__champ" style="--c:${champs[0].primary};--cd:${champs[0].deep}">
                 <span class="hd-finale__emoji" aria-hidden="true">${champs.map((c) => c.emoji).join(' ')}</span>
@@ -414,7 +423,7 @@ function finaleHtml() {
                     <span class="hd-finale__bar"><i></i></span><b>${t.points}</b></div>`;
             }).join('')}</div>` : '<h2 class="font-title hd-finale__title">The champions!</h2>'}
             ${podiumOrder.length ? `<div class="hd-podium">${podiumOrder.map((list) => `
-                <div class="hd-podium__step hd-podium__step--${list[0].place}">
+                <div class="hd-podium__step hd-podium__step--${list[0].place}" style="--i:${list[0].place}">
                     <div class="hd-podium__heroes">${list.map((x) => `<span class="hd-podium__hero">${faceHtml(hero(x.id), 'ct-face ct-face--lg')}<b>${esc(firstOf(x.id))}</b><small>${x.points} pts</small></span>`).join('')}</div>
                     <span class="hd-podium__block font-title">${list[0].place}</span>
                 </div>`).join('')}</div>` : ''}
@@ -444,13 +453,21 @@ function render() {
     const arena = ui.view === 'arena' && g;
     root.classList.toggle('is-setup', !arena);
     root.classList.toggle('is-duel', Boolean(arena && g.current));
-    root.innerHTML = `
-        <div class="hd-sky" aria-hidden="true"></div>
+    const viewKey = !arena ? 'setup' : g.current ? `duel-${g.current.n}` : 'pick';
+    morphInto(root, `
+        ${DECOR_HTML}
         ${headHtml()}
         ${arena ? teamBarHtml() : ''}
-        <main class="hd-main">${arena ? (g.current ? ringHtml() : pickHtml()) : setupHtml()}</main>
-        ${arena && ui.finale ? finaleHtml() : ''}`;
+        <main class="hd-main" data-qw-key="main-${viewKey}">${arena ? (g.current ? ringHtml() : pickHtml()) : setupHtml()}</main>
+        ${arena && ui.finale ? finaleHtml() : ''}`);
 }
+
+/** The arena itself: night sky, rising embers and two torches. Fixed markup, so a live update never restarts it. */
+const DECOR_HTML = `
+        <div class="hd-sky" data-qw-key="sky" aria-hidden="true"></div>
+        <div class="hd-embers" data-qw-key="embers" aria-hidden="true">${Array.from({ length: 16 }, (_, i) => `<i style="--x:${(i * 61) % 100}%;--d:${(i * 0.73) % 6}s;--t:${5 + (i * 7) % 5}s;--s:${0.5 + ((i * 13) % 10) / 10}"></i>`).join('')}</div>
+        <div class="hd-torch hd-torch--l" data-qw-key="torch-l" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div class="hd-torch hd-torch--r" data-qw-key="torch-r" aria-hidden="true"><i></i><i></i><i></i></div>`;
 
 // ─── Effects ────────────────────────────────────────────────────────────────────
 
@@ -471,14 +488,26 @@ function floatText(target, text, tone = '') {
     if (!target || lite()) return;
     const tag = document.createElement('span');
     tag.className = `hd-float${tone ? ` hd-float--${tone}` : ''}`;
+    tag.dataset.qwTransient = '';
     tag.textContent = text;
     target.append(tag);
     setTimeout(() => tag.remove(), 900);
 }
 
 /** Points fly from where the duellists stood to their team's banner. */
-function flyToTeams(from) {
+function flyToTeams(from, before = []) {
     if (lite() || !ui.game?.teams) return;
+    // The team numbers wait for their points to land, then count up.
+    const waiting = new Map();
+    for (const { id, gain } of from) { const ti = teamOf(id); if (gain && ti >= 0) waiting.set(ti, (waiting.get(ti) || 0) + gain); }
+    waiting.forEach((gain, ti) => {
+        const pts = document.querySelector(`#${ROOT_ID} [data-hd-team="${ti}"] [data-hd-team-pts]`);
+        const was = before.find((r) => r.index === ti)?.points;
+        if (pts && Number.isFinite(was)) {
+            pts.textContent = String(was);
+            setTimeout(() => countUp(pts, was, was + gain), 940);
+        }
+    });
     for (const { id, rect, gain } of from) {
         const ti = teamOf(id);
         const pill = document.querySelector(`#${ROOT_ID} [data-hd-team="${ti}"]`);
@@ -487,6 +516,7 @@ function flyToTeams(from) {
         const b = teamBanner(ti);
         const chip = document.createElement('span');
         chip.className = 'hd-flychip';
+        chip.dataset.qwTransient = '';
         chip.style.cssText = `left:${rect.left + rect.width / 2}px;top:${rect.top + rect.height / 3}px;--c:${b.primary};--dx:${to.left + to.width / 2 - (rect.left + rect.width / 2)}px;--dy:${to.top + to.height / 2 - (rect.top + rect.height / 3)}px`;
         chip.textContent = `+${gain}`;
         document.getElementById(ROOT_ID).append(chip);
@@ -497,14 +527,32 @@ function flyToTeams(from) {
     }
 }
 
+/** A number ticking up to its new value (the team bar after a duel). */
+function countUp(el, from, to) {
+    if (!el?.isConnected) return;
+    const steps = Math.min(12, Math.max(1, to - from));
+    let k = 0;
+    const tick = () => {
+        if (!el.isConnected) return;
+        k += 1;
+        el.textContent = String(Math.round(from + ((to - from) * k) / steps));
+        restart(el, 'is-tick');
+        if (k < steps) setTimeout(tick, 55);
+    };
+    tick();
+}
+
 function crowningHtml(duel) {
     const names = duel.winners.map(firstOf);
     const gains = duel.winners.map((id) => duel.gains[id] || 0);
-    return `<div class="hd-crowning" aria-live="assertive">
+    const look = teamLook(teamOf(duel.winners[0]));
+    return `<div class="hd-crowning" data-qw-transient aria-live="assertive" style="--c:${look?.primary || '#f59e0b'}">
         <div class="hd-crowning__burst" aria-hidden="true"></div>
-        <div class="hd-crowning__faces">${duel.winners.map((id) => `<span class="hd-crowning__face"><i class="fas fa-crown hd-crowning__crown"></i>${faceHtml(hero(id), 'ct-face ct-face--xl')}</span>`).join('')}</div>
-        <h2 class="font-title">${esc(names.join(' & '))} ${names.length > 1 ? 'share the crown!' : 'wins the duel!'}</h2>
-        <p>${gains.some(Boolean) ? `+${Math.max(...gains)} points${ui.game.teams ? ' banked for the team' : ''}` : ''}</p>
+        <div class="hd-crowning__sparks" aria-hidden="true">${Array.from({ length: 12 }, (_, i) => `<i style="--a:${i * 30}deg;--d:${(i % 4) * 0.12}s"></i>`).join('')}</div>
+        <div class="hd-crowning__faces">${duel.winners.map((id) => `<span class="hd-crowning__face"><span class="hd-crowning__laurel" aria-hidden="true"></span><i class="fas fa-crown hd-crowning__crown"></i>${faceHtml(hero(id), 'ct-face ct-face--xl')}</span>`).join('')}</div>
+        <div class="hd-crowning__ribbon"><h2 class="font-title">${esc(names.join(' & '))}</h2></div>
+        <p class="hd-crowning__line">${names.length > 1 ? 'share the crown of' : 'wins'} Duel ${duel.n}!</p>
+        <p class="hd-crowning__gain">${gains.some(Boolean) ? `+${Math.max(...gains)} points${ui.game.teams && look ? ` for the ${esc(look.name)}` : ''}` : ''}</p>
     </div>`;
 }
 
@@ -585,21 +633,67 @@ function togglePick(id) {
     render();
 }
 
-function suggest() {
+/** "Pick for me": a spotlight dances over the heroes, then lands on the ones who have waited longest. */
+async function suggest() {
     const g = ui.game;
-    if (!g || g.current) return;
-    ui.picked = suggestDuel(g, g.rules.size);
+    if (!g || g.current || ui.rolling) return;
+    const chosen = suggestDuel(g, g.rules.size);
+    if (!lite()) {
+        ui.rolling = true;
+        ui.picked = [];
+        render();
+        const root = document.getElementById(ROOT_ID);
+        root?.classList.add('is-rolling');
+        const cards = [...(root?.querySelectorAll('.hd-roster .hd-hero') || [])];
+        let lastLit = [];
+        const steps = 13;
+        for (let k = 0; k < steps && cards.length; k += 1) {
+            lastLit.forEach((el) => el.classList.remove('is-scan'));
+            lastLit = Array.from({ length: Math.min(chosen.length, cards.length) }, () => cards[Math.floor(Math.random() * cards.length)]);
+            lastLit.forEach((el) => el.classList.add('is-scan'));
+            playShowdownSfx('rollcall', { team: k % 4, step: k });
+            await new Promise((r) => setTimeout(r, 55 + k * k * 1.6));
+            if (!ui || ui.game !== g) return;
+        }
+        lastLit.forEach((el) => el.classList.remove('is-scan'));
+        root?.classList.remove('is-rolling');
+        ui.rolling = false;
+    }
+    ui.picked = chosen;
     playShowdownSfx('card');
     render();
-    if (!lite()) document.querySelectorAll(`#${ROOT_ID} .hd-hero.is-picked, #${ROOT_ID} .hd-tray__hero`).forEach((el) => restart(el, 'is-chosen'));
+    if (!lite()) {
+        document.querySelectorAll(`#${ROOT_ID} .hd-hero.is-picked, #${ROOT_ID} .hd-tray__hero`).forEach((el) => restart(el, 'is-chosen'));
+        effects().then((f) => document.querySelectorAll(`#${ROOT_ID} .hd-hero.is-picked`).forEach((el) => f.burstOn?.(el, { color: '#fcd34d', count: 10 })));
+    }
+}
+
+/** The duellists' faces clash in from both sides under the duel's number. */
+function showClash(cur) {
+    const root = document.getElementById(ROOT_ID);
+    if (!root || lite()) return;
+    root.querySelector('.hd-clash')?.remove();
+    const n = cur.ids.length;
+    root.insertAdjacentHTML('beforeend', `<div class="hd-clash" data-qw-transient aria-hidden="true" style="--n:${n}">
+        <div class="hd-clash__flash"></div>
+        <p class="hd-clash__title font-title">Duel ${cur.n}</p>
+        <div class="hd-clash__row">${cur.ids.map((id, i) => {
+            const look = teamLook(teamOf(id)) || teamBanner(i);
+            const side = i < n / 2 ? -1 : 1;
+            return `${i ? '<span class="hd-clash__vs font-title">VS</span>' : ''}<span class="hd-clash__hero" style="--side:${side};--i:${i};--c:${look.primary}">${faceHtml(hero(id), 'ct-face ct-face--xl')}<b class="font-title">${esc(firstOf(id))}</b></span>`;
+        }).join('')}</div>
+    </div>`);
+    const el = root.querySelector('.hd-clash');
+    setTimeout(() => el?.remove(), 1750);
 }
 
 function begin() {
-    if (ui.picked.length < MIN_DUEL) return;
+    if (ui.picked.length < MIN_DUEL || ui.rolling) return;
     if (!commit(startDuel(ui.game, ui.picked))) return;
     ui.picked = [];
     playShowdownSfx('question');
     render();
+    showClash(ui.game.current);
 }
 
 function givePoint(id, delta) {
@@ -627,11 +721,12 @@ function crown(winners) {
         const el = document.querySelector(`#${ROOT_ID} [data-hd-duellist="${CSS.escape(id)}"]`);
         return { id, rect: el?.getBoundingClientRect() || { left: innerWidth / 2, top: innerHeight / 2, width: 0, height: 0 }, gain: duelGains(g, winners)[id] || 0 };
     });
+    const before = teamTotals(g);
     const { game, duel } = crownDuel(g, winners);
     if (!duel || !commit(game)) return;
     playShowdownSfx('goal');
     render();
-    flyToTeams(from);
+    flyToTeams(from, before);
     showCrowning(duel);
 }
 
@@ -748,6 +843,7 @@ function onSetupClick(t) {
 
 function onArenaClick(t) {
     const g = ui.game;
+    if (ui.rolling) return undefined;
     const pt = t.closest('[data-hd-pt]');
     if (pt) return givePoint(pt.dataset.hdWho, Number(pt.dataset.hdPt));
     const crownBtn = t.closest('[data-hd-crown]');
@@ -848,4 +944,120 @@ export async function openHeroDuels(classId = null) {
     enterFullscreen(document.documentElement);
     playSound('quiz_tier_reveal');
     requestAnimationFrame(() => root.querySelector('.hd-go:not(:disabled), .hd-close')?.focus({ preventScroll: true }));
+}
+
+// ─── The Wand (Quest Remote) ────────────────────────────────────────────────────
+// The phone sees the game as a small panel (getHeroDuelsPanel) and sends `duel-…` actions on the
+// Showdown command type. Each one presses the same button the teacher would press on the projector,
+// so the class sees the Wand's spark land on it and every rule stays in one place.
+
+function lastDuelText() {
+    const d = ui.game?.duels.at(-1);
+    if (!d) return '';
+    return `Duel ${d.n}: ${d.winners.map(firstOf).join(' & ')} ${d.winners.length > 1 ? 'shared the crown' : 'took the crown'}`;
+}
+
+/** What the Wand shows: null when Hero Duels is not on the projector. */
+export function getHeroDuelsPanel() {
+    if (!ui || !document.getElementById(ROOT_ID)) return null;
+    const cls = classById(ui.classId);
+    const g = ui.game;
+    const base = { kind: 'duels', className: `${cls?.logo || ''} ${cls?.name || ''}`.trim(), undo: ui.undo.length > 0 };
+    if (!g || ui.view === 'setup') {
+        const s = ui.setup;
+        return {
+            ...base, view: 'setup', resuming: Boolean(g), here: s.here.size, away: ui.roster.filter((h) => h.away).length,
+            teamCount: s.teamCount || 0, source: s.source, canToday: Boolean(ui.today), size: s.rules.size, bonus: s.rules.winBonus,
+            target: s.rules.target, bank: s.rules.bank,
+            teams: (s.teamCount && s.teams ? s.teams : []).map((ids, i) => {
+                const b = teamBanner(i);
+                return { name: b.name, emoji: b.emoji, color: b.primary, size: ids.length, names: byName(ids).map(firstOf).join(', ').slice(0, 78) };
+            })
+        };
+    }
+    const totals = teamTotals(g);
+    const teams = totals.map((r) => {
+        const b = teamBanner(r.index);
+        return { name: b.short, emoji: b.emoji, color: b.primary, pts: r.points, lead: r.place === 1 && r.points > 0 };
+    });
+    if (ui.finale) {
+        const f = duelsFinale(g, firstOf);
+        const champs = f.winningTeams.map((i) => teamBanner(i));
+        const groups = [
+            g.teams && f.winningTeams.length && { key: 'team', label: champs.length > 1 ? 'Winning teams' : `The ${champs[0]?.short || 'winners'}` },
+            f.podium.length && { key: 'podium', label: 'The podium' },
+            { key: 'winners', label: 'Every crowned hero' },
+            { key: 'all', label: 'Everyone' }
+        ].filter(Boolean).map((x) => ({ ...x, owed: rewardIds(g, x.key).filter((id) => !ui.reward.paid.has(id)).length }));
+        return {
+            ...base, view: 'finale', duels: f.duels, teams, stars: ui.reward.stars, busy: ui.reward.busy, groups,
+            champ: champs.length ? `${champs.map((c) => `${c.emoji} ${c.name}`).join(' & ')} ${champs.length > 1 ? 'share the win' : 'win'}` : '',
+            podium: f.podium.slice(0, 6).map((x) => ({ n: firstOf(x.id), p: x.points, place: x.place }))
+        };
+    }
+    if (g.current) {
+        const cur = g.current;
+        const leaders = duelLeaders(cur);
+        return {
+            ...base, view: 'duel', duelNo: cur.n, teams, target: g.rules.target, bonus: g.rules.winBonus, tie: leaders.length > 1,
+            leader: leaders.length === 1 ? leaders[0] : '',
+            fighters: cur.ids.map((id, i) => {
+                const b = teamLook(teamOf(id));
+                return { id, n: firstOf(id), s: cur.scores[id] || 0, color: (b || teamBanner(i)).primary, team: b ? `${b.emoji} ${b.short}` : '', lead: leaders.includes(id) };
+            })
+        };
+    }
+    return {
+        ...base, view: 'pick', duelNo: g.duels.length + 1, teams, size: g.rules.size, picked: ui.picked.length, rolling: Boolean(ui.rolling),
+        canFinish: g.duels.length > 0, last: lastDuelText(), waiting: waitingHeroes(g).length,
+        heroes: (g.teams ? g.teams.flatMap((ids) => byName(ids)) : byName(g.heroes)).map((id) => ({
+            id, n: firstOf(id), p: g.points[id] || 0, w: g.wins[id] || 0, d: g.played[id] || 0,
+            c: teamLook(teamOf(id))?.primary || '', k: ui.picked.indexOf(id) + 1
+        }))
+    };
+}
+
+const DUEL_RULE_ATTR = { teams: 'data-hd-teams', source: 'data-hd-source', size: 'data-hd-size', bonus: 'data-hd-bonus', target: 'data-hd-target', bank: 'data-hd-bank', stars: 'data-hd-stars' };
+const DUEL_BUTTONS = {
+    'duel-shuffle': '[data-hd-shuffle]', 'duel-arena': '[data-hd-open]', 'duel-fresh': '[data-hd-fresh]', 'duel-setup': '[data-hd-setup]',
+    'duel-suggest': '[data-hd-suggest]', 'duel-clear': '[data-hd-clear]', 'duel-start': '[data-hd-start]', 'duel-share': '[data-hd-crown-tie]',
+    'duel-cancel': '[data-hd-cancel]', 'duel-undo': '[data-hd-undo]', 'duel-finish': '[data-hd-finish]', 'duel-back': '[data-hd-back]', 'duel-close': '[data-hd-close]'
+};
+
+/** The projector button a Wand action stands for ('' when there is none). */
+function duelSelector(p) {
+    const id = CSS.escape(String(p.studentId || ''));
+    switch (p.action) {
+        case 'duel-rule': return DUEL_RULE_ATTR[p.rule] ? `[${DUEL_RULE_ATTR[p.rule]}="${CSS.escape(String(p.value))}"]` : '';
+        case 'duel-here': return `[data-hd-here="${id}"]`;
+        case 'duel-move': return `[data-hd-move="${id}"]`;
+        case 'duel-pick': return `.hd-roster [data-hd-hero="${id}"]`;
+        case 'duel-point': return `[data-hd-pt="${Number(p.delta)}"][data-hd-who="${id}"]`;
+        case 'duel-crown': return `.hd-duellist [data-hd-crown="${id}"]`;
+        case 'duel-pay': return `[data-hd-pay="${CSS.escape(String(p.scope || ''))}"]`;
+        default: return DUEL_BUTTONS[p.action] || '';
+    }
+}
+
+/** Runs a Wand action on the projector. Returns { ok, message }. */
+export async function runHeroDuelsCommand(p, { sparkTo = null } = {}) {
+    if (p.action === 'duel-open') {
+        if (document.getElementById(ROOT_ID)) return { ok: true, message: 'Hero Duels is open' };
+        await openHeroDuels();
+        return document.getElementById(ROOT_ID) ? { ok: true, message: 'Hero Duels opens on the projector' } : { ok: false, message: 'Choose one of your classes first' };
+    }
+    const root = document.getElementById(ROOT_ID);
+    if (!root || !ui) return { ok: false, message: 'Hero Duels is not on the projector' };
+    if (ui.rolling) return { ok: false, message: 'The spotlight is still choosing' };
+    const sel = duelSelector(p);
+    const btn = sel ? root.querySelector(sel) : null;
+    if (!btn || btn.disabled) return { ok: false, message: 'That is not on the projector right now' };
+    // Points and picks fly fast so a quick game keeps its pace; the rest take the full spark.
+    const quick = p.action === 'duel-point' || p.action === 'duel-pick';
+    if (sparkTo) await sparkTo(btn, quick ? { size: 18, duration: 360, burst: 8 } : { size: 22, duration: 520, burst: 12 });
+    if (!btn.isConnected || btn.disabled) return { ok: false, message: 'That is not on the projector right now' };
+    btn.click();
+    if (p.action === 'duel-point') return { ok: true, message: `${Number(p.delta) > 0 ? '+' : ''}${Number(p.delta)} for ${firstOf(String(p.studentId))}` };
+    if (p.action === 'duel-crown') return { ok: true, message: `${firstOf(String(p.studentId))} is crowned` };
+    return { ok: true, message: '' };
 }

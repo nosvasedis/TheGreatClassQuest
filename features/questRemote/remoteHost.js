@@ -559,6 +559,12 @@ async function run(cmd) {
         }
         case 'wall': return runWall(cmd, p.action);
         case 'showdown': {
+            if (String(p.action || '').startsWith('duel-')) {
+                const duels = await import('../../ui/modals/heroDuels.js');
+                const result = await duels.runHeroDuelsCommand(p, { sparkTo });
+                scheduleStage(0);
+                return report(cmd, result.ok, result.message || '');
+            }
             const sd = await import('./showdown.js');
             const message = await sd.runShowdownCommand(p, { sparkTo, scheduleStage, payStars: payShowdownStars });
             return report(cmd, true, message || '');
@@ -1401,13 +1407,18 @@ async function publishStage() {
     const showdownMod = document.getElementById('qr-showdown') ? await import('./showdown.js') : null;
     const sdPanel = showdownMod?.getShowdownPanel?.();
     if (sdPanel) { panel = sdPanel; secret = showdownMod.getShowdownSecret?.() || null; }
+    // Hero Duels: the Wand gets its own console (the whole class, the ring, the finale), not the button pad.
+    const duelsPanel = !sdPanel && document.getElementById('hero-duels')
+        ? (await import('../../ui/modals/heroDuels.js')).getHeroDuelsPanel?.() : null;
+    if (duelsPanel) panel = duelsPanel;
+    const show = sdPanel || duelsPanel;
 
     const stage = buildStageSummary({
-        surface: sdPanel ? 'showdown' : surface.kind === 'tab' ? 'tab' : 'overlay',
+        surface: sdPanel ? 'showdown' : duelsPanel ? 'duels' : surface.kind === 'tab' ? 'tab' : 'overlay',
         tab: activeTabId(),
-        title: sdPanel ? 'Showdown Arena' : surfaceTitle(surface),
+        title: sdPanel ? 'Showdown Arena' : duelsPanel ? 'Hero Duels' : surfaceTitle(surface),
         classId: state.get('globalSelectedClassId') || '',
-        padActions: sdPanel ? [] : collectPad(surface),
+        padActions: show ? [] : collectPad(surface),
         panel,
         lastResult: host.lastResult,
         scrollable: scroll.canUp || scroll.canDown
@@ -1415,7 +1426,7 @@ async function publishStage() {
     stage.scroll = scroll;
     stage.timer = timerState();
     // What the class actually sees: a covering window hides the tab underneath (the Wand words its hints by this).
-    stage.covered = !sdPanel && surface.kind === 'overlay';
+    stage.covered = !show && surface.kind === 'overlay';
     // A curtain lifting or a beam fading is already gone as far as the Wand is concerned.
     stage.blackout = Boolean(document.querySelector('#qr-curtain:not(.is-lifting)'));
     stage.spotlight = Boolean(document.querySelector('#qr-spotlight:not(.is-leaving)'));

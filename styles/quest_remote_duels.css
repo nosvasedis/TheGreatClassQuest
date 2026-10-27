@@ -1,0 +1,93 @@
+/* The Wand's Hero Duels console (features/questRemote/duelsWandView.mjs) and Show mode's game tabs.
+ * Same night-and-gold look as the rest of the Wand; transform/opacity only. */
+
+.qwd-games { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px; margin: 2px 0 12px; border-radius: 18px; background: rgba(0, 0, 0, 0.28); box-shadow: inset 0 0 0 1px var(--qw-line); }
+.qwd-games__tab { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; min-height: 48px; padding: 4px 8px; border-radius: 14px; font-weight: 700; font-size: 0.95rem; color: var(--qw-soft); transition: transform 0.15s ease, background-color 0.2s ease; }
+.qwd-games__tab small { width: 100%; text-align: center; font-size: 0.68rem; font-weight: 600; opacity: 0.8; margin-top: -4px; }
+.qwd-games__tab.is-on { color: #422006; background: linear-gradient(180deg, #fde68a, #f59e0b) !important; box-shadow: inset 0 -3px 0 #b45309; }
+.qwd-games__tab:active { transform: scale(0.96); }
+
+.qwd { display: grid; gap: 12px; }
+.qwd-launch { position: relative; display: grid; justify-items: center; gap: 8px; padding: 26px 18px 18px; border-radius: 26px; text-align: center; overflow: hidden;
+    background: radial-gradient(ellipse at 50% 0%, rgba(245, 158, 11, 0.35), rgba(30, 27, 75, 0.75) 70%); box-shadow: inset 0 0 0 1.5px rgba(252, 211, 77, 0.45); }
+.qwd-launch p { margin: 0; color: #e0e7ff; line-height: 1.45; font-size: 0.92rem; }
+.qwd-launch__swords { display: grid; place-items: center; width: 74px; height: 74px; border-radius: 50%; font-size: 2.2rem;
+    background: radial-gradient(circle at 35% 30%, #fef3c7, #f59e0b 70%); box-shadow: 0 10px 30px rgba(245, 158, 11, 0.45); }
+.qwd-launch__swords span { animation: qwd-clash 2.4s ease-in-out infinite; }
+@keyframes qwd-clash { 0%, 70%, 100% { transform: rotate(0) scale(1); } 78% { transform: rotate(-14deg) scale(1.15); } 86% { transform: rotate(10deg) scale(1.05); } }
+
+.qwd-head { display: flex; align-items: center; gap: 12px; padding: 4px 2px 0; }
+.qwd-head > div { flex: 1; min-width: 0; }
+.qwd-head .qw-h2 { margin: 0; text-align: left; }
+.qwd-head p { margin: 2px 0 0; font-size: 0.84rem; color: var(--qw-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qwd-head__crest { flex: none; display: grid; place-items: center; width: 50px; height: 50px; border-radius: 16px; font-size: 1.5rem;
+    background: radial-gradient(circle at 35% 30%, #fef3c7, #f59e0b 70%); box-shadow: 0 6px 18px rgba(245, 158, 11, 0.35); }
+
+.qwd-seg { display: flex; flex-wrap: wrap; gap: 4px; padding: 3px; border-radius: 16px; background: rgba(0, 0, 0, 0.28); box-shadow: inset 0 0 0 1px var(--qw-line); }
+.qwd-seg__btn { flex: 1 1 auto; min-height: 42px; padding: 0 10px; border-radius: 13px; font-weight: 700; font-size: 0.88rem; color: var(--qw-soft); transition: transform 0.15s ease; }
+.qwd-seg__btn.is-on { color: #422006; background: var(--qw-gold) !important; }
+.qwd-seg__btn:disabled { opacity: 0.35; }
+.qwd-seg__btn:active { transform: scale(0.95); }
+.qwd-preview { display: grid; gap: 6px; }
+.qwd-preview__team { display: grid; gap: 2px; padding: 8px 10px; border-radius: 14px; background: color-mix(in srgb, var(--team) 22%, rgba(15, 23, 42, 0.6)); box-shadow: inset 4px 0 0 var(--team); }
+.qwd-preview__team small { color: var(--qw-soft); font-size: 0.78rem; }
+
+.qwd-teams { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 6px; }
+.qwd-team { position: relative; overflow: hidden; display: flex; align-items: center; gap: 4px; min-height: 40px; padding: 4px 8px; border-radius: 12px;
+    background: color-mix(in srgb, var(--team) 20%, rgba(11, 16, 38, 0.8)); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--team) 70%, transparent); }
+.qwd-team > :not(.qwd-team__fill) { position: relative; }
+.qwd-team__fill { position: absolute; inset: 0; transform-origin: left; transform: scaleX(var(--fill)); background: linear-gradient(90deg, color-mix(in srgb, var(--team) 60%, #000), var(--team)); opacity: 0.6; transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1); }
+.qwd-team__name { flex: 1; min-width: 0; font-weight: 700; font-size: 0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qwd-team__crown { color: var(--qw-gold); font-size: 0.8rem; }
+.qwd-team b { font: 400 1.15rem/1 var(--qw-title); }
+.qwd-team.is-lead { box-shadow: inset 0 0 0 2px var(--qw-gold); }
+
+.qwd-pickbar { position: sticky; top: 0; z-index: 2; display: grid; grid-template-columns: auto 1fr; gap: 8px; padding: 6px 0; background: linear-gradient(180deg, #151a48 70%, transparent); }
+.qwd-pickbar .qw-btn { min-height: 54px; }
+.qwd-hint { margin: -4px 2px 0; }
+.qwd-link { color: var(--qw-gold); font-weight: 700; text-decoration: underline; }
+.qwd-heroes { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 8px; }
+.qwd-hero { --team: #6366f1; position: relative; display: grid; justify-items: center; gap: 2px; padding: 8px 4px 6px; border-radius: 18px;
+    background: linear-gradient(170deg, color-mix(in srgb, var(--team) 26%, rgba(30, 27, 75, 0.7)), rgba(15, 23, 42, 0.7)) !important;
+    box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--team) 55%, transparent); transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease; }
+.qwd-hero:active { transform: scale(0.94); }
+.qwd-hero.is-picked { transform: translateY(-3px); box-shadow: inset 0 0 0 2.5px var(--qw-gold), 0 0 18px rgba(252, 211, 77, 0.45); }
+.qwd-hero__name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-size: 0.8rem; }
+.qwd-hero__pts { font: 400 1.05rem/1 var(--qw-title); color: var(--qw-gold); }
+.qwd-hero.is-new .qwd-hero__pts::after { content: ' new'; font: 700 0.58rem/1 var(--qw-ui); letter-spacing: 0.06em; text-transform: uppercase; color: #6ee7b7; }
+.qwd-hero__no { position: absolute; top: -6px; left: -4px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; font-weight: 800; font-size: 0.8rem; color: #422006; background: var(--qw-gold); box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4); }
+.qwd-hero__crowns { position: absolute; top: 4px; right: 6px; font-size: 0.7rem; color: var(--qw-gold); }
+.qwd-face { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; overflow: hidden; background: linear-gradient(160deg, var(--team, #4338ca), #1e1b4b); box-shadow: 0 0 0 2px color-mix(in srgb, var(--team, #a5b4fc) 70%, #fff); }
+.qwd-face img { width: 100%; height: 100%; object-fit: cover; }
+.qwd-face--initial { font: 400 1.2rem/1 var(--qw-title); color: #fff; }
+.qwd-face--lg { width: 54px; height: 54px; flex: none; }
+.qwd.is-rolling .qwd-heroes { animation: qwd-roll 0.25s ease-in-out infinite alternate; }
+@keyframes qwd-roll { to { opacity: 0.7; } }
+
+.qwd-fighters { display: grid; gap: 6px; }
+.qwd-vs { justify-self: center; display: grid; place-items: center; width: 34px; height: 34px; margin: -10px 0; z-index: 1; border-radius: 50%; font: 400 0.8rem/1 var(--qw-title); color: #422006;
+    background: radial-gradient(circle at 35% 30%, #fde68a, #f59e0b 60%, #b45309); box-shadow: 0 0 14px rgba(245, 158, 11, 0.6); }
+.qwd-fighter { display: grid; gap: 8px; padding: 10px; border-radius: 20px; background: linear-gradient(160deg, color-mix(in srgb, var(--team) 30%, rgba(30, 27, 75, 0.8)), rgba(15, 23, 42, 0.8));
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--team) 70%, transparent); transition: box-shadow 0.25s ease, transform 0.25s ease; }
+.qwd-fighter.is-lead { box-shadow: inset 0 0 0 2.5px var(--qw-gold), 0 0 22px rgba(252, 211, 77, 0.3); }
+.qwd-fighter__who { display: flex; align-items: center; gap: 10px; }
+.qwd-fighter__text { flex: 1; min-width: 0; display: grid; }
+.qwd-fighter__text b { font: 400 1.15rem/1.1 var(--qw-title); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qwd-fighter__text small { color: var(--qw-soft); font-size: 0.78rem; }
+.qwd-fighter__score { font: 400 2.1rem/1 var(--qw-title); color: #fff; min-width: 2ch; text-align: right; text-shadow: 0 3px 0 rgba(0, 0, 0, 0.35); }
+.qwd-fighter.is-lead .qwd-fighter__score { color: var(--qw-gold); }
+.qwd-fighter__pad { display: grid; grid-template-columns: 0.8fr 1fr 1fr 1fr 0.8fr; gap: 6px; }
+.qwd-pt { min-height: 50px; border-radius: 14px; font: 400 1.15rem/1 var(--qw-title); color: #fff; background: linear-gradient(180deg, color-mix(in srgb, var(--team) 80%, #fff), var(--team)) !important; box-shadow: inset 0 -4px 0 color-mix(in srgb, var(--team) 60%, #000); transition: transform 0.1s ease; }
+.qwd-pt:active { transform: scale(0.92) translateY(2px); }
+.qwd-pt--minus { color: var(--qw-soft); background: var(--qw-glass-2) !important; box-shadow: inset 0 0 0 1px var(--qw-line); }
+.qwd-pt--crown { color: #422006; background: linear-gradient(180deg, #fde68a, #f59e0b) !important; box-shadow: inset 0 -4px 0 #b45309; }
+.qwd-crown { min-height: 58px; font-size: 1.1rem; }
+
+.qwd-podium { list-style: none; display: grid; gap: 4px; width: 100%; margin: 6px 0 0; padding: 0; }
+.qwd-podium li { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 12px; background: rgba(255, 255, 255, 0.08); }
+.qwd-podium li b { flex: 1; text-align: left; }
+.qwd-podium li small { color: var(--qw-soft); }
+.qwd-pay { display: flex; flex-wrap: wrap; gap: 6px; }
+.qwd-pay small { padding: 1px 7px; border-radius: 999px; background: rgba(252, 211, 77, 0.2); color: var(--qw-gold); font-weight: 700; }
+
+.qw-lite .qwd-launch__swords span, .qw-still .qwd-launch__swords span, .qw-lite .qwd.is-rolling .qwd-heroes { animation: none; }

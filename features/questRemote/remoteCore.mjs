@@ -12,6 +12,34 @@ export const REMOTE_COMMAND_TYPES = Object.freeze([
 
 /** What the Wand can ask of a Showdown. */
 export const SHOWDOWN_ACTIONS = Object.freeze(['open', 'point', 'minus', 'next', 'finish', 'close', 'reward', 'timer', 'golden', 'undo', 'blind', 'pass', 'rematch', 'reveal', 'stopclock', 'miss']);
+/**
+ * Hero Duels (ui/modals/heroDuels.js) rides on the Showdown command type, so it needs no new
+ * Firestore rule: every action starts with `duel-` and presses the matching button on the projector.
+ */
+export const DUEL_ACTIONS = Object.freeze(['duel-open', 'duel-rule', 'duel-shuffle', 'duel-here', 'duel-move', 'duel-arena', 'duel-fresh', 'duel-setup',
+    'duel-pick', 'duel-suggest', 'duel-clear', 'duel-start', 'duel-point', 'duel-crown', 'duel-share', 'duel-cancel', 'duel-undo',
+    'duel-finish', 'duel-back', 'duel-pay', 'duel-close']);
+export const DUEL_RULES = Object.freeze({
+    teams: ['0', '2', '3', '4', '5', '6'],
+    source: ['today', 'guild', 'stars', 'random'],
+    size: ['2', '3', '4', '5', '6'],
+    bonus: ['0', '1', '2', '3'],
+    target: ['0', '3', '5', '10'],
+    bank: ['all', 'winner'],
+    stars: ['1', '2', '3']
+});
+export const DUEL_PAY_SCOPES = Object.freeze(['team', 'podium', 'winners', 'all']);
+
+/** Why a Hero Duels command is malformed ('' when it is fine). */
+export function duelCommandProblem(p) {
+    if (!DUEL_ACTIONS.includes(p.action)) return 'bad-action';
+    const needsHero = ['duel-here', 'duel-move', 'duel-pick', 'duel-point', 'duel-crown'].includes(p.action);
+    if (needsHero && !shortString(p.studentId, 64)) return 'bad-student';
+    if (p.action === 'duel-point' && ![-1, 1, 2, 3].includes(p.delta)) return 'bad-points';
+    if (p.action === 'duel-rule' && !(DUEL_RULES[p.rule] || []).includes(p.value)) return 'bad-rule';
+    if (p.action === 'duel-pay' && !DUEL_PAY_SCOPES.includes(p.scope)) return 'bad-scope';
+    return '';
+}
 
 /** The class picker's two other choices (sent as a `class` command's classId). */
 export const CLASS_GENERAL = '*general';
@@ -159,7 +187,11 @@ export function validateCommand(cmd) {
         case 'blackout': return typeof p.on === 'boolean' ? { ok: true } : fail('bad-on');
         case 'dragon': return ['open', 'close'].includes(p.action) ? { ok: true } : fail('bad-action');
         case 'wall': return ['toggle', 'next', 'prev', 'pin', 'reveal', 'deck'].includes(p.action) ? { ok: true } : fail('bad-action');
-        case 'showdown':
+        case 'showdown': {
+            if (typeof p.action === 'string' && p.action.startsWith('duel-')) {
+                const problem = duelCommandProblem(p);
+                return problem ? fail(problem) : { ok: true };
+            }
             if (!SHOWDOWN_ACTIONS.includes(p.action)) return fail('bad-action');
             if (p.team != null && !(Number.isInteger(p.team) && p.team >= 0 && p.team < 8)) return fail('bad-team');
             // several teams got it at once: a point to each, in one step (one undo)
@@ -180,6 +212,7 @@ export function validateCommand(cmd) {
                 if (problem) return fail(problem);
             }
             return { ok: true };
+        }
         case 'quiz': return ['answer', 'next', 'skip', 'listen', 'close'].includes(p.action)
             && (p.action !== 'answer' || [0, 1, 2, 3].includes(p.index)) ? { ok: true } : fail('bad-quiz');
         case 'crown': return ['crown', 'huzzah'].includes(p.action ?? 'crown') ? { ok: true } : fail('bad-action');
@@ -438,7 +471,9 @@ export function buildStageSummary({ surface = 'tab', tab = '', title = '', class
     return summary;
 }
 
-const PANEL_KINDS = new Set(['wheel', 'picker', 'quiz', 'showdown', 'wall', 'dragon', 'timer', 'crown']);
+const PANEL_KINDS = new Set(['wheel', 'picker', 'quiz', 'showdown', 'duels', 'wall', 'dragon', 'timer', 'crown']);
+/** Lists that may run longer than 8 rows: Hero Duels sends the whole class to the Wand. */
+const LONG_LISTS = Object.freeze({ duels: { heroes: 40 } });
 
 /** The label a timer of `seconds` carries on the projector (presets keep their routine names). */
 export function timerLabelFor(seconds) {
@@ -464,7 +499,7 @@ function sanitizePanel(panel) {
         if (typeof value === 'string') out[key] = value.slice(0, 120);
         else if (typeof value === 'number' && Number.isFinite(value)) out[key] = value;
         else if (typeof value === 'boolean') out[key] = value;
-        else if (Array.isArray(value)) out[key] = value.slice(0, 8).map((v) => (typeof v === 'object' && v ? sanitizeFlat(v) : v));
+        else if (Array.isArray(value)) out[key] = value.slice(0, LONG_LISTS[panel.kind]?.[key] || 8).map((v) => (typeof v === 'object' && v ? sanitizeFlat(v) : v));
     }
     return out;
 }

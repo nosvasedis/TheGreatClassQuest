@@ -311,7 +311,7 @@
 .hd-crowning {
     position: absolute; inset: 0; z-index: 4; pointer-events: none;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem;
-    background: radial-gradient(circle at 50% 45%, rgba(11, 16, 38, 0.55), rgba(11, 16, 38, 0.85) 70%);
+    background: radial-gradient(circle at 50% 45%, rgba(11, 16, 38, 0.82), rgba(11, 16, 38, 0.95) 70%);
     animation: hd-crowning 2.6s ease both;
     text-align: center;
 }
@@ -461,6 +461,158 @@
 .hd-reward__groups { display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: center; }
 .hd-finale__foot { display: flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center; }
 
+/* ─── Arena life: embers, torches, the rune ring ─────────────────────────── */
+.hd > .hd-embers, .hd > .hd-torch { position: absolute; pointer-events: none; }
+.hd-embers { inset: 0; overflow: hidden; z-index: 0; }
+.hd-embers i {
+    position: absolute; bottom: -12px; left: var(--x);
+    width: calc(6px * var(--s)); height: calc(6px * var(--s)); border-radius: 50%;
+    background: radial-gradient(circle, #fff7ed, #fb923c 45%, rgba(251, 146, 60, 0) 72%);
+    opacity: 0; animation: hd-ember var(--t) linear var(--d) infinite;
+}
+@keyframes hd-ember {
+    0% { transform: translate(0, 0) scale(1); opacity: 0; }
+    10% { opacity: 0.9; }
+    60% { transform: translate(24px, -55vh) scale(0.8); opacity: 0.55; }
+    100% { transform: translate(-16px, -100vh) scale(0.3); opacity: 0; }
+}
+.hd-torch { bottom: 0; width: clamp(3rem, 6vw, 5rem); height: clamp(9rem, 26vh, 15rem); z-index: 0; }
+.hd-torch--l { left: 0.4rem; }
+.hd-torch--r { right: 0.4rem; }
+.hd-torch::before { /* the post */
+    content: ''; position: absolute; left: 50%; bottom: 0; width: 22%; height: 62%; transform: translateX(-50%);
+    border-radius: 6px 6px 0 0; background: linear-gradient(90deg, #451a03, #92400e 50%, #451a03);
+}
+.hd-torch::after { /* the bowl and its glow */
+    content: ''; position: absolute; left: 50%; bottom: 60%; width: 70%; height: 12%; transform: translateX(-50%);
+    border-radius: 0 0 50% 50%; background: linear-gradient(#b45309, #78350f);
+    box-shadow: 0 -30px 60px 20px rgba(251, 146, 60, 0.28);
+}
+.hd-torch i {
+    position: absolute; left: 50%; bottom: 70%; width: 46%; height: 30%; margin-left: -23%;
+    border-radius: 50% 50% 45% 45% / 65% 65% 35% 35%; transform-origin: 50% 100%;
+    background: radial-gradient(ellipse at 50% 80%, #fef3c7, #fbbf24 35%, #f97316 65%, rgba(220, 38, 38, 0) 80%);
+    animation: hd-flame 0.9s ease-in-out infinite alternate;
+}
+.hd-torch i:nth-child(2) { width: 32%; margin-left: -16%; height: 24%; animation-duration: 0.7s; animation-delay: -0.3s; opacity: 0.8; }
+.hd-torch i:nth-child(3) { width: 20%; margin-left: -10%; height: 16%; bottom: 74%; animation-duration: 0.55s; background: radial-gradient(ellipse at 50% 80%, #fff, #fde68a 60%, rgba(253, 230, 138, 0) 80%); }
+@keyframes hd-flame { from { transform: scale(1, 1) skewX(-3deg); } to { transform: scale(0.88, 1.12) skewX(4deg); } }
+.hd.is-setup .hd-torch { display: none; }
+
+.hd-ring__floor { overflow: visible; }
+.hd-ring__runes {
+    position: absolute; inset: 8% 12%; border-radius: 50%;
+    border: 2px dashed rgba(252, 211, 77, 0.28);
+    box-shadow: 0 0 0 10px rgba(252, 211, 77, 0.05), inset 0 0 40px rgba(252, 211, 77, 0.12);
+    animation: hd-spin 40s linear infinite;
+}
+
+/* The leader's aura: a slow golden halo behind the face */
+.hd-duellist__face { position: relative; }
+.hd-duellist__face > .ct-face { position: relative; }
+.hd-duellist__aura {
+    position: absolute; inset: -14%; border-radius: 50%; opacity: 0; transform: scale(0.8);
+    background: conic-gradient(from 0deg, rgba(252, 211, 77, 0), rgba(252, 211, 77, 0.85), rgba(252, 211, 77, 0) 30%, rgba(252, 211, 77, 0.85) 55%, rgba(252, 211, 77, 0) 80%);
+    -webkit-mask: radial-gradient(circle, transparent 58%, #000 60%); mask: radial-gradient(circle, transparent 58%, #000 60%);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.hd-duellist.is-lead .hd-duellist__aura { opacity: 1; transform: scale(1); animation: hd-spin 4s linear infinite; }
+.hd-duellist__score.is-up::after {
+    content: ''; position: absolute; left: 50%; top: 50%; width: 1.4em; height: 1.4em; margin: -0.7em 0 0 -0.7em; border-radius: 50%;
+    border: 4px solid var(--c); animation: hd-shock 0.55s ease-out both; pointer-events: none;
+}
+.hd-duellist__score { position: relative; }
+@keyframes hd-shock { from { transform: scale(0.4); opacity: 0.9; } to { transform: scale(1.8); opacity: 0; } }
+
+/* Team bars: a shine sweeps across, the number ticks up */
+.hd-team__shine {
+    position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.35) 50%, transparent 65%);
+    transform: translateX(-120%); animation: hd-shine 5.5s ease-in-out infinite;
+}
+.hd-team:nth-child(2) .hd-team__shine { animation-delay: 1.2s; }
+.hd-team:nth-child(3) .hd-team__shine { animation-delay: 2.4s; }
+@keyframes hd-shine { 0%, 70% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
+.hd-team__pts.is-tick { animation: hd-tick 0.18s ease-out; }
+@keyframes hd-tick { 50% { transform: scale(1.25); } }
+
+/* "Pick for me": the spotlight dances over the cards */
+.hd.is-rolling .hd-roster .hd-hero { opacity: 0.55; transform: scale(0.97); }
+.hd.is-rolling .hd-roster .hd-hero.is-scan {
+    opacity: 1; transform: translateY(-4px) scale(1.07);
+    box-shadow: 0 0 0 4px #fff, 0 0 30px 6px rgba(252, 211, 77, 0.75);
+    transition-duration: 0.06s;
+}
+
+/* The clash: duellists slam in from both sides under the duel's number */
+.hd-clash {
+    position: absolute; inset: 0; z-index: 5; pointer-events: none;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.2rem;
+    background: radial-gradient(circle at 50% 50%, rgba(11, 16, 38, 0.6), rgba(11, 16, 38, 0.92) 75%);
+    animation: hd-clash-life 1.75s ease both;
+}
+@keyframes hd-clash-life { 0% { opacity: 0; } 8% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+.hd-clash__flash { position: absolute; inset: 0; background: radial-gradient(circle, #fff, rgba(252, 211, 77, 0.6) 30%, transparent 65%); opacity: 0; animation: hd-flash 0.5s ease-out 0.42s both; }
+@keyframes hd-flash { 0% { opacity: 0; transform: scale(0.4); } 30% { opacity: 1; } 100% { opacity: 0; transform: scale(1.4); } }
+.hd-clash__title {
+    position: relative; font-size: clamp(2.4rem, 7vw, 5.4rem); line-height: 1; color: var(--hd-gold);
+    text-shadow: 0 6px 0 #92400e, 0 0 40px rgba(252, 211, 77, 0.6);
+    animation: hd-title-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes hd-title-in { from { transform: scale(2.2); opacity: 0; } }
+.hd-clash__row { position: relative; display: flex; align-items: center; gap: clamp(0.6rem, 2vw, 2rem); }
+.hd-clash__hero {
+    display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+    animation: hd-slam 0.45s cubic-bezier(0.5, 0, 0.75, 0) both, hd-recoil 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) 0.45s both;
+}
+.hd-clash__hero .ct-face--xl {
+    width: clamp(5rem, calc(40vw / var(--n)), 11rem); height: clamp(5rem, calc(40vw / var(--n)), 11rem);
+    font-size: clamp(2rem, 5vw, 4rem); box-shadow: 0 0 0 6px var(--c), 0 0 40px var(--c);
+}
+.hd-clash__hero b { font-size: clamp(1.2rem, 2.8vw, 2.4rem); color: #fff; text-shadow: 0 3px 0 rgba(0, 0, 0, 0.4); }
+@keyframes hd-slam { from { transform: translateX(calc(var(--side) * 60vw)) rotate(calc(var(--side) * 25deg)); opacity: 0; } to { transform: translateX(calc(var(--side) * -14px)); opacity: 1; } }
+@keyframes hd-recoil { from { transform: translateX(calc(var(--side) * -14px)); } to { transform: none; } }
+.hd-clash__vs {
+    font-size: clamp(1.6rem, 4vw, 3.4rem); color: #451a03; padding: 0.4em 0.5em; border-radius: 999px;
+    background: radial-gradient(circle at 35% 30%, #fde68a, #f59e0b 55%, #b45309);
+    box-shadow: 0 0 40px rgba(245, 158, 11, 0.8);
+    animation: hd-vs-slam 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.45s both;
+}
+@keyframes hd-vs-slam { from { transform: scale(0) rotate(-180deg); } }
+
+/* The crowning, richer: sparks, laurel, a ribbon with the name */
+.hd-crowning__sparks { position: absolute; left: 50%; top: 42%; width: 0; height: 0; }
+.hd-crowning__sparks i {
+    position: absolute; width: 12px; height: 12px; margin: -6px; border-radius: 2px;
+    background: #fde68a; box-shadow: 0 0 12px #fcd34d;
+    transform: rotate(var(--a)) translateY(0) scale(0); opacity: 0;
+    animation: hd-spark 1.3s ease-out calc(0.3s + var(--d)) both;
+}
+@keyframes hd-spark { 0% { transform: rotate(var(--a)) translateY(0) scale(0); opacity: 1; } 70% { opacity: 1; } 100% { transform: rotate(var(--a)) translateY(-32vh) scale(1) rotate(180deg); opacity: 0; } }
+.hd-crowning__laurel {
+    position: absolute; inset: -18%; border-radius: 50%;
+    background: conic-gradient(from 200deg, transparent 0 8%, rgba(74, 222, 128, 0.9) 8% 38%, transparent 38% 62%, rgba(74, 222, 128, 0.9) 62% 92%, transparent 92%);
+    -webkit-mask: radial-gradient(circle, transparent 60%, #000 61%, #000 72%, transparent 73%); mask: radial-gradient(circle, transparent 60%, #000 61%, #000 72%, transparent 73%);
+    animation: hd-winner 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s both;
+}
+.hd-crowning__ribbon {
+    position: relative; padding: 0.35rem 2.6rem;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--c) 85%, #fff), var(--c));
+    clip-path: polygon(0 0, 100% 0, 96% 50%, 100% 100%, 0 100%, 4% 50%);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    animation: hd-ribbon 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both;
+}
+@keyframes hd-ribbon { from { transform: scaleX(0); } }
+.hd-crowning__ribbon h2 { animation: none; }
+.hd-crowning__line { position: relative; margin-top: 0.4rem; padding: 0.15em 0.9em; border-radius: 999px; background: rgba(11, 16, 38, 0.75); font-size: clamp(1.1rem, 2.4vw, 1.8rem); font-weight: 700; color: #fff; text-shadow: 0 3px 0 rgba(0, 0, 0, 0.35); }
+.hd-crowning__gain { position: relative; padding: 0.15em 0.9em; border-radius: 999px; background: rgba(11, 16, 38, 0.75); font-size: clamp(1rem, 2vw, 1.5rem); font-weight: 700; color: #fde68a; }
+
+/* Finale: a trophy, and podium blocks that rise */
+.hd-finale__trophy { font-size: clamp(2.6rem, 7vh, 4rem); color: var(--hd-gold); filter: drop-shadow(0 6px 12px rgba(245, 158, 11, 0.6)); animation: hd-trophy 2.4s ease-in-out infinite; }
+@keyframes hd-trophy { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-8px) rotate(4deg); } }
+.hd-podium__block { transform-origin: bottom; animation: hd-rise 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) calc(0.3s + (3 - var(--i, 1)) * 0.2s) both; }
+@keyframes hd-rise { from { transform: scaleY(0); } }
+
 /* Phones and narrow windows: stack, keep it usable */
 @media (max-width: 720px) {
     .hd-head__tools .hd-tool span { display: none; }
@@ -472,7 +624,8 @@
     .hd-finale__bar { display: none; }
 }
 
-/* Weak laptops and reduced motion: no entrance shows, no spinning rays */
+/* Weak laptops and reduced motion: no entrance shows, no spinning rays, no embers */
+.hd--lite .hd-embers, .hd--lite .hd-team__shine { display: none; }
 .hd--lite, .hd--lite *, .hd--lite *::before, .hd--lite *::after { animation: none !important; transition: none !important; }
 .hd--lite .hd-crowning { animation: hd-crowning 1.8s ease both !important; }
 @media (prefers-reduced-motion: reduce) {

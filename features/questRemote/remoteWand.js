@@ -28,6 +28,11 @@ import {
     spellsSheetHtml, WAND_MODES
 } from './remoteWandView.mjs';
 import { morphInto } from './wandMorph.mjs';
+import '../../styles/quest_remote_duels.css';
+import { duelsWandHtml, duelsLauncherHtml, showGamesHtml } from './duelsWandView.mjs';
+
+const GAME_KEY = 'gcq.questRemote.showGame';
+function savedGame() { try { return localStorage.getItem(GAME_KEY) === 'duels' ? 'duels' : 'showdown'; } catch { return 'showdown'; } }
 
 const LITE = (() => { try { return detectLowPowerTier(); } catch { return false; } })();
 const STILL = (() => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } })();
@@ -96,6 +101,7 @@ export async function openWand({ sessionId = '' } = {}) {
         customMinutes: savedMinutes(),
         spells: [],
         forge: savedForge(),
+        showGame: savedGame(),
         sdPoints: 1,
         // "Several teams": team taps pick, one button gives them all the point (or, in Survivor, the miss)
         sdMulti: false,
@@ -337,9 +343,11 @@ function onSession(data, { fromCache = false } = {}) {
     const kind = wand.stage?.panel?.kind || '';
     if (kind && kind !== prevPanel && kind !== wand.lastPanelKind) {
         wand.lastPanelKind = kind;
-        const target = kind === 'quiz' || kind === 'showdown' ? 'show' : 'stage';
+        const showKind = kind === 'quiz' || kind === 'showdown' || kind === 'duels';
+        const target = showKind ? 'show' : 'stage';
+        if (kind === 'duels') wand.showGame = 'duels';
         if (wand.mode !== target && wand.mode !== 'stars') setMode(target);
-        else if (wand.mode === 'stars' && (kind === 'quiz' || kind === 'showdown')) setMode(target);
+        else if (wand.mode === 'stars' && showKind) setMode(target);
         else render();
         buzz(12);
         return;
@@ -781,8 +789,16 @@ function render({ fresh = false } = {}) {
     } else if (wand.mode === 'lesson') {
         html = lessonHtml(stage, { customMinutes: wand.customMinutes });
     } else {
-        const showdownOn = stage.panel?.kind === 'showdown' || stage.panel?.kind === 'quiz';
-        html = showHtml(stage, { secret: wand.secret, clock: showClockLeft(), forge: showdownOn ? null : forgeModel(), points: wand.sdPoints, reward: wand.sdReward, multi: wand.sdMulti, picks: [...wand.sdPick] });
+        const kind = stage.panel?.kind;
+        const showdownOn = kind === 'showdown' || kind === 'quiz';
+        if (kind === 'duels') html = duelsWandHtml(stage.panel, { avatarOf: avatarOf });
+        else if (showdownOn) html = showHtml(stage, { secret: wand.secret, clock: showClockLeft(), forge: null, points: wand.sdPoints, reward: wand.sdReward, multi: wand.sdMulti, picks: [...wand.sdPick] });
+        else {
+            // Nothing running yet: the two games side by side, then the chosen one's setup.
+            html = showGamesHtml(wand.showGame) + (wand.showGame === 'duels'
+                ? duelsLauncherHtml({ className: classLabel() })
+                : showHtml(stage, { secret: wand.secret, clock: showClockLeft(), forge: forgeModel(), points: wand.sdPoints, reward: wand.sdReward, multi: wand.sdMulti, picks: [...wand.sdPick] }));
+        }
     }
     // Only touch the page when something changed: no flicker, no lost taps, less work.
     const view = wand.main.firstElementChild;
@@ -834,6 +850,11 @@ function classLabel() {
     const cls = (state.get('allTeachersClasses') || []).find((c) => c.id === id)
         || (state.get('allSchoolClasses') || []).find((c) => c.id === id);
     return cls ? `${cls.logo || ''} ${cls.name}`.trim() : '';
+}
+
+/** A hero's picture on this phone (Hero Duels faces). */
+function avatarOf(id) {
+    return (state.get('allStudents') || []).find((s) => s.id === id)?.avatar || '';
 }
 
 function heroesNow() {
@@ -1030,6 +1051,9 @@ function datasetPayload(el) {
     if (d.teams) p.teams = d.teams.split(',').filter(Boolean).map(Number);
     if (d.scope) p.scope = d.scope;
     if (d.stars) p.stars = Number(d.stars);
+    if (d.delta) p.delta = Number(d.delta);
+    if (d.rule) p.rule = d.rule;
+    if (d.value != null && d.rule) p.value = d.value;
     return p;
 }
 
@@ -1068,6 +1092,12 @@ function wireEvents(root) {
         if (act === 'to-stage') { buzz(6); setMode('stage'); return; }
         if (act === 'to-stars') { buzz(6); setMode('stars'); return; }
         if (act === 'pad-toggle') { wand.padOpen = !wand.padOpen; render(); return; }
+        const game = t.closest('[data-qw-game]');
+        if (game) {
+            wand.showGame = game.dataset.qwGame === 'duels' ? 'duels' : 'showdown';
+            try { localStorage.setItem(GAME_KEY, wand.showGame); } catch { /* fine */ }
+            buzz(6); render({ fresh: true }); return;
+        }
         if (act === 'multi-clear') { wand.picked.clear(); render(); return; }
         if (act === 'multi-go') { if (wand.picked.size) openAward([...wand.picked]); return; }
         if (act === 'class') {
@@ -1143,7 +1173,8 @@ function wireEvents(root) {
             const payload = datasetPayload(cmdEl);
             // A quick double tap must not start a timer, a wheel or a show twice. Points, scrolling and
             // keys stay rapid-fire.
-            const repeatable = type === 'scroll' || type === 'key' || (type === 'showdown' && (payload.action === 'point' || payload.action === 'minus'));
+            const repeatable = type === 'scroll' || type === 'key'
+                || (type === 'showdown' && ['point', 'minus', 'duel-point', 'duel-pick'].includes(payload.action));
             const nowMs = performance.now();
             if (!repeatable && nowMs - (Number(cmdEl.dataset.qwSentAt) || 0) < 650) return;
             if (send(type, payload)) {

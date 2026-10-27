@@ -1159,3 +1159,31 @@ test('Showdown finishing order: who got there first, a race for 2nd and 3rd, Sur
     assert.equal(core.ordinalPlace(11), '11th');
     assert.equal(core.ordinalPlace(22), '22nd');
 });
+
+test('Hero Duels rides the showdown command with duel- actions', () => {
+    const ok = (payload) => validateCommand({ type: 'showdown', payload, clientSeq: 1 }).ok;
+    assert.equal(ok({ action: 'duel-open' }), true);
+    assert.equal(ok({ action: 'duel-point', studentId: 's1', delta: 2 }), true);
+    assert.equal(ok({ action: 'duel-point', studentId: 's1', delta: 1 }), true);
+    assert.equal(ok({ action: 'duel-point', studentId: 's1', delta: -1 }), true);
+    assert.equal(ok({ action: 'duel-point', studentId: 's1', delta: 7 }), false, 'only -1..3');
+    assert.equal(ok({ action: 'duel-point', delta: 1 }), false, 'a point needs a hero');
+    assert.equal(ok({ action: 'duel-pick', studentId: 's1' }), true);
+    assert.equal(ok({ action: 'duel-crown', studentId: 's1' }), true);
+    assert.equal(ok({ action: 'duel-start' }), true);
+    assert.equal(ok({ action: 'duel-hack' }), false);
+    // Plain showdown actions are untouched.
+    assert.equal(ok({ action: 'open' }), true);
+});
+
+test('the duels panel keeps the whole class on the Wand', () => {
+    const heroes = Array.from({ length: 30 }, (_, i) => ({ id: `s${i}`, n: `Hero ${i}`, p: i, w: 0, d: 0, c: '#f59e0b', k: false }));
+    const s = buildStageSummary({ surface: 'duels', title: 'Hero Duels', panel: { kind: 'duels', view: 'pick', heroes, teams: [{ name: 'Coral Foxes', pts: 4 }] } });
+    assert.equal(s.panel.kind, 'duels');
+    assert.equal(s.panel.heroes.length, 30);
+    assert.equal(s.panel.heroes[3].n, 'Hero 3');
+    const many = buildStageSummary({ panel: { kind: 'duels', heroes: Array.from({ length: 60 }, (_, i) => ({ id: `s${i}` })) } });
+    assert.equal(many.panel.heroes.length, 40);
+    const other = buildStageSummary({ panel: { kind: 'wheel', items: Array.from({ length: 20 }, (_, i) => `x${i}`) } });
+    assert.equal(other.panel.items.length, 8, 'other panels keep the short cap');
+});

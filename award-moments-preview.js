@@ -27,8 +27,8 @@ function boon(ok) {
     });
     setTimeout(() => {
         if (ok) {
-            moment.land({ stars: 1 });
-            announceBoon({ giverName: 'Nikos Georgiou', receiverName: 'Eleni Dimitriou', stars: 1, patronGoldBack: 2 });
+            moment.land({ stars: 0.5 });
+            announceBoon({ giverName: 'Nikos Georgiou', receiverName: 'Eleni Dimitriou', stars: 0.5, patronGoldBack: 2 });
         } else moment.fizzle();
     }, 1200);
 }

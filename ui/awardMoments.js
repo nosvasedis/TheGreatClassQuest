@@ -12,6 +12,7 @@
 import { playAwardMomentSfx } from '../audio.js';
 import { notify } from './effects.js';
 import { formatBoonStars } from './boonSponsorPicker.js';
+import { PEER_BOON_BASE_STARS } from '../features/heroClasses.js';
 import { getLayer, prefersReducedMotion, isLitePower, centerOf, spawn, run, popElement, isOnScreen } from './awardFx.js';
 
 const esc = (value) => String(value ?? '')
@@ -282,7 +283,7 @@ export function startBoonMoment({ giver, receiver, origin } = {}) {
                         { transform: 'scale(0.94)', offset: 0.6 }, { transform: 'scale(1.04)', offset: 0.8 }, { transform: 'scale(1)' }
                     ], { duration: 760, easing: 'ease-out' });
                     const stars = Number(result.stars);
-                    popLabel(scene, { x: at.x, y: at.y - 84 }, `${esc(formatBoonStars(stars > 0 ? stars : 1))}<i aria-hidden="true">★</i>`, 'amx-label--boon', { duration: 2000, rise: 70 });
+                    popLabel(scene, { x: at.x, y: at.y - 84 }, `${esc(formatBoonStars(stars > 0 ? stars : PEER_BOON_BASE_STARS))}<i aria-hidden="true">★</i>`, 'amx-label--boon', { duration: 2000, rise: 70 });
                     showLoveOnCard(receiver?.id, lite);
                     finish(2100);
                 };

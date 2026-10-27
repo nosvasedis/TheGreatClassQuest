@@ -53,7 +53,11 @@ test('only parties that stepped through are inside; a full party still outside w
     assert.deepEqual(portal.gate.map((p) => p.name), ['AtGate']);
     const html = placeTipHtml(portal);
     assert.match(html, /Inside the Portal/);
-    assert.match(html, /Waiting at the sealed gate/);
+    // The card follows the party at the gate, so it says so there rather than in a second list.
+    assert.equal(portal.focus.name, 'AtGate');
+    assert.match(html, /at the gate/);
+    const two = describePlace('portal', [...map, { name: 'AlsoGate', logo: '🐸', progress: 100, inside: false }]);
+    assert.match(placeTipHtml(two), /Waiting at the sealed gate/);
     assert.deepEqual(describePlace('crystal', map).here.map((p) => p.name), ['AtGate']);
     // Every party inside is named, never "+N".
     const many = Array.from({ length: 6 }, (_, i) => ({ name: `C${i}`, progress: 100, inside: true }));
@@ -76,4 +80,41 @@ test('a crowded realm shows four chips and a count for the rest', () => {
     assert.equal((html.match(/class="tq-tip__chip"/g) || []).length, 4);
     assert.match(html, /\+3/);
     assert.match(html, /7 parties here now/);
+});
+
+test('the Portal card counts the stars this class still needs, then its runes', () => {
+    const runes = [
+        { id: 'virtues', short: 'Four Virtues', icon: 'fa-clover', met: true },
+        { id: 'lanterns', short: 'Lanterns', icon: 'fa-fire-flame-curved', met: false }
+    ];
+    const map = [
+        { name: 'Owls', logo: '🦉', progress: 92, stars: 129, goal: 140, inside: false, isLeader: true },
+        { name: 'Books', logo: '📚', progress: 79, stars: 111, goal: 140, inside: false, isMine: true, portal: { state: 'road', runes } }
+    ];
+    const portal = describePlace('portal', map);
+    assert.equal(portal.focus.name, 'Books');
+    assert.equal(portal.focus.starsLeft, 29);
+    assert.equal(portal.chaser.name, 'Owls');
+    assert.equal(portal.chaser.starsLeft, 11);
+    const html = placeTipHtml(portal);
+    assert.match(html, /<b>29<\/b><span>stars to go<em>111 of 140★<\/em>/);
+    assert.match(html, /Then one rune to light/);
+    assert.match(html, /tq-tip__rune is-lit/);
+    assert.match(html, /11★ to go/);
+    assert.doesNotMatch(html, /leading party is/);
+});
+
+test('a class with every star but a sleeping rune waits at the gate, never "100%" on the road', () => {
+    const sealed = describePlace('portal', [{
+        name: 'Books', logo: '📚', progress: 100, stars: 140, goal: 140, inside: false, isMine: true,
+        portal: { state: 'sealed', runes: [{ id: 'virtues', short: 'Four Virtues', icon: 'fa-clover', met: false }] }
+    }]);
+    assert.equal(sealed.focus.starsMet, true);
+    const html = placeTipHtml(sealed);
+    assert.match(html, /Stars gathered/);
+    assert.match(html, /One rune still sleeps/);
+    const nearly = describePlace('portal', [{ name: 'Owls', logo: '🦉', progress: 99.8, stars: 139.7, goal: 140, isMine: true }]);
+    assert.equal(nearly.focus.percent, 99);
+    assert.equal(nearly.focus.starsLeft, 1);
+    assert.match(placeTipHtml(nearly), /star to go/);
 });

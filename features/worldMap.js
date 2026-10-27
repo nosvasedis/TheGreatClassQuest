@@ -300,6 +300,14 @@ function buildMapItems(classes, { activeClassId = null } = {}) {
     });
 }
 
+/** What the Portal's hover card needs about a party's runes (kept on its token). */
+function portalTipData(portal) {
+    return JSON.stringify({
+        state: portal.state,
+        runes: (portal.runes || []).map((rune) => ({ id: rune.id, short: rune.short, icon: rune.icon, met: Boolean(rune.met) }))
+    });
+}
+
 function renderMapToken(item) {
     const { c, pct, isLeader, isMine, pinTier, progressDisplay, starsDisplay, goal, rankPosition, tokenKey, lane, liveMonthlyStars, displayLevel, portal, inside, insideIndex, insideCount } = item;
     const zone = getQuestMapZoneForProgressPercent(pct);
@@ -332,6 +340,7 @@ function renderMapToken(item) {
                 data-logo="${safeLogo}"
                 data-name="${safeName}"
                 data-lane="${lane}"
+                ${portal && !inside ? `data-portal="${escapeMapHtml(portalTipData(portal))}"` : ''}
                 ${inside ? `data-inside="${insideIndex}" data-inside-count="${insideCount}"` : ''}
                 aria-label="${ariaLabel}"
                 aria-haspopup="dialog"
@@ -856,7 +865,8 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             logo: token.dataset.logo,
             isMine: token.classList.contains('is-mine'),
             isLeader: token.classList.contains('is-leader'),
-            inside: token.dataset.inside !== undefined
+            inside: token.dataset.inside !== undefined,
+            portal: readPortalTipData(token)
         };
     });
     const mountMagic = () => {
@@ -870,6 +880,10 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         }).catch((error) => console.warn('Quest map magic could not load.', error));
     };
 
+    const readPortalTipData = (token) => {
+        if (!token.dataset.portal) return null;
+        try { return JSON.parse(token.dataset.portal); } catch { return null; }
+    };
     const tokenState = (token) => ({
         key: token.dataset.tokenKey,
         progress: Math.min(100, Math.max(0, Number(token.dataset.progress) || 0)),

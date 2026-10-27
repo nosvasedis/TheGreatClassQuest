@@ -1425,6 +1425,78 @@
 .tq-tip__chip.is-mine { color: #fff; background: linear-gradient(135deg, #2f7de1, #6c4de6); box-shadow: 0 0 0.5rem rgba(90, 120, 240, 0.5); }
 .tq-tip__chip--more { padding-left: 0.5rem; color: #7a4e1c; background: rgba(255, 236, 190, 0.9); }
 
+/* The Portal card: how far one party still is (stars, then its runes). */
+.tq-tip__goal {
+    display: flex;
+    flex-direction: column;
+    gap: 0.32rem;
+    padding: 0.5rem 0.6rem 0.55rem;
+    border-radius: 0.8rem;
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.92), rgba(243, 232, 255, 0.85));
+    box-shadow: inset 0 0 0 1px rgba(139, 92, 246, 0.35), 0 1px 0 rgba(120, 80, 30, 0.15);
+}
+
+.tq-tip__goal.is-mine { box-shadow: inset 0 0 0 1.5px rgba(76, 110, 230, 0.6), 0 0 0.6rem rgba(90, 120, 240, 0.25); }
+.tq-tip__goal-top { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; }
+.tq-tip__goal-who { display: inline-flex; align-items: center; gap: 0.3rem; min-width: 0; color: #3b2470; font-size: 0.78rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tq-tip__goal-top small { flex: none; color: #6d5a8f; font-size: 0.56rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.tq-tip__goal.is-mine .tq-tip__goal-top small { color: #3f5fd0; }
+
+.tq-tip__goal-count { display: flex; align-items: center; gap: 0.5rem; line-height: 1; }
+.tq-tip__goal-count b {
+    color: #5b21b6;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.85rem;
+    font-weight: 400;
+    text-shadow: 0 1px 0 #fff, 0 0 0.6rem rgba(167, 139, 250, 0.55);
+}
+.tq-tip__goal-count > span { display: flex; flex-direction: column; gap: 0.16rem; color: #4c1d95; font-size: 0.86rem; font-weight: 800; }
+.tq-tip__goal-count em { color: #7a6a95; font-size: 0.66rem; font-style: normal; font-weight: 700; }
+.tq-tip__goal-count.is-full > i { color: #f5b301; font-size: 1.35rem; filter: drop-shadow(0 0 0.35rem rgba(245, 179, 1, 0.6)); }
+
+.tq-tip__goal-bar {
+    position: relative;
+    height: 0.42rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(91, 33, 182, 0.12);
+    box-shadow: inset 0 1px 1px rgba(60, 20, 120, 0.18);
+}
+.tq-tip__goal-bar i {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #a78bfa, #7c3aed 70%, #c4b5fd);
+    transform: scaleX(calc(var(--p, 0%) / 100%));
+    transform-origin: 0 50%;
+}
+.tq-tip__goal.is-full .tq-tip__goal-bar i { background: linear-gradient(90deg, #fcd34d, #f59e0b); }
+
+.tq-tip__runes { display: flex; flex-direction: column; gap: 0.25rem; padding-top: 0.15rem; }
+.tq-tip__runes small { display: inline-flex; align-items: center; gap: 0.3rem; color: #6d28d9; font-size: 0.68rem; font-weight: 800; }
+.tq-tip__rune-row { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.tq-tip__rune {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.1rem 0.45rem;
+    color: #7a6a95;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.7);
+    box-shadow: inset 0 0 0 1px rgba(139, 92, 246, 0.3);
+    font-size: 0.66rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.tq-tip__rune i { opacity: 0.55; }
+.tq-tip__rune.is-lit { color: #fff; background: linear-gradient(135deg, #8b5cf6, #5b21b6); box-shadow: 0 0 0.45rem rgba(139, 92, 246, 0.55); }
+.tq-tip__rune.is-lit i { opacity: 1; color: #fde68a; }
+
+.tq-tip__chaser { display: flex; align-items: center; flex-wrap: wrap; gap: 0.3rem; color: #6b4a2a; font-size: 0.72rem; font-weight: 600; }
+.tq-tip__chaser > i { color: #b8883e; }
+.tq-tip__chaser b { display: inline-flex; align-items: center; gap: 0.2rem; color: #4a2e14; font-weight: 800; }
+.tq-tip__chaser em { margin-left: auto; color: #5b21b6; font-style: normal; font-weight: 800; }
+
 .tq-tip__hint {
     display: flex;
     align-items: center;

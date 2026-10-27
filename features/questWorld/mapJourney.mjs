@@ -78,7 +78,8 @@ export function nearestOnRoad(x, y) {
 export function describeRoadSpot(progress, party = null) {
     const safe = clamp(Number(progress) || 0, 0, 100);
     const zone = getQuestMapZoneForProgressPercent(safe);
-    const spot = { progress: safe, percent: Math.round(safe), realm: zone.label, zone: zone.id };
+    // 100% is the Portal itself: a spot still on the road reads 99% at most.
+    const spot = { progress: safe, percent: safe >= 100 ? 100 : Math.min(99, Math.floor(safe)), realm: zone.label, zone: zone.id };
     if (!party) return spot;
     const partyProgress = clamp(Number(party.progress) || 0, 0, 100);
     if (partyProgress >= safe - 0.25) return { ...spot, party: party.name, passed: true, starsAway: 0 };

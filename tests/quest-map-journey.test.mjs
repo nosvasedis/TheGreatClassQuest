@@ -62,6 +62,8 @@ test('a spot on the road says its realm and how far a party is from it', () => {
     assert.equal(bare.percent, 90);
     assert.equal(bare.party, undefined);
     assert.ok(describeRoadSpot(34.5, party).starsAway >= 1, 'a spot just ahead is at least a star away');
+    assert.equal(describeRoadSpot(99.75).percent, 99, 'the road just below the Portal never reads 100%');
+    assert.equal(describeRoadSpot(100).percent, 100);
 });
 
 test('footsteps fall along the walk, alternate feet and stay in order', () => {

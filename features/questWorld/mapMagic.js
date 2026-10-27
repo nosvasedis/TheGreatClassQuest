@@ -320,8 +320,10 @@ export function mountMapMagic({ root, scene, parties, tier }) {
         const list = parties();
         return list.find((party) => party.isMine) || list.find((party) => party.isLeader) || null;
     };
+    // The road ends at the Portal's steps; the Portal answers for 100% with its own card.
+    const ROAD_PIN_MAX = 99;
     const showRoadPin = (progress) => {
-        const spot = describeRoadSpot(progress, guidePartyNow());
+        const spot = describeRoadSpot(Math.min(ROAD_PIN_MAX, progress), guidePartyNow());
         const point = pointAtProgress(spot.progress);
         roadPin.style.left = `${point.x.toFixed(1)}px`;
         roadPin.style.top = `${point.y.toFixed(1)}px`;
@@ -335,7 +337,7 @@ export function mountMapMagic({ root, scene, parties, tier }) {
         const guide = guidePartyNow();
         paint(layer.ahead, guide && !spot.passed ? guide.progress : 0, guide && !spot.passed ? spot.progress : 0, 'light');
         if (pinProgress === null) root.dispatchEvent(new CustomEvent('tq:road', { detail: { active: true } }));
-        pinProgress = spot.progress;
+        pinProgress = progress;
     };
 
     // ── Pointer: road hover, the lantern and the dust ────────────────────

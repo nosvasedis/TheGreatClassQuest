@@ -1,0 +1,209 @@
+/* Special days inside the Planner and the Quest Log (ui/daySceneHeader.js).
+   --day-a / --day-b are the light colours, --day-ink the deep one. Motion is transform/opacity only. */
+
+/* ── Header: the day's colours, a glow, drifting shapes and a big faded icon ── */
+#day-planner-modal .qc-mhead.qc-mhead--day.qc-mhead--planner,
+#logbook-modal .qc-mhead.qc-mhead--day {
+    background:
+        radial-gradient(ellipse at 78% 120%, color-mix(in srgb, var(--day-b) 55%, transparent), transparent 60%),
+        linear-gradient(120deg, color-mix(in srgb, var(--day-ink) 70%, #020617) 0%, var(--day-ink) 55%, color-mix(in srgb, var(--day-ink) 72%, var(--day-b)) 100%);
+}
+
+.qc-mhead > .qc-scene {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.qc-scene__glow {
+    position: absolute;
+    right: 8%;
+    top: 50%;
+    width: 13rem;
+    height: 13rem;
+    margin-top: -6.5rem;
+    border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--day-a) 45%, transparent), transparent 68%);
+    animation: qcSceneBreathe 5s ease-in-out infinite;
+}
+
+.qc-scene__icon {
+    position: absolute;
+    right: 9%;
+    top: 50%;
+    font-size: 6.5rem;
+    line-height: 1;
+    opacity: 0.22;
+    transform: translateY(-50%) rotate(-10deg);
+    animation: qcSceneBob 6s ease-in-out infinite;
+    filter: saturate(1.2);
+}
+
+.qc-scene__bit {
+    position: absolute;
+    left: var(--x);
+    top: var(--y);
+    font-size: var(--s);
+    line-height: 1;
+    opacity: 0;
+    animation: qcSceneDrift 7s ease-in-out infinite;
+    animation-delay: var(--d);
+}
+
+@keyframes qcSceneDrift {
+    0% { opacity: 0; transform: translate(0, 12px) rotate(-8deg) scale(0.85); }
+    20% { opacity: 0.85; }
+    80% { opacity: 0.7; }
+    100% { opacity: 0; transform: translate(14px, -26px) rotate(10deg) scale(1.05); }
+}
+
+@keyframes qcSceneBob {
+    0%, 100% { transform: translateY(-50%) rotate(-10deg); }
+    50% { transform: translateY(calc(-50% - 6px)) rotate(-6deg); }
+}
+
+@keyframes qcSceneBreathe {
+    0%, 100% { opacity: 0.75; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.08); }
+}
+
+/* The name badge beside "In 4 weeks" */
+.qc-mhead--day .qc-mhead__text { display: flex; flex-wrap: wrap; align-items: center; column-gap: 0.45rem; row-gap: 0.25rem; }
+.qc-mhead--day .qc-mhead__kicker,
+.qc-mhead--day .qc-mhead__title { flex: 1 1 100%; }
+.qc-dayname {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    max-width: 100%;
+    padding: 0.2rem 0.75rem 0.2rem 0.3rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--day-ink);
+    background: linear-gradient(120deg, #fff, var(--day-a));
+    box-shadow: 0 6px 14px -8px rgba(2, 6, 23, 0.7), inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+    animation: qcDaynameIn 0.45s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
+.qc-dayname > span:nth-child(2) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qc-dayname__icon {
+    display: grid;
+    place-items: center;
+    min-width: 1.6rem;
+    height: 1.6rem;
+    padding: 0 0.2rem;
+    border-radius: 999px;
+    font-size: 0.95rem;
+    background: var(--day-a);
+}
+.qc-dayname__tag {
+    padding: 0.05rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #fff;
+    background: var(--day-ink);
+}
+@keyframes qcDaynameIn {
+    from { opacity: 0; transform: translateY(6px) scale(0.92); }
+    to { opacity: 1; transform: none; }
+}
+
+/* ── The day card that opens the Planner glance and the Quest Log ── */
+.qc-daycard {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+    padding: 0.95rem 1.1rem;
+    overflow: hidden;
+    border-radius: 1.2rem;
+    color: var(--day-ink);
+    background:
+        radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--day-b) 80%, transparent), transparent 55%),
+        linear-gradient(115deg, var(--day-a) 0%, #fff 55%, var(--day-b) 100%);
+    border: 1px solid color-mix(in srgb, var(--day-ink) 22%, transparent);
+    box-shadow: 0 12px 24px -18px color-mix(in srgb, var(--day-ink) 80%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+.qc-daycard::before { /* a soft ribbon of colour along the left edge */
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 6px;
+    background: linear-gradient(180deg, var(--day-ink), color-mix(in srgb, var(--day-ink) 45%, var(--day-b)));
+}
+.qc-daycard__bits { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+.qc-daycard__bits .qc-scene__bit { animation-duration: 8s; }
+.qc-daycard__medal {
+    position: relative;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+    font-size: 2.1rem;
+    background: radial-gradient(circle at 35% 30%, #fff, var(--day-a));
+    box-shadow: 0 0 0 4px #fff, 0 0 0 6px color-mix(in srgb, var(--day-ink) 30%, transparent), 0 12px 20px -10px color-mix(in srgb, var(--day-ink) 70%, transparent);
+}
+.qc-daycard__medal > span { animation: qcMedalBob 3.6s ease-in-out infinite; }
+.qc-daycard__medal::after { /* a slow ring of light */
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    border: 2px dashed color-mix(in srgb, var(--day-ink) 35%, transparent);
+    animation: qcMedalSpin 18s linear infinite;
+}
+.qc-daycard__medal i {
+    position: absolute;
+    right: -0.45rem;
+    bottom: -0.3rem;
+    display: grid;
+    place-items: center;
+    width: 1.8rem;
+    height: 1.8rem;
+    border-radius: 50%;
+    font-size: 1rem;
+    font-style: normal;
+    background: #fff;
+    box-shadow: 0 4px 10px -4px rgba(15, 23, 42, 0.45);
+}
+.qc-daycard__text { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.qc-daycard__eyebrow { font-size: 0.68rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.75; }
+.qc-daycard__text strong { font-size: 1.35rem; line-height: 1.15; }
+.qc-daycard__greek { font-size: 0.85rem; font-weight: 700; opacity: 0.8; }
+.qc-daycard__blurb { margin-top: 0.15rem; font-size: 0.86rem; font-weight: 600; line-height: 1.4; color: #334155; }
+.qc-daycard__tip {
+    margin-top: 0.35rem;
+    padding-top: 0.35rem;
+    border-top: 1px dashed color-mix(in srgb, var(--day-ink) 30%, transparent);
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-style: italic;
+    color: #475569;
+}
+.qc-daycard--compact { padding: 0.7rem 0.9rem; }
+.qc-daycard--compact .qc-daycard__medal { width: 3rem; height: 3rem; font-size: 1.6rem; }
+.qc-daycard--compact .qc-daycard__text strong { font-size: 1.1rem; }
+@keyframes qcMedalBob {
+    0%, 100% { transform: translateY(0) rotate(-4deg); }
+    50% { transform: translateY(-3px) rotate(4deg); }
+}
+@keyframes qcMedalSpin { to { transform: rotate(360deg); } }
+
+@media (max-width: 640px) {
+    .qc-scene__icon { font-size: 4.5rem; right: 4%; opacity: 0.16; }
+    .qc-daycard { gap: 0.75rem; padding: 0.8rem 0.9rem; }
+    .qc-daycard__medal { width: 3.2rem; height: 3.2rem; font-size: 1.7rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .qc-scene *, .qc-daycard *, .qc-daycard__medal::after, .qc-dayname { animation: none !important; }
+    .qc-scene__bit { opacity: 0.6; }
+}

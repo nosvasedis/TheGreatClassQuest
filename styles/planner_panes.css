@@ -1,0 +1,367 @@
+/* Day Planner panes: the Schedule timeline and the Quest Event spellbook (ui/modals/planner.js).
+   Loaded with the Planner, so it sits on top of styles/quest_events.css. */
+
+/* ── Shared: section heads with a round badge ── */
+#day-planner-modal .quest-event-section {
+    position: relative;
+    border-radius: 1.4rem;
+    border-color: rgba(203, 213, 225, 0.7);
+    background: linear-gradient(180deg, #fff, #fbfaff);
+}
+#day-planner-modal .quest-event-section__head { position: relative; padding-left: 3.1rem; min-height: 2.5rem; }
+#day-planner-modal .quest-event-section__badge {
+    position: absolute;
+    left: 0;
+    top: 0.05rem;
+    display: grid;
+    place-items: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 0.9rem;
+    font-size: 1.05rem;
+    color: #fff;
+    background: linear-gradient(140deg, #6366f1, #8b5cf6);
+    box-shadow: 0 8px 16px -10px rgba(79, 70, 229, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+#day-planner-modal .quest-event-section--standard .quest-event-section__badge { background: linear-gradient(140deg, #f59e0b, #ec4899); }
+#day-planner-modal .quest-event-section--quests .quest-event-section__badge { background: linear-gradient(140deg, #7c3aed, #0891b2); }
+#day-planner-modal .quest-event-section--who .quest-event-section__badge { background: linear-gradient(140deg, #0ea5e9, #6366f1); }
+#day-planner-modal .quest-event-kicker { color: #7c3aed; }
+
+/* ── Quest Event cards: every type keeps its own colour, not only when chosen ── */
+#day-planner-modal .quest-event-type-card {
+    --qe: #6366f1;
+    --qe-soft: #eef2ff;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas: 'glyph name' 'glyph hint';
+    align-items: center;
+    column-gap: 0.8rem;
+    row-gap: 0.1rem;
+    padding: 0.8rem 0.9rem;
+    border: 1.5px solid color-mix(in srgb, var(--qe) 18%, #e2e8f0);
+    background: linear-gradient(135deg, #fff 40%, var(--qe-soft));
+}
+#day-planner-modal .quest-event-type-card::after { /* a thin strip of the type's colour */
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background: var(--qe);
+    opacity: 0.55;
+}
+#day-planner-modal .quest-event-type-card__glyph {
+    grid-area: glyph;
+    width: 3rem;
+    height: 3rem;
+    margin: 0;
+    border-radius: 1rem;
+    font-size: 1.5rem;
+    border: 0;
+    background: radial-gradient(circle at 35% 30%, #fff, var(--qe-soft));
+    box-shadow: 0 0 0 2px #fff, 0 8px 14px -10px var(--qe);
+}
+#day-planner-modal .quest-event-type-card__name { grid-area: name; align-self: end; font-size: 1rem; }
+#day-planner-modal .quest-event-type-card__hint { grid-area: hint; align-self: start; }
+#day-planner-modal .quest-event-type-card:hover { border-color: color-mix(in srgb, var(--qe) 45%, #fff); box-shadow: 0 14px 26px -16px var(--qe); }
+#day-planner-modal .quest-event-type-card--selected {
+    background: linear-gradient(135deg, var(--qe-soft), #fff 70%);
+    box-shadow: 0 0 0 2.5px var(--qe), 0 16px 30px -14px var(--qe);
+}
+#day-planner-modal .quest-event-type-card--selected::before { /* a check badge */
+    content: '\f00c';
+    position: absolute;
+    top: 0.5rem;
+    right: 0.55rem;
+    display: grid;
+    place-items: center;
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 50%;
+    font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free';
+    font-weight: 900;
+    font-size: 0.65rem;
+    color: #fff;
+    background: var(--qe);
+    animation: qePop 0.35s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@keyframes qePop { from { transform: scale(0); } to { transform: scale(1); } }
+#day-planner-modal .quest-event-type-card--star { --qe: #f59e0b; --qe-soft: #fef3c7; }
+#day-planner-modal .quest-event-type-card--reason { --qe: #ec4899; --qe-soft: #fce7f3; }
+#day-planner-modal .quest-event-type-card--vault { --qe: #9333ea; --qe-soft: #f3e8ff; }
+#day-planner-modal .quest-event-type-card--grammar { --qe: #10b981; --qe-soft: #d1fae5; }
+#day-planner-modal .quest-event-type-card--chain { --qe: #06b6d4; --qe-soft: #cffafe; }
+#day-planner-modal .quest-event-type-card--scribe { --qe: #d97706; --qe-soft: #fef3c7; }
+#day-planner-modal .quest-event-type-card--saga { --qe: #6366f1; --qe-soft: #e0e7ff; }
+#day-planner-modal .quest-event-type-card--saga { grid-column: auto; }
+#day-planner-modal .quest-event-type-grid--quests { grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); }
+
+#day-planner-modal .quest-event-class-chip--selected { background: linear-gradient(120deg, #eef2ff, #f5f3ff); }
+#day-planner-modal .quest-event-insight { border-left: 5px solid #8b5cf6; }
+#day-planner-modal .quest-event-submit {
+    border-radius: 1.2rem;
+    background: linear-gradient(110deg, #7c3aed, #db2777 55%, #f59e0b);
+    background-size: 200% 100%;
+    box-shadow: 0 16px 30px -14px rgba(124, 58, 237, 0.9);
+    transition: background-position 0.5s ease, transform 0.2s ease;
+}
+#day-planner-modal .quest-event-submit:hover { background-position: 100% 0; transform: translateY(-2px); }
+
+/* ── The special day's own event: its treasure chest ── */
+#day-planner-modal .quest-event-section--treasure {
+    overflow: hidden;
+    isolation: isolate;
+    border: 0;
+    color: var(--day-ink);
+    background:
+        radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--day-b) 90%, transparent), transparent 60%),
+        linear-gradient(130deg, var(--day-a), #fff 60%, #fef3c7);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--day-ink) 25%, transparent), 0 18px 32px -20px var(--day-ink);
+}
+#day-planner-modal .quest-event-section--treasure .quest-event-section__badge {
+    font-size: 1.35rem;
+    background: radial-gradient(circle at 35% 30%, #fff, var(--day-a));
+    box-shadow: 0 0 0 2px #fff, 0 8px 16px -8px var(--day-ink);
+    animation: qeBob 3s ease-in-out infinite;
+}
+#day-planner-modal .quest-event-section--treasure .quest-event-kicker { color: var(--day-ink); }
+#day-planner-modal .quest-event-section--treasure .quest-event-section__head h3 { color: var(--day-ink); font-size: 1.3rem; }
+.qe-treasure__bits { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+.qe-treasure__bits span {
+    position: absolute;
+    left: var(--x);
+    top: var(--y);
+    font-size: 1.3rem;
+    opacity: 0.35;
+    animation: qeBob 4s ease-in-out infinite;
+    animation-delay: var(--d);
+}
+@keyframes qeBob { 0%, 100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-5px) rotate(6deg); } }
+#day-planner-modal .quest-event-type-card--treasure {
+    --qe: #d97706;
+    --qe-soft: #fde68a;
+    width: 100%;
+    background: linear-gradient(120deg, #fffbeb, #fef3c7 60%, #fde68a);
+}
+#day-planner-modal .quest-event-type-card--treasure .quest-event-type-card__glyph { font-size: 1.7rem; }
+.qe-treasure__planned { display: flex; flex-direction: column; gap: 0.35rem; margin: 0.7rem 0 0; padding: 0; list-style: none; }
+.qe-treasure__planned li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 0.45rem 0.6rem 0.45rem 0.8rem;
+    border-radius: 0.9rem;
+    font-weight: 800;
+    font-size: 0.85rem;
+    color: #1e293b;
+    background: rgba(255, 255, 255, 0.8);
+}
+.qe-treasure__planned em { font-size: 0.75rem; font-weight: 700; color: #92400e; }
+.qe-treasure__open,
+.qc-glance__event-open {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.8rem;
+    border: 0;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: #422006;
+    background: linear-gradient(110deg, #fbbf24, #fde68a);
+    box-shadow: 0 6px 12px -8px rgba(180, 83, 9, 0.9);
+    cursor: pointer;
+}
+.qe-treasure__open--done { color: #78350f; background: #fef3c7; box-shadow: inset 0 0 0 1px #fcd34d; }
+.qc-glance__event-open { margin-left: auto; padding: 0.15rem 0.6rem; font-size: 0.7rem; }
+
+/* ── Schedule: a timeline of the day ── */
+#day-planner-modal .schedule-day__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    margin-bottom: 0.8rem;
+}
+#day-planner-modal .schedule-day__head h3 { margin: 0; font-size: 1.2rem; color: #1e1b4b; }
+.schedule-day__summary { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.schedule-day__summary span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #475569;
+    background: #f1f5f9;
+}
+.schedule-day__summary strong { color: #1e1b4b; }
+
+.schedule-group-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0.2rem 0 0.1rem;
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #6366f1;
+}
+.schedule-group-label--others { margin-top: 0.7rem; color: #94a3b8; }
+
+#day-planner-modal .schedule-lesson-list { position: relative; display: flex; flex-direction: column; gap: 0.5rem; }
+#day-planner-modal .schedule-lesson-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: 3.6rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem 0.6rem 0.6rem;
+    border-width: 1px 1px 1px 5px;
+    border-style: solid;
+    border-radius: 1.1rem;
+    box-shadow: 0 8px 18px -16px rgba(15, 23, 42, 0.6);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+#day-planner-modal .schedule-lesson-card:hover { transform: translateX(2px); box-shadow: 0 12px 22px -16px rgba(15, 23, 42, 0.7); }
+#day-planner-modal .schedule-lesson-card:not(.schedule-lesson-card--mine) { background: #f8fafc; border-color: #e2e8f0; border-left-color: #cbd5e1; opacity: 0.92; }
+.schedule-lesson-card__time-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.35rem 0.2rem;
+    border-radius: 0.8rem;
+    line-height: 1.1;
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
+}
+.schedule-lesson-card__time-col strong { font-family: 'Fredoka', sans-serif; font-size: 1rem; color: #1e1b4b; }
+.schedule-lesson-card__time-col span { font-size: 0.72rem; font-weight: 700; color: #64748b; }
+.schedule-lesson-card__time-col em { margin-top: 0.15rem; font-size: 0.62rem; font-style: normal; font-weight: 800; color: #6366f1; }
+#day-planner-modal .schedule-lesson-card__main { display: flex; align-items: center; gap: 0.65rem; min-width: 0; }
+#day-planner-modal .schedule-lesson-card__logo {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 2.7rem;
+    height: 2.7rem;
+    border-radius: 0.9rem;
+    font-size: 1.45rem;
+    background: #fff;
+    box-shadow: 0 6px 12px -8px rgba(15, 23, 42, 0.5);
+}
+.schedule-lesson-card__copy { min-width: 0; }
+#day-planner-modal .schedule-lesson-card__name { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin: 0; font-size: 1.05rem; }
+.schedule-lesson-card__tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.3rem; }
+.schedule-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.12rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #475569;
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.3);
+}
+.schedule-tag i { font-size: 0.62rem; opacity: 0.7; }
+.schedule-tag--test { color: #b91c1c; background: #fff1f2; }
+.schedule-tag--event { color: #7c2d12; background: #fef3c7; }
+.schedule-lesson-card__phase {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    font-family: inherit;
+    font-size: 0.66rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.schedule-lesson-card__phase--now { color: #fff; background: #16a34a; }
+.schedule-lesson-card__phase--now i { font-size: 0.45rem; animation: qeLive 1.4s ease-in-out infinite; }
+.schedule-lesson-card__phase--next { color: #4338ca; background: #e0e7ff; }
+.schedule-lesson-card__phase--done { color: #64748b; background: #e2e8f0; }
+@keyframes qeLive { 50% { opacity: 0.3; } }
+#day-planner-modal .schedule-lesson-card--now { box-shadow: 0 0 0 2px #22c55e, 0 14px 24px -16px rgba(22, 163, 74, 0.9); }
+#day-planner-modal .schedule-lesson-card--done { opacity: 0.7; }
+#day-planner-modal .schedule-lesson-cancel {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.7rem;
+    border-radius: 0.8rem;
+    font-size: 0.78rem;
+    background: rgba(255, 255, 255, 0.9);
+}
+#day-planner-modal .schedule-lesson-foreign {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    text-transform: none;
+    color: #64748b;
+}
+
+#day-planner-modal .schedule-extra__head { position: relative; padding-left: 3.1rem; margin-bottom: 0.75rem; }
+#day-planner-modal .schedule-extra__head .quest-event-section__badge { background: linear-gradient(140deg, #10b981, #0ea5e9); }
+#day-planner-modal .schedule-extra__head h3 { margin: 0; font-size: 1.1rem; color: #1e1b4b; }
+#day-planner-modal .schedule-extra__head p:not(.quest-event-kicker) { margin: 0.15rem 0 0; font-size: 0.8rem; font-weight: 600; color: #64748b; }
+#day-planner-modal .schedule-add-btn { margin-top: 0.75rem; background: linear-gradient(110deg, #10b981, #0ea5e9); }
+
+.schedule-closure {
+    border-radius: 1.2rem;
+    border: 1.5px dashed #fecaca;
+    background: #fff7f7;
+}
+.schedule-closure summary {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0.9rem;
+    list-style: none;
+    cursor: pointer;
+}
+.schedule-closure summary::-webkit-details-marker { display: none; }
+.schedule-closure__icon { display: grid; place-items: center; width: 2.2rem; height: 2.2rem; border-radius: 0.8rem; color: #e11d48; background: #ffe4e6; }
+.schedule-closure summary strong { display: block; font-size: 0.92rem; color: #881337; }
+.schedule-closure summary small { display: block; font-size: 0.75rem; font-weight: 600; color: #9f1239; opacity: 0.75; }
+.schedule-closure__chevron { margin-left: auto; color: #e11d48; transition: transform 0.2s ease; }
+.schedule-closure[open] .schedule-closure__chevron { transform: rotate(180deg); }
+.schedule-closure > p { margin: 0 1rem 0.6rem; font-size: 0.8rem; font-weight: 600; color: #7f1d1d; }
+.schedule-closure .schedule-holiday-btn { margin: 0 1rem 1rem; width: calc(100% - 2rem); }
+
+@media (max-width: 640px) {
+    #day-planner-modal .schedule-lesson-card { grid-template-columns: 3rem minmax(0, 1fr); }
+    #day-planner-modal .schedule-lesson-card > :last-child { grid-column: 1 / -1; justify-self: end; }
+}
+@media (prefers-reduced-motion: reduce) {
+    #day-planner-modal *, .qe-treasure__bits span { animation: none !important; }
+}
+
+/* Each class keeps the colour of its chip on the calendar tile */
+#day-planner-modal .schedule-lesson-card--mine { border-color: color-mix(in srgb, var(--tone, #818cf8) 35%, #e2e8f0); border-left-color: var(--tone, #818cf8); background: linear-gradient(110deg, var(--tone-soft, #eef2ff), #fff 70%); }
+.schedule-lesson-card[data-tone='red'] { --tone: #f87171; --tone-soft: #fef2f2; }
+.schedule-lesson-card[data-tone='blue'] { --tone: #60a5fa; --tone-soft: #eff6ff; }
+.schedule-lesson-card[data-tone='green'] { --tone: #4ade80; --tone-soft: #f0fdf4; }
+.schedule-lesson-card[data-tone='yellow'] { --tone: #facc15; --tone-soft: #fefce8; }
+.schedule-lesson-card[data-tone='purple'] { --tone: #c084fc; --tone-soft: #faf5ff; }
+.schedule-lesson-card[data-tone='pink'] { --tone: #f472b6; --tone-soft: #fdf2f8; }
+.schedule-lesson-card[data-tone='indigo'] { --tone: #818cf8; --tone-soft: #eef2ff; }
+.schedule-lesson-card[data-tone='teal'] { --tone: #2dd4bf; --tone-soft: #f0fdfa; }
+.schedule-lesson-card[data-tone='orange'] { --tone: #fb923c; --tone-soft: #fff7ed; }
+.schedule-lesson-card[data-tone='cyan'] { --tone: #22d3ee; --tone-soft: #ecfeff; }
+.schedule-lesson-card[data-tone='lime'] { --tone: #a3e635; --tone-soft: #f7fee7; }
+.schedule-lesson-card[data-tone='rose'] { --tone: #fb7185; --tone-soft: #fff1f2; }
+.schedule-lesson-card[data-tone='emerald'] { --tone: #34d399; --tone-soft: #ecfdf5; }
+.schedule-lesson-card[data-tone='sky'] { --tone: #38bdf8; --tone-soft: #f0f9ff; }
+.schedule-lesson-card[data-tone='violet'] { --tone: #a78bfa; --tone-soft: #f5f3ff; }
+#day-planner-modal .quest-event-type-card--star .quest-event-type-card__glyph { font-size: 1.05rem; }

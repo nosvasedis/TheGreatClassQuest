@@ -1,4 +1,5 @@
 // /ui/modals/log.js
+import { paintDayScene, specialDayFor, dayCardHtml } from '../daySceneHeader.js';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import * as constants from '../../constants.js';
@@ -74,6 +75,7 @@ function paintLogbookHeader(dateString) {
         when.textContent = diff === 0 ? 'Today' : diff === -1 ? 'Yesterday' : ago < 14 ? `${ago} days ago` : ago < 70 ? `${Math.round(ago / 7)} weeks ago` : day.toLocaleDateString('en-GB', { year: 'numeric' });
         when.dataset.tone = diff === 0 ? 'today' : 'past';
     }
+    paintDayScene(document.querySelector('#logbook-modal .qc-mhead'), dateString);
     const planBtnLabel = document.querySelector('#logbook-open-planner-btn span');
     if (planBtnLabel) planBtnLabel.textContent = diff === 0 ? 'Plan today' : 'Planner';
 }
@@ -128,8 +130,11 @@ export async function showLogbookModal(dateString, isOndemand = false) {
     const reasonColors = AWARD_LOG_REASON_GRADIENTS;
     const reasonIcons = AWARD_LOG_REASON_ICONS;
 
+    // A holiday or celebration opens the log with its own card (ui/daySceneHeader.js).
+    const daySpecial = specialDayFor(dateString);
+    const dayCard = dayCardHtml(daySpecial, { compact: true, eyebrow: daySpecial && !daySpecial.closed ? 'On this day' : '' });
     if (logs.length === 0) {
-        contentEl.innerHTML = logbookEmptyStateHtml(dateString);
+        contentEl.innerHTML = dayCard + logbookEmptyStateHtml(dateString);
     } else {
         const allSchoolClasses = state.get('allSchoolClasses') || [];
         const allStudents = state.get('allStudents') || [];
@@ -296,7 +301,7 @@ export async function showLogbookModal(dateString, isOndemand = false) {
             detailsHtml += `</ol></details>`;
         }
         detailsHtml += '</div>';
-        contentEl.innerHTML = summaryHtml + mixHtml + toolbarHtml + detailsHtml;
+        contentEl.innerHTML = dayCard + summaryHtml + mixHtml + toolbarHtml + detailsHtml;
         syncLogbookToggleAll(contentEl);
     }
 

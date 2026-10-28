@@ -874,7 +874,11 @@ function getScheduleHtml(dateString, activeClassId) {
         "bg-gradient-to-br from-rose-100 to-rose-200"
     ];
 
-    const dayNote = buildScheduleDayNoteHtml(utils.parseFlexibleDate(dateString) || new Date());
+    const classLookup = new Map((state.get('allSchoolClasses') || []).map((c) => [c.id, c]));
+    const treasures = (state.get('allQuestEvents') || [])
+        .filter((e) => e.type === 'day_treasure' && e.status !== 'cancelled' && myClassIds.includes(e.classId) && utils.datesMatch(e.dateKey || e.date, dateString))
+        .map((e) => ({ id: e.id, name: e.details?.title || 'the treasure', opened: e.status === 'completed', classLabel: `${classLookup.get(e.classId)?.logo || ''} ${classLookup.get(e.classId)?.name || ''}`.trim() }));
+    const dayNote = buildScheduleDayNoteHtml(utils.parseFlexibleDate(dateString) || new Date(), { treasures });
     return dayNote + todaysClasses.map(c => {
         const isMine = myClassIds.includes(c.id);
         const timeStr = (c.timeStart) ? `${c.timeStart}` : 'TBD';

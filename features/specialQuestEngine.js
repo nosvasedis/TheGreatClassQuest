@@ -16,6 +16,11 @@ export const MODIFIER_TYPES = Object.freeze({
     REASON_BONUS_DAY: 'reason_bonus_day',
 });
 
+// A special day's own treasure (features/dayTreasureCore.mjs): one per class and date, paid in Gold.
+export const TREASURE_TYPES = Object.freeze({
+    DAY_TREASURE: 'day_treasure',
+});
+
 export const QUEST_DEFINITIONS = Object.freeze({
     [SPECIAL_QUEST_TYPES.VOCABULARY_VAULT]: { title: 'Vocabulary Vault', goalKind: 'counter', defaultTarget: 10, minTarget: 5, maxTarget: 30, unit: 'valid uses' },
     [SPECIAL_QUEST_TYPES.GRAMMAR_GUARDIANS]: { title: 'Grammar Guardians', goalKind: 'counter', defaultTarget: 8, minTarget: 3, maxTarget: 20, unit: 'rescued sentences' },
@@ -32,6 +37,7 @@ const LEGACY_TO_TYPE = Object.freeze({
     'Five-Sentence Saga': SPECIAL_QUEST_TYPES.FIVE_SENTENCE_SAGA,
     '2x Star Day': MODIFIER_TYPES.DOUBLE_STAR_DAY,
     'Reason Bonus Day': MODIFIER_TYPES.REASON_BONUS_DAY,
+    'Day Treasure': TREASURE_TYPES.DAY_TREASURE,
 });
 
 export const QUEST_TYPE_LABELS = Object.freeze(Object.fromEntries(
@@ -40,7 +46,11 @@ export const QUEST_TYPE_LABELS = Object.freeze(Object.fromEntries(
 
 export function normalizeQuestType(type) {
     if (!type) return null;
-    return LEGACY_TO_TYPE[type] || (Object.values(SPECIAL_QUEST_TYPES).includes(type) || Object.values(MODIFIER_TYPES).includes(type) ? type : null);
+    return LEGACY_TO_TYPE[type] || (Object.values(SPECIAL_QUEST_TYPES).includes(type) || Object.values(MODIFIER_TYPES).includes(type) || Object.values(TREASURE_TYPES).includes(type) ? type : null);
+}
+
+export function isTreasureType(type) {
+    return Object.values(TREASURE_TYPES).includes(normalizeQuestType(type));
 }
 
 export function isSpecialQuestType(type) {
@@ -66,7 +76,7 @@ export function normalizeLegacyQuestEvent(event = {}) {
     const type = normalizeQuestType(event.type);
     if (!type) return { ...event, needsMigration: true };
     const definition = QUEST_DEFINITIONS[type];
-    if (!definition) return { ...event, type, family: 'modifier', needsMigration: !event.schemaVersion };
+    if (!definition) return { ...event, type, family: isTreasureType(type) ? 'treasure' : 'modifier', needsMigration: !event.schemaVersion };
     const legacyDetails = event.details || {};
     const target = Number(event.goalSpec?.target ?? legacyDetails.goalTarget ?? definition.defaultTarget);
     const stars = Number(event.rewardSpec?.starsPerRecipient ?? legacyDetails.completionBonus ?? 1);
@@ -96,6 +106,11 @@ export function validateQuestEvent(input = {}, { existing = [] } = {}) {
             errors.push(`${definition.title} target must be between ${definition.minTarget} and ${definition.maxTarget}.`);
         }
     }
+    if (isTreasureType(type)) {
+        if (!input.classId) errors.push('A class is required for a Day Treasure.');
+        const duplicate = (existing || []).some((event) => isTreasureType(event.type) && event.classId === input.classId && (event.dateKey || event.date) === (input.dateKey || input.date) && event.status !== 'cancelled');
+        if (duplicate) errors.push('This class already has the day\'s treasure.');
+    }
     if (isSpecial) {
         const reward = Number(input.rewardSpec?.starsPerRecipient ?? input.details?.completionBonus ?? 1);
         if (![0.5, 1, 1.5, 2].includes(reward)) errors.push('Special Quest reward must be 0.5, 1, 1.5 or 2 stars.');
@@ -111,13 +126,13 @@ export function validateQuestEvent(input = {}, { existing = [] } = {}) {
 export function createQuestEventDocument({ type, classId, dateKey, schoolYearKey, createdBy, eventGroupId = null, target, starsPerRecipient = 1, instructions = '', prompt = '', showTextOnProjector = false }) {
     const normalizedType = normalizeQuestType(type);
     const definition = QUEST_DEFINITIONS[normalizedType];
-    if (!definition && !isModifierType(normalizedType)) throw new Error('Unsupported quest event type.');
+    if (!definition && !isModifierType(normalizedType) && !isTreasureType(normalizedType)) throw new Error('Unsupported quest event type.');
     const isSpecial = Boolean(definition);
     const safeTarget = definition ? Math.min(definition.maxTarget, Math.max(definition.minTarget, Number(target || definition.defaultTarget))) : null;
     return {
         schemaVersion: 2,
         eventGroupId: eventGroupId || `${dateKey}__${classId}`,
-        family: isSpecial ? 'special' : 'modifier',
+        family: isSpecial ? 'special' : (isTreasureType(normalizedType) ? 'treasure' : 'modifier'),
         type: normalizedType,
         classId: classId || null,
         dateKey,

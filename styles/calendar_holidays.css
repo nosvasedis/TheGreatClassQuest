@@ -13,7 +13,7 @@
     isolation: isolate;
 }
 
-.qc-day--holiday > :not(.qc-day__art) { position: relative; z-index: 1; }
+.qc-day--holiday > :not(.qc-day__art):not(.qc-day__more) { position: relative; z-index: 1; }
 
 .calendar-day-cell.qc-day--holiday[class*='qc-day--theme-'] {
     background: linear-gradient(165deg, var(--hol-a) 0%, var(--hol-b) 100%) !important;
@@ -442,11 +442,6 @@
     background: var(--hol-ink);
 }
 
-.qc-special-chip--closed .qc-special-chip__name::after {
-    content: ' · no lessons';
-    font-weight: 600;
-    opacity: 0.75;
-}
 
 .qc-legend__swatch--national {
     background: repeating-linear-gradient(180deg, #0d5eaf 0 2px, #fff 2px 4px);
@@ -566,7 +561,7 @@ body.gcq-mobile .m-cal-edge {
     border-color: var(--hol-line);
 }
 
-.qc-day--celebration > :not(.qc-day__art):not(.qc-day__hint) { position: relative; z-index: 1; }
+.qc-day--celebration > :not(.qc-day__art):not(.qc-day__hint):not(.qc-day__more) { position: relative; z-index: 1; }
 
 .qc-day--celebration .qc-day__special {
     color: #fff;
@@ -771,3 +766,230 @@ body.gcq-mobile .m-cal-edge {
 .qc-tip__empty { margin: 0; font-size: 0.72rem; font-weight: 600; color: #64748b; }
 .qc-tip__empty { padding: 0.4rem 0.5rem; border-radius: 0.6rem; background: var(--tip-soft); }
 @media (prefers-reduced-motion: reduce) { .qc-tip { transition: none; transform: none; } }
+
+/* ── Busy tiles: lessons scroll without a bar; a soft fade and a "more" pill say so ── */
+.qc-day .qc-day__lessons { scrollbar-width: none; }
+.qc-day .qc-day__lessons::-webkit-scrollbar { display: none; }
+.qc-day__lessons.is-more {
+    -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 2.2rem), transparent calc(100% - 0.6rem));
+    mask-image: linear-gradient(180deg, #000 calc(100% - 2.2rem), transparent calc(100% - 0.6rem));
+}
+.qc-day__more {
+    position: absolute;
+    left: 0.4rem;
+    bottom: 0.35rem;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.08rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.58rem;
+    font-weight: 800;
+    color: var(--hol-ink, #1e3a8a);
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid var(--hol-line, rgba(30, 58, 138, 0.2));
+    box-shadow: 0 3px 8px -5px rgba(15, 23, 42, 0.5);
+    pointer-events: none;
+    transition: opacity 0.18s ease;
+}
+.qc-day__more i { font-size: 0.5rem; animation: qcMoreNudge 1.8s ease-in-out infinite; }
+.qc-day__more[hidden] { display: none; }
+@keyframes qcMoreNudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(2px); } }
+
+/* ── Celebration tiles: glassy lessons so the day's picture shows through ── */
+.qc-day--celebration .qc-lesson {
+    background-color: rgba(255, 255, 255, 0.62);
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
+    box-shadow: 0 3px 8px -6px rgba(15, 23, 42, 0.45);
+}
+/* The day's icon sits like a sticker in the free top-right corner, always in view. */
+.qc-day--celebration .qc-day__art { z-index: 2; }
+.qc-day--celebration .qc-day__watermark {
+    top: 0.3rem;
+    right: 0.35rem;
+    bottom: auto;
+    font-size: 1.75rem;
+    opacity: 1;
+    filter: drop-shadow(0 3px 4px rgba(15, 23, 42, 0.25));
+    animation: qcWatermarkBob 4s ease-in-out infinite;
+}
+.qc-day--celebration .qc-day__head { padding-right: 2.1rem; }
+.qc-day--celebration .qc-day__head::before { /* a soft wash of the day's colour behind the number */
+    content: '';
+    position: absolute;
+    inset: -0.5rem -0.5rem auto auto;
+    width: 5.5rem;
+    height: 3.6rem;
+    border-radius: 0 0 0 100%;
+    background: radial-gradient(circle at 100% 0%, var(--hol-b), transparent 70%);
+    z-index: -1;
+}
+@keyframes qcWatermarkBob {
+    0%, 100% { transform: rotate(-10deg) translateY(0); }
+    50% { transform: rotate(6deg) translateY(-3px); }
+}
+
+/* The day's ribbon: a pill with its icon in a white medallion and a slow shine */
+.qc-day--celebration .qc-day__special {
+    position: relative;
+    overflow: hidden;
+    gap: 0.3rem;
+    padding: 0.14rem 0.5rem 0.14rem 0.16rem;
+    border-radius: 999px;
+    font-size: 0.64rem;
+}
+.qc-day--celebration .qc-day__special > span:first-child {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 1.15rem;
+    height: 1.15rem;
+    border-radius: 50%;
+    font-size: 0.7rem;
+    background: #fff;
+}
+.qc-day--celebration .qc-day__special::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.45) 50%, transparent 70%);
+    transform: translateX(-120%);
+    animation: qcRibbonShine 5s ease-in-out infinite;
+}
+@keyframes qcRibbonShine {
+    0%, 70% { transform: translateX(-120%); }
+    100% { transform: translateX(120%); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .qc-day--celebration .qc-day__watermark,
+    .qc-day--celebration .qc-day__special::after,
+    .qc-day__more i { animation: none; }
+}
+
+/* A special day's treasure on the calendar (features/dayTreasure.js) */
+.qc-ribbon--treasure {
+    color: #422006;
+    background: linear-gradient(110deg, #fbbf24, #f59e0b 45%, #fde68a);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55);
+}
+
+/* ── Month strip chips: a tiny calendar leaf, the icon in a medallion, and a hover card ── */
+.qc-special-chip { position: relative; padding: 0; border: 0; background: none; }
+.qc-special-chip__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.2rem 0.75rem 0.2rem 0.2rem;
+    border-radius: 0.95rem;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--hol-ink);
+    background: linear-gradient(110deg, #fff 0%, var(--hol-a) 35%, var(--hol-b) 100%);
+    border: 1px solid var(--hol-line);
+    box-shadow: 0 6px 14px -12px var(--hol-ink), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+    transition: transform 0.18s cubic-bezier(0.3, 1.5, 0.5, 1), box-shadow 0.18s ease;
+}
+.qc-special-chip__btn:hover,
+.qc-special-chip__btn:focus-visible { transform: translateY(-2px); box-shadow: 0 12px 20px -12px var(--hol-ink), inset 0 1px 0 #fff; outline: none; }
+.qc-special-chip__btn:focus-visible { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--hol-ink); }
+.qc-special-chip__date {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.1rem;
+    padding: 0.12rem 0.35rem 0.15rem;
+    border-radius: 0.7rem;
+    line-height: 1;
+    color: #fff;
+    background: linear-gradient(180deg, var(--hol-ink), color-mix(in srgb, var(--hol-ink) 75%, #000));
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.25);
+}
+.qc-special-chip__date b { font-family: 'Fredoka', sans-serif; font-size: 0.92rem; }
+.qc-special-chip__date small { font-size: 0.52rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.85; }
+.qc-special-chip__date--range b { font-size: 0.72rem; }
+.qc-special-chip__icon {
+    display: grid;
+    place-items: center;
+    width: 1.55rem;
+    height: 1.55rem;
+    border-radius: 50%;
+    font-size: 0.9rem;
+    background: #fff;
+    box-shadow: 0 2px 6px -3px rgba(15, 23, 42, 0.4);
+}
+.qc-special-chip__btn:hover .qc-special-chip__icon { animation: qcChipWiggle 0.6s ease; }
+@keyframes qcChipWiggle { 30% { transform: rotate(-14deg) scale(1.12); } 60% { transform: rotate(10deg) scale(1.08); } }
+.qc-special-chip__tag {
+    padding: 0.08rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.6rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--hol-ink);
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px dashed var(--hol-line);
+}
+
+.qc-special-tip {
+    position: absolute;
+    top: calc(100% + 0.55rem);
+    left: 0;
+    z-index: 45;
+    display: flex;
+    gap: 0.7rem;
+    width: max-content;
+    max-width: 19rem;
+    padding: 0.75rem 0.85rem;
+    border-radius: 1rem;
+    color: #1e293b;
+    background: linear-gradient(160deg, var(--hol-a), #fff 55%);
+    border: 1px solid var(--hol-line);
+    border-top: 4px solid var(--hol-ink);
+    box-shadow: 0 18px 36px -14px rgba(15, 23, 42, 0.45);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-4px);
+    transition: opacity 0.16s ease, transform 0.16s ease, visibility 0s linear 0.16s;
+    pointer-events: none;
+}
+.qc-special-tip::before {
+    content: '';
+    position: absolute;
+    top: -0.55rem;
+    left: 1.2rem;
+    width: 0.8rem;
+    height: 0.5rem;
+    background: var(--hol-ink);
+    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+.qc-special-chip:hover .qc-special-tip,
+.qc-special-chip:focus-within .qc-special-tip { opacity: 1; visibility: visible; transform: none; transition-delay: 0.1s, 0.1s, 0s; }
+.qc-special-chip:nth-last-child(-n+2) .qc-special-tip { left: auto; right: 0; }
+.qc-special-chip:nth-last-child(-n+2) .qc-special-tip::before { left: auto; right: 1.2rem; }
+.qc-special-tip__icon {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 50%;
+    font-size: 1.45rem;
+    background: #fff;
+    box-shadow: 0 0 0 3px var(--hol-b), 0 6px 12px -6px var(--hol-ink);
+}
+.qc-special-tip__body { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; white-space: normal; }
+.qc-special-tip__body strong { font-family: 'Fredoka', sans-serif; font-size: 1rem; line-height: 1.2; color: var(--hol-ink); }
+.qc-special-tip__greek { font-size: 0.76rem; font-weight: 700; color: var(--hol-ink); opacity: 0.8; }
+.qc-special-tip__when,
+.qc-special-tip__state { font-size: 0.72rem; font-weight: 800; color: #475569; }
+.qc-special-tip__state { color: #166534; }
+.qc-special-tip__state.is-closed { color: #9f1239; }
+.qc-special-tip__blurb { margin-top: 0.2rem; font-size: 0.76rem; font-weight: 600; line-height: 1.4; color: #334155; }
+.qc-special-tip__hint { margin-top: 0.25rem; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--hol-ink); opacity: 0.7; }
+@media (prefers-reduced-motion: reduce) { .qc-special-chip__btn:hover .qc-special-chip__icon { animation: none; } }

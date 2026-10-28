@@ -15,6 +15,7 @@ export const QUEST_EVENT_ICONS = {
     'Grammar Guardians': '🛡️ Grammar',
     "The Scribe's Sketch": '✏️ Sketch',
     'Five-Sentence Saga': '📜 Saga',
+    day_treasure: '🎁 Treasure',
     double_star_day: '⭐ x2',
     reason_bonus_day: '✨ Bonus',
     vocabulary_vault: '🔑 Vocab',
@@ -128,7 +129,7 @@ export function getDayAgenda({
         .filter((e) => datesMatch(e.dateKey || e.date, dateString))
         .map((e) => ({
             ...e,
-            icon: QUEST_EVENT_ICONS[e.type] || QUEST_EVENT_ICONS[e.details?.title] || '📅 Event',
+            icon: (e.type === 'day_treasure' && e.details?.icon ? `${e.details.icon} Treasure` : null) || QUEST_EVENT_ICONS[e.type] || QUEST_EVENT_ICONS[e.details?.title] || '📅 Event',
             title: e.details?.title || QUEST_TYPE_LABELS[normalizeQuestType(e.type)] || (normalizeQuestType(e.type) === 'double_star_day' ? '2x Star Day' : normalizeQuestType(e.type) === 'reason_bonus_day' ? 'Reason Bonus Day' : e.type),
         }));
 

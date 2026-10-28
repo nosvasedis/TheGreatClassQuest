@@ -53,41 +53,47 @@ export const plannerModalHTML = `
                 
                 <!-- Schedule Tab -->
                 <div id="day-planner-schedule-content" class="day-planner-tab-content schedule-tab">
-                    <section class="quest-event-section">
-                        <header class="quest-event-section__head">
-                            <p class="quest-event-kicker">This day</p>
-                            <h3>Lessons on the calendar</h3>
-                            <p>Cancel a class you teach. That override lowers Team Quest goal pressure.</p>
+                    <section class="quest-event-section schedule-day">
+                        <header class="schedule-day__head">
+                            <div>
+                                <p class="quest-event-kicker">The day's timeline</p>
+                                <h3 class="font-title">Lessons on the calendar</h3>
+                            </div>
+                            <div id="schedule-day-summary" class="schedule-day__summary"></div>
                         </header>
                         <div id="schedule-manager-list" class="schedule-lesson-list"></div>
                     </section>
 
-                    <section class="quest-event-section">
-                        <header class="quest-event-section__head">
-                            <p class="quest-event-kicker">Extra lesson</p>
-                            <h3>Add a one-time lesson</h3>
-                            <p>Pick a class that is not already meeting this day.</p>
+                    <section class="quest-event-section schedule-extra">
+                        <header class="schedule-extra__head">
+                            <span class="quest-event-section__badge" aria-hidden="true"><i class="fas fa-plus"></i></span>
+                            <div>
+                                <p class="quest-event-kicker">Extra lesson</p>
+                                <h3 class="font-title">Add a one-time lesson</h3>
+                                <p>A make-up lesson or an extra session. It runs even on a holiday.</p>
+                            </div>
                         </header>
                         <select id="add-onetime-lesson-select" class="quest-event-native"></select>
                         <div id="schedule-onetime-chips" class="quest-event-class-chips"></div>
                         <p id="schedule-onetime-empty" class="quest-event-footnote hidden">Every class you teach is already on this day.</p>
                         <button type="button" id="add-onetime-lesson-btn" class="schedule-add-btn">
-                            <i class="fas fa-plus" aria-hidden="true"></i>
+                            <i class="fas fa-calendar-plus" aria-hidden="true"></i>
                             <span>Add lesson</span>
                         </button>
                     </section>
 
-                    <section class="quest-event-section schedule-holiday-section">
-                        <header class="quest-event-section__head">
-                            <p class="quest-event-kicker">Unexpected closure</p>
-                            <h3>Mark as School Holiday</h3>
-                            <p>Cancels all classes this date and reshapes monthly goals. Winter Break and Easter belong in the School Office.</p>
-                        </header>
+                    <details class="schedule-closure">
+                        <summary>
+                            <span class="schedule-closure__icon" aria-hidden="true"><i class="fas fa-umbrella-beach"></i></span>
+                            <span><strong>The school is closed unexpectedly?</strong><small>Snow day, strike, a broken boiler…</small></span>
+                            <i class="fas fa-chevron-down schedule-closure__chevron" aria-hidden="true"></i>
+                        </summary>
+                        <p>Marks this date as a school holiday: every class is cancelled and the monthly goals adjust. Planned breaks (Christmas, Easter, the national days) are already in the calendar.</p>
                         <button type="button" id="day-planner-mark-holiday-btn" class="schedule-holiday-btn">
                             <i class="fas fa-umbrella-beach" aria-hidden="true"></i>
                             <span>Mark as School Holiday</span>
                         </button>
-                    </section>
+                    </details>
                 </div>
 
                 <!-- Event Tab -->
@@ -96,6 +102,7 @@ export const plannerModalHTML = `
                         <input type="hidden" id="quest-event-date">
                         <select id="quest-event-type" class="quest-event-native" required>
                             <option value="" disabled selected>Select an event type...</option>
+                            <option value="Day Treasure">Day Treasure</option>
                             <optgroup label="Standard Events">
                                 <option value="2x Star Day">2x Star Day</option>
                                 <option value="Reason Bonus Day">Reason Bonus Day</option>
@@ -110,8 +117,11 @@ export const plannerModalHTML = `
                         </select>
                         <select id="quest-event-scope" multiple size="3" class="quest-event-native"></select>
 
-                        <section class="quest-event-section">
+                        <section id="quest-event-treasure" class="quest-event-section quest-event-section--treasure hidden" aria-label="This day's own event"></section>
+
+                        <section class="quest-event-section quest-event-section--standard">
                             <header class="quest-event-section__head">
+                                <span class="quest-event-section__badge" aria-hidden="true"><i class="fas fa-star"></i></span>
                                 <p class="quest-event-kicker">Standard events</p>
                                 <h3>Applied on Award Stars</h3>
                                 <p>The app doubles stars, or adds +1 for one virtue, during that lesson.</p>
@@ -130,8 +140,9 @@ export const plannerModalHTML = `
                             </div>
                         </section>
 
-                        <section class="quest-event-section">
+                        <section class="quest-event-section quest-event-section--quests">
                             <header class="quest-event-section__head">
+                                <span class="quest-event-section__badge" aria-hidden="true"><i class="fas fa-dungeon"></i></span>
                                 <p class="quest-event-kicker">Special Quests</p>
                                 <h3>Run in the room</h3>
                                 <p>One-lesson shapes with a projector progress bar. Stored separately per class.</p>
@@ -165,8 +176,9 @@ export const plannerModalHTML = `
                             </div>
                         </section>
 
-                        <section class="quest-event-section">
+                        <section class="quest-event-section quest-event-section--who">
                             <header class="quest-event-section__head">
+                                <span class="quest-event-section__badge" aria-hidden="true"><i class="fas fa-users"></i></span>
                                 <p class="quest-event-kicker">Who joins</p>
                                 <h3>Classes</h3>
                             </header>

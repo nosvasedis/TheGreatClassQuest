@@ -250,7 +250,7 @@ export function buildScheduleEmptySceneHtml(emptyState, { compact = false } = {}
  * a marked day (Halloween, Three Hierarchs…), a holiday the school opened for,
  * the last lessons before a break, or the first ones back. Empty string otherwise.
  */
-export function buildScheduleDayNoteHtml(dateLike = new Date(), { compact = false } = {}) {
+export function buildScheduleDayNoteHtml(dateLike = new Date(), { compact = false, treasures = [] } = {}) {
     const info = describeSchoolDay(dateLike);
     if (info.closure) return '';
     const special = info.headline && info.headline.key ? info.headline : null;
@@ -271,6 +271,14 @@ export function buildScheduleDayNoteHtml(dateLike = new Date(), { compact = fals
         bits.push(`<span class="schedule-day-note__edge schedule-day-note__edge--${edge.edge}">${edge.edge === 'last-before'
             ? `🎒 Last lessons before ${escapeText(name)}`
             : `🔔 Welcome back from ${escapeText(name)}!`}</span>`);
+    }
+    // The day's treasure chests planned for your classes (features/dayTreasure.js opens them).
+    if (special && treasures.length) {
+        bits.push(`<span class="schedule-day-note__treasures">${treasures.map((t) => `
+            <button type="button" class="schedule-day-note__treasure${t.opened ? ' is-opened' : ''}" data-day-treasure="${escapeText(t.id)}">
+                <span aria-hidden="true">${t.opened ? '🪙' : '🧰'}</span>
+                <span>${escapeText(t.opened ? `${t.classLabel}: opened` : `Open ${t.name}`)}${t.opened ? '' : ` <small>${escapeText(t.classLabel)}</small>`}</span>
+            </button>`).join('')}</span>`);
     }
     const theme = special?.theme || (edge?.edge === 'back-from' ? 'back' : 'edge');
     const vars = special?.colors

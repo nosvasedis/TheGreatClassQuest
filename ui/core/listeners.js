@@ -356,6 +356,18 @@ export function setupUIListeners() {
     });
 
     document.getElementById('day-planner-close-btn').addEventListener('click', () => modals.hideModal('day-planner-modal'));
+    // A click on the dimmed backdrop closes the Planner and the Quest Log too. Only when the press
+    // also started there, so a text selection dragged out of the window doesn't close it.
+    ['day-planner-modal', 'logbook-modal'].forEach((id) => {
+        const overlay = document.getElementById(id);
+        if (!overlay) return;
+        let pressedOnBackdrop = false;
+        overlay.addEventListener('pointerdown', (e) => { pressedOnBackdrop = e.target === overlay; });
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay && pressedOnBackdrop) modals.hideModal(id);
+            pressedOnBackdrop = false;
+        });
+    });
     document.getElementById('day-planner-open-log-btn')?.addEventListener('click', () => {
         const dateString = document.getElementById('day-planner-modal').dataset.date;
         if (dateString) modals.openCalendarDayLog(dateString);
@@ -426,6 +438,14 @@ export function setupUIListeners() {
             'Confirm Holiday'
         );
     });
+    // Day Treasures can be opened from the Planner, the Quest Event pane and the Home schedule.
+    document.addEventListener('click', (e) => {
+        const opener = e.target.closest('[data-day-treasure]');
+        if (!opener) return;
+        e.preventDefault();
+        e.stopPropagation();
+        import('../../features/dayTreasure.js').then((m) => m.openDayTreasure(opener.dataset.dayTreasure)).catch((err) => console.error(err));
+    }, true);
     document.getElementById('quest-event-form').addEventListener('submit', (e) => { e.preventDefault(); handleAddQuestEvent(); });
     document.getElementById('quest-event-type').addEventListener('change', modals.renderQuestEventDetails);
     document.getElementById('quest-event-form').addEventListener('click', (e) => {

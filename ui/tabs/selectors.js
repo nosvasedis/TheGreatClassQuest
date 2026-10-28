@@ -236,6 +236,7 @@ const QC_EVENT_THEMES = {
     unbroken_chain: 'chain',
     scribes_sketch: 'scribe',
     five_sentence_saga: 'saga',
+    day_treasure: 'treasure',
 };
 
 function formatStarCount(value) {
@@ -334,26 +335,79 @@ function renderMonthSpecials(items) {
         return true;
     }).map((item) => {
         const range = item.holiday && item.holiday.start !== item.holiday.end ? item.holiday : null;
-        const when = range
-            ? `${formatChipDate(range.start)} – ${formatChipDate(range.end)}`
-            : `${item.day}`;
+        const special = item.special || null;
         const label = range ? (range.name || item.label) : item.label;
         const icon = range ? (range.icon || item.icon) : item.icon;
-        const state = item.closed ? 'No lessons' : (item.open ? 'Lessons as normal' : 'Special day');
+        const day = item.date || null;
+        const weekday = day ? day.toLocaleDateString('en-GB', { weekday: 'short' }) : '';
+        const longDate = range
+            ? `${formatChipDate(range.start)} – ${formatChipDate(range.end)}`
+            : (day ? day.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }) : '');
+        const state = item.closed ? 'No lessons' : (item.open ? 'Holiday · your school is open' : 'Lessons as normal');
+        const greek = !range && special?.nameEl && special.nameEl !== special.name ? special.nameEl : (range?.nameEl || '');
+        const blurb = range ? (range.blurb || special?.blurb || '') : (special?.blurb || '');
+        const spanDays = range ? Math.round((Date.UTC(...range.end.split('-').map((n, i) => (i === 1 ? n - 1 : +n))) - Date.UTC(...range.start.split('-').map((n, i) => (i === 1 ? n - 1 : +n)))) / 86400000) + 1 : 0;
         const vars = item.colors ? ` style="--hol-a:${escapeHtml(item.colors[0])};--hol-b:${escapeHtml(item.colors[1])};--hol-ink:${escapeHtml(item.colors[2])};--hol-line:${escapeHtml(item.colors[2])}55"` : '';
-        return `<li class="qc-special-chip qc-special-chip--${escapeHtml(item.theme || 'break')}${item.closed ? ' qc-special-chip--closed' : ''}"${vars} title="${escapeHtml(`${label}: ${state}`)}">
-            <span class="qc-special-chip__date">${escapeHtml(when)}</span>
-            <span aria-hidden="true">${escapeHtml(icon || '📅')}</span>
-            <span class="qc-special-chip__name">${escapeHtml(label)}</span>
+        const dateBadge = range
+            ? `<span class="qc-special-chip__date qc-special-chip__date--range"><b>${escapeHtml(formatChipDate(range.start))}</b><small>to ${escapeHtml(formatChipDate(range.end))}</small></span>`
+            : `<span class="qc-special-chip__date"><b>${item.day}</b><small>${escapeHtml(weekday)}</small></span>`;
+        return `<li class="qc-special-chip qc-special-chip--${escapeHtml(item.theme || 'break')}${item.closed ? ' qc-special-chip--closed' : ''}"${vars}>
+            <button type="button" class="qc-special-chip__btn" data-special-day="${escapeHtml(range ? '' : (item.dateString || ''))}" aria-label="${escapeHtml(`${label}, ${longDate}: ${state}`)}">
+                ${dateBadge}
+                <span class="qc-special-chip__icon" aria-hidden="true">${escapeHtml(icon || '📅')}</span>
+                <span class="qc-special-chip__name">${escapeHtml(label)}</span>
+                ${item.closed ? '<span class="qc-special-chip__tag">No lessons</span>' : ''}
+            </button>
+            <span class="qc-special-tip" role="tooltip">
+                <span class="qc-special-tip__icon" aria-hidden="true">${escapeHtml(icon || '📅')}</span>
+                <span class="qc-special-tip__body">
+                    <strong>${escapeHtml(label)}</strong>
+                    ${greek ? `<span class="qc-special-tip__greek" lang="el">${escapeHtml(greek)}</span>` : ''}
+                    <span class="qc-special-tip__when"><i class="fas fa-calendar-day" aria-hidden="true"></i> ${escapeHtml(longDate)}${spanDays > 1 ? ` · ${spanDays} days` : ''}</span>
+                    <span class="qc-special-tip__state${item.closed ? ' is-closed' : ''}">${item.closed ? '<i class="fas fa-umbrella-beach" aria-hidden="true"></i>' : '<i class="fas fa-school" aria-hidden="true"></i>'} ${escapeHtml(state)}</span>
+                    ${blurb ? `<span class="qc-special-tip__blurb">${escapeHtml(blurb)}</span>` : ''}
+                    ${range ? '' : '<span class="qc-special-tip__hint">Click to open the day</span>'}
+                </span>
+            </span>
         </li>`;
     });
     host.innerHTML = chips.join('');
     host.hidden = chips.length === 0;
+    host.onclick = (e) => {
+        const btn = e.target.closest('[data-special-day]');
+        if (!btn || !btn.dataset.specialDay) return;
+        const cell = document.querySelector(`.calendar-day-cell[data-date="${btn.dataset.specialDay}"]`);
+        if (cell) cell.click();
+        else import('../modals/planner.js').then((m) => m.openDayPlannerModal(btn.dataset.specialDay, null)).catch(() => {});
+    };
 }
 
 function formatChipDate(iso) {
     const [y, m, d] = String(iso).split('-').map(Number);
     return new Date(y, m - 1, d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+/** Busy tiles: fade the lesson list and show "+N more" until it is scrolled to the end. */
+function markOverflowingLessons(grid) {
+    grid.querySelectorAll('.qc-day__lessons').forEach((list) => {
+        if (list.scrollHeight <= list.clientHeight + 2) return;
+        const cell = list.closest('.qc-day');
+        const pill = document.createElement('span');
+        pill.className = 'qc-day__more';
+        pill.setAttribute('aria-hidden', 'true');
+        cell.appendChild(pill);
+        const update = () => {
+            const bottom = list.getBoundingClientRect().bottom;
+            // Chips cut off by the fade count as hidden too.
+            const hiddenCount = [...list.children].filter((chip) => chip.getBoundingClientRect().bottom > bottom - 18).length;
+            const atEnd = hiddenCount === 0;
+            list.classList.toggle('is-more', !atEnd);
+            pill.hidden = atEnd;
+            pill.innerHTML = `+${hiddenCount} more <i class="fas fa-chevron-down"></i>`;
+        };
+        update();
+        list.addEventListener('scroll', update, { passive: true });
+    });
 }
 
 const STAT_DAY = (day) => day.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' });
@@ -578,7 +632,7 @@ export function renderCalendarTab(customLogs = null) {
                     detail.daysOff.push({ label, icon: (label === agenda.holiday?.name && agenda.holiday?.icon) || agenda.holidayIcon, when: first, firstLabel: first, lastDay: i, count: 1 });
                 }
             }
-            monthSpecials.push({ day: i, label: special?.also ? `${agenda.holidayLabel} & ${special.also.name}` : agenda.holidayLabel, icon: agenda.holidayIcon, theme: themeKey, closed: true, holiday: agenda.holiday });
+            monthSpecials.push({ day: i, date: agenda.day, dateString, special, label: special?.also ? `${agenda.holidayLabel} & ${special.also.name}` : agenda.holidayLabel, icon: agenda.holidayIcon, theme: themeKey, closed: true, holiday: agenda.holiday });
             grid.appendChild(dayCell);
             continue;
         }
@@ -630,7 +684,7 @@ export function renderCalendarTab(customLogs = null) {
                 dayCell.style.setProperty('--hol-ink', ink);
                 dayCell.style.setProperty('--hol-line', `${ink}55`);
             }
-            monthSpecials.push({ day: i, label: special.name, icon: special.icon, theme: special.theme, colors: special.colors, closed: false, open: special.kind === 'closure' || special.kind === 'local' });
+            monthSpecials.push({ day: i, date: agenda.day, dateString, special, label: special.name, icon: special.icon, theme: special.theme, colors: special.colors, closed: false, open: special.kind === 'closure' || special.kind === 'local' });
         }
         const specialRibbon = special
             ? `<div class="qc-day__special qc-special--${escapeHtml(special.theme)}" title="${escapeHtml(`${special.name}${special.nameEl && special.nameEl !== special.name ? ` · ${special.nameEl}` : ''}${special.blurb ? `\n${special.blurb}` : ''}`)}">
@@ -666,6 +720,7 @@ export function renderCalendarTab(customLogs = null) {
     }
 
     if (loader && !isLoaderVisible) loader.classList.add('hidden');
+    requestAnimationFrame(() => markOverflowingLessons(grid));
     renderMonthStats({ ...stats, detail }, new Date(year, month, 1).toLocaleDateString('en-GB', { month: 'long' }));
     renderMonthSpecials(monthSpecials);
 

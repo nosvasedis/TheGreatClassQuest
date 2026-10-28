@@ -21,6 +21,11 @@ const classes = [
     { id: 'c3', name: 'Pre-Junior Bees', logo: '🐝', scheduleDays: ['1', '5'], timeStart: '16:00', timeEnd: '17:00', questLevel: 'Pre-Junior' },
     { id: 'c4', name: 'D Phoenix', logo: '🔥', scheduleDays: ['3', '5'], timeStart: '19:00', timeEnd: '20:30', questLevel: 'D' },
 ];
+if (params.has('sample')) classes.push(
+    { id: 'c5', name: 'The A-Hey Class', logo: '🍿', scheduleDays: ['4'], timeStart: '18:00', timeEnd: '20:00', questLevel: 'A' },
+    { id: 'c6', name: 'The C Seekers', logo: '🍎', scheduleDays: ['4'], timeStart: '18:00', timeEnd: '20:00', questLevel: 'C' },
+    { id: 'c7', name: 'The Jay-Bees', logo: '🐝', scheduleDays: ['4'], timeStart: '18:00', timeEnd: '19:30', questLevel: 'Junior B' },
+);
 state.set('allSchoolClasses', classes);
 state.set('allTeachersClasses', classes);
 state.set('allScheduleOverrides', []);
@@ -74,4 +79,32 @@ if (view === 'calendar') {
         <div id="holiday-list" class="office-holiday-list"></div></article></div>`;
     m.updateOwnBreakPreview();
     m.renderOwnBreaksList();
+}
+if (view === 'planner' || view === 'log') {
+    // ?view=planner&date=26-11-2026[&tab=event]  ·  ?view=log&date=31-10-2026
+    const { plannerModalHTML } = await import('./templates/modals/planner.js');
+    const { classModalsHTML } = await import('./templates/modals/class.js');
+    document.body.insertAdjacentHTML('beforeend', plannerModalHTML + classModalsHTML);
+    const date = params.get('date') || '26-11-2026';
+    if (view === 'planner') {
+        const m = await import('./ui/modals/planner.js');
+        m.openDayPlannerModal(date, null, { tab: params.get('tab') || 'schedule' });
+    } else {
+        const m = await import('./ui/modals/log.js');
+        await m.showLogbookModal(date);
+    }
+}
+if (view === 'treasure') {
+    // ?view=treasure&sample=1 : replays a sample Harvest Chest (no saving)
+    const { rollDayTreasure } = await import('./features/dayTreasureCore.mjs');
+    const names = ['Eleni', 'Nikos', 'Maria', 'Giorgos', 'Sofia', 'Dimitris', 'Katerina', 'Yannis', 'Anna', 'Petros', 'Zoe', 'Alexandros'];
+    const students = names.map((name, i) => ({ id: `st${i}`, name, classId: 'c5' }));
+    state.set('allStudents', students);
+    const shares = rollDayTreasure(students.map((s) => s.id), params.get('seed') || 'demo-7');
+    const cls = classes.find((c) => c.id === 'c5') || classes[0];
+    cls.dayTreasures = { t1: { shares, total: shares.reduce((n, s) => n + s.gold, 0), name: 'The Harvest Chest' } };
+    state.set('allSchoolClasses', classes);
+    state.set('allQuestEvents', [{ id: 't1', type: 'day_treasure', classId: cls.id, dateKey: '26-11-2026', status: 'completed', details: { title: 'The Harvest Chest', icon: '🦃' } }]);
+    const m = await import('./features/dayTreasure.js');
+    await m.openDayTreasure('t1');
 }

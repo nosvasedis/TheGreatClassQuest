@@ -1,4 +1,8 @@
 // /ui/modals/planner.js
+import { paintDayScene, dayCardHtml, specialDayFor, dayLook } from '../daySceneHeader.js';
+import * as constants from '../../constants.js';
+import '../../styles/planner_panes.css';
+import { treasureNameFor } from '../../features/dayTreasureCore.mjs';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { showAnimatedModal, setCurrentlySelectedDayCell, getCurrentlySelectedDayCell } from './base.js';
@@ -8,6 +12,7 @@ import { getDayAgenda } from '../../utils/calendarDay.js';
 import { filterDocsForActiveYear } from '../../utils/schoolYear.js';
 
 const QUEST_EVENT_INSIGHTS = {
+    'Day Treasure': "This day's own chest. On the day, open it in class (Planner or Home schedule) and every hero finds a random pile of Gold: 10 to 45, and one lucky hero may find the Hoard (60 to 80). No stars. One chest per class.",
     '2x Star Day': 'Every positive star award that day is doubled. The app applies this on Award Stars automatically.',
     'Reason Bonus Day': 'Pick Teamwork, Creativity, Respect, or Focus. Matching awards get +1 extra star. The app applies this on Award Stars automatically.',
     'Vocabulary Vault': 'Students spend the Word / target words in real English. Count toward the vault. You set the goal (valid uses) and the completion bonus Stars.',
@@ -77,6 +82,7 @@ export function paintDayHeader(prefix, dateString) {
         when.textContent = rel.label;
         when.dataset.tone = rel.tone;
     }
+    paintDayScene(document.getElementById(`${prefix}-leaf-day`)?.closest('.qc-mhead'), dateString);
     return day;
 }
 
@@ -112,29 +118,20 @@ function renderPlannerGlance(dateString) {
         </span>`;
 
     const special = agenda.special;
+    // The day's own card (ui/daySceneHeader.js): holidays, breaks and celebrations alike.
     const holidayStory = agenda.isNoSchool && agenda.holiday
-        ? `<div class="qc-glance__story qc-day--theme-${escapeHtml(agenda.theme || 'break')}">
-                <span class="qc-glance__story-icon" aria-hidden="true">${escapeHtml(agenda.holidayIcon || '📅')}</span>
-                <span class="qc-glance__story-text">
-                    <strong>${escapeHtml(agenda.holidayLabel || 'Holiday')}</strong>${special?.nameEl && special.nameEl !== agenda.holidayLabel ? ` <span lang="el">· ${escapeHtml(special.nameEl)}</span>` : ''}
-                    ${special?.closureName && special.closureName !== agenda.holidayLabel ? `<em>${escapeHtml(special.closureName)}</em>` : ''}
-                    ${special?.blurb ? `<small>${escapeHtml(special.blurb)}</small>` : ''}
-                    <small class="qc-glance__story-tip">${agenda.holiday.official
-                        ? 'The school calendar closes this day. Teaching anyway? Add a one-time lesson below, or the School Office can open the school for the day.'
-                        : 'A School Office break. Teaching anyway? Add a one-time lesson below.'}</small>
-                </span>
-           </div>`
+        ? dayCardHtml({ ...(special || { name: agenda.holidayLabel || 'Holiday', icon: agenda.holidayIcon || '📅', theme: agenda.theme || 'break' }), closed: true }, {
+            tip: agenda.holiday.official
+                ? 'The school calendar closes this day. Teaching anyway? Add a one-time lesson below, or the School Office can open the school for the day.'
+                : 'A School Office break. Teaching anyway? Add a one-time lesson below.',
+        })
         : (!agenda.isNoSchool && special?.key
-            ? `<div class="qc-glance__story qc-glance__story--marked qc-day--theme-${escapeHtml(special.theme)}">
-                    <span class="qc-glance__story-icon" aria-hidden="true">${escapeHtml(special.icon)}</span>
-                    <span class="qc-glance__story-text">
-                        <strong>${escapeHtml(special.name)}</strong>${special.nameEl && special.nameEl !== special.name ? ` <span lang="el">· ${escapeHtml(special.nameEl)}</span>` : ''}
-                        <small>${escapeHtml(special.kind === 'closure' || special.kind === 'local' ? 'A holiday, but your school is open this day. Lessons as normal.' : special.blurb)}</small>
-                    </span>
-               </div>`
+            ? dayCardHtml({ ...special, closed: false }, special.kind === 'closure' || special.kind === 'local'
+                ? { eyebrow: 'Holiday, but your school is open', tip: 'Lessons as normal today.' }
+                : {})
             : '');
     const statsHtml = agenda.isNoSchool
-        ? `<span class="qc-glance__holiday"><span aria-hidden="true">${escapeHtml(agenda.holidayIcon || '📅')}</span> ${escapeHtml(agenda.holidayLabel || 'No School')} — no regular lessons</span>`
+        ? (holidayStory ? '' : `<span class="qc-glance__holiday"><span aria-hidden="true">${escapeHtml(agenda.holidayIcon || '📅')}</span> ${escapeHtml(agenda.holidayLabel || 'No School')} — no regular lessons</span>`)
         : [
             stat('lessons', '<i class="fas fa-school"></i>', agenda.classes.length, agenda.classes.length === 1 ? 'lesson' : 'lessons'),
             agenda.classes.length && mine !== agenda.classes.length ? stat('mine', '<i class="fas fa-user"></i>', mine, 'yours') : '',
@@ -151,6 +148,9 @@ function renderPlannerGlance(dateString) {
                         <span aria-hidden="true">${escapeHtml(glyph)}</span>
                         <span class="qc-glance__event-name">${escapeHtml(e.title)}</span>
                         <span class="qc-glance__event-scope">${cls ? `${escapeHtml(cls.logo || '🏫')} ${escapeHtml(cls.name)}` : 'All classes'}</span>
+                        ${e.type === 'day_treasure' && (agenda.isToday || e.status === 'completed') && myIds.has(e.classId)
+                            ? `<button type="button" class="qc-glance__event-open" data-day-treasure="${escapeHtml(e.id)}">${e.status === 'completed' ? 'See it again' : 'Open it!'}</button>`
+                            : ''}
                         <button type="button" class="qc-glance__event-del delete-event-btn" data-id="${escapeHtml(e.id)}" data-name="${escapeHtml(e.title)}" aria-label="Remove ${escapeHtml(e.title)}"><i class="fas fa-times" aria-hidden="true"></i></button>
                     </span>`;
                 }).join('')}
@@ -159,7 +159,7 @@ function renderPlannerGlance(dateString) {
 
     host.innerHTML = `
         ${holidayStory}
-        <div class="qc-glance__stats">${statsHtml}</div>
+        ${statsHtml ? `<div class="qc-glance__stats">${statsHtml}</div>` : ''}
         ${eventsHtml}`;
 
     // Only one school-wide standard event fits on a day: rest those cards when it's taken.
@@ -199,6 +199,7 @@ export function refreshOpenDayPlanner() {
     if (!dateString) return;
     renderScheduleManagerList(dateString);
     renderPlannerGlance(dateString);
+    renderTreasureOffer(dateString);
 }
 
 // --- MAIN FEATURE MODALS ---
@@ -225,6 +226,7 @@ export function openDayPlannerModal(dateString, dayCell, options = {}) {
     document.getElementById('quest-event-date').value = dateString;
 
     populateQuestEventClasses();
+    renderTreasureOffer(dateString);
     renderQuestEventDetails();
     renderScheduleManagerList(dateString);
     renderPlannerGlance(dateString);
@@ -254,6 +256,58 @@ export function switchDayPlannerTab(tabName) {
     const activeContent = document.getElementById(`day-planner-${tabName}-content`);
     activeContent.classList.remove('hidden');
     activeContent.classList.add('animate-fade-in');
+}
+
+/** On a special day, the Quest Event pane opens with that day's own event: its treasure chest. */
+function renderTreasureOffer(dateString) {
+    const host = document.getElementById('quest-event-treasure');
+    if (!host) return;
+    const special = specialDayFor(dateString);
+    const option = document.querySelector('#quest-event-type option[value="Day Treasure"]');
+    if (option) option.disabled = !special;
+    if (!special) {
+        host.classList.add('hidden');
+        host.innerHTML = '';
+        return;
+    }
+    const look = dayLook(special);
+    const name = treasureNameFor(special);
+    const myIds = new Set((state.get('allTeachersClasses') || []).map(c => c.id));
+    const classById = new Map((state.get('allSchoolClasses') || []).map(c => [c.id, c]));
+    const isToday = utils.datesMatch(dateString, utils.getTodayDateString());
+    const planned = (state.get('allQuestEvents') || []).filter(e => e.type === 'day_treasure' && e.status !== 'cancelled'
+        && utils.datesMatch(e.dateKey || e.date, dateString) && myIds.has(e.classId));
+    const plannedHtml = planned.length ? `
+        <ul class="qe-treasure__planned">
+            ${planned.map(e => {
+                const cls = classById.get(e.classId) || {};
+                const opened = e.status === 'completed' || cls.dayTreasures?.[e.id];
+                return `<li>
+                    <span>${escapeHtml(cls.logo || '🏫')} ${escapeHtml(cls.name || 'Class')}</span>
+                    ${opened
+                        ? `<button type="button" class="qe-treasure__open qe-treasure__open--done" data-day-treasure="${escapeHtml(e.id)}"><i class="fas fa-eye" aria-hidden="true"></i> Opened · see it again</button>`
+                        : isToday
+                            ? `<button type="button" class="qe-treasure__open" data-day-treasure="${escapeHtml(e.id)}"><i class="fas fa-key" aria-hidden="true"></i> Open it now</button>`
+                            : '<em>Ready. Open it in class on the day</em>'}
+                </li>`;
+            }).join('')}
+        </ul>` : '';
+    host.classList.remove('hidden');
+    host.setAttribute('style', `--day-a:${look.a};--day-b:${look.b};--day-ink:${look.ink}`);
+    host.innerHTML = `
+        <span class="qe-treasure__bits" aria-hidden="true">${look.particles.slice(0, 4).map((p, i) => `<span style="--x:${58 + i * 11}%;--y:${18 + (i % 2) * 50}%;--d:${i * 0.9}s">${escapeHtml(p)}</span>`).join('')}</span>
+        <header class="quest-event-section__head">
+            <span class="quest-event-section__badge" aria-hidden="true">${escapeHtml(special.icon)}</span>
+            <p class="quest-event-kicker">${escapeHtml(special.name)} · this day's own event</p>
+            <h3>${escapeHtml(name)}</h3>
+            <p>A chest of Gold for the class, opened together on the projector. Every hero finds something, and one may find the Hoard.</p>
+        </header>
+        <button type="button" class="quest-event-type-card quest-event-type-card--treasure" data-quest-type="Day Treasure" aria-pressed="false">
+            <span class="quest-event-type-card__glyph" aria-hidden="true">🧰</span>
+            <span class="quest-event-type-card__name">Add the ${escapeHtml(special.name)} treasure</span>
+            <span class="quest-event-type-card__hint">10–45 Gold for each hero · the Hoard: 60–80 · no stars</span>
+        </button>
+        ${plannedHtml}`;
 }
 
 function populateQuestEventClasses() {
@@ -370,35 +424,93 @@ function renderScheduleManagerList(dateString) {
     );
     const allTeacherClassIds = state.get('allTeachersClasses').map(c => c.id);
 
+    const summaryEl = document.getElementById('schedule-day-summary');
     if (classesOnDay.length === 0) {
+        const special = specialDayFor(dateString);
         listEl.innerHTML = `
             <div class="schedule-empty">
-                <div class="schedule-empty__icon"><i class="fas fa-calendar-times"></i></div>
-                <p>The hall is quiet.</p>
-                <span>No lessons scheduled for this day.</span>
+                <div class="schedule-empty__icon">${special ? escapeHtml(special.icon) : '<i class="fas fa-feather-pointed"></i>'}</div>
+                <p>${special?.closed ? `${escapeHtml(special.name)}: the hall is resting.` : 'The hall is quiet.'}</p>
+                <span>No lessons on this day. Need one? Add a one-time lesson below.</span>
             </div>`;
+        if (summaryEl) summaryEl.innerHTML = '';
     } else {
-        listEl.innerHTML = classesOnDay.map(c => {
-            const isMine = allTeacherClassIds.includes(c.id);
-            const timeDisplay = (c.timeStart && c.timeEnd) ? `${c.timeStart} - ${c.timeEnd}` : 'No time set';
-            const cancelButton = isMine
-                ? `<button type="button" class="cancel-lesson-btn schedule-lesson-cancel" data-class-id="${escapeHtml(c.id)}">
-                    <i class="fas fa-calendar-minus"></i> Cancel
+        // A timeline: your classes first, then the rest of the school, each by start time.
+        const toMin = (t) => {
+            const [h, m] = String(t || '').split(':').map(Number);
+            return Number.isFinite(h) ? h * 60 + (m || 0) : null;
+        };
+        const byTime = (a, b) => (toMin(a.timeStart) ?? 9999) - (toMin(b.timeStart) ?? 9999);
+        const mine = classesOnDay.filter(c => allTeacherClassIds.includes(c.id)).sort(byTime);
+        const others = classesOnDay.filter(c => !allTeacherClassIds.includes(c.id)).sort(byTime);
+        const isToday = utils.datesMatch(dateString, utils.getTodayDateString());
+        const now = new Date();
+        const nowMin = now.getHours() * 60 + now.getMinutes();
+        const nextMine = isToday ? mine.find(c => (toMin(c.timeStart) ?? -1) > nowMin) : null;
+        const students = state.get('allStudents') || [];
+        const dayEvents = (state.get('allQuestEvents') || []).filter(e => e.status !== 'cancelled' && utils.datesMatch(e.dateKey || e.date, dateString));
+        const tests = state.get('allQuestAssignments') || [];
+        const palette = constants.classColorPalettes;
+
+        const card = (c, isMine) => {
+            const start = toMin(c.timeStart);
+            const end = toMin(c.timeEnd);
+            const minutes = start != null && end != null && end > start ? end - start : null;
+            const length = minutes ? (minutes % 60 ? `${Math.floor(minutes / 60) ? `${Math.floor(minutes / 60)}h ` : ''}${minutes % 60}m` : `${minutes / 60}h`) : '';
+            let phase = '';
+            if (isToday && start != null && end != null) {
+                if (nowMin >= start && nowMin < end) phase = 'now';
+                else if (nowMin >= end) phase = 'done';
+                else if (nextMine?.id === c.id) phase = 'next';
+            }
+            const phaseTag = phase === 'now' ? '<span class="schedule-lesson-card__phase schedule-lesson-card__phase--now"><i class="fas fa-circle" aria-hidden="true"></i> In session</span>'
+                : phase === 'next' ? '<span class="schedule-lesson-card__phase schedule-lesson-card__phase--next">Up next</span>'
+                : phase === 'done' ? '<span class="schedule-lesson-card__phase schedule-lesson-card__phase--done"><i class="fas fa-check" aria-hidden="true"></i> Done</span>' : '';
+            const heroes = students.filter(st => st.classId === c.id && st.enrollmentStatus !== 'inactive').length;
+            const test = tests.find(a => a.classId === c.id && a.testData && utils.datesMatch(dateString, a.testData.date));
+            const events = dayEvents.filter(e => e.classId === c.id);
+            // The same colour as the class's chip on the calendar tile.
+            const color = c.color || palette[utils.simpleHashCode(c.id) % palette.length] || {};
+            const extras = [
+                c.questLevel ? `<span class="schedule-tag"><i class="fas fa-shield-halved" aria-hidden="true"></i> ${escapeHtml(c.questLevel)}</span>` : '',
+                heroes ? `<span class="schedule-tag"><i class="fas fa-user-group" aria-hidden="true"></i> ${heroes} heroes</span>` : '',
+                test ? `<span class="schedule-tag schedule-tag--test">📝 ${escapeHtml(test.testData.title || 'Test')}</span>` : '',
+                ...events.map(e => `<span class="schedule-tag schedule-tag--event">${escapeHtml(e.type === 'day_treasure' ? (e.details?.icon || '🎁') : '✨')} ${escapeHtml(e.details?.title || 'Quest Event')}</span>`),
+            ].filter(Boolean).join('');
+            const action = isMine
+                ? `<button type="button" class="cancel-lesson-btn schedule-lesson-cancel" data-class-id="${escapeHtml(c.id)}" title="Cancel this lesson on this day">
+                    <i class="fas fa-calendar-xmark" aria-hidden="true"></i><span>Cancel</span>
                    </button>`
-                : `<div class="schedule-lesson-foreign">By ${escapeHtml(c.createdBy?.name || 'another teacher')}</div>`;
-            
+                : `<div class="schedule-lesson-foreign"><i class="fas fa-chalkboard-user" aria-hidden="true"></i> ${escapeHtml(c.createdBy?.name || 'Another teacher')}</div>`;
             return `
-                <article class="schedule-lesson-card">
+                <article data-tone="${escapeHtml(String(color.bg || '').replace(/^bg-|-100$/g, ''))}" class="schedule-lesson-card${isMine ? ' schedule-lesson-card--mine' : ''}${phase ? ` schedule-lesson-card--${phase}` : ''}">
+                    <div class="schedule-lesson-card__time-col">
+                        <strong>${escapeHtml(c.timeStart || '—')}</strong>
+                        <span>${escapeHtml(c.timeEnd || '')}</span>
+                        ${length ? `<em>${escapeHtml(length)}</em>` : ''}
+                    </div>
                     <div class="schedule-lesson-card__main">
-                        <div class="schedule-lesson-card__logo">${c.logo || '🏫'}</div>
-                        <div>
-                            <h4 class="schedule-lesson-card__name">${escapeHtml(c.name)}</h4>
-                            <p class="schedule-lesson-card__time"><i class="fas fa-clock"></i> ${escapeHtml(timeDisplay)}</p>
+                        <div class="schedule-lesson-card__logo">${escapeHtml(c.logo || '🏫')}</div>
+                        <div class="schedule-lesson-card__copy">
+                            <h4 class="schedule-lesson-card__name">${escapeHtml(c.name)} ${phaseTag}</h4>
+                            ${extras ? `<div class="schedule-lesson-card__tags">${extras}</div>` : ''}
                         </div>
                     </div>
-                    ${cancelButton}
+                    ${action}
                 </article>`;
-        }).join('');
+        };
+        listEl.innerHTML = `
+            ${mine.length ? `<p class="schedule-group-label"><i class="fas fa-user" aria-hidden="true"></i> Your lessons</p>${mine.map(c => card(c, true)).join('')}` : ''}
+            ${others.length ? `<p class="schedule-group-label schedule-group-label--others"><i class="fas fa-school" aria-hidden="true"></i> Elsewhere in the school</p>${others.map(c => card(c, false)).join('')}` : ''}`;
+
+        const starts = classesOnDay.map(c => c.timeStart).filter(Boolean).sort();
+        const ends = classesOnDay.map(c => c.timeEnd).filter(Boolean).sort();
+        if (summaryEl) {
+            summaryEl.innerHTML = `
+                <span><strong>${classesOnDay.length}</strong> ${classesOnDay.length === 1 ? 'lesson' : 'lessons'}</span>
+                ${mine.length !== classesOnDay.length ? `<span><strong>${mine.length}</strong> yours</span>` : ''}
+                ${starts.length ? `<span><i class="fas fa-clock" aria-hidden="true"></i> ${escapeHtml(starts[0])}–${escapeHtml(ends[ends.length - 1] || '')}</span>` : ''}`;
+        }
     }
 
     const scheduledIds = classesOnDay.map(c => c.id);
@@ -490,6 +602,9 @@ export function renderQuestEventDetails() {
             html = goalTargetField(`Goal target (${def.unit})`, def.minTarget, def.maxTarget, def.defaultTarget) + completionBonusField() + presentationFields();
             break;
         }
+        case 'Day Treasure':
+            html = '';
+            break;
         case 'The Unbroken Chain':
         case 'The Scribe\'s Sketch':
         case 'Five-Sentence Saga':

@@ -37,7 +37,8 @@ import { createQuestEventDocument, normalizeQuestType, isSpecialQuestType, isSch
 import { buildGrowthStarfallNote } from '../../features/growthStarfallCore.mjs';
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 import { monthlyStarsChange } from './monthlyStars.js';
-import { breakLookFor } from '../../utils/schoolCalendar.mjs';
+import { breakLookFor, describeSchoolDay } from '../../utils/schoolCalendar.mjs';
+import { treasureNameFor } from '../../features/dayTreasureCore.mjs';
 
 export async function addOrUpdateHeroChronicleNote(studentId, noteText, category, noteId = null) {
     if (!studentId || !noteText || !category) {
@@ -909,6 +910,17 @@ export async function handleAddQuestEvent() {
                 break;
             case '2x Star Day':
                 break;
+            case 'Day Treasure': {
+                // The special day's own chest (features/dayTreasureCore.mjs), named after the day.
+                const [dd, mm, yy] = String(date).split('-').map(Number);
+                const special = describeSchoolDay(new Date(yy, mm - 1, dd)).headline;
+                if (!special) throw new Error('Day Treasures are only for the special days of the calendar.');
+                details.title = treasureNameFor(special);
+                details.icon = special.icon || '🎁';
+                details.dayKey = special.key || '';
+                details.dayName = special.name || '';
+                break;
+            }
             default:
                 throw new Error("Invalid event type selected.");
         }
@@ -939,7 +951,7 @@ export async function handleAddQuestEvent() {
                 ? (state.get('allSchoolClasses') || [])
                 : (state.get('allTeachersClasses') || []);
             classes = classPool.filter((item) => selectedClassIds.includes(item.id));
-            if (!classes.length && isSpecialQuestType(normalizedType)) {
+            if (!classes.length && (isSpecialQuestType(normalizedType) || normalizedType === 'day_treasure')) {
                 throw new Error('Select at least one class for this event.');
             }
             const conflicts = classes.filter((classInfo) => !doesClassMeetOnDate(classInfo.id, date, state.get('allSchoolClasses') || [], overrides, holidays, classEndDates));
@@ -969,10 +981,10 @@ export async function handleAddQuestEvent() {
             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
         }));
         for (const eventDocument of docs) {
-            await addDoc(collection(db, `${PUBLIC_DATA_PATH}/quest_events`), { ...eventDocument, details: { ...details, title } });
+            await addDoc(collection(db, `${PUBLIC_DATA_PATH}/quest_events`), { ...eventDocument, details: { ...details, title: type === 'Day Treasure' ? details.title : title } });
         }
         
-        showToast('Quest Event added to calendar!', 'success');
+        showToast(type === 'Day Treasure' ? `${details.icon} ${details.title} is ready for the day!` : 'Quest Event added to calendar!', 'success');
         import('../../ui/modals.js').then(m => m.hideModal('day-planner-modal'));
         
     } catch (error) {

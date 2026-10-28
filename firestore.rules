@@ -286,10 +286,9 @@ service cloud.firestore {
     }
 
     function canScheduleQuestEvent(data) {
-      return isClasslessQuestEvent(data)
-        ? (isSecretary() || (isTeacher() && data.createdBy.uid == request.auth.uid &&
-            data.type in ['double_star_day', 'reason_bonus_day', 'day_treasure']))
-        : canScheduleClass(data.classId);
+      return (isClasslessQuestEvent(data) && (isSecretary() || (isTeacher() && data.createdBy.uid == request.auth.uid &&
+          data.type in ['double_star_day', 'reason_bonus_day', 'day_treasure']))) ||
+        (!isClasslessQuestEvent(data) && canScheduleClass(data.classId));
     }
 
     function canRunClass(classId) {

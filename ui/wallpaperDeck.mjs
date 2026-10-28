@@ -31,7 +31,7 @@ const FAMILY_OF_TYPE = {
         'absent_heroes', 'teacher_shoutout', 'class_stars_today', 'class_star_of_week', 'class_next_birthday',
         'hero_first_light', 'hero_rising_star', 'hero_milestone_near', 'hero_virtue_champions',
         'hero_steady_flame', 'hero_kindness_spotted', 'hero_birthdays_month', 'hero_name_acrostic',
-        'quiz_champion_week'
+        'quiz_champion_week', 'hero_seals_week', 'hero_duels_today', 'starfall_waiting', 'hero_paths_class'
     ],
     quest: [
         'class_quest', 'treasury_class', 'streak', 'class_bounty', 'quest_map_position',
@@ -40,13 +40,13 @@ const FAMILY_OF_TYPE = {
         'lesson_milestone', 'story_sentence', 'log',
         'class_star_trail', 'class_best_day', 'class_virtue_wheel', 'class_constellation', 'class_every_hero',
         'class_guild_colours', 'class_month_so_far',
-        'tg_knots_week', 'realm_journal_month', 'class_teams_today'
+        'tg_knots_week', 'realm_journal_month', 'class_teams_today', 'quest_rank_portal'
     ],
     time: [
         'timekeeper', 'next_lesson', 'holiday', 'pre_holiday_hype', 'upcoming_test_countdown',
         'class_test_luck', 'school_upcoming_event', 'context_morning', 'context_afternoon', 'context_night',
         'context_monday', 'context_friday', 'post_holiday_welcome', 'giant_clock', 'school_year_journey',
-        'timer_end', 'market_festival',
+        'timer_end', 'market_festival', 'special_day',
         'time_week_path', 'time_month_calendar', 'time_weekend_countdown', 'time_world_clocks'
     ],
     words: [
@@ -73,7 +73,7 @@ const FAMILY_OF_TYPE = {
         'mindfulness', 'healthy_habit', 'eco_hero_tip', 'class_mood_check', 'study_tip',
         'motivation_poster', 'creative_prompt', 'would_you_rather',
         'heart_breathe', 'heart_gratitude', 'heart_kindness_quest', 'heart_stretch',
-        'oaths_kept_month'
+        'oaths_kept_month', 'quiet_dragon_week'
     ],
     sky: ['weather', 'season_visual', 'sky_moon_phase', 'sky_daylight', 'sky_constellation', 'sky_season_turn', 'sky_planet'],
     realm: [
@@ -81,7 +81,7 @@ const FAMILY_OF_TYPE = {
         'school_adventure_count', 'school_gold_leader', 'school_avg_attendance', 'guild_leaderboard',
         'league_race',
         'realm_stars_today', 'realm_class_league', 'realm_in_numbers', 'realm_guild_banners',
-        'realm_raid'
+        'realm_raid', 'guild_chapter_chronicle'
     ]
 };
 

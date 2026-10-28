@@ -33,6 +33,15 @@ test('card families: prefixes and unknown types', () => {
     assert.equal(getCardFamilyKey('lang_word_scramble'), 'words');
     assert.equal(getCardFamilyKey('sky_moon_phase'), 'sky');
     assert.equal(getCardFamilyKey('something_new'), 'realm');
+    // Cards for the October 2026 features land in the right Sky Deck family.
+    assert.equal(getCardFamilyKey('quest_rank_portal'), 'quest');
+    assert.equal(getCardFamilyKey('hero_seals_week'), 'heroes');
+    assert.equal(getCardFamilyKey('hero_duels_today'), 'heroes');
+    assert.equal(getCardFamilyKey('starfall_waiting'), 'heroes');
+    assert.equal(getCardFamilyKey('hero_paths_class'), 'heroes');
+    assert.equal(getCardFamilyKey('quiet_dragon_week'), 'heart');
+    assert.equal(getCardFamilyKey('special_day'), 'time');
+    assert.equal(getCardFamilyKey('guild_chapter_chronicle'), 'realm');
     assert.equal(CARD_FAMILIES.length, 9);
 });
 

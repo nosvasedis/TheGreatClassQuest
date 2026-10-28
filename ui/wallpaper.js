@@ -5,7 +5,8 @@ import { callGeminiApi } from '../api.js';
 import { parseDailyWallpaperAiItems } from '../utils/aiJson.js';
 import { canUseFeature } from '../utils/subscription.js';
 import * as constants from '../constants.js';
-import { renderFamiliarSprite } from '../features/familiars.js';
+import { renderFamiliarSprite, familiarStageName } from '../features/familiars.js';
+import { rankForLevel } from '../features/questRanksCore.mjs';
 import { getEggAlertState } from '../features/familiarProgression.mjs';
 import { getNextAssessmentOccurrenceForToday, getUpcomingScheduledAssessment } from '../features/assessmentConfig.js';
 import { getClassQuestProgressData, getQuestMapZoneForProgressPercent } from '../features/worldMap.js';
@@ -22,6 +23,7 @@ import { LANGUAGE_CARD_TYPES, LANGUAGE_CARD_FEATURES, hydrateLanguageCard, getLa
 import { SKY_CARD_TYPES, getSkyCardDeck, hydrateSkyCard, getLiveWeatherCard, rememberSkyWeather } from './wallpaperSkyCards.js';
 import { ATLAS_CARD_TYPES, getAtlasCardDeck, hydrateAtlasCard } from './wallpaperAtlasCards.js';
 import { QUEST_CARD_TYPES, QUEST_CARD_FEATURES, getQuestCardDeck, hydrateQuestCard } from './wallpaperQuestCards.js';
+import { CALENDAR_CARD_TYPES, celebrationSoon, hydrateCalendarCard, isBackFromBreak, nextClosure } from './wallpaperCalendarCards.js';
 import { takeProjectorCard } from './wallpaperQueue.mjs';
 import {
     CARD_FAMILIES,
@@ -98,7 +100,8 @@ function getWallpaperCapabilities() {
         adventureLog: canUseFeature('adventureLog'),
         eliteAI: canUseFeature('eliteAI'),
         quizOfTheWeek: canUseFeature('quizOfTheWeek'),
-        heroCampfire: canUseFeature('heroCampfire')
+        heroCampfire: canUseFeature('heroCampfire'),
+        heroProgression: canUseFeature('heroProgression')
     };
 }
 
@@ -1362,15 +1365,17 @@ function buildDeckList(classId, capabilities = getWallpaperCapabilities(), { ign
     if (dayOfWeek === 1) list.push('context_monday', 'context_monday'); // Monday gets double
     if (dayOfWeek === 5) list.push('context_friday', 'context_friday'); // Friday gets double
 
-    // Pre-holiday hype (within 7 days of a holiday)
-    const nextHoliday = (state.get('schoolHolidayRanges') || [])
-        .filter(h => new Date(h.start) >= now)
-        .sort((a, b) => new Date(a.start) - new Date(b.start))[0];
-    if (nextHoliday) {
-        const daysToHoliday = Math.ceil((new Date(nextHoliday.start) - now) / (1000 * 60 * 60 * 24));
-        if (daysToHoliday <= 7 && daysToHoliday > 0) {
-            list.push('pre_holiday_hype', 'pre_holiday_hype');
-        }
+    // The school calendar (built-in Greek holidays + the School Office's breaks):
+    // a countdown in the week before a break, a welcome on the first day back,
+    // and the celebration day (lessons as usual) of today or this week.
+    const closure = nextClosure(now, 7);
+    if (closure && !closure.ongoing && closure.inDays > 0) list.push('pre_holiday_hype', 'pre_holiday_hype');
+    if (isBackFromBreak(now)) list.push('post_holiday_welcome', 'post_holiday_welcome');
+    const celebration = celebrationSoon(now);
+    if (celebration) list.push(...(celebration.inDays === 0 ? ['special_day', 'special_day'] : ['special_day']));
+    if (classId && (state.get('allQuestEvents') || []).some((e) => e.type === 'day_treasure' && e.classId === classId
+        && e.status !== 'cancelled' && utils.parseFlexibleDate(e.dateKey || e.date)?.toDateString() === now.toDateString())) {
+        list.push('special_day', 'special_day');
     }
 
     const allowed = filterDeckForTier(list, capabilities);
@@ -1397,6 +1402,7 @@ async function hydrateCard(type, classId, capabilities = getWallpaperCapabilitie
     else if (SKY_CARD_TYPES.includes(baseType)) content = hydrateSkyCard(baseType, classId, questLevel);
     else if (ATLAS_CARD_TYPES.includes(baseType)) content = hydrateAtlasCard(baseType, classId, questLevel);
     else if (QUEST_CARD_TYPES.includes(baseType)) content = await hydrateQuestCard(baseType, classId);
+    else if (CALENDAR_CARD_TYPES.includes(baseType)) content = await hydrateCalendarCard(baseType, classId);
     else if (WONDER_CARD_TYPES.includes(baseType)) content = await hydrateWonderCard(baseType, questLevel);
     else if (WONDER_FOR_AI_CARD[baseType]) {
         // Elite: today's AI item first; otherwise (or when the AI has none) the Wonder Library.
@@ -1429,12 +1435,10 @@ async function hydrateCard(type, classId, capabilities = getWallpaperCapabilitie
             case 'season_visual': content = getSeasonalCard(); break;
             case 'giant_clock': content = getGiantClockCard(); break;
             case 'motivation_poster': content = getMotivationCard(questLevel); break;
-            case 'holiday': content = getNextHolidayCard(); break;
             case 'weather': content = getLiveWeatherCard() || getWeatherCard(); break;
             case 'class_special_quest': content = getActiveSpecialQuestCard(classId); break;
             case 'class_test_luck': content = getTestLuckCard(classId, questLevel); break;
             case 'upcoming_test_countdown': content = getUpcomingTestCountdownCard(classId, questLevel); break;
-            case 'pre_holiday_hype': content = getPreHolidayHypeCard(); break;
 
             // --- AI-generated knowledge cards ---
 
@@ -1450,7 +1454,6 @@ async function hydrateCard(type, classId, capabilities = getWallpaperCapabilitie
             case 'timekeeper': content = getTimekeeperCard(classId); break;
             case 'story_sentence': content = getStoryCard(classId, 'text'); break;
             case 'class_bounty': content = getClassBountyCard(classId); break;
-            case 'next_lesson': content = getNextLessonCard(classId); break;
             case 'attendance_summary': content = getClassAttendanceCard(classId); break;
             case 'absent_heroes': content = getAbsentHeroesCard(classId); break;
             case 'mindfulness': content = getMindfulnessCard(questLevel); break;
@@ -1470,7 +1473,6 @@ async function hydrateCard(type, classId, capabilities = getWallpaperCapabilitie
             case 'context_night': content = getContextCard('night', questLevel); break;
             case 'context_monday': content = getContextCard('monday', questLevel); break;
             case 'context_friday': content = getContextCard('friday', questLevel); break;
-            case 'post_holiday_welcome': content = getPostHolidayWelcomeCard(); break;
             case 'class_season_snapshot': content = getClassSeasonSnapshotCard(classId); break;
             // New global cards
             case 'guild_leaderboard': content = getGuildLeaderboardCard(); break;
@@ -1543,10 +1545,11 @@ function getClassFamiliarParadeCard(classId) {
         const score = allStudentScores.find(sc => sc.id === s.id) || {};
         const familiar = score.familiar;
         if (!familiar) return null;
-        const badge = familiar.state === 'egg' ? '🥚' : familiar.level >= 5 ? '🌟' : familiar.level >= 2 ? '✨' : '🐣';
+        // The familiar's own form name (five forms after the egg), as in the Den.
+        const badge = familiar.state === 'egg' ? '🥚 Egg' : escapeCardText(familiarStageName(familiar.typeId, familiar.level) || '');
         return `<div class="flex flex-col items-center gap-1">
             <div>${renderFamiliarSprite(familiar, 'medium', s.id)}</div>
-            <span class="text-[9px] font-bold opacity-50">${badge}</span>
+            <span class="text-[9px] font-bold opacity-60 truncate max-w-[64px]">${badge}</span>
             <span class="text-[9px] text-center truncate max-w-[48px]">${s.name.split(' ')[0]}</span>
         </div>`;
     }).filter(Boolean);
@@ -2045,32 +2048,6 @@ function getUpcomingTestCountdownCard(classId, questLevel) {
     };
 }
 
-// ─── Pre-Holiday Hype ─────────────────────────────────────────────────────────
-function getPreHolidayHypeCard() {
-    const now = new Date();
-    const next = (state.get('schoolHolidayRanges') || [])
-        .filter(h => new Date(h.start) > now)
-        .sort((a, b) => new Date(a.start) - new Date(b.start))[0];
-    if (!next) return null;
-    const days = Math.ceil((new Date(next.start) - now) / (1000 * 60 * 60 * 24));
-    const name = next.name || 'Holiday';
-    const lname = name.toLowerCase();
-    let icon = '🎉', css = 'float-card-purple';
-    if (lname.includes('christmas') || lname.includes('xmas')) { icon = '🎄'; css = 'float-card-red'; }
-    else if (lname.includes('easter') || lname.includes('πάσχα')) { icon = '🐣'; css = 'float-card-pink'; }
-    else if (lname.includes('summer') || lname.includes('καλοκαίρι')) { icon = '🏖️'; css = 'float-card-gold'; }
-    return {
-        html: `<div class="text-center w-full">
-            <div class="badge-pill bg-white/80 text-purple-800">Holiday Countdown! 🎊</div>
-            <div class="text-9xl my-4 animate-bounce">${icon}</div>
-            <h2 class="font-title text-6xl text-white drop-shadow-md">${days} ${days === 1 ? 'Day' : 'Days'}!</h2>
-            <p class="text-white/90 font-bold text-2xl mt-2">Until ${name}!</p>
-            <p class="text-white/70 font-bold text-lg mt-1">${days === 1 ? 'Tomorrow is the day! 🎉' : 'The countdown is ON! 🚀'}</p>
-        </div>`,
-        css: css
-    };
-}
-
 // ─── Updated getMotivationCard (level-aware, bigger pool) ─────────────────────
 function getMotivationCard(questLevel) {
     const tier = getLevelTier(questLevel);
@@ -2144,20 +2121,6 @@ function getTestLuckCard(classId, questLevel) {
             <p class="text-white/70 text-base font-bold mt-2">${test.statusLabel} • ${test.chipLabel}</p>
         </div>`,
         css: 'float-card-red'
-    };
-}
-
-// ─── Post-Holiday Welcome Card ──────────────────────────────────────────────
-function getPostHolidayWelcomeCard() {
-    return {
-        html: `<div class="text-center w-full">
-            <div class="badge-pill bg-sky-100 text-sky-800">Welcome Back!</div>
-            <div class="text-8xl my-4 animate-bounce">🎒</div>
-            <h2 class="font-title text-5xl text-sky-900">Great to see you again!</h2>
-            <p class="text-sky-600 font-bold text-2xl mt-3">Welcome back to our English quest! ⚔️</p>
-            <p class="text-sky-500 font-bold text-lg mt-2 italic">Ready for new adventures? 🎉</p>
-        </div>`,
-        css: 'float-card-blue'
     };
 }
 
@@ -2358,24 +2321,6 @@ function getClassBountyCard(classId) {
     };
 }
 
-function getNextLessonCard(classId) {
-    const cls = state.get('allSchoolClasses').find(c => c.id === classId);
-    if (!cls) return null;
-
-    const today = new Date().getDay();
-    const days = (cls.scheduleDays || []).map(Number).sort();
-    let nextDay = days.find(d => d > today);
-    if (nextDay === undefined) nextDay = days[0];
-
-    if (nextDay === undefined) return null;
-
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-    return {
-        html: `<div class="text-center"><div class="text-6xl mb-2">📅</div><h3 class="font-title text-3xl text-indigo-900">Next Adventure</h3><p class="text-indigo-600 text-2xl font-bold">${dayNames[nextDay]}</p><p class="text-indigo-400">${cls.timeStart || ''}</p></div>`,
-        css: 'float-card-indigo'
-    };
-}
 
 function getClassAttendanceCard(classId) {
     const students = state.get('allStudents').filter(s => s.classId === classId).length;
@@ -2474,40 +2419,6 @@ function getTopDailyStudentCard(classId, studentId) {
     };
 }
 
-function getNextHolidayCard() {
-    const holidays = state.get('schoolHolidayRanges') || [];
-    const now = new Date();
-    const sorted = holidays.filter(h => new Date(h.end) >= now).sort((a, b) => new Date(a.start) - new Date(b.start));
-    const next = sorted[0];
-    if (!next) return null;
-
-    const diffDays = Math.ceil((new Date(next.start) - now) / (1000 * 60 * 60 * 24));
-
-    // Default: Generic Holiday
-    let icon = '🏖️';
-    let css = 'float-card-blue';
-    let subtext = 'Break Time';
-
-    const name = next.name.toLowerCase();
-
-    // Christmas Logic
-    if (name.includes('christmas') || name.includes('winter')) {
-        icon = '🎄';
-        css = 'float-card-red';
-        subtext = 'Winter Holidays';
-    }
-    // Easter Logic (NEW)
-    else if (name.includes('easter') || name.includes('spring')) {
-        icon = '🐰'; // Big Bunny Icon
-        css = 'float-card-pink';
-        subtext = 'Spring Celebration';
-    }
-
-    return {
-        html: `<div class="text-center"><div class="badge-pill bg-white/80 text-gray-800 font-bold">${subtext}</div><div class="text-8xl mb-4 animate-bounce-slow">${icon}</div><h3 class="font-title text-4xl text-gray-900 mb-2">${next.name}</h3><p class="text-2xl font-bold opacity-90">In ${diffDays} Days</p></div>`,
-        css: css
-    };
-}
 
 function getSchoolPulseCard() {
     const scores = state.get('allStudentScores');
@@ -2547,9 +2458,11 @@ function getClassQuestCard(classId) {
     );
 
     const pct = Math.min(100, Math.round((monthlyStars / goal) * 100));
+    // The class's quest rank (Team Quest ranks: Wayfinders → Sovereigns) for this month's level.
+    const rank = rankForLevel(utils.getHistoricalDifficultyForMonth(cls, new Date()) + 1);
 
     return {
-        html: `<div class="text-center w-full"><div class="badge-pill bg-blue-100 text-blue-700">Quest Progress</div><div class="text-9xl mb-4 filter drop-shadow-md animate-pulse">${cls.logo}</div><div class="w-full bg-white h-8 rounded-full overflow-hidden border-2 border-blue-200 mb-2 shadow-inner"><div class="bg-gradient-to-r from-blue-400 to-indigo-500 h-full" style="width:${pct}%"></div></div><p class="font-title text-4xl text-blue-900"><span class="js-count-up" data-target="${pct}">0</span>% Complete</p>${classQuestBonus > 0 ? `<p class="text-sm font-bold text-indigo-600 mt-2">Includes +${classQuestBonus} Pathfinder bonus</p>` : ''}</div>`,
+        html: `<div class="text-center w-full"><div class="badge-pill bg-blue-100 text-blue-700">Quest Progress</div><p class="text-sm font-bold text-indigo-600 mb-2">${escapeCardText(rank.title)} · Level ${rank.displayLevel}</p><div class="text-9xl mb-4 filter drop-shadow-md animate-pulse">${cls.logo}</div><div class="w-full bg-white h-8 rounded-full overflow-hidden border-2 border-blue-200 mb-2 shadow-inner"><div class="bg-gradient-to-r from-blue-400 to-indigo-500 h-full" style="width:${pct}%"></div></div><p class="font-title text-4xl text-blue-900"><span class="js-count-up" data-target="${pct}">0</span>% Complete</p>${classQuestBonus > 0 ? `<p class="text-sm font-bold text-indigo-600 mt-2">Includes +${classQuestBonus} Pathfinder bonus</p>` : ''}</div>`,
         css: 'float-card-blue'
     };
 }

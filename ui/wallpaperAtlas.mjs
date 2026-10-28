@@ -135,7 +135,7 @@ export function constellationLinks(points) {
 }
 
 /** Monday-first week with lesson days marked. `scheduleDays` holds getDay() numbers as strings. */
-export function weekPath(scheduleDays, now = new Date()) {
+export function weekPath(scheduleDays, now = new Date(), meets = null) {
     const lessonDays = new Set((scheduleDays || []).map(String));
     const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
     const days = [];
@@ -145,7 +145,8 @@ export function weekPath(scheduleDays, now = new Date()) {
         days.push({
             date,
             label: date.toLocaleDateString('en-GB', { weekday: 'short' }),
-            lesson: lessonDays.has(String(date.getDay())),
+            // `meets(date)` (optional) knows holidays, cancelled and one-time lessons.
+            lesson: meets ? Boolean(meets(date)) : lessonDays.has(String(date.getDay())),
             past: date < new Date(now.getFullYear(), now.getMonth(), now.getDate()),
             isToday
         });

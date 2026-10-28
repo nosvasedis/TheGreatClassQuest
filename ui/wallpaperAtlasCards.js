@@ -120,6 +120,18 @@ function classById(classId) {
     return (state.get('allSchoolClasses') || []).find((c) => c.id === classId) || null;
 }
 
+/** True when the class really has a lesson that day (holidays, cancelled and one-time lessons). */
+function classMeetsOn(classId, date) {
+    return utils.doesClassMeetOnDate(
+        classId,
+        date,
+        state.get('allSchoolClasses') || [],
+        state.get('allScheduleOverrides') || [],
+        state.get('schoolHolidayRanges') || [],
+        state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {}
+    );
+}
+
 function avatarHtml(student, size = 'md') {
     if (student?.avatar) return `<img src="${esc(student.avatar)}" alt="" class="sc-avatar sc-avatar--${size}">`;
     return `<span class="sc-avatar sc-avatar--${size} sc-avatar--letter">${esc((student?.name || '?').charAt(0))}</span>`;
@@ -458,7 +470,7 @@ function classMonthSoFar(classId, now = new Date()) {
 function timeWeekPath(classId, now = new Date()) {
     const cls = classById(classId);
     if (!cls?.scheduleDays?.length) return null;
-    const week = weekPath(cls.scheduleDays, now);
+    const week = weekPath(cls.scheduleDays, now, (date) => classMeetsOn(classId, date));
     if (!week.total) return null;
     return {
         sigil: '🥾',
@@ -471,10 +483,12 @@ function timeWeekPath(classId, now = new Date()) {
 
 function timeMonthCalendar(classId, now = new Date()) {
     const cls = classById(classId);
-    const lessonDays = new Set((cls?.scheduleDays || []).map(String));
+    if (!cls) return null;
     const month = classMonth(classId, now);
-    const holidays = (state.get('schoolHolidayRanges') || []).map((h) => [new Date(h.start), new Date(h.end)]);
-    const isHoliday = (d) => holidays.some(([a, b]) => d >= new Date(a.getFullYear(), a.getMonth(), a.getDate()) && d <= b);
+    // The merged school calendar: built-in Greek holidays plus the School Office's breaks.
+    const holidays = state.get('schoolHolidayRanges') || [];
+    const isoOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const isHoliday = (d) => holidays.some((h) => h?.start && h?.end && isoOf(d) >= String(h.start).slice(0, 10) && isoOf(d) <= String(h.end).slice(0, 10));
     const cells = monthGrid(now);
     return {
         sigil: '📅',
@@ -485,7 +499,7 @@ function timeMonthCalendar(classId, now = new Date()) {
                     if (!d) return '<span></span>';
                     const cls2 = [
                         d.getDate() === now.getDate() ? 'is-now' : '',
-                        lessonDays.has(String(d.getDay())) ? 'is-lesson' : '',
+                        classMeetsOn(classId, d) ? 'is-lesson' : '',
                         month.byDay.has(d.getDate()) ? 'is-starred' : '',
                         isHoliday(d) ? 'is-holiday' : ''
                     ].join(' ');

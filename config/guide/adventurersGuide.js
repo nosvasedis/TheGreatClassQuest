@@ -365,7 +365,7 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'projector', icon: 'fa-tv', name: 'Projector Mode', tier: 'starter',
                     where: 'The TV button in the header (classroom PC)',
-                    text: `A living sky for the classroom display: a huge clock, the lesson ring, the class banner and Sky Cards that change about once a minute. Move the mouse for the remote: Space pins a card, → skips, D opens the Sky Deck, Esc leaves. Keep teaching on your usual tabs meanwhile.`,
+                    text: `A living sky for the classroom display: a huge clock, the lesson ring, the class banner and Sky Cards that change about once a minute. Cards follow the class: its quest rank and Portal runes, Hero Seals pressed this week, today's Hero Duels and Team Maker teams, the Quiet Dragon's last gift, a Starfall waiting for the lesson, the class's Hero Paths and Legends, the Quiz Champion, plus the Crown Race and its latest chronicle, the Realm Raid, and holidays, special days and Day Treasures from the school calendar. Nothing private shows: no marks, no absences, no teacher notes. Move the mouse for the remote: Space pins a card, → skips, D opens the Sky Deck, Esc leaves. Keep teaching on your usual tabs meanwhile.`,
                     keys: 'projector tv wallpaper sky window sky cards remote sky deck clock'
                 },
                 {

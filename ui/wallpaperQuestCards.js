@@ -1,8 +1,13 @@
 // /ui/wallpaperQuestCards.js — Projector Mode (The Director): cards for the newer quests.
 // Training Grounds knots this week, the Quiz Champion of the week, Ember Oaths kept this month
 // (a count only, never names), the class's Map Journal stamps, and the Mystic Market's festival
-// stall, today's Team Maker teams, and the school's Realm Raid. Every builder returns null when it has nothing real to show, so the Director moves on.
+// stall, today's Team Maker teams, and the school's Realm Raid. Then the class's quest rank and
+// Portal runes, Hero Seals pressed this week, today's Hero Duels, the Quiet Dragon's last gift,
+// a Starfall waiting for the lesson, the class's Hero Paths, and the last Crown Race chronicle.
+// Every builder returns null when it has nothing real to show, so the Director moves on.
+// Everything here is seen by the whole class: no marks, no absences, no teacher-only notes.
 import '../styles/wallpaper_quest_cards.css';
+import '../styles/hero_seals.css';
 import * as state from '../state.js';
 import * as utils from '../utils.js';
 import { escapeCardText as esc } from './wallpaperDeck.mjs';
@@ -10,9 +15,18 @@ import { TRAINING_GAMES, TRAINING_GAME_KEYS, knotsTied, normalizeGameState } fro
 import { REALM_STOPS, journalMonth, realmMonthKey } from '../features/realmMomentsCore.mjs';
 import { getActiveFestival, getFestivalWindow } from '../utils/shopCalendar.js';
 import { teamsForDay, teamBanner } from '../features/teamMakerCore.mjs';
+import { rankCrestSvg } from '../features/questRankCrest.mjs';
+import { portalStatusLine } from '../features/questRanksCore.mjs';
+import { SEALS, isAcademicSeal, sealArtHtml } from '../features/heroSealsCore.mjs';
+import { normalizeDuels, heroStandings, teamTotals } from '../features/heroDuelsCore.mjs';
+import { normalizeHeroClass } from '../features/heroClassNames.mjs';
+import { isLegendHero, getLegendQuest } from '../features/legendQuestCore.mjs';
 
-const CLASS_QUEST_CARDS = ['tg_knots_week', 'quiz_champion_week', 'oaths_kept_month', 'realm_journal_month', 'class_teams_today'];
-const SHARED_QUEST_CARDS = ['market_festival', 'realm_raid'];
+const CLASS_QUEST_CARDS = [
+    'tg_knots_week', 'quiz_champion_week', 'oaths_kept_month', 'realm_journal_month', 'class_teams_today',
+    'quest_rank_portal', 'hero_seals_week', 'hero_duels_today', 'quiet_dragon_week', 'starfall_waiting', 'hero_paths_class'
+];
+const SHARED_QUEST_CARDS = ['market_festival', 'realm_raid', 'guild_chapter_chronicle'];
 
 export const QUEST_CARD_TYPES = Object.freeze([...CLASS_QUEST_CARDS, ...SHARED_QUEST_CARDS]);
 
@@ -20,7 +34,10 @@ export const QUEST_CARD_TYPES = Object.freeze([...CLASS_QUEST_CARDS, ...SHARED_Q
 export const QUEST_CARD_FEATURES = Object.freeze({
     tg_knots_week: 'storyWeavers',
     quiz_champion_week: 'quizOfTheWeek',
-    oaths_kept_month: 'heroCampfire'
+    oaths_kept_month: 'heroCampfire',
+    starfall_waiting: 'scholarScroll',
+    hero_paths_class: 'heroProgression',
+    guild_chapter_chronicle: 'guilds'
 });
 
 export function getQuestCardDeck(classId) {
@@ -143,6 +160,8 @@ async function quizChampionWeek(classId, now = new Date()) {
     if (!hero) return null;
     const rewards = quiz.results.rewards.studentRewards || [];
     const firstTry = Number(rewards.find((r) => r.studentId === prize.studentId)?.firstTry) || 0;
+    // Everyone level at the top of the show earned a star; the champion is one of them.
+    const alsoTop = rewards.filter((r) => r.top && r.studentId !== prize.studentId).map((r) => studentById(r.studentId)).filter(Boolean);
     const item = prize.kind === 'treasure' ? prize.item : null;
     const art = item?.image
         ? `<img src="${esc(item.image)}" alt="" class="qc-prize__img">`
@@ -156,7 +175,8 @@ async function quizChampionWeek(classId, now = new Date()) {
                 <p class="sc-big">${firstName(hero)}</p>
                 ${firstTry ? `<p class="sc-sub">${firstTry} right on the first try</p>` : ''}
             </div>
-            <div class="qc-prize">${art}<span><small>Won from the Mystic Market</small><b>${item ? esc(item.name) : `${Number(prize.gold) || 10} Gold`}</b></span></div>`
+            <div class="qc-prize">${art}<span><small>Won from the Mystic Market</small><b>${item ? esc(item.name) : `${Number(prize.gold) || 10} Gold`}</b></span></div>
+            ${alsoTop.length ? `<p class="sc-text">Also at the top of the show, with a ⭐ each: <b>${alsoTop.slice(0, 5).map(firstName).join(', ')}</b></p>` : ''}`
     };
 }
 
@@ -279,6 +299,194 @@ async function realmRaidCard(classId) {
     };
 }
 
+function classStudents(classId) {
+    return (state.get('allStudents') || []).filter((s) => s.classId === classId && s.enrollmentStatus !== 'inactive');
+}
+
+function scoreOf(studentId) {
+    return (state.get('allStudentScores') || []).find((sc) => sc.id === studentId) || null;
+}
+
+const daysAgo = (date, now) => (now - date) / 86400000;
+
+/** Team Quest: the class's quest rank and crest, and the Portal runes lit or still asleep. */
+async function questRankPortal(classId, now = new Date()) {
+    const cls = classById(classId);
+    if (!cls || !classStudents(classId).length) return null;
+    const { classPortalStatus } = await import('../features/questPortal.js');
+    const status = classPortalStatus(cls, { now });
+    if (!status || !status.goal) return null;
+    const { rank } = status;
+    const toGo = Math.max(0, Math.ceil(status.goal - status.totalStars));
+    const runes = status.runes.map((r) => `<span class="qc-rune${r.met ? ' is-lit' : ''}" style="--rc:${rank.colors[1]}">
+            <i class="fas ${esc(r.icon)}" aria-hidden="true"></i>
+            <b>${esc(r.short)}</b>
+            <small>${r.met ? 'lit' : r.id === 'guardian' ? 'waits at the gate' : r.id === 'virtues' ? `${r.have} of 4 virtues` : r.id === 'lanterns' ? `${r.have} of ${r.need} lanterns` : 'asleep'}</small>
+        </span>`).join('');
+    let line;
+    if (status.open) line = status.completed ? 'We stepped through the Portal this month!' : 'The Portal is open for us!';
+    else if (!status.starsMet) line = `<b>${toGo}</b> ${toGo === 1 ? 'star' : 'stars'} to the Portal`;
+    else line = esc(portalStatusLine(status));
+    return {
+        sigil: '🔮',
+        title: 'Our quest rank',
+        html: `<div class="qc-rank">
+                <span class="qc-rank__crest">${rankCrestSvg(status.level)}</span>
+                <span class="qc-rank__name"><small>Level ${status.level}</small><b>${esc(rank.title)}</b><em>${esc(rank.motto)}</em></span>
+            </div>
+            <p class="sc-big sc-big--sm">${line}</p>
+            ${runes ? `<div class="qc-runes">${runes}</div>` : '<p class="sc-text">From Level 2, Portal runes must wake too before the Portal opens.</p>'}
+            <p class="sc-sub">Crossing the Portal brings <b>${status.spoils} Gold</b> to every hero</p>`
+    };
+}
+
+/** Hero Seals pressed in the last week: quiet personal milestones (never marks or absences). */
+function heroSealsWeek(classId, now = new Date()) {
+    const found = [];
+    classStudents(classId).forEach((student) => {
+        const earned = scoreOf(student.id)?.heroSeals?.earned || {};
+        Object.entries(earned).forEach(([id, press]) => {
+            const seal = SEALS[id];
+            // Same rule as the class diary: nothing that speaks about marks or an absence.
+            if (!seal || press?.late || isAcademicSeal(id) || id === 'hearth_return') return;
+            const when = toDate(press?.date) || (press?.found ? new Date(Number(press.found)) : null);
+            if (!when || daysAgo(when, now) > 7 || when > now) return;
+            found.push({ student, seal, at: Number(press?.found) || when.getTime() });
+        });
+    });
+    if (!found.length) return null;
+    found.sort((a, b) => b.at - a.at);
+    const shown = found.slice(0, 6);
+    return {
+        sigil: '🔏',
+        title: 'Hero Seals this week',
+        html: `<p class="sc-big sc-big--sm"><b>${found.length}</b> ${found.length === 1 ? 'seal' : 'seals'} pressed</p>
+            <div class="qc-seals${shown.length > 3 ? ' qc-seals--many' : ''}">
+                ${shown.map(({ student, seal }) => `<div class="qc-seal">
+                    ${sealArtHtml(seal, { size: shown.length > 3 ? 60 : 78 })}
+                    <b>${firstName(student)}</b>
+                    <small>${esc(seal.name)}</small>
+                </div>`).join('')}
+            </div>
+            ${found.length > shown.length ? `<p class="sc-sub">and ${found.length - shown.length} more in our Seal Books</p>` : ''}`
+    };
+}
+
+/** Today's Hero Duels on this computer: the leading heroes and, with big teams, the team race. */
+function heroDuelsToday(classId) {
+    let game = null;
+    try { game = normalizeDuels(JSON.parse(localStorage.getItem('gcq.heroDuels.v1') || '{}')?.[classId]); } catch { game = null; }
+    if (!game || game.dateKey !== utils.getTodayDateString() || !game.duels.length) return null;
+    const nameOf = (id) => studentById(id)?.name || '';
+    const top = heroStandings(game, nameOf).filter((r) => r.played > 0 && (r.points > 0 || r.wins > 0)).slice(0, 3);
+    if (!top.length) return null;
+    const cls = classById(classId);
+    const teams = teamTotals(game).sort((a, b) => a.place - b.place || a.index - b.index);
+    const medals = ['🥇', '🥈', '🥉'];
+    return {
+        sigil: '⚔️',
+        title: "Today's Hero Duels",
+        html: `<p class="sc-sub">${game.duels.length} ${game.duels.length === 1 ? 'duel' : 'duels'} fought so far</p>
+            <div class="qc-duel-top">
+                ${top.map((r, i) => {
+                    const hero = studentById(r.id);
+                    return `<div class="qc-duel-hero${i === 0 ? ' is-first' : ''}">
+                        <span class="qc-duel-hero__medal" aria-hidden="true">${medals[i]}</span>
+                        ${hero ? avatarHtml(hero).replace('sc-avatar--lg', i === 0 ? 'sc-avatar--md' : 'sc-avatar--sm') : ''}
+                        <b>${firstName(hero)}</b>
+                        <small>${r.points} ${r.points === 1 ? 'point' : 'points'} · 👑 ${r.wins}</small>
+                    </div>`;
+                }).join('')}
+            </div>
+            ${teams.length ? `<div class="sc-chips">${teams.map((t) => {
+                const b = teamBanner(t.index, cls?.teamLooks);
+                return `<span class="sc-chip" style="background:${b.soft};color:${b.deep}">${b.emoji} ${esc(b.short)} · ${t.points}</span>`;
+            }).join('')}</div>` : ''}`
+    };
+}
+
+/** The Quiet Dragon's last gift this week: the calm minutes and what the hoard gave. */
+function quietDragonWeek(classId, now = new Date()) {
+    const sessions = (state.get('allQuestBounties') || [])
+        .filter((b) => b.classId === classId && b.source === 'quiet_dragon' && b.quietDragon)
+        .map((b) => ({ b, at: toDate(b.claimedAt) || toDate(b.createdAt) || toDate(b.deadline) }))
+        .filter(({ at }) => at && daysAgo(at, now) <= 7)
+        .sort((a, b) => b.at - a.at);
+    if (!sessions.length) return null;
+    const { b, at } = sessions[0];
+    const minutes = Number(b.quietDragon.minutes) || 0;
+    const weekMinutes = sessions.reduce((sum, s) => sum + (Number(s.b.quietDragon.minutes) || 0), 0);
+    const today = at.toDateString() === now.toDateString();
+    return {
+        sigil: '🐉',
+        title: 'The Quiet Dragon',
+        html: `<div class="qc-dragon" aria-hidden="true"><span>🐉</span><i>z</i><i>z</i><i>z</i></div>
+            <p class="sc-big sc-big--sm">The dragon slept for <b>${minutes}</b> calm ${minutes === 1 ? 'minute' : 'minutes'}${today ? ' today' : ''}!</p>
+            ${b.reward ? `<div class="qc-prize"><span class="qc-prize__icon">🎁</span><span><small>Gift from the hoard</small><b>${esc(b.reward)}</b></span></div>` : ''}
+            ${sessions.length > 1 ? `<p class="sc-sub">${weekMinutes} calm minutes this week</p>` : ''}`
+    };
+}
+
+/** Stars marked outside the lesson wait in the sky until the class is here to see them fall. */
+function starfallWaiting(classId) {
+    const waiting = classById(classId)?.pendingStarfalls;
+    if (!Array.isArray(waiting) || !waiting.length) return null;
+    const stars = waiting.reduce((sum, e) => sum + (Number(e?.bonusAmount) || 0.5), 0);
+    const heroes = new Set(waiting.map((e) => e?.studentId).filter(Boolean)).size;
+    const shown = Math.min(14, Math.max(3, Math.round(stars)));
+    return {
+        sigil: '🌠',
+        title: 'A Starfall is waiting',
+        html: `<div class="qc-starfall" aria-hidden="true">${Array.from({ length: shown }, (_, i) => `<i style="--i:${i};--y:${(i * 17) % 44}px">⭐</i>`).join('')}</div>
+            <p class="sc-big sc-big--sm"><b>${stars % 1 ? stars.toFixed(1) : stars}</b> ${stars === 1 ? 'star is' : 'stars are'} waiting in the sky</p>
+            <p class="sc-sub">for ${heroes} ${heroes === 1 ? 'hero' : 'heroes'}, from our last tests and dictations</p>
+            <p class="sc-text">They fall in this lesson. Who will catch them?</p>`
+    };
+}
+
+/** The Hero Paths the class has chosen, and the heroes who became Legends. */
+async function heroPathsClass(classId) {
+    const students = classStudents(classId).filter((s) => normalizeHeroClass(s.heroClass));
+    if (students.length < 2) return null;
+    const { HERO_CLASSES } = await import('../features/heroClasses.js');
+    const paths = new Map();
+    const legends = [];
+    students.forEach((s) => {
+        const path = normalizeHeroClass(s.heroClass);
+        if (!paths.has(path)) paths.set(path, []);
+        paths.get(path).push(s);
+        if (isLegendHero(path, scoreOf(s.id)?.legendQuest)) legends.push({ s, path });
+    });
+    const rows = [...paths.entries()].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
+    return {
+        sigil: '🧭',
+        title: 'Our Hero Paths',
+        html: `<div class="qc-paths">
+                ${rows.slice(0, 8).map(([path, heroes]) => `<div class="qc-path">
+                    <span class="qc-path__icon" aria-hidden="true">${HERO_CLASSES[path]?.icon || '⭐'}</span>
+                    <b>${esc(path)}</b>
+                    <small>${heroes.length} ${heroes.length === 1 ? 'hero' : 'heroes'}</small>
+                </div>`).join('')}
+            </div>
+            ${legends.length
+                ? `<p class="sc-text">🏆 ${legends.length === 1 ? 'Our Legend' : 'Our Legends'}: <b>${legends.slice(0, 5).map(({ s, path }) => `${firstName(s)} (${esc(getLegendQuest(path)?.legend || path)})`).join(', ')}</b></p>`
+                : '<p class="sc-text">Finish a Hero Path and a Legend Quest waits at the top!</p>'}`
+    };
+}
+
+/** The Crown Race: the chronicle of the last sealed Chapter, in four herald lines. */
+async function guildChapterChronicle() {
+    const { yearChronicles } = await import('../features/guildChronicleCore.js');
+    const last = yearChronicles().at(-1);
+    if (!last?.lines?.length) return null;
+    return {
+        sigil: '📜',
+        title: `The Chronicle of ${last.month}`,
+        html: `<ol class="qc-chronicle">${last.lines.slice(0, 4).map((line, i) => `<li style="--i:${i}">${esc(line)}</li>`).join('')}</ol>
+            <p class="sc-sub">${last.by === 'chronicler' ? 'Written by the Chronicler' : 'The herald’s record'} · the Crown Race</p>`
+    };
+}
+
 // ─── Dispatch ───────────────────────────────────────────────────────────────
 
 /** Builds one quest card (may be async), or null. */
@@ -292,6 +500,13 @@ export async function hydrateQuestCard(baseType, classId) {
         case 'class_teams_today': return teamsToday(classId);
         case 'market_festival': return marketFestival();
         case 'realm_raid': return realmRaidCard(classId);
+        case 'quest_rank_portal': return questRankPortal(classId);
+        case 'hero_seals_week': return heroSealsWeek(classId);
+        case 'hero_duels_today': return heroDuelsToday(classId);
+        case 'quiet_dragon_week': return quietDragonWeek(classId);
+        case 'starfall_waiting': return starfallWaiting(classId);
+        case 'hero_paths_class': return heroPathsClass(classId);
+        case 'guild_chapter_chronicle': return guildChapterChronicle();
         default: return null;
     }
 }

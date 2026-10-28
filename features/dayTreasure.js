@@ -10,7 +10,7 @@ import { db, doc, runTransaction, serverTimestamp } from '../firebase.js';
 import { getLiveYearGold, getLiveYearGoldContextFromState } from '../utils/yearGold.js';
 import { PUBLIC_DATA_PATH as DATA } from '../utils/tenant.mjs';
 import { rollDayTreasure, tierLabel } from './dayTreasureCore.mjs';
-import { dmyToIso, activeTreasures, eventWindow, eligibleClassesFor, bestClassFor, shortDay } from './dayTreasureDays.js';
+import { dmyToIso, isSchoolTreasure, activeTreasures, eventWindow, eligibleClassesFor, bestClassFor, shortDay } from './dayTreasureDays.js';
 import { dayLook } from '../ui/daySceneHeader.js';
 import { describeSchoolDay } from '../utils/schoolCalendar.mjs';
 import * as utils from '../utils.js';
@@ -57,7 +57,7 @@ async function payTreasure(event, classId) {
         };
         transaction.update(classRef, { [`dayTreasures.${event.id}`]: { ...receipt, openedAt: serverTimestamp() } });
         // A class's own (older) treasure event is done once opened; a school-wide one stays for the other classes.
-        if (event.classId === classId) transaction.update(eventRef, { status: 'completed', updatedAt: serverTimestamp() });
+        if (!isSchoolTreasure(event) && event.classId === classId) transaction.update(eventRef, { status: 'completed', updatedAt: serverTimestamp() });
         return receipt;
     });
 }

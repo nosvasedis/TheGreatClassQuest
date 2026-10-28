@@ -129,6 +129,8 @@ export function getDayAgenda({
         .filter((e) => datesMatch(e.dateKey || e.date, dateString))
         .map((e) => ({
             ...e,
+            // A school-wide Day Treasure is filed under its planner's class (Firestore rules) but is for every class.
+            classId: e.type === 'day_treasure' && e.details?.scope === 'school' ? null : e.classId,
             icon: (e.type === 'day_treasure' && e.details?.icon ? `${e.details.icon} Treasure` : null) || QUEST_EVENT_ICONS[e.type] || QUEST_EVENT_ICONS[e.details?.title] || '📅 Event',
             title: e.details?.title || QUEST_TYPE_LABELS[normalizeQuestType(e.type)] || (normalizeQuestType(e.type) === 'double_star_day' ? '2x Star Day' : normalizeQuestType(e.type) === 'reason_bonus_day' ? 'Reason Bonus Day' : e.type),
         }));

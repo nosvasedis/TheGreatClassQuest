@@ -3,7 +3,7 @@ import { paintDayScene, dayCardHtml, specialDayFor, dayLook } from '../daySceneH
 import * as constants from '../../constants.js';
 import '../../styles/planner_panes.css';
 import { treasureNameFor } from '../../features/dayTreasureCore.mjs';
-import { treasureDayNear, treasureForSpecial, treasuresOn, lessonClassIdsOn, eligibleClassesFor, eventWindow, isTreasureOpened, shortDay } from '../../features/dayTreasureDays.js';
+import { isSchoolTreasure, treasureDayNear, treasureForSpecial, treasuresOn, lessonClassIdsOn, eligibleClassesFor, eventWindow, isTreasureOpened, shortDay } from '../../features/dayTreasureDays.js';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { showAnimatedModal, setCurrentlySelectedDayCell, getCurrentlySelectedDayCell } from './base.js';
@@ -320,7 +320,7 @@ function renderTreasureOffer(dateString) {
         : (days.length === 1 && days[0] === specialIso
             ? 'Every class with a lesson on the day opens it once.'
             : `${special.name} has no lessons, so the classes on the closest lesson days share it. Each class opens it once.`);
-    const legacy = treasuresOn(dateString, [...myIds]).filter(t => t.event.classId);
+    const legacy = treasuresOn(dateString, [...myIds]).filter(t => !isSchoolTreasure(t.event));
 
     host.classList.remove('hidden');
     host.setAttribute('style', `--day-a:${look.a};--day-b:${look.b};--day-ink:${look.ink}`);

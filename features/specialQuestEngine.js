@@ -108,7 +108,10 @@ export function validateQuestEvent(input = {}, { existing = [] } = {}) {
     }
     if (isTreasureType(type)) {
         // One chest per special day for the whole school; each class with a lesson on its days opens it once.
-        const duplicate = (existing || []).some((event) => isTreasureType(event.type) && (event.classId || null) === (input.classId || null) && (event.dateKey || event.date) === (input.dateKey || input.date) && event.status !== 'cancelled');
+        const schoolScope = (event) => !event.classId || event.details?.scope === 'school';
+        const duplicate = (existing || []).some((event) => isTreasureType(event.type) && event.status !== 'cancelled'
+            && (event.dateKey || event.date) === (input.dateKey || input.date)
+            && (schoolScope(input) ? schoolScope(event) : event.classId === input.classId));
         if (duplicate) errors.push('This day\'s treasure is already planned.');
     }
     if (isSpecial) {

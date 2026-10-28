@@ -46,7 +46,7 @@ if (params.has('sample')) {
 }
 if (params.has('halloween')) {
     // A school-wide Halloween treasure (Saturday): it opens for the Thursday and Friday classes.
-    state.set('allQuestEvents', [...state.get('allQuestEvents'), { id: 'h1', type: 'day_treasure', classId: null, dateKey: '31-10-2026', status: 'scheduled', details: { title: 'The Pumpkin Hoard', icon: '🎃', dayKey: 'halloween', dayName: 'Halloween' } }]);
+    state.set('allQuestEvents', [...state.get('allQuestEvents'), { id: 'h1', type: 'day_treasure', classId: 'c1', dateKey: '31-10-2026', status: 'scheduled', details: { title: 'The Pumpkin Hoard', icon: '🎃', dayKey: 'halloween', dayName: 'Halloween', scope: 'school' } }]);
     if (params.get('opened')) classes.forEach((c) => { if (params.get('opened').split(',').includes(c.id)) c.dayTreasures = { h1: { shares: [], total: 0 } }; });
 }
 if (params.get('city')) state.setSchoolWeatherLocation({ name: params.get('city'), latitude: 0, longitude: 0 });

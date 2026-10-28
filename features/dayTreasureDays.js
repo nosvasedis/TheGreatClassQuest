@@ -21,6 +21,13 @@ export const isoToDmy = (iso) => {
     return d ? `${d}-${m}-${y}` : '';
 };
 
+/**
+ * A school-wide treasure: one per special day for every class. It is filed under the class of the
+ * teacher who planned it (the rules only let a teacher file events under their own classes) with
+ * `details.scope: 'school'`; the first ones had no class at all.
+ */
+export const isSchoolTreasure = (event) => Boolean(event) && (!event.classId || event.details?.scope === 'school');
+
 export const activeTreasures = () => (state.get('allQuestEvents') || []).filter((e) => e.type === 'day_treasure' && e.status !== 'cancelled');
 const myClassIds = () => new Set((state.get('allTeachersClasses') || []).map((c) => c.id));
 
@@ -41,7 +48,7 @@ export function windowForSpecial(specialIso) {
 export function eventWindow(event) {
     const iso = dmyToIso(event?.dateKey || event?.date);
     if (!iso) return [];
-    if (event.classId) return [iso];
+    if (!isSchoolTreasure(event)) return [iso];
     return Array.isArray(event.details?.window) && event.details.window.length ? event.details.window : windowForSpecial(iso);
 }
 
@@ -49,12 +56,12 @@ export function eventWindow(event) {
 export function treasureClassesOn(event, dateLike) {
     const iso = /^\d{4}-/.test(String(dateLike)) ? dateLike : dmyToIso(dateLike);
     if (!eventWindow(event).includes(iso)) return [];
-    return event.classId ? [event.classId] : lessonClassIdsOn(iso);
+    return isSchoolTreasure(event) ? lessonClassIdsOn(iso) : [event.classId];
 }
 
 /** The school-wide treasure planned for a special day (ISO), if any. */
 export function treasureForSpecial(specialIso) {
-    return activeTreasures().find((e) => !e.classId && dmyToIso(e.dateKey || e.date) === specialIso) || null;
+    return activeTreasures().find((e) => isSchoolTreasure(e) && dmyToIso(e.dateKey || e.date) === specialIso) || null;
 }
 
 /**
@@ -90,7 +97,7 @@ export function treasuresOn(dateString, classIds = null) {
 export function isTreasureOpened(event, classId = event?.classId) {
     if (!event || !classId) return false;
     const cls = (state.get('allSchoolClasses') || []).find((c) => c.id === classId);
-    return Boolean(cls?.dayTreasures?.[event.id]) || (event.classId === classId && event.status === 'completed');
+    return Boolean(cls?.dayTreasures?.[event.id]) || (!isSchoolTreasure(event) && event.classId === classId && event.status === 'completed');
 }
 
 /** Which of your classes this treasure is for right now: in the window today, or already opened. */

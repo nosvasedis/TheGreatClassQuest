@@ -951,8 +951,13 @@ export async function handleAddQuestEvent() {
         const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
         let classes;
         if (isTreasure) {
-            // A Day Treasure is for the whole school: every class with a lesson on its days.
-            classes = [{ id: null }];
+            // A Day Treasure is for the whole school: every class with a lesson on its days. It is filed
+            // under one of the planner's own classes (the rules check that) and marked scope: 'school'.
+            const own = state.get('allTeachersClasses') || [];
+            const anchor = own.find((c) => c.id === state.get('globalSelectedClassId')) || own[0];
+            if (!anchor && state.get('currentUserRole') !== 'secretary') throw new Error('Create a class first to plan a Day Treasure.');
+            details.scope = 'school';
+            classes = [{ id: anchor?.id || null }];
         } else if (schoolWide) {
             // Standard events are school-wide: one event with no class applies to every class.
             const alreadyScheduled = (state.get('allQuestEvents') || []).some((event) =>
@@ -980,7 +985,7 @@ export async function handleAddQuestEvent() {
         const prompt = document.getElementById('quest-prompt')?.value || '';
         const showTextOnProjector = document.getElementById('quest-show-prompt')?.checked || false;
         for (const classInfo of classes) {
-            const validation = validateQuestEvent({ type: normalizedType, classId: classInfo.id, dateKey: eventDate, goalSpec: { target }, rewardSpec: { starsPerRecipient: details.completionBonus || 1 } }, { existing: state.get('allQuestEvents') || [] });
+            const validation = validateQuestEvent({ type: normalizedType, classId: classInfo.id, details, dateKey: eventDate, goalSpec: { target }, rewardSpec: { starsPerRecipient: details.completionBonus || 1 } }, { existing: state.get('allQuestEvents') || [] });
             if (!validation.valid) throw new Error(validation.errors.join(' '));
         }
         const docs = (classes.length ? classes : [{ id: null }]).map((classInfo, index) => createQuestEventDocument({

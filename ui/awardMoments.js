@@ -7,8 +7,9 @@
 // Everything is transform and opacity on small elements in the shared award layer
 // (ui/awardFx.js); glows are pre-drawn gradients. Reduced motion keeps only sound and the
 // notification; weak laptops get fewer particles and no full-screen glow.
-// Styles: styles/award_moments.css (.amx-*). Sounds: audio.js playAwardMomentSfx.
+// Styles: styles/award_moments.css (.amx-*), loaded with this module. Sounds: audio.js playAwardMomentSfx.
 
+import '../styles/award_moments.css';
 import { playAwardMomentSfx } from '../audio.js';
 import { notify } from './effects.js';
 import { formatBoonStars } from './boonSponsorPicker.js';

@@ -46,13 +46,13 @@ function scheduledSlipHtml(test) {
         </section>`;
 }
 
-function makeupRowHtml(entry, group, avatar) {
+function makeupRowHtml(entry, group, avatar, { current = true, position = '' } = {}) {
     const { student, absent } = entry;
     const day = dayFromKey(group.dayKey);
     const dayText = day ? day.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : '';
     const why = absent ? `Absent ${dayText}`.trim() : 'No mark yet';
     return `
-        <li class="scroll-makeup-item ss-makeup${absent ? ' is-absent' : ''}">
+        <li class="scroll-makeup-item ss-makeup${absent ? ' is-absent' : ''}${current ? ' is-current' : ''}"${current ? '' : ' hidden'}${position ? ` aria-label="${esc(position)}"` : ''}>
             ${avatar(student)}
             <span class="ss-makeup__who">
                 <span class="ss-makeup__name">${esc(student.name)}</span>
@@ -60,7 +60,7 @@ function makeupRowHtml(entry, group, avatar) {
             </span>
             <button type="button" class="makeup-trigger ss-makeup__log"
                 data-student-id="${esc(student.id)}" data-title="${esc(group.title)}" data-type="test"
-                title="Log ${esc(student.name)}'s makeup mark">
+                title="Log ${esc(student.name)}'s makeup mark" aria-label="Log ${esc(student.name)}'s makeup mark">
                 <i class="fas fa-feather-alt" aria-hidden="true"></i><span>Log makeup</span>
             </button>
             <button type="button" class="makeup-dismiss-btn ss-makeup__dismiss"
@@ -71,7 +71,36 @@ function makeupRowHtml(entry, group, avatar) {
         </li>`;
 }
 
-function makeupSlipHtml(group, avatar) {
+/**
+ * Who still owes the paper. Several names sit one at a time behind ‹ › arrows
+ * (and dots), so a long list never stretches the page.
+ */
+function makeupListHtml(group, avatar, page = 0) {
+    const owed = group.missing.length;
+    if (owed <= 1) {
+        return `<ul class="ss-makeup-list">${group.missing.map((entry) => makeupRowHtml(entry, group, avatar)).join('')}</ul>`;
+    }
+    const at = Math.min(Math.max(0, Number(page) || 0), owed - 1);
+    const rows = group.missing.map((entry, i) => makeupRowHtml(entry, group, avatar, {
+        current: i === at,
+        position: `${i + 1} of ${owed}: ${entry.student.name}`
+    })).join('');
+    // Past eight names the dots would crowd; the "3 of 12" count says it all.
+    const dots = owed > 8 ? '' : group.missing.map((entry, i) => `<button type="button" class="ss-makeup-dot${i === at ? ' is-current' : ''}" data-page="${i}"
+            aria-label="Show ${esc(entry.student.name)}"${i === at ? ' aria-current="true"' : ''}></button>`).join('');
+    return `
+        <div class="ss-makeup-pager" data-group="${esc(group.key)}" data-page="${at}" data-count="${owed}">
+            <ul class="ss-makeup-list" aria-live="polite">${rows}</ul>
+            <div class="ss-makeup-nav">
+                <button type="button" class="ss-makeup-step" data-step="-1" aria-label="Previous scholar"${at === 0 ? ' disabled' : ''}><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+                <span class="ss-makeup-dots">${dots}</span>
+                <span class="ss-makeup-count"><b>${at + 1}</b> of ${owed}</span>
+                <button type="button" class="ss-makeup-step" data-step="1" aria-label="Next scholar"${at === owed - 1 ? ' disabled' : ''}><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+            </div>
+        </div>`;
+}
+
+function makeupSlipHtml(group, avatar, page = 0) {
     const progress = paperProgress(group.sat, group.expected);
     const owed = group.missing.length;
     return `
@@ -88,9 +117,7 @@ function makeupSlipHtml(group, avatar) {
                     </span>
                     <span class="ss-slip__count">${esc(progress.label)}</span>
                 </div>
-                <ul class="ss-makeup-list">
-                    ${group.missing.map((entry) => makeupRowHtml(entry, group, avatar)).join('')}
-                </ul>
+                ${makeupListHtml(group, avatar, page)}
             </div>
         </section>`;
 }
@@ -101,9 +128,10 @@ function makeupSlipHtml(group, avatar) {
  * @param {Array} model.groups           from buildMakeupGroups
  * @param {boolean} [model.collapsed]
  * @param {(student: object) => string} [model.avatar]
+ * @param {Map<string, number>} [model.pages] makeup pager position per group key
  * @returns {{ html: string, tone: string }}
  */
-export function testDeskHtml({ scheduled = null, groups = [], collapsed = false, avatar = () => '' }) {
+export function testDeskHtml({ scheduled = null, groups = [], collapsed = false, avatar = () => '', pages = new Map() }) {
     const makeups = groups.reduce((n, g) => n + g.missing.length, 0);
     const toMark = !!scheduled?.canLog;
     const summary = testDeskSummary({ toMark, upcoming: !!scheduled && !toMark, makeups });
@@ -129,7 +157,7 @@ export function testDeskHtml({ scheduled = null, groups = [], collapsed = false,
         </header>
         <div class="ss-testdesk__slips" id="ss-testdesk-slips">
             ${scheduled ? scheduledSlipHtml(scheduled) : ''}
-            ${groups.map((g) => makeupSlipHtml(g, avatar)).join('')}
+            ${groups.map((g) => makeupSlipHtml(g, avatar, pages.get(g.key))).join('')}
         </div>`;
     return { html, tone, folded };
 }

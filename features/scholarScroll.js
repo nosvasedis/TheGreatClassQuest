@@ -929,6 +929,32 @@ function wireScrollControls(classId) {
 
 /** Test Desk folded shut, per class, for this session. */
 const collapsedDesks = new Set();
+/** Which scholar each makeup pager shows, keyed `classId|paper`, for this session. */
+const makeupPages = new Map();
+
+/** Show one scholar of a makeup pager (DOM only; the page is remembered for redraws). */
+function showMakeupPage(pager, classId, page) {
+    const count = Number(pager.dataset.count) || 0;
+    const at = Math.min(Math.max(0, page), count - 1);
+    const was = Number(pager.dataset.page) || 0;
+    if (at === was) return;
+    pager.dataset.dir = at > was ? 'next' : 'prev';
+    pager.dataset.page = String(at);
+    makeupPages.set(`${classId}|${pager.dataset.group}`, at);
+    pager.querySelectorAll('.scroll-makeup-item').forEach((row, i) => {
+        row.hidden = i !== at;
+        row.classList.toggle('is-current', i === at);
+    });
+    pager.querySelectorAll('.ss-makeup-dot').forEach((dot, i) => {
+        dot.classList.toggle('is-current', i === at);
+        if (i === at) dot.setAttribute('aria-current', 'true'); else dot.removeAttribute('aria-current');
+    });
+    const [prev, next] = pager.querySelectorAll('.ss-makeup-step');
+    if (prev) prev.disabled = at === 0;
+    if (next) next.disabled = at === count - 1;
+    const num = pager.querySelector('.ss-makeup-count b');
+    if (num) num.textContent = String(at + 1);
+}
 
 function readDismissedMakeups(classId) {
     try { return JSON.parse(localStorage.getItem(`dismissed_makeups_${classId}`) || '{}'); } catch (_) { return {}; }
@@ -1008,7 +1034,8 @@ function renderTestDesk(classId) {
     const { html, tone, folded } = testDeskHtml({
         ...model,
         collapsed: collapsedDesks.has(classId),
-        avatar: (student) => avatarMarkup(student, 'ss-makeup__av')
+        avatar: (student) => avatarMarkup(student, 'ss-makeup__av'),
+        pages: new Map(model.groups.map((g) => [g.key, makeupPages.get(`${classId}|${g.key}`) || 0]))
     });
     // Live updates redraw only when what the desk shows changed (no replayed entrance).
     const key = `${classId}|${html}`;
@@ -1022,6 +1049,14 @@ function renderTestDesk(classId) {
     desk.innerHTML = html;
     if (!existing) host.prepend(desk);
 
+    // ← / → move through a makeup pager while focus is inside it.
+    desk.onkeydown = (e) => {
+        if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+        const pager = e.target.closest?.('.ss-makeup-pager');
+        if (!pager || e.target.matches('input, textarea, select')) return;
+        e.preventDefault();
+        showMakeupPage(pager, classId, Number(pager.dataset.page) + (e.key === 'ArrowRight' ? 1 : -1));
+    };
     desk.onclick = (e) => {
         const toggle = e.target.closest('.ss-testdesk-toggle');
         if (toggle) {
@@ -1039,6 +1074,16 @@ function renderTestDesk(classId) {
         const log = e.target.closest('.makeup-trigger');
         if (log) {
             openMakeupModal(classId, log.dataset.studentId, log.dataset.type, log.dataset.title);
+            return;
+        }
+        const pagerBtn = e.target.closest('.ss-makeup-step, .ss-makeup-dot');
+        if (pagerBtn) {
+            const pager = pagerBtn.closest('.ss-makeup-pager');
+            if (!pager) return;
+            const page = pagerBtn.dataset.page !== undefined
+                ? Number(pagerBtn.dataset.page)
+                : Number(pager.dataset.page) + Number(pagerBtn.dataset.step);
+            showMakeupPage(pager, classId, page);
             return;
         }
         const dismiss = e.target.closest('.makeup-dismiss-btn');

@@ -94,6 +94,27 @@ test('the desk is one card: the marked test and its makeup together', () => {
     assert.doesNotMatch(html, /No results logged/);
 });
 
+test('several makeups sit one at a time behind arrows, never stacked', () => {
+    const groups = core.buildMakeupGroups({
+        students,
+        testScores: ['a', 'b'].map((id) => score(id, 'Unit 7', '2026-10-26'))
+    });
+    assert.equal(groups[0].missing.length, 2);
+    const first = testDeskHtml({ groups }).html;
+    assert.match(first, /class="ss-makeup-pager"[^>]*data-page="0"[^>]*data-count="2"/);
+    assert.equal((first.match(/scroll-makeup-item ss-makeup[^"]*is-current/g) || []).length, 1);
+    assert.equal((first.match(/<li [^>]* hidden/g) || []).length, 1);
+    assert.match(first, /data-step="-1" aria-label="Previous scholar" disabled/);
+    assert.match(first, /<b>1<\/b> of 2/);
+    // A remembered page survives a redraw, and is clamped when a name leaves.
+    const second = testDeskHtml({ groups, pages: new Map([['unit 7', 5]]) }).html;
+    assert.match(second, /data-page="1"/);
+    assert.match(second, /data-step="1" aria-label="Next scholar" disabled/);
+    // One makeup needs no pager.
+    const one = core.buildMakeupGroups({ students, testScores: ['a', 'b', 'c'].map((id) => score(id, 'Unit 7', '2026-10-26')) });
+    assert.doesNotMatch(testDeskHtml({ groups: one }).html, /ss-makeup-pager/);
+});
+
 test('scheduled status: a test with marks is marked, the rest are makeups', async () => {
     const state = await import('../state.js');
     const { getScheduledAssessmentStatus, getUpcomingScheduledAssessment } = await import('../features/assessmentConfig.js');

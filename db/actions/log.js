@@ -37,6 +37,9 @@ import { createQuestEventDocument, normalizeQuestType, isSpecialQuestType, isSch
 import { buildGrowthStarfallNote } from '../../features/growthStarfallCore.mjs';
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 import { monthlyStarsChange } from './monthlyStars.js';
+import { calculateHeroGold } from '../../features/heroClasses.js';
+import { computeHeroLevel, getHeroReason, heroClassEarnsFrom } from '../../features/heroSkillTree.js';
+import { getLiveYearGold, getLiveYearGoldContextFromState } from '../../utils/yearGold.js';
 
 export async function addOrUpdateHeroChronicleNote(studentId, noteText, category, noteId = null) {
     if (!studentId || !noteText || !category) {
@@ -372,6 +375,73 @@ export async function handleBatchAwardBonus(students) {
         showToast('Could not award bonuses. Please try again.', 'error');
         return awarded.length ? awarded : false;
     }
+}
+
+/**
+ * Takes back Scholar's Bonus (Starfall) rows given today: stars, monthly stars, Gold, the Scholar's
+ * path stars and the Guild Glory, then deletes the rows. Used to send a Starfall bestowed outside
+ * the lesson back to wait for it. Resolves to the rows that were taken back.
+ */
+export async function takeBackTodaysScholarBonus(logIds = []) {
+    const publicDataPath = PUBLIC_DATA_PATH;
+    const today = getTodayDateString();
+    const taken = [];
+    for (const logId of logIds) {
+        let removed = null;
+        await runTransaction(db, async (transaction) => {
+            removed = null;
+            const logRef = doc(db, `${publicDataPath}/award_log`, logId);
+            const logDoc = await transaction.get(logRef);
+            if (!logDoc.exists()) return;
+            const log = logDoc.data();
+            if (log.reason !== 'scholar_s_bonus' || log.date !== today) return;
+            const student = (state.get('allStudents') || []).find((s) => s.id === log.studentId);
+            const scoreRef = doc(db, `${publicDataPath}/student_scores`, log.studentId);
+            const scoreDoc = await transaction.get(scoreRef);
+            const stars = Number(log.stars) || 0;
+            const starCredit = getAwardLogMonthlyStarCredit({ ...log, id: logId });
+            if (scoreDoc.exists()) {
+                const scoreData = scoreDoc.data();
+                const goldGiven = student ? calculateHeroGold(student, 'scholar_s_bonus', stars, scoreData).goldChange : stars;
+                const updates = {
+                    totalStars: increment(-starCredit),
+                    ...monthlyStarsChange(transaction, log.studentId, scoreData, -starCredit),
+                    gold: Math.max(0, getLiveYearGold(scoreData, getLiveYearGoldContextFromState(state)) - goldGiven)
+                };
+                const heroClass = student?.heroClass;
+                const pathReason = heroClass ? getHeroReason(heroClass) : null;
+                if (pathReason && heroClassEarnsFrom(heroClass, 'scholar_s_bonus') && stars > 0) {
+                    const pathStars = Math.max(0, (Number(scoreData.starsByReason?.[pathReason]) || 0) - stars);
+                    updates.starsByReason = { ...(scoreData.starsByReason || {}), [pathReason]: pathStars };
+                    // A level this bonus just reached, with its skill not yet chosen, is undone too.
+                    const level = computeHeroLevel(heroClass, pathStars);
+                    if (scoreData.pendingSkillChoice && level < (Number(scoreData.heroLevel) || 0)) {
+                        updates.heroLevel = level;
+                        updates.pendingSkillChoice = false;
+                    }
+                }
+                transaction.update(scoreRef, updates);
+            }
+            transaction.delete(logRef);
+            removed = { id: logId, ...log, starCredit, guildId: student?.guildId || null };
+        });
+        if (!removed) continue;
+        taken.push(removed);
+        if (removed.guildId && removed.starCredit) {
+            const glory = Number(removed.guildGlory);
+            recordGuildGloryEvent({
+                guildId: removed.guildId,
+                studentId: removed.studentId,
+                classId: removed.classId || null,
+                source: 'delete_scholar_s_bonus',
+                starDelta: -removed.starCredit,
+                exactGlory: Number.isFinite(glory) ? -glory : null,
+                chapter: true,
+                note: `Starfall sent back to wait for the lesson (${logId})`
+            }).catch((error) => console.warn('Starfall Glory take-back failed:', error));
+        }
+    }
+    return taken;
 }
 
 export async function saveAdventureLogNote() {

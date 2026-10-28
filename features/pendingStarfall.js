@@ -261,6 +261,74 @@ async function discardPending(classId, entries) {
     }, { key: `starfall-discard-${classId}` });
 }
 
+// ───────────── A Starfall bestowed by mistake: send it back to the sky ─────────────
+
+/** Today's Starfall rows this teacher gave the class (Adventure Log's logbook offers to send them back). */
+export function todaysStarfallLogs(classId) {
+    const today = utils.getTodayDateString();
+    const me = state.get('currentUserId');
+    return (state.get('allAwardLogs') || []).filter((log) => log.reason === 'scholar_s_bonus'
+        && log.classId === classId && log.date === today && log.teacherId === me);
+}
+
+/** Rebuilds a waiting Starfall from a bestowed row (kind and trial come from its note). */
+export function pendingEntryFromLog(log) {
+    const note = String(log.note || '');
+    const growth = note.startsWith('Growth Starfall');
+    const student = (state.get('allStudents') || []).find((s) => s.id === log.studentId);
+    const createdMs = typeof log.createdAt?.toMillis === 'function' ? log.createdAt.toMillis() : Date.now();
+    return {
+        studentId: log.studentId,
+        name: student?.name || '',
+        bonusAmount: Number(log.stars) || 0.5,
+        trialType: /dictation|spelling/i.test(note) ? 'dictation' : 'test',
+        kind: growth ? 'growth' : 'shine',
+        ...(growth ? { jump: Number(note.match(/\+(\d+)/)?.[1]) || 0 } : {}),
+        trialDate: log.trialDate || log.date,
+        queuedAt: createdMs
+    };
+}
+
+/**
+ * Takes back every Starfall star given to this class today (stars, Gold, Glory, Scholar's path)
+ * and saves them to fall again in the class's next lesson.
+ */
+export async function sendStarfallBackToSky(classId) {
+    const logs = todaysStarfallLogs(classId);
+    if (!logs.length) {
+        showToast('No Starfall was bestowed on this class today.', 'info');
+        return false;
+    }
+    const { takeBackTodaysScholarBonus } = await import('../db/actions.js');
+    let taken;
+    try {
+        taken = await takeBackTodaysScholarBonus(logs.map((log) => log.id));
+    } catch (error) {
+        console.error('Starfall take-back failed:', error);
+        showToast('The Starfall could not be taken back. Please try again.', 'error');
+        return false;
+    }
+    if (!taken.length) return false;
+    const entries = taken.map(pendingEntryFromLog);
+    try {
+        await queuePendingStarfalls(classId, entries);
+    } catch (error) {
+        console.error('Taken-back Starfall could not be saved for the lesson:', error);
+        showToast('The stars were taken back but could not be saved for the lesson. Award them again from the Scholar’s Scroll.', 'error');
+        return false;
+    }
+    refreshStarfallCues();
+    notify({
+        type: 'praise',
+        className: 'herald--starfall',
+        title: 'Back in the sky',
+        icon: '<span class="ssf-herald-star" aria-hidden="true">★</span>',
+        message: `The Starfall for ${taken.length} scholar${taken.length === 1 ? '' : 's'} went back to the sky. It will fall ${esc(nextLessonWhen(classId))}, from the Starfall button in the Scholar’s Scroll.`,
+        duration: 9000
+    });
+    return true;
+}
+
 // ───────────── Cues: the Scroll call and the nav star follow the clock ─────────────
 
 let cueTimer = null;

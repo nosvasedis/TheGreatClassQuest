@@ -1798,6 +1798,8 @@ body.gcq-mobile .qc-bar__title {
 
 .qc-log-entry__btn--note { color: #1d4ed8; background: #dbeafe; }
 .qc-log-entry__btn--note:hover { background: #bfdbfe; }
+.qc-log-entry__btn--sky { color: #fde68a; background: #312e81; }
+.qc-log-entry__btn--sky:hover { background: #3730a3; }
 .qc-log-entry__btn--delete { color: #be123c; background: #ffe4e6; }
 .qc-log-entry__btn--delete:hover { background: #fecdd3; }
 

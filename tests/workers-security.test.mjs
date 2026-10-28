@@ -460,8 +460,10 @@ test('AI Worker paints images with FLUX.2 klein and returns decoded bytes', asyn
   const jpeg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(64, 7)]);
   const calls = [];
   const response = await serviceImageRequest(worker, {
-    async run(model, inputs) {
+    async run(model, inputs, options) {
       calls.push(model);
+      assert.equal(options.returnRawResponse, true, 'decode the binding response explicitly without its implicit postprocessor');
+      assert.ok(options.signal instanceof AbortSignal);
       const form = await new Response(inputs.multipart.body, { headers: { 'content-type': inputs.multipart.contentType } }).formData();
       assert.equal(form.get('prompt'), 'a cute chibi wizard');
       assert.equal(form.get('width'), '512', 'even old 1024px clients spend only one output tile');
@@ -602,6 +604,7 @@ test('AI Worker accepts every FLUX result shape instead of discarding a finished
     'wrapped result': () => ({ result: { image: b64 } }),
     'data URL': () => ({ image: `data:image/jpeg;base64,${b64}` }),
     'JSON stream': () => new Response(JSON.stringify({ result: { image: b64 } })).body,
+    'raw JSON Response': () => new Response(JSON.stringify({ image: b64 }), { headers: { 'Content-Type': 'application/json' } }),
     'raw byte stream': () => new Response(jpeg).body,
     'Response object': () => new Response(jpeg),
     'raw bytes': () => new Uint8Array(jpeg),

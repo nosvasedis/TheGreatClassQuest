@@ -792,10 +792,15 @@ async function runFluxImage(env, { prompt, width, height, seed }, signal) {
   form.append('height', String(Math.round(height / 16) * 16));
   if (Number.isFinite(seed)) form.append('seed', String(seed));
   const encoded = new Response(form);
+  const startedAt = Date.now();
+  console.log(JSON.stringify({ event: 'gcq_flux_stage', stage: 'request', width, height }));
   const result = await env.AI.run(IMAGE_MODEL, {
     multipart: { body: encoded.body, contentType: encoded.headers.get('content-type') },
-  }, { signal });
-  return toImage(result, IMAGE_MODEL);
+  }, { signal, returnRawResponse: true });
+  console.log(JSON.stringify({ event: 'gcq_flux_stage', stage: 'headers', elapsedMs: Date.now() - startedAt }));
+  const image = await toImage(result, IMAGE_MODEL);
+  console.log(JSON.stringify({ event: 'gcq_flux_stage', stage: 'image', elapsedMs: Date.now() - startedAt }));
+  return image;
 }
 
 // The SDXL betas usually return a PNG stream; it is read fully so an empty or

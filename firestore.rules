@@ -279,6 +279,19 @@ service cloud.firestore {
       return isSecretary() || (isTeacher() && ownsClass(classId));
     }
 
+    // School-wide quest events (2x Star Day, Reason Bonus Day, a Day Treasure) have no class: the
+    // School Office may schedule them, and a teacher may schedule these kinds as their own events.
+    function isClasslessQuestEvent(data) {
+      return !('classId' in data) || data.classId == null;
+    }
+
+    function canScheduleQuestEvent(data) {
+      return isClasslessQuestEvent(data)
+        ? (isSecretary() || (isTeacher() && data.createdBy.uid == request.auth.uid &&
+            data.type in ['double_star_day', 'reason_bonus_day', 'day_treasure']))
+        : canScheduleClass(data.classId);
+    }
+
     function canRunClass(classId) {
       return isTeacher() && ownsClass(classId);
     }
@@ -346,9 +359,9 @@ service cloud.firestore {
 
     match /artifacts/{schoolId}/public/data/quest_events/{eventId} {
       allow read: if inSchool(schoolId) && (isStaff());
-      allow create: if inSchool(schoolId) && (canScheduleClass(request.resource.data.classId) && isActiveSchoolYearCreate() && request.resource.data.schemaVersion == 2);
-      allow update: if inSchool(schoolId) && (canScheduleClass(resource.data.classId) && isActiveMutableData(resource.data) && isActiveMutableData(request.resource.data) && keepsOwnershipAndYearFields() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'dateKey', 'date', 'goalSpec', 'rewardSpec', 'presentation', 'updatedAt']));
-      allow delete: if inSchool(schoolId) && (canScheduleClass(resource.data.classId) && isActiveMutableData(resource.data));
+      allow create: if inSchool(schoolId) && (canScheduleQuestEvent(request.resource.data) && isActiveSchoolYearCreate() && request.resource.data.schemaVersion == 2);
+      allow update: if inSchool(schoolId) && (canScheduleQuestEvent(resource.data) && isActiveMutableData(resource.data) && isActiveMutableData(request.resource.data) && keepsOwnershipAndYearFields() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'dateKey', 'date', 'goalSpec', 'rewardSpec', 'presentation', 'updatedAt']));
+      allow delete: if inSchool(schoolId) && (canScheduleQuestEvent(resource.data) && isActiveMutableData(resource.data));
     }
 
     match /artifacts/{schoolId}/public/data/quest_event_runs/{runId} {

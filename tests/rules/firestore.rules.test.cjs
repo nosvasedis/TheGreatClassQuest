@@ -631,3 +631,31 @@ rulesTest('Quest Remote: a teacher of another school never reaches this school\'
   await assertFails(setDoc(doc(teacherB, DATA + '/quest_remote/a-session/commands/x'), remoteCommand('teacher-b')));
   await assertSucceeds(setDoc(doc(teacherB, DATA_B + '/quest_remote/b-session'), remoteSession('teacher-b')));
 });
+
+function schoolWideEvent(extra = {}) {
+  return {
+    schemaVersion: 2, type: 'double_star_day', family: 'modifier', classId: null,
+    dateKey: '30-10-2026', date: '30-10-2026', status: 'scheduled', schoolYearKey: '2026-2027',
+    createdBy: { uid: 'teacher', name: 'Teacher' }, ...extra,
+  };
+}
+
+rulesTest('teachers schedule and remove their own school-wide quest events', async () => {
+  const teacherDb = env.authenticatedContext('teacher').firestore();
+  await assertSucceeds(setDoc(doc(teacherDb, `${DATA}/quest_events/double`), schoolWideEvent()));
+  await assertSucceeds(setDoc(doc(teacherDb, `${DATA}/quest_events/reason`), schoolWideEvent({ type: 'reason_bonus_day' })));
+  await assertSucceeds(setDoc(doc(teacherDb, `${DATA}/quest_events/treasure`), schoolWideEvent({ type: 'day_treasure', family: 'treasure' })));
+  await assertSucceeds(updateDoc(doc(teacherDb, `${DATA}/quest_events/double`), { status: 'cancelled' }));
+  await assertSucceeds(deleteDoc(doc(teacherDb, `${DATA}/quest_events/reason`)));
+});
+
+rulesTest('school-wide quest events stay limited to their kinds and their owner', async () => {
+  const teacherDb = env.authenticatedContext('teacher').firestore();
+  await assertFails(setDoc(doc(teacherDb, `${DATA}/quest_events/vault`), schoolWideEvent({ type: 'vocabulary_vault', family: 'special' })));
+  await assertFails(setDoc(doc(teacherDb, `${DATA}/quest_events/other`), schoolWideEvent({ createdBy: { uid: 'someone-else' } })));
+  await env.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `${DATA}/quest_events/theirs`), schoolWideEvent({ createdBy: { uid: 'someone-else' } }));
+  });
+  await assertFails(deleteDoc(doc(teacherDb, `${DATA}/quest_events/theirs`)));
+  await assertFails(setDoc(doc(env.authenticatedContext('parent').firestore(), `${DATA}/quest_events/parent`), schoolWideEvent({ createdBy: { uid: 'parent' } })));
+});

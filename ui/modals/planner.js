@@ -3,6 +3,7 @@ import { paintDayScene, dayCardHtml, specialDayFor, dayLook } from '../daySceneH
 import * as constants from '../../constants.js';
 import '../../styles/planner_panes.css';
 import { treasureNameFor } from '../../features/dayTreasureCore.mjs';
+import { treasureDayNear, treasureForSpecial, treasuresOn, lessonClassIdsOn, eligibleClassesFor, eventWindow, isTreasureOpened, shortDay } from '../../features/dayTreasureDays.js';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { showAnimatedModal, setCurrentlySelectedDayCell, getCurrentlySelectedDayCell } from './base.js';
@@ -12,7 +13,7 @@ import { getDayAgenda } from '../../utils/calendarDay.js';
 import { filterDocsForActiveYear } from '../../utils/schoolYear.js';
 
 const QUEST_EVENT_INSIGHTS = {
-    'Day Treasure': "This day's own chest. On the day, open it in class (Planner or Home schedule) and every hero finds a random pile of Gold: 10 to 45, and one lucky hero may find the Hoard (60 to 80). No stars. One chest per class.",
+    'Day Treasure': "The special day's own chest, for the whole school. Every class with a lesson on the day (or, when the day has no lessons, on the closest lesson days before it) opens it once, from the day's chip on Home or the schedule. Every hero finds a random pile of Gold: 10 to 45, and one lucky hero may find the Hoard (60 to 80). No stars.",
     '2x Star Day': 'Every positive star award that day is doubled. The app applies this on Award Stars automatically.',
     'Reason Bonus Day': 'Pick Teamwork, Creativity, Respect, or Focus. Matching awards get +1 extra star. The app applies this on Award Stars automatically.',
     'Vocabulary Vault': 'Students spend the Word / target words in real English. Count toward the vault. You set the goal (valid uses) and the completion bonus Stars.',
@@ -128,7 +129,7 @@ function renderPlannerGlance(dateString) {
         : (!agenda.isNoSchool && special?.key
             ? dayCardHtml({ ...special, closed: false }, special.kind === 'closure' || special.kind === 'local'
                 ? { eyebrow: 'Holiday, but your school is open', tip: 'Lessons as normal today.' }
-                : {})
+                : (agenda.classes.length ? {} : { eyebrow: 'No lessons on this day' }))
             : '');
     const statsHtml = agenda.isNoSchool
         ? (holidayStory ? '' : `<span class="qc-glance__holiday"><span aria-hidden="true">${escapeHtml(agenda.holidayIcon || '📅')}</span> ${escapeHtml(agenda.holidayLabel || 'No School')} — no regular lessons</span>`)
@@ -147,9 +148,9 @@ function renderPlannerGlance(dateString) {
                     return `<span class="qc-glance__event">
                         <span aria-hidden="true">${escapeHtml(glyph)}</span>
                         <span class="qc-glance__event-name">${escapeHtml(e.title)}</span>
-                        <span class="qc-glance__event-scope">${cls ? `${escapeHtml(cls.logo || '🏫')} ${escapeHtml(cls.name)}` : 'All classes'}</span>
-                        ${e.type === 'day_treasure' && (agenda.isToday || e.status === 'completed') && myIds.has(e.classId)
-                            ? `<button type="button" class="qc-glance__event-open" data-day-treasure="${escapeHtml(e.id)}">${e.status === 'completed' ? 'See it again' : 'Open it!'}</button>`
+                        <span class="qc-glance__event-scope">${cls ? `${escapeHtml(cls.logo || '🏫')} ${escapeHtml(cls.name)}` : (e.type === 'day_treasure' ? escapeHtml(treasureScopeLabel(e)) : 'All classes')}</span>
+                        ${e.type === 'day_treasure' && eligibleClassesFor(e).length
+                            ? `<button type="button" class="qc-glance__event-open" data-day-treasure="${escapeHtml(e.id)}">${eligibleClassesFor(e).every(c => isTreasureOpened(e, c.id)) ? 'See it again' : 'Open it!'}</button>`
                             : ''}
                         <button type="button" class="qc-glance__event-del delete-event-btn" data-id="${escapeHtml(e.id)}" data-name="${escapeHtml(e.title)}" aria-label="Remove ${escapeHtml(e.title)}"><i class="fas fa-times" aria-hidden="true"></i></button>
                     </span>`;
@@ -258,56 +259,94 @@ export function switchDayPlannerTab(tabName) {
     activeContent.classList.add('animate-fade-in');
 }
 
-/** On a special day, the Quest Event pane opens with that day's own event: its treasure chest. */
+/** "Classes on Thu 29 & Fri 30 Oct" for a school-wide treasure. */
+function treasureScopeLabel(event) {
+    const days = eventWindow(event);
+    return days.length ? `Classes on ${days.map(shortDay).join(' & ')}` : 'All classes';
+}
+
+const relativeDays = (fromIso, toIso) => {
+    const gap = Math.round((new Date(`${toIso}T12:00:00`) - new Date(`${fromIso}T12:00:00`)) / 86400000);
+    if (gap === 0) return 'today';
+    if (gap === 1) return 'tomorrow';
+    if (gap === -1) return 'yesterday';
+    return gap > 0 ? `in ${gap} days` : `${-gap} days ago`;
+};
+
+/**
+ * On a special day, and on the lesson days closest to it, the Quest Event pane opens with that
+ * day's own event: its treasure chest, shared by every class with a lesson on those days.
+ */
 function renderTreasureOffer(dateString) {
     const host = document.getElementById('quest-event-treasure');
     if (!host) return;
-    const special = specialDayFor(dateString);
+    const near = treasureDayNear(dateString);
     const option = document.querySelector('#quest-event-type option[value="Day Treasure"]');
-    if (option) option.disabled = !special;
-    if (!special) {
+    if (option) option.disabled = !near || !near.window.length;
+    if (!near) {
         host.classList.add('hidden');
         host.innerHTML = '';
         return;
     }
+    const { special, specialIso, window: days, isSpecialDay } = near;
     const look = dayLook(special);
     const name = treasureNameFor(special);
     const myIds = new Set((state.get('allTeachersClasses') || []).map(c => c.id));
     const classById = new Map((state.get('allSchoolClasses') || []).map(c => [c.id, c]));
-    const isToday = utils.datesMatch(dateString, utils.getTodayDateString());
-    const planned = (state.get('allQuestEvents') || []).filter(e => e.type === 'day_treasure' && e.status !== 'cancelled'
-        && utils.datesMatch(e.dateKey || e.date, dateString) && myIds.has(e.classId));
-    const plannedHtml = planned.length ? `
-        <ul class="qe-treasure__planned">
-            ${planned.map(e => {
-                const cls = classById.get(e.classId) || {};
-                const opened = e.status === 'completed' || cls.dayTreasures?.[e.id];
-                return `<li>
-                    <span>${escapeHtml(cls.logo || '🏫')} ${escapeHtml(cls.name || 'Class')}</span>
-                    ${opened
-                        ? `<button type="button" class="qe-treasure__open qe-treasure__open--done" data-day-treasure="${escapeHtml(e.id)}"><i class="fas fa-eye" aria-hidden="true"></i> Opened · see it again</button>`
-                        : isToday
-                            ? `<button type="button" class="qe-treasure__open" data-day-treasure="${escapeHtml(e.id)}"><i class="fas fa-key" aria-hidden="true"></i> Open it now</button>`
-                            : '<em>Ready. Open it in class on the day</em>'}
-                </li>`;
-            }).join('')}
-        </ul>` : '';
+    const todayIso = utils.getTodayDateString().split('-').reverse().join('-');
+    const viewIso = String(dateString).split('-').reverse().join('-');
+    const planned = treasureForSpecial(specialIso);
+
+    // The lesson days and who opens it on each.
+    const dayRows = days.map((iso) => {
+        const ids = lessonClassIdsOn(iso);
+        const chips = ids.map((id) => {
+            const cls = classById.get(id) || {};
+            const opened = planned && isTreasureOpened(planned, id);
+            const mine = myIds.has(id);
+            const canOpen = planned && mine && (opened || iso === todayIso);
+            const label = `${cls.logo || '🏫'} ${cls.name || 'Class'}`;
+            return canOpen
+                ? `<button type="button" class="qe-treasure__class${opened ? ' is-opened' : ' is-ready'}${mine ? ' is-mine' : ''}" data-day-treasure="${escapeHtml(planned.id)}" data-day-treasure-class="${escapeHtml(id)}">${escapeHtml(label)}<small>${opened ? 'opened · see again' : 'open now'}</small></button>`
+                : `<span class="qe-treasure__class${opened ? ' is-opened' : ''}${mine ? ' is-mine' : ''}">${escapeHtml(label)}${opened ? '<small>opened</small>' : ''}</span>`;
+        }).join('');
+        return `<li class="qe-treasure__day${iso === viewIso ? ' is-viewed' : ''}${iso === todayIso ? ' is-today' : ''}">
+            <span class="qe-treasure__when"><strong>${escapeHtml(shortDay(iso))}</strong><small>${escapeHtml(relativeDays(todayIso, iso))} · ${ids.length} ${ids.length === 1 ? 'class' : 'classes'}</small></span>
+            <span class="qe-treasure__classes">${chips || '<em>No lessons</em>'}</span>
+        </li>`;
+    }).join('');
+    const whyDays = !days.length
+        ? `No lessons fall close enough to ${special.name} to open a treasure.`
+        : (days.length === 1 && days[0] === specialIso
+            ? 'Every class with a lesson on the day opens it once.'
+            : `${special.name} has no lessons, so the classes on the closest lesson days share it. Each class opens it once.`);
+    const legacy = treasuresOn(dateString, [...myIds]).filter(t => t.event.classId);
+
     host.classList.remove('hidden');
     host.setAttribute('style', `--day-a:${look.a};--day-b:${look.b};--day-ink:${look.ink}`);
     host.innerHTML = `
-        <span class="qe-treasure__bits" aria-hidden="true">${look.particles.slice(0, 4).map((p, i) => `<span style="--x:${58 + i * 11}%;--y:${18 + (i % 2) * 50}%;--d:${i * 0.9}s">${escapeHtml(p)}</span>`).join('')}</span>
+        <span class="qe-treasure__bits" aria-hidden="true">${look.particles.slice(0, 4).map((p, i) => `<span style="--x:${66 + i * 8}%;--y:${4 + (i % 2) * 6}%;--d:${i * 0.9}s">${escapeHtml(p)}</span>`).join('')}</span>
         <header class="quest-event-section__head">
             <span class="quest-event-section__badge" aria-hidden="true">${escapeHtml(special.icon)}</span>
-            <p class="quest-event-kicker">${escapeHtml(special.name)} · this day's own event</p>
+            <p class="quest-event-kicker">${escapeHtml(special.name)}${isSpecialDay ? " · this day's own event" : ` · ${escapeHtml(shortDay(specialIso))}, ${escapeHtml(relativeDays(viewIso, specialIso))}`}</p>
             <h3>${escapeHtml(name)}</h3>
-            <p>A chest of Gold for the class, opened together on the projector. Every hero finds something, and one may find the Hoard.</p>
+            <p>A chest of Gold for each class, opened together on the projector. Every hero finds something, and one may find the Hoard. ${escapeHtml(whyDays)}</p>
         </header>
-        <button type="button" class="quest-event-type-card quest-event-type-card--treasure" data-quest-type="Day Treasure" aria-pressed="false">
-            <span class="quest-event-type-card__glyph" aria-hidden="true">🧰</span>
-            <span class="quest-event-type-card__name">Add the ${escapeHtml(special.name)} treasure</span>
-            <span class="quest-event-type-card__hint">10–45 Gold for each hero · the Hoard: 60–80 · no stars</span>
-        </button>
-        ${plannedHtml}`;
+        ${planned ? `
+            <p class="qe-treasure__ready"><i class="fas fa-check-circle" aria-hidden="true"></i> Planned for the whole school. Open it from the ${escapeHtml(special.name)} chip on Home or in the schedule.
+                <button type="button" class="qe-treasure__remove delete-event-btn" data-id="${escapeHtml(planned.id)}" data-name="${escapeHtml(name)}">Remove</button></p>`
+        : `
+            <button type="button" class="quest-event-type-card quest-event-type-card--treasure" data-quest-type="Day Treasure" aria-pressed="false"${days.length ? '' : ' disabled'}>
+                <span class="quest-event-type-card__glyph" aria-hidden="true">🧰</span>
+                <span class="quest-event-type-card__name">Plan the ${escapeHtml(special.name)} treasure for the school</span>
+                <span class="quest-event-type-card__hint">10–45 Gold for each hero · the Hoard: 60–80 · no stars</span>
+            </button>`}
+        ${days.length ? `<ol class="qe-treasure__days">${dayRows}</ol>` : ''}
+        ${legacy.length ? `<ul class="qe-treasure__planned">${legacy.map(({ event, classId, opened }) => {
+            const cls = classById.get(classId) || {};
+            return `<li><span>${escapeHtml(cls.logo || '🏫')} ${escapeHtml(cls.name || 'Class')}</span>
+                <button type="button" class="qe-treasure__open${opened ? ' qe-treasure__open--done' : ''}" data-day-treasure="${escapeHtml(event.id)}">${opened ? 'Opened · see it again' : 'Open it now'}</button></li>`;
+        }).join('')}</ul>` : ''}`;
 }
 
 function populateQuestEventClasses() {

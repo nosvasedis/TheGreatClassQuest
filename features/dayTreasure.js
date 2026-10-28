@@ -1,8 +1,8 @@
 // /features/dayTreasure.js
 // Day Treasures (features/dayTreasureCore.mjs): opening a special day's chest for a class.
-// The payout runs once, in one transaction: every hero's Gold, a receipt on the class
-// (`dayTreasures.<eventId>`) and the Quest Event marked completed. Opening it again only
-// replays the reveal from the receipt. The reveal is made for the projector.
+// The payout runs once per class, in one transaction: every hero's Gold and a receipt on the
+// class (`dayTreasures.<eventId>`). Opening it again only replays the reveal from the receipt.
+// The reveal is made for the projector. Which days and classes: features/dayTreasureDays.js.
 
 import '../styles/day_treasure.css';
 import * as state from '../state.js';
@@ -10,40 +10,25 @@ import { db, doc, runTransaction, serverTimestamp } from '../firebase.js';
 import { getLiveYearGold, getLiveYearGoldContextFromState } from '../utils/yearGold.js';
 import { PUBLIC_DATA_PATH as DATA } from '../utils/tenant.mjs';
 import { rollDayTreasure, tierLabel } from './dayTreasureCore.mjs';
+import { dmyToIso, activeTreasures, eventWindow, eligibleClassesFor, bestClassFor, shortDay } from './dayTreasureDays.js';
 import { dayLook } from '../ui/daySceneHeader.js';
-import { describeSchoolDay, toIsoDay } from '../utils/schoolCalendar.mjs';
+import { describeSchoolDay } from '../utils/schoolCalendar.mjs';
+import * as utils from '../utils.js';
+import { showToast } from '../ui/effects.js';
 
 const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-const dmyToIso = (dmy) => {
-    const [d, m, y] = String(dmy || '').split(/[-/]/).map(Number);
-    return y ? `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}` : toIsoDay(dmy);
-};
-
-/** The class's treasure events on a date (DD-MM-YYYY), opened or not. */
-export function treasuresOn(dateString, classIds = null) {
-    const iso = dmyToIso(dateString);
-    return (state.get('allQuestEvents') || []).filter((e) => e.type === 'day_treasure'
-        && e.status !== 'cancelled'
-        && dmyToIso(e.dateKey || e.date) === iso
-        && (!classIds || classIds.includes(e.classId)));
-}
-
-export function isTreasureOpened(event) {
-    if (!event) return false;
-    const cls = (state.get('allSchoolClasses') || []).find((c) => c.id === event.classId);
-    return event.status === 'completed' || Boolean(cls?.dayTreasures?.[event.id]);
-}
+export { windowForSpecial, eventWindow, treasureClassesOn, treasureForSpecial, treasureDayNear, treasuresOn, isTreasureOpened, lessonClassIdsOn, eligibleClassesFor, shortDay } from './dayTreasureDays.js';
 
 function studentsOf(classId) {
     return (state.get('allStudents') || []).filter((s) => s.classId === classId && s.enrollmentStatus !== 'inactive');
 }
 
-/** Pay the chest once; returns the receipt (new or already there). */
-async function payTreasure(event) {
-    const classRef = doc(db, `${DATA}/classes`, event.classId);
+/** Pay the chest once for a class; returns the receipt (new or already there). */
+async function payTreasure(event, classId) {
+    const classRef = doc(db, `${DATA}/classes`, classId);
     const eventRef = doc(db, `${DATA}/quest_events`, event.id);
-    const students = studentsOf(event.classId);
+    const students = studentsOf(classId);
     const goldContext = getLiveYearGoldContextFromState(state);
     return runTransaction(db, async (transaction) => {
         const classSnap = await transaction.get(classRef);
@@ -55,7 +40,7 @@ async function payTreasure(event) {
             return { id: s.id, ref, snap: await transaction.get(ref) };
         }));
         const present = reads.filter((r) => r.snap.exists());
-        const shares = rollDayTreasure(present.map((r) => r.id), `${event.id}:${Date.now()}`);
+        const shares = rollDayTreasure(present.map((r) => r.id), `${event.id}:${classId}:${Date.now()}`);
         const byId = new Map(shares.map((s) => [s.studentId, s]));
         present.forEach((r) => {
             const share = byId.get(r.id);
@@ -63,6 +48,7 @@ async function payTreasure(event) {
         });
         const receipt = {
             dateKey: event.dateKey || event.date,
+            openedOn: utils.getTodayDateString(),
             name: event.details?.title || 'Day Treasure',
             dayKey: event.details?.dayKey || '',
             shares,
@@ -70,20 +56,30 @@ async function payTreasure(event) {
             openedBy: { uid: state.get('currentUserId') || '', name: state.get('currentTeacherName') || '' },
         };
         transaction.update(classRef, { [`dayTreasures.${event.id}`]: { ...receipt, openedAt: serverTimestamp() } });
-        transaction.update(eventRef, { status: 'completed', updatedAt: serverTimestamp() });
+        // A class's own (older) treasure event is done once opened; a school-wide one stays for the other classes.
+        if (event.classId === classId) transaction.update(eventRef, { status: 'completed', updatedAt: serverTimestamp() });
         return receipt;
     });
 }
 
-/** Open (or replay) a treasure: confirm stage, then the payout and the reveal. */
-export async function openDayTreasure(eventId) {
-    const event = (state.get('allQuestEvents') || []).find((e) => e.id === eventId);
+/**
+ * Open (or replay) a treasure for one of your classes: the class asked for, else the selected
+ * class, the class in session, or the first one still waiting.
+ */
+export async function openDayTreasure(eventId, classId = '') {
+    const event = activeTreasures().find((e) => e.id === eventId) || (state.get('allQuestEvents') || []).find((e) => e.id === eventId);
     if (!event) return;
-    const cls = (state.get('allSchoolClasses') || []).find((c) => c.id === event.classId) || {};
+    const classes = eligibleClassesFor(event);
+    const cls = classes.find((c) => c.id === classId) || bestClassFor(classes, event);
+    if (!cls) {
+        const days = eventWindow(event).map(shortDay);
+        showToast(`None of your classes has a lesson on the treasure day${days.length > 1 ? 's' : ''}${days.length ? ` (${days.join(', ')})` : ''}.`, 'info');
+        return;
+    }
     const iso = dmyToIso(event.dateKey || event.date);
     const special = describeSchoolDay(iso).headline || { name: event.details?.dayName || 'Special day', icon: event.details?.icon || '🎁', theme: 'observance' };
     const receipt = cls.dayTreasures?.[event.id] || null;
-    showTreasureStage({ event, cls, special, receipt });
+    showTreasureStage({ event, cls, special, receipt, classes });
 }
 
 // ─── The reveal ─────────────────────────────────────────────────────────────
@@ -124,7 +120,7 @@ function coinsHtml(count = 18) {
     }).join('');
 }
 
-function showTreasureStage({ event, cls, special, receipt }) {
+function showTreasureStage({ event, cls, special, receipt, classes = [] }) {
     document.getElementById('day-treasure-stage')?.remove();
     const look = dayLook(special);
     const name = event.details?.title || 'Day Treasure';
@@ -141,7 +137,12 @@ function showTreasureStage({ event, cls, special, receipt }) {
         </div>
         <button type="button" class="dt-stage__close" data-dt-close aria-label="Close"><i class="fas fa-times" aria-hidden="true"></i></button>
         <div class="dt-stage__inner">
-            <p class="dt-stage__eyebrow">${esc(special.icon)} ${esc(special.name)} · ${esc(cls.logo || '🏫')} ${esc(cls.name || 'Class')}</p>
+            <p class="dt-stage__eyebrow">${esc(special.icon)} ${esc(special.name)}${classes.length > 1 ? '' : ` · ${esc(cls.logo || '🏫')} ${esc(cls.name || 'Class')}`}</p>
+            ${classes.length > 1 ? `<div class="dt-classes" role="group" aria-label="Which class opens it">${classes.map((c) => {
+                const done = Boolean(c.dayTreasures?.[event.id]);
+                return `<button type="button" class="dt-class${c.id === cls.id ? ' is-on' : ''}${done ? ' is-done' : ''}" data-dt-class="${esc(c.id)}" aria-pressed="${c.id === cls.id}">
+                    <span aria-hidden="true">${esc(c.logo || '🏫')}</span>${esc(c.name || 'Class')}${done ? '<i aria-label="opened">🪙</i>' : ''}</button>`;
+            }).join('')}</div>` : ''}
             <h2 class="dt-stage__title font-title">${esc(name)}</h2>
             <div class="dt-chest" data-dt-open role="button" tabindex="0" aria-label="${receipt ? 'Show the treasure again' : 'Open the treasure'}">
                 <span class="dt-chest__glow" aria-hidden="true"></span>
@@ -163,7 +164,14 @@ function showTreasureStage({ event, cls, special, receipt }) {
     };
     const onKey = (e) => { if (e.key === 'Escape') close(); };
     document.addEventListener('keydown', onKey);
-    stage.addEventListener('click', (e) => { if (e.target.closest('[data-dt-close]') || e.target === stage) close(); });
+    stage.addEventListener('click', (e) => {
+        if (e.target.closest('[data-dt-close]') || e.target === stage) close();
+        const pick = e.target.closest('[data-dt-class]');
+        if (pick && pick.dataset.dtClass !== cls.id && !busy) {
+            document.removeEventListener('keydown', onKey);
+            openDayTreasure(event.id, pick.dataset.dtClass);
+        }
+    });
 
     const chest = stage.querySelector('[data-dt-open]');
     let busy = false;
@@ -172,7 +180,7 @@ function showTreasureStage({ event, cls, special, receipt }) {
         busy = true;
         chest.classList.add('is-shaking');
         try {
-            const [result] = await Promise.all([receipt ? Promise.resolve(receipt) : payTreasure(event), new Promise((r) => setTimeout(r, 900))]);
+            const [result] = await Promise.all([receipt ? Promise.resolve(receipt) : payTreasure(event, cls.id), new Promise((r) => setTimeout(r, 900))]);
             chest.classList.remove('is-shaking');
             stage.classList.add('is-open');
             chime('open');

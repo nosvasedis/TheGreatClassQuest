@@ -6,6 +6,7 @@ import { calendarTabHTML } from './templates/app/tabs/calendar.js';
 import { renderCalendarTab } from './ui/tabs/selectors.js';
 import { resolveScheduleEmptyState } from './utils/scheduleEmptyState.js';
 import { buildScheduleEmptySceneHtml, buildScheduleDayNoteHtml } from './utils/scheduleEmptyScene.js';
+import { treasureItemsOn } from './features/dayTreasureDays.js';
 
 const params = new URLSearchParams(location.search);
 const view = params.get('view') || 'calendar';
@@ -36,10 +37,17 @@ state.set('allAwardLogs', params.has('sample') ? [
     { date: '05-10-2026', classId: 'c1', stars: 6, schoolYearKey: '2026-2027' }, { date: '05-10-2026', classId: 'c3', stars: 4, schoolYearKey: '2026-2027' },
     { date: '07-10-2026', classId: 'c4', stars: 9, schoolYearKey: '2026-2027' }, { date: '13-10-2026', classId: 'c2', stars: 5, schoolYearKey: '2026-2027' },
     { date: '21-10-2026', classId: 'c4', stars: 3, schoolYearKey: '2026-2027' },
+    ...['Alexa Papa', 'Antonis Dragatis', 'Daniel Dorizas', 'Eleana Rakiplari'].map((name, i) => ({ id: `l${i}`, date: '28-10-2026', classId: 'c4', studentId: `ps${i}`, stars: 0.5, reason: 'story_weaver', teacherId: 'me', createdBy: { name: 'Mr. Nasos' }, schoolYearKey: '2026-2027' })),
 ] : []);
+if (params.has('sample')) state.set('allStudents', ['Alexa Papa', 'Antonis Dragatis', 'Daniel Dorizas', 'Eleana Rakiplari'].map((name, i) => ({ id: `ps${i}`, name, classId: 'c4' })));
 if (params.has('sample')) {
     state.set('allQuestEvents', [{ id: 'e1', dateKey: '2026-10-07', type: 'double_star_day' }, { id: 'e2', dateKey: '2026-10-30', type: 'reason_bonus_day' }]);
     state.set('allQuestAssignments', [{ id: 'q1', classId: 'c1', testData: { date: '2026-10-19', title: 'Unit 2 test' } }]);
+}
+if (params.has('halloween')) {
+    // A school-wide Halloween treasure (Saturday): it opens for the Thursday and Friday classes.
+    state.set('allQuestEvents', [...state.get('allQuestEvents'), { id: 'h1', type: 'day_treasure', classId: null, dateKey: '31-10-2026', status: 'scheduled', details: { title: 'The Pumpkin Hoard', icon: '🎃', dayKey: 'halloween', dayName: 'Halloween' } }]);
+    if (params.get('opened')) classes.forEach((c) => { if (params.get('opened').split(',').includes(c.id)) c.dayTreasures = { h1: { shares: [], total: 0 } }; });
 }
 if (params.get('city')) state.setSchoolWeatherLocation({ name: params.get('city'), latitude: 0, longitude: 0 });
 state.setSchoolHolidayRanges(JSON.parse(params.get('ranges') || '[]'));
@@ -58,7 +66,8 @@ if (view === 'calendar') {
     }).join('')}
     ${(params.get('notes') || '2027-01-30,2026-12-23,2027-01-04,2026-10-31').split(',').map((iso) => {
         const [y, m, d] = iso.split('-').map(Number);
-        return `<div class="vibrant-card card-glass-white"><div class="schedule-list-v2">${buildScheduleDayNoteHtml(new Date(y, m - 1, d))}</div></div>`;
+        const treasures = params.has('halloween') ? treasureItemsOn(`${String(d).padStart(2, '0')}-${String(m).padStart(2, '0')}-${y}`) : [];
+        return `<div class="vibrant-card card-glass-white"><div class="schedule-list-v2">${buildScheduleDayNoteHtml(new Date(y, m - 1, d), { treasures })}</div></div>`;
     }).join('')}</div>`;
 } else if (view === 'office') {
     root.innerHTML = `<div class="pv-office role-shell--secretary office-admin"><article class="role-card secretary-admin-card secretary-settings-card"><div id="school-calendar-panel" class="office-cal"></div></article></div>`;
@@ -80,6 +89,11 @@ if (view === 'calendar') {
     m.updateOwnBreakPreview();
     m.renderOwnBreaksList();
 }
+if (view === 'pills') {
+    // ?view=pills&sample=1&halloween=1 : the Home reminder chips
+    const { getReminderPills } = await import('./features/home.js');
+    root.innerHTML = `<div id="home-reminders-container" style="display:flex;flex-wrap:wrap;gap:.6rem;padding:2rem">${getReminderPills(params.get('class') || null)}</div>`;
+}
 if (view === 'planner' || view === 'log') {
     // ?view=planner&date=26-11-2026[&tab=event]  ·  ?view=log&date=31-10-2026
     const { plannerModalHTML } = await import('./templates/modals/planner.js');
@@ -94,7 +108,13 @@ if (view === 'planner' || view === 'log') {
         await m.showLogbookModal(date);
     }
 }
-if (view === 'treasure') {
+if (view === 'treasure' && params.has('halloween')) {
+    // ?view=treasure&sample=1&halloween=1 : the school-wide Pumpkin Hoard as a Thursday teacher sees it
+    const names = ['Eleni', 'Nikos', 'Maria', 'Giorgos', 'Sofia', 'Dimitris', 'Katerina', 'Yannis'];
+    state.set('allStudents', names.map((name, i) => ({ id: `hs${i}`, name, classId: 'c5' })));
+    const m = await import('./features/dayTreasure.js');
+    await m.openDayTreasure('h1');
+} else if (view === 'treasure') {
     // ?view=treasure&sample=1 : replays a sample Harvest Chest (no saving)
     const { rollDayTreasure } = await import('./features/dayTreasureCore.mjs');
     const names = ['Eleni', 'Nikos', 'Maria', 'Giorgos', 'Sofia', 'Dimitris', 'Katerina', 'Yannis', 'Anna', 'Petros', 'Zoe', 'Alexandros'];

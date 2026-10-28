@@ -16,7 +16,7 @@ export const MODIFIER_TYPES = Object.freeze({
     REASON_BONUS_DAY: 'reason_bonus_day',
 });
 
-// A special day's own treasure (features/dayTreasureCore.mjs): one per class and date, paid in Gold.
+// A special day's own treasure (features/dayTreasureCore.mjs): one per day for the school, paid in Gold.
 export const TREASURE_TYPES = Object.freeze({
     DAY_TREASURE: 'day_treasure',
 });
@@ -107,9 +107,9 @@ export function validateQuestEvent(input = {}, { existing = [] } = {}) {
         }
     }
     if (isTreasureType(type)) {
-        if (!input.classId) errors.push('A class is required for a Day Treasure.');
-        const duplicate = (existing || []).some((event) => isTreasureType(event.type) && event.classId === input.classId && (event.dateKey || event.date) === (input.dateKey || input.date) && event.status !== 'cancelled');
-        if (duplicate) errors.push('This class already has the day\'s treasure.');
+        // One chest per special day for the whole school; each class with a lesson on its days opens it once.
+        const duplicate = (existing || []).some((event) => isTreasureType(event.type) && (event.classId || null) === (input.classId || null) && (event.dateKey || event.date) === (input.dateKey || input.date) && event.status !== 'cancelled');
+        if (duplicate) errors.push('This day\'s treasure is already planned.');
     }
     if (isSpecial) {
         const reward = Number(input.rewardSpec?.starsPerRecipient ?? input.details?.completionBonus ?? 1);

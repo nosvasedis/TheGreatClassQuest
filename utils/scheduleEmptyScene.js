@@ -5,7 +5,7 @@
  * paints its own little CSS scene; styles live in styles/schedule_rest.css.
  */
 
-import { describeSchoolDay } from './schoolCalendar.mjs';
+import { describeSchoolDay, toIsoDay } from './schoolCalendar.mjs';
 // The school-calendar scenes and the special-day note load with this module, off the first-paint
 // stylesheet (the base scenes are in schedule_rest.css). Skipped outside the browser (node tests).
 if (typeof document !== 'undefined') import('../styles/schedule_holidays.css');
@@ -245,6 +245,14 @@ export function buildScheduleEmptySceneHtml(emptyState, { compact = false } = {}
     </section>`;
 }
 
+function relativeDayLabel(dateLike, specialIso) {
+    const from = toIsoDay(dateLike);
+    const gap = Math.round((Date.parse(`${specialIso}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) / 86400000);
+    if (gap === 1) return 'Tomorrow';
+    if (gap === -1) return 'It was yesterday';
+    return gap > 0 ? `In ${gap} days` : `${-gap} days ago`;
+}
+
 /**
  * A slim note above today's lesson cards when the day is special but lessons run:
  * a marked day (Halloween, Three Hierarchs…), a holiday the school opened for,
@@ -253,8 +261,14 @@ export function buildScheduleEmptySceneHtml(emptyState, { compact = false } = {}
 export function buildScheduleDayNoteHtml(dateLike = new Date(), { compact = false, treasures = [] } = {}) {
     const info = describeSchoolDay(dateLike);
     if (info.closure) return '';
-    const special = info.headline && info.headline.key ? info.headline : null;
+    let special = info.headline && info.headline.key ? info.headline : null;
     const edge = info.breakEdge;
+    // A treasure from a special day close by (Halloween on Saturday, opened on Thursday) brings its day along.
+    let treasureDay = null;
+    if (!special && treasures.length) {
+        treasureDay = describeSchoolDay(treasures[0].specialIso).headline || null;
+        special = treasureDay && treasureDay.key ? treasureDay : null;
+    }
     if (!special && !edge) return '';
     const bits = [];
     if (special) {
@@ -263,7 +277,9 @@ export function buildScheduleDayNoteHtml(dateLike = new Date(), { compact = fals
             <span class="schedule-day-note__icon" aria-hidden="true">${escapeText(special.icon)}</span>
             <span class="schedule-day-note__text">
                 <strong>${escapeText(special.name)}</strong>${special.nameEl && special.nameEl !== special.name ? ` <span lang="el">· ${escapeText(special.nameEl)}</span>` : ''}
-                <small>${escapeText(opened ? 'A holiday, but your school is open today. Lessons as normal.' : special.blurb)}</small>
+                <small>${escapeText(treasureDay
+                    ? `${relativeDayLabel(dateLike, treasures[0].specialIso)}. Its treasure opens in today's lessons.`
+                    : (opened ? 'A holiday, but your school is open today. Lessons as normal.' : special.blurb))}</small>
             </span>`);
     }
     if (edge) {
@@ -274,11 +290,17 @@ export function buildScheduleDayNoteHtml(dateLike = new Date(), { compact = fals
     }
     // The day's treasure chests planned for your classes (features/dayTreasure.js opens them).
     if (special && treasures.length) {
-        bits.push(`<span class="schedule-day-note__treasures">${treasures.map((t) => `
-            <button type="button" class="schedule-day-note__treasure${t.opened ? ' is-opened' : ''}" data-day-treasure="${escapeText(t.id)}">
-                <span aria-hidden="true">${t.opened ? '🪙' : '🧰'}</span>
-                <span>${escapeText(t.opened ? `${t.classLabel}: opened` : `Open ${t.name}`)}${t.opened ? '' : ` <small>${escapeText(t.classLabel)}</small>`}</span>
-            </button>`).join('')}</span>`);
+        const groups = new Map();
+        treasures.forEach((t) => groups.set(t.id, [...(groups.get(t.id) || []), t]));
+        bits.push([...groups.values()].map((items) => `
+            <span class="schedule-day-note__treasures">
+                <span class="schedule-day-note__treasure-name"><span aria-hidden="true">🧰</span> ${escapeText(items[0].name)}</span>
+                ${items.map((t) => `
+                <button type="button" class="schedule-day-note__treasure${t.opened ? ' is-opened' : ''}" data-day-treasure="${escapeText(t.id)}" data-day-treasure-class="${escapeText(t.classId || '')}" aria-label="${escapeText(t.opened ? `See ${t.name} again for ${t.classLabel}` : `Open ${t.name} for ${t.classLabel}`)}">
+                    <span>${escapeText(t.classLabel || 'Your class')}</span>
+                    <small>${t.opened ? '🪙 opened' : 'open'}</small>
+                </button>`).join('')}
+            </span>`).join(''));
     }
     const theme = special?.theme || (edge?.edge === 'back-from' ? 'back' : 'edge');
     const vars = special?.colors

@@ -176,6 +176,78 @@
 .qe-treasure__open--done { color: #78350f; background: #fef3c7; box-shadow: inset 0 0 0 1px #fcd34d; }
 .qc-glance__event-open { margin-left: auto; padding: 0.15rem 0.6rem; font-size: 0.7rem; }
 
+/* The lesson days the treasure opens on, with every class that shares it */
+.qe-treasure__days { display: flex; flex-direction: column; gap: 0.45rem; margin: 0.75rem 0 0; padding: 0; list-style: none; }
+.qe-treasure__day {
+    display: grid;
+    grid-template-columns: 7.2rem 1fr;
+    align-items: start;
+    gap: 0.6rem;
+    padding: 0.55rem 0.65rem;
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--day-ink) 14%, transparent);
+}
+.qe-treasure__day.is-today .qe-treasure__when small { color: #b45309; }
+.qe-treasure__day.is-viewed { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--day-ink) 45%, transparent); background: rgba(255, 255, 255, 0.92); }
+.qe-treasure__when { display: flex; flex-direction: column; line-height: 1.15; }
+.qe-treasure__when strong { font-family: 'Fredoka', sans-serif; font-size: 1rem; color: var(--day-ink); }
+.qe-treasure__when small { font-size: 0.7rem; font-weight: 700; color: #64748b; }
+.qe-treasure__classes { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.qe-treasure__classes em { font-size: 0.75rem; color: #64748b; }
+.qe-treasure__class {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.55rem;
+    border: 0;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #334155;
+    background: #f1f5f9;
+}
+.qe-treasure__class.is-mine { color: var(--day-ink); background: color-mix(in srgb, var(--day-a) 70%, #fff); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--day-ink) 25%, transparent); }
+.qe-treasure__class small { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.75; }
+.qe-treasure__class.is-opened { color: #78350f; background: #fef3c7; }
+button.qe-treasure__class { cursor: pointer; }
+button.qe-treasure__class.is-ready {
+    color: #422006;
+    background: linear-gradient(110deg, #fbbf24, #fde68a);
+    box-shadow: 0 6px 12px -8px rgba(180, 83, 9, 0.9);
+    animation: qeReady 2.2s ease-in-out infinite;
+}
+@keyframes qeReady { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+.qe-treasure__ready {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+    margin: 0.2rem 0 0;
+    padding: 0.55rem 0.75rem;
+    border-radius: 0.9rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #166534;
+    background: rgba(220, 252, 231, 0.85);
+}
+#day-planner-modal .qe-treasure__remove {
+    position: static;
+    width: auto;
+    height: auto;
+    opacity: 1;
+    margin-left: auto;
+    padding: 0.15rem 0.6rem;
+    border: 0;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #9f1239;
+    background: #fff1f2;
+    cursor: pointer;
+}
+@media (max-width: 520px) { .qe-treasure__day { grid-template-columns: 1fr; } }
+
 /* ── Schedule: a timeline of the day ── */
 #day-planner-modal .schedule-day__head {
     display: flex;

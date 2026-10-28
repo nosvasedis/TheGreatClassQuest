@@ -117,6 +117,9 @@
     position: relative;
     isolation: isolate;
     display: flex;
+    /* The Quest Log body is a flex column that scrolls: never let a busy day squash the card. */
+    flex: none;
+    min-height: max-content;
     align-items: center;
     gap: 1rem;
     margin-bottom: 0.75rem;

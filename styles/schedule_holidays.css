@@ -470,18 +470,20 @@
 }
 
 /* The day's treasure chests on the Home schedule note (features/dayTreasure.js) */
-.schedule-day-note__treasures { display: flex; flex-wrap: wrap; gap: 0.4rem; flex-basis: 100%; }
+.schedule-day-note__treasures { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; flex-basis: 100%; }
+.schedule-day-note__treasure-name { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 0.35rem; margin-right: 0.15rem; font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 0.95rem; color: var(--sdn-ink, #92400e); }
+.schedule-day-note__treasure small { text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.62rem; }
 .schedule-day-note__treasure {
     position: relative;
     z-index: 1;
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
-    padding: 0.4rem 0.85rem 0.4rem 0.5rem;
+    padding: 0.35rem 0.8rem;
     border: 0;
     border-radius: 999px;
     font-weight: 800;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     color: #422006;
     background: linear-gradient(110deg, #fbbf24, #fde68a 55%, #fbbf24);
     box-shadow: 0 6px 14px -8px rgba(180, 83, 9, 0.8), inset 0 0 0 1px rgba(255, 255, 255, 0.6);

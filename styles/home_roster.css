@@ -1573,6 +1573,11 @@
     box-shadow: 0 12px 22px -10px var(--pill-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 .home-pill--action { cursor: pointer !important; }
+/* A special day's chip with its treasure ready to open (features/dayTreasureDays.js) */
+.home-pill--treasure-ready { box-shadow: 0 0 0 2px #fbbf24, 0 8px 22px -8px rgba(245, 158, 11, 0.75) !important; animation: homePillTreasure 2.4s ease-in-out infinite; }
+.home-pill--treasure-ready .home-pill__eyebrow { color: #92400e; }
+@keyframes homePillTreasure { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+@media (prefers-reduced-motion: reduce) { .home-pill--treasure-ready { animation: none; } }
 .home-pill--action:focus-visible { outline: 3px solid rgba(139, 92, 246, 0.5); outline-offset: 2px; }
 .home-pill__shine {
     position: absolute;

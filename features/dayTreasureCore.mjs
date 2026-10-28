@@ -95,6 +95,34 @@ export function rollDayTreasure(studentIds = [], seed = Date.now()) {
     return shares;
 }
 
+const addDaysIso = (iso, days) => {
+    const [y, m, d] = iso.split('-').map(Number);
+    const date = new Date(Date.UTC(y, m - 1, d + days));
+    return date.toISOString().slice(0, 10);
+};
+
+/**
+ * The lesson days a special day's treasure can be opened on (ISO dates, oldest first).
+ * The day itself when the school has lessons then; otherwise the closest lesson days
+ * just before it (up to `maxDays`, looking back `reach` days), so Halloween on a
+ * Saturday is shared by the Thursday and Friday classes. When nothing comes before
+ * (the day right after a break), the first lesson days after it.
+ */
+export function treasureWindow(specialIso, hasLessons, { maxDays = 2, reach = 3 } = {}) {
+    if (!specialIso || typeof hasLessons !== 'function') return [];
+    if (hasLessons(specialIso)) return [specialIso];
+    const pick = (step) => {
+        const days = [];
+        for (let i = 1; i <= reach && days.length < maxDays; i += 1) {
+            const iso = addDaysIso(specialIso, step * i);
+            if (hasLessons(iso)) days.push(iso);
+        }
+        return days;
+    };
+    const before = pick(-1);
+    return (before.length ? before : pick(1)).sort();
+}
+
 export function tierLabel(key) {
     return key === HOARD.key ? HOARD.label : (TREASURE_TIERS.find((t) => t.key === key)?.label || '');
 }

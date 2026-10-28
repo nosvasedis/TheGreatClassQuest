@@ -382,12 +382,12 @@ export function setupUIListeners() {
             if (stepBtn) modals.stepCalendarDay(Number(stepBtn.dataset.dayStep) || 0);
         });
     });
-    document.getElementById('day-planner-glance')?.addEventListener('click', (e) => {
+    ['day-planner-glance', 'quest-event-treasure'].forEach((id) => document.getElementById(id)?.addEventListener('click', (e) => {
         const deleteBtn = e.target.closest('.delete-event-btn');
         if (!deleteBtn) return;
         const { id: eventId, name: eventName } = deleteBtn.dataset;
         modals.showModal('Delete Event?', `Are you sure you want to delete the "${eventName}" event?`, () => handleDeleteQuestEvent(eventId));
-    });
+    }));
     // Day stepping (← →) and Escape while the Planner or Quest Log is open.
     document.addEventListener('keydown', (e) => {
         if (!modals.isCalendarDayModalOpen()) return;
@@ -438,13 +438,13 @@ export function setupUIListeners() {
             'Confirm Holiday'
         );
     });
-    // Day Treasures can be opened from the Planner, the Quest Event pane and the Home schedule.
+    // Day Treasures open from the day's chip on Home, the schedule note and the Planner.
     document.addEventListener('click', (e) => {
         const opener = e.target.closest('[data-day-treasure]');
         if (!opener) return;
         e.preventDefault();
         e.stopPropagation();
-        import('../../features/dayTreasure.js').then((m) => m.openDayTreasure(opener.dataset.dayTreasure)).catch((err) => console.error(err));
+        import('../../features/dayTreasure.js').then((m) => m.openDayTreasure(opener.dataset.dayTreasure, opener.dataset.dayTreasureClass || '')).catch((err) => console.error(err));
     }, true);
     document.getElementById('quest-event-form').addEventListener('submit', (e) => { e.preventDefault(); handleAddQuestEvent(); });
     document.getElementById('quest-event-type').addEventListener('change', modals.renderQuestEventDetails);

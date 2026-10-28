@@ -77,6 +77,27 @@
 }
 .dt-stage__hint { margin: 0; font-size: 1.05rem; font-weight: 700; opacity: 0.85; }
 
+/* Which of your classes opens it (several of your classes share the treasure days) */
+.dt-classes { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.4rem; margin-top: 0.2rem; }
+.dt-class {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.8rem;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: 0.85rem;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+.dt-class:hover { background: rgba(255, 255, 255, 0.2); transform: translateY(-1px); }
+.dt-class.is-on { color: #422006; background: linear-gradient(120deg, #fbbf24, #fde68a); border-color: #fde68a; }
+.dt-class.is-done:not(.is-on) { opacity: 0.75; }
+.dt-class i { font-style: normal; }
+
 /* The chest: drawn in CSS so it never waits for an image */
 .dt-chest {
     position: relative;

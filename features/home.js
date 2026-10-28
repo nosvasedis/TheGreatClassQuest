@@ -38,7 +38,8 @@ import {
     resolveScheduleEmptyState
 } from '../utils/scheduleEmptyState.js';
 import { buildScheduleEmptySceneHtml, buildScheduleDayNoteHtml } from '../utils/scheduleEmptyScene.js';
-import { upcomingSchoolDays } from '../utils/schoolCalendar.mjs';
+import { upcomingSchoolDays, toIsoDay, describeSchoolDay } from '../utils/schoolCalendar.mjs';
+import { treasureItemsOn, treasureForSpecial, eventWindow } from './dayTreasureDays.js';
 import { getGreetingSkyHtml, getDayRingEmblemHtml, startDayRingClock, syncDayRing } from './homeGreetingScene.js';
 import {
     currentHomeGreeting, greetingTitleInnerHtml, greetingLineInnerHtml, greetingGlintHtml, greetingBadgesHtml,
@@ -874,10 +875,7 @@ function getScheduleHtml(dateString, activeClassId) {
         "bg-gradient-to-br from-rose-100 to-rose-200"
     ];
 
-    const classLookup = new Map((state.get('allSchoolClasses') || []).map((c) => [c.id, c]));
-    const treasures = (state.get('allQuestEvents') || [])
-        .filter((e) => e.type === 'day_treasure' && e.status !== 'cancelled' && myClassIds.includes(e.classId) && utils.datesMatch(e.dateKey || e.date, dateString))
-        .map((e) => ({ id: e.id, name: e.details?.title || 'the treasure', opened: e.status === 'completed', classLabel: `${classLookup.get(e.classId)?.logo || ''} ${classLookup.get(e.classId)?.name || ''}`.trim() }));
+    const treasures = treasureItemsOn(dateString);
     const dayNote = buildScheduleDayNoteHtml(utils.parseFlexibleDate(dateString) || new Date(), { treasures });
     return dayNote + todaysClasses.map(c => {
         const isMine = myClassIds.includes(c.id);
@@ -1371,7 +1369,7 @@ function watchRaidPill() {
     });
 }
 
-function getReminderPills(classId) {
+export function getReminderPills(classId) {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -1447,6 +1445,29 @@ function getReminderPills(classId) {
     // the holiday going on today or coming within three weeks, and a celebration day
     // (lessons as normal) today or within the week.
     const calendarDays = upcomingSchoolDays(now);
+    // A special day's treasure (features/dayTreasureDays.js) lives on that day's chip: on its
+    // lesson days the chip opens it; before them it says when.
+    const todayIso = toIsoDay(now);
+    const treasureItems = treasureItemsOn(utils.getTodayDateString());
+    const shownTreasures = new Set();
+    const weekday = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'short' });
+    const treasureLook = (specialIso) => {
+        const items = treasureItems.filter((t) => t.specialIso === specialIso);
+        if (items.length) {
+            items.forEach((t) => shownTreasures.add(t.id));
+            const waiting = items.filter((t) => !t.opened);
+            const pick = waiting.find((t) => t.classId === classId) || waiting[0] || items.find((t) => t.classId === classId) || items[0];
+            return {
+                tagName: 'button',
+                extraClass: `home-pill--action home-pill--treasure${waiting.length ? ' home-pill--treasure-ready' : ''}`,
+                eyebrow: waiting.length ? `🧰 ${pick.name} · tap to open` : '🪙 Treasure opened · see it again',
+                attrs: `data-day-treasure="${escapeHtml(pick.id)}" data-day-treasure-class="${escapeHtml(pick.classId)}" aria-label="${escapeHtml(waiting.length ? `Open ${pick.name} for ${pick.classLabel}` : `See ${pick.name} again`)}"`,
+            };
+        }
+        const planned = treasureForSpecial(specialIso);
+        const days = planned ? eventWindow(planned).filter((iso) => iso > todayIso) : [];
+        return days.length ? { eyebrow: `🧰 Treasure on ${days.map(weekday).join(' & ')}` } : null;
+    };
     if (calendarDays.holiday) {
         const { range, special, phase, inDays, singleDay } = calendarDays.holiday;
         const look = HOLIDAY_PILL_LOOKS[special?.theme] || HOLIDAY_PILL_LOOKS.break;
@@ -1456,27 +1477,41 @@ function getReminderPills(classId) {
         const tag = phase === 'today'
             ? (singleDay ? 'Today' : `Until ${endLabel}`)
             : (inDays === 1 ? 'Tomorrow' : `in ${inDays} days`);
+        const treasure = treasureLook(phase === 'today' ? todayIso : range.start);
         pills.push(reminderPill({
             tone: look.tone,
             emoji,
             eyebrow: phase === 'today' ? 'Holiday today · no lessons' : (singleDay ? 'Holiday' : 'Break'),
             title: name,
             tag,
-            attrs: look.vars ? `style="${look.vars}"` : '',
+            ...treasure,
+            attrs: `${look.vars ? `style="${look.vars}"` : ''} ${treasure?.attrs || ''}`,
         }));
     }
-    if (calendarDays.celebration) {
-        const { special, inDays } = calendarDays.celebration;
-        const [light, , ink] = special.colors;
-        pills.push(reminderPill({
+    const celebrationPill = (special, inDays, specialIso) => {
+        const [light, , ink] = special.colors || ['#fef3c7', '#fff', '#92400e'];
+        const treasure = treasureLook(specialIso);
+        return reminderPill({
             tone: 'celebration',
             emoji: special.icon,
-            eyebrow: inDays === 0 ? 'Today · lessons as normal' : 'Coming up',
+            eyebrow: inDays === 0 ? 'Today · lessons as normal' : (inDays < 0 ? 'Just passed' : 'Coming up'),
             title: special.name,
-            tag: inDays === 0 ? 'Today!' : (inDays === 1 ? 'Tomorrow' : `in ${inDays} days`),
-            attrs: `style="--pill-bg: linear-gradient(135deg, ${light}, #fff); --pill-fg: ${ink}; --pill-icon-bg: ${ink}; --pill-border: ${ink}55; --pill-shadow: ${ink}33;"`,
-        }));
+            tag: inDays === 0 ? 'Today!' : (inDays === 1 ? 'Tomorrow' : (inDays === -1 ? 'Yesterday' : (inDays < 0 ? `${-inDays} days ago` : `in ${inDays} days`))),
+            ...treasure,
+            attrs: `style="--pill-bg: linear-gradient(135deg, ${light}, #fff); --pill-fg: ${ink}; --pill-icon-bg: ${ink}; --pill-border: ${ink}55; --pill-shadow: ${ink}33;" ${treasure?.attrs || ''}`,
+        });
+    };
+    if (calendarDays.celebration) {
+        const { special, inDays, iso } = calendarDays.celebration;
+        pills.push(celebrationPill(special, inDays, iso));
     }
+    // A treasure whose day has no chip of its own (it opens just after the day): its day's chip.
+    [...new Map(treasureItems.filter((t) => !shownTreasures.has(t.id)).map((t) => [t.id, t])).values()].forEach((t) => {
+        const special = describeSchoolDay(t.specialIso).headline;
+        if (!special) return;
+        const inDays = Math.round((Date.parse(`${t.specialIso}T12:00:00Z`) - Date.parse(`${todayIso}T12:00:00Z`)) / 86400000);
+        pills.push(celebrationPill(special, inDays, t.specialIso));
+    });
 
     // 4. QUEST EVENTS (Test/Vocab/etc) — use smart date parser (any format)
     const events = state.get('allQuestEvents') || [];
@@ -1493,6 +1528,8 @@ function getReminderPills(classId) {
     const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
 
     sortedEvents.forEach(e => {
+        // Day Treasures live on their day's chip above.
+        if (normalizeQuestType(e.type) === 'day_treasure') return;
         const eventDate = utils.parseFlexibleDate(e.dateKey || e.date);
         if (!eventDate) return;
         eventDate.setHours(0, 0, 0, 0);

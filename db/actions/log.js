@@ -37,8 +37,12 @@ import { createQuestEventDocument, normalizeQuestType, isSpecialQuestType, isSch
 import { buildGrowthStarfallNote } from '../../features/growthStarfallCore.mjs';
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 import { monthlyStarsChange } from './monthlyStars.js';
-import { breakLookFor, describeSchoolDay } from '../../utils/schoolCalendar.mjs';
+import { breakLookFor } from '../../utils/schoolCalendar.mjs';
 import { treasureNameFor } from '../../features/dayTreasureCore.mjs';
+
+const formatTreasureDays = (isoDays = []) => isoDays
+    .map((iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }))
+    .join(' or ');
 
 export async function addOrUpdateHeroChronicleNote(studentId, noteText, category, noteId = null) {
     if (!studentId || !noteText || !category) {
@@ -882,6 +886,7 @@ export async function handleAddQuestEvent() {
     }
 
     let details = {};
+    let treasureDate = '';
     const title = document.getElementById('quest-event-type').options[document.getElementById('quest-event-type').selectedIndex].text;
     details.title = title;
 
@@ -911,14 +916,20 @@ export async function handleAddQuestEvent() {
             case '2x Star Day':
                 break;
             case 'Day Treasure': {
-                // The special day's own chest (features/dayTreasureCore.mjs), named after the day.
-                const [dd, mm, yy] = String(date).split('-').map(Number);
-                const special = describeSchoolDay(new Date(yy, mm - 1, dd)).headline;
-                if (!special) throw new Error('Day Treasures are only for the special days of the calendar.');
-                details.title = treasureNameFor(special);
-                details.icon = special.icon || '🎁';
-                details.dayKey = special.key || '';
-                details.dayName = special.name || '';
+                // The special day's own chest (features/dayTreasureCore.mjs), named after the day. It is
+                // planned on the special day and opens on its closest lesson days (Halloween on a
+                // Saturday: every class with a lesson on Thursday or Friday), once per class.
+                const { treasureDayNear } = await import('../../features/dayTreasureDays.js');
+                const near = treasureDayNear(date);
+                if (!near) throw new Error('Day Treasures are only for the special days of the calendar.');
+                if (!near.window.length) throw new Error(`No lessons fall close enough to ${near.special.name} to open its treasure.`);
+                const [yy, mm, dd] = near.specialIso.split('-');
+                treasureDate = `${dd}-${mm}-${yy}`;
+                details.title = treasureNameFor(near.special);
+                details.icon = near.special.icon || '🎁';
+                details.dayKey = near.special.key || '';
+                details.dayName = near.special.name || '';
+                details.window = near.window;
                 break;
             }
             default:
@@ -931,13 +942,18 @@ export async function handleAddQuestEvent() {
 
         const normalizedType = normalizeQuestType(type);
         const schoolWide = isSchoolWideModifierType(normalizedType);
+        const isTreasure = normalizedType === 'day_treasure';
+        const eventDate = treasureDate || date;
         const scope = document.getElementById('quest-event-scope');
         const selectedClassIds = scope ? [...scope.selectedOptions].map((option) => option.value) : [state.get('globalSelectedClassId')];
         const overrides = state.get('allScheduleOverrides') || [];
         const holidays = state.get('schoolHolidayRanges') || [];
         const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
         let classes;
-        if (schoolWide) {
+        if (isTreasure) {
+            // A Day Treasure is for the whole school: every class with a lesson on its days.
+            classes = [{ id: null }];
+        } else if (schoolWide) {
             // Standard events are school-wide: one event with no class applies to every class.
             const alreadyScheduled = (state.get('allQuestEvents') || []).some((event) =>
                 isSchoolWideModifierType(event.type) &&
@@ -951,7 +967,7 @@ export async function handleAddQuestEvent() {
                 ? (state.get('allSchoolClasses') || [])
                 : (state.get('allTeachersClasses') || []);
             classes = classPool.filter((item) => selectedClassIds.includes(item.id));
-            if (!classes.length && (isSpecialQuestType(normalizedType) || normalizedType === 'day_treasure')) {
+            if (!classes.length && isSpecialQuestType(normalizedType)) {
                 throw new Error('Select at least one class for this event.');
             }
             const conflicts = classes.filter((classInfo) => !doesClassMeetOnDate(classInfo.id, date, state.get('allSchoolClasses') || [], overrides, holidays, classEndDates));
@@ -964,15 +980,15 @@ export async function handleAddQuestEvent() {
         const prompt = document.getElementById('quest-prompt')?.value || '';
         const showTextOnProjector = document.getElementById('quest-show-prompt')?.checked || false;
         for (const classInfo of classes) {
-            const validation = validateQuestEvent({ type: normalizedType, classId: classInfo.id, dateKey: date, goalSpec: { target }, rewardSpec: { starsPerRecipient: details.completionBonus || 1 } }, { existing: state.get('allQuestEvents') || [] });
+            const validation = validateQuestEvent({ type: normalizedType, classId: classInfo.id, dateKey: eventDate, goalSpec: { target }, rewardSpec: { starsPerRecipient: details.completionBonus || 1 } }, { existing: state.get('allQuestEvents') || [] });
             if (!validation.valid) throw new Error(validation.errors.join(' '));
         }
         const docs = (classes.length ? classes : [{ id: null }]).map((classInfo, index) => createQuestEventDocument({
             type: normalizedType,
             classId: classInfo.id,
-            dateKey: date,
+            dateKey: eventDate,
             schoolYearKey: state.getActiveSchoolYearKey(),
-            eventGroupId: `${date}__${state.get('currentUserId')}__${Date.now()}`,
+            eventGroupId: `${eventDate}__${state.get('currentUserId')}__${Date.now()}`,
             target,
             starsPerRecipient: details.completionBonus || 1,
             instructions,
@@ -984,7 +1000,7 @@ export async function handleAddQuestEvent() {
             await addDoc(collection(db, `${PUBLIC_DATA_PATH}/quest_events`), { ...eventDocument, details: { ...details, title: type === 'Day Treasure' ? details.title : title } });
         }
         
-        showToast(type === 'Day Treasure' ? `${details.icon} ${details.title} is ready for the day!` : 'Quest Event added to calendar!', 'success');
+        showToast(type === 'Day Treasure' ? `${details.icon} ${details.title} is ready! Every class with a lesson on ${formatTreasureDays(details.window)} can open it.` : 'Quest Event added to calendar!', 'success');
         import('../../ui/modals.js').then(m => m.hideModal('day-planner-modal'));
         
     } catch (error) {

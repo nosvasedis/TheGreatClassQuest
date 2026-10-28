@@ -11,6 +11,7 @@ import {
     resolveScheduleEmptyState
 } from '../utils/scheduleEmptyState.js';
 import { buildScheduleEmptySceneHtml, buildScheduleDayNoteHtml } from '../utils/scheduleEmptyScene.js';
+import { treasureItemsOn } from '../features/dayTreasureDays.js';
 import { isSchoolYearAwaitingOpen } from '../utils/schoolYear.js';
 import { sumLiveYearGoldFromAppState } from '../utils/yearGold.js';
 import { getGreetingSkyHtml, getDayRingEmblemHtml, startDayRingClock, syncDayRing } from '../features/homeGreetingScene.js';
@@ -179,10 +180,7 @@ function getClassScheduleRows() {
         return buildScheduleEmptySceneHtml(emptyState, { compact: true });
     }
 
-    const classLookup = new Map((state.get('allSchoolClasses') || []).map((c) => [c.id, c]));
-    const treasures = (state.get('allQuestEvents') || [])
-        .filter((e) => e.type === 'day_treasure' && e.status !== 'cancelled' && myIds.has(e.classId) && utils.datesMatch(e.dateKey || e.date, today))
-        .map((e) => ({ id: e.id, name: e.details?.title || 'the treasure', opened: e.status === 'completed', classLabel: `${classLookup.get(e.classId)?.logo || ''} ${classLookup.get(e.classId)?.name || ''}`.trim() }));
+    const treasures = treasureItemsOn(today);
     const dayNote = buildScheduleDayNoteHtml(utils.parseFlexibleDate(today) || new Date(), { compact: true, treasures });
     return dayNote + todaysClasses.map((c) => {
         const isMine = myIds.has(c.id);

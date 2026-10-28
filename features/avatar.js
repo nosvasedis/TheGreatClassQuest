@@ -7,7 +7,7 @@ import * as state from '../state.js';
 import * as modals from '../ui/modals.js';
 import { showToast } from '../ui/effects.js';
 import { playSound } from '../audio.js';
-import { callGeminiApi, callCloudflareAiImageApi } from '../api.js';
+import { callCloudflareAiImageApi } from '../api.js';
 import { compressAvatarImageBase64 } from '../utils.js';
 import { AVATAR_IMAGE_CACHE_CONTROL, studentAvatarUploadPath } from '../constants.js';
 import { requireEliteAI } from '../utils/upgradePrompt.js';
@@ -15,8 +15,8 @@ import { requireEliteAI } from '../utils/upgradePrompt.js';
 import {
     FORGE_CREATURES, FORGE_COLORS, FORGE_ACCESSORIES, FORGE_MOODS, FORGE_STYLES,
     FORGE_BACKDROPS, FORGE_FRAMINGS, FORGE_DEFAULTS, FORGE_SPECIAL_MAX, FORGE_NEGATIVE_PROMPT,
-    FORGE_IMAGE_OPTIONS, normalizeForgeRecipe, isLegacyForgeRecipe, buildForgeWriterMessages,
-    cleanWriterSubject, composeForgeImagePrompt, cleanSpecialTouch
+    FORGE_IMAGE_OPTIONS, normalizeForgeRecipe, isLegacyForgeRecipe,
+    composeForgeImagePrompt, cleanSpecialTouch
 } from '../functions/avatarForgeRecipe.mjs';
 import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 
@@ -328,14 +328,9 @@ async function forgeAvatarOnServer(studentId, recipe) {
 }
 
 async function forgeAvatarInBrowser(recipe) {
-    const { system, user } = buildForgeWriterMessages(recipe);
-    let subject = '';
-    try {
-        subject = cleanWriterSubject(await callGeminiApi(system, user));
-    } catch (error) {
-        console.warn('Avatar prompt writer unavailable; using the catalogue description.', error);
-    }
-    return callCloudflareAiImageApi(composeForgeImagePrompt(recipe, subject), FORGE_NEGATIVE_PROMPT, { ...FORGE_IMAGE_OPTIONS });
+    // The catalogue already describes every selected trait, including the special
+    // touch. Paint it directly instead of waiting for a second AI model first.
+    return callCloudflareAiImageApi(composeForgeImagePrompt(recipe, ''), FORGE_NEGATIVE_PROMPT, { ...FORGE_IMAGE_OPTIONS });
 }
 
 async function saveAvatarOnServer(studentId, imageDataUrl) {

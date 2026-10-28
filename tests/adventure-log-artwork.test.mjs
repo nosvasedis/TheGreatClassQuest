@@ -6,6 +6,7 @@ import { webcrypto } from 'node:crypto';
 
 // Exercise the actual async Storage/transaction orchestration with a small in-memory backend.
 import { buildAdventurePicturePrompt, ADVENTURE_PICTURE_SIZE } from '../functions/adventurePicturePrompt.mjs';
+import { isFinalAiErrorSource } from '../utils/aiResilience.js';
 
 // The server painter defaults to "not deployed", so the browser path below is what runs.
 const notDeployed = async () => { throw Object.assign(new Error('internal'), { code: 'functions/internal' }); };
@@ -17,6 +18,7 @@ function harness(imageOperation = async () => 'data:image/jpeg;base64,aGVsbG8=',
     const snapshot = () => ({ exists: () => true, id: page.id, data: () => ({ ...page }) });
     const deps = { PUBLIC_DATA_PATH, db: {}, storage: {}, doc: () => ({}), getDoc: async () => snapshot(), runTransaction: async (_, callback) => callback({ get: async () => snapshot(), update: (_, updates) => Object.assign(page, updates) }), serverTimestamp: () => 'timestamp', ref: (_, path) => path, deleteObject: async path => removed.push(path), state: { get: key => values[key], getActiveSchoolYearKey: () => '2026-2027' }, compressImageBase64: async value => value, uploadImageToStorage: async (_, path) => { uploaded.push(path); return 'https://example.test/' + path; }, getLeagueAiVisualStyle: () => 'storybook', callCloudflareAiImageApi: imageOperation, crypto: webcrypto, buildAdventurePicturePrompt, ADVENTURE_PICTURE_SIZE, serverCalls: [], firebaseMock: null };
     deps.firebaseMock = { functions: {}, httpsCallable: (_, name) => async (data) => { deps.serverCalls.push({ name, data }); return serverPaint(data, page); } };
+    deps.isFinalAiErrorSource = isFinalAiErrorSource;
     const source = fs.readFileSync(new URL('../features/adventureLogArtwork.js', import.meta.url), 'utf8').replace(/^import .*;\r?$/gm, '').replace(/export /g, '').replace("import('../utils/subscription.js')", 'Promise.resolve({ canUseFeature: () => true })').replace("import('../firebase.js')", 'Promise.resolve(firebaseMock)');
     const api = new Function(...Object.keys(deps), source + '\nreturn { prepareAdventurePictureSave, generateAdventureLogArtwork, readAdventurePicture, diaryPictureControlsHtml };')(...Object.values(deps));
     return { ...api, page, uploaded, removed, values, serverCalls: deps.serverCalls };
@@ -67,12 +69,21 @@ test('picture failures stay separate from text generation and allow a later retr
     assert.equal(h.page.imageUrl, null); assert.equal(h.page.generationStatus, undefined);
 });
 
+test('spent quota and uncertain timeouts stop automatic browser image retries', async () => {
+    for (const error of [Object.assign(new Error('quota'), { status: 503, errorSource: 'workers-ai-quota' }), new DOMException('timeout', 'TimeoutError')]) {
+        let calls = 0;
+        const h = harness(async () => { calls++; throw error; });
+        await assert.rejects(h.generateAdventureLogArtwork(h.page.id, { retryDelaysMs: [0, 0] }));
+        assert.equal(calls, 1);
+    }
+});
+
 test('a busy first attempt is retried and never trips or waits on the AI breaker', async () => {
     const seen = [];
-    const h = harness(async (...args) => { seen.push(args[3]); if (seen.length === 1) throw new Error('timed out'); return 'data:image/jpeg;base64,aGVsbG8='; });
+    const h = harness(async (...args) => { seen.push(args[3]); if (seen.length === 1) throw Object.assign(new Error('busy'), { status: 503 }); return 'data:image/jpeg;base64,aGVsbG8='; });
     await h.generateAdventureLogArtwork(h.page.id, { retryDelaysMs: [0] });
     assert.equal(seen.length, 2);
-    assert.equal(seen[1].background, true); assert.equal(seen[1].ignoreCircuit, true); assert.equal(seen[1].timeoutMs, 45000);
+    assert.equal(seen[1].background, true); assert.equal(seen[1].ignoreCircuit, true); assert.equal(seen[1].timeoutMs, 65000);
     assert.equal(h.page.artworkStatus, 'ready'); assert.equal(h.page.artworkSource, 'ai');
     assert.match(h.page.imageUrl, /adventure_logs\/teacher\/page-1\//);
 });

@@ -5,12 +5,13 @@ import { compressImageBase64, uploadImageToStorage, getLeagueAiVisualStyle } fro
 import { callCloudflareAiImageApi } from '../api.js';
 import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 import { buildAdventurePicturePrompt, ADVENTURE_PICTURE_SIZE } from '../functions/adventurePicturePrompt.mjs';
+import { isFinalAiErrorSource } from '../utils/aiResilience.js';
 
 export const newAdventureRequestId = () => crypto.randomUUID();
 
 // The automatic picture is painted right after the Chronicler writes, while Campfire may be
 // painting too, so a busy moment can fail it. It waits and tries again, as a teacher's Retry would.
-export const AUTO_PICTURE_RETRY_DELAYS_MS = [15000, 45000];
+export const AUTO_PICTURE_RETRY_DELAYS_MS = [5000];
 // A 'generating' page whose tab closed mid-paint can be claimed again after this long.
 const STALE_GENERATING_MS = 10 * 60 * 1000;
 
@@ -38,7 +39,7 @@ export async function createAdventurePictureDraft(log, { title = log.title, text
     if (!canUseFeature('eliteAI')) throw permanentError('AI pictures require Elite.');
     const prompt = buildAdventurePicturePrompt({ title, text, style: pictureStyleFor(log) });
     const size = { width: ADVENTURE_PICTURE_SIZE, height: ADVENTURE_PICTURE_SIZE };
-    const image = await callCloudflareAiImageApi(prompt, '', size, { retries: 0, timeoutMs: 45000, baseDelay: 600, ...requestOptions });
+    const image = await callCloudflareAiImageApi(prompt, '', size, { retries: 0, timeoutMs: 65000, baseDelay: 600, ...requestOptions });
     assertOwner(log);
     return compressImageBase64(image, ADVENTURE_PICTURE_SIZE, ADVENTURE_PICTURE_SIZE, 0.86);
 }
@@ -138,8 +139,10 @@ export async function generateAdventureLogArtwork(logId, { retryDelaysMs = AUTO_
                 dataUrl = await createAdventurePictureDraft(log, undefined, { background: true, ignoreCircuit: true });
                 break;
             } catch (error) {
+                if (!(await stillOurs())) return;
                 const delay = retryDelaysMs[attempt];
-                if (error?.permanent || delay == null) throw error;
+                if (error?.permanent || isFinalAiErrorSource(error?.errorSource) || delay == null
+                    || !(error?.status === 429 || error?.status >= 500)) throw error;
                 console.warn(`Diary picture attempt ${attempt + 1} failed; trying again shortly.`, error);
                 await new Promise(resolve => setTimeout(resolve, delay));
                 if (!(await stillOurs())) return;

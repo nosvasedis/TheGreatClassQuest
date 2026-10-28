@@ -258,7 +258,6 @@ test('Market Manager clamps gold, copies, and names before save', async () => {
 test('shop restock does not wipe a live stall and runs in the background', async () => {
   const economy = fs.readFileSync(path.join(root, 'db/actions/economy.js'), 'utf8');
   const shop = fs.readFileSync(path.join(root, 'ui/core/shop.js'), 'utf8');
-  const api = fs.readFileSync(path.join(root, 'api.js'), 'utf8');
   const functions = fs.readFileSync(path.join(root, 'functions/index.js'), 'utf8');
 
   assert.match(economy, /ensureShopStock\(/);
@@ -268,7 +267,6 @@ test('shop restock does not wipe a live stall and runs in the background', async
   assert.match(shop, /isVisibleSeasonalShopItem\(/);
   assert.match(shop, /Festival Stall/);
   assert.match(shop, /setShopRestockBusy/);
-  assert.match(api, /requestOptions\.ignoreCircuit/);
   assert.match(functions, /exports\.ensureShopStock/);
   assert.match(functions, /exports\.maintainShopStock/);
   assert.match(functions, /exports\.manageShopItem/);

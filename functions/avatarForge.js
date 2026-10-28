@@ -3,7 +3,7 @@
 const crypto = require('node:crypto');
 const { FieldValue, getFirestore } = require('firebase-admin/firestore');
 const { HttpsError } = require('firebase-functions/v1/https');
-const { shopAiChat, shopAiImage } = require('./shop/ai');
+const { shopAiImage } = require('./shop/ai');
 
 // The option lists and prompt builder live in avatarForgeRecipe.mjs so the modal and
 // this callable can never disagree about what a teacher may pick.
@@ -72,16 +72,9 @@ function createAvatarForgeHandlers({ requireStudentManager, requireFeatureEnable
       throw error;
     }
 
-    // The writer adds character detail; if it is down, the forge still paints from the
-    // catalogue's own description rather than failing the teacher's click.
-    const { system, user } = recipeTools.buildForgeWriterMessages(recipe);
-    let subject = '';
-    try {
-      subject = recipeTools.cleanWriterSubject(await shopAiChat(system, user));
-    } catch (error) {
-      console.warn('forgeStudentAvatar writer unavailable, using catalogue description:', error?.message || error);
-    }
-    const finalPrompt = recipeTools.composeForgeImagePrompt(recipe, subject);
+    // Every choice already has a concise art description. A separate writer
+    // added latency and could override the teacher's carefully chosen traits.
+    const finalPrompt = recipeTools.composeForgeImagePrompt(recipe, '');
 
     let bytes;
     try {

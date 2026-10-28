@@ -1,7 +1,7 @@
 // /features/storyWeaver.js
 
 // --- IMPORTS ---
-import { db, auth, doc, getDocs, collection, query, orderBy, setDoc, updateDoc, writeBatch, serverTimestamp, increment, limit, onSnapshot } from '../firebase.js';
+import { db, auth, doc, getDocs, collection, query, orderBy, setDoc, updateDoc, writeBatch, runTransaction, serverTimestamp, increment, limit, onSnapshot } from '../firebase.js';
 
 import * as state from '../state.js';
 import * as modals from '../ui/modals.js';
@@ -21,6 +21,7 @@ import {
 } from './storyWeaverView.js';
 import { knotsHtml } from './trainingGroundsView.mjs';
 import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
+import { buildStoryIllustrationPrompt, attachStoryIllustration } from './storyWeaverArtwork.mjs';
 function storyWeaverClassId() {
     return state.get('globalSelectedClassId') || '';
 }
@@ -164,7 +165,7 @@ function renderStoryWeaversUI(classId) {
     const weaveLabel = document.getElementById('sw-weave-label');
     if (weaveLabel && !sw.weaving) weaveLabel.textContent = pages.length ? `Write page ${nextNumber}` : 'Start Story...';
     if (!sw.weaving) lockInBtn.disabled = !wordLocked;
-    endBtn.disabled = !story?.currentSentence;
+    endBtn.disabled = !story?.currentSentence || sw.weaving || sw.redrawing;
     const hint = document.getElementById('sw-write-hint');
     if (hint) {
         hint.textContent = wordLocked
@@ -494,7 +495,9 @@ async function handleRedrawIllustration() {
     const classId = storyWeaverClassId();
     const pages = currentPages(classId);
     const page = pages[pages.length - 1];
-    if (!classId || !page || sw.redrawing) return;
+    if (!classId || !page || sw.redrawing || sw.weaving) return;
+    const savedStoryRef = storyRef(classId);
+    const savedPageRef = page.id ? doc(historyRef(classId), page.id) : null;
     sw.redrawing = true;
     playSound('magic_chime');
     const loader = document.getElementById('story-weavers-image-loader');
@@ -506,26 +509,22 @@ async function handleRedrawIllustration() {
     try {
         const context = pages.slice(-4, -1).map((p) => p.sentence).join(' ');
         const imageUrl = await paintStoryPage(classId, page.sentence, context);
-        const batch = writeBatch(db);
-        batch.update(storyRef(classId), { currentImageUrl: imageUrl, updatedAt: serverTimestamp() });
-        if (page.id) batch.update(doc(historyRef(classId), page.id), { imageUrl });
-        await batch.commit();
-        showToast('A fresh illustration is in the book!', 'success');
+        const applied = await attachStoryIllustration({ db, runTransaction, storyRef: savedStoryRef,
+            pageRef: savedPageRef, sentence: page.sentence, imageUrl, updatedAt: serverTimestamp() });
+        if (applied) showToast('A fresh illustration is in the book!', 'success');
     } catch (error) {
         console.error('Error redrawing illustration:', error);
         showToast('Could not paint a new picture. Please try again.', 'error');
     } finally {
         sw.redrawing = false;
         sw.shownKey = '';
-        renderStoryWeaversUI(classId);
+        if (storyWeaverClassId() === classId) renderStoryWeaversUI(classId);
     }
 }
 
 /** AI prompt → Cloudflare image → compressed → Storage URL. */
 async function paintStoryPage(classId, sentence, recentHistory, onStep = setLoomStep) {
-    const imagePromptSystemPrompt = "You are an expert AI art prompt engineer. Your task is to convert a story's context into a short, effective, simplified English prompt for an image generator, under 75 tokens. The image type must be a 'whimsical children's storybook illustration'. The style should be 'simple shapes, vibrant and cheerful colors, friendly characters'. Use progressive detailing and relative descriptions. The prompt must be a single, structured paragraph. Conclude with '(Token count: X)'.";
-    const imagePromptUserPrompt = `Refactor the following into a high-quality, short image prompt. Previous context: '${recentHistory}'. The new, most important sentence is: "${sentence}". The image should focus on the new sentence while staying consistent with the previous context.`;
-    const imagePrompt = await callGeminiApi(imagePromptSystemPrompt, imagePromptUserPrompt);
+    const imagePrompt = buildStoryIllustrationPrompt(sentence, recentHistory);
 
     onStep(2);
     const rawImageBase64 = await callCloudflareAiImageApi(imagePrompt);
@@ -592,6 +591,7 @@ function updateStoryInputMeta() {
 }
 
 export async function handleLockInSentence() {
+    if (sw.weaving || sw.redrawing) return;
     if (!canUseFeature('eliteAI')) {
         showToast("AI image generation requires Elite tier.", "error");
         return;
@@ -603,9 +603,7 @@ export async function handleLockInSentence() {
     const storyDocExists = Boolean(storyRecord);
     const currentStory = storyRecord || {};
     const isNewStory = !currentStory.currentSentence;
-    const historyQuery = query(historyRef(classId), orderBy("createdAt", "desc"), limit(3));
-    const historySnapshot = await getDocs(historyQuery);
-    const recentHistory = historySnapshot.docs.map(d => d.data().sentence).join(' ');
+    const recentHistory = currentPages(classId).slice(-3).map((page) => page.sentence).join(' ');
 
     if (newSentence === (currentStory.currentSentence || '')) {
         showToast("No changes made to the story.", "info");
@@ -628,6 +626,7 @@ export async function handleLockInSentence() {
 
     // The new words go straight onto the page while the Chronicler paints.
     sw.weaving = true;
+    document.getElementById('story-weavers-end-btn').disabled = true;
     sw.viewIndex = null;
     const textEl = document.getElementById('story-weavers-text');
     textEl.innerHTML = highlightWord(newSentence, wordOfTheDay);
@@ -648,21 +647,15 @@ export async function handleLockInSentence() {
     document.getElementById('story-weavers-image-placeholder').classList.add('hidden');
     setLoomStep(1);
 
+    let sentenceSaved = false;
     try {
-        // A failed picture never costs the class its sentence: the page is saved without one
-        // and Redraw can paint it later.
-        let imageUrl = null;
-        try {
-            imageUrl = await paintStoryPage(classId, newSentence, recentHistory);
-        } catch (imageError) {
-            console.error("Story picture failed; saving the sentence without it:", imageError);
-        }
-
+        // Commit the words before spending any inference or waiting on a picture.
         const storyDocRef = storyRef(classId);
         const newHistoryDoc = doc(historyRef(classId));
         const storyDataToSet = {
             currentSentence: newSentence,
-            currentImageUrl: imageUrl,
+            currentImageUrl: null,
+            currentPageId: newHistoryDoc.id,
             currentWord: wordOfTheDay,
             storyAdditionsCount: increment(1),
             updatedAt: serverTimestamp(),
@@ -671,7 +664,7 @@ export async function handleLockInSentence() {
         const historyPayload = {
             sentence: newSentence,
             word: wordOfTheDay,
-            imageUrl: imageUrl,
+            imageUrl: null,
             createdAt: serverTimestamp(),
             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
         };
@@ -690,6 +683,16 @@ export async function handleLockInSentence() {
             batch.set(newHistoryDoc, historyPayload);
             await batch.commit();
         }
+        sentenceSaved = true;
+        let imageUrl = null;
+        try {
+            imageUrl = await paintStoryPage(classId, newSentence, recentHistory);
+            await attachStoryIllustration({ db, runTransaction, storyRef: storyDocRef, pageRef: newHistoryDoc,
+                sentence: newSentence, imageUrl, updatedAt: serverTimestamp() });
+        } catch (imageError) {
+            imageUrl = null;
+            console.error('Story picture failed; the sentence is already saved:', imageError);
+        }
 
         const newAdditionsCount = (currentStory.storyAdditionsCount || 0) + 1;
         if (newAdditionsCount > 0 && newAdditionsCount % 2 === 0) {
@@ -701,13 +704,17 @@ export async function handleLockInSentence() {
     } catch (error) {
         console.error("Error locking in sentence:", error);
         showToast("Failed to save the story. Please try again.", "error");
+        if (!sentenceSaved && storyWeaverClassId() === classId) modals.showAnimatedModal('story-input-modal');
     } finally {
         sw.weaving = false;
         sw.shownKey = sw.shownKey || 'blank';
         btn.classList.remove('is-busy');
         document.getElementById('sw-book')?.classList.remove('is-weaving');
         // We rely on the onSnapshot listener to update the UI once the data is saved
-        resetStoryWeaverWordUI();
+        if (storyWeaverClassId() === classId) {
+            if (sentenceSaved) resetStoryWeaverWordUI();
+            renderStoryWeaversUI(classId);
+        }
     }
 }
 
@@ -773,6 +780,7 @@ export async function handleShowStoryHistory() {
 }
 
 export function handleResetStory() {
+    if (sw.weaving || sw.redrawing) return;
     const classId = storyWeaverClassId();
     if (!classId) return;
     const pageCount = currentPages(classId).length;
@@ -780,6 +788,7 @@ export function handleResetStory() {
         ? `This clears the ${pageCount} page${pageCount === 1 ? '' : 's'} of the current story and opens a blank book. To keep them as a storybook, press The End instead. Start over?`
         : 'This opens a blank book for the class. Start over?';
     modals.showModal('Start a New Story?', message, async () => {
+        if (sw.weaving || sw.redrawing) return;
         try {
             stopPageNarration();
             const storyDocRef = storyRef(classId);

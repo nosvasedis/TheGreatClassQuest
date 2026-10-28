@@ -11,7 +11,9 @@ const PRECACHE_URLS = __GCQ_PRECACHE_MANIFEST__;
 const STORAGE_MEDIA_HOSTS = new Set(['firebasestorage.googleapis.com']);
 
 function isStorageMediaRequest(url) {
-  return url.protocol === 'https:' && STORAGE_MEDIA_HOSTS.has(url.hostname) && url.pathname.startsWith('/v0/b/');
+  return url.protocol === 'https:' && STORAGE_MEDIA_HOSTS.has(url.hostname)
+    && url.pathname.startsWith('/v0/b/') && url.searchParams.get('alt') === 'media'
+    && Boolean(url.searchParams.get('token'));
 }
 
 // Storage is small in some browsers (Incognito Chrome allows only a few dozen MB),
@@ -114,7 +116,10 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) {
-    if (isStorageMediaRequest(url)) event.respondWith(cacheFirstMedia(event, request));
+    // SDK metadata reads (getDownloadURL) and authenticated downloads must reach
+    // Firebase unchanged. Re-fetching just their URL drops the login headers.
+    if (!request.headers.has('Authorization') && !request.headers.has('X-Firebase-AppCheck')
+      && isStorageMediaRequest(url)) event.respondWith(cacheFirstMedia(event, request));
     return;
   }
 

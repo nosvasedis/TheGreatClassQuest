@@ -49,6 +49,11 @@ test('the image prompt leads with the style and subject and stays short', () => 
     assert.ok(prompt.split(/\s+/).length <= 60, `prompt has ${prompt.split(/\s+/).length} words`);
 });
 
+test('direct catalogue prompts retain the teacher special touch without a writer call', () => {
+    const r = recipe.normalizeForgeRecipe({ creature: 'Owl', color: 'Blue', accessory: 'None', special: 'golden freckles' });
+    assert.match(recipe.composeForgeImagePrompt(r, ''), /golden freckles/);
+});
+
 test('the writer reply is cleaned, and an unusable reply falls back to the catalogue', () => {
     assert.equal(recipe.cleanWriterSubject('Prompt: "baby dragon, green scales, tiny wings, warm smile."\nextra'), 'baby dragon, green scales, tiny wings, warm smile');
     assert.equal(recipe.cleanWriterSubject('ok'), '');

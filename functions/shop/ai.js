@@ -46,10 +46,17 @@ async function shopAiFetch(payload, { expect = 'json', timeoutMs = 0 } = {}) {
     const detail = await response.text().catch(() => '');
     const error = new Error(`Shop AI proxy failed (${response.status})`);
     error.status = response.status;
+    error.errorSource = response.headers.get('X-GCQ-Error-Source') || '';
     error.detail = detail.slice(0, 300);
     throw error;
   }
-  if (expect === 'bytes') return Buffer.from(await response.arrayBuffer());
+  if (expect === 'bytes') {
+    const bytes = Buffer.from(await response.arrayBuffer());
+    if (!response.headers.get('Content-Type')?.startsWith('image/') || bytes.length < 32) {
+      throw new Error('The painter returned an invalid image.');
+    }
+    return bytes;
+  }
   return response.json();
 }
 
@@ -70,8 +77,8 @@ async function shopAiChat(systemPrompt, userPrompt) {
 }
 
 async function shopAiImage(prompt, negativePrompt = '', options = {}) {
-  const width = Number(options.width) || 1024;
-  const height = Number(options.height) || 1024;
+  const width = Math.max(256, Math.min(512, Number(options.width) || 512));
+  const height = Math.max(256, Math.min(512, Number(options.height) || 512));
   return shopAiFetch({
     prompt: String(prompt || '').slice(0, 5000),
     negative_prompt: String(negativePrompt || '').slice(0, 2000),
@@ -79,7 +86,14 @@ async function shopAiImage(prompt, negativePrompt = '', options = {}) {
     guidance: Number(options.guidance) || 7.5,
     width,
     height
-  }, { expect: 'bytes', timeoutMs: Number(options.timeoutMs) || 0 });
+  }, { expect: 'bytes', timeoutMs: Number(options.timeoutMs) || 65000 });
+}
+
+// A timeout may have already spent inference. Only an explicit transient refusal
+// is safe to retry, never login/plan/quota errors or an ambiguous lost connection.
+function imageErrorIsRetryable(error) {
+  if (['workers-ai-quota', 'school-ai-quota', 'school-ai-plan'].includes(error?.errorSource)) return false;
+  return error?.status === 429 || error?.status >= 500;
 }
 
 function simpleHashCode(value) {
@@ -96,6 +110,7 @@ module.exports = {
   extractJsonFromAiText,
   shopAiChat,
   shopAiImage,
+  imageErrorIsRetryable,
   simpleHashCode,
   serviceKey
 };

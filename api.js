@@ -452,10 +452,11 @@ async function fetchWithBackoff(url, options, config = {}) {
             if (response.ok) return response;
 
             const hasRetriesLeft = attempt < retries;
+            const errorSource = response.headers?.get?.('X-GCQ-Error-Source') || '';
 
-            if (response.status === 429) {
+            if (response.status === 429 && !isFinalAiErrorSource(errorSource)) {
                 const retryAfterMs = parseRetryAfterMs(response);
-                recordGlobalRateLimit(retryAfterMs);
+                if (config.shareRateLimit !== false) recordGlobalRateLimit(retryAfterMs);
                 if (hasRetriesLeft) {
                     const waitMs = Math.max(retryAfterMs || GLOBAL_RATE_LIMIT_COOLDOWN_MS, 0);
                     console.warn(`⚠️ RATE LIMITED (429). Waiting ${waitMs}ms before retry...`, { attempt, maxRetries: retries });
@@ -466,7 +467,6 @@ async function fetchWithBackoff(url, options, config = {}) {
                 throw createRateLimitError(retryAfterMs);
             }
 
-            const errorSource = response.headers?.get?.('X-GCQ-Error-Source') || '';
             const isRetryableStatus = isRetryableHttpStatus(response.status) && !isFinalAiErrorSource(errorSource);
             if (!isRetryableStatus || !hasRetriesLeft) {
                 const error = new Error(`API failed with status ${response.status}`);
@@ -597,8 +597,20 @@ export function extractJsonFromAiText(text) {
 // Optional extras (Campfire word art) step aside while any other picture is being painted,
 // so a diary picture never has to share the free image model with them.
 let _priorityImagesInFlight = 0;
+const pendingImages = new Map();
 
 export async function callCloudflareAiImageApi(prompt, negativePrompt = "", options = {}, requestOptions = {}) {
+    // Coalesce overlapping requests only. An intentional later Redraw still
+    // paints a fresh picture, but two components cannot pay for the same work.
+    const key = JSON.stringify([prompt, negativePrompt, options]);
+    if (pendingImages.has(key)) return pendingImages.get(key);
+    const pending = runCloudflareAiImage(prompt, negativePrompt, options, requestOptions);
+    pendingImages.set(key, pending);
+    try { return await pending; }
+    finally { if (pendingImages.get(key) === pending) pendingImages.delete(key); }
+}
+
+async function runCloudflareAiImage(prompt, negativePrompt, options, requestOptions) {
     if (requestOptions.lowPriority) {
         while (_priorityImagesInFlight > 0) await new Promise((res) => setTimeout(res, 1000));
     } else {
@@ -613,22 +625,22 @@ export async function callCloudflareAiImageApi(prompt, negativePrompt = "", opti
 
 function paintCloudflareAiImage(prompt, negativePrompt, options, requestOptions) {
     return runImageRequest(async () => {
-        if (!requestOptions.ignoreCircuit && isAiCircuitOpen()) throw createCircuitBreakerError();
-        const rateLimitWaitMs = getGlobalRateLimitRemainingMs();
-        if (rateLimitWaitMs > 0) {
-            await new Promise((res) => setTimeout(res, rateLimitWaitMs));
-        }
-
+        // Image availability is independent of the text-provider circuit.
         const payload = {
+            width: 512,
+            height: 512,
             prompt: prompt,
             negative_prompt: negativePrompt || "text, watermark, blurry, low quality",
             ...options
         };
         try {
             const response = await fetchAuthenticatedProxy(cloudflareWorkerUrl, payload, {
-                retries: requestOptions.retries ?? 2,
+                // The Worker already handles model fallbacks. A timed-out client
+                // may have paid for an image, so never blindly repeat inference.
+                retries: requestOptions.retries ?? 0,
                 baseDelay: requestOptions.baseDelay ?? 1500,
-                timeoutMs: requestOptions.timeoutMs ?? DEFAULT_TIMEOUT_MS
+                timeoutMs: requestOptions.timeoutMs ?? 65000,
+                shareRateLimit: false
             });
 
             if (!response.ok) {
@@ -637,15 +649,14 @@ function paintCloudflareAiImage(prompt, negativePrompt, options, requestOptions)
             }
 
             const imageBlob = await response.blob();
+            if (!imageBlob.type.startsWith('image/') || imageBlob.size < 32) {
+                throw new Error('The painter returned an invalid image. Please try again.');
+            }
             const result = await blobToBase64(imageBlob);
-            recordAiSuccess();
             return result;
 
         } catch (error) {
-            // Optional background pictures never trip the shared breaker for teacher-requested AI.
-            if (!requestOptions.background && shouldCountAsCircuitFailure(error)) {
-                recordAiFailure();
-            }
+            // Image failures must never switch off text generation (or vice versa).
             console.error('Error in callCloudflareAiImageApi:', error);
             throw error;
         }

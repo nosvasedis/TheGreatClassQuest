@@ -464,7 +464,8 @@ test('AI Worker paints images with FLUX.2 klein and returns decoded bytes', asyn
       calls.push(model);
       const form = await new Response(inputs.multipart.body, { headers: { 'content-type': inputs.multipart.contentType } }).formData();
       assert.equal(form.get('prompt'), 'a cute chibi wizard');
-      assert.equal(form.get('width'), '1024');
+      assert.equal(form.get('width'), '512', 'even old 1024px clients spend only one output tile');
+      assert.equal(form.get('height'), '512');
       return { image: jpeg.toString('base64') };
     },
   });
@@ -558,14 +559,39 @@ test('AI Worker returns a retryable image error when models fail for other reaso
 
 test('AI Worker gives up on a hung image model and moves to the next one', async () => {
   const worker = await importIsolatedAiWorker((source) => source
-    .replace('IMAGE_MODEL_TIMEOUT_MS = 15_000', 'IMAGE_MODEL_TIMEOUT_MS = 20')
-    .replace('IMAGE_MIN_ATTEMPT_MS = 4_000', 'IMAGE_MIN_ATTEMPT_MS = 1'));
+    .replace('IMAGE_MODEL_TIMEOUT_MS = 28_000', 'IMAGE_MODEL_TIMEOUT_MS = 20')
+    .replace('IMAGE_MIN_ATTEMPT_MS = 2_000', 'IMAGE_MIN_ATTEMPT_MS = 1'));
   const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47]), Buffer.alloc(64, 3)]);
+  let fluxSignal;
   const response = await serviceImageRequest(worker, {
-    run(model) { return model.includes('flux') ? new Promise(() => {}) : Promise.resolve(png); },
+    run(model, inputs, options) {
+      if (model.includes('flux')) { fluxSignal = options.signal; return new Promise(() => {}); }
+      assert.equal(fluxSignal.aborted, true, 'stop waiting on the old inference before starting a fallback');
+      return Promise.resolve(png);
+    },
   });
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('X-GCQ-AI-Provider'), '@cf/stabilityai/stable-diffusion-xl-base-1.0');
+});
+
+test('FLUX gets enough time for a healthy small inference instead of the old premature fallback', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const worker = await importIsolatedAiWorker();
+  const jpeg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(64, 7)]);
+  let started;
+  const ready = new Promise(resolve => { started = resolve; });
+  const calls = [];
+  const responsePromise = serviceImageRequest(worker, { async run(model) {
+    calls.push(model); started();
+    await new Promise(resolve => setTimeout(resolve, 18000));
+    return { image: jpeg.toString('base64') };
+  } });
+  await ready;
+  t.mock.timers.tick(18000);
+  const response = await responsePromise;
+  assert.equal(response.status, 200);
+  assert.deepEqual(calls, ['@cf/black-forest-labs/flux-2-klein-4b']);
+  assert.equal(response.headers.get('X-GCQ-AI-Provider'), calls[0]);
 });
 
 test('AI Worker accepts every FLUX result shape instead of discarding a finished picture', async () => {

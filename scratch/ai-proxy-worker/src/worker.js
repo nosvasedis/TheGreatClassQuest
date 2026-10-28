@@ -38,12 +38,12 @@ const IMAGE_FALLBACK_MODEL = '@cf/stabilityai/stable-diffusion-xl-base-1.0';
 const IMAGE_LAST_RESORT_MODEL = '@cf/bytedance/stable-diffusion-xl-lightning';
 // SDXL rejects the whole request above 20 steps.
 const SDXL_MAX_STEPS = 20;
-// Browsers give up on artwork after 30-45 seconds, so every model gets its own
-// deadline and the whole chain finishes before the slowest caller stops waiting.
-const IMAGE_MODEL_TIMEOUT_MS = 15_000;
-const IMAGE_FALLBACK_TIMEOUT_MS = 18_000;
-const IMAGE_CHAIN_BUDGET_MS = 40_000;
-const IMAGE_MIN_ATTEMPT_MS = 4_000;
+// A live 512px FLUX call took 18s: the old 15s cutoff discarded a healthy
+// inference and paid for a second picture. Clients allow 65s for this 55s chain.
+const IMAGE_MODEL_TIMEOUT_MS = 28_000;
+const IMAGE_FALLBACK_TIMEOUT_MS = 15_000;
+const IMAGE_CHAIN_BUDGET_MS = 55_000;
+const IMAGE_MIN_ATTEMPT_MS = 2_000;
 const TEXT_FALLBACK_MODEL = '@cf/zai-org/glm-4.7-flash';
 const TEXT_FALLBACK_DAILY_LIMIT = 12;
 const TEXT_UPSTREAM_TIMEOUT_MS = 25_000;
@@ -785,7 +785,7 @@ async function toImage(result, model) {
 
 // FLUX takes multipart input, has no negative prompt and a fixed 4 steps; sizes must be
 // multiples of 16.
-async function runFluxImage(env, { prompt, width, height, seed }) {
+async function runFluxImage(env, { prompt, width, height, seed }, signal) {
   const form = new FormData();
   form.append('prompt', prompt);
   form.append('width', String(Math.round(width / 16) * 16));
@@ -794,13 +794,13 @@ async function runFluxImage(env, { prompt, width, height, seed }) {
   const encoded = new Response(form);
   const result = await env.AI.run(IMAGE_MODEL, {
     multipart: { body: encoded.body, contentType: encoded.headers.get('content-type') },
-  });
+  }, { signal });
   return toImage(result, IMAGE_MODEL);
 }
 
 // The SDXL betas usually return a PNG stream; it is read fully so an empty or
 // failed stream counts as a model failure instead of a broken 200 response.
-async function runSdxlImage(env, model, inputs) {
+async function runSdxlImage(env, model, inputs, signal) {
   const sdxlInputs = {
     prompt: inputs.prompt,
     negative_prompt: inputs.negative_prompt,
@@ -810,15 +810,19 @@ async function runSdxlImage(env, model, inputs) {
     height: inputs.height,
   };
   if (Number.isFinite(inputs.seed)) sdxlInputs.seed = inputs.seed;
-  return toImage(await env.AI.run(model, sdxlInputs), model);
+  return toImage(await env.AI.run(model, sdxlInputs, { signal }), model);
 }
 
-function withDeadline(promise, timeoutMs, label) {
+function withDeadline(promise, timeoutMs, label, onTimeout = () => {}) {
   let timer;
   return Promise.race([
     promise,
     new Promise((_, reject) => {
-      timer = setTimeout(() => reject(new DOMException(`${label} timed out.`, 'TimeoutError')), timeoutMs);
+      timer = setTimeout(() => {
+        const error = new DOMException(`${label} timed out.`, 'TimeoutError');
+        onTimeout(error);
+        reject(error);
+      }, timeoutMs);
     }),
   ]).finally(() => clearTimeout(timer));
 }
@@ -876,23 +880,27 @@ async function handleImage(payload, env, corsHeaders) {
     negative_prompt: negativePrompt,
     num_steps: Math.round(boundedNumber(payload.num_steps, SDXL_MAX_STEPS, 1, SDXL_MAX_STEPS)),
     guidance: boundedNumber(payload.guidance, isSprite ? 8 : 7.5, 1, 10),
-    width: Math.round(boundedNumber(payload.width, 1024, 256, 1024)),
-    height: Math.round(boundedNumber(payload.height, isSprite ? 256 : 1024, 256, 1024)),
+    // All current app artwork fits one 512px output tile, including old clients
+    // which still request 1024. Keep the legacy four-frame sprite aspect ratio.
+    width: Math.round(boundedNumber(payload.width, isSprite ? 1024 : 512, 256, isSprite ? 1024 : 512)),
+    height: Math.round(boundedNumber(payload.height, isSprite ? 256 : 512, 256, isSprite ? 256 : 512)),
   };
   if (Number.isFinite(payload.seed)) inputs.seed = Math.trunc(payload.seed);
 
   const attempts = [
-    { model: IMAGE_MODEL, timeoutMs: IMAGE_MODEL_TIMEOUT_MS, run: () => runFluxImage(env, inputs) },
-    { model: IMAGE_FALLBACK_MODEL, timeoutMs: IMAGE_FALLBACK_TIMEOUT_MS, run: () => runSdxlImage(env, IMAGE_FALLBACK_MODEL, inputs) },
-    { model: IMAGE_LAST_RESORT_MODEL, timeoutMs: IMAGE_FALLBACK_TIMEOUT_MS, run: () => runSdxlImage(env, IMAGE_LAST_RESORT_MODEL, inputs) },
+    { model: IMAGE_MODEL, timeoutMs: IMAGE_MODEL_TIMEOUT_MS, run: (signal) => runFluxImage(env, inputs, signal) },
+    { model: IMAGE_FALLBACK_MODEL, timeoutMs: IMAGE_FALLBACK_TIMEOUT_MS, run: (signal) => runSdxlImage(env, IMAGE_FALLBACK_MODEL, inputs, signal) },
+    { model: IMAGE_LAST_RESORT_MODEL, timeoutMs: IMAGE_FALLBACK_TIMEOUT_MS, run: (signal) => runSdxlImage(env, IMAGE_LAST_RESORT_MODEL, inputs, signal) },
   ];
   const startedAt = Date.now();
   const failures = [];
   for (const attempt of attempts) {
     const remainingMs = IMAGE_CHAIN_BUDGET_MS - (Date.now() - startedAt);
     if (remainingMs < IMAGE_MIN_ATTEMPT_MS) break;
+    const controller = new AbortController();
     try {
-      const image = await withDeadline(attempt.run(), Math.min(attempt.timeoutMs, remainingMs), attempt.model);
+      const image = await withDeadline(attempt.run(controller.signal), Math.min(attempt.timeoutMs, remainingMs), attempt.model,
+        (error) => controller.abort(error));
       if (failures.length) {
         console.warn(JSON.stringify({ event: 'gcq_image_fallback', model: image.model, failures }));
       }

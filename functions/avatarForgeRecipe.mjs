@@ -261,7 +261,7 @@ export function describeForgeSubject(recipe) {
     const creature = findOption(FORGE_CREATURES, recipe.creature);
     const accessory = findOption(FORGE_ACCESSORIES, recipe.accessory);
     const mood = findOption(FORGE_MOODS, recipe.mood);
-    return [creature.look, colourPhrase(recipe), accessory.look, mood.look]
+    return [creature.look, colourPhrase(recipe), accessory.look, mood.look, cleanSpecialTouch(recipe.special)]
         .filter(Boolean)
         .join(', ');
 }
@@ -328,7 +328,6 @@ export function composeForgeImagePrompt(recipe, subject) {
     ].join(', ');
 }
 
-/** Square output: SDXL is trained at 1024px and loses detail when asked for 512. */
 // Portraits are saved at 256x256, so 512 keeps full detail at a quarter of the
 // Workers AI cost of 1024 (FLUX bills per 512x512 tile).
 export const FORGE_IMAGE_OPTIONS = Object.freeze({ width: 512, height: 512, num_steps: 20, guidance: 7 });

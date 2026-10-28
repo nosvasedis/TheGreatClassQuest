@@ -3,7 +3,7 @@
 const crypto = require('node:crypto');
 const { FieldValue, getFirestore } = require('firebase-admin/firestore');
 const { HttpsError } = require('firebase-functions/v1/https');
-const { shopAiImage } = require('./shop/ai');
+const { shopAiImage, imageErrorIsRetryable } = require('./shop/ai');
 
 // The Auto diary picture is painted here rather than in the browser, so it finishes even
 // when the teacher closes the tab or the laptop sleeps, and a busy school network or the
@@ -17,11 +17,10 @@ function loadPrompt() {
 // Bumped when the callable's answer changes shape; the browser paints itself when an
 // older (or missing) deployment answers.
 const PICTURE_VERSION = 1;
-// A first attempt can meet a busy moment (Campfire, another teacher); wait and try again,
-// as a teacher's Retry would. All attempts fit well inside the function's 300 s timeout.
-const RETRY_DELAYS_MS = [15000, 45000];
-// The Worker gives up on its whole model chain after 40 s; this only catches a stuck socket.
-const WORKER_TIMEOUT_MS = 55000;
+// Retry one explicit transient refusal; never repeat a spent-quota or timed-out inference.
+const RETRY_DELAYS_MS = [5000];
+// The Worker gives up on its whole model chain after 55 s; this catches a stuck socket.
+const WORKER_TIMEOUT_MS = 65000;
 // A 'generating' page whose painter died mid-paint can be claimed again after this long.
 const STALE_GENERATING_MS = 10 * 60 * 1000;
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
@@ -95,8 +94,9 @@ function createAdventurePictureHandlers({ requireAuthedCaller, requireFeatureEna
         bytes = null;
         lastFailure = describeFailure(error);
         console.warn(JSON.stringify({ event: 'gcq_diary_picture_attempt_failed', logId, attempt: attempt + 1, reason: lastFailure }));
+        if (!(await stillOurs())) return { status: 'superseded', version: PICTURE_VERSION };
         const delay = RETRY_DELAYS_MS[attempt];
-        if (delay == null) break;
+        if (delay == null || !imageErrorIsRetryable(error)) break;
         await wait(delay);
         if (!(await stillOurs())) return { status: 'superseded', version: PICTURE_VERSION };
       }

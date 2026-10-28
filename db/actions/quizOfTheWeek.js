@@ -243,7 +243,7 @@ async function drawQuizPictures(classId, questions, { questLevel, onProgress } =
     const drawOne = async (question, index) => {
         const prompt = quizPicturePrompt(question.picturePrompts?.[index] || question.options[index], style);
         try {
-            const draw = () => callCloudflareAiImageApi(prompt, QUIZ_PICTURE_NEGATIVE_PROMPT, {}, { retries: 1, timeoutMs: 45000 });
+            const draw = () => callCloudflareAiImageApi(prompt, QUIZ_PICTURE_NEGATIVE_PROMPT, { width: 512, height: 512 });
             let raw = await draw();
             // The image model sometimes returns a blank black square: one more try, then give up.
             if (await isLikelyBlackImageBase64(raw).catch(() => false)) raw = await draw();

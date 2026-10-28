@@ -69,7 +69,8 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
     await file.save(bytes, {
       resumable: false,
       metadata: {
-        contentType: 'image/png',
+        contentType: bytes[0] === 0xff && bytes[1] === 0xd8 ? 'image/jpeg' : 'image/png',
+        cacheControl: 'public,max-age=31536000,immutable',
         metadata: { firebaseStorageDownloadTokens: token }
       }
     });
@@ -89,13 +90,14 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
     const prompt = brief.buildImagePrompt(item, { league, palette });
     const negativePrompt = brief.buildImageNegativePrompt(league);
     let lastError = null;
-    for (let attempt = 0; attempt < 4; attempt += 1) {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
       try {
         // Shop icons are shown small; 512 is one FLUX tile instead of four.
         return await ai.shopAiImage(prompt, negativePrompt, { width: 512, height: 512 });
       } catch (error) {
         lastError = error;
-        await sleep(Math.min(2500 * (attempt + 1), 20000));
+        if (attempt === 1 || !ai.imageErrorIsRetryable(error)) break;
+        await sleep(2500);
       }
     }
     throw lastError || new Error('Shop image generation failed.');

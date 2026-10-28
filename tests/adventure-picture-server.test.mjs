@@ -4,6 +4,7 @@ import Module, { createRequire } from 'node:module';
 
 // Run the real callable against an in-memory Firestore, bucket and AI Worker.
 const require = createRequire(import.meta.url);
+const { imageErrorIsRetryable } = require('../functions/shop/ai');
 const JPEG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(64, 1)]);
 
 function harness({ page = {}, paint = async () => JPEG, caller = { uid: 'teacher', profile: { role: 'teacher' } } } = {}) {
@@ -22,7 +23,7 @@ function harness({ page = {}, paint = async () => JPEG, caller = { uid: 'teacher
     const stubs = {
         'firebase-admin/firestore': { FieldValue: { serverTimestamp: () => 'ts' }, getFirestore: () => db },
         'firebase-functions/v1/https': { HttpsError },
-        './shop/ai': { shopAiImage: async (...args) => { aiCalls.push(args); return paint(aiCalls.length); } }
+        './shop/ai': { imageErrorIsRetryable, shopAiImage: async (...args) => { aiCalls.push(args); return paint(aiCalls.length); } }
     };
     const originalLoad = Module._load;
     Module._load = function (request, ...rest) { return stubs[request] || originalLoad.call(this, request, ...rest); };
@@ -74,9 +75,9 @@ test('records the real cause when every attempt fails', { timeout: 120000 }, asy
     t.mock.timers.enable({ apis: ['setTimeout'] });
     const h = harness({ paint: async () => { throw Object.assign(new Error('Shop AI proxy failed (503)'), { status: 503, detail: JSON.stringify({ detail: 'flux-2-klein-4b: 3040 out of capacity' }) }); } });
     const running = h.paint();
-    for (let i = 0; i < 10 && h.aiCalls.length < 3; i++) { await new Promise((r) => setImmediate(r)); t.mock.timers.tick(60000); }
+    for (let i = 0; i < 10 && h.aiCalls.length < 2; i++) { await new Promise((r) => setImmediate(r)); t.mock.timers.tick(60000); }
     const result = await running;
-    assert.equal(h.aiCalls.length, 3);
+    assert.equal(h.aiCalls.length, 2);
     assert.equal(result.status, 'failed');
     assert.equal(h.doc.artworkStatus, 'failed');
     assert.match(h.doc.artworkErrorDetail, /503 .*3040 out of capacity/);
@@ -98,4 +99,12 @@ test('a late picture after a teacher save is deleted, not shown', async () => {
     assert.equal((await h.paint()).status, 'superseded');
     assert.equal(h.deleted.length, 1); assert.equal(h.deleted[0], h.saved[0].p);
     assert.equal(h.doc.imageUrl, 'mine');
+});
+
+test('spent quota and uncertain timeouts never pay for another diary inference', async () => {
+    for (const error of [Object.assign(new Error('quota'), { status: 503, errorSource: 'workers-ai-quota' }), new DOMException('timeout', 'TimeoutError')]) {
+        const h = harness({ paint: async () => { throw error; } });
+        assert.equal((await h.paint()).status, 'failed');
+        assert.equal(h.aiCalls.length, 1);
+    }
 });

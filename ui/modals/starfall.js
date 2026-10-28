@@ -42,6 +42,16 @@ function nameHtml(name) {
         + (rest ? `<span class="sfl-jar__surname">${esc(rest)}</span>` : '');
 }
 
+const FACE_TONES = ['#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#10b981', '#f97316', '#6366f1', '#e11d48'];
+
+// The scholar's portrait as a little wax-sealed sticker on the jar (initial when there is no avatar).
+function faceHtml(student) {
+    if (student.avatar) return `<span class="sfl-jar__face"><img src="${esc(student.avatar)}" alt="" loading="lazy" decoding="async"></span>`;
+    const name = String(student.name || '?').trim();
+    const tone = FACE_TONES[[...name].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % FACE_TONES.length];
+    return `<span class="sfl-jar__face sfl-jar__face--letter" style="--tone:${tone}">${esc(name.charAt(0).toUpperCase())}</span>`;
+}
+
 function jarHtml(student, index) {
     const growth = student.kind === 'growth';
     const jump = Math.round(Number(student.jump) || 0);
@@ -49,6 +59,9 @@ function jarHtml(student, index) {
         <figure class="sfl-jar" style="--i:${Math.min(index, 14)}" data-kind="${growth ? 'growth' : 'shine'}">
             <div class="sfl-jar__vessel">
                 <span class="sfl-jar__flash" aria-hidden="true"></span>
+                <span class="sfl-jar__plus" aria-hidden="true">+${formatStarAmount(student.bonusAmount)} ★</span>
+                <span class="sfl-jar__twinkle" aria-hidden="true"></span>
+                ${faceHtml(student)}
                 <svg class="sfl-jar__art" viewBox="0 -8 64 92" aria-hidden="true" focusable="false">
                     <ellipse cx="32" cy="81.5" rx="23" ry="3" fill="#050818" opacity="0.55"/>
                     <circle class="sfl-jar__glow" cx="32" cy="55" r="23" fill="url(#sfl-jar-glow)"/>
@@ -78,12 +91,22 @@ function jarHtml(student, index) {
 
 const TRIAL_WORDS = { test: 'test', dictation: 'dictation' };
 
+const TRIAL_PLURAL = { test: 'tests', dictation: 'dictations' };
+
+function delayedTrialWords(types = []) {
+    const list = types.filter((t) => TRIAL_WORDS[t]);
+    if (list.length === 1) return TRIAL_PLURAL[list[0]];
+    return 'tests and dictations';
+}
+
 /**
  * Fills the Starfall window and wires its buttons. The caller then opens it (showAnimatedModal).
- * @param {{ mode: 'single'|'batch', students: Array<{studentId, name, bonusAmount, trialType?, kind?, jump?}>,
+ * @param {{ mode: 'single'|'batch', students: Array<{studentId, name, bonusAmount, trialType?, kind?, jump?, avatar?}>,
+ *           delayed?: { markedDay?: string, trialTypes?: string[] }, laterLabel?: string,
  *           onBestow: () => void, close: () => void }} opts
+ *   delayed: the stars were earned while marking outside the lesson and waited for the class.
  */
-export function prepareStarfall({ mode, students, onBestow, close }) {
+export function prepareStarfall({ mode, students, onBestow, close, delayed = null, laterLabel = '' }) {
     const shell = document.getElementById('starfall-modal-content');
     if (!shell) return;
     const list = Array.isArray(students) ? students : [];
@@ -93,13 +116,32 @@ export function prepareStarfall({ mode, students, onBestow, close }) {
 
     shell.dataset.mode = single ? 'single' : 'batch';
     shell.dataset.count = String(Math.min(list.length, 9));
-    shell.classList.remove('is-catching', 'is-caught');
+    shell.dataset.delayed = delayed ? 'true' : 'false';
+    shell.classList.remove('is-catching', 'is-caught', 'is-finale');
+
+    // Names are called one by one: a slower roll for a few scholars, quicker for a crowd.
+    const step = Math.max(0.09, Math.min(0.32, 2.2 / Math.max(1, list.length)));
+    const shown = Math.min(list.length, 15);
+    shell.style.setProperty('--sfl-step', `${step}s`);
+    shell.style.setProperty('--sfl-after', `${(1.2 + shown * step + 0.25).toFixed(2)}s`);
 
     document.getElementById('starfall-single-view')?.classList.toggle('hidden', !single);
     document.getElementById('starfall-batch-view')?.classList.toggle('hidden', single);
 
     const title = document.getElementById('starfall-title');
-    if (title) title.textContent = single ? 'A star is falling!' : 'Stars are falling!';
+    if (title) {
+        title.textContent = delayed
+            ? (list.length === 1 ? 'A star waited for you!' : 'The stars waited for you!')
+            : (single ? 'A star is falling!' : 'Stars are falling!');
+    }
+    const waited = document.getElementById('starfall-waited');
+    if (waited) {
+        const day = delayed?.markedDay || '';
+        waited.classList.toggle('hidden', !delayed);
+        waited.querySelector('span').textContent = !day ? 'Kept safe in the sky until this lesson'
+            : day === 'today' ? 'Kept safe in the sky since this morning\'s marking'
+                : `Kept safe in the sky since ${day}`;
+    }
 
     if (single) {
         const s = list[0] || {};
@@ -113,7 +155,10 @@ export function prepareStarfall({ mode, students, onBestow, close }) {
     } else {
         const msg = document.querySelector('#starfall-batch-view .starfall-message');
         if (msg) {
-            msg.innerHTML = `${list.length} scholar${list.length === 1 ? '' : 's'} shone so brightly that stars slipped from the sky.`
+            const lead = delayed
+                ? `When your ${delayedTrialWords(delayed.trialTypes)} were marked, ${list.length === 1 ? 'one scholar' : `${list.length} scholars`} shone so brightly that stars slipped from the sky. They waited up there for this lesson, so you could watch them fall.`
+                : `${list.length} scholar${list.length === 1 ? '' : 's'} shone so brightly that stars slipped from the sky.`;
+            msg.innerHTML = lead
                 + (hasGrowth ? ' <span class="sfl-message__growth">🌱 Growth stars go to those who climbed far above their own recent best.</span>' : '');
         }
     }
@@ -136,7 +181,16 @@ export function prepareStarfall({ mode, students, onBestow, close }) {
     const bestowText = `Bestow ${formatStarAmount(total)} Bonus Star${plural(total)}`;
     if (label) label.textContent = bestowText;
     const cancelBtn = document.getElementById('starfall-cancel-btn');
-    if (cancelBtn) cancelBtn.disabled = false;
+    if (cancelBtn) {
+        cancelBtn.disabled = false;
+        cancelBtn.textContent = laterLabel || 'Not this time';
+        cancelBtn.onclick = () => (shell._sfRevealTimers || []).forEach(clearTimeout);
+    }
+    const finale = document.getElementById('starfall-finale');
+    if (finale) {
+        const count = list.length;
+        finale.innerHTML = `<span class="sfl-finale__star" aria-hidden="true">★</span><span>${formatStarAmount(total)} star${plural(total)} caught by ${count === 1 ? esc(String(list[0]?.name || 'our scholar').split(/\s+/)[0]) : `${count} scholars`}!</span><span class="sfl-finale__star" aria-hidden="true">★</span>`;
+    }
 
     confirmBtn.addEventListener('click', () => {
         if (shell.classList.contains('is-catching')) return;
@@ -148,20 +202,27 @@ export function prepareStarfall({ mode, students, onBestow, close }) {
             shell.classList.add('is-caught');
             if (label) label.textContent = list.length === 1 ? 'Caught! ✨' : 'All caught! ✨';
             playStarfallSfx('done');
-            setTimeout(() => {
-                onBestow?.();
-                close?.();
-            }, reducedMotion() ? 150 : 520);
+            // The bonus is saved now; the window stays a moment so the class sees the finale.
+            onBestow?.();
+            requestAnimationFrame(() => shell.classList.add('is-finale'));
+            setTimeout(() => close?.(), reducedMotion() ? 900 : 2300);
         });
     });
 
     // Replay the arrival each time it opens (animations start once the modal is shown).
     shell.classList.remove('is-arriving');
     void shell.offsetWidth;
+    clearTimeout(shell._sfArriveTimer);
+    (shell._sfRevealTimers || []).forEach(clearTimeout);
+    shell._sfRevealTimers = [];
     if (!reducedMotion()) {
         shell.classList.add('is-arriving');
-        clearTimeout(shell._sfArriveTimer);
-        shell._sfArriveTimer = setTimeout(() => shell.classList.remove('is-arriving'), 3200);
+        const settle = (1.2 + shown * step + 1.4) * 1000;
+        shell._sfArriveTimer = setTimeout(() => shell.classList.remove('is-arriving'), Math.max(3200, settle));
+        // A soft twinkle as each name appears on the sill.
+        for (let i = 0; i < shown; i++) {
+            shell._sfRevealTimers.push(setTimeout(() => playStarfallSfx('reveal', { step: i }), (1.2 + i * step + 0.12) * 1000));
+        }
     }
     playStarfallSfx('open');
 }

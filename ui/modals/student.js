@@ -781,11 +781,17 @@ export function showStarfallModal(studentId, studentName, bonusAmount, trialType
     showAnimatedModal('starfall-modal');
 }
 
-export function showBatchStarfallModal(eligibleStudents) {
+/**
+ * @param {Array} eligibleStudents
+ * @param {{ delayed?: object, laterLabel?: string, onBestow?: Function }} [opts]  a Starfall that waited for the lesson
+ */
+export function showBatchStarfallModal(eligibleStudents, opts = {}) {
     prepareStarfall({
         mode: 'batch',
         students: eligibleStudents,
-        onBestow: () => handleBatchAwardBonus(eligibleStudents),
+        delayed: opts.delayed || null,
+        laterLabel: opts.laterLabel,
+        onBestow: opts.onBestow || (() => handleBatchAwardBonus(eligibleStudents)),
         close: () => hideModal('starfall-modal')
     });
     showAnimatedModal('starfall-modal');

@@ -540,6 +540,7 @@ export async function renderScholarsScrollTab(selectedClassId = null, opts = {})
 
         const runRender = () => {
             renderTestDesk(currentVal);
+            renderStarfallCallFor(currentVal);
             renderScrollDashboard(currentVal);
         };
 
@@ -551,10 +552,23 @@ export async function renderScholarsScrollTab(selectedClassId = null, opts = {})
         }
     } else {
         lastRenderedScrollClassId = null;
+        document.getElementById('scroll-starfall-call')?.remove();
         inner?.classList.remove('scroll-dashboard-inner--swap-in', 'scroll-dashboard-inner--swap-out');
 
         setScrollPanelStack(false);
     }
+}
+
+/** The Starfall waiting for this class's lesson (its module loads only when stars are waiting). */
+function renderStarfallCallFor(classId) {
+    const waiting = findScrollClass(classId)?.pendingStarfalls;
+    if (!Array.isArray(waiting) || !waiting.length) {
+        document.getElementById('scroll-starfall-call')?.remove();
+        return;
+    }
+    import('./pendingStarfall.js')
+        .then((m) => m.renderStarfallCall(classId, getScrollQueuesHost()))
+        .catch((error) => console.warn('Starfall call skipped:', error));
 }
 
 /** Everything the ledger and the roll need for one class and period. */

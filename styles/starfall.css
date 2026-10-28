@@ -708,14 +708,14 @@
 .sfl-window.is-arriving .sfl-title   { animation-delay: 0.9s; }
 .sfl-window.is-arriving .sfl-copy    { animation-delay: 1s; }
 .sfl-window.is-arriving .sfl-shelf   { animation-delay: 1.08s; }
-.sfl-window.is-arriving .sfl-prompt  { animation-delay: 1.3s; }
-.sfl-window.is-arriving .sfl-actions { animation-delay: 1.38s; }
+.sfl-window.is-arriving .sfl-prompt  { animation-delay: var(--sfl-after, 1.3s); }
+.sfl-window.is-arriving .sfl-actions { animation-delay: calc(var(--sfl-after, 1.3s) + 0.08s); }
 @keyframes sfl-rise {
     from { transform: translateY(14px); opacity: 0; }
 }
 .sfl-window.is-arriving .sfl-jar {
     animation: sfl-jar-in 0.5s cubic-bezier(0.3, 1.5, 0.5, 1) both;
-    animation-delay: calc(1.15s + var(--i, 0) * 0.06s);
+    animation-delay: calc(1.2s + var(--i, 0) * var(--sfl-step, 0.06s));
 }
 @keyframes sfl-jar-in {
     from { transform: translateY(-16px) scale(0.85); opacity: 0; }
@@ -802,6 +802,173 @@
     100% { transform: scale(1.15); opacity: 0.9; }
 }
 
+/* ── Revamp: waited chip, portraits, name call, +★ and the finale ───── */
+.sfl-waited {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: -0.15rem auto 0.6rem;
+    padding: 0.22rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #fde68a;
+    background: rgba(255, 214, 102, 0.1);
+    box-shadow: inset 0 0 0 1px rgba(255, 222, 140, 0.35);
+}
+.sfl-waited i { font-size: 0.75rem; color: var(--sfl-gold); }
+.sfl-window.is-arriving .sfl-waited { animation: sfl-rise 0.55s cubic-bezier(0.2, 0.9, 0.3, 1) 0.96s both; }
+
+.sfl-jar__face {
+    position: absolute;
+    left: -0.35rem;
+    bottom: 0.15rem;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    overflow: hidden;
+    border-radius: 50%;
+    background: #1a2152;
+    box-shadow: 0 0 0 2px #f1d39b, 0 3px 8px rgba(0, 0, 0, 0.45);
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 0.85rem;
+    color: #fff;
+}
+.sfl-jar__face img { width: 100%; height: 100%; object-fit: cover; }
+.sfl-jar__face--letter { background: linear-gradient(160deg, var(--tone, #8b5cf6), #1a2152 140%); }
+.sfl-window[data-mode="single"] .sfl-jar__face { width: 2.2rem; height: 2.2rem; font-size: 1rem; }
+
+/* A four-point twinkle as each jar's name is called */
+.sfl-jar__twinkle {
+    position: absolute;
+    left: 50%;
+    top: 4%;
+    z-index: 3;
+    width: 2.2rem;
+    height: 2.2rem;
+    margin-left: -1.1rem;
+    background:
+        linear-gradient(90deg, transparent 46%, #fff8d6 46% 54%, transparent 54%),
+        linear-gradient(0deg, transparent 46%, #fff8d6 46% 54%, transparent 54%);
+    -webkit-mask-image: radial-gradient(circle, #000 12%, transparent 62%);
+    mask-image: radial-gradient(circle, #000 12%, transparent 62%);
+    opacity: 0;
+    pointer-events: none;
+}
+.sfl-window.is-arriving .sfl-jar__twinkle {
+    animation: sfl-twinkle-call 0.7s ease-out both;
+    animation-delay: calc(1.32s + var(--i, 0) * var(--sfl-step, 0.06s));
+}
+@keyframes sfl-twinkle-call {
+    0%   { transform: scale(0.2) rotate(0deg); opacity: 0; }
+    30%  { transform: scale(1.1) rotate(30deg); opacity: 1; }
+    100% { transform: scale(0.6) rotate(80deg); opacity: 0; }
+}
+
+/* "+1 ★" floats up out of each jar as its star lands */
+.sfl-jar__plus {
+    position: absolute;
+    left: 50%;
+    top: 30%;
+    z-index: 3;
+    padding: 0.05rem 0.45rem;
+    border-radius: 999px;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    color: #5b3305;
+    background: linear-gradient(180deg, #fff6cf, #ffd54f);
+    box-shadow: 0 3px 10px rgba(255, 196, 70, 0.45);
+    transform: translate(-50%, 0);
+    opacity: 0;
+    pointer-events: none;
+}
+.sfl-jar[data-kind="growth"] .sfl-jar__plus { color: #064e3b; background: linear-gradient(180deg, #ecfdf5, #86efac); }
+.sfl-jar.is-caught .sfl-jar__plus { animation: sfl-plus-rise 1.25s cubic-bezier(0.2, 0.8, 0.3, 1) 0.08s both; }
+@keyframes sfl-plus-rise {
+    0%   { transform: translate(-50%, 0.5rem) scale(0.6); opacity: 0; }
+    18%  { transform: translate(-50%, -0.3rem) scale(1.12); opacity: 1; }
+    70%  { transform: translate(-50%, -0.9rem) scale(1); opacity: 1; }
+    100% { transform: translate(-50%, -1.25rem) scale(0.95); opacity: 0; }
+}
+.sfl-jar__name { transition: color 0.4s ease-out; }
+.sfl-jar.is-caught .sfl-jar__name { color: #ffe08a; }
+
+/* The finale: the prompt gives way to a gold ribbon, sparks burst from the crest. */
+.sfl-finale { display: none; }
+.sfl-window.is-caught .sfl-prompt { display: none; }
+.sfl-window.is-caught .sfl-finale {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    margin: 0.5rem auto 0.4rem;
+    padding: 0.45rem 1.3rem;
+    border-radius: 0.8rem;
+    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-size: 1.12rem;
+    color: #5b3305;
+    background: linear-gradient(180deg, #fff6cf 0%, #ffd54f 55%, #f6a821 100%);
+    box-shadow: 0 0 0 1px rgba(255, 246, 207, 0.8) inset, 0 10px 30px rgba(255, 196, 70, 0.4);
+    animation: sfl-finale-in 0.55s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+.sfl-finale__star { color: #b45309; font-size: 0.9em; }
+@keyframes sfl-finale-in {
+    from { transform: translateY(10px) scale(0.7); opacity: 0; }
+}
+
+.sfl-sparkles {
+    position: absolute;
+    left: 50%;
+    top: 5.3rem;
+    z-index: 3;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+.sfl-sparkles::before {
+    content: '';
+    position: absolute;
+    left: -16rem;
+    top: -10rem;
+    width: 32rem;
+    height: 32rem;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 220, 120, 0.3), rgba(255, 196, 70, 0.08) 45%, transparent 68%);
+    opacity: 0;
+}
+.sfl-sparkles i {
+    --a: calc(var(--k) * 22.5deg);
+    position: absolute;
+    left: -5px;
+    top: -5px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff 0 30%, #ffd54f 50%, transparent 72%);
+    opacity: 0;
+}
+.sfl-sparkles i:nth-child(even) { width: 7px; height: 7px; }
+.sfl-window.is-finale .sfl-sparkles::before { animation: sfl-glow-wash 2s ease-out both; }
+.sfl-window.is-finale .sfl-sparkles i {
+    animation: sfl-spark 1.3s cubic-bezier(0.15, 0.7, 0.3, 1) both;
+    animation-delay: calc(var(--k) * 18ms);
+}
+.sfl-window.is-finale .sfl-sparkles i:nth-child(even) { animation-duration: 1.6s; }
+@keyframes sfl-spark {
+    0%   { transform: rotate(var(--a)) translateY(0) scale(0.4); opacity: 1; }
+    70%  { opacity: 1; }
+    100% { transform: rotate(var(--a)) translateY(-10.5rem) scale(1); opacity: 0; }
+}
+@keyframes sfl-glow-wash {
+    0%   { opacity: 0; transform: scale(0.6); }
+    30%  { opacity: 1; }
+    100% { opacity: 0.35; transform: scale(1.1); }
+}
+
 /* ── Phone and short screens ─────────────────────────────────────────── */
 @media (max-width: 640px) {
     #starfall-modal { --sfl-arch: 7rem; --sfl-row: 8.8rem; }
@@ -845,5 +1012,9 @@
     .sfl-jar.is-caught .sfl-jar__vessel,
     .sfl-jar.is-caught .sfl-jar__flash,
     .sfl-jar.is-caught .sfl-jar__star,
-    .sfl-jar.is-caught .sfl-coin { animation: none; }
+    .sfl-jar.is-caught .sfl-coin,
+    .sfl-jar.is-caught .sfl-jar__plus,
+    .sfl-window.is-finale .sfl-sparkles i,
+    .sfl-window.is-finale .sfl-sparkles::before,
+    .sfl-window.is-caught .sfl-finale { animation: none; }
 }

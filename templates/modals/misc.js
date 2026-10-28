@@ -246,6 +246,7 @@ export const miscModalsHTML = `
             <span class="sfl-meteor" aria-hidden="true"></span>
             <div class="sfl-frame" aria-hidden="true"></div>
             <div class="sfl-rain" aria-hidden="true"></div>
+            <div class="sfl-sparkles" aria-hidden="true">${Array.from({ length: 16 }, (_, i) => `<i style="--k:${i}"></i>`).join('')}</div>
 
             <div class="sfl-body">
                 <div class="sfl-crest" aria-hidden="true">
@@ -257,6 +258,7 @@ export const miscModalsHTML = `
 
                 <p class="sfl-eyebrow"><span>✦</span> Starfall <span>✦</span></p>
                 <h2 id="starfall-title" class="sfl-title">Stars are falling!</h2>
+                <p id="starfall-waited" class="sfl-waited hidden"><i class="fas fa-hourglass-half" aria-hidden="true"></i> <span>Kept safe in the sky until this lesson</span></p>
 
                 <div id="starfall-single-view" class="sfl-copy">
                     <p id="starfall-message" class="sfl-message starfall-message">The stars noticed <b
@@ -271,6 +273,7 @@ export const miscModalsHTML = `
                 </div>
 
                 <p id="starfall-prompt" class="sfl-prompt">Shall we catch them and bestow the bonus?</p>
+                <p id="starfall-finale" class="sfl-finale" aria-live="polite"></p>
 
                 <div class="sfl-actions">
                     <button id="starfall-confirm-btn" type="button" class="sfl-catch">

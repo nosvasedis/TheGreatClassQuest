@@ -1034,6 +1034,11 @@ export async function setupDataListeners(
                 classesReady = true;
                 maybeFireInitialReady();
                 refreshSetupClassesList();
+                // Starfalls saved for a lesson: the nav star and the Scroll call follow the clock.
+                if (schoolClasses.some((c) => Array.isArray(c.pendingStarfalls) && c.pendingStarfalls.length))
+                    void import("../features/pendingStarfall.js")
+                        .then((m) => m.refreshStarfallCues())
+                        .catch((e) => console.warn("Starfall cues:", e));
                 // Smart class selector — sets class + league only when classFollowSchedule
                 // and a lesson is active (never “imply” a league from the clock alone).
                 findAndSetCurrentClass();

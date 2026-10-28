@@ -25,6 +25,7 @@ import { withSchoolYear, isGameplaySeasonLiveFromAppState } from '../../utils/sc
 import { getLiveYearGold, getLiveYearGoldContextFromState } from '../../utils/yearGold.js';
 import { getYearScopedHeroOfDayWinsFromAppState } from '../../utils/yearLegend.js';
 import { isGrowthStarfallNote } from '../../features/growthStarfallCore.mjs';
+import { countPendingInMonth } from '../../features/pendingStarfallCore.mjs';
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 import { monthlyStarsChange } from './monthlyStars.js';
 import { planMonthlyRollover } from '../../features/monthlyStarsCore.mjs';
@@ -174,7 +175,7 @@ export async function handleEnsureShopStock() {
     return runShopStockJob('ensure', { toast: false });
 }
 
-async function celebrateBulkTrialSave({ savedScoresData, potentialStarfallStudents, classData, date }) {
+async function celebrateBulkTrialSave({ savedScoresData, potentialStarfallStudents, classData, date, title = '' }) {
     // --- PERSONAL BEST CHECK ---
     savedScoresData.forEach(savedScore => {
         if (savedScore.type === 'test') {
@@ -224,10 +225,13 @@ async function celebrateBulkTrialSave({ savedScoresData, potentialStarfallStuden
             highCount += studentScoresThisMonth.filter(s => qualifiesForHighScore(s, 'dictation', classData)).length;
 
             if (highCount >= 3) {
+                // A bonus counts toward the month of its trial; stars still waiting for the lesson count too.
                 const bonusLogsThisMonth = state.get('allAwardLogs').filter(log => {
-                    const d = parseFlexibleDate(log.date);
+                    const d = parseFlexibleDate(log.trialDate || log.date);
                     return log.studentId === cand.studentId && log.reason === 'scholar_s_bonus' && d && d.getFullYear() === refYear && d.getMonth() === refMonth && log.note && log.note.includes('dictation') && !isGrowthStarfallNote(log.note);
-                }).length;
+                }).length + countPendingInMonth(pendingStarfallsInSchool(), {
+                    studentId: cand.studentId, trialType: 'dictation', kind: 'shine', year: refYear, month: refMonth, parseDate: parseFlexibleDate
+                });
 
                 if (bonusLogsThisMonth < 2) {
                     const s = state.get('allStudents').find(st => st.id === cand.studentId);
@@ -252,10 +256,24 @@ async function celebrateBulkTrialSave({ savedScoresData, potentialStarfallStuden
     }
 
     if (finalEligibleStudents.length > 0) {
+        const students = state.get('allStudents') || [];
+        finalEligibleStudents.forEach((entry) => {
+            entry.avatar = students.find((s) => s.id === entry.studentId)?.avatar || '';
+        });
+        // In the lesson the Starfall opens now; marked at home, it waits for the class's next lesson.
         setTimeout(() => {
-            import('../../ui/modals.js').then(m => m.showBatchStarfallModal(finalEligibleStudents));
+            import('../../features/pendingStarfall.js')
+                .then(m => m.routeStarfall({ classId: classData?.id, students: finalEligibleStudents, trialDate: date, trialTitle: title }))
+                .catch((error) => {
+                    console.warn('Starfall routing failed; showing it now:', error);
+                    import('../../ui/modals.js').then(m => m.showBatchStarfallModal(finalEligibleStudents));
+                });
         }, 500);
     }
+}
+
+function pendingStarfallsInSchool() {
+    return (state.get('allSchoolClasses') || []).flatMap((c) => (Array.isArray(c.pendingStarfalls) ? c.pendingStarfalls : []));
 }
 
 export async function handleBulkSaveTrial() {
@@ -434,7 +452,7 @@ export async function handleBulkSaveTrial() {
             // Everything below is celebration only. The grades are already in Firestore,
             // so a missing chunk (e.g. a stale tab after a deploy) must never report a failed save.
             try {
-                await celebrateBulkTrialSave({ savedScoresData, potentialStarfallStudents, classData, date });
+                await celebrateBulkTrialSave({ savedScoresData, potentialStarfallStudents, classData, date, title });
             } catch (celebrationError) {
                 console.warn('Trial saved; celebrations skipped:', celebrationError);
             }

@@ -4,6 +4,7 @@ import * as state from '../state.js';
 import { parseFlexibleDate } from '../utils.js';
 import { getNormalizedPercentForScore, qualifiesForHighScore } from './assessmentConfig.js';
 import { evaluateGrowthStarfall, isGrowthStarfallNote } from './growthStarfallCore.mjs';
+import { countPendingInMonth } from './pendingStarfallCore.mjs';
 
 /**
  * Growth Starfall candidates for a just-saved batch of trials.
@@ -17,6 +18,8 @@ export function findGrowthStarfallStudents({ savedScoresData = [], classData = n
     const allScores = state.get('allWrittenScores') || [];
     const allLogs = state.get('allAwardLogs') || [];
     const students = state.get('allStudents') || [];
+    // Growth stars still waiting for the lesson count toward the monthly cap.
+    const pending = (state.get('allSchoolClasses') || []).flatMap((c) => (Array.isArray(c.pendingStarfalls) ? c.pendingStarfalls : []));
     const proposals = [];
 
     for (const saved of savedScoresData) {
@@ -35,9 +38,11 @@ export function findGrowthStarfallStudents({ savedScoresData = [], classData = n
 
         const growthAwardsThisMonth = allLogs.filter((log) => {
             if (log.studentId !== saved.studentId || log.reason !== 'scholar_s_bonus' || !isGrowthStarfallNote(log.note)) return false;
-            const day = parseFlexibleDate(log.date);
+            const day = parseFlexibleDate(log.trialDate || log.date);
             return day && day.getFullYear() === trialDay.getFullYear() && day.getMonth() === trialDay.getMonth();
-        }).length;
+        }).length + countPendingInMonth(pending, {
+            studentId: saved.studentId, kind: 'growth', year: trialDay.getFullYear(), month: trialDay.getMonth(), parseDate: parseFlexibleDate
+        });
 
         const verdict = evaluateGrowthStarfall({
             newPercent,

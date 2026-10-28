@@ -1205,6 +1205,15 @@ export function playStarfallSfx(name, opts = {}) {
         } else if (name === 'done') {
             sounds.award_pad.triggerAttackRelease(['F5', 'A5', 'C6', 'E6'], '2n', t);
             sounds.award_bell.triggerAttackRelease(['C7', 'E7', 'G7'], '8n', t + 0.06, 0.45);
+        } else if (name === 'summon') {
+            // A Starfall that waited for the lesson: a rising call before the window opens.
+            ['C6', 'E6', 'G6', 'C7', 'E7', 'G7'].forEach((note, i) => sounds.award_bell.triggerAttackRelease(note, '32n', t + i * 0.08, 0.2 + i * 0.05));
+            sounds.award_pad.triggerAttackRelease(['G4', 'D5', 'B5'], '2n', t + 0.1);
+            sounds.award_sparkle.triggerAttackRelease('8n', t + 0.45);
+        } else if (name === 'reveal') {
+            // One soft twinkle per scholar's name as their jar appears.
+            const step = Math.max(0, Number(opts.step) || 0);
+            sounds.award_bell.triggerAttackRelease(STARFALL_LADDER[step % STARFALL_LADDER.length], '64n', t, 0.22);
         }
     } catch (e) {
         console.warn('Starfall sound skipped:', e);

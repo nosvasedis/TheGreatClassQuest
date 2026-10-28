@@ -302,7 +302,7 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'starfall', icon: 'fa-meteor', name: 'Starfall', tier: 'pro',
                     where: "After you save a trial on Scholar's Scroll", go: 'tab:scholars-scroll-tab',
-                    text: `The app may offer bonus stars: +1 for a test at 95% or more, +0.5 for a run of strong dictations, and +0.5 Growth Starfall for a child who climbed well above their own average. You confirm each one; nothing is forced.`,
+                    text: `The app may offer bonus stars: +1 for a test at 95% or more, +0.5 for a run of strong dictations, and +0.5 Growth Starfall for a child who climbed well above their own average. You confirm each one; nothing is forced. Marking at home? The stars wait for the class's next lesson: a Starfall button lights up in the Scholar's Scroll, and the class watches them fall together.`,
                     keys: 'scholar bonus growth starfall bonus stars'
                 },
                 {

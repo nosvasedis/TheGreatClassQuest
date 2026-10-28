@@ -307,14 +307,16 @@ export async function handleAwardBonusStar(studentId, bonusAmount, trialType) {
     }
 }
 
+/** Resolves true once every bonus is saved, false if it failed (a waiting Starfall is then put back). */
 export async function handleBatchAwardBonus(students) {
     playSound('star3');
     const publicDataPath = PUBLIC_DATA_PATH;
     const today = getTodayDateString();
     const levelUps = [];
+    const awarded = [];
 
     try {
-        for (const { studentId, bonusAmount, trialType, kind, jump } of students) {
+        for (const { studentId, bonusAmount, trialType, kind, jump, trialDate } of students) {
             const student = state.get('allStudents').find(s => s.id === studentId);
             if (!student) continue;
 
@@ -347,11 +349,14 @@ export async function handleBatchAwardBonus(students) {
                         ? buildGrowthStarfallNote({ trialType, jump })
                         : `Awarded for exceptional performance on a ${trialType}.`,
                     date: today,
+                    // The trial's own day: monthly Starfall caps follow it, even when the stars waited for a lesson.
+                    ...(trialDate ? { trialDate: normalizeToDateString(trialDate) || String(trialDate) } : {}),
                     createdAt: serverTimestamp(),
                     createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
                 }, state.getActiveSchoolYearKey());
                 transaction.set(newLogRef, logData);
             });
+            awarded.push(studentId);
 
             if (levelUpInfo) levelUps.push(levelUpInfo);
             updateGuildScores(studentId, appliedGuildStars, 'scholar_s_bonus').catch((e) => console.warn('Batch scholar Guild Glory update failed:', e));
@@ -360,10 +365,12 @@ export async function handleBatchAwardBonus(students) {
         }
 
         levelUps.forEach(showHeroLevelUpCelebration);
-        showToast(`✨ ${students.length} Scholars received their bonus stars! ✨`, 'success');
+        showToast(`✨ ${awarded.length} Scholar${awarded.length === 1 ? '' : 's'} received their bonus stars! ✨`, 'success');
+        return true;
     } catch (error) {
         console.error("Batch Scholar's Bonus failed:", error);
         showToast('Could not award bonuses. Please try again.', 'error');
+        return awarded.length ? awarded : false;
     }
 }
 

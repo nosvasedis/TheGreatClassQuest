@@ -412,23 +412,24 @@ function renderDateLeaf(dateKey, label, tone) {
 
 function renderCalendar(classData) {
     const lessons = nextAndLast(classData.id);
-    const holidays = (state.get('schoolHolidayRanges') || []).slice(0, 6);
+    const todayIso = new Date().toLocaleDateString('en-CA');
+    const holidays = (state.get('schoolHolidayRanges') || []).filter((range) => String(range.end || '') >= todayIso).slice(0, 6);
     return `
         <div class="pulse-schedule"><i class="fas fa-clock" aria-hidden="true"></i>${escapeHtml(formatClassSchedule(classData))}</div>
         <div class="pulse-leaves">
             ${renderDateLeaf(lessons.next, 'Next lesson', 'sky')}
             ${renderDateLeaf(lessons.last, 'Last lesson', 'violet')}
         </div>
-        ${renderSection('School breaks', 'fa-umbrella-beach', holidays.length ? `
+        ${renderSection('Coming breaks and holidays', 'fa-umbrella-beach', holidays.length ? `
             <div class="pulse-breaks">
                 ${holidays.map((range) => `
                     <article class="pulse-break">
-                        <strong>${escapeHtml(range.name || 'Holiday')}</strong>
+                        <strong>${range.icon ? `${escapeHtml(range.icon)} ` : ''}${escapeHtml(range.name || 'Holiday')}</strong>
                         <small>${escapeHtml(formatFlexibleDate(range.start || range.startDate))} – ${escapeHtml(formatFlexibleDate(range.end || range.endDate))}</small>
                     </article>
                 `).join('')}
             </div>
-        ` : renderEmpty('fa-umbrella-beach', 'No breaks on the school calendar yet.'))}
+        ` : renderEmpty('fa-umbrella-beach', 'No more breaks on the school calendar this year.'))}
     `;
 }
 

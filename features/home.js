@@ -37,7 +37,7 @@ import { getRaidView, raidPill, subscribeRaid, openRealmRaid } from './realmRaid
 import {
     resolveScheduleEmptyState
 } from '../utils/scheduleEmptyState.js';
-import { buildScheduleEmptySceneHtml } from '../utils/scheduleEmptyScene.js';
+import { buildScheduleEmptySceneHtml, buildScheduleDayNoteHtml } from '../utils/scheduleEmptyScene.js';
 import { getGreetingSkyHtml, getDayRingEmblemHtml, startDayRingClock, syncDayRing } from './homeGreetingScene.js';
 import {
     currentHomeGreeting, greetingTitleInnerHtml, greetingLineInnerHtml, greetingGlintHtml, greetingBadgesHtml,
@@ -873,7 +873,8 @@ function getScheduleHtml(dateString, activeClassId) {
         "bg-gradient-to-br from-rose-100 to-rose-200"
     ];
 
-    return todaysClasses.map(c => {
+    const dayNote = buildScheduleDayNoteHtml(utils.parseFlexibleDate(dateString) || new Date());
+    return dayNote + todaysClasses.map(c => {
         const isMine = myClassIds.includes(c.id);
         const timeStr = (c.timeStart) ? `${c.timeStart}` : 'TBD';
         const isActive = c.id === activeClassId;
@@ -1435,7 +1436,12 @@ function getReminderPills(classId) {
         let tone = 'holiday';
         let timeText = diffDays === 0 ? "Starts Today!" : (diffDays === 1 ? "Starts Tomorrow!" : `in ${diffDays} days`);
 
-        if (label.toLowerCase().includes('christmas') || label.toLowerCase().includes('winter')) {
+        if (upcomingHoliday.official && upcomingHoliday.icon) {
+            label = `${upcomingHoliday.icon} ${label}`;
+            if (upcomingHoliday.theme === 'winter') { icon = 'fa-snowflake'; tone = 'holiday-winter'; }
+            else if (upcomingHoliday.theme === 'spring') { icon = 'fa-egg'; tone = 'holiday-easter'; }
+            else if (upcomingHoliday.theme === 'national') icon = 'fa-flag';
+        } else if (label.toLowerCase().includes('christmas') || label.toLowerCase().includes('winter')) {
             icon = 'fa-snowflake';
             tone = 'holiday-winter';
             label = `🎄 ${label}`;

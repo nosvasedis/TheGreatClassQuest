@@ -38,6 +38,7 @@ export const calendarTabHTML = `
                                 <span>Back to today</span>
                             </button>
                         </div>
+                        <ul id="qc-month-specials" class="qc-specials" aria-label="Holidays and special days this month" hidden></ul>
                         <div class="qc-page">
                             <div class="qc-page__rings" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
                             <div id="calendar-grid" class="qc-grid" role="grid" aria-label="Quest Calendar month">
@@ -52,7 +53,9 @@ export const calendarTabHTML = `
                             <li><span class="qc-legend__swatch qc-legend__swatch--stars"><i class="fas fa-star"></i></span>Stars awarded</li>
                             <li><span class="qc-legend__swatch qc-legend__swatch--event"></span>Quest Event</li>
                             <li><span class="qc-legend__swatch qc-legend__swatch--test">📝</span>Test day</li>
-                            <li><span class="qc-legend__swatch qc-legend__swatch--holiday"></span>No school</li>
+                            <li><span class="qc-legend__swatch qc-legend__swatch--national"></span>Holiday or break</li>
+                            <li><span class="qc-legend__swatch qc-legend__swatch--special">✦</span>Special day, lessons on</li>
+                            <li><span class="qc-legend__swatch qc-legend__swatch--holiday"></span>Lessons cancelled</li>
                             <li class="qc-legend__hint"><i class="fas fa-hand-pointer" aria-hidden="true"></i>Past days open the Quest Log. Today and later open the Planner.</li>
                         </ul>
                         <div id="m-calendar-day" class="m-calendar-day" hidden aria-live="polite"></div>

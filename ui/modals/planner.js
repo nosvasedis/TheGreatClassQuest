@@ -111,6 +111,28 @@ function renderPlannerGlance(dateString) {
             <span><strong>${value}</strong> ${escapeHtml(label)}</span>
         </span>`;
 
+    const special = agenda.special;
+    const holidayStory = agenda.isNoSchool && agenda.holiday
+        ? `<div class="qc-glance__story qc-day--theme-${escapeHtml(agenda.theme || 'break')}">
+                <span class="qc-glance__story-icon" aria-hidden="true">${escapeHtml(agenda.holidayIcon || '📅')}</span>
+                <span class="qc-glance__story-text">
+                    <strong>${escapeHtml(agenda.holidayLabel || 'Holiday')}</strong>${special?.nameEl && special.nameEl !== agenda.holidayLabel ? ` <span lang="el">· ${escapeHtml(special.nameEl)}</span>` : ''}
+                    ${special?.closureName && special.closureName !== agenda.holidayLabel ? `<em>${escapeHtml(special.closureName)}</em>` : ''}
+                    ${special?.blurb ? `<small>${escapeHtml(special.blurb)}</small>` : ''}
+                    <small class="qc-glance__story-tip">${agenda.holiday.official
+                        ? 'The school calendar closes this day. Teaching anyway? Add a one-time lesson below, or the School Office can open the school for the day.'
+                        : 'A School Office break. Teaching anyway? Add a one-time lesson below.'}</small>
+                </span>
+           </div>`
+        : (!agenda.isNoSchool && special?.key
+            ? `<div class="qc-glance__story qc-glance__story--marked qc-day--theme-${escapeHtml(special.theme)}">
+                    <span class="qc-glance__story-icon" aria-hidden="true">${escapeHtml(special.icon)}</span>
+                    <span class="qc-glance__story-text">
+                        <strong>${escapeHtml(special.name)}</strong>${special.nameEl && special.nameEl !== special.name ? ` <span lang="el">· ${escapeHtml(special.nameEl)}</span>` : ''}
+                        <small>${escapeHtml(special.kind === 'closure' || special.kind === 'local' ? 'A holiday, but your school is open this day. Lessons as normal.' : special.blurb)}</small>
+                    </span>
+               </div>`
+            : '');
     const statsHtml = agenda.isNoSchool
         ? `<span class="qc-glance__holiday"><span aria-hidden="true">${escapeHtml(agenda.holidayIcon || '📅')}</span> ${escapeHtml(agenda.holidayLabel || 'No School')} — no regular lessons</span>`
         : [
@@ -136,6 +158,7 @@ function renderPlannerGlance(dateString) {
         : '';
 
     host.innerHTML = `
+        ${holidayStory}
         <div class="qc-glance__stats">${statsHtml}</div>
         ${eventsHtml}`;
 

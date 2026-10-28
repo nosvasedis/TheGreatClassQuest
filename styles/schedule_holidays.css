@@ -1,0 +1,439 @@
+/* ==========================================================================
+   School-calendar holidays (utils/schoolCalendar.mjs): national days,
+   remembrance, Clean Monday kites, May Day, Holy Spirit by the sea, the
+   town's own feast. Each scene only moves with transform/opacity.
+   ========================================================================== */
+
+.rest-scene__subtitle {
+    margin: -0.3rem 0 0;
+    color: var(--rs-chip-ink);
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    opacity: 0.85;
+}
+
+/* --- National holiday: the flag over the hills --- */
+
+.rest-scene--national {
+    --rs-sky: linear-gradient(180deg, #60a5fa 0%, #93c5fd 45%, #e0f2fe 100%);
+    --rs-base: #eff6ff;
+    --rs-ink: #0d3b7a;
+    --rs-body: #36507a;
+    --rs-chip-bg: #dbeafe;
+    --rs-chip-ink: #0d5eaf;
+    --rs-accent: linear-gradient(135deg, #0d5eaf, #2563eb);
+    --rs-accent-shadow: rgba(13, 94, 175, 0.45);
+    --rs-shadow: rgba(13, 59, 122, 0.35);
+    --rs-hill-far: #86b98a;
+    --rs-hill-near: #4d8f5b;
+}
+
+.rs-bunting--greek .rs-flag {
+    box-shadow: inset 0 0 0 1px rgba(13, 94, 175, 0.25);
+}
+
+.rs-greek-flag {
+    left: calc(var(--focal) + 40px);
+    bottom: calc(var(--rs-ground) + 4%);
+    width: 120px;
+    height: 150px;
+}
+
+.rs-greek-flag .rs-greek-flag__pole {
+    left: 0;
+    bottom: 0;
+    width: 5px;
+    height: 150px;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #a8a29e, #f5f5f4 50%, #78716c);
+}
+
+.rs-greek-flag .rs-greek-flag__pole::before {
+    content: '';
+    position: absolute;
+    left: -3px;
+    top: -8px;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #fef9c3, #ca8a04);
+}
+
+.rs-greek-flag .rs-greek-flag__cloth {
+    left: 5px;
+    top: 2px;
+    width: 108px;
+    height: 72px;
+    border-radius: 0 3px 3px 0;
+    background: repeating-linear-gradient(180deg, #0d5eaf 0 11.11%, #fff 11.11% 22.22%);
+    box-shadow: 0 10px 18px -12px rgba(13, 59, 122, 0.7);
+    transform-origin: 0 50%;
+    animation: rs-flag-wave 3.4s ease-in-out infinite;
+}
+
+.rs-greek-flag .rs-greek-flag__canton {
+    left: 0;
+    top: 0;
+    width: 40px;
+    height: 40px;
+    background:
+        linear-gradient(#fff, #fff) center / 100% 8px no-repeat,
+        linear-gradient(#fff, #fff) center / 8px 100% no-repeat,
+        #0d5eaf;
+}
+
+.rs-greek-flag .rs-greek-flag__cloth::after {
+    /* a soft fold of light travelling down the cloth */
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 0 30%, rgba(255, 255, 255, 0.28) 45%, transparent 60%);
+    animation: rs-flag-light 3.4s ease-in-out infinite;
+}
+
+@keyframes rs-flag-wave {
+    0%, 100% { transform: skewY(0deg) scaleX(1); }
+    50% { transform: skewY(-3deg) scaleX(0.95); }
+}
+
+@keyframes rs-flag-light {
+    0%, 100% { transform: translateX(-40%); opacity: 0.2; }
+    50% { transform: translateX(40%); opacity: 1; }
+}
+
+.rs-dove {
+    width: 30px;
+    height: 12px;
+    animation: rs-glide 10s ease-in-out infinite alternate;
+}
+
+.rs-dove::before,
+.rs-dove::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 15px;
+    height: 11px;
+    border-top: 4px solid #fff;
+    border-radius: 50% 50% 0 0;
+    filter: drop-shadow(0 1px 1px rgba(15, 23, 42, 0.25));
+}
+
+.rs-dove::before { left: 0; transform: rotate(-10deg); }
+.rs-dove::after { right: 0; transform: rotate(10deg); }
+
+.rs-dove--1 { left: calc(var(--focal) - 60px); top: 18%; }
+.rs-dove--2 { left: calc(var(--focal) + 150px); top: 30%; transform: scale(0.7); animation-delay: -5s; }
+
+/* --- Remembrance: a vigil candle and a laurel wreath at dusk --- */
+
+.rest-scene--remembrance {
+    --rs-sky: linear-gradient(180deg, #1e293b 0%, #475569 55%, #fcd9b6 100%);
+    --rs-base: #f8fafc;
+    --rs-ink: #1e293b;
+    --rs-body: #475569;
+    --rs-chip-bg: #e2e8f0;
+    --rs-chip-ink: #334155;
+    --rs-accent: linear-gradient(135deg, #334155, #b45309);
+    --rs-accent-shadow: rgba(51, 65, 85, 0.45);
+    --rs-shadow: rgba(30, 41, 59, 0.4);
+    --rs-hill-far: #64748b;
+    --rs-hill-near: #334155;
+}
+
+.rs-candle--vigil {
+    left: calc(var(--focal) + 60px);
+    bottom: calc(var(--rs-ground) + 2%);
+}
+
+.rs-wreath {
+    left: calc(var(--focal) + 28px);
+    bottom: calc(var(--rs-ground) + 2%);
+    width: 82px;
+    height: 82px;
+    border-radius: 50%;
+    border: 9px dotted #4d7c0f;
+    box-shadow: inset 0 0 0 3px rgba(132, 204, 22, 0.5);
+    transform: translateY(14px);
+}
+
+.rs-wreath::after {
+    /* the ribbon */
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -14px;
+    width: 26px;
+    height: 20px;
+    margin-left: -13px;
+    background: linear-gradient(90deg, #0d5eaf 0 33%, #fff 33% 66%, #0d5eaf 66%);
+    clip-path: polygon(0 0, 100% 0, 80% 100%, 50% 70%, 20% 100%);
+}
+
+/* --- Clean Monday: kites over the green hills --- */
+
+.rest-scene--kites {
+    --rs-sky: linear-gradient(180deg, #38bdf8 0%, #7dd3fc 50%, #ecfeff 100%);
+    --rs-base: #f0fdfa;
+    --rs-ink: #0e5a6b;
+    --rs-body: #2f6772;
+    --rs-chip-bg: #cffafe;
+    --rs-chip-ink: #0e7490;
+    --rs-accent: linear-gradient(135deg, #0891b2, #f43f5e);
+    --rs-accent-shadow: rgba(8, 145, 178, 0.45);
+    --rs-shadow: rgba(14, 116, 144, 0.3);
+    --rs-hill-far: #86efac;
+    --rs-hill-near: #22c55e;
+}
+
+.rs-kite {
+    width: 40px;
+    height: 52px;
+    background:
+        linear-gradient(90deg, transparent calc(50% - 1px), rgba(0, 0, 0, 0.2) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px)),
+        linear-gradient(180deg, transparent 38%, rgba(0, 0, 0, 0.2) 38% 40%, transparent 40%),
+        conic-gradient(from 0deg at 50% 38%, var(--k1) 0 90deg, var(--k2) 90deg 180deg, var(--k1) 180deg 270deg, var(--k2) 270deg);
+    clip-path: polygon(50% 0, 100% 38%, 50% 100%, 0 38%);
+    transform-origin: 50% 100%;
+    animation: rs-kite 4.2s ease-in-out infinite alternate;
+}
+
+.rs-kite--1 { left: calc(var(--focal) - 40px); top: 12%; --k1: #f43f5e; --k2: #fde047; }
+.rs-kite--2 { left: calc(var(--focal) + 70px); top: 6%; --k1: #2563eb; --k2: #fff; animation-delay: -1.4s; transform: scale(0.85); }
+.rs-kite--3 { left: calc(var(--focal) + 160px); top: 22%; --k1: #22c55e; --k2: #f97316; animation-delay: -2.6s; transform: scale(0.7); }
+
+/* Strings: drawn as a thin line under each kite, outside the clip */
+.rest-scene--kites .rest-scene__art::after {
+    content: '';
+    position: absolute;
+    left: calc(var(--focal) - 20px);
+    top: calc(12% + 52px);
+    width: 1px;
+    height: 46%;
+    background: rgba(15, 23, 42, 0.25);
+    transform: rotate(-14deg);
+    transform-origin: top;
+}
+
+@keyframes rs-kite {
+    from { translate: 0 0; rotate: -8deg; }
+    to { translate: 8px -10px; rotate: 6deg; }
+}
+
+/* --- May Day: a wreath of flowers --- */
+
+.rest-scene--flowers {
+    --rs-sky: linear-gradient(180deg, #a5f3fc 0%, #fbcfe8 60%, #fef9c3 100%);
+    --rs-base: #fdf2f8;
+    --rs-ink: #9d174d;
+    --rs-body: #86486a;
+    --rs-chip-bg: #fce7f3;
+    --rs-chip-ink: #be185d;
+    --rs-accent: linear-gradient(135deg, #ec4899, #f59e0b);
+    --rs-accent-shadow: rgba(236, 72, 153, 0.45);
+    --rs-shadow: rgba(157, 23, 77, 0.3);
+    --rs-hill-far: #bbf7d0;
+    --rs-hill-near: #86efac;
+}
+
+.rs-may-wreath {
+    left: calc(var(--focal) - 20px);
+    top: 18%;
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    border: 6px solid #65a30d;
+    animation: rs-wreath-sway 5s ease-in-out infinite alternate;
+}
+
+.rs-may-wreath .rs-may-wreath__bloom {
+    left: 50%;
+    top: 50%;
+    width: 18px;
+    height: 18px;
+    margin: -9px;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle, #fef08a 0 22%, transparent 24%),
+        radial-gradient(circle at 50% 0, var(--c) 0 32%, transparent 34%),
+        radial-gradient(circle at 100% 50%, var(--c) 0 32%, transparent 34%),
+        radial-gradient(circle at 50% 100%, var(--c) 0 32%, transparent 34%),
+        radial-gradient(circle at 0 50%, var(--c) 0 32%, transparent 34%);
+    transform: rotate(var(--a)) translateY(-55px);
+}
+
+@keyframes rs-wreath-sway {
+    from { rotate: -4deg; }
+    to { rotate: 4deg; }
+}
+
+/* --- Holy Spirit Monday: doves over the sea --- */
+
+.rest-scene--dove {
+    --rs-sky: linear-gradient(180deg, #38bdf8 0%, #bae6fd 55%, #f0f9ff 100%);
+    --rs-base: #ecfeff;
+    --rs-ink: #155e75;
+    --rs-body: #2e6676;
+    --rs-chip-bg: #cffafe;
+    --rs-chip-ink: #0e7490;
+    --rs-accent: linear-gradient(135deg, #06b6d4, #3b82f6);
+    --rs-accent-shadow: rgba(6, 182, 212, 0.45);
+    --rs-shadow: rgba(21, 94, 117, 0.3);
+}
+
+/* --- The town's own feast: a chapel and its bell --- */
+
+.rest-scene--local {
+    --rs-sky: linear-gradient(180deg, #fcd34d 0%, #fde68a 40%, #fff7ed 100%);
+    --rs-base: #fffbeb;
+    --rs-ink: #78350f;
+    --rs-body: #7c5a3a;
+    --rs-chip-bg: #fef3c7;
+    --rs-chip-ink: #b45309;
+    --rs-accent: linear-gradient(135deg, #d97706, #b91c1c);
+    --rs-accent-shadow: rgba(217, 119, 6, 0.45);
+    --rs-shadow: rgba(120, 53, 15, 0.3);
+    --rs-hill-far: #d9c39a;
+    --rs-hill-near: #b9975f;
+}
+
+.rs-chapel {
+    left: calc(var(--focal) + 30px);
+    bottom: calc(var(--rs-ground) + 2%);
+    width: 90px;
+    height: 70px;
+    border-radius: 3px 3px 0 0;
+    background: linear-gradient(90deg, #f8fafc, #fff 50%, #e2e8f0);
+    box-shadow: 0 12px 20px -14px rgba(120, 53, 15, 0.7);
+}
+
+.rs-chapel .rs-chapel__dome {
+    left: 50%;
+    top: -34px;
+    width: 52px;
+    height: 36px;
+    margin-left: -26px;
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+    background: linear-gradient(90deg, #1d4ed8, #3b82f6 50%, #1e40af);
+}
+
+.rs-chapel .rs-chapel__dome::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: -14px;
+    width: 3px;
+    height: 14px;
+    margin-left: -1.5px;
+    background: #ca8a04;
+    box-shadow: 0 4px 0 0 #ca8a04;
+}
+
+.rs-chapel .rs-chapel__bell {
+    left: 50%;
+    top: 12px;
+    width: 18px;
+    height: 16px;
+    margin-left: -9px;
+    border-radius: 50% 50% 18% 18%;
+    background: linear-gradient(180deg, #fbbf24, #b45309);
+    transform-origin: 50% 0;
+    animation: rs-bell 2.8s ease-in-out infinite;
+}
+
+.rs-chapel .rs-chapel__door {
+    left: 50%;
+    bottom: 0;
+    width: 22px;
+    height: 30px;
+    margin-left: -11px;
+    border-radius: 11px 11px 0 0;
+    background: #92400e;
+}
+
+@keyframes rs-bell {
+    0%, 55%, 100% { transform: rotate(0deg); }
+    65% { transform: rotate(16deg); }
+    80% { transform: rotate(-12deg); }
+}
+
+/* ---------- A special day with lessons: the note above the schedule ---------- */
+
+.schedule-day-note {
+    --sdn-a: #faf5ff;
+    --sdn-b: #ede9fe;
+    --sdn-ink: #5b21b6;
+    --sdn-line: rgba(124, 58, 237, 0.3);
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.85rem;
+    padding: 0.65rem 0.9rem;
+    border-radius: 1rem;
+    color: var(--sdn-ink);
+    background: linear-gradient(100deg, var(--sdn-a), var(--sdn-b));
+    border: 1px solid var(--sdn-line);
+    box-shadow: 0 10px 22px -18px var(--sdn-ink);
+    animation: rs-plaque-in 0.5s cubic-bezier(0.2, 0.9, 0.25, 1.1) both;
+}
+
+.schedule-day-note--national { --sdn-a: #eff6ff; --sdn-b: #dbeafe; --sdn-ink: #0d3b7a; --sdn-line: rgba(13, 94, 175, 0.35); }
+.schedule-day-note--remembrance { --sdn-a: #f8fafc; --sdn-b: #e2e8f0; --sdn-ink: #334155; --sdn-line: rgba(51, 65, 85, 0.3); }
+.schedule-day-note--winter { --sdn-a: #f0f9ff; --sdn-b: #fee2e2; --sdn-ink: #991b1b; --sdn-line: rgba(185, 28, 28, 0.3); }
+.schedule-day-note--spring,
+.schedule-day-note--back { --sdn-a: #f0fdf4; --sdn-b: #dcfce7; --sdn-ink: #166534; --sdn-line: rgba(21, 128, 61, 0.3); }
+.schedule-day-note--kites,
+.schedule-day-note--dove { --sdn-a: #ecfeff; --sdn-b: #cffafe; --sdn-ink: #0e7490; --sdn-line: rgba(14, 116, 144, 0.3); }
+.schedule-day-note--flowers { --sdn-a: #fdf2f8; --sdn-b: #fce7f3; --sdn-ink: #9d174d; --sdn-line: rgba(219, 39, 119, 0.3); }
+.schedule-day-note--local,
+.schedule-day-note--summer,
+.schedule-day-note--edge { --sdn-a: #fffbeb; --sdn-b: #ffedd5; --sdn-ink: #9a3412; --sdn-line: rgba(234, 88, 12, 0.3); }
+
+.schedule-day-note__icon {
+    display: grid;
+    place-items: center;
+    width: 2.2rem;
+    height: 2.2rem;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: #fff;
+    font-size: 1.15rem;
+    box-shadow: 0 4px 10px -6px var(--sdn-ink);
+}
+
+.schedule-day-note__text {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 14rem;
+    min-width: 0;
+    font-size: 0.9rem;
+    line-height: 1.3;
+}
+
+.schedule-day-note__text small {
+    font-size: 0.78rem;
+    font-weight: 600;
+    opacity: 0.85;
+}
+
+.schedule-day-note__edge {
+    padding: 0.25rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px dashed var(--sdn-line);
+}
+
+.schedule-day-note--compact {
+    margin-bottom: 0.5rem;
+    padding: 0.55rem 0.7rem;
+}
+
+.schedule-day-note--compact .schedule-day-note__text { font-size: 0.82rem; }
+
+@media (prefers-reduced-motion: reduce) {
+    .schedule-day-note { animation: none; }
+}

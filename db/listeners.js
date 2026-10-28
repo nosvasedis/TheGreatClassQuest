@@ -1568,7 +1568,10 @@ export async function setupDataListeners(
             renderCalendarTab();
 
             const optionsTab = document.getElementById("options-tab");
-            if (optionsTab && !optionsTab.classList.contains("hidden")) {
+            if (
+                (optionsTab && !optionsTab.classList.contains("hidden")) ||
+                document.getElementById("school-calendar-panel")
+            ) {
                 const { renderHolidayList } = await import("../ui/core.js");
                 renderHolidayList();
             }

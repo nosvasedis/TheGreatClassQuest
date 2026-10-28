@@ -7,6 +7,7 @@ import { collectLearnedToday } from './learnedTodayCore.mjs';
 import { QUEST_TYPE_LABELS, normalizeQuestType } from './specialQuestEngine.js';
 import { getISOWeekKey } from './guildScoring.js';
 import { dataPath } from '../utils/tenant.mjs';
+import { buildSchoolCalendar } from '../utils/schoolCalendar.mjs';
 
 const dayDate = key => { const [y, m, d] = key.split('-').map(Number); return new Date(y, m - 1, d); };
 
@@ -38,7 +39,7 @@ export async function gatherAdventureLogContext(classId, { date = new Date(), he
         classData: () => read('classData', async () => { const s = await getDoc(doc(db, dataPath('classes'), classId)); return s.exists() ? { id: s.id, ...s.data() } : null; }, cached('allTeachersClasses').find(c => c.id === classId)),
         students: () => read('students', () => documents('students', [where('classId', '==', classId)]), cached('allStudents')),
         events: () => read('events', () => documents('quest_events', [where('schoolYearKey', '==', schoolYearKey)]), cached('allQuestEvents')),
-        holidays: () => read('holidays', async () => { const s = await getDoc(doc(db, dataPath('school_settings'), 'holidays')); return s.data()?.ranges || []; }, cached('schoolHolidayRanges')),
+        holidays: () => read('holidays', async () => { const s = await getDoc(doc(db, dataPath('school_settings'), 'holidays')); return buildSchoolCalendar(s.data()?.ranges || [], { locationName: s.data()?.weatherLocation?.name || '' }).ranges; }, cached('schoolHolidayRanges')),
         awards: () => read('awards', () => classRead('award_log', true), cached('allAwardLogs')),
         attendance: () => read('attendance', () => classRead('attendance', true), cached('allAttendanceRecords')),
         trials: () => read('trials', () => classRead('written_scores', true), cached('allWrittenScores')),

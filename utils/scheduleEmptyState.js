@@ -1,5 +1,6 @@
 import { doesClassMeetOnDate, parseFlexibleDate } from '../utils.js';
 import { isSchoolYearAwaitingOpen } from './schoolYear.js';
+import { describeSchoolDay } from './schoolCalendar.mjs';
 
 export const SUMMER_GAP_HALF_DAYS = 30;
 export const NEXT_LESSON_LOOKAHEAD_DAYS = 28;
@@ -152,9 +153,54 @@ export function findNextLessonDate({
     return null;
 }
 
-function buildHolidayState(holiday) {
+// Which painted scene each school-calendar theme gets on the Home schedule.
+const THEME_SCENES = {
+    national: 'national',
+    remembrance: 'remembrance',
+    winter: 'winter',
+    spring: 'spring',
+    kites: 'kites',
+    flowers: 'flowers',
+    dove: 'dove',
+    summer: 'summer',
+    local: 'local',
+};
+
+const THEME_EYEBROWS = {
+    national: 'National holiday',
+    remembrance: 'Day of remembrance',
+    winter: 'Christmas holidays',
+    spring: 'Easter holidays',
+    kites: 'Bank holiday',
+    flowers: 'Bank holiday',
+    dove: 'Long weekend',
+    summer: 'Summer holiday',
+    local: 'Local feast day',
+};
+
+/** A holiday the school calendar knows by name: its own title, story and scene. */
+function buildCalendarHolidayState(special, holiday) {
+    const inBreak = holiday && holiday.start !== holiday.end;
+    const eyebrow = inBreak && special.closureName && special.closureName !== special.name
+        ? special.closureName
+        : ((inBreak || !['winter', 'spring'].includes(special.theme)) && THEME_EYEBROWS[special.theme]) || 'Holiday';
+    return {
+        ...EMPTY_STATES.holiday,
+        title: special.name,
+        subtitle: special.nameEl && special.nameEl !== special.name ? special.nameEl : '',
+        message: special.blurb || `${special.name}: no lessons today. The party is resting!`,
+        icon: special.icon || '📅',
+        scene: THEME_SCENES[special.theme] || 'holiday',
+        eyebrow,
+        holidayKey: special.key || '',
+    };
+}
+
+function buildHolidayState(holiday, day) {
     const base = { ...EMPTY_STATES.holiday };
     if (!holiday) return base;
+    const special = day ? describeSchoolDay(day).headline : null;
+    if (special && (special.official || holiday.official)) return buildCalendarHolidayState(special, holiday);
     if (holiday.type === 'christmas') {
         return {
             ...base,
@@ -214,7 +260,7 @@ export function resolveScheduleEmptyState({
 
     const holiday = findHolidayForDate(day, schoolHolidayRanges);
     if (holiday) {
-        return withNextLesson(buildHolidayState(holiday));
+        return withNextLesson(buildHolidayState(holiday, day));
     }
 
     const weekday = day.getDay();

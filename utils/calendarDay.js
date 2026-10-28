@@ -5,6 +5,7 @@ import { datesMatch, getDDMMYYYY, parseDDMMYYYY, getClassesOnDay, simpleHashCode
 import { getAwardLogMonthlyStarCredit } from '../features/awardLogReasonMeta.js';
 import { classUsesTests } from '../features/assessmentConfig.js';
 import { normalizeQuestType, QUEST_TYPE_LABELS } from '../features/specialQuestEngine.js';
+import { describeSchoolDay } from './schoolCalendar.mjs';
 
 export const QUEST_EVENT_ICONS = {
     '2x Star Day': '⭐ x2',
@@ -35,6 +36,9 @@ export const QUEST_EVENT_ICONS = {
  *   isNoSchool: boolean,
  *   holidayLabel: string|null,
  *   holidayIcon: string|null,
+ *   special: object|null,      the day to celebrate (built-in day or the break), see describeSchoolDay
+ *   breakEdge: object|null,    { edge: 'last-before'|'back-from', range } on school days next to a break
+ *   theme: string|null,        colour/scene key for a holiday or a marked day
  *   classes: Array<object>,
  *   questEvents: Array<object>,
  *   starTotal: number,
@@ -85,12 +89,15 @@ export function getDayAgenda({
         || (myScheduledClasses.length > 0 && classesOnThisDay.length === 0 && myCancellations.length > 0),
     );
 
+    const schoolDay = describeSchoolDay(compDate);
+    const special = schoolDay.headline;
     let holidayLabel = null;
     let holidayIcon = null;
     if (isNoSchool) {
         if (holiday) {
-            holidayLabel = holiday.type === 'christmas' ? 'Winter Break' : (holiday.name || 'Holiday');
-            holidayIcon = holiday.type === 'christmas' ? '❄️' : (holiday.type === 'easter' ? '🐰' : '📅');
+            const fromCalendar = special && (special.official || holiday.official);
+            holidayLabel = fromCalendar ? special.name : (holiday.type === 'christmas' ? 'Winter Break' : (holiday.name || 'Holiday'));
+            holidayIcon = fromCalendar ? special.icon : (holiday.type === 'christmas' ? '❄️' : (holiday.type === 'easter' ? '🐰' : '📅'));
         } else {
             holidayLabel = 'No School';
             holidayIcon = '⛔';
@@ -137,6 +144,9 @@ export function getDayAgenda({
         isNoSchool,
         holidayLabel,
         holidayIcon,
+        special,
+        breakEdge: holiday ? null : schoolDay.breakEdge,
+        theme: special?.theme || (holiday ? (holiday.type === 'christmas' ? 'winter' : holiday.type === 'easter' ? 'spring' : 'break') : (isNoSchool ? 'cancelled' : null)),
         classes,
         questEvents,
         starTotal,

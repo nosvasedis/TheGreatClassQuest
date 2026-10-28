@@ -250,7 +250,9 @@ function renderSchoolSettings() {
                         <div><p class="role-card__eyebrow">School calendar</p><h3 class="role-card__title">Holidays and breaks</h3></div>
                     </div>
                 </div>
-                <p class="secretary-admin-card__description">These periods apply to every teacher, class calendar, and lesson count.</p>
+                <p class="secretary-admin-card__description">These days apply to every teacher, class calendar, and lesson count. The app knows the Greek holidays by itself; add your own breaks below.</p>
+                <div id="school-calendar-panel" class="office-cal"></div>
+                <h4 class="office-cal-subtitle">Your own breaks</h4>
                 <div class="office-holiday-form">
                     <label class="role-field office-holiday-form__name"><span>Break name</span><input type="text" id="holiday-name" placeholder="e.g. Christmas Break"></label>
                     <label class="role-field"><span>Start date</span><input type="date" id="holiday-start"></label>

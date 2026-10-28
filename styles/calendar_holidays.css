@@ -1,0 +1,540 @@
+/* ==========================================================================
+   QUEST CALENDAR · HOLIDAYS AND SPECIAL DAYS
+   The school calendar (utils/schoolCalendar.mjs) themes each holiday tile:
+   colours, a joined-up band for long breaks, and a tiny CSS-drawn scene
+   behind the stamp. Only transform/opacity motion, and none with reduced motion.
+   ========================================================================== */
+
+.qc-day--holiday {
+    --hol-a: #f8fafc;
+    --hol-b: #eef2f7;
+    --hol-ink: #475569;
+    --hol-line: rgba(71, 85, 105, 0.35);
+    isolation: isolate;
+}
+
+.qc-day--holiday > :not(.qc-day__art) { position: relative; z-index: 1; }
+
+.calendar-day-cell.qc-day--holiday[class*='qc-day--theme-'] {
+    background: linear-gradient(165deg, var(--hol-a) 0%, var(--hol-b) 100%) !important;
+    border-color: var(--hol-line);
+}
+
+.qc-day--holiday[class*='qc-day--theme-'] .qc-day__stamp { border-color: var(--hol-line); background: rgba(255, 255, 255, 0.72); }
+.qc-day--holiday[class*='qc-day--theme-'] .qc-day__stamp-label { color: var(--hol-ink); }
+
+.qc-day__stamp-sub,
+.qc-day__stamp-run {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.56rem;
+    font-weight: 700;
+    color: var(--hol-ink);
+    opacity: 0.8;
+}
+
+.qc-day__stamp-run {
+    font-style: italic;
+    font-weight: 600;
+}
+
+/* Themes */
+.qc-day--theme-national { --hol-a: #eff6ff; --hol-b: #dbeafe; --hol-ink: #1e3a8a; --hol-line: rgba(37, 99, 235, 0.45); }
+.qc-day--theme-remembrance { --hol-a: #f8fafc; --hol-b: #e2e8f0; --hol-ink: #334155; --hol-line: rgba(51, 65, 85, 0.35); }
+.qc-day--theme-winter { --hol-a: #f0f9ff; --hol-b: #fee2e2; --hol-ink: #991b1b; --hol-line: rgba(185, 28, 28, 0.35); }
+.qc-day--theme-spring { --hol-a: #f0fdf4; --hol-b: #fdf2f8; --hol-ink: #166534; --hol-line: rgba(21, 128, 61, 0.35); }
+.qc-day--theme-kites { --hol-a: #e0f2fe; --hol-b: #f0fdfa; --hol-ink: #0e7490; --hol-line: rgba(14, 116, 144, 0.4); }
+.qc-day--theme-flowers { --hol-a: #fdf2f8; --hol-b: #fef9c3; --hol-ink: #9d174d; --hol-line: rgba(219, 39, 119, 0.35); }
+.qc-day--theme-dove { --hol-a: #f0f9ff; --hol-b: #cffafe; --hol-ink: #155e75; --hol-line: rgba(8, 145, 178, 0.4); }
+.qc-day--theme-summer { --hol-a: #fffbeb; --hol-b: #cffafe; --hol-ink: #92400e; --hol-line: rgba(217, 119, 6, 0.4); }
+.qc-day--theme-local { --hol-a: #fffbeb; --hol-b: #fef3c7; --hol-ink: #92400e; --hol-line: rgba(180, 83, 9, 0.4); }
+.qc-day--theme-break { --hol-a: #f0fdfa; --hol-b: #ccfbf1; --hol-ink: #115e59; --hol-line: rgba(13, 148, 136, 0.4); }
+.qc-day--theme-letters,
+.qc-day--theme-observance { --hol-a: #faf5ff; --hol-b: #ede9fe; --hol-ink: #5b21b6; --hol-line: rgba(124, 58, 237, 0.35); }
+
+/* A long break reads as one band across the week */
+.qc-day--run:not(.qc-day--run-first) .qc-day__stamp { transform: rotate(2deg); }
+.qc-day--run-quiet .qc-day__stamp {
+    border-style: dotted;
+    background: transparent !important;
+    opacity: 0.75;
+}
+.qc-day--run-quiet .qc-day__stamp-icon { font-size: 1.15rem; }
+.qc-day--run::after {
+    content: '';
+    position: absolute;
+    left: -0.6rem;
+    right: -0.6rem;
+    bottom: 0.45rem;
+    height: 4px;
+    border-radius: 999px;
+    background: repeating-linear-gradient(90deg, var(--hol-line) 0 6px, transparent 6px 10px);
+    z-index: 0;
+}
+.qc-day--run-first::after { left: 50%; }
+.qc-day--run-last::after { right: 50%; }
+
+.qc-day__makeup {
+    align-self: center;
+    padding: 0.05rem 0.4rem;
+    border-radius: 999px;
+    font-size: 0.56rem;
+    font-weight: 800;
+    color: #065f46;
+    background: #d1fae5;
+    border: 1px solid rgba(5, 150, 105, 0.35);
+    white-space: nowrap;
+}
+
+/* ── Little scenes behind the stamp ─────────────────────────────────────── */
+
+.qc-day__art {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.qc-art--national::before {
+    /* the nine stripes, very faint, across the whole tile */
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(180deg, rgba(37, 99, 235, 0.09) 0 11.1%, transparent 11.1% 22.2%);
+}
+
+.qc-art__flag {
+    position: absolute;
+    right: 0.55rem;
+    top: 0.55rem;
+    width: 1.9rem;
+    height: 1.25rem;
+    border-radius: 2px;
+    background:
+        linear-gradient(#fff, #fff) 0 0 / 40% 55.6% no-repeat,
+        repeating-linear-gradient(180deg, #0d5eaf 0 11.1%, #fff 11.1% 22.2%);
+    box-shadow: 0 2px 5px -2px rgba(13, 94, 175, 0.6);
+    transform-origin: left center;
+    animation: qcFlagWave 3.2s ease-in-out infinite;
+}
+
+.qc-art__flag > span {
+    /* the cross in the canton */
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 40%;
+    height: 55.6%;
+    background:
+        linear-gradient(#fff, #fff) center / 100% 20% no-repeat,
+        linear-gradient(#fff, #fff) center / 20% 100% no-repeat,
+        #0d5eaf;
+}
+
+.qc-art__flag::before {
+    content: '';
+    position: absolute;
+    left: -3px;
+    top: -2px;
+    width: 2px;
+    height: 2.4rem;
+    border-radius: 2px;
+    background: #78716c;
+}
+
+@keyframes qcFlagWave {
+    0%, 100% { transform: skewY(0deg) scaleX(1); }
+    50% { transform: skewY(-4deg) scaleX(0.94); }
+}
+
+.qc-art__laurel {
+    position: absolute;
+    left: 0.35rem;
+    bottom: 0.35rem;
+    width: 1.4rem;
+    height: 1.4rem;
+    border-radius: 50%;
+    border: 3px dotted rgba(22, 101, 52, 0.4);
+    border-top-color: transparent;
+}
+
+.qc-art--remembrance::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 82% 30%, rgba(251, 191, 36, 0.25), transparent 40%);
+}
+
+.qc-art__candle {
+    position: absolute;
+    right: 0.7rem;
+    top: 2rem;
+    width: 0.4rem;
+    height: 1.2rem;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #fef3c7, #fde68a);
+}
+
+.qc-art__candle > span {
+    position: absolute;
+    left: 50%;
+    top: -0.55rem;
+    width: 0.4rem;
+    height: 0.55rem;
+    margin-left: -0.2rem;
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    background: radial-gradient(circle at 50% 70%, #fff7ed, #fb923c 60%, transparent 70%);
+    animation: qcFlicker 1.8s ease-in-out infinite;
+}
+
+@keyframes qcFlicker {
+    0%, 100% { transform: scale(1) translateY(0); opacity: 0.95; }
+    50% { transform: scale(0.85, 1.1) translateY(-1px); opacity: 0.75; }
+}
+
+.qc-art__flake {
+    position: absolute;
+    left: var(--x);
+    top: -0.4rem;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 3px rgba(148, 163, 184, 0.9);
+    animation: qcSnow 5s linear infinite;
+    animation-delay: var(--d);
+}
+
+@keyframes qcSnow {
+    from { transform: translateY(0); opacity: 0; }
+    15% { opacity: 1; }
+    to { transform: translateY(10rem); opacity: 0.2; }
+}
+
+.qc-art__egg {
+    position: absolute;
+    left: var(--x);
+    bottom: 0.5rem;
+    width: 0.8rem;
+    height: 1rem;
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.6) 0 12%, transparent 14%), var(--c);
+    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.25);
+}
+
+.qc-art__kite {
+    position: absolute;
+    left: var(--x);
+    top: 1.9rem;
+    width: 0.9rem;
+    height: 0.9rem;
+    background: linear-gradient(135deg, var(--c) 50%, #fde047 50%);
+    transform: rotate(45deg);
+    animation: qcKite 3.6s ease-in-out infinite;
+    animation-delay: var(--d);
+}
+
+.qc-art__kite::after {
+    /* the tail */
+    content: '';
+    position: absolute;
+    left: 100%;
+    top: 100%;
+    width: 1.2rem;
+    height: 2px;
+    background: repeating-linear-gradient(90deg, var(--c) 0 3px, transparent 3px 6px);
+    transform-origin: left;
+    transform: rotate(-20deg);
+}
+
+@keyframes qcKite {
+    0%, 100% { transform: rotate(45deg) translate(0, 0); }
+    50% { transform: rotate(38deg) translate(-3px, -4px); }
+}
+
+.qc-art__bloom {
+    position: absolute;
+    left: var(--x);
+    bottom: 0.35rem;
+    width: 0.7rem;
+    height: 0.7rem;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle, #fef08a 0 22%, transparent 24%),
+        radial-gradient(circle at 50% 0, var(--c) 0 32%, transparent 34%),
+        radial-gradient(circle at 100% 50%, var(--c) 0 32%, transparent 34%),
+        radial-gradient(circle at 50% 100%, var(--c) 0 32%, transparent 34%),
+        radial-gradient(circle at 0 50%, var(--c) 0 32%, transparent 34%);
+}
+
+.qc-art__wave {
+    position: absolute;
+    left: -10%;
+    right: -10%;
+    bottom: 0;
+    height: 1.3rem;
+    background:
+        radial-gradient(circle at 10px -4px, transparent 9px, rgba(14, 165, 233, 0.3) 10px) 0 0 / 20px 1.3rem repeat-x;
+    animation: qcWave 6s linear infinite;
+}
+
+@keyframes qcWave {
+    from { transform: translateX(0); }
+    to { transform: translateX(20px); }
+}
+
+.qc-art__sun {
+    position: absolute;
+    right: 0.5rem;
+    top: 1.8rem;
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fde047 55%, rgba(253, 224, 71, 0.2) 70%, transparent 72%);
+}
+
+.qc-art__bell {
+    position: absolute;
+    right: 0.6rem;
+    top: 1.9rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50% 50% 10% 10%;
+    background: linear-gradient(180deg, #fbbf24, #b45309);
+    transform-origin: 50% 0;
+    animation: qcBell 2.6s ease-in-out infinite;
+}
+
+@keyframes qcBell {
+    0%, 60%, 100% { transform: rotate(0deg); }
+    70% { transform: rotate(14deg); }
+    85% { transform: rotate(-10deg); }
+}
+
+/* ── Special days with lessons: a ribbon on the tile ───────────────────── */
+
+.qc-day__special,
+.qc-day__edge {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-width: 0;
+    flex-shrink: 0;
+    padding: 0.1rem 0.35rem;
+    border-radius: 0.45rem;
+    font-size: 0.6rem;
+    font-weight: 800;
+    line-height: 1.25;
+    white-space: nowrap;
+}
+
+.qc-day__special {
+    color: var(--hol-ink, #5b21b6);
+    background: linear-gradient(90deg, var(--hol-b, #ede9fe), rgba(255, 255, 255, 0.4));
+    border: 1px solid var(--hol-line, rgba(124, 58, 237, 0.3));
+}
+
+.qc-day__special-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.qc-day__special-open {
+    flex-shrink: 0;
+    padding: 0 0.25rem;
+    border-radius: 0.3rem;
+    font-size: 0.5rem;
+    text-transform: uppercase;
+    color: #065f46;
+    background: #d1fae5;
+}
+
+.qc-day--marked { --hol-b: #ede9fe; --hol-ink: #5b21b6; --hol-line: rgba(124, 58, 237, 0.3); }
+.calendar-day-cell.qc-day--marked { box-shadow: inset 0 3px 0 var(--hol-line), 0 1px 0 rgba(30, 58, 138, 0.06); }
+
+.qc-day__edge {
+    color: #7c2d12;
+    background: #ffedd5;
+    border: 1px dashed rgba(234, 88, 12, 0.4);
+}
+
+.qc-day__edge--back-from {
+    color: #14532d;
+    background: #dcfce7;
+    border-color: rgba(22, 163, 74, 0.4);
+}
+
+.qc-day__edge span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── The month's holidays strip ────────────────────────────────────────── */
+
+.qc-specials {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: -0.2rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.qc-specials[hidden] { display: none; }
+
+.qc-special-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.65rem 0.25rem 0.3rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--hol-ink);
+    background: linear-gradient(90deg, var(--hol-a), var(--hol-b));
+    border: 1px solid var(--hol-line);
+}
+
+.qc-special-chip { --hol-a: #faf5ff; --hol-b: #ede9fe; --hol-ink: #5b21b6; --hol-line: rgba(124, 58, 237, 0.3); }
+.qc-special-chip--national { --hol-a: #eff6ff; --hol-b: #dbeafe; --hol-ink: #1e3a8a; --hol-line: rgba(37, 99, 235, 0.4); }
+.qc-special-chip--remembrance { --hol-a: #f8fafc; --hol-b: #e2e8f0; --hol-ink: #334155; --hol-line: rgba(51, 65, 85, 0.3); }
+.qc-special-chip--winter { --hol-a: #f0f9ff; --hol-b: #fee2e2; --hol-ink: #991b1b; --hol-line: rgba(185, 28, 28, 0.3); }
+.qc-special-chip--spring { --hol-a: #f0fdf4; --hol-b: #fdf2f8; --hol-ink: #166534; --hol-line: rgba(21, 128, 61, 0.3); }
+.qc-special-chip--kites { --hol-a: #e0f2fe; --hol-b: #f0fdfa; --hol-ink: #0e7490; --hol-line: rgba(14, 116, 144, 0.35); }
+.qc-special-chip--flowers { --hol-a: #fdf2f8; --hol-b: #fef9c3; --hol-ink: #9d174d; --hol-line: rgba(219, 39, 119, 0.3); }
+.qc-special-chip--dove { --hol-a: #f0f9ff; --hol-b: #cffafe; --hol-ink: #155e75; --hol-line: rgba(8, 145, 178, 0.35); }
+.qc-special-chip--summer,
+.qc-special-chip--local { --hol-a: #fffbeb; --hol-b: #fef3c7; --hol-ink: #92400e; --hol-line: rgba(180, 83, 9, 0.35); }
+.qc-special-chip--break { --hol-a: #f0fdfa; --hol-b: #ccfbf1; --hol-ink: #115e59; --hol-line: rgba(13, 148, 136, 0.35); }
+.qc-special-chip--cancelled { --hol-a: #fff1f2; --hol-b: #ffe4e6; --hol-ink: #9f1239; --hol-line: rgba(190, 18, 60, 0.3); }
+
+.qc-special-chip__date {
+    padding: 0.05rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: #fff;
+    background: var(--hol-ink);
+}
+
+.qc-special-chip--closed .qc-special-chip__name::after {
+    content: ' · no lessons';
+    font-weight: 600;
+    opacity: 0.75;
+}
+
+.qc-legend__swatch--national {
+    background: repeating-linear-gradient(180deg, #0d5eaf 0 2px, #fff 2px 4px);
+    border: 1px solid rgba(13, 94, 175, 0.5);
+}
+
+.qc-legend__swatch--special {
+    color: #7c3aed;
+    background: #ede9fe;
+    border: 1px solid rgba(124, 58, 237, 0.35);
+}
+
+@media (max-width: 640px) {
+    .qc-day__stamp-sub,
+    .qc-day__stamp-run,
+    .qc-day__special-name,
+    .qc-day__edge span:last-child,
+    .qc-day__makeup,
+    .qc-day__art > * { display: none; }
+    .qc-special-chip { font-size: 0.68rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .qc-day__art *,
+    .qc-day__art::before { animation: none !important; }
+}
+
+/* ── Planner: the day's story ──────────────────────────────────────────── */
+
+.qc-glance__story {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.7rem;
+    margin-bottom: 0.6rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: 0.9rem;
+    color: var(--hol-ink, #115e59);
+    background: linear-gradient(110deg, var(--hol-a, #f0fdfa), var(--hol-b, #ccfbf1));
+    border: 1px solid var(--hol-line, rgba(13, 148, 136, 0.35));
+}
+
+.qc-glance__story-icon {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 50%;
+    font-size: 1.3rem;
+    background: #fff;
+    box-shadow: 0 4px 10px -6px rgba(15, 23, 42, 0.5);
+}
+
+.qc-glance__story-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+    font-size: 0.9rem;
+    line-height: 1.35;
+}
+
+.qc-glance__story-text em {
+    font-size: 0.78rem;
+    font-weight: 700;
+    opacity: 0.85;
+}
+
+.qc-glance__story-text small {
+    font-size: 0.78rem;
+    font-weight: 600;
+    opacity: 0.9;
+}
+
+.qc-glance__story-tip {
+    margin-top: 0.2rem;
+    padding-top: 0.3rem;
+    border-top: 1px dashed var(--hol-line, rgba(13, 148, 136, 0.35));
+    font-style: italic;
+}
+
+/* ── Phone day view ───────────────────────────────────────────────────── */
+
+body.gcq-mobile .m-cal-banner[class*='qc-day--theme-'] {
+    background: linear-gradient(135deg, var(--hol-a), var(--hol-b));
+    border-color: var(--hol-line);
+}
+
+body.gcq-mobile .m-cal-banner[class*='qc-day--theme-'] .m-cal-banner__label,
+body.gcq-mobile .m-cal-banner[class*='qc-day--theme-'] .m-cal-banner__hint,
+body.gcq-mobile .m-cal-banner__sub { color: var(--hol-ink); }
+
+body.gcq-mobile .m-cal-banner__sub {
+    margin: 0;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+body.gcq-mobile .m-cal-edge {
+    margin: 0.5rem 0 0;
+    padding: 0.4rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: #9a3412;
+    background: #ffedd5;
+    border: 1px dashed rgba(234, 88, 12, 0.4);
+}
+
+.qc-stat--off .qc-stat__icon { color: #0d9488; }

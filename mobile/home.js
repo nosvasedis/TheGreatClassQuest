@@ -10,7 +10,7 @@ import { getHomeGlobalTools, getHomeClassActions, getClassToolCounts } from '../
 import {
     resolveScheduleEmptyState
 } from '../utils/scheduleEmptyState.js';
-import { buildScheduleEmptySceneHtml } from '../utils/scheduleEmptyScene.js';
+import { buildScheduleEmptySceneHtml, buildScheduleDayNoteHtml } from '../utils/scheduleEmptyScene.js';
 import { isSchoolYearAwaitingOpen } from '../utils/schoolYear.js';
 import { sumLiveYearGoldFromAppState } from '../utils/yearGold.js';
 import { getGreetingSkyHtml, getDayRingEmblemHtml, startDayRingClock, syncDayRing } from '../features/homeGreetingScene.js';
@@ -179,7 +179,8 @@ function getClassScheduleRows() {
         return buildScheduleEmptySceneHtml(emptyState, { compact: true });
     }
 
-    return todaysClasses.map((c) => {
+    const dayNote = buildScheduleDayNoteHtml(utils.parseFlexibleDate(today) || new Date(), { compact: true });
+    return dayNote + todaysClasses.map((c) => {
         const isMine = myIds.has(c.id);
         const isActive = c.id === activeId;
         const gradient = SCHEDULE_GRADIENTS[utils.simpleHashCode(c.id) % SCHEDULE_GRADIENTS.length];

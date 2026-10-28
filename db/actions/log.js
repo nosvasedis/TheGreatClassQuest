@@ -1079,6 +1079,48 @@ export async function handleDeleteHolidayRange(rangeId) {
     }
 }
 
+// School calendar choices live in the same `ranges` array as the breaks (see
+// utils/schoolCalendar.mjs), so they need no new Firestore field or rule.
+async function updateSchoolCalendarEntries(mutate, successMessage) {
+    const settingsRef = doc(db, `${PUBLIC_DATA_PATH}/school_settings`, 'holidays');
+    try {
+        await runTransaction(db, async (transaction) => {
+            const docSnap = await transaction.get(settingsRef);
+            const existing = docSnap.exists() ? (docSnap.data() || {}) : {};
+            const ranges = mutate(Array.isArray(existing.ranges) ? existing.ranges.slice() : []);
+            transaction.set(settingsRef, { ranges }, { merge: true });
+        });
+        if (successMessage) showToast(successMessage, "success");
+        return true;
+    } catch (e) {
+        console.error(e);
+        showToast("Could not save the school calendar.", "error");
+        return false;
+    }
+}
+
+/** mode: 'closed' | 'marked' | 'off', or null to go back to the calendar's own default. */
+export function handleSetSchoolCalendarRule(key, mode) {
+    const id = `cal-rule-${key}`;
+    return updateSchoolCalendarEntries((ranges) => {
+        const rest = ranges.filter((r) => r?.id !== id);
+        return mode ? [...rest, { id, kind: 'calendar-rule', key, mode }] : rest;
+    }, null);
+}
+
+/** Lessons run on this date whatever the calendar or a break says. */
+export function handleAddOpenSchoolDay(isoDate) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(isoDate || ''))) {
+        showToast("Pick a date first.", "error");
+        return Promise.resolve(false);
+    }
+    const id = `cal-open-${isoDate}`;
+    return updateSchoolCalendarEntries((ranges) => [
+        ...ranges.filter((r) => r?.id !== id),
+        { id, kind: 'school-day', date: isoDate },
+    ], "Lessons will run on that day.");
+}
+
 export async function handleRemoveAttendanceColumn(classId, dateString, isGlobal = false) {
     const publicDataPath = PUBLIC_DATA_PATH;
     

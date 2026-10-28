@@ -1,10 +1,16 @@
 /**
  * Illustrated "no lessons today" banner for the Home tab's School Schedule.
- * Each rest state (camp, weekend, holiday, winter, spring, summer, sealed year)
+ * Each rest state (camp, weekend, holiday, winter, spring, summer, sealed year, and the
+ * school calendar's own holidays: national, remembrance, kites, flowers, dove, local)
  * paints its own little CSS scene; styles live in styles/schedule_rest.css.
  */
 
-const SCENES = new Set(['camp', 'weekend', 'holiday', 'winter', 'spring', 'summer', 'sealed']);
+import { describeSchoolDay } from './schoolCalendar.mjs';
+// The school-calendar scenes and the special-day note load with this module, off the first-paint
+// stylesheet (the base scenes are in schedule_rest.css). Skipped outside the browser (node tests).
+if (typeof document !== 'undefined') import('../styles/schedule_holidays.css');
+
+const SCENES = new Set(['camp', 'weekend', 'holiday', 'winter', 'spring', 'summer', 'sealed', 'national', 'remembrance', 'kites', 'flowers', 'dove', 'local']);
 
 const escapeText = (value) => String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -45,6 +51,20 @@ const FLAGS = Array.from({ length: 11 }, (_, i) => {
     const u = (x - 50) / 52;
     const y = -18 + 60 * Math.sqrt(Math.max(0, 1 - u * u));
     return `<span class="rs-flag" style="--x:${x.toFixed(1)}%;--y:${y.toFixed(1)}px;--c:var(--rs-confetti-${(i % 4) + 1});--d:${(i * 0.23).toFixed(2)}s"></span>`;
+}).join('');
+
+// Blue and white pennants for the national holidays.
+const GREEK_FLAGS = Array.from({ length: 11 }, (_, i) => {
+    const x = 4 + i * 9.2;
+    const u = (x - 50) / 52;
+    const y = -18 + 60 * Math.sqrt(Math.max(0, 1 - u * u));
+    return `<span class="rs-flag" style="--x:${x.toFixed(1)}%;--y:${y.toFixed(1)}px;--c:${i % 2 ? '#ffffff' : '#0d5eaf'};--d:${(i * 0.23).toFixed(2)}s"></span>`;
+}).join('');
+
+// The May Day wreath: flowers set round a circle.
+const MAY_WREATH = Array.from({ length: 12 }, (_, i) => {
+    const colours = ['#f472b6', '#facc15', '#fb7185', '#a78bfa'];
+    return `<span class="rs-may-wreath__bloom" style="--a:${i * 30}deg;--c:${colours[i % 4]}"></span>`;
 }).join('');
 
 const pines = (...positions) => positions.map(([x, h]) =>
@@ -111,6 +131,51 @@ const SCENE_ART = {
         ${placed('rs-flower', [[14, 0, '--c:#f472b6'], [26, 0, '--c:#facc15'], [70, 0, '--c:#a78bfa'], [82, 0, '--c:#fb7185'], [92, 0, '--c:#facc15']])}
         <span class="rs-butterfly rs-butterfly--1"></span>
         <span class="rs-butterfly rs-butterfly--2"></span>`,
+    // School-calendar holidays (utils/schoolCalendar.mjs themes)
+    national: () => `
+        <span class="rs-cloud rs-cloud--1"></span>
+        <span class="rs-cloud rs-cloud--2"></span>
+        <span class="rs-bunting rs-bunting--greek">${GREEK_FLAGS}</span>
+        <span class="rs-hill rs-hill--far"></span>
+        <span class="rs-hill rs-hill--near"></span>
+        <span class="rs-greek-flag"><span class="rs-greek-flag__pole"></span><span class="rs-greek-flag__cloth"><span class="rs-greek-flag__canton"></span></span></span>
+        <span class="rs-dove rs-dove--1"></span>
+        <span class="rs-dove rs-dove--2"></span>`,
+    remembrance: () => `
+        ${placed('rs-star', STARS.slice(0, 7))}
+        <span class="rs-hill rs-hill--far"></span>
+        <span class="rs-hill rs-hill--near"></span>
+        <span class="rs-wreath"></span>
+        <span class="rs-candle rs-candle--vigil"><span class="rs-candle__flame"></span><span class="rs-candle__halo"></span></span>
+        <span class="rs-dove rs-dove--1"></span>`,
+    kites: () => `
+        <span class="rs-cloud rs-cloud--1"></span>
+        <span class="rs-cloud rs-cloud--2"></span>
+        <span class="rs-hill rs-hill--far"></span>
+        <span class="rs-hill rs-hill--near"></span>
+        <span class="rs-kite rs-kite--1"></span>
+        <span class="rs-kite rs-kite--2"></span>
+        <span class="rs-kite rs-kite--3"></span>`,
+    flowers: () => `
+        <span class="rs-sun"><span class="rs-sun__rays"></span></span>
+        <span class="rs-hill rs-hill--far"></span>
+        <span class="rs-hill rs-hill--near"></span>
+        <span class="rs-may-wreath">${MAY_WREATH}</span>
+        ${placed('rs-flower', [[8, 0, '--c:#f472b6'], [18, 0, '--c:#facc15'], [28, 0, '--c:#fb7185'], [80, 0, '--c:#a78bfa'], [90, 0, '--c:#f472b6']])}
+        <span class="rs-butterfly rs-butterfly--1"></span>`,
+    dove: () => `
+        <span class="rs-sun"><span class="rs-sun__rays"></span></span>
+        <span class="rs-dove rs-dove--1"></span>
+        <span class="rs-dove rs-dove--2"></span>
+        <span class="rs-sea"><span class="rs-sea__waves"></span></span>
+        <span class="rs-boat"><span class="rs-boat__sail"></span></span>
+        <span class="rs-sand"></span>`,
+    local: () => `
+        <span class="rs-cloud rs-cloud--1"></span>
+        <span class="rs-hill rs-hill--far"></span>
+        <span class="rs-hill rs-hill--near"></span>
+        <span class="rs-chapel"><span class="rs-chapel__dome"></span><span class="rs-chapel__bell"></span><span class="rs-chapel__door"></span></span>
+        <span class="rs-bunting">${FLAGS}</span>`,
     sealed: () => `
         <span class="rs-desk"></span>
         <span class="rs-candle"><span class="rs-candle__flame"></span><span class="rs-candle__halo"></span></span>
@@ -173,8 +238,40 @@ export function buildScheduleEmptySceneHtml(emptyState, { compact = false } = {}
                 ${escapeText(emptyState?.eyebrow || 'No lessons today')}
             </span>
             <h4 class="rest-scene__title font-title">${escapeText(emptyState?.title || "Heroes' Camp")}</h4>
+            ${emptyState?.subtitle ? `<p class="rest-scene__subtitle" lang="el">${escapeText(emptyState.subtitle)}</p>` : ''}
             <p class="rest-scene__message">${escapeText(emptyState?.message || '')}</p>
             ${nextLessonHtml(emptyState)}
         </div>
     </section>`;
+}
+
+/**
+ * A slim note above today's lesson cards when the day is special but lessons run:
+ * a marked day (Halloween, Three Hierarchs…), a holiday the school opened for,
+ * the last lessons before a break, or the first ones back. Empty string otherwise.
+ */
+export function buildScheduleDayNoteHtml(dateLike = new Date(), { compact = false } = {}) {
+    const info = describeSchoolDay(dateLike);
+    if (info.closure) return '';
+    const special = info.headline && info.headline.key ? info.headline : null;
+    const edge = info.breakEdge;
+    if (!special && !edge) return '';
+    const bits = [];
+    if (special) {
+        const opened = special.kind === 'closure' || special.kind === 'local';
+        bits.push(`
+            <span class="schedule-day-note__icon" aria-hidden="true">${escapeText(special.icon)}</span>
+            <span class="schedule-day-note__text">
+                <strong>${escapeText(special.name)}</strong>${special.nameEl && special.nameEl !== special.name ? ` <span lang="el">· ${escapeText(special.nameEl)}</span>` : ''}
+                <small>${escapeText(opened ? 'A holiday, but your school is open today. Lessons as normal.' : special.blurb)}</small>
+            </span>`);
+    }
+    if (edge) {
+        const name = edge.range?.name || 'the break';
+        bits.push(`<span class="schedule-day-note__edge schedule-day-note__edge--${edge.edge}">${edge.edge === 'last-before'
+            ? `🎒 Last lessons before ${escapeText(name)}`
+            : `🔔 Welcome back from ${escapeText(name)}!`}</span>`);
+    }
+    const theme = special?.theme || (edge?.edge === 'back-from' ? 'back' : 'edge');
+    return `<div class="schedule-day-note schedule-day-note--${escapeText(theme)}${compact ? ' schedule-day-note--compact' : ''}" role="note">${bits.join('')}</div>`;
 }

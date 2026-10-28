@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import { buildAdventureLogContext, adventureDateKey } from '../features/adventureLogContextCore.mjs';
 import { collectLearnedToday } from '../features/learnedTodayCore.mjs';
 import { QUEST_TYPE_LABELS, normalizeQuestType } from '../features/specialQuestEngine.js';
+import { buildSchoolCalendar } from '../utils/schoolCalendar.mjs';
 
 const ROOT = 'artifacts/great-class-quest/public/data/';
 const row = fields => ({ classId: 'class-1', schoolYearKey: '2026-2027', ...fields });
@@ -32,7 +33,7 @@ function harness({ unavailable = '', owner = 'teacher', changeYear = false } = {
         },
         state: { get: key => values[key], getActiveSchoolYearKey: () => year },
         getDDMMYYYY: d => `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`, getNextLessonDate: () => null, getLeagueAiAudience: () => '10-12 year olds',
-        buildAdventureLogContext, adventureDateKey, collectLearnedToday, QUEST_TYPE_LABELS, normalizeQuestType, getISOWeekKey: () => '2026-W40', modules,
+        buildAdventureLogContext, adventureDateKey, collectLearnedToday, buildSchoolCalendar, QUEST_TYPE_LABELS, normalizeQuestType, getISOWeekKey: () => '2026-W40', modules,
         console: { warn() {} }
     };
     const source = fs.readFileSync(new URL('../features/adventureLogContext.js', import.meta.url), 'utf8').replace(/^import .*;\r?$/gm, '').replace(/export /g, '').replace(/import\('([^']+)'\)/g, (_, path) => `Promise.resolve(modules[${JSON.stringify(path)}])`);

@@ -1,5 +1,7 @@
 // /ui/core/misc.js
 
+import { parseCalendarSettings } from '../../utils/schoolCalendar.mjs';
+import { renderSchoolCalendarPanel } from '../../features/secretary/schoolCalendarPanel.js';
 import * as state from '../../state.js';
 import { db, doc, updateDoc, setDoc } from '../../firebase.js';
 import * as utils from '../../utils.js';
@@ -60,9 +62,11 @@ export function handleWordInputChange(event) {
 }
 
 export function renderHolidayList() {
+    renderSchoolCalendarPanel();
     const list = document.getElementById('holiday-list');
     if (!list) return;
-    const ranges = state.get('schoolHolidayRanges') || [];
+    // Only the School Office's own breaks: the built-in calendar has its panel above.
+    const ranges = parseCalendarSettings(state.get('schoolHolidayRangesRaw') || []).manual;
     
     if (ranges.length === 0) {
         list.innerHTML = '<p class="text-center text-xs text-gray-400">No holidays set.</p>';
@@ -72,10 +76,10 @@ export function renderHolidayList() {
     list.innerHTML = ranges.map(r => `
         <div class="flex justify-between items-center bg-gray-50 p-2 rounded border text-sm">
             <div>
-                <span class="font-bold text-gray-700">${r.name}</span>
+                <span class="font-bold text-gray-700">${escapeHtml(r.name)}</span>
                 <div class="text-xs text-gray-500">${utils.parseDDMMYYYY(utils.getDDMMYYYY(new Date(r.start))).toLocaleDateString('en-GB', {day:'numeric', month:'short'})} - ${utils.parseDDMMYYYY(utils.getDDMMYYYY(new Date(r.end))).toLocaleDateString('en-GB', {day:'numeric', month:'short'})}</div>
             </div>
-            <button class="delete-holiday-btn text-red-500 hover:text-red-700" data-id="${r.id}"><i class="fas fa-trash"></i></button>
+            <button class="delete-holiday-btn text-red-500 hover:text-red-700" data-id="${escapeHtml(r.id)}"><i class="fas fa-trash"></i></button>
         </div>
     `).join('');
 }

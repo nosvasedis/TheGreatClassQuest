@@ -10,7 +10,8 @@ import {
     handleSchoolLocationResultChange,
     handleSaveSchoolLocationFromOptions
 } from '../db/actions/school.js';
-import { handleAddHolidayRange, handleDeleteHolidayRange } from '../db/actions/log.js';
+import { handleAddHolidayRange, handleDeleteHolidayRange, handleSetSchoolCalendarRule, handleAddOpenSchoolDay } from '../db/actions/log.js';
+import { handleSchoolCalendarPanelClick, handleSchoolCalendarPanelChange } from './secretary/schoolCalendarPanel.js';
 import { renderHolidayList } from '../ui/core/misc.js';
 import { auth, EmailAuthProvider, reauthenticateWithCredential } from '../firebaseAuth.js';
 import { isOnlineBillingAvailable, requestBillingPortal } from '../utils/billingCheckout.js';
@@ -53,6 +54,12 @@ let listenersWired = false;
 let secretaryCallbacks = {
     onLogout: null,
     onSelectThread: null
+};
+
+// The school calendar panel saves through these; the settings listener re-renders it.
+const SCHOOL_CALENDAR_ACTIONS = {
+    setRule: async (key, mode) => { await handleSetSchoolCalendarRule(key, mode); renderHolidayList(); },
+    openDay: async (iso) => { if (await handleAddOpenSchoolDay(iso)) renderHolidayList(); },
 };
 
 const TAB_RENDERERS = {
@@ -353,6 +360,7 @@ export function wireSecretaryConsoleListeners({ onLogout, onSelectThread }) {
     document.getElementById('secretary-screen')?.addEventListener('click', async (event) => {
         if (handleSchoolYearConsoleClick(event)) return;
         if (handleFamilyLoginsClick(event)) return;
+        if (await handleSchoolCalendarPanelClick(event, SCHOOL_CALENDAR_ACTIONS)) return;
 
         const navBtn = event.target.closest('.nav-button[data-secretary-tab]');
         if (navBtn) {
@@ -707,6 +715,10 @@ export function wireSecretaryConsoleListeners({ onLogout, onSelectThread }) {
                 setBusyState(button, false);
             }
         }
+    });
+
+    document.getElementById('secretary-screen')?.addEventListener('change', (event) => {
+        handleSchoolCalendarPanelChange(event, SCHOOL_CALENDAR_ACTIONS);
     });
 
     document.getElementById('secretary-screen')?.addEventListener('input', (event) => {

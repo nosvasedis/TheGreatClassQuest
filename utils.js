@@ -11,6 +11,7 @@ import {
     gradientForDayPart
 } from './utils/dayPart.mjs';
 import { isBeforeSchoolYearOpening } from './utils/schoolYearOpening.mjs';
+import { getEffectiveHolidayRanges, toIsoDay } from './utils/schoolCalendar.mjs';
 
 export { isBeforeSchoolYearOpening };
 
@@ -561,15 +562,21 @@ export function getClassesOnDay(dateString, allSchoolClasses, allScheduleOverrid
             if (classToAdd) classes.push(classToAdd);
         }
     });
+    // School holidays (the built-in calendar and the School Office's breaks) empty the day.
+    const holidayRanges = getEffectiveHolidayRanges();
     classes = classes.filter((c) =>
-        doesClassMeetOnDate(c.id, dateString, allSchoolClasses, allScheduleOverrides, [], classEndDates)
+        doesClassMeetOnDate(c.id, dateString, allSchoolClasses, allScheduleOverrides, holidayRanges, classEndDates)
     );
     return classes.sort((a, b) => (a.timeStart || '99:99').localeCompare(b.timeStart || '99:99'));
 }
 
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+
 function isLessonBlockedByHoliday(date, schoolHolidayRanges = []) {
+    const iso = toIsoDay(date);
     return (schoolHolidayRanges || []).some((range) => {
         if (!range?.start || !range?.end) return false;
+        if (ISO_DAY.test(range.start) && ISO_DAY.test(range.end)) return iso >= range.start && iso <= range.end;
         const start = parseFlexibleDate(range.start);
         const end = parseFlexibleDate(range.end);
         if (!start || !end) return false;
@@ -585,10 +592,6 @@ export function doesClassMeetOnDate(classId, dateInput, allSchoolClasses = [], a
     if (!classData || !targetDate) return false;
 
     const dateString = getDDMMYYYY(targetDate);
-    if (isLessonBlockedByHoliday(targetDate, schoolHolidayRanges)) {
-        return false;
-    }
-
     const overridesForDay = (allScheduleOverrides || []).filter((override) =>
         override.date === dateString && override.classId === classId
     );
@@ -597,8 +600,13 @@ export function doesClassMeetOnDate(classId, dateInput, allSchoolClasses = [], a
         return false;
     }
 
+    // A lesson the teacher added for this one day runs even on a holiday (a make-up lesson).
     if (overridesForDay.some((override) => override.type === 'one-time')) {
         return true;
+    }
+
+    if (isLessonBlockedByHoliday(targetDate, schoolHolidayRanges)) {
+        return false;
     }
 
     if (isBeforeSchoolYearOpening(targetDate)) {
@@ -626,6 +634,13 @@ export function getClassDayChronicleInsight(classId, dateInput, allSchoolClasses
 
     const dateString = getDDMMYYYY(targetDate);
     const ranges = schoolHolidayRanges || [];
+    const overridesForDay = (allScheduleOverrides || []).filter((override) =>
+        override.date === dateString && override.classId === classId
+    );
+    const hasCancellation = overridesForDay.some((override) => override.type === 'cancelled');
+    if (!hasCancellation && overridesForDay.some((override) => override.type === 'one-time')) {
+        return { kind: 'lesson' };
+    }
 
     for (let i = 0; i < ranges.length; i++) {
         const range = ranges[i];
@@ -644,11 +659,7 @@ export function getClassDayChronicleInsight(classId, dateInput, allSchoolClasses
         }
     }
 
-    const overridesForDay = (allScheduleOverrides || []).filter((override) =>
-        override.date === dateString && override.classId === classId
-    );
-
-    if (overridesForDay.some((override) => override.type === 'cancelled')) {
+    if (hasCancellation) {
         return { kind: 'class_cancelled' };
     }
 

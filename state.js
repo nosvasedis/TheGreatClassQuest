@@ -6,6 +6,7 @@ import {
     normalizeSchoolYearState
 } from "./utils/schoolYear.js";
 import { setSchoolYearOpeningDay } from "./utils/schoolYearOpening.mjs";
+import { setSchoolCalendarSource } from "./utils/schoolCalendar.mjs";
 import { applyMovableNamedays } from "./features/namedayCalendar.mjs";
 
 // --- Internal State Store ---
@@ -73,7 +74,8 @@ function getDefaultState() {
         allEmberOaths: [],
         unsubscribeEmberOaths: () => {},
         hasLoadedEmberOaths: false,
-        schoolHolidayRanges: [], // Stores global holiday periods
+        schoolHolidayRanges: [], // Closures: built-in school calendar merged with the School Office's breaks
+        schoolHolidayRangesRaw: [], // The stored school_settings ranges (breaks + calendar choices)
         hasLoadedCalendarHistory: false, // NEW: Track if we have history
         hasLoadedCompletedStories: false,
         hasLoadedHeroChronicleNotes: false,
@@ -318,7 +320,10 @@ export function setSchoolSettingsLoaded(loaded) {
     state.schoolSettingsLoaded = loaded === true;
 }
 export function setSchoolWeatherLocation(location) {
+    const previousName = state.schoolWeatherLocation?.name || "";
     state.schoolWeatherLocation = location || null;
+    // The town decides its patron saint's day off, so the calendar follows the location.
+    if ((location?.name || "") !== previousName) _syncSchoolCalendar();
 }
 export function setSchoolAssessmentDefaults(defaults) {
     state.schoolAssessmentDefaults = defaults || null;
@@ -410,8 +415,19 @@ export function setAllHeroChronicleNotes(notes) {
     state.allHeroChronicleNotes = notes;
     _notify("allHeroChronicleNotes");
 }
+// school_settings/holidays `ranges` holds the School Office's own breaks plus its calendar
+// choices. Every screen reads the merged result (built-in Greek school calendar + those
+// breaks, never overlapping) from state.schoolHolidayRanges. See utils/schoolCalendar.mjs.
 export function setSchoolHolidayRanges(ranges) {
-    state.schoolHolidayRanges = ranges;
+    state.schoolHolidayRangesRaw = Array.isArray(ranges) ? ranges : [];
+    _syncSchoolCalendar();
+}
+function _syncSchoolCalendar() {
+    const calendar = setSchoolCalendarSource(state.schoolHolidayRangesRaw || [], {
+        locationName: state.schoolWeatherLocation?.name || "",
+    });
+    state.schoolHolidayRanges = calendar.ranges;
+    _notify("schoolHolidayRanges");
 }
 export function setUnsubscribeSchoolSettings(func) {
     state.unsubscribeSchoolSettings = func;

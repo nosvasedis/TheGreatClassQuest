@@ -471,19 +471,6 @@ export function setupUIListeners() {
                 handleDeleteAwardLog(logId);
             });
         }
-        const skyBtn = e.target.closest('.starfall-back-log-btn');
-        if (skyBtn) {
-            const { classId } = skyBtn.dataset;
-            import('../../features/pendingStarfall.js').then(({ todaysStarfallLogs, sendStarfallBackToSky }) => {
-                const count = todaysStarfallLogs(classId).length;
-                if (!count) return;
-                modals.showModal('Send the Starfall back to the sky?',
-                    `This takes back today's Starfall for ${count} scholar${count === 1 ? '' : 's'} in this class (stars, Gold and Glory) and saves it to fall in the class's next lesson, from the Starfall button in the Scholar's Scroll.`,
-                    () => { sendStarfallBackToSky(classId).then((done) => { if (done) modals.hideModal('logbook-modal'); }); },
-                    'Send back to the sky');
-            }).catch((error) => console.warn('Starfall take-back unavailable:', error));
-            return;
-        }
         const noteBtn = e.target.closest('.note-log-btn');
         if (noteBtn) {
             modals.openAwardNoteModal(noteBtn.dataset.logId);

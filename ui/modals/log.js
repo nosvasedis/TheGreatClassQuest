@@ -286,10 +286,6 @@ export async function showLogbookModal(dateString, isOndemand = false) {
                             <button type="button" class="note-log-btn qc-log-entry__btn qc-log-entry__btn--note" data-log-id="${escapeLogText(log.id)}" title="${log.note ? 'Edit note' : 'Add note'}" aria-label="${log.note ? 'Edit note' : 'Add note'} for ${escapeLogText(studentName)}">
                                 <i class="fas fa-${log.note ? 'pen' : 'sticky-note'}" aria-hidden="true"></i>
                             </button>
-                            ${log.reason === 'scholar_s_bonus' && log.date === utils.getTodayDateString() && log.classId ? `
-                            <button type="button" class="starfall-back-log-btn qc-log-entry__btn qc-log-entry__btn--sky" data-class-id="${escapeLogText(log.classId)}" title="Send today's Starfall back to wait for the next lesson" aria-label="Send today's Starfall back to wait for the next lesson">
-                                <i class="fas fa-moon" aria-hidden="true"></i>
-                            </button>` : ''}
                             ${canDelete ? `
                             <button type="button" class="delete-log-btn qc-log-entry__btn qc-log-entry__btn--delete" data-log-id="${escapeLogText(log.id)}" data-student-id="${escapeLogText(log.studentId)}" data-stars="${escapeLogText(log.stars)}" title="Delete entry" aria-label="Delete award for ${escapeLogText(studentName)}">
                                 <i class="fas fa-trash-alt" aria-hidden="true"></i>

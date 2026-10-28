@@ -303,6 +303,20 @@ const HOLIDAY_ART = {
     local: '<span class="qc-art__bell"></span>',
 };
 
+// Celebration days with lessons: a few floating shapes behind the tile (calendar_holidays.css).
+const CELEBRATION_ART = {
+    bats: '<span class="qc-art__bat" style="--x:18%;--y:42%;--d:0s"></span><span class="qc-art__bat" style="--x:62%;--y:58%;--d:1.1s"></span>',
+    hearts: '<span class="qc-art__heart" style="--x:14%;--d:0s"></span><span class="qc-art__heart" style="--x:52%;--d:1.6s"></span><span class="qc-art__heart" style="--x:80%;--d:3s"></span>',
+    clovers: '<span class="qc-art__clover" style="--x:12%"></span><span class="qc-art__clover" style="--x:46%"></span>',
+    leaves: '<span class="qc-art__leaf" style="--x:16%;--d:0s"></span><span class="qc-art__leaf" style="--x:58%;--d:2s"></span>',
+    sparks: '<span class="qc-art__spark" style="--x:16%;--y:46%;--d:0s"></span><span class="qc-art__spark" style="--x:52%;--y:70%;--d:.9s"></span><span class="qc-art__spark" style="--x:82%;--y:40%;--d:1.8s"></span>',
+    confetti: '<span class="qc-art__bit" style="--x:12%;--c:#f472b6;--d:0s"></span><span class="qc-art__bit" style="--x:38%;--c:#facc15;--d:1.2s"></span><span class="qc-art__bit" style="--x:64%;--c:#38bdf8;--d:2.1s"></span><span class="qc-art__bit" style="--x:86%;--c:#34d399;--d:.6s"></span>',
+};
+
+function celebrationArtHtml(art) {
+    return CELEBRATION_ART[art] || CELEBRATION_ART.confetti;
+}
+
 function holidayArtHtml(theme) {
     return HOLIDAY_ART[theme] || '';
 }
@@ -326,7 +340,8 @@ function renderMonthSpecials(items) {
         const label = range ? (range.name || item.label) : item.label;
         const icon = range ? (range.icon || item.icon) : item.icon;
         const state = item.closed ? 'No lessons' : (item.open ? 'Lessons as normal' : 'Special day');
-        return `<li class="qc-special-chip qc-special-chip--${escapeHtml(item.theme || 'break')}${item.closed ? ' qc-special-chip--closed' : ''}" title="${escapeHtml(`${label}: ${state}`)}">
+        const vars = item.colors ? ` style="--hol-a:${escapeHtml(item.colors[0])};--hol-b:${escapeHtml(item.colors[1])};--hol-ink:${escapeHtml(item.colors[2])};--hol-line:${escapeHtml(item.colors[2])}55"` : '';
+        return `<li class="qc-special-chip qc-special-chip--${escapeHtml(item.theme || 'break')}${item.closed ? ' qc-special-chip--closed' : ''}"${vars} title="${escapeHtml(`${label}: ${state}`)}">
             <span class="qc-special-chip__date">${escapeHtml(when)}</span>
             <span aria-hidden="true">${escapeHtml(icon || '📅')}</span>
             <span class="qc-special-chip__name">${escapeHtml(label)}</span>
@@ -341,21 +356,56 @@ function formatChipDate(iso) {
     return new Date(y, m - 1, d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
-function renderMonthStats({ stars, events, schoolDays, tests, daysOff = 0 }) {
+const STAT_DAY = (day) => day.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' });
+
+/** One hover card under a month chip: a title, a line of meaning, then the month's rows. */
+function statTipHtml(tone, title, lead, rows, empty) {
+    const list = rows.length
+        ? `<ul class="qc-tip__rows">${rows.slice(0, 6).map((r) => `
+            <li><span class="qc-tip__when">${escapeHtml(r.when || '')}</span><span class="qc-tip__what">${r.icon ? `<span aria-hidden="true">${escapeHtml(r.icon)}</span> ` : ''}${escapeHtml(r.what)}</span>${r.value != null ? `<b>${escapeHtml(String(r.value))}</b>` : ''}</li>`).join('')}</ul>
+            ${rows.length > 6 ? `<p class="qc-tip__more">and ${rows.length - 6} more</p>` : ''}`
+        : `<p class="qc-tip__empty">${escapeHtml(empty)}</p>`;
+    return `<span class="qc-tip qc-tip--${tone}" role="tooltip"><strong class="qc-tip__title">${escapeHtml(title)}</strong><span class="qc-tip__lead">${escapeHtml(lead)}</span>${list}</span>`;
+}
+
+function renderMonthStats({ stars, events, schoolDays, tests, daysOff = 0, detail = {} }, monthLabel = 'this month') {
     const host = document.getElementById('qc-month-stats');
     if (!host) return;
-    const pill = (tone, icon, value, label) => `
-        <span class="qc-stat qc-stat--${tone}" title="${escapeHtml(label)}">
+    const pill = (tone, icon, value, label, tip) => `
+        <span class="qc-stat qc-stat--${tone}" tabindex="0" aria-label="${escapeHtml(`${value} ${label}`)}">
             <span class="qc-stat__icon" aria-hidden="true">${icon}</span>
             <span class="qc-stat__value">${value}</span>
             <span class="qc-stat__label">${escapeHtml(label)}</span>
+            ${tip}
         </span>`;
+    const classes = new Map((state.get('allSchoolClasses') || []).map((c) => [c.id, c]));
+    const className = (id) => classes.get(id)?.name || 'A class';
+    const classLogo = (id) => classes.get(id)?.logo || '📚';
+
+    const starRows = Object.entries(detail.starsByClass || {}).sort((a, b) => b[1] - a[1])
+        .map(([id, n]) => ({ icon: classLogo(id), what: className(id), value: formatStarCount(n) }));
+    const best = detail.bestStarDay;
+    const lessonRows = Object.entries(detail.lessonsByClass || {}).sort((a, b) => b[1] - a[1])
+        .map(([id, n]) => ({ icon: classLogo(id), what: className(id), value: `${n} ${n === 1 ? 'lesson' : 'lessons'}` }));
+
     host.innerHTML = [
-        pill('stars', '<i class="fas fa-star"></i>', formatStarCount(stars), stars === 1 ? 'star' : 'stars'),
-        pill('events', '<i class="fas fa-wand-magic-sparkles"></i>', events, events === 1 ? 'event' : 'events'),
-        pill('days', '<i class="fas fa-school"></i>', schoolDays, schoolDays === 1 ? 'lesson day' : 'lesson days'),
-        tests ? pill('tests', '📝', tests, tests === 1 ? 'test' : 'tests') : '',
-        daysOff ? pill('off', '<i class="fas fa-umbrella-beach"></i>', daysOff, daysOff === 1 ? 'day off' : 'days off') : '',
+        pill('stars', '<i class="fas fa-star"></i>', formatStarCount(stars), stars === 1 ? 'star' : 'stars',
+            statTipHtml('stars', `${formatStarCount(stars)} ${stars === 1 ? 'star' : 'stars'} in ${monthLabel}`,
+                best ? `Brightest day: ${STAT_DAY(best.day)} with ${formatStarCount(best.stars)} ★` : 'Stars awarded to every class, all teachers together.',
+                starRows, 'No stars awarded yet. The first one is waiting!')),
+        pill('events', '<i class="fas fa-wand-magic-sparkles"></i>', events, events === 1 ? 'event' : 'events',
+            statTipHtml('events', `${events} quest ${events === 1 ? 'event' : 'events'}`, 'Special quest days planned on lesson days.',
+                (detail.events || []).map((e) => ({ when: STAT_DAY(e.day), what: e.title, icon: String(e.icon || '').split(' ')[0] })),
+                'Nothing planned yet. Open a day to add a quest event.')),
+        pill('days', '<i class="fas fa-school"></i>', schoolDays, schoolDays === 1 ? 'lesson day' : 'lesson days',
+            statTipHtml('days', `${schoolDays} lesson ${schoolDays === 1 ? 'day' : 'days'}`, `Days when at least one of your classes meets. ${detail.lessonTotal || 0} lessons in all.`,
+                lessonRows, 'None of your classes meet this month.')),
+        tests ? pill('tests', '📝', tests, tests === 1 ? 'test' : 'tests',
+            statTipHtml('tests', `${tests} ${tests === 1 ? 'test' : 'tests'}`, 'Tests set for your classes this month.',
+                (detail.tests || []).map((t) => ({ when: STAT_DAY(t.day), icon: classLogo(t.classId), what: t.title ? `${className(t.classId)} · ${t.title}` : className(t.classId) })), '')) : '',
+        daysOff ? pill('off', '<i class="fas fa-umbrella-beach"></i>', daysOff, daysOff === 1 ? 'day off' : 'days off',
+            statTipHtml('off', `${daysOff} ${daysOff === 1 ? 'weekday' : 'weekdays'} off`, 'School days with no lessons: holidays and breaks. Weekends are not counted.',
+                (detail.daysOff || []).map((d) => ({ when: d.when, icon: d.icon, what: d.label })), '')) : '',
     ].join('');
 }
 
@@ -431,6 +481,9 @@ export function renderCalendarTab(customLogs = null) {
     document.getElementById('calendar-today-btn')?.classList.toggle('hidden', isViewingThisMonth);
 
     const stats = { stars: 0, events: 0, schoolDays: 0, tests: 0, daysOff: 0 };
+    // What the hover cards on the month chips list (renderMonthStats).
+    const detail = { starsByClass: {}, bestStarDay: null, events: [], tests: [], lessonsByClass: {}, lessonTotal: 0, daysOff: [] };
+    const myClassIds = new Set((state.get('allTeachersClasses') || []).map((c) => c.id));
     const monthSpecials = [];
     const agendaSlices = {
         allSchoolClasses: state.get('allSchoolClasses'),
@@ -475,6 +528,8 @@ export function renderCalendarTab(customLogs = null) {
             ? `<span class="calendar-star-count qc-day__stars" title="${formatStarCount(agenda.starTotal)} stars awarded"><i class="fas fa-star" aria-hidden="true"></i>${formatStarCount(agenda.starTotal)}</span>`
             : '';
         stats.stars += agenda.starTotal;
+        Object.entries(agenda.starsByClass || {}).forEach(([id, n]) => { detail.starsByClass[id] = (detail.starsByClass[id] || 0) + n; });
+        if (agenda.starTotal > 0 && agenda.starTotal > (detail.bestStarDay?.stars || 0)) detail.bestStarDay = { day: agenda.day, stars: agenda.starTotal };
 
         if (agenda.isNoSchool) {
             const themeKey = String(agenda.theme || (agenda.holiday ? (agenda.holiday.type || 'generic') : 'cancelled')).replace(/[^a-z]/gi, '');
@@ -483,7 +538,7 @@ export function renderCalendarTab(customLogs = null) {
             const special = agenda.special;
             const subName = special?.nameEl && special.nameEl !== special.name ? special.nameEl : '';
             // Inside a long break only its first day and the named feasts carry the full stamp.
-            const quiet = edge.inside && !(special && special.key && special.kind !== 'closure') && !edge.first;
+            const quiet = edge.inside && !(special && special.key && special.key !== agenda.holiday?.key) && !edge.first;
             const runNote = edge.inside && special?.closureName && special.closureName !== agenda.holidayLabel ? special.closureName : '';
             dayCell.className = [
                 'calendar-day-cell calendar-holiday-cell qc-day qc-day--holiday',
@@ -496,8 +551,8 @@ export function renderCalendarTab(customLogs = null) {
                 edge.last ? 'qc-day--run-last' : '',
                 quiet ? 'qc-day--run-quiet' : '',
             ].filter(Boolean).join(' ');
-            dayCell.setAttribute('aria-label', `${longDate}: ${agenda.holidayLabel}${runNote ? ` (${runNote})` : ''}. No lessons. ${opensPlanner ? 'Open planner' : 'Open quest log'}`);
-            if (special?.blurb) dayCell.title = `${agenda.holidayLabel}${subName ? ` · ${subName}` : ''}\n${special.blurb}`;
+            dayCell.setAttribute('aria-label', `${longDate}: ${agenda.holidayLabel}${special?.also ? ` and ${special.also.name}` : ''}${runNote ? ` (${runNote})` : ''}. No lessons. ${opensPlanner ? 'Open planner' : 'Open quest log'}`);
+            if (special?.blurb) dayCell.title = `${agenda.holidayLabel}${subName ? ` · ${subName}` : ''}\n${special.blurb}${special.also ? `\n\n${special.also.icon} ${special.also.name}${special.also.blurb ? `: ${special.also.blurb}` : ''}` : ''}`;
             dayCell.innerHTML = `
                 <span class="qc-day__art qc-art--${themeKey}" aria-hidden="true">${holidayArtHtml(themeKey)}</span>
                 <div class="qc-day__head">${dayNumber}${starBadge}</div>
@@ -505,11 +560,25 @@ export function renderCalendarTab(customLogs = null) {
                     <span class="qc-day__stamp-icon" aria-hidden="true">${escapeHtml(agenda.holidayIcon || '📅')}</span>
                     <span class="qc-day__stamp-label">${escapeHtml(agenda.holidayLabel || 'No School')}</span>
                     ${subName && !quiet ? `<span class="qc-day__stamp-sub" lang="el">${escapeHtml(subName)}</span>` : ''}
+                    ${special?.also ? `<span class="qc-day__stamp-also"><span aria-hidden="true">${escapeHtml(special.also.icon)}</span> & ${escapeHtml(special.also.name)}</span>` : ''}
                     ${runNote && !quiet ? `<span class="qc-day__stamp-run">${escapeHtml(runNote)}</span>` : ''}
                 </div>
                 ${agenda.classes.length ? `<span class="qc-day__makeup" title="Extra lessons on this holiday">${agenda.classes.map(c => escapeHtml(c.logo || '🏫')).join('')} extra lesson${agenda.classes.length === 1 ? '' : 's'}</span>` : ''}`;
-            if (!isWeekend) stats.daysOff += 1;
-            monthSpecials.push({ day: i, label: agenda.holidayLabel, icon: agenda.holidayIcon, theme: themeKey, closed: true, holiday: agenda.holiday });
+            if (!isWeekend) {
+                stats.daysOff += 1;
+                // One row per holiday or break: consecutive weekdays of the same one are merged.
+                const label = agenda.holiday?.name && agenda.holiday.start !== agenda.holiday.end ? agenda.holiday.name : (agenda.holidayLabel || 'No school');
+                const lastOff = detail.daysOff[detail.daysOff.length - 1];
+                if (lastOff && lastOff.label === label && lastOff.lastDay >= i - 3) {
+                    lastOff.count += 1;
+                    lastOff.lastDay = i;
+                    lastOff.when = `${lastOff.firstLabel} – ${STAT_DAY(agenda.day)}`;
+                } else {
+                    const first = STAT_DAY(agenda.day);
+                    detail.daysOff.push({ label, icon: (label === agenda.holiday?.name && agenda.holiday?.icon) || agenda.holidayIcon, when: first, firstLabel: first, lastDay: i, count: 1 });
+                }
+            }
+            monthSpecials.push({ day: i, label: special?.also ? `${agenda.holidayLabel} & ${special.also.name}` : agenda.holidayLabel, icon: agenda.holidayIcon, theme: themeKey, closed: true, holiday: agenda.holiday });
             grid.appendChild(dayCell);
             continue;
         }
@@ -519,7 +588,14 @@ export function renderCalendarTab(customLogs = null) {
         const tests = agenda.classes.filter(c => c.testAssignment).length;
         stats.events += events.length;
         stats.tests += tests;
-        if (agenda.classes.some(c => (state.get('allTeachersClasses') || []).some(tc => tc.id === c.id))) stats.schoolDays += 1;
+        if (agenda.classes.some(c => myClassIds.has(c.id))) stats.schoolDays += 1;
+        agenda.classes.forEach((c) => {
+            if (!myClassIds.has(c.id)) return;
+            detail.lessonsByClass[c.id] = (detail.lessonsByClass[c.id] || 0) + 1;
+            detail.lessonTotal += 1;
+        });
+        events.forEach((e) => detail.events.push({ day: agenda.day, title: e.title, icon: e.icon }));
+        agenda.classes.filter(c => c.testAssignment).forEach((c) => detail.tests.push({ day: agenda.day, classId: c.id, title: c.testAssignment.testData?.title || '' }));
 
         const summaryBits = [
             agenda.classes.length ? `${agenda.classes.length} lesson${agenda.classes.length === 1 ? '' : 's'}` : 'no lessons',
@@ -546,7 +622,15 @@ export function renderCalendarTab(customLogs = null) {
         const special = agenda.special && agenda.special.key ? agenda.special : null;
         if (special) {
             dayCell.classList.add('qc-day--marked', `qc-day--theme-${special.theme}`);
-            monthSpecials.push({ day: i, label: special.name, icon: special.icon, theme: special.theme, closed: false, open: special.kind === 'closure' || special.kind === 'local' });
+            if (special.colors) {
+                const [a, b, ink] = special.colors;
+                dayCell.classList.add('qc-day--celebration');
+                dayCell.style.setProperty('--hol-a', a);
+                dayCell.style.setProperty('--hol-b', b);
+                dayCell.style.setProperty('--hol-ink', ink);
+                dayCell.style.setProperty('--hol-line', `${ink}55`);
+            }
+            monthSpecials.push({ day: i, label: special.name, icon: special.icon, theme: special.theme, colors: special.colors, closed: false, open: special.kind === 'closure' || special.kind === 'local' });
         }
         const specialRibbon = special
             ? `<div class="qc-day__special qc-special--${escapeHtml(special.theme)}" title="${escapeHtml(`${special.name}${special.nameEl && special.nameEl !== special.name ? ` · ${special.nameEl}` : ''}${special.blurb ? `\n${special.blurb}` : ''}`)}">
@@ -560,7 +644,11 @@ export function renderCalendarTab(customLogs = null) {
             : '';
         if (special) dayCell.setAttribute('aria-label', `${dayCell.getAttribute('aria-label')} ${special.name}.`);
 
+        const celebrationArt = special?.colors
+            ? `<span class="qc-day__art qc-art--${escapeHtml(special.art || 'confetti')}" aria-hidden="true">${celebrationArtHtml(special.art)}<span class="qc-day__watermark">${escapeHtml(special.icon)}</span></span>`
+            : '';
         dayCell.innerHTML = `
+            ${celebrationArt}
             <div class="qc-day__head">${dayNumber}${starBadge}</div>
             ${specialRibbon}${edgeTag}
             ${events.length ? `<div class="qc-day__events">${events.map(renderQuestEventRibbon).join('')}</div>` : ''}
@@ -578,7 +666,7 @@ export function renderCalendarTab(customLogs = null) {
     }
 
     if (loader && !isLoaderVisible) loader.classList.add('hidden');
-    renderMonthStats(stats);
+    renderMonthStats({ ...stats, detail }, new Date(year, month, 1).toLocaleDateString('en-GB', { month: 'long' }));
     renderMonthSpecials(monthSpecials);
 
 }

@@ -27,8 +27,9 @@ test('the 2026-27 frontistirio year closes on the days the law sets', () => {
     // Three Hierarchs was dropped for frontistiria in 2024: marked, lessons on.
     assert.equal(closedOn(cal, '2027-01-30'), null);
     assert.equal(describeSchoolDay('2027-01-30', cal).headline.name, 'Three Hierarchs Day');
-    // Christmas ends on 2 January; 3-5 January are school days.
-    assert.equal(closedOn(cal, '2027-01-04'), null);
+    // Christmas runs to 8 January (and its weekend); 11 January is a school day.
+    assert.ok(closedOn(cal, '2027-01-04'));
+    assert.equal(closedOn(cal, '2027-01-11'), null);
 });
 
 test('the Easter break runs two weeks, Holy Monday to Thomas Sunday', () => {
@@ -105,4 +106,31 @@ test('lessons stop on holidays everywhere, but a one-time lesson still runs', as
     const makeup = [{ classId: 'c1', date: '28-10-2026', type: 'one-time' }];
     assert.equal(getClassesOnDay('28-10-2026', classes, makeup, {}).length, 1);
     assert.equal(doesClassMeetOnDate('c1', '28-10-2026', classes, makeup, [{ start: '2026-10-28', end: '2026-10-28' }]), true);
+});
+
+test('Christmas runs to 8 January and through the weekend after it', () => {
+    const cal = buildSchoolCalendar([], NOW);
+    const xmas = cal.ranges.find((r) => r.key === 'christmas-break');
+    assert.equal(xmas.start, '2026-12-24');
+    // 8 January 2027 is a Friday: lessons start again on Monday 11 January.
+    assert.equal(xmas.end, '2027-01-10');
+    assert.equal(describeSchoolDay('2027-01-11', cal).breakEdge.edge, 'back-from');
+    assert.equal(describeSchoolDay('2027-01-06', cal).headline.name, 'Epiphany');
+});
+
+test('every day of the two Easter weeks has its own name, and shared dates show both days', () => {
+    const cal = buildSchoolCalendar([], NOW);
+    for (let d = new Date(Date.UTC(2027, 3, 26)); d <= new Date(Date.UTC(2027, 4, 9)); d.setUTCDate(d.getUTCDate() + 1)) {
+        const iso = d.toISOString().slice(0, 10);
+        const head = describeSchoolDay(iso, cal).headline;
+        assert.notEqual(head.name, 'Easter holidays', `${iso} has no name`);
+    }
+    // 2027: May Day falls on Holy Saturday.
+    const mayDay = describeSchoolDay('2027-05-01', cal).headline;
+    assert.equal(mayDay.name, 'May Day');
+    assert.equal(mayDay.also.name, 'Holy Saturday');
+    // 2028: they are apart (Easter is 16 April), so May Day stands alone.
+    const cal28 = buildSchoolCalendar([], { now: new Date(2027, 9, 1), yearsBack: 0, yearsAhead: 0 });
+    assert.equal(describeSchoolDay('2028-05-01', cal28).headline.also, undefined);
+    assert.equal(describeSchoolDay('2028-04-15', cal28).headline.name, 'Holy Saturday');
 });

@@ -112,3 +112,80 @@
     .office-cal-openday { grid-template-columns: 1fr; }
     .office-cal-mode span { display: none; }
 }
+
+/* Your own breaks: the same theme colours as the calendar tiles (qc-day--theme-* sets --hol-*). */
+.office-cal-subtitle small { display: block; margin-top: 0.15rem; font-family: inherit; font-size: 0.78rem; font-weight: 600; color: var(--office-muted); }
+.office-break-looks { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0; padding: 0; border: 0; }
+.office-break-looks legend { width: 100%; margin-bottom: 0.35rem; font-size: 0.78rem; font-weight: 800; color: var(--office-muted); }
+.office-break-look input { position: absolute; opacity: 0; pointer-events: none; }
+.office-break-look span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.8rem 0.4rem 0.55rem;
+    border: 1.5px solid var(--hol-line, #e2e8f0);
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: var(--hol-ink, #334155);
+    background: #fff;
+    cursor: pointer;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+.office-break-look b { font-size: 1.05rem; font-weight: 400; }
+.office-break-look input:checked + span { background: linear-gradient(135deg, var(--hol-a), var(--hol-b)); box-shadow: 0 0 0 2px var(--hol-line) inset, 0 3px 8px rgba(15, 23, 42, 0.08); }
+.office-break-look input:focus-visible + span { outline: 3px solid #93c5fd; outline-offset: 2px; }
+.office-break-look--winter { --hol-a: #f0f9ff; --hol-b: #fee2e2; --hol-ink: #991b1b; --hol-line: rgba(185, 28, 28, 0.35); }
+.office-break-look--spring { --hol-a: #f0fdf4; --hol-b: #fdf2f8; --hol-ink: #166534; --hol-line: rgba(21, 128, 61, 0.35); }
+.office-break-look--kites { --hol-a: #e0f2fe; --hol-b: #f0fdfa; --hol-ink: #0e7490; --hol-line: rgba(14, 116, 144, 0.4); }
+.office-break-look--summer { --hol-a: #fffbeb; --hol-b: #cffafe; --hol-ink: #92400e; --hol-line: rgba(217, 119, 6, 0.4); }
+.office-break-look--break { --hol-a: #f0fdfa; --hol-b: #ccfbf1; --hol-ink: #115e59; --hol-line: rgba(13, 148, 136, 0.4); }
+
+:where(.office-break-preview, .office-break) { --hol-a: #f0fdfa; --hol-b: #ccfbf1; --hol-ink: #115e59; --hol-line: rgba(13, 148, 136, 0.4); }
+.office-break-preview,
+.office-break {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid var(--hol-line);
+    border-left: 5px solid var(--hol-ink);
+    border-radius: 1rem;
+    background: linear-gradient(120deg, var(--hol-a), var(--hol-b));
+}
+.office-break-preview { grid-column: 1 / -1; margin: 0; }
+.office-break-preview[hidden] { display: none; }
+.office-break-preview--bad { border-color: #fecdd3; border-left-color: #e11d48; background: #fff1f2; color: #9f1239; font-size: 0.85rem; font-weight: 700; align-items: center; }
+.office-break-preview__icon,
+.office-break__icon { font-size: 1.6rem; line-height: 1; width: 2rem; text-align: center; }
+.office-break-preview__copy,
+.office-break__copy { display: flex; flex-direction: column; gap: 0.25rem; flex: 1; min-width: 0; }
+.office-break-preview__copy strong,
+.office-break__copy strong { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; font-family: 'Fredoka', sans-serif; font-size: 1rem; color: var(--hol-ink); }
+.office-break-preview__copy small,
+.office-break__copy small { font-size: 0.78rem; font-weight: 700; color: var(--office-ink); opacity: 0.75; }
+.office-break-note { display: flex; align-items: baseline; gap: 0.4rem; font-size: 0.76rem; font-weight: 700; color: #475569; }
+.office-break-note i { flex-shrink: 0; }
+.office-break-note--swap i { color: #2563eb; }
+.office-break-note--info i { color: #16a34a; }
+.office-break-note--warn { color: #b45309; }
+.office-holiday-list.office-holiday-list { display: flex; flex-direction: column; gap: 0.9rem; }
+.office-break-empty { margin: 0; padding: 0.9rem 1rem; border: 1.5px dashed #e5dcc6; border-radius: 1rem; font-size: 0.85rem; font-weight: 600; color: var(--office-muted); }
+.office-break-year h5 { margin: 0 0 0.45rem; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--office-muted); }
+.office-break-year ul { display: flex; flex-direction: column; gap: 0.45rem; margin: 0; padding: 0; list-style: none; }
+.office-break--past { opacity: 0.6; filter: saturate(0.6); }
+.office-break-tag { padding: 0.1rem 0.5rem; border-radius: 999px; font-family: inherit; font-size: 0.68rem; font-weight: 800; color: #475569; background: rgba(255, 255, 255, 0.8); }
+.office-break-tag--now { color: #fff; background: var(--hol-ink); }
+.office-break__remove {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 2.2rem;
+    height: 2.2rem;
+    border: 1px solid #fecdd3;
+    border-radius: 0.75rem;
+    color: #e11d48;
+    background: #fff;
+    cursor: pointer;
+}
+.office-break__remove:hover { background: #fff1f2; }

@@ -14,6 +14,7 @@ import { canUseFeature, getTier } from '../../utils/subscription.js';
 import { renderOfficeSign } from './signs.js';
 import { renderRegistry, renderLeagueTag } from './registry.js';
 import { renderFamilyLogins } from './familyLogins.js';
+import { renderBreakLookPicker } from './schoolCalendarPanel.js';
 
 const ADMIN_AREAS = [
     {
@@ -252,12 +253,13 @@ function renderSchoolSettings() {
                 </div>
                 <p class="secretary-admin-card__description">These days apply to every teacher, class calendar, and lesson count. The app knows the Greek holidays by itself; add your own breaks below.</p>
                 <div id="school-calendar-panel" class="office-cal"></div>
-                <h4 class="office-cal-subtitle">Your own breaks</h4>
+                <h4 class="office-cal-subtitle">Your own breaks <small>Only what your school does differently. They use the same looks as the calendar and win where they overlap it.</small></h4>
                 <div class="office-holiday-form">
-                    <label class="role-field office-holiday-form__name"><span>Break name</span><input type="text" id="holiday-name" placeholder="e.g. Christmas Break"></label>
-                    <label class="role-field"><span>Start date</span><input type="date" id="holiday-start"></label>
-                    <label class="role-field"><span>End date</span><input type="date" id="holiday-end"></label>
-                    <label class="role-field"><span>Theme</span><select id="holiday-type"><option value="christmas">Christmas / Winter</option><option value="easter">Easter / Spring</option><option value="generic">Generic / Other</option></select></label>
+                    <label class="role-field office-holiday-form__name"><span>Break name</span><input type="text" id="holiday-name" placeholder="e.g. School break" maxlength="60"></label>
+                    <label class="role-field"><span>First day off</span><input type="date" id="holiday-start"></label>
+                    <label class="role-field"><span>Last day off</span><input type="date" id="holiday-end"></label>
+                    <fieldset class="office-break-looks"><legend>Look</legend>${renderBreakLookPicker()}</fieldset>
+                    <p id="holiday-preview" class="office-break-preview" hidden aria-live="polite"></p>
                     <button type="button" id="add-holiday-btn" class="role-btn-primary office-holiday-form__add"><i class="fas fa-plus-circle"></i> Add school break</button>
                 </div>
                 <div id="holiday-list" class="office-holiday-list"></div>

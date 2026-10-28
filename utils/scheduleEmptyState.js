@@ -176,6 +176,7 @@ const THEME_EYEBROWS = {
     dove: 'Long weekend',
     summer: 'Summer holiday',
     local: 'Local feast day',
+    break: 'School break',
 };
 
 /** A holiday the school calendar knows by name: its own title, story and scene. */
@@ -186,9 +187,9 @@ function buildCalendarHolidayState(special, holiday) {
         : ((inBreak || !['winter', 'spring'].includes(special.theme)) && THEME_EYEBROWS[special.theme]) || 'Holiday';
     return {
         ...EMPTY_STATES.holiday,
-        title: special.name,
-        subtitle: special.nameEl && special.nameEl !== special.name ? special.nameEl : '',
-        message: special.blurb || `${special.name}: no lessons today. The party is resting!`,
+        title: special.also ? `${special.name} & ${special.also.name}` : special.name,
+        subtitle: [special.nameEl !== special.name && special.nameEl, special.also?.nameEl].filter(Boolean).join(' · '),
+        message: `${special.blurb || `${special.name}: no lessons today. The party is resting!`}${special.also ? ` It is also ${special.also.name} ${special.also.icon}` : ''}`.trim(),
         icon: special.icon || '📅',
         scene: THEME_SCENES[special.theme] || 'holiday',
         eyebrow,
@@ -200,7 +201,7 @@ function buildHolidayState(holiday, day) {
     const base = { ...EMPTY_STATES.holiday };
     if (!holiday) return base;
     const special = day ? describeSchoolDay(day).headline : null;
-    if (special && (special.official || holiday.official)) return buildCalendarHolidayState(special, holiday);
+    if (special) return buildCalendarHolidayState(special, holiday);
     if (holiday.type === 'christmas') {
         return {
             ...base,

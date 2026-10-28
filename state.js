@@ -6,7 +6,7 @@ import {
     normalizeSchoolYearState
 } from "./utils/schoolYear.js";
 import { setSchoolYearOpeningDay } from "./utils/schoolYearOpening.mjs";
-import { setSchoolCalendarSource } from "./utils/schoolCalendar.mjs";
+import { setSchoolCalendarSource, setSchoolCalendarMilestones, toIsoDay } from "./utils/schoolCalendar.mjs";
 import { applyMovableNamedays } from "./features/namedayCalendar.mjs";
 
 // --- Internal State Store ---
@@ -254,6 +254,7 @@ export function setCurrentUserProfile(profile) {
 }
 export function setTeacherSettings(settings) {
     state.teacherSettings = settings || {};
+    _syncSchoolCalendarMilestones();
     _notify("teacherSettings");
 }
 export function setUnsubscribeTeacherSettings(func) {
@@ -297,11 +298,24 @@ export function getActiveSchoolYearStartDate() {
 // year, whose start date lies in the future — applying it then would blank out the
 // just-finished year, so the bound only applies once the year is open.
 function _syncSchoolYearOpeningDay() {
+    _syncSchoolCalendarMilestones();
     if (isSchoolYearAwaitingOpen(state.schoolYearState)) {
         setSchoolYearOpeningDay(null);
         return;
     }
     setSchoolYearOpeningDay(getActiveSchoolYearStartDate());
+}
+// The Quest Calendar marks the year's first lesson day and this teacher's last one.
+function _syncSchoolCalendarMilestones() {
+    const open = !isSchoolYearAwaitingOpen(state.schoolYearState);
+    const ends = Object.values(state.teacherSettings?.schoolYearSettings?.classEndDates || {})
+        .map((value) => toIsoDay(value))
+        .filter(Boolean)
+        .sort();
+    setSchoolCalendarMilestones({
+        first: open ? toIsoDay(getActiveSchoolYearStartDate()) : "",
+        last: open ? ends[ends.length - 1] || "" : "",
+    });
 }
 export function getActiveSchoolYearEndDate() {
     const definition = getActiveSchoolYearDefinition();

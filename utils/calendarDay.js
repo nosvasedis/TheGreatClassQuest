@@ -95,7 +95,8 @@ export function getDayAgenda({
     let holidayIcon = null;
     if (isNoSchool) {
         if (holiday) {
-            const fromCalendar = special && (special.official || holiday.official);
+            // Built-in days and the School Office's own breaks share one look (utils/schoolCalendar.mjs).
+            const fromCalendar = Boolean(special);
             holidayLabel = fromCalendar ? special.name : (holiday.type === 'christmas' ? 'Winter Break' : (holiday.name || 'Holiday'));
             holidayIcon = fromCalendar ? special.icon : (holiday.type === 'christmas' ? '❄️' : (holiday.type === 'easter' ? '🐰' : '📅'));
         } else {
@@ -132,7 +133,12 @@ export function getDayAgenda({
         }));
 
     const logsForThisDay = (awardLogs || []).filter((log) => datesMatch(log.date, dateString));
-    const starTotal = logsForThisDay.reduce((sum, log) => sum + getAwardLogMonthlyStarCredit(log), 0);
+    const starsByClass = {};
+    const starTotal = logsForThisDay.reduce((sum, log) => {
+        const credit = getAwardLogMonthlyStarCredit(log);
+        if (log.classId) starsByClass[log.classId] = (starsByClass[log.classId] || 0) + credit;
+        return sum + credit;
+    }, 0);
 
     return {
         dateString: dateString || getDDMMYYYY(day),
@@ -150,5 +156,6 @@ export function getDayAgenda({
         classes,
         questEvents,
         starTotal,
+        starsByClass,
     };
 }

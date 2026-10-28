@@ -38,6 +38,7 @@ import {
     resolveScheduleEmptyState
 } from '../utils/scheduleEmptyState.js';
 import { buildScheduleEmptySceneHtml, buildScheduleDayNoteHtml } from '../utils/scheduleEmptyScene.js';
+import { upcomingSchoolDays } from '../utils/schoolCalendar.mjs';
 import { getGreetingSkyHtml, getDayRingEmblemHtml, startDayRingClock, syncDayRing } from './homeGreetingScene.js';
 import {
     currentHomeGreeting, greetingTitleInnerHtml, greetingLineInnerHtml, greetingGlintHtml, greetingBadgesHtml,
@@ -1258,6 +1259,25 @@ export async function maybeAutoShowGuideForTeacher(user) {
  * One consistent Home reminder badge: icon bubble · eyebrow + title · optional tag.
  * Text is escaped here; `avatarHtml` / `trailingHtml` / `attrs` are trusted markup.
  */
+// Holiday chip colours per school-calendar theme (tones defined in home_roster.css).
+const HOLIDAY_PILL_LOOKS = {
+    winter: { tone: 'holiday-winter' },
+    spring: { tone: 'holiday-easter' },
+    national: { tone: 'holiday', vars: '--pill-bg: linear-gradient(135deg, #eff6ff, #dbeafe); --pill-fg: #0d3b7a; --pill-icon-bg: linear-gradient(135deg, #3b82f6, #0d5eaf); --pill-border: rgba(13, 94, 175, 0.4); --pill-shadow: rgba(13, 94, 175, 0.25);' },
+    remembrance: { tone: 'holiday', vars: '--pill-bg: linear-gradient(135deg, #f8fafc, #e2e8f0); --pill-fg: #334155; --pill-icon-bg: linear-gradient(135deg, #64748b, #334155); --pill-border: rgba(51, 65, 85, 0.35); --pill-shadow: rgba(51, 65, 85, 0.2);' },
+    kites: { tone: 'holiday', vars: '--pill-bg: linear-gradient(135deg, #ecfeff, #cffafe); --pill-fg: #0e7490; --pill-icon-bg: linear-gradient(135deg, #22d3ee, #0891b2); --pill-border: rgba(8, 145, 178, 0.4); --pill-shadow: rgba(8, 145, 178, 0.25);' },
+    dove: { tone: 'holiday', vars: '--pill-bg: linear-gradient(135deg, #f0f9ff, #cffafe); --pill-fg: #155e75; --pill-icon-bg: linear-gradient(135deg, #38bdf8, #0284c7); --pill-border: rgba(2, 132, 199, 0.4); --pill-shadow: rgba(2, 132, 199, 0.25);' },
+    local: { tone: 'holiday', vars: '--pill-bg: linear-gradient(135deg, #fffbeb, #fef3c7); --pill-fg: #92400e; --pill-icon-bg: linear-gradient(135deg, #fbbf24, #d97706); --pill-border: rgba(217, 119, 6, 0.4); --pill-shadow: rgba(217, 119, 6, 0.25);' },
+    summer: { tone: 'holiday', vars: '--pill-bg: linear-gradient(135deg, #fffbeb, #cffafe); --pill-fg: #92400e; --pill-icon-bg: linear-gradient(135deg, #fbbf24, #f97316); --pill-border: rgba(217, 119, 6, 0.4); --pill-shadow: rgba(217, 119, 6, 0.25);' },
+    flowers: { tone: 'holiday' },
+    break: { tone: 'holiday' },
+};
+
+function formatPillDate(iso) {
+    const [y, m, d] = String(iso).split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
 function reminderPill({ tone = 'event', icon = '', emoji = '', avatarHtml = '', eyebrow = '', title = '', tag = '', trailingHtml = '', extraClass = '', tagName = 'div', attrs = '' }) {
     const lead = avatarHtml
         || `<span class="home-pill__icon" aria-hidden="true">${emoji ? escapeHtml(emoji) : `<i class="fas ${escapeHtml(icon)}"></i>`}</span>`;
@@ -1419,39 +1439,39 @@ function getReminderPills(classId) {
         }
     }
 
-    // 3. UPCOMING HOLIDAYS (Restored)
-    const holidays = state.get('schoolHolidayRanges') || [];
-    const upcomingHoliday = holidays.find(h => {
-        const startDate = new Date(h.start);
-        return startDate >= now && startDate <= endOfMonth;
-    });
-
-    if (upcomingHoliday) {
-        const startDate = new Date(upcomingHoliday.start);
-        const diffTime = startDate - now;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        let label = upcomingHoliday.name;
-        let icon = 'fa-umbrella-beach';
-        let tone = 'holiday';
-        let timeText = diffDays === 0 ? "Starts Today!" : (diffDays === 1 ? "Starts Tomorrow!" : `in ${diffDays} days`);
-
-        if (upcomingHoliday.official && upcomingHoliday.icon) {
-            label = `${upcomingHoliday.icon} ${label}`;
-            if (upcomingHoliday.theme === 'winter') { icon = 'fa-snowflake'; tone = 'holiday-winter'; }
-            else if (upcomingHoliday.theme === 'spring') { icon = 'fa-egg'; tone = 'holiday-easter'; }
-            else if (upcomingHoliday.theme === 'national') icon = 'fa-flag';
-        } else if (label.toLowerCase().includes('christmas') || label.toLowerCase().includes('winter')) {
-            icon = 'fa-snowflake';
-            tone = 'holiday-winter';
-            label = `🎄 ${label}`;
-        } else if (label.toLowerCase().includes('easter')) {
-            icon = 'fa-egg';
-            tone = 'holiday-easter';
-            label = `🐰 ${label}`; // Added Bunny Emoji here!
-        }
-
-        pills.push(reminderPill({ tone, icon, eyebrow: 'Holiday', title: label, tag: timeText }));
+    // 3. HOLIDAYS AND CELEBRATIONS from the school calendar (utils/schoolCalendar.mjs):
+    // the holiday going on today or coming within three weeks, and a celebration day
+    // (lessons as normal) today or within the week.
+    const calendarDays = upcomingSchoolDays(now);
+    if (calendarDays.holiday) {
+        const { range, special, phase, inDays, singleDay } = calendarDays.holiday;
+        const look = HOLIDAY_PILL_LOOKS[special?.theme] || HOLIDAY_PILL_LOOKS.break;
+        const name = phase === 'today' ? ((special?.also ? `${special.name} & ${special.also.name}` : special?.name) || range.name || 'Holiday') : (range.name || special?.name || 'Holiday');
+        const emoji = (phase === 'today' ? special?.icon : range.icon) || special?.icon || '🏖️';
+        const endLabel = formatPillDate(range.end);
+        const tag = phase === 'today'
+            ? (singleDay ? 'Today' : `Until ${endLabel}`)
+            : (inDays === 1 ? 'Tomorrow' : `in ${inDays} days`);
+        pills.push(reminderPill({
+            tone: look.tone,
+            emoji,
+            eyebrow: phase === 'today' ? 'Holiday today · no lessons' : (singleDay ? 'Holiday' : 'Break'),
+            title: name,
+            tag,
+            attrs: look.vars ? `style="${look.vars}"` : '',
+        }));
+    }
+    if (calendarDays.celebration) {
+        const { special, inDays } = calendarDays.celebration;
+        const [light, , ink] = special.colors;
+        pills.push(reminderPill({
+            tone: 'celebration',
+            emoji: special.icon,
+            eyebrow: inDays === 0 ? 'Today · lessons as normal' : 'Coming up',
+            title: special.name,
+            tag: inDays === 0 ? 'Today!' : (inDays === 1 ? 'Tomorrow' : `in ${inDays} days`),
+            attrs: `style="--pill-bg: linear-gradient(135deg, ${light}, #fff); --pill-fg: ${ink}; --pill-icon-bg: ${ink}; --pill-border: ${ink}55; --pill-shadow: ${ink}33;"`,
+        }));
     }
 
     // 4. QUEST EVENTS (Test/Vocab/etc) — use smart date parser (any format)

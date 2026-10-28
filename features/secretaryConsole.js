@@ -11,7 +11,7 @@ import {
     handleSaveSchoolLocationFromOptions
 } from '../db/actions/school.js';
 import { handleAddHolidayRange, handleDeleteHolidayRange, handleSetSchoolCalendarRule, handleAddOpenSchoolDay } from '../db/actions/log.js';
-import { handleSchoolCalendarPanelClick, handleSchoolCalendarPanelChange } from './secretary/schoolCalendarPanel.js';
+import { handleSchoolCalendarPanelClick, handleSchoolCalendarPanelChange, updateOwnBreakPreview } from './secretary/schoolCalendarPanel.js';
 import { renderHolidayList } from '../ui/core/misc.js';
 import { auth, EmailAuthProvider, reauthenticateWithCredential } from '../firebaseAuth.js';
 import { isOnlineBillingAvailable, requestBillingPortal } from '../utils/billingCheckout.js';
@@ -718,10 +718,21 @@ export function wireSecretaryConsoleListeners({ onLogout, onSelectThread }) {
     });
 
     document.getElementById('secretary-screen')?.addEventListener('change', (event) => {
+        if (event.target.closest('.office-holiday-form')) {
+            // Picking a first day fills the last day too, so a one-day break is one pick.
+            const end = document.getElementById('holiday-end');
+            if (event.target.id === 'holiday-start' && end && (!end.value || end.value < event.target.value)) end.value = event.target.value;
+            updateOwnBreakPreview();
+            return;
+        }
         handleSchoolCalendarPanelChange(event, SCHOOL_CALENDAR_ACTIONS);
     });
 
     document.getElementById('secretary-screen')?.addEventListener('input', (event) => {
+        if (event.target.id === 'holiday-name') {
+            updateOwnBreakPreview();
+            return;
+        }
         if (event.target.id === 'secretary-class-filter') {
             state.setSecretaryView({ classFilter: event.target.value, schoolSubTab: 'classes' });
             refreshSecretarySearch('school');

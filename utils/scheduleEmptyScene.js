@@ -273,5 +273,9 @@ export function buildScheduleDayNoteHtml(dateLike = new Date(), { compact = fals
             : `🔔 Welcome back from ${escapeText(name)}!`}</span>`);
     }
     const theme = special?.theme || (edge?.edge === 'back-from' ? 'back' : 'edge');
-    return `<div class="schedule-day-note schedule-day-note--${escapeText(theme)}${compact ? ' schedule-day-note--compact' : ''}" role="note">${bits.join('')}</div>`;
+    const vars = special?.colors
+        ? ` style="--sdn-a:${escapeText(special.colors[0])};--sdn-b:${escapeText(special.colors[1])};--sdn-ink:${escapeText(special.colors[2])};--sdn-line:${escapeText(special.colors[2])}55"`
+        : '';
+    const watermark = special?.colors ? `<span class="schedule-day-note__watermark" aria-hidden="true">${escapeText(special.icon)}</span>` : '';
+    return `<div class="schedule-day-note schedule-day-note--${escapeText(theme)}${special?.colors ? ' schedule-day-note--celebration' : ''}${compact ? ' schedule-day-note--compact' : ''}"${vars} role="note">${watermark}${bits.join('')}</div>`;
 }

@@ -1,6 +1,6 @@
 // School calendar preview: the real Quest Calendar, Home rest scenes, Planner glance and School
 // Office panel with sample classes, no Firebase.
-// /school-calendar-preview.html?view=calendar|scenes|office[&month=2026-10][&mobile=1][&city=Thessaloniki]
+// /school-calendar-preview.html?view=calendar|scenes|office|breaks[&month=2026-10][&mobile=1][&city=Thessaloniki]
 import * as state from './state.js';
 import { calendarTabHTML } from './templates/app/tabs/calendar.js';
 import { renderCalendarTab } from './ui/tabs/selectors.js';
@@ -26,7 +26,16 @@ state.set('allTeachersClasses', classes);
 state.set('allScheduleOverrides', []);
 state.set('allQuestEvents', []);
 state.set('allQuestAssignments', []);
-state.set('allAwardLogs', []);
+state.set('schoolYearState', { activeYearKey: '2026-2027' });
+state.set('allAwardLogs', params.has('sample') ? [
+    { date: '05-10-2026', classId: 'c1', stars: 6, schoolYearKey: '2026-2027' }, { date: '05-10-2026', classId: 'c3', stars: 4, schoolYearKey: '2026-2027' },
+    { date: '07-10-2026', classId: 'c4', stars: 9, schoolYearKey: '2026-2027' }, { date: '13-10-2026', classId: 'c2', stars: 5, schoolYearKey: '2026-2027' },
+    { date: '21-10-2026', classId: 'c4', stars: 3, schoolYearKey: '2026-2027' },
+] : []);
+if (params.has('sample')) {
+    state.set('allQuestEvents', [{ id: 'e1', dateKey: '2026-10-07', type: 'double_star_day' }, { id: 'e2', dateKey: '2026-10-30', type: 'reason_bonus_day' }]);
+    state.set('allQuestAssignments', [{ id: 'q1', classId: 'c1', testData: { date: '2026-10-19', title: 'Unit 2 test' } }]);
+}
 if (params.get('city')) state.setSchoolWeatherLocation({ name: params.get('city'), latitude: 0, longitude: 0 });
 state.setSchoolHolidayRanges(JSON.parse(params.get('ranges') || '[]'));
 
@@ -49,4 +58,20 @@ if (view === 'calendar') {
 } else if (view === 'office') {
     root.innerHTML = `<div class="pv-office role-shell--secretary office-admin"><article class="role-card secretary-admin-card secretary-settings-card"><div id="school-calendar-panel" class="office-cal"></div></article></div>`;
     import('./features/secretary/schoolCalendarPanel.js').then((m) => m.renderSchoolCalendarPanel());
+} else if (view === 'breaks') {
+    // ?view=breaks&ranges=[...]&start=2026-12-21&end=2027-01-08&type=christmas
+    const m = await import('./features/secretary/schoolCalendarPanel.js');
+    root.innerHTML = `<div class="pv-office role-shell--secretary office-admin"><article class="role-card secretary-admin-card secretary-settings-card">
+        <h4 class="office-cal-subtitle">Your own breaks <small>Only what your school does differently. They use the same looks as the calendar and win where they overlap it.</small></h4>
+        <div class="office-holiday-form">
+            <label class="role-field office-holiday-form__name"><span>Break name</span><input type="text" id="holiday-name" placeholder="e.g. School break"></label>
+            <label class="role-field"><span>First day off</span><input type="date" id="holiday-start" value="${params.get('start') || ''}"></label>
+            <label class="role-field"><span>Last day off</span><input type="date" id="holiday-end" value="${params.get('end') || ''}"></label>
+            <fieldset class="office-break-looks"><legend>Look</legend>${m.renderBreakLookPicker(params.get('type') || 'generic')}</fieldset>
+            <p id="holiday-preview" class="office-break-preview" hidden></p>
+            <button type="button" id="add-holiday-btn" class="role-btn-primary office-holiday-form__add"><i class="fas fa-plus-circle"></i> Add school break</button>
+        </div>
+        <div id="holiday-list" class="office-holiday-list"></div></article></div>`;
+    m.updateOwnBreakPreview();
+    m.renderOwnBreaksList();
 }

@@ -40,6 +40,7 @@ import { monthlyStarsChange } from './monthlyStars.js';
 import { calculateHeroGold } from '../../features/heroClasses.js';
 import { computeHeroLevel, getHeroReason, heroClassEarnsFrom } from '../../features/heroSkillTree.js';
 import { getLiveYearGold, getLiveYearGoldContextFromState } from '../../utils/yearGold.js';
+import { breakLookFor } from '../../utils/schoolCalendar.mjs';
 
 export async function addOrUpdateHeroChronicleNote(studentId, noteText, category, noteId = null) {
     if (!studentId || !noteText || !category) {
@@ -1085,13 +1086,14 @@ export async function handleCancelLesson(dateString, classId) {
 }
 
 export async function handleAddHolidayRange() {
-    const name = document.getElementById('holiday-name').value;
-    const type = document.getElementById('holiday-type').value;
+    const type = document.querySelector('input[name="holiday-type"]:checked')?.value || 'generic';
+    // An empty name takes the look's own name ("Autumn break"), like the calendar does.
+    const name = document.getElementById('holiday-name').value.trim() || breakLookFor(type).name;
     const start = document.getElementById('holiday-start').value;
     const end = document.getElementById('holiday-end').value;
 
-    if (!name || !start || !end) {
-        showToast("Please fill in all fields.", "error");
+    if (!start || !end) {
+        showToast("Choose the first and last day off.", "error");
         return;
     }
     if (start > end) {
@@ -1117,15 +1119,17 @@ export async function handleAddHolidayRange() {
             transaction.set(settingsRef, { ...existing, ranges }, { merge: true });
         });
         
-        showToast("Holiday range added!", "success");
+        showToast(`${breakLookFor(type).icon} ${name} added to the calendar!`, "success");
         document.getElementById('holiday-name').value = '';
         document.getElementById('holiday-start').value = '';
         document.getElementById('holiday-end').value = '';
+        const preview = document.getElementById('holiday-preview');
+        if (preview) preview.hidden = true;
     } catch (e) {
         console.error(e);
         showToast("Error saving holiday.", "error");
     } finally {
-        btn.disabled = false; btn.innerHTML = '<i class="fas fa-plus-circle mr-2"></i> Add Range';
+        btn.disabled = false; btn.innerHTML = '<i class="fas fa-plus-circle"></i> Add school break';
     }
 }
 

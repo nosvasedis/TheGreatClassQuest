@@ -1,7 +1,8 @@
 // /features/dayTreasure.js
 // Day Treasures (features/dayTreasureCore.mjs): opening a special day's chest for a class.
-// The payout runs once per class, in one transaction: every hero's Gold and a receipt on the
-// class (`dayTreasures.<eventId>`). Opening it again only replays the reveal from the receipt.
+// The payout runs once per class: a receipt on the class (`dayTreasures.<eventId>`), then every
+// hero's Gold in small transactions (see payTreasure). Opening it again only replays the reveal
+// from the receipt, or finishes a payout that was cut short.
 // Which days and classes: features/dayTreasureDays.js. The chests: dayTreasureArt.js. The music:
 // dayTreasureSound.js.
 //
@@ -11,7 +12,7 @@
 
 import '../styles/day_treasure.css';
 import * as state from '../state.js';
-import { db, doc, runTransaction, serverTimestamp } from '../firebase.js';
+import { db, doc, runTransaction, serverTimestamp, updateDoc, arrayUnion, deleteField } from '../firebase.js';
 import { getLiveYearGold, getLiveYearGoldContextFromState } from '../utils/yearGold.js';
 import { PUBLIC_DATA_PATH as DATA } from '../utils/tenant.mjs';
 import { rollDayTreasure, tierLabel } from './dayTreasureCore.mjs';
@@ -33,28 +34,26 @@ function studentsOf(classId) {
     return (state.get('allStudents') || []).filter((s) => s.classId === classId && s.enrollmentStatus !== 'inactive');
 }
 
+// Firestore rules may look up at most 20 documents per commit, and each hero's Gold costs about
+// two (its score and its student), so a whole class in one transaction is refused from about 9
+// heroes. The payout is therefore a claim (the receipt, marked `pending`) and then small
+// transactions of a few heroes each, every one adding its heroes to the receipt's `paidIds` so a
+// retry, or another laptop, carries on where it stopped and never pays a hero twice.
+const HEROES_PER_COMMIT = 6;
+
 /** Pay the chest once for a class with the shares rolled from `seed`; returns the receipt (new or already there). */
 async function payTreasure(event, classId, seed) {
     const classRef = doc(db, `${DATA}/classes`, classId);
     const eventRef = doc(db, `${DATA}/quest_events`, event.id);
-    const students = studentsOf(classId);
+    const field = `dayTreasures.${event.id}`;
     const goldContext = getLiveYearGoldContextFromState(state);
-    return runTransaction(db, async (transaction) => {
+
+    const claimed = await runTransaction(db, async (transaction) => {
         const classSnap = await transaction.get(classRef);
         if (!classSnap.exists()) throw new Error('The class could not be found.');
         const existing = classSnap.data()?.dayTreasures?.[event.id];
-        if (existing) return { ...existing, replay: true };
-        const reads = await Promise.all(students.map(async (s) => {
-            const ref = doc(db, `${DATA}/student_scores`, s.id);
-            return { id: s.id, ref, snap: await transaction.get(ref) };
-        }));
-        const present = reads.filter((r) => r.snap.exists());
-        const shares = rollDayTreasure(present.map((r) => r.id), seed);
-        const byId = new Map(shares.map((s) => [s.studentId, s]));
-        present.forEach((r) => {
-            const share = byId.get(r.id);
-            if (share) transaction.update(r.ref, { gold: getLiveYearGold(r.snap.data(), goldContext) + share.gold });
-        });
+        if (existing) return existing.pending ? existing : { ...existing, replay: true };
+        const shares = rollDayTreasure(studentsOf(classId).map((s) => s.id), seed);
         const receipt = {
             dateKey: event.dateKey || event.date,
             openedOn: utils.getTodayDateString(),
@@ -63,12 +62,43 @@ async function payTreasure(event, classId, seed) {
             shares,
             total: shares.reduce((sum, s) => sum + s.gold, 0),
             openedBy: { uid: state.get('currentUserId') || '', name: state.get('currentTeacherName') || '' },
+            pending: true,
+            paidIds: [],
         };
-        transaction.update(classRef, { [`dayTreasures.${event.id}`]: { ...receipt, openedAt: serverTimestamp() } });
-        // A class's own (older) treasure event is done once opened; a school-wide one stays for the other classes.
-        if (!isSchoolTreasure(event) && event.classId === classId) transaction.update(eventRef, { status: 'completed', updatedAt: serverTimestamp() });
+        transaction.update(classRef, { [field]: { ...receipt, openedAt: serverTimestamp() } });
         return receipt;
     });
+    if (claimed.replay) return claimed;
+
+    const shares = claimed.shares || [];
+    const already = new Set(claimed.paidIds || []);
+    const todo = shares.filter((s) => !already.has(s.studentId));
+    for (let i = 0; i < todo.length; i += HEROES_PER_COMMIT) {
+        const chunk = todo.slice(i, i + HEROES_PER_COMMIT);
+        await runTransaction(db, async (transaction) => {
+            const classSnap = await transaction.get(classRef);
+            const paid = new Set(classSnap.data()?.dayTreasures?.[event.id]?.paidIds || []);
+            const fresh = chunk.filter((s) => !paid.has(s.studentId));
+            if (!fresh.length) return;
+            const reads = await Promise.all(fresh.map(async (share) => {
+                const ref = doc(db, `${DATA}/student_scores`, share.studentId);
+                return { share, ref, snap: await transaction.get(ref) };
+            }));
+            // A hero with no score yet is skipped (marked paid so it is not tried forever).
+            reads.forEach(({ share, ref, snap }) => {
+                if (snap.exists()) transaction.update(ref, { gold: getLiveYearGold(snap.data(), goldContext) + share.gold });
+            });
+            transaction.update(classRef, { [`${field}.paidIds`]: arrayUnion(...fresh.map((s) => s.studentId)) });
+        });
+    }
+
+    await updateDoc(classRef, { [`${field}.pending`]: deleteField(), [`${field}.paidIds`]: deleteField() });
+    // A class's own (older) treasure event is done once opened; a school-wide one stays for the other classes.
+    if (!isSchoolTreasure(event) && event.classId === classId) {
+        await updateDoc(eventRef, { status: 'completed', updatedAt: serverTimestamp() }).catch((e) => console.warn('Day Treasure event status:', e));
+    }
+    const { pending, paidIds, ...receipt } = claimed;
+    return receipt;
 }
 
 /** Open (or replay) the active class's treasure. Other classes open theirs in their own lesson. */
@@ -220,7 +250,7 @@ function showTreasureStage({ event, cls, special, receipt }) {
         // Roll now with the transaction's seed: the reveal shows the very shares being saved.
         const seed = `${event.id}:${cls.id}:${Date.now()}`;
         const preview = receipt || { shares: rollDayTreasure(studentsOf(cls.id).map((s) => s.id), seed) };
-        const saving = receipt ? Promise.resolve(receipt) : payTreasure(event, cls.id, seed);
+        const saving = receipt && !receipt.pending ? Promise.resolve(receipt) : payTreasure(event, cls.id, seed);
         saving.catch(() => {});
 
         hint.textContent = ' ';
@@ -306,7 +336,7 @@ async function finish({ stage, saving, preview, cls, music, fxLayer, confettiCol
             await revealHeroes({ stage, shares: saved.shares || [], music, fxLayer, burstLayer: stage.querySelector('.dt-chest__burst'), confettiColors, isClosed: () => !stage.isConnected });
         }
         const sum = saved.total ?? (saved.shares || []).reduce((n, s) => n + s.gold, 0);
-        const before = Boolean(receipt || saved.replay);
+        const before = Boolean((receipt && !receipt.pending) || saved.replay);
         total.innerHTML = `<i class="dt-hero__coin" aria-hidden="true"></i> <b>0</b> Gold for ${esc(cls.name || 'the class')}${before ? ' · opened before' : ''}`;
         total.classList.add('is-done');
         countUp(total.querySelector('b'), sum, 1100);

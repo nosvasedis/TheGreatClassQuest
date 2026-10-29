@@ -20,7 +20,7 @@ export const SHOWDOWN_ACTIONS = Object.freeze(['open', 'point', 'minus', 'next',
  */
 export const DUEL_ACTIONS = Object.freeze(['duel-open', 'duel-rule', 'duel-shuffle', 'duel-here', 'duel-move', 'duel-arena', 'duel-fresh', 'duel-setup',
     'duel-pick', 'duel-suggest', 'duel-clear', 'duel-start', 'duel-point', 'duel-crown', 'duel-share', 'duel-cancel', 'duel-undo',
-    'duel-finish', 'duel-back', 'duel-pay', 'duel-close']);
+    'duel-finish', 'duel-back', 'duel-pay', 'duel-close', 'duel-music']);
 export const DUEL_RULES = Object.freeze({
     teams: ['0', '2', '3', '4', '5', '6'],
     source: ['today', 'guild', 'stars', 'random'],

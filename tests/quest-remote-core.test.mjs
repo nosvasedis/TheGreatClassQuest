@@ -1171,6 +1171,7 @@ test('Hero Duels rides the showdown command with duel- actions', () => {
     assert.equal(ok({ action: 'duel-pick', studentId: 's1' }), true);
     assert.equal(ok({ action: 'duel-crown', studentId: 's1' }), true);
     assert.equal(ok({ action: 'duel-start' }), true);
+    assert.equal(ok({ action: 'duel-music' }), true, 'the arena music switch');
     assert.equal(ok({ action: 'duel-hack' }), false);
     // Plain showdown actions are untouched.
     assert.equal(ok({ action: 'open' }), true);
@@ -1195,4 +1196,15 @@ test('the Wand can rename a team (a banner slot, a short name, a listed icon)', 
     assert.equal(ok({ action: 'team-look', team: 6, name: 'x' }), false);
     assert.equal(ok({ action: 'team-look', team: 1, emoji: '🐉' }), false);
     assert.equal(ok({ action: 'team-look', team: 1, name: 'x'.repeat(80) }), false);
+});
+
+test('the Wand celebrates each crowning once and carries the music switch', async () => {
+    const { duelsWandHtml } = await import('../features/questRemote/duelsWandView.mjs');
+    const base = { kind: 'duels', view: 'pick', duelNo: 4, size: 2, picked: 0, heroes: [], teams: [], className: 'Owls', music: true };
+    const html = duelsWandHtml({ ...base, crownN: 3, crownNames: 'Maria & Nikos', crownGain: 5, crownTeam: '🦊 Foxes', crownColor: '#f97316' });
+    assert.match(html, /data-qw-key="qwd-crowned-3"/, 'a new banner per duel, so its confetti plays once');
+    assert.match(html, /Maria &amp; Nikos/);
+    assert.match(html, /data-action="duel-music"[^>]*aria-pressed="true"/);
+    assert.doesNotMatch(duelsWandHtml(base), /qwd-crowned/, 'nothing to celebrate before the first crown');
+    assert.match(duelsWandHtml({ ...base, music: false }), /aria-pressed="false"/);
 });

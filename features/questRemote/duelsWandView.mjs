@@ -5,6 +5,7 @@
 // Styles: styles/quest_remote_duels.css.
 
 import { esc } from './remoteWandView.mjs';
+import { CREST_SVG, CROWN_SVG } from '../../ui/modals/heroDuelsArt.mjs';
 
 const cmd = (action, extra = '') => `data-qw-cmd="showdown" data-action="${action}"${extra ? ` ${extra}` : ''}`;
 
@@ -24,10 +25,29 @@ function seg(rule, value, options) {
 
 function headHtml(panel, title, sub = '') {
     return `<header class="qwd-head" data-qw-key="qwd-head">
-        <span class="qwd-head__crest" aria-hidden="true">⚔️</span>
+        <span class="qwd-head__crest" aria-hidden="true">${CREST_SVG}</span>
         <div><h2 class="qw-h2">${esc(title)}</h2><p>${esc(sub || panel.className || '')}</p></div>
-        ${panel.undo && panel.view !== 'setup' ? `<button type="button" class="qw-roundbtn" ${cmd('duel-undo')} aria-label="Undo"><i class="fas fa-rotate-left"></i></button>` : ''}
+        <button type="button" class="qwd-iconbtn${panel.music ? ' is-on' : ''}" ${cmd('duel-music')} aria-pressed="${Boolean(panel.music)}" aria-label="${panel.music ? 'Turn the arena music off' : 'Turn the arena music on'}"><i class="fas ${panel.music ? 'fa-music' : 'fa-volume-xmark'}"></i></button>
+        ${panel.undo && panel.view !== 'setup' ? `<button type="button" class="qwd-iconbtn" ${cmd('duel-undo')} aria-label="Undo"><i class="fas fa-rotate-left"></i></button>` : ''}
     </header>`;
+}
+
+/** The last crowning, celebrated on the phone too: a new banner (with its own confetti) per duel. */
+function crownedHtml(panel) {
+    if (!panel.crownN) return '';
+    return `<div class="qwd-crowned" data-qw-key="qwd-crowned-${esc(panel.crownN)}" style="${panel.crownColor ? `--team:${esc(panel.crownColor)}` : ''}" role="status">
+        <span class="qwd-crowned__confetti" aria-hidden="true">${'<i></i>'.repeat(12)}</span>
+        <span class="qwd-crowned__crown" aria-hidden="true">${CROWN_SVG}</span>
+        <span class="qwd-crowned__text"><small>Duel ${esc(panel.crownN)} winner</small><b>${esc(panel.crownNames)}</b></span>
+        ${panel.crownGain ? `<span class="qwd-crowned__gain">+${esc(panel.crownGain)}${panel.crownTeam ? `<small>${esc(panel.crownTeam)}</small>` : ''}</span>` : ''}
+    </div>`;
+}
+
+/** Each duellist's share of the duel's points, as one bar in their colours. */
+function powerHtml(fighters) {
+    const scores = fighters.map((f) => Math.max(0, Number(f.s) || 0));
+    const total = scores.reduce((a, b) => a + b, 0);
+    return `<div class="qwd-power" aria-hidden="true">${fighters.map((f, i) => `<i style="--team:${esc(f.color)};flex-grow:${total ? scores[i] / total : 1}"></i>`).join('')}</div>`;
 }
 
 function teamsHtml(panel) {
@@ -37,8 +57,8 @@ function teamsHtml(panel) {
         <div class="qwd-team${t.lead ? ' is-lead' : ''}" style="--team:${esc(t.color)};--fill:${((Number(t.pts) || 0) / top).toFixed(3)}" data-qw-key="qwd-team-${i}">
             <span class="qwd-team__fill" aria-hidden="true"></span>
             <span class="qwd-team__emoji" aria-hidden="true">${esc(t.emoji)}</span><span class="qwd-team__name">${esc(t.name)}</span>
-            ${t.lead ? '<i class="fas fa-crown qwd-team__crown" aria-label="In front"></i>' : ''}
-            <b>${esc(t.pts)}</b>
+            ${t.lead ? `<span class="qwd-team__crown" aria-label="In front">${CROWN_SVG}</span>` : ''}
+            <b class="qwd-coin">${esc(t.pts)}</b>
         </div>`).join('')}</div>`;
 }
 
@@ -46,7 +66,7 @@ function teamsHtml(panel) {
 export function duelsLauncherHtml({ className = '' } = {}) {
     return `<section class="qw-show qwd">
         <div class="qwd-launch">
-            <div class="qwd-launch__swords" aria-hidden="true"><span>⚔️</span></div>
+            <div class="qwd-launch__swords" aria-hidden="true"><span>${CREST_SVG}</span></div>
             <h2 class="qw-h2">Hero Duels</h2>
             <p>Every hero on the big screen on their own. Pick a few, give the points, crown the winner, pick the next ones. Big teams can collect every duel's points.</p>
             <button type="button" class="qw-btn qw-btn--gold qw-btn--wide" ${cmd('duel-open')}><i class="fas fa-bolt" aria-hidden="true"></i> Open Hero Duels${className ? ` for ${esc(className)}` : ''}</button>
@@ -96,8 +116,9 @@ function setupHtml(panel) {
 function pickHtml(panel, avatarOf) {
     const ready = panel.picked >= 2;
     return `<section class="qw-show qwd${panel.rolling ? ' is-rolling' : ''}">
-        ${headHtml(panel, `Duel ${panel.duelNo}`, panel.last || `${panel.className} · who duels next?`)}
+        ${headHtml(panel, `Duel ${panel.duelNo}`, `${panel.className} · who duels next?`)}
         ${teamsHtml(panel)}
+        ${crownedHtml(panel)}
         <div class="qwd-pickbar" data-qw-key="qwd-pickbar">
             <button type="button" class="qw-btn qw-btn--ghost qwd-pickbar__dice" ${cmd('duel-suggest')}${panel.rolling ? ' disabled' : ''}><i class="fas fa-dice" aria-hidden="true"></i> Pick ${esc(panel.size)}</button>
             <button type="button" class="qw-btn qw-btn--gold qwd-pickbar__go" ${cmd('duel-start')}${ready ? '' : ' disabled'}><i class="fas fa-bolt" aria-hidden="true"></i> ${ready ? `Start: ${esc(panel.picked)} heroes` : 'Tap 2 to 6 heroes'}</button>
@@ -105,11 +126,12 @@ function pickHtml(panel, avatarOf) {
         <p class="qw-hint qwd-hint">${panel.waiting ? `${esc(panel.waiting)} not duelled yet · ` : ''}tap a hero to pick or unpick${panel.picked ? ` · <button type="button" class="qwd-link" ${cmd('duel-clear')}>clear</button>` : ''}</p>
         <div class="qwd-heroes">${(panel.heroes || []).map((h) => `
             <button type="button" class="qwd-hero${h.k ? ' is-picked' : ''}${h.d ? '' : ' is-new'}" style="${h.c ? `--team:${esc(h.c)}` : ''}" ${cmd('duel-pick', `data-student="${esc(h.id)}"`)} data-qw-key="qwd-h-${esc(h.id)}" aria-pressed="${Boolean(h.k)}">
+                <span class="qwd-hero__band" aria-hidden="true"></span>
                 ${h.k ? `<span class="qwd-hero__no">${esc(h.k)}</span>` : ''}
-                ${h.w ? `<span class="qwd-hero__crowns"><i class="fas fa-crown" aria-hidden="true"></i>${h.w > 1 ? esc(h.w) : ''}</span>` : ''}
+                ${h.w ? `<span class="qwd-hero__crowns">${CROWN_SVG}${h.w > 1 ? `<b>${esc(h.w)}</b>` : ''}</span>` : ''}
                 ${face(h, avatarOf)}
                 <span class="qwd-hero__name">${esc(h.n)}</span>
-                <b class="qwd-hero__pts">${esc(h.p)}</b>
+                <span class="qwd-hero__foot"><b class="qwd-hero__pts">${esc(h.p)}</b>${h.d ? '' : '<em>New!</em>'}</span>
             </button>`).join('')}</div>
         <div class="qw-showctrl">
             <button type="button" class="qw-roundbtn qw-roundbtn--lg" ${cmd('duel-setup')} aria-label="Players, teams and rules"><i class="fas fa-sliders"></i><small>Rules</small></button>
@@ -125,13 +147,14 @@ function duelHtml(panel, avatarOf) {
     return `<section class="qw-show qwd">
         ${headHtml(panel, `Duel ${panel.duelNo}`, `${panel.target ? `First to ${panel.target}` : 'You crown the winner'}${panel.bonus ? ` · winner +${panel.bonus}` : ''}`)}
         ${teamsHtml(panel)}
+        ${powerHtml(fighters)}
         <div class="qwd-fighters" style="--n:${fighters.length}">${fighters.map((f, i) => `
             ${i ? '<span class="qwd-vs" aria-hidden="true">VS</span>' : ''}
             <div class="qwd-fighter${f.lead ? ' is-lead' : ''}${f.lead && panel.tie ? ' is-tied' : ''}" style="--team:${esc(f.color)}" data-qw-key="qwd-f-${esc(f.id)}">
                 <div class="qwd-fighter__who">
                     ${face(f, avatarOf, 'qwd-face qwd-face--lg')}
                     <span class="qwd-fighter__text"><b>${esc(f.n)}</b>${f.team ? `<small>${esc(f.team)}</small>` : ''}</span>
-                    <span class="qwd-fighter__score">${esc(f.s)}</span>
+                    <span class="qwd-fighter__score qwd-coin">${esc(f.s)}</span>
                 </div>
                 <div class="qwd-fighter__pad">
                     <button type="button" class="qwd-pt qwd-pt--minus" ${cmd('duel-point', `data-student="${esc(f.id)}" data-delta="-1"`)} aria-label="Take a point from ${esc(f.n)}">−1</button>
@@ -155,11 +178,11 @@ function finaleHtml(panel) {
     return `<section class="qw-show qwd">
         <div class="qw-showintro">
             <div class="qw-showintro__lights" aria-hidden="true"><i></i><i></i><i></i></div>
-            <span class="qw-showintro__badge" aria-hidden="true"><i class="fas fa-trophy"></i></span>
+            <span class="qw-showintro__badge qwd-trophy" aria-hidden="true">${CROWN_SVG}</span>
             <h2 class="qw-h2">${esc(panel.champ || 'The champions are crowned')}</h2>
             <p>${esc(panel.duels)} ${panel.duels === 1 ? 'duel' : 'duels'} fought</p>
             ${teamsHtml(panel)}
-            ${panel.podium?.length ? `<ol class="qwd-podium">${panel.podium.map((x) => `<li><span>${medal[x.place] || x.place}</span><b>${esc(x.n)}</b><small>${esc(x.p)} pts</small></li>`).join('')}</ol>` : ''}
+            ${panel.podium?.length ? `<ol class="qwd-podium">${panel.podium.map((x) => `<li><span>${medal[x.place] || x.place}</span><b>${esc(x.n)}</b><small>${esc(x.p)} ${Number(x.p) === 1 ? 'pt' : 'pts'}</small></li>`).join('')}</ol>` : ''}
         </div>
         <div class="qw-forge__card">
             <h3 class="qw-forge__h"><i class="fas fa-star" aria-hidden="true"></i> Reward stars (optional)</h3>

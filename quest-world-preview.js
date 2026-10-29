@@ -1,7 +1,8 @@
 // Quest World preview (dev only): the real Team Quest map with a fake league,
 // driven by the app's real sky pipeline (skyWeatherStage) with a chosen weather and time.
 // &inside=owls,books marks those parties as already through the Portal this month;
-// &over=owls:121 puts them past the goal, on the Starward Way.
+// &over=owls:121 puts them past the goal, up in the Crystal Sky; &mine=owls makes that the
+// class in session (the map then opens in the sky).
 import { evaluatePortal } from './features/questRanksCore.mjs';
 import './styles/sky_weather.css';
 import './styles/team_quest_map_living.css';
@@ -98,7 +99,7 @@ function applySky() {
 }
 
 function draw({ replay = false } = {}) {
-    renderLeagueMapInto(slot, league(Number(leaderInput.value)), { activeClassId: 'books' });
+    renderLeagueMapInto(slot, league(Number(leaderInput.value)), { activeClassId: new URLSearchParams(location.search).get('mine') || 'books' });
     initializeLivingQuestMap(slot, { leagueKey: leagueSelect.value, replay });
     applySky();
 }
@@ -124,6 +125,10 @@ timeSelect.addEventListener('change', applySky);
 weatherSelect.addEventListener('change', applySky);
 leagueSelect.addEventListener('change', () => draw());
 document.getElementById('pv-find').addEventListener('click', () => getActiveLivingQuestMap()?.focusClass('books'));
+document.getElementById('pv-sky').addEventListener('click', () => {
+    const map = getActiveLivingQuestMap();
+    map?.showView(map.view === 'sky' ? 'land' : 'sky');
+});
 // What the header's general view does: the map rolls up and waits; a class unrolls it again.
 const generalButton = document.getElementById('pv-general');
 generalButton.addEventListener('click', async () => {

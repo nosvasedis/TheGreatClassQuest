@@ -56,14 +56,14 @@ export function describePlace(placeId, parties = []) {
             id: 'beyond',
             title: 'The Starward Way',
             kind: 'Beyond the Portal',
-            desc: 'Parties through the Portal that keep gathering stars climb the stars. Every stone is 5% more of the month’s goal.',
+            desc: 'Above the clouds, parties through the Portal that keep gathering stars climb to the Star Crown. Every stone is 5% more of the month’s goal.',
             from: `From 100% of the goal · the Star Crown at ${BEYOND_MAX}%`,
             here: climbing.length ? climbing : through,
             status: through.length ? 'here' : 'ahead',
             climbing: climbing.length,
             furthest: front ? { name: front.name, logo: front.logo, reach: front.reach, mark: mark?.label || '' } : null,
             gap: 0,
-            hint: 'Click to open the Portal'
+            hint: 'Click to rise to the Crystal Sky'
         };
     }
     const here = safe

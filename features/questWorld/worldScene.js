@@ -324,6 +324,7 @@ export function mountQuestWorld(root, { tier = 'full' } = {}) {
         d.intensity = scene.intensity || 'normal';
         d.night = scene.isNight ? '1' : '0';
         root.dataset.night = d.night;
+        root.dataset.light = scene.light;
         d.sun = scene.sun ? '1' : '0';
         d.moon = scene.moon ? '1' : '0';
         d.stars = !scene.stars ? '0' : scene.shootingStars ? '2' : '1';

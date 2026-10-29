@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
     BEYOND_MAX,
     beyondLanes,
+    beyondLitShare,
     beyondMarkFor,
     beyondPoint,
     beyondShare,
@@ -10,7 +11,8 @@ import {
     isBeyond,
     nextBeyondMark
 } from '../features/questWorld/starwardWay.mjs';
-import { PORTAL, SAFE_MARGIN, WORLD_W } from '../features/questWorld/worldGeometry.mjs';
+import { readFileSync } from 'node:fs';
+import { crystalSkyHtml, crystalSkyInkSvg, skyWayHtml } from '../features/questWorld/crystalSky.mjs';
 import { describePlace, placeTipHtml } from '../features/questWorld/placeTips.mjs';
 import { describeQuestRaceGaps, describeQuestRaceLine } from '../features/teamQuestRace.mjs';
 
@@ -25,16 +27,16 @@ test('a party steps onto the Starward Way just past its goal and stops at the St
     assert.deepEqual(beyondPoint(240), beyondPoint(BEYOND_MAX));
 });
 
-test('the Way leaves the Portal, climbs into the sky and stays inside the world', () => {
+test('the Way rises out of the cloud sea and climbs the Crystal Sky to the Crown', () => {
     const start = beyondPoint(100);
-    assert.ok(Math.hypot(start.x - PORTAL.x, start.y - PORTAL.y) < 90, 'starts at the Portal');
-    let lastX = Infinity;
+    const crown = beyondPoint(BEYOND_MAX);
+    assert.ok(start.y > 800, 'starts low, at the Portal in the clouds');
+    assert.ok(crown.y < 200, 'ends high, at the Crown');
+    assert.ok(beyondPoint(105).y < 790, 'the first stone is already above the clouds');
     for (let reach = 100; reach <= BEYOND_MAX; reach += 2.5) {
         const point = beyondPoint(reach);
-        assert.ok(point.x < lastX, 'heads away from the Portal');
-        assert.ok(point.x > SAFE_MARGIN && point.x < WORLD_W - SAFE_MARGIN);
-        assert.ok(point.y > 60 && point.y < 260, `in the sky at ${reach}%: ${point.y}`);
-        lastX = point.x;
+        assert.ok(point.x > 120 && point.x < 1480, `inside the sky at ${reach}%: ${point.x}`);
+        assert.ok(point.y > 100 && point.y < 900, `inside the sky at ${reach}%: ${point.y}`);
     }
     // Every 5% of the goal is about the same distance along the Way.
     const steps = [];
@@ -43,7 +45,26 @@ test('the Way leaves the Portal, climbs into the sky and stays inside the world'
         const b = beyondPoint(reach);
         steps.push(Math.hypot(b.x - a.x, b.y - a.y));
     }
-    assert.ok(Math.max(...steps) - Math.min(...steps) < 4);
+    assert.ok(Math.max(...steps) / Math.min(...steps) < 1.25);
+    assert.equal(beyondLitShare(100), 0);
+    assert.ok(beyondLitShare(125) > 0.5 && beyondLitShare(125) < 0.56);
+    assert.equal(Math.round(beyondLitShare(BEYOND_MAX) * 1000), 1000);
+});
+
+test('the Crystal Sky is drawn once and moves only by transform and opacity', () => {
+    const html = crystalSkyHtml({ vortexSrc: 'v.webp', wayHtml: skyWayHtml(121) });
+    assert.match(html, /tqs-isle/);
+    assert.match(html, /tqs-portal/);
+    assert.match(html, /Moonstep/);
+    assert.match(html, /is-reached/);
+    assert.match(crystalSkyInkSvg(), /tq-living-map__ink-sky/);
+    const css = readFileSync(new URL('../styles/quest_sky.css', import.meta.url), 'utf8');
+    const frames = [...css.matchAll(/@keyframes\s+[\w-]+\s*\{([\s\S]*?)\}\s*\}/g)].map((match) => match[1]);
+    assert.ok(frames.length > 5);
+    frames.forEach((body) => {
+        const props = [...body.matchAll(/([a-z-]+)\s*:/g)].map((match) => match[1]);
+        props.forEach((prop) => assert.ok(['transform', 'opacity', 'translate'].includes(prop), `keyframes animate ${prop}`));
+    });
 });
 
 test('stones light up as far as the furthest party, with named marks', () => {

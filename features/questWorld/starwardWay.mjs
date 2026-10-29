@@ -1,13 +1,12 @@
 /**
  * The Starward Way: the road beyond the Crystal Portal. A party that has stepped
- * through the Portal and keeps gathering stars climbs a path of star stones that
- * arcs from the Portal across the sky, to the Star Crown at 150% of its goal.
+ * through the Portal and keeps gathering stars climbs a path of star stones up
+ * through the Crystal Sky (the view above the map, features/questWorld/crystalSky.mjs),
+ * from the Portal's light below to the Star Crown at 150% of its goal.
  * Pure (no DOM): features/worldMap.js draws the stones and places the parties.
  *
- * Coordinates are the painted world's (worldGeometry.mjs: 1600 × 900).
+ * Coordinates are the Crystal Sky's, the same size as the painted world (1600 × 900).
  */
-
-import { PORTAL } from './worldGeometry.mjs';
 
 /** A party steps out of the Portal onto the Way from this share of its goal. */
 export const BEYOND_FROM = 101;
@@ -23,36 +22,42 @@ export const BEYOND_MARKS = Object.freeze([
     Object.freeze({ at: 150, id: 'crown', label: 'The Star Crown' })
 ]);
 
-// The arc: out of the Portal, over the Golden Citadel's spires, and down into the open
-// sky between the citadel and the mountain (traced on the painted land).
-const P0 = [PORTAL.x - 8, PORTAL.y - 13];
-const C1 = [1330, 100];
-const C2 = [1110, 80];
-const P3 = [935, 200];
-// The first stretch hides behind the Portal's own light.
-const T_START = 0.14;
+// The Way, as the points it passes through: up out of the Portal's light (under the
+// cloud sea, just right of centre), winding between the sky islands to the Crown.
+export const WAY_POINTS = Object.freeze([
+    [1000, 905], [1026, 768], [1178, 700], [1306, 606], [1180, 518], [930, 516],
+    [770, 438], [802, 320], [962, 252], [906, 150]
+]);
+// The first stretch rises out of the clouds before the first stone.
+const T_START = 0.035;
 
 /** Parties further than this many percent apart walk side by side, not on top of each other. */
-const LANE_GAP = 58;
+const LANE_GAP = 74;
 
-const bezier = (t) => {
-    const u = 1 - t;
-    const a = u * u * u;
-    const b = 3 * u * u * t;
-    const c = 3 * u * t * t;
-    const d = t * t * t;
-    return [a * P0[0] + b * C1[0] + c * C2[0] + d * P3[0], a * P0[1] + b * C1[1] + c * C2[1] + d * P3[1]];
+// A Catmull-Rom curve through WAY_POINTS, t from 0 to 1.
+const curve = (t) => {
+    const pts = WAY_POINTS;
+    const span = pts.length - 1;
+    const f = Math.min(span - 1e-9, Math.max(0, t * span));
+    const i = Math.floor(f);
+    const u = f - i;
+    const p0 = pts[Math.max(0, i - 1)];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[Math.min(span, i + 2)];
+    const at = (k) => 0.5 * ((2 * p1[k]) + (-p0[k] + p2[k]) * u + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * u * u + (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * u * u * u);
+    return [at(0), at(1)];
 };
 
 // Arc-length table, so 5% of the goal is the same distance anywhere on the Way.
 const TABLE = (() => {
-    const steps = 240;
+    const steps = 600;
     const rows = [];
     let length = 0;
-    let last = bezier(T_START);
+    let last = curve(T_START);
     for (let i = 0; i <= steps; i++) {
         const t = T_START + ((1 - T_START) * i) / steps;
-        const point = bezier(t);
+        const point = curve(t);
         length += Math.hypot(point[0] - last[0], point[1] - last[1]);
         rows.push({ t, length, x: point[0], y: point[1] });
         last = point;
@@ -89,18 +94,44 @@ export function beyondPoint(reach, lane = 0) {
     const dx = after.x - before.x;
     const dy = after.y - before.y;
     const size = Math.hypot(dx, dy) || 1;
-    // The normal that points down, towards the land.
-    let nx = -dy / size;
-    let ny = dx / size;
-    if (ny < 0) { nx = -nx; ny = -ny; }
+    // The normal on the Way's right-hand side as it climbs.
+    const nx = -dy / size;
+    const ny = dx / size;
     const offset = (Number(lane) || 0) * LANE_GAP;
     return { x: x + nx * offset, y: y + ny * offset, normalX: nx, normalY: ny };
 }
 
-/** The Way as an SVG path (the world's viewBox). */
-export function beyondPathD() {
-    const sampled = TABLE.filter((_, index) => index % 8 === 0 || index === TABLE.length - 1);
+/** The Way as an SVG path (the sky's viewBox), from `fromT` of the curve (below the clouds) to the Crown. */
+export function beyondPathD({ fromStart = false } = {}) {
+    const head = [];
+    if (fromStart) {
+        for (let i = 0; i < 6; i++) {
+            const point = curve((T_START * i) / 6);
+            head.push({ x: point[0], y: point[1] });
+        }
+    }
+    const sampled = [...head, ...TABLE.filter((_, index) => index % 6 === 0 || index === TABLE.length - 1)];
     return sampled.map((row, index) => `${index ? 'L' : 'M'}${row.x.toFixed(1)} ${row.y.toFixed(1)}`).join(' ');
+}
+
+/** The share of beyondPathD({ fromStart: true }) lit for a party at `reach`% (the hidden start counts). */
+export function beyondLitShare(reach) {
+    const share = beyondShare(reach);
+    if (share <= 0) return 0;
+    let head = 0;
+    let last = curve(0);
+    for (let i = 1; i <= 6; i++) {
+        const point = curve((T_START * i) / 6);
+        head += Math.hypot(point[0] - last[0], point[1] - last[1]);
+        last = point;
+    }
+    return (head + share * TOTAL) / (head + TOTAL);
+}
+
+/** Where the Way leaves the Portal's light (the very start of the curve). */
+export function beyondFoot() {
+    const [x, y] = curve(0);
+    return { x, y };
 }
 
 /**

@@ -1,5 +1,6 @@
 // features/worldMap.js
 import '../styles/quest_ranks.css';
+import '../styles/quest_sky.css';
 import * as state from '../state.js'; // Import state to get live scores
 import * as utils from '../utils.js';
 
@@ -27,7 +28,11 @@ import {
     routeSegments
 } from './questWorld/worldGeometry.mjs';
 import { describePlace, placeTipHtml } from './questWorld/placeTips.mjs';
-import { BEYOND_MAX, beyondLanes, beyondMarkFor, beyondPathD, beyondPoint, beyondShare, beyondStones, isBeyond, nextBeyondMark } from './questWorld/starwardWay.mjs';
+import { BEYOND_MAX, beyondLanes, beyondMarkFor, beyondPoint, isBeyond, nextBeyondMark } from './questWorld/starwardWay.mjs';
+import { crystalSkyHtml, crystalSkyInkSvg, skyWayHtml } from './questWorld/crystalSky.mjs';
+
+// The way up to the Crystal Sky sits on the land just left of the Portal.
+const SKYWARD_AT = Object.freeze({ x: PORTAL.x - 118, y: PORTAL.y - 30 });
 import { PAINTED_PROPS } from './questWorld/worldArt.mjs';
 import { rankForLevel, portalStatusLine } from './questRanksCore.mjs';
 import { rankCrestSvg, renderRuneMarks } from './questRankCrest.mjs';
@@ -321,64 +326,33 @@ const textStamp = (text) => {
 
 const formatReach = (reach) => `${Math.floor(Math.max(0, Number(reach) || 0))}%`;
 
-/** Four-pointed star, `s` from its heart to a tip. */
-const starPath = (s) => {
-    const k = s * 0.3;
-    return `M0 ${-s}L${k} ${-k}L${s} 0L${k} ${k}L0 ${s}L${-k} ${k}L${-s} 0L${-k} ${-k}Z`;
-};
-
 /**
- * The Starward Way beyond the Portal: drawn once a party has stepped through. Its
- * stones light up as far as the furthest party has climbed; the Star Crown waits at
- * the end (features/questWorld/starwardWay.mjs).
+ * The way up to the Crystal Sky, on the map beside the Portal: shown once a party
+ * is past its goal, with the crests of the parties up there.
  */
-function renderStarwardWay(items) {
-    const through = items.filter((item) => item.inside);
-    if (!through.length) return '';
-    const furthest = Math.max(...through.map((item) => Number(item.reach) || 0));
-    const lit = beyondShare(furthest);
-    const stones = beyondStones(furthest);
-    const lead = [...stones].reverse().find((stone) => stone.lit) || null;
-    const d = beyondPathD();
-    const crown = stones[stones.length - 1];
-    const crownDots = [[-20, 0], [-21, -19], [-10, -8], [0, -27], [10, -8], [21, -19], [20, 0]];
-    const stoneHtml = stones.map((stone, index) => {
-        const size = stone.kind === 'stone' ? 8 : stone.kind === 'knot' ? 12 : 14;
-        return `<g class="tq-beyond__stone tq-beyond__stone--${stone.kind}${stone.lit ? ' is-lit' : ''}${stone === lead ? ' is-lead' : ''}" transform="translate(${stone.x} ${stone.y})">
-                <g class="tq-beyond__pop" style="--i:${index}">
-                    <circle class="tq-beyond__halo" r="${size * 2.4}"></circle>
-                    <path class="tq-beyond__star" d="${starPath(size)}"></path>
-                </g>
-            </g>`;
-    }).join('');
-    const crownHtml = `<g class="tq-beyond__crown${crown.lit ? ' is-lit' : ''}" transform="translate(${crown.x} ${crown.y - 30}) scale(1.2)">
-            <g class="tq-beyond__pop" style="--i:${stones.length}">
-                <polyline class="tq-beyond__crown-line" points="${crownDots.map(([x, y]) => `${x},${y}`).join(' ')} -20,0"></polyline>
-                ${crownDots.map(([x, y], index) => `<path class="tq-beyond__crown-star" d="${starPath(index % 2 ? 3.4 : 5.2)}" transform="translate(${x} ${y})"></path>`).join('')}
-            </g>
-        </g>`;
-    const hit = beyondPoint(125);
+function renderSkywardButton(items) {
+    const up = items.filter((item) => item.beyond).sort((a, b) => b.reach - a.reach);
+    if (!up.length) return '';
+    const crests = up.slice(0, 3).map((item) => `<span class="tq-skyward__crest${item.isMine ? ' is-mine' : ''}">${escapeMapHtml(item.c.logo || '📚')}</span>`).join('');
+    const more = up.length > 3 ? `<span class="tq-skyward__crest tq-skyward__crest--more">+${up.length - 3}</span>` : '';
+    const names = up.map((item) => `${item.c.name || 'Class'} ${formatReach(item.reach)}`).join(', ');
     return `
-        <svg class="tq-beyond" viewBox="0 0 ${MAP_VIEWBOX_WIDTH} ${MAP_VIEWBOX_HEIGHT}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-            <defs>
-                <radialGradient id="tq-beyond-halo">
-                    <stop offset="0%" stop-color="#fff7d6" stop-opacity="0.95"></stop>
-                    <stop offset="35%" stop-color="#ffd978" stop-opacity="0.55"></stop>
-                    <stop offset="100%" stop-color="#ffb84d" stop-opacity="0"></stop>
-                </radialGradient>
-            </defs>
-            <path class="tq-beyond__trail-shade" d="${d}"></path>
-            <path class="tq-beyond__trail" d="${d}"></path>
-            ${lit > 0 ? `<path class="tq-beyond__trail-glow" d="${d}" pathLength="100" style="stroke-dasharray:${(lit * 100).toFixed(2)} 100"></path>
-            <path class="tq-beyond__trail-lit" d="${d}" pathLength="100" style="stroke-dasharray:${(lit * 100).toFixed(2)} 100"></path>` : ''}
-            ${stoneHtml}
-            ${crownHtml}
-        </svg>
-        <button type="button" class="tq-place tq-place--beyond portal-trigger" data-place="beyond"
-                style="left:${(((hit.x - 190) / MAP_VIEWBOX_WIDTH) * 100).toFixed(3)}%;top:${(((hit.y - 60) / MAP_VIEWBOX_HEIGHT) * 100).toFixed(3)}%;width:${((380 / MAP_VIEWBOX_WIDTH) * 100).toFixed(3)}%;height:${((120 / MAP_VIEWBOX_HEIGHT) * 100).toFixed(3)}%;--place-glow:${PLACE_GLOW.beyond}"
-                aria-label="The Starward Way, beyond the Crystal Portal: open the Portal">
-            <span class="tq-place__glow" aria-hidden="true"></span>
+        <button type="button" class="tq-skyward" data-sky-go="up" data-place="beyond" style="left:${((SKYWARD_AT.x / MAP_VIEWBOX_WIDTH) * 100).toFixed(3)}%;top:${((SKYWARD_AT.y / MAP_VIEWBOX_HEIGHT) * 100).toFixed(3)}%;--place-glow:${PLACE_GLOW.beyond}"
+                aria-label="Rise to the Crystal Sky, beyond the Portal: ${escapeMapHtml(names)}">
+            <span class="tq-skyward__chevrons" aria-hidden="true"><i class="fas fa-chevron-up"></i><i class="fas fa-chevron-up"></i></span>
+            <span class="tq-skyward__crests" aria-hidden="true">${crests}${more}</span>
+            <span class="tq-skyward__label" aria-hidden="true">Beyond</span>
         </button>`;
+}
+
+/** The parties up in the Crystal Sky and the Starward Way as far as they have climbed. */
+function renderSkyParts(items) {
+    const through = items.filter((item) => item.inside);
+    const furthest = through.length ? Math.max(...through.map((item) => Number(item.reach) || 0)) : 0;
+    return {
+        skyTokensHtml: items.filter((item) => item.beyond).map(renderMapToken).join(''),
+        skyWayHtml: items.some((item) => item.beyond) ? skyWayHtml(furthest) : ''
+    };
 }
 
 /** What the Portal's hover card needs about a party's runes (kept on its token). */
@@ -574,9 +548,10 @@ function buildLeagueMapParts(classes, options = {}) {
     const items = buildMapItems(classes, options);
     return {
         count: items.length,
-        tokensHtml: items.map(renderMapToken).join(''),
+        tokensHtml: items.filter((item) => !item.beyond).map(renderMapToken).join(''),
         cardsHtml: items.map(renderTokenCard).join(''),
-        beyondHtml: renderStarwardWay(items),
+        beyondHtml: renderSkywardButton(items),
+        ...renderSkyParts(items),
         connectorsHtml: items.map((item) => (
             `<line class="tq-route__connector" data-connector-key="${item.tokenKey}" x1="0" y1="0" x2="0" y2="0"></line>`
         )).join('')
@@ -659,8 +634,17 @@ export function generateLeagueMapHtml(classes, options = {}) {
                 <div class="tq-class-token-layer">${parts.tokensHtml}</div>
             </div>
 
+            <div class="tq-sky" data-sky-realm>
+                ${crystalSkyHtml({ vortexSrc: LIVING_MAP_ASSETS.portalVortex, wayHtml: parts.skyWayHtml })}
+                <div class="tq-class-token-layer tq-sky-tokens" data-sky-tokens>${parts.skyTokensHtml}</div>
+                <button type="button" class="tq-landward" data-sky-go="down" aria-label="Back down to the map">
+                    <i class="fas fa-chevron-down" aria-hidden="true"></i><span>Back to the map</span>
+                </button>
+            </div>
+
             <div class="tq-living-map__ink" aria-hidden="true">
                 <img src="${PAINTED_PROPS.sketch}" alt="" draggable="false" decoding="async">
+                ${crystalSkyInkSvg()}
             </div>
             <span class="tq-living-map__sweep" aria-hidden="true"></span>
 
@@ -724,12 +708,19 @@ export function renderLeagueMapInto(slot, classes, options = {}) {
     if (tokenLayer) tokenLayer.innerHTML = parts.tokensHtml;
     if (cards) cards.innerHTML = parts.cardsHtml;
     if (connectors) connectors.innerHTML = parts.connectorsHtml;
-    // The Starward Way is redrawn only when it changes, so its stones never flash.
+    // The way up and the sky's Starward Way are redrawn only when they change, so nothing flashes.
     const beyondSlot = root.querySelector('[data-beyond-slot]');
     if (beyondSlot && beyondSlot.dataset.drawn !== textStamp(parts.beyondHtml)) {
         beyondSlot.innerHTML = parts.beyondHtml;
         beyondSlot.dataset.drawn = textStamp(parts.beyondHtml);
     }
+    const skyWay = root.querySelector('[data-sky-way]');
+    if (skyWay && skyWay.dataset.drawn !== textStamp(parts.skyWayHtml)) {
+        skyWay.innerHTML = parts.skyWayHtml;
+        skyWay.dataset.drawn = textStamp(parts.skyWayHtml);
+    }
+    const skyTokens = root.querySelector('[data-sky-tokens]');
+    if (skyTokens) skyTokens.innerHTML = parts.skyTokensHtml;
     const count = root.querySelector('[data-chronicle-count]');
     if (count) {
         count.textContent = String(parts.count);
@@ -920,6 +911,11 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
     };
 
     const tokens = [...root.querySelectorAll('[data-map-token]')];
+    // Parties past their goal stand in the Crystal Sky (the view above the map).
+    const skyTokens = tokens.filter((token) => token.dataset.beyond !== undefined);
+    const landTokens = tokens.filter((token) => token.dataset.beyond === undefined);
+    const stage = root.querySelector('[data-quest-stage]');
+    const skyRealm = root.querySelector('[data-sky-realm]');
     const waypoints = [...root.querySelectorAll('[data-waypoint-progress]')];
     const routeAnchors = [...root.querySelectorAll('[data-route-progress]:not([data-map-token])')];
     const connectorsByKey = new Map(
@@ -984,8 +980,9 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             isLeader: token.classList.contains('is-leader'),
             inside: token.dataset.inside !== undefined || token.dataset.beyond !== undefined,
             reach: Number(token.dataset.reach) || s.progress,
-            // Where the party stands when it is off the road (in the Portal or beyond it).
-            at: insidePoint(token),
+            // Where the party stands when it is off the road (in the Portal), or up in the sky.
+            at: token.dataset.beyond !== undefined ? null : insidePoint(token),
+            sky: token.dataset.beyond !== undefined,
             portal: readPortalTipData(token)
         };
     });
@@ -1018,7 +1015,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
     mapMemory.leagueKey = leagueKey || null;
     mapMemory.tokens = new Map(tokens.map((token) => {
         const s = tokenState(token);
-        return [s.key, { progress: s.progress, stars: s.stars, lane: s.lane }];
+        return [s.key, { progress: s.progress, stars: s.stars, lane: s.lane, reach: Number(token.dataset.reach) || s.progress }];
     }));
 
     // --- The scroll: the map unrolls from its two rods whenever it is shown afresh ---
@@ -1228,24 +1225,11 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         const rect = frame.getBoundingClientRect();
         if (!rect.width || !rect.height) return;
         const distance = Math.abs(to - from);
-        const duration = Math.min(3000, 650 + distance * 17) + (token.dataset.beyond !== undefined ? 900 : 0);
+        const duration = Math.min(3000, 650 + distance * 17);
         let frames = sampleTokenJourney(routeSegments, from, to, fromLane, toLane, rect, fadeIn);
-        // A party through the Portal walks the road to its end, then steps into the light;
-        // past the goal it comes out again and climbs the Starward Way.
+        // A party through the Portal walks the road to its end, then steps into the light.
         const inside = insidePoint(token);
-        const sky = token.dataset.beyond !== undefined;
-        if (inside && sky) {
-            frames = frames.map((frame) => ({ ...frame, offset: frame.offset * 0.62 }));
-            frames.push({ transform: mapTransform({ x: PORTAL.x, y: PORTAL.y + 6 }, rect), opacity: 1, offset: 0.7 });
-            const reach = Number(token.dataset.beyond) || 0;
-            const lane = Number(token.dataset.beyondLane) || 0;
-            const steps = 8;
-            for (let index = 1; index <= steps; index++) {
-                const ratio = index / steps;
-                const { x, y } = beyondPoint(100 + (reach - 100) * ratio, lane * ratio);
-                frames.push({ transform: mapTransform(constrainMapPoint({ x, y }), rect), opacity: 1, offset: 0.7 + 0.3 * ratio });
-            }
-        } else if (inside) {
+        if (inside) {
             frames = frames.map((frame) => ({ ...frame, offset: frame.offset * 0.86 }));
             frames.push({ transform: mapTransform(inside, rect), opacity: 1, offset: 1 });
         }
@@ -1286,7 +1270,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         }
 
         // Stagger from the back of the pack so the leader arrives last, to applause.
-        const ordered = [...tokens].sort((a, b) => tokenState(a).progress - tokenState(b).progress);
+        const ordered = landTokens.sort((a, b) => tokenState(a).progress - tokenState(b).progress);
         let delayIndex = 0;
         ordered.forEach((token) => {
             const current = tokenState(token);
@@ -1314,6 +1298,139 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             if (!destroyed) updateExploration(leaderProgress(), { animate: true });
         }));
     };
+
+    // --- The Crystal Sky: the view above the map, for parties past their goal ---
+    // The camera rises through the clouds: the land slides down and the sky comes
+    // in from above (each moved by `translate`, on the compositor), the far sky a
+    // little slower than the near clouds. The parties up there climb the Starward Way.
+    const VISTA_MS = { full: 1250, lite: 950 };
+    const vistaEase = 'cubic-bezier(0.65, 0, 0.3, 1)';
+    const hasSky = skyTokens.length > 0 && Boolean(skyRealm);
+    let view = 'land';
+    let vistaAnimations = [];
+    const skyPartsFor = () => ({
+        far: skyRealm?.querySelector('.tqs-far')
+    });
+
+    /** The parties in the sky climb to where they stand (from the Portal, or from where they were). */
+    const riseSky = ({ fromStart = false } = {}) => {
+        const rect = frame.getBoundingClientRect();
+        if (!rect.width || !rect.height || reducedMotionQuery.matches) return;
+        const ordered = [...skyTokens].sort((a, b) => (Number(a.dataset.beyond) || 0) - (Number(b.dataset.beyond) || 0));
+        let index = 0;
+        ordered.forEach((token) => {
+            const to = Number(token.dataset.beyond) || 0;
+            const lane = Number(token.dataset.beyondLane) || 0;
+            const before = fromStart ? null : previous.get(token.dataset.tokenKey);
+            const from = Math.min(to, before && before.reach >= 100 ? before.reach : 100);
+            if (!fromStart && before && Math.abs(to - from) < 0.05) return;
+            const steps = Math.max(8, Math.ceil(Math.abs(to - from) / 2));
+            const frames = [];
+            const rising = !before || before.reach < 101;
+            if (rising) {
+                // Up out of the Portal's light, under the clouds.
+                const foot = beyondPoint(100);
+                frames.push({ transform: mapTransform({ x: foot.x, y: foot.y + 70 }, rect), opacity: 0, offset: 0 });
+            }
+            for (let step = 0; step <= steps; step++) {
+                const ratio = step / steps;
+                const point = beyondPoint(from + (to - from) * ratio, lane * ratio);
+                frames.push({
+                    transform: mapTransform(constrainMapPoint({ x: point.x, y: point.y }), rect),
+                    opacity: 1,
+                    offset: rising ? 0.12 + 0.88 * ratio : ratio
+                });
+            }
+            const duration = Math.min(3400, 1000 + Math.abs(to - from) * 34);
+            const delay = 180 + index * 170;
+            index += 1;
+            const animation = token.animate(frames, { duration, delay, easing: 'cubic-bezier(0.37, 0.08, 0.22, 1)', fill: 'backwards' });
+            activeAnimations.add(animation);
+            later(() => token.classList.add('is-travelling'), delay);
+            const settle = () => {
+                activeAnimations.delete(animation);
+                token.classList.remove('is-travelling');
+            };
+            animation.addEventListener('finish', () => {
+                settle();
+                if (destroyed) return;
+                token.classList.add('is-arrived');
+                later(() => token.classList.remove('is-arrived'), 1100);
+                if (openToken === token) positionPopover();
+                if (before) showGain(token, (Number(token.dataset.stars) || 0) - before.stars);
+            }, { once: true });
+            animation.addEventListener('cancel', settle, { once: true });
+            if (offscreen || pageHidden) animation.pause();
+        });
+    };
+
+    const writeView = (next) => {
+        view = next;
+        mapMemory.view = next;
+        root.dataset.view = next;
+        skyRealm?.setAttribute('aria-hidden', String(next !== 'sky'));
+        skyRealm?.toggleAttribute('inert', next !== 'sky');
+        stage?.toggleAttribute('inert', next === 'sky');
+    };
+
+    /** Moves between the map and the Crystal Sky. Resolves when the camera has arrived. */
+    const setView = (next, { animate = true, rise = true } = {}) => {
+        const target = next === 'sky' && hasSky ? 'sky' : 'land';
+        if (target === view && !vistaAnimations.length) return Promise.resolve(false);
+        closePopover();
+        hideTip({ now: true });
+        if (scene?.camera && scene.camera.state.zoom > 1.001) scene.camera.home('drag');
+        vistaAnimations.forEach((animation) => animation.cancel());
+        vistaAnimations = [];
+        const motion = animate && !reducedMotionQuery.matches && root.dataset.scroll === 'open' && !offscreen && !pageHidden;
+        if (!motion) {
+            root.classList.remove('is-vista-moving');
+            writeView(target);
+            if (target === 'sky' && rise && root.dataset.scroll === 'open') riseSky({ fromStart: true });
+            return Promise.resolve(true);
+        }
+        const up = target === 'sky';
+        const lite = root.dataset.fx === 'lite';
+        const options = { duration: lite ? VISTA_MS.lite : VISTA_MS.full, easing: vistaEase, fill: 'both' };
+        const { far } = skyPartsFor();
+        const moves = [
+            [stage, ['0 0', '0 100%']],
+            [skyRealm, ['0 -100%', '0 0']]
+        ];
+        // Depth: the far sky drifts less than the clouds near the camera; a fringe of cloud
+        // under the sky (.tqs-fringe) hides where the sky meets the land on the way.
+        if (!lite) moves.push([far, ['0 42%', '0 0']]);
+        root.classList.add('is-vista-moving');
+        root.dataset.vista = up ? 'rising' : 'falling';
+        vistaAnimations = moves.filter(([el]) => el).map(([el, [a, b]]) => el.animate(
+            [{ translate: up ? a : b }, { translate: up ? b : a }],
+            options
+        ));
+        // The parties rise into view while the sky is still arriving.
+        if (up && rise) later(() => { if (!destroyed && vistaAnimations.length) riseSky({ fromStart: true }); }, options.duration * 0.45);
+        const finished = vistaAnimations[0].finished.then(() => true, () => false);
+        return finished.then((done) => {
+            if (!done || destroyed) return false;
+            writeView(target);
+            root.classList.remove('is-vista-moving');
+            delete root.dataset.vista;
+            vistaAnimations.forEach((animation) => animation.cancel());
+            vistaAnimations = [];
+            return true;
+        });
+    };
+
+    // Where the map opens: in the sky when the class in session is up there, else on the land.
+    // A live update keeps the view the teacher chose, unless this class has just risen past its goal.
+    const mineInSky = Boolean(mineToken && mineToken.dataset.beyond !== undefined);
+    const mineWasInSky = Boolean(mineToken && (previous.get(mineToken.dataset.tokenKey)?.reach || 0) >= 101);
+    const remembered = continuing && mapMemory.view === 'sky' && hasSky ? 'sky' : 'land';
+    const opening = !hasSky ? 'land' : continuing ? remembered : (mineInSky ? 'sky' : 'land');
+    let viewAfterStart = null;
+    if (hasSky && continuing && !mineChanged && mineInSky && !mineWasInSky) viewAfterStart = 'sky';
+    if (hasSky && continuing && mineChanged) viewAfterStart = mineInSky ? 'sky' : 'land';
+    if (viewAfterStart === opening) viewAfterStart = null;
+    writeView(opening);
 
     const applyFx = (fx) => {
         if (root.dataset.fx === fx) return;
@@ -1367,6 +1484,8 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         positionStaticElements();
         updateWaypointStates();
         playJourney();
+        if (view === 'sky') riseSky({ fromStart: !continuing });
+        if (viewAfterStart) later(() => { if (!destroyed) setView(viewAfterStart); }, 450);
         updateMotionState();
         if (!continuing) later(probeFrameRate, 2600);
     };
@@ -1558,10 +1677,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
     let roadActive = false;
     const placeGeometry = (id) => {
         if (id === 'portal') return { x: PORTAL.x, y: PORTAL.y, rx: 70, ry: 70 };
-        if (id === 'beyond') {
-            const middle = beyondPoint(125);
-            return { x: middle.x, y: middle.y, rx: 260, ry: 90 };
-        }
+        if (id === 'beyond') return { x: SKYWARD_AT.x + 40, y: SKYWARD_AT.y + 40, rx: 120, ry: 90 };
         return REALM_PLACES.find((place) => place.id === id) || null;
     };
 
@@ -1680,6 +1796,20 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         positionTip();
     });
 
+    // The way up beside the Portal, and the way back down from the sky.
+    root.querySelectorAll('[data-sky-go]').forEach((button) => {
+        on(button, 'click', (event) => {
+            event.stopPropagation();
+            setView(button.dataset.skyGo === 'up' ? 'sky' : 'land');
+        });
+    });
+    on(root, 'keydown', (event) => {
+        if (!hasSky || event.ctrlKey || event.metaKey || event.altKey) return;
+        if (event.target.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+        if (event.key === 'PageUp' && view !== 'sky') { event.preventDefault(); setView('sky'); }
+        else if (event.key === 'PageDown' && view !== 'land') { event.preventDefault(); setView('land'); }
+    });
+
     if (replayButton) {
         on(replayButton, 'click', () => {
             closePopover();
@@ -1689,7 +1819,8 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             replayButton.classList.add('is-spinning');
             if (reducedMotionQuery.matches) return;
             positionTokens();
-            playJourney({ fromStart: true });
+            if (view === 'sky') riseSky({ fromStart: true });
+            else playJourney({ fromStart: true });
         });
     }
 
@@ -1792,6 +1923,9 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
 
     const controller = {
         root,
+        /** Shows the map ('land') or the Crystal Sky above it ('sky'). */
+        showView(next, options) { return setView(next, options); },
+        get view() { return view; },
         /** Scrolls the map into view and opens the party card for `classId`. */
         focusClass(classId) {
             const token = tokens.find((candidate) => candidate.dataset.classId === String(classId));
@@ -1801,15 +1935,19 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             void token.offsetWidth;
             token.classList.add('is-beacon');
             later(() => token.classList.remove('is-beacon'), 2600);
-            later(() => {
+            const inSky = token.dataset.beyond !== undefined;
+            const arrived = setView(inSky ? 'sky' : 'land', { rise: false });
+            later(() => arrived.then(() => {
+                if (destroyed) return;
                 openPopover(token, { pin: true });
                 token.focus({ preventScroll: true });
+                if (inSky) return;
                 const { progress, lane } = tokenState(token);
                 const point = insidePoint(token) || getLanePoint(routeSegments, progress, lane).point;
                 scene?.glideTo(point.x, point.y).then(() => {
                     if (!destroyed && openToken === token) positionPopover();
                 });
-            }, 520);
+            }), 520);
             return true;
         },
         /**
@@ -1855,6 +1993,10 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             magic?.destroy();
             magic = null;
             [...activeAnimations].forEach((animation) => animation.cancel());
+            vistaAnimations.forEach((animation) => animation.cancel());
+            vistaAnimations = [];
+            root.classList.remove('is-vista-moving');
+            delete root.dataset.vista;
             timers.forEach((id) => clearTimeout(id));
             timers.clear();
             cancelAnimationFrame(resizeFrame);

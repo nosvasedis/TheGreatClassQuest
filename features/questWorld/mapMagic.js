@@ -274,7 +274,9 @@ export function mountMapMagic({ root, scene, parties, tier }) {
     const focusParty = (key) => {
         if (key === focusedKey) return;
         focusedKey = key;
-        const party = key ? parties().find((candidate) => candidate.key === key) : null;
+        const found = key ? parties().find((candidate) => candidate.key === key) : null;
+        // A party up in the Crystal Sky has no road to light on the land.
+        const party = found && !found.sky ? found : null;
         parties().forEach((candidate) => candidate.el.classList.toggle('is-focus', Boolean(party) && candidate.key === key));
         root.classList.toggle('is-party-focus', Boolean(party));
         if (!party) {
@@ -447,8 +449,10 @@ export function mountMapMagic({ root, scene, parties, tier }) {
         });
     });
 
+    // The camera looks around the land only, never the Crystal Sky above it.
+    const onLand = () => root.dataset.view !== 'sky' && !root.classList.contains('is-vista-moving');
     on(frame, 'dblclick', (event) => {
-        if (interactive(event.target) || root.dataset.scroll !== 'open') return;
+        if (interactive(event.target) || root.dataset.scroll !== 'open' || !onLand()) return;
         event.preventDefault();
         const p = framePoint(event.clientX, event.clientY);
         const { zoom } = camera.state;
@@ -461,7 +465,7 @@ export function mountMapMagic({ root, scene, parties, tier }) {
     let wheelPoint = null;
     let wheelFrame = 0;
     on(frame, 'wheel', (event) => {
-        if (root.dataset.scroll !== 'open') return;
+        if (root.dataset.scroll !== 'open' || !onLand()) return;
         const zoomedIn = camera.state.zoom > 1.001;
         if (!event.ctrlKey && !zoomedIn) return;
         event.preventDefault();
@@ -483,7 +487,7 @@ export function mountMapMagic({ root, scene, parties, tier }) {
     let pinch = null;
     let swallowClick = false;
     on(frame, 'pointerdown', (event) => {
-        if (event.button !== 0 || root.dataset.scroll !== 'open') return;
+        if (event.button !== 0 || root.dataset.scroll !== 'open' || !onLand()) return;
         if (event.target.closest('.tq-popover, .tq-map-controls, .tq-map-camera, .tq-tip')) return;
         pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
         if (pointers.size === 2) {
@@ -560,6 +564,7 @@ export function mountMapMagic({ root, scene, parties, tier }) {
 
     on(root, 'keydown', (event) => {
         if (event.target.closest?.('input, textarea, select, [contenteditable="true"]') || event.ctrlKey || event.metaKey || event.altKey) return;
+        if (!onLand()) return;
         const c = centre();
         const zoomedIn = camera.state.zoom > 1.001;
         const step = 90;

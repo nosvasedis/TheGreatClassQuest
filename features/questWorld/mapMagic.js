@@ -292,7 +292,7 @@ export function mountMapMagic({ root, scene, parties, tier }) {
         paint(layer.focus, 0, reach, 'light', { bloom: draw, delay: 250 });
         const stop = placeNextPin(party);
         paint(layer.ahead, party.progress, stop ? stop.progress : party.progress, 'light');
-        const point = pointAtProgress(party.progress);
+        const point = party.at || pointAtProgress(party.progress);
         shadeAt(point.x, point.y, 300, 240);
     };
 

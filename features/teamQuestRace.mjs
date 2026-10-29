@@ -51,6 +51,9 @@ export function getQuestNextStop(progress, stars, goal) {
  * needs to draw level. Goals differ per class, so the gap is measured in the
  * stars needed to match the other party's progress, not in raw stars.
  */
+// The race goes on past the Portal: a gap is measured on the real share of the goal.
+const raceProgress = (value) => Math.max(0, Number(value) || 0);
+
 export function describeQuestRaceGaps(entries = []) {
     const result = new Map();
     entries.forEach((entry, index) => {
@@ -60,14 +63,14 @@ export function describeQuestRaceGaps(entries = []) {
             ? {
                 id: ahead.id,
                 name: ahead.name || 'Class',
-                starsToCatch: Math.max(1, starsToReachPercent(entry.currentMonthlyStars, entry.goals?.diamond, clampQuestProgress(ahead.progress)))
+                starsToCatch: Math.max(1, starsToReachPercent(entry.currentMonthlyStars, entry.goals?.diamond, raceProgress(ahead.progress)))
             }
             : null;
         const behindInfo = behind
             ? {
                 id: behind.id,
                 name: behind.name || 'Class',
-                starsToCatch: Math.max(1, starsToReachPercent(behind.currentMonthlyStars, behind.goals?.diamond, clampQuestProgress(entry.progress)))
+                starsToCatch: Math.max(1, starsToReachPercent(behind.currentMonthlyStars, behind.goals?.diamond, raceProgress(entry.progress)))
             }
             : null;
         result.set(entry.id, { ahead: aheadInfo, behind: behindInfo });

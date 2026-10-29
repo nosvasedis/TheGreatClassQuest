@@ -693,6 +693,13 @@
     color: rgb(var(--cp-gold));
 }
 
+/* Still gathering stars past the goal: the Starward Way on the Team Quest map. */
+.cp-tag--beyond {
+    border-color: rgba(var(--cp-gold), 0.75);
+    color: #3b1d00;
+    background: linear-gradient(135deg, #ffe08a, #f5b70b);
+}
+
 .cp-near__body {
     display: grid;
     gap: 0.3rem;

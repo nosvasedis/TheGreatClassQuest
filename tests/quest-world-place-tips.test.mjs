@@ -38,7 +38,7 @@ test('the Portal card counts the parties who stepped through', () => {
     const portal = describePlace('portal', [...parties, { name: 'Finishers', logo: '🐉', progress: 100 }]);
     assert.equal(portal.title, 'The Crystal Portal');
     assert.deepEqual(portal.here.map((p) => p.name), ['Finishers']);
-    assert.match(placeTipHtml(portal), /Inside the Portal/);
+    assert.match(placeTipHtml(portal), /Through the Portal/);
     assert.equal(describePlace('portal', parties).status, 'ahead');
 });
 
@@ -52,7 +52,7 @@ test('only parties that stepped through are inside; a full party still outside w
     assert.deepEqual(portal.here.map((p) => p.name), ['Inside']);
     assert.deepEqual(portal.gate.map((p) => p.name), ['AtGate']);
     const html = placeTipHtml(portal);
-    assert.match(html, /Inside the Portal/);
+    assert.match(html, /Through the Portal/);
     // The card follows the party at the gate, so it says so there rather than in a second list.
     assert.equal(portal.focus.name, 'AtGate');
     assert.match(html, /at the gate/);
@@ -63,7 +63,7 @@ test('only parties that stepped through are inside; a full party still outside w
     const many = Array.from({ length: 6 }, (_, i) => ({ name: `C${i}`, progress: 100, inside: true }));
     const tip = placeTipHtml(describePlace('portal', many));
     assert.doesNotMatch(tip, /chip--more/);
-    assert.match(tip, /6 parties inside the Portal/);
+    assert.match(tip, /6 parties through the Portal/);
 });
 
 test('the card escapes names and marks the active class', () => {

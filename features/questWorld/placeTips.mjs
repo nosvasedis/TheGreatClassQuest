@@ -9,6 +9,7 @@
 import { QUEST_MAP_ZONES } from '../questMapZones.mjs';
 import { formatQuestStars, starsToReachPercent } from '../teamQuestRace.mjs';
 import { REALM_PLACES } from './worldGeometry.mjs';
+import { BEYOND_MAX, beyondMarkFor, isBeyond } from './starwardWay.mjs';
 
 const RANGES = {
     bronze: [0, 30],
@@ -40,8 +41,31 @@ export function describePlace(placeId, parties = []) {
     const knowsInside = parties.some((party) => typeof party.inside === 'boolean');
     const safe = parties.map((party) => {
         const progress = Math.min(100, Math.max(0, Number(party.progress) || 0));
-        return { ...party, raw: Number(party.progress) || 0, progress: knowsInside ? (party.inside ? 100 : Math.min(99.99, progress)) : progress };
+        // reach: the real share of the goal, past 100% too.
+        const reach = Math.max(0, Number(party.reach ?? party.progress) || 0);
+        return { ...party, raw: Number(party.progress) || 0, reach, progress: knowsInside ? (party.inside ? 100 : Math.min(99.99, progress)) : progress };
     });
+    if (placeId === 'beyond') {
+        // Every party through the Portal is on the Way or in the Portal at its foot.
+        const through = safe.filter((party) => (knowsInside ? party.inside : party.progress >= 100))
+            .sort((a, b) => b.reach - a.reach);
+        const climbing = through.filter((party) => isBeyond(party.reach));
+        const front = climbing[0] || null;
+        const mark = front ? beyondMarkFor(front.reach) : null;
+        return {
+            id: 'beyond',
+            title: 'The Starward Way',
+            kind: 'Beyond the Portal',
+            desc: 'Parties through the Portal that keep gathering stars climb the stars. Every stone is 5% more of the month’s goal.',
+            from: `From 100% of the goal · the Star Crown at ${BEYOND_MAX}%`,
+            here: climbing.length ? climbing : through,
+            status: through.length ? 'here' : 'ahead',
+            climbing: climbing.length,
+            furthest: front ? { name: front.name, logo: front.logo, reach: front.reach, mark: mark?.label || '' } : null,
+            gap: 0,
+            hint: 'Click to open the Portal'
+        };
+    }
     const here = safe
         .filter((party) => party.progress >= min && party.progress < max)
         .sort((a, b) => b.progress - a.progress);
@@ -147,9 +171,12 @@ function chaserHtml(road) {
 
 /** The tooltip card's inner markup. `badge` is the realm crest image URL. */
 export function placeTipHtml(info, { badge = '' } = {}) {
-    const chip = (party) => `<span class="tq-tip__chip${party.isMine ? ' is-mine' : ''}"><span aria-hidden="true">${escapeHtml(party.logo || '★')}</span>${escapeHtml(party.name || 'Class')}</span>`;
+    const over = (party) => (info.id === 'portal' || info.id === 'beyond') && Number(party.reach) >= 101
+        ? `<b class="tq-tip__chip-reach">${formatPercent(Math.floor(party.reach))}</b>`
+        : '';
+    const chip = (party) => `<span class="tq-tip__chip${party.isMine ? ' is-mine' : ''}"><span aria-hidden="true">${escapeHtml(party.logo || '★')}</span>${escapeHtml(party.name || 'Class')}${over(party)}</span>`;
     // The Portal names every party inside it; a realm shows four and counts the rest.
-    const limit = info.id === 'portal' ? Infinity : 4;
+    const limit = info.id === 'portal' || info.id === 'beyond' ? Infinity : 4;
     const chips = info.here.slice(0, limit).map(chip).join('') + (info.here.length > limit ? `<span class="tq-tip__chip tq-tip__chip--more">+${info.here.length - limit}</span>` : '');
     // The parties the card follows already say they wait at the gate; the gate names the others.
     const followed = [info.focus, info.chaser].filter(Boolean);
@@ -159,10 +186,18 @@ export function placeTipHtml(info, { badge = '' } = {}) {
         : '';
     let status = '';
     if (info.status === 'here') {
-        const label = info.id === 'portal'
-            ? (info.here.length === 1 ? 'Inside the Portal' : `${info.here.length} parties inside the Portal`)
+        let label = info.id === 'portal'
+            ? (info.here.length === 1 ? 'Through the Portal' : `${info.here.length} parties through the Portal`)
             : (info.here.length === 1 ? 'Here now' : `${info.here.length} parties here now`);
-        status = `<span class="tq-tip__status${info.id === 'portal' ? ' tq-tip__status--inside' : ''}"><small>${label}</small><span class="tq-tip__chips">${chips}</span></span>${gate}`;
+        if (info.id === 'beyond') {
+            label = info.climbing
+                ? (info.climbing === 1 ? 'Climbing the stars' : `${info.climbing} parties climbing the stars`)
+                : 'In the Portal, at the foot of the Way';
+        }
+        const furthest = info.id === 'beyond' && info.furthest?.mark
+            ? `<span class="tq-tip__status tq-tip__status--crown"><i class="fas ${info.furthest.reach >= BEYOND_MAX ? 'fa-crown' : 'fa-star'}" aria-hidden="true"></i>${escapeHtml(info.furthest.name || 'Class')} ${info.furthest.reach >= BEYOND_MAX ? 'wears' : 'has reached'} ${escapeHtml(info.furthest.mark)}</span>`
+            : '';
+        status = `<span class="tq-tip__status${info.id === 'portal' || info.id === 'beyond' ? ' tq-tip__status--inside' : ''}"><small>${label}</small><span class="tq-tip__chips">${chips}</span></span>${furthest}${gate}`;
     } else if (info.id === 'portal' && gate) {
         status = gate;
     } else if (info.id === 'portal' && info.focus) {

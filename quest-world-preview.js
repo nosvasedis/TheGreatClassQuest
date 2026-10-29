@@ -1,6 +1,7 @@
 // Quest World preview (dev only): the real Team Quest map with a fake league,
 // driven by the app's real sky pipeline (skyWeatherStage) with a chosen weather and time.
-// &inside=owls,books marks those parties as already through the Portal this month.
+// &inside=owls,books marks those parties as already through the Portal this month;
+// &over=owls:121 puts them past the goal, on the Starward Way.
 import { evaluatePortal } from './features/questRanksCore.mjs';
 import './styles/sky_weather.css';
 import './styles/team_quest_map_living.css';
@@ -54,10 +55,14 @@ function clockFor(time) {
     return table[time] ? { now, ...table[time] } : null;
 }
 
+// &over=owls:121,books:104 sets those parties' share of the goal (past 100% too).
+const overs = new Map((params.get('over') || '').split(',').filter(Boolean).map((pair) => pair.split(':')));
+
 function league(leaderPercent) {
     const goal = 140;
     return PARTIES.map((party, index) => {
-        const stars = Math.round((goal * leaderPercent * party.share) / 100);
+        const over = Number(overs.get(party.id)) || 0;
+        const stars = over ? Math.round((goal * over) / 100) : Math.round((goal * leaderPercent * party.share) / 100);
         return {
             id: party.id,
             name: party.name,

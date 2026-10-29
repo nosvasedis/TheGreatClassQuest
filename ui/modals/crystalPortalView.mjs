@@ -123,7 +123,8 @@ function ringHtml(pctValue) {
 
 function mineHtml(mine) {
     if (!mine) return '';
-    const pctText = `${Math.min(100, Math.round(mine.pct))}%`;
+    // The real share of the goal: a class past it says so (121%), the ring stays full.
+    const pctText = `${Math.floor(Math.max(0, Number(mine.reach ?? mine.pct) || 0))}%`;
     let headline;
     let detail;
     if (mine.state === 'through') {
@@ -233,6 +234,7 @@ function throughHtml(view, activeClassId) {
                 <span class="cp-through__name">${esc(p.name)}</span>
                 <span class="cp-through__meta">
                     ${p.first ? '<span class="cp-tag cp-tag--first">First through</span>' : ''}
+                    ${Number(p.progress) >= 101 ? `<span class="cp-tag cp-tag--beyond" title="Still gathering stars beyond the Portal, on the Starward Way"><i class="fas fa-star" aria-hidden="true"></i> ${Math.floor(Number(p.progress))}%</span>` : ''}
                     ${p.throughAt != null ? `<span class="cp-through__date"><i class="far fa-calendar" aria-hidden="true"></i> ${dayLabel(p.throughAt)}</span>` : ''}
                 </span>
             </span>

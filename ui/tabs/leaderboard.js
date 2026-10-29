@@ -163,7 +163,7 @@ function generateTeacherMobileRaceHtml(classScores, activeClassId = null) {
                             ${zone.label}
                         </span>
                     </span>
-                    <span class="tq-mobile-race-card__percent">${progress.toFixed(0)}<small>%</small></span>
+                    <span class="tq-mobile-race-card__percent">${Math.floor(Math.max(0, Number(classroom.progress) || 0))}<small>%</small></span>
                 </header>
 
                 <div class="tq-mobile-race-card__trail" role="progressbar" aria-label="${escapeLeaderboardHtml(classroom.name)} monthly quest progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress.toFixed(1)}">

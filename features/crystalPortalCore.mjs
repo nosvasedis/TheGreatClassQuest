@@ -108,8 +108,8 @@ export function describeMine(party, through = []) {
     if (!party) return null;
     const p = pct(party);
     const passed = through.find((t) => t.id === party.id);
-    if (passed) return { ...party, state: 'through', order: passed.order, first: passed.first, throughAt: passed.throughAt, starsToGo: 0, pct: Math.min(100, p) };
-    if (p >= 100) return { ...party, state: party.portal?.state === 'guardian' ? 'guardian' : 'sealed', starsToGo: 0, pct: 100 };
+    if (passed) return { ...party, state: 'through', order: passed.order, first: passed.first, throughAt: passed.throughAt, starsToGo: 0, pct: Math.min(100, p), reach: p };
+    if (p >= 100) return { ...party, state: party.portal?.state === 'guardian' ? 'guardian' : 'sealed', starsToGo: 0, pct: 100, reach: p };
     return {
         ...party,
         state: p >= PORTAL_THRESHOLD_PERCENT ? 'threshold' : 'road',

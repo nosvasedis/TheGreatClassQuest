@@ -10,7 +10,8 @@ import {
     describeQuestRaceGaps,
     describeQuestRaceLine,
     formatQuestStars,
-    getQuestNextStop
+    getQuestNextStop,
+    starsToReachPercent
 } from './teamQuestRace.mjs';
 import {
     PORTAL,
@@ -26,6 +27,7 @@ import {
     routeSegments
 } from './questWorld/worldGeometry.mjs';
 import { describePlace, placeTipHtml } from './questWorld/placeTips.mjs';
+import { BEYOND_MAX, beyondLanes, beyondMarkFor, beyondPathD, beyondPoint, beyondShare, beyondStones, isBeyond, nextBeyondMark } from './questWorld/starwardWay.mjs';
 import { PAINTED_PROPS } from './questWorld/worldArt.mjs';
 import { rankForLevel, portalStatusLine } from './questRanksCore.mjs';
 import { rankCrestSvg, renderRuneMarks } from './questRankCrest.mjs';
@@ -43,6 +45,8 @@ function resolveLeagueMapMetrics(c) {
             classQuestBonus,
             goal,
             pct,
+            // The real share of the goal, past 100% too (pct stops at the Portal).
+            reach: Math.max(0, rawPct),
             progressDisplay: pct.toFixed(1),
             starsDisplay: liveMonthlyStars % 1 !== 0 ? liveMonthlyStars.toFixed(1) : liveMonthlyStars.toFixed(0)
         };
@@ -59,6 +63,7 @@ export function getClassQuestProgressData(classroom, students = null, allScores 
             classQuestBonus: 0,
             goal: 18,
             pct: 0,
+            reach: 0,
             progressDisplay: '0.0',
             starsDisplay: '0'
         };
@@ -91,6 +96,7 @@ export function getClassQuestProgressData(classroom, students = null, allScores 
         classQuestBonus,
         goal,
         pct,
+        reach: Math.max(0, rawPct),
         progressDisplay: pct.toFixed(1),
         starsDisplay: liveMonthlyStars % 1 !== 0 ? liveMonthlyStars.toFixed(1) : liveMonthlyStars.toFixed(0)
     };
@@ -141,7 +147,8 @@ const PLACE_GLOW = {
     silver: '149, 224, 255',
     gold: '255, 211, 86',
     crystal: '218, 139, 255',
-    portal: '190, 160, 255'
+    portal: '190, 160, 255',
+    beyond: '255, 214, 120'
 };
 
 
@@ -295,9 +302,83 @@ function buildMapItems(classes, { activeClassId = null } = {}) {
     })).map((item, _, all) => {
         if (!item.inside) return item;
         if (item.c?.id) insideClasses.set(String(item.c.id), item.c);
-        const inside = all.filter((other) => other.inside);
+        // Past the goal, a party steps out of the Portal onto the Starward Way.
+        if (isBeyond(item.reach)) {
+            const lanes = beyondLanes(all.filter((other) => other.inside && isBeyond(other.reach)).map((other) => ({ key: other.tokenKey, reach: other.reach })));
+            return { ...item, beyond: true, beyondLane: lanes.get(item.tokenKey) || 0 };
+        }
+        const inside = all.filter((other) => other.inside && !isBeyond(other.reach));
         return { ...item, insideIndex: inside.indexOf(item), insideCount: inside.length };
     });
+}
+
+/** A short stamp of a piece of markup, to tell when it changed. */
+const textStamp = (text) => {
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) hash = (hash * 31 + text.charCodeAt(i)) | 0;
+    return `${text.length}-${(hash >>> 0).toString(36)}`;
+};
+
+const formatReach = (reach) => `${Math.floor(Math.max(0, Number(reach) || 0))}%`;
+
+/** Four-pointed star, `s` from its heart to a tip. */
+const starPath = (s) => {
+    const k = s * 0.3;
+    return `M0 ${-s}L${k} ${-k}L${s} 0L${k} ${k}L0 ${s}L${-k} ${k}L${-s} 0L${-k} ${-k}Z`;
+};
+
+/**
+ * The Starward Way beyond the Portal: drawn once a party has stepped through. Its
+ * stones light up as far as the furthest party has climbed; the Star Crown waits at
+ * the end (features/questWorld/starwardWay.mjs).
+ */
+function renderStarwardWay(items) {
+    const through = items.filter((item) => item.inside);
+    if (!through.length) return '';
+    const furthest = Math.max(...through.map((item) => Number(item.reach) || 0));
+    const lit = beyondShare(furthest);
+    const stones = beyondStones(furthest);
+    const lead = [...stones].reverse().find((stone) => stone.lit) || null;
+    const d = beyondPathD();
+    const crown = stones[stones.length - 1];
+    const crownDots = [[-20, 0], [-21, -19], [-10, -8], [0, -27], [10, -8], [21, -19], [20, 0]];
+    const stoneHtml = stones.map((stone, index) => {
+        const size = stone.kind === 'stone' ? 8 : stone.kind === 'knot' ? 12 : 14;
+        return `<g class="tq-beyond__stone tq-beyond__stone--${stone.kind}${stone.lit ? ' is-lit' : ''}${stone === lead ? ' is-lead' : ''}" transform="translate(${stone.x} ${stone.y})">
+                <g class="tq-beyond__pop" style="--i:${index}">
+                    <circle class="tq-beyond__halo" r="${size * 2.4}"></circle>
+                    <path class="tq-beyond__star" d="${starPath(size)}"></path>
+                </g>
+            </g>`;
+    }).join('');
+    const crownHtml = `<g class="tq-beyond__crown${crown.lit ? ' is-lit' : ''}" transform="translate(${crown.x} ${crown.y - 30}) scale(1.2)">
+            <g class="tq-beyond__pop" style="--i:${stones.length}">
+                <polyline class="tq-beyond__crown-line" points="${crownDots.map(([x, y]) => `${x},${y}`).join(' ')} -20,0"></polyline>
+                ${crownDots.map(([x, y], index) => `<path class="tq-beyond__crown-star" d="${starPath(index % 2 ? 3.4 : 5.2)}" transform="translate(${x} ${y})"></path>`).join('')}
+            </g>
+        </g>`;
+    const hit = beyondPoint(125);
+    return `
+        <svg class="tq-beyond" viewBox="0 0 ${MAP_VIEWBOX_WIDTH} ${MAP_VIEWBOX_HEIGHT}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+            <defs>
+                <radialGradient id="tq-beyond-halo">
+                    <stop offset="0%" stop-color="#fff7d6" stop-opacity="0.95"></stop>
+                    <stop offset="35%" stop-color="#ffd978" stop-opacity="0.55"></stop>
+                    <stop offset="100%" stop-color="#ffb84d" stop-opacity="0"></stop>
+                </radialGradient>
+            </defs>
+            <path class="tq-beyond__trail-shade" d="${d}"></path>
+            <path class="tq-beyond__trail" d="${d}"></path>
+            ${lit > 0 ? `<path class="tq-beyond__trail-glow" d="${d}" pathLength="100" style="stroke-dasharray:${(lit * 100).toFixed(2)} 100"></path>
+            <path class="tq-beyond__trail-lit" d="${d}" pathLength="100" style="stroke-dasharray:${(lit * 100).toFixed(2)} 100"></path>` : ''}
+            ${stoneHtml}
+            ${crownHtml}
+        </svg>
+        <button type="button" class="tq-place tq-place--beyond portal-trigger" data-place="beyond"
+                style="left:${(((hit.x - 190) / MAP_VIEWBOX_WIDTH) * 100).toFixed(3)}%;top:${(((hit.y - 60) / MAP_VIEWBOX_HEIGHT) * 100).toFixed(3)}%;width:${((380 / MAP_VIEWBOX_WIDTH) * 100).toFixed(3)}%;height:${((120 / MAP_VIEWBOX_HEIGHT) * 100).toFixed(3)}%;--place-glow:${PLACE_GLOW.beyond}"
+                aria-label="The Starward Way, beyond the Crystal Portal: open the Portal">
+            <span class="tq-place__glow" aria-hidden="true"></span>
+        </button>`;
 }
 
 /** What the Portal's hover card needs about a party's runes (kept on its token). */
@@ -309,7 +390,7 @@ function portalTipData(portal) {
 }
 
 function renderMapToken(item) {
-    const { c, pct, isLeader, isMine, pinTier, progressDisplay, starsDisplay, goal, rankPosition, tokenKey, lane, liveMonthlyStars, displayLevel, portal, inside, insideIndex, insideCount } = item;
+    const { c, pct, reach, isLeader, isMine, pinTier, starsDisplay, goal, rankPosition, tokenKey, lane, liveMonthlyStars, displayLevel, portal, inside, insideIndex, insideCount, beyond, beyondLane } = item;
     const zone = getQuestMapZoneForProgressPercent(pct);
     const safeName = escapeMapHtml(c.name || 'Class');
     const safeLogo = escapeMapHtml(c.logo || '📚');
@@ -323,10 +404,14 @@ function renderMapToken(item) {
         isMine ? 'is-mine' : '',
         (pct >= 100 && portalOpen) || inside ? 'is-complete' : '',
         pct >= 100 && !portalOpen ? 'is-sealed' : '',
-        inside ? 'is-inside' : ''
+        inside ? 'is-inside' : '',
+        beyond ? 'is-beyond' : '',
+        beyond && reach >= BEYOND_MAX ? 'is-crowned' : ''
     ].filter(Boolean).join(' ');
-    const where = inside ? `inside the Crystal Portal, now ${escapeMapHtml(rank.title)} (Quest Level ${displayLevel})` : `in ${escapeMapHtml(zone.label)}`;
-    const ariaLabel = `${safeName}: league rank ${rankPosition}, ${escapeMapHtml(rank.title)} (Quest Level ${displayLevel}), ${Math.round(Number(progressDisplay))}% of the monthly quest, ${starsDisplay} of ${goal} stars, ${where}.`;
+    const where = beyond
+        ? `beyond the Crystal Portal on the Starward Way, now ${escapeMapHtml(rank.title)} (Quest Level ${displayLevel})`
+        : inside ? `inside the Crystal Portal, now ${escapeMapHtml(rank.title)} (Quest Level ${displayLevel})` : `in ${escapeMapHtml(zone.label)}`;
+    const ariaLabel = `${safeName}: league rank ${rankPosition}, ${escapeMapHtml(rank.title)} (Quest Level ${displayLevel}), ${formatReach(reach)} of the monthly quest, ${starsDisplay} of ${goal} stars, ${where}.`;
 
     return `
         <button type="button"
@@ -335,20 +420,22 @@ function renderMapToken(item) {
                 data-token-key="${tokenKey}"
                 data-class-id="${escapeMapHtml(c.id || '')}"
                 data-progress="${pct}"
+                data-reach="${Number(reach) || 0}"
                 data-stars="${Number(liveMonthlyStars) || 0}"
                 data-goal="${Number(goal) || 0}"
                 data-logo="${safeLogo}"
                 data-name="${safeName}"
                 data-lane="${lane}"
                 ${portal && !inside ? `data-portal="${escapeMapHtml(portalTipData(portal))}"` : ''}
-                ${inside ? `data-inside="${insideIndex}" data-inside-count="${insideCount}"` : ''}
+                ${beyond ? `data-beyond="${Number(reach) || 0}" data-beyond-lane="${beyondLane || 0}"` : inside ? `data-inside="${insideIndex}" data-inside-count="${insideCount}"` : ''}
                 aria-label="${ariaLabel}"
                 aria-haspopup="dialog"
                 aria-expanded="false">
             <span class="tq-token__shadow" aria-hidden="true"></span>
             <span class="tq-token__ring" aria-hidden="true"></span>
             <span class="tq-token__body" aria-hidden="true">
-                ${inside ? `<span class="tq-token__swirl"><img src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" decoding="async"></span><span class="tq-token__motes"><i></i><i></i><i></i><i></i></span>` : ''}
+                ${beyond ? '<span class="tq-token__rays"></span><span class="tq-token__motes"><i></i><i></i><i></i><i></i></span>' : ''}
+                ${inside && !beyond ? `<span class="tq-token__swirl"><img src="${LIVING_MAP_ASSETS.portalVortex}" alt="" draggable="false" decoding="async"></span><span class="tq-token__motes"><i></i><i></i><i></i><i></i></span>` : ''}
                 <span class="tq-token__aura"></span>
                 <span class="tq-token__disc">
                     <span class="tq-token__logo">${safeLogo}</span>
@@ -357,7 +444,8 @@ function renderMapToken(item) {
                 <span class="tq-token__rank">${rankPosition}</span>
                 <span class="tq-token__crest">${rankCrestSvg(displayLevel)}</span>
                 ${pct >= 100 && !portalOpen ? '<span class="tq-token__seal"><i class="fas fa-lock"></i></span>' : ''}
-                ${inside ? `<span class="tq-token__inside"><i class="fas fa-wand-magic-sparkles"></i>${insideCount > 1 ? 'Inside' : 'In the Portal'}</span>` : ''}
+                ${beyond ? `<span class="tq-token__inside tq-token__inside--beyond"><i class="fas ${reach >= BEYOND_MAX ? 'fa-crown' : 'fa-star'}"></i>${formatReach(reach)}</span>` : ''}
+                ${inside && !beyond ? `<span class="tq-token__inside"><i class="fas fa-wand-magic-sparkles"></i>${insideCount > 1 ? 'Inside' : 'In the Portal'}</span>` : ''}
                 ${isMine ? '<span class="tq-token__pennant"><i class="fas fa-flag"></i>Active</span>' : ''}
             </span>
         </button>`;
@@ -378,7 +466,7 @@ function renderRouteStrip(pct) {
 }
 
 function renderTokenCard(item) {
-    const { c, pct, isLeader, isMine, pinTier, starsDisplay, goal, liveMonthlyStars, rankPosition, displayLevel, classQuestBonus, weeklyStars, topHeroes, gap, tokenKey, portal, inside } = item;
+    const { c, pct, reach, isLeader, isMine, pinTier, starsDisplay, goal, liveMonthlyStars, rankPosition, displayLevel, classQuestBonus, weeklyStars, topHeroes, gap, tokenKey, portal, inside, beyond } = item;
     const zone = getQuestMapZoneForProgressPercent(pct);
     const crossing = inside ? c.portalCrossings?.[utils.getMonthKey()] || null : null;
     const steppedOn = inside ? steppedThroughOn(c) : '';
@@ -419,9 +507,9 @@ function renderTokenCard(item) {
                     <span class="tq-card__logo" aria-hidden="true">${safeLogo}</span>
                     <span class="tq-card__identity">
                         <strong class="tq-card__name">${safeName}</strong>
-                        <span class="tq-card__zone"><img src="${inside ? LIVING_MAP_ASSETS.portalVortex : ZONE_BADGE_BY_ID[zone.id]}" alt="" aria-hidden="true" draggable="false">${inside ? 'Inside the Crystal Portal' : escapeMapHtml(zone.label)}</span>
+                        <span class="tq-card__zone"><img src="${inside ? LIVING_MAP_ASSETS.portalVortex : ZONE_BADGE_BY_ID[zone.id]}" alt="" aria-hidden="true" draggable="false">${beyond ? 'On the Starward Way' : inside ? 'Inside the Crystal Portal' : escapeMapHtml(zone.label)}</span>
                     </span>
-                    <span class="tq-card__pct">${Math.floor(pct)}<small>%</small></span>
+                    <span class="tq-card__pct${reach > 100 ? ' is-over' : ''}">${Math.floor(Math.max(0, Number(reach) || 0))}<small>%</small></span>
                 </span>
                 ${renderRouteStrip(pct)}
                 <span class="tq-card__facts">
@@ -436,7 +524,7 @@ function renderTokenCard(item) {
                         <strong>Now ${escapeMapHtml(rank.title)}</strong>
                         <em>Quest Level ${displayLevel}${crossing?.gold > 0 ? ` · +${Number(crossing.gold)} Gold for every hero` : ''}</em>
                     </span>
-                </span>` : `
+                </span>${beyond ? renderBeyondLine(reach, liveMonthlyStars, goal) : ''}` : `
                 <span class="tq-card__next${next.complete ? ' is-complete' : ''}${next.sealed ? ' is-sealed' : ''}">
                     <img src="${ROAD_STOP_BADGE[next.id] || LIVING_MAP_ASSETS.badgeCrystal}" alt="" aria-hidden="true" draggable="false">
                     <span>
@@ -466,12 +554,29 @@ function renderTokenCard(item) {
         </template>`;
 }
 
+/** The card's line for a party on the Starward Way: the stone it has reached and the next one. */
+function renderBeyondLine(reach, stars, goal) {
+    const mark = beyondMarkFor(reach);
+    const next = nextBeyondMark(reach);
+    const toNext = next && goal > 0 ? starsToReachPercent(stars, goal, next.at) : 0;
+    return `
+                <span class="tq-card__beyond${next ? '' : ' is-crowned'}">
+                    <i class="fas ${next ? 'fa-star' : 'fa-crown'}" aria-hidden="true"></i>
+                    <span>
+                        <small>The Starward Way</small>
+                        <strong>${next ? (mark ? `Reached ${escapeMapHtml(mark.label)}` : 'Climbing the stars') : 'Wears the Star Crown'}</strong>
+                    </span>
+                    <em>${next ? `${formatQuestStars(Math.max(1, toNext))}★ to ${escapeMapHtml(next.label)}` : `${BEYOND_MAX}% reached`}</em>
+                </span>`;
+}
+
 function buildLeagueMapParts(classes, options = {}) {
     const items = buildMapItems(classes, options);
     return {
         count: items.length,
         tokensHtml: items.map(renderMapToken).join(''),
         cardsHtml: items.map(renderTokenCard).join(''),
+        beyondHtml: renderStarwardWay(items),
         connectorsHtml: items.map((item) => (
             `<line class="tq-route__connector" data-connector-key="${item.tokenKey}" x1="0" y1="0" x2="0" y2="0"></line>`
         )).join('')
@@ -538,6 +643,7 @@ export function generateLeagueMapHtml(classes, options = {}) {
                     <g class="tq-route__connectors">${parts.connectorsHtml}</g>
                 </svg>
 
+                <div class="tq-beyond-slot" data-beyond-slot data-drawn="${textStamp(parts.beyondHtml)}">${parts.beyondHtml}</div>
                 ${places}
                 <span class="tq-route-finish" data-route-progress="100" data-offset-x="${PORTAL.x - ROUTE_POINTS[ROUTE_POINTS.length - 1][0]}" data-offset-y="${PORTAL.y - ROUTE_POINTS[ROUTE_POINTS.length - 1][1]}">
                     <button type="button" class="tq-route-finish__button portal-trigger" data-place="portal" style="--place-glow:${PLACE_GLOW.portal}" aria-label="The Crystal Portal: open it">
@@ -618,6 +724,12 @@ export function renderLeagueMapInto(slot, classes, options = {}) {
     if (tokenLayer) tokenLayer.innerHTML = parts.tokensHtml;
     if (cards) cards.innerHTML = parts.cardsHtml;
     if (connectors) connectors.innerHTML = parts.connectorsHtml;
+    // The Starward Way is redrawn only when it changes, so its stones never flash.
+    const beyondSlot = root.querySelector('[data-beyond-slot]');
+    if (beyondSlot && beyondSlot.dataset.drawn !== textStamp(parts.beyondHtml)) {
+        beyondSlot.innerHTML = parts.beyondHtml;
+        beyondSlot.dataset.drawn = textStamp(parts.beyondHtml);
+    }
     const count = root.querySelector('[data-chronicle-count]');
     if (count) {
         count.textContent = String(parts.count);
@@ -701,6 +813,11 @@ function getLanePoint(routeSegments, progress, lane) {
  * its light for several. Null for parties still on the road.
  */
 function insidePoint(token) {
+    // Past the goal: on the Starward Way, beyond the Portal.
+    if (token?.dataset.beyond !== undefined) {
+        const { x, y } = beyondPoint(Number(token.dataset.beyond) || 0, Number(token.dataset.beyondLane) || 0);
+        return constrainMapPoint({ x, y });
+    }
     if (token?.dataset.inside === undefined) return null;
     const index = Number(token.dataset.inside) || 0;
     const count = Math.max(1, Number(token.dataset.insideCount) || 1);
@@ -865,7 +982,10 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             logo: token.dataset.logo,
             isMine: token.classList.contains('is-mine'),
             isLeader: token.classList.contains('is-leader'),
-            inside: token.dataset.inside !== undefined,
+            inside: token.dataset.inside !== undefined || token.dataset.beyond !== undefined,
+            reach: Number(token.dataset.reach) || s.progress,
+            // Where the party stands when it is off the road (in the Portal or beyond it).
+            at: insidePoint(token),
             portal: readPortalTipData(token)
         };
     });
@@ -1108,11 +1228,24 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         const rect = frame.getBoundingClientRect();
         if (!rect.width || !rect.height) return;
         const distance = Math.abs(to - from);
-        const duration = Math.min(3000, 650 + distance * 17);
+        const duration = Math.min(3000, 650 + distance * 17) + (token.dataset.beyond !== undefined ? 900 : 0);
         let frames = sampleTokenJourney(routeSegments, from, to, fromLane, toLane, rect, fadeIn);
-        // A party through the Portal walks the road to its end, then steps into the light.
+        // A party through the Portal walks the road to its end, then steps into the light;
+        // past the goal it comes out again and climbs the Starward Way.
         const inside = insidePoint(token);
-        if (inside) {
+        const sky = token.dataset.beyond !== undefined;
+        if (inside && sky) {
+            frames = frames.map((frame) => ({ ...frame, offset: frame.offset * 0.62 }));
+            frames.push({ transform: mapTransform({ x: PORTAL.x, y: PORTAL.y + 6 }, rect), opacity: 1, offset: 0.7 });
+            const reach = Number(token.dataset.beyond) || 0;
+            const lane = Number(token.dataset.beyondLane) || 0;
+            const steps = 8;
+            for (let index = 1; index <= steps; index++) {
+                const ratio = index / steps;
+                const { x, y } = beyondPoint(100 + (reach - 100) * ratio, lane * ratio);
+                frames.push({ transform: mapTransform(constrainMapPoint({ x, y }), rect), opacity: 1, offset: 0.7 + 0.3 * ratio });
+            }
+        } else if (inside) {
             frames = frames.map((frame) => ({ ...frame, offset: frame.offset * 0.86 }));
             frames.push({ transform: mapTransform(inside, rect), opacity: 1, offset: 1 });
         }
@@ -1423,9 +1556,14 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
 
     let hoveredPlace = null;
     let roadActive = false;
-    const placeGeometry = (id) => (id === 'portal'
-        ? { x: PORTAL.x, y: PORTAL.y, rx: 70, ry: 70 }
-        : REALM_PLACES.find((place) => place.id === id) || null);
+    const placeGeometry = (id) => {
+        if (id === 'portal') return { x: PORTAL.x, y: PORTAL.y, rx: 70, ry: 70 };
+        if (id === 'beyond') {
+            const middle = beyondPoint(125);
+            return { x: middle.x, y: middle.y, rx: 260, ry: 90 };
+        }
+        return REALM_PLACES.find((place) => place.id === id) || null;
+    };
 
     const positionTip = () => {
         if (!tipFor || !tip || tip.hidden) return;
@@ -1454,7 +1592,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         const id = el.dataset.place;
         const info = describePlace(id, partiesNow());
         magic?.focusPlace(placeGeometry(id));
-        tipBody.innerHTML = placeTipHtml(info, { badge: ZONE_BADGE_BY_ID[id === 'portal' ? 'crystal' : id] });
+        tipBody.innerHTML = placeTipHtml(info, { badge: ZONE_BADGE_BY_ID[id === 'portal' || id === 'beyond' ? 'crystal' : id] });
         tip.dataset.place = id;
         tip.style.setProperty('--place-glow', PLACE_GLOW[id] || PLACE_GLOW.gold);
         placeEls.forEach((other) => other.classList.toggle('is-hovered', other === el));

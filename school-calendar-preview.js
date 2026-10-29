@@ -6,7 +6,6 @@ import { calendarTabHTML } from './templates/app/tabs/calendar.js';
 import { renderCalendarTab } from './ui/tabs/selectors.js';
 import { resolveScheduleEmptyState } from './utils/scheduleEmptyState.js';
 import { buildScheduleEmptySceneHtml, buildScheduleDayNoteHtml } from './utils/scheduleEmptyScene.js';
-import { treasureItemsOn } from './features/dayTreasureDays.js';
 
 const params = new URLSearchParams(location.search);
 const view = params.get('view') || 'calendar';
@@ -66,8 +65,7 @@ if (view === 'calendar') {
     }).join('')}
     ${(params.get('notes') || '2027-01-30,2026-12-23,2027-01-04,2026-10-31').split(',').map((iso) => {
         const [y, m, d] = iso.split('-').map(Number);
-        const treasures = params.has('halloween') ? treasureItemsOn(`${String(d).padStart(2, '0')}-${String(m).padStart(2, '0')}-${y}`) : [];
-        return `<div class="vibrant-card card-glass-white"><div class="schedule-list-v2">${buildScheduleDayNoteHtml(new Date(y, m - 1, d), { treasures })}</div></div>`;
+        return `<div class="vibrant-card card-glass-white"><div class="schedule-list-v2">${buildScheduleDayNoteHtml(new Date(y, m - 1, d))}</div></div>`;
     }).join('')}</div>`;
 } else if (view === 'office') {
     root.innerHTML = `<div class="pv-office role-shell--secretary office-admin"><article class="role-card secretary-admin-card secretary-settings-card"><div id="school-calendar-panel" class="office-cal"></div></article></div>`;
@@ -91,6 +89,7 @@ if (view === 'calendar') {
 }
 if (view === 'pills') {
     // ?view=pills&sample=1&halloween=1 : the Home reminder chips
+    if (params.get('class')) state.set('globalSelectedClassId', params.get('class'));
     const { getReminderPills } = await import('./features/home.js');
     root.innerHTML = `<div id="home-reminders-container" style="display:flex;flex-wrap:wrap;gap:.6rem;padding:2rem">${getReminderPills(params.get('class') || null)}</div>`;
 }
@@ -108,23 +107,16 @@ if (view === 'planner' || view === 'log') {
         await m.showLogbookModal(date);
     }
 }
-if (view === 'treasure' && params.has('halloween')) {
-    // ?view=treasure&sample=1&halloween=1 : the school-wide Pumpkin Hoard as a Thursday teacher sees it
-    const names = ['Eleni', 'Nikos', 'Maria', 'Giorgos', 'Sofia', 'Dimitris', 'Katerina', 'Yannis'];
-    state.set('allStudents', names.map((name, i) => ({ id: `hs${i}`, name, classId: 'c5' })));
-    const m = await import('./features/dayTreasure.js');
-    await m.openDayTreasure('h1');
-} else if (view === 'treasure') {
-    // ?view=treasure&sample=1 : replays a sample Harvest Chest (no saving)
-    const { rollDayTreasure } = await import('./features/dayTreasureCore.mjs');
+if (view === 'treasure') {
+    // ?view=treasure&date=2026-10-31[&seed=…] : replays a sample reveal for that day's chest (no saving)
+    const { rollDayTreasure, treasureNameFor } = await import('./features/dayTreasureCore.mjs');
+    const { describeSchoolDay } = await import('./utils/schoolCalendar.mjs');
     const names = ['Eleni', 'Nikos', 'Maria', 'Giorgos', 'Sofia', 'Dimitris', 'Katerina', 'Yannis', 'Anna', 'Petros', 'Zoe', 'Alexandros'];
     const students = names.map((name, i) => ({ id: `st${i}`, name, classId: 'c5' }));
     state.set('allStudents', students);
+    const special = describeSchoolDay(params.get('date') || '2026-10-31').headline;
     const shares = rollDayTreasure(students.map((s) => s.id), params.get('seed') || 'demo-7');
     const cls = classes.find((c) => c.id === 'c5') || classes[0];
-    cls.dayTreasures = { t1: { shares, total: shares.reduce((n, s) => n + s.gold, 0), name: 'The Harvest Chest' } };
-    state.set('allSchoolClasses', classes);
-    state.set('allQuestEvents', [{ id: 't1', type: 'day_treasure', classId: cls.id, dateKey: '26-11-2026', status: 'completed', details: { title: 'The Harvest Chest', icon: '🦃' } }]);
     const m = await import('./features/dayTreasure.js');
-    await m.openDayTreasure('t1');
+    m.previewTreasureStage({ event: { id: 't1', details: { title: treasureNameFor(special) } }, cls, special, receipt: { shares, total: shares.reduce((n, s) => n + s.gold, 0) } });
 }

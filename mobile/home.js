@@ -11,7 +11,6 @@ import {
     resolveScheduleEmptyState
 } from '../utils/scheduleEmptyState.js';
 import { buildScheduleEmptySceneHtml, buildScheduleDayNoteHtml } from '../utils/scheduleEmptyScene.js';
-import { treasureItemsOn } from '../features/dayTreasureDays.js';
 import { isSchoolYearAwaitingOpen } from '../utils/schoolYear.js';
 import { sumLiveYearGoldFromAppState } from '../utils/yearGold.js';
 import { getGreetingSkyHtml, getDayRingEmblemHtml, startDayRingClock, syncDayRing } from '../features/homeGreetingScene.js';
@@ -180,8 +179,7 @@ function getClassScheduleRows() {
         return buildScheduleEmptySceneHtml(emptyState, { compact: true });
     }
 
-    const treasures = treasureItemsOn(today);
-    const dayNote = buildScheduleDayNoteHtml(utils.parseFlexibleDate(today) || new Date(), { compact: true, treasures });
+    const dayNote = buildScheduleDayNoteHtml(utils.parseFlexibleDate(today) || new Date(), { compact: true });
     return dayNote + todaysClasses.map((c) => {
         const isMine = myIds.has(c.id);
         const isActive = c.id === activeId;

@@ -438,13 +438,19 @@ export function setupUIListeners() {
             'Confirm Holiday'
         );
     });
-    // Day Treasures open from the day's chip on Home, the schedule note and the Planner.
+    // A Day Treasure opens from its day's chip on Home, for the active class.
     document.addEventListener('click', (e) => {
         const opener = e.target.closest('[data-day-treasure]');
         if (!opener) return;
         e.preventDefault();
         e.stopPropagation();
-        import('../../features/dayTreasure.js').then((m) => m.openDayTreasure(opener.dataset.dayTreasure, opener.dataset.dayTreasureClass || '')).catch((err) => console.error(err));
+        // The chip pops its lid while the reveal loads.
+        opener.classList.add('is-opening');
+        const reveal = import('../../features/dayTreasure.js');
+        setTimeout(() => {
+            opener.classList.remove('is-opening');
+            reveal.then((m) => m.openDayTreasure(opener.dataset.dayTreasure, opener.dataset.dayTreasureClass || '')).catch((err) => console.error(err));
+        }, 380);
     }, true);
     document.getElementById('quest-event-form').addEventListener('submit', (e) => { e.preventDefault(); handleAddQuestEvent(); });
     document.getElementById('quest-event-type').addEventListener('change', modals.renderQuestEventDetails);

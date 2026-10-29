@@ -147,3 +147,16 @@ export function treasureItemsOn(dateString) {
         })
         .sort((a, b) => (a.timeStart || '99:99').localeCompare(b.timeStart || '99:99'));
 }
+
+/**
+ * The treasure the active class can open now: the class selected in the header, in its lesson
+ * (or within the 15-minute grace after it), with a treasure on today's lesson day. The one way
+ * in, from that special day's chip on Home. Null otherwise.
+ */
+export function activeClassTreasure(now = new Date()) {
+    const selected = state.get('globalSelectedClassId');
+    if (!selected || !myClassIds().has(selected)) return null;
+    const cls = (state.get('allSchoolClasses') || []).find((c) => c.id === selected);
+    if (!cls || !utils.findLessonClassWithGrace([cls], now)) return null;
+    return treasureItemsOn(utils.getTodayDateString()).find((t) => t.classId === selected) || null;
+}

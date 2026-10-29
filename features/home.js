@@ -39,7 +39,7 @@ import {
 } from '../utils/scheduleEmptyState.js';
 import { buildScheduleEmptySceneHtml, buildScheduleDayNoteHtml } from '../utils/scheduleEmptyScene.js';
 import { upcomingSchoolDays, toIsoDay, describeSchoolDay } from '../utils/schoolCalendar.mjs';
-import { treasureItemsOn, treasureForSpecial, eventWindow } from './dayTreasureDays.js';
+import { activeClassTreasure, treasureForSpecial, eventWindow } from './dayTreasureDays.js';
 import { getGreetingSkyHtml, getDayRingEmblemHtml, startDayRingClock, syncDayRing } from './homeGreetingScene.js';
 import {
     currentHomeGreeting, greetingTitleInnerHtml, greetingLineInnerHtml, greetingGlintHtml, greetingBadgesHtml,
@@ -875,8 +875,7 @@ function getScheduleHtml(dateString, activeClassId) {
         "bg-gradient-to-br from-rose-100 to-rose-200"
     ];
 
-    const treasures = treasureItemsOn(dateString);
-    const dayNote = buildScheduleDayNoteHtml(utils.parseFlexibleDate(dateString) || new Date(), { treasures });
+    const dayNote = buildScheduleDayNoteHtml(utils.parseFlexibleDate(dateString) || new Date());
     return dayNote + todaysClasses.map(c => {
         const isMine = myClassIds.includes(c.id);
         const timeStr = (c.timeStart) ? `${c.timeStart}` : 'TBD';
@@ -1280,8 +1279,8 @@ function formatPillDate(iso) {
     return new Date(y, m - 1, d).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
-function reminderPill({ tone = 'event', icon = '', emoji = '', avatarHtml = '', eyebrow = '', title = '', tag = '', trailingHtml = '', extraClass = '', tagName = 'div', attrs = '' }) {
-    const lead = avatarHtml
+function reminderPill({ tone = 'event', icon = '', emoji = '', avatarHtml = '', leadHtml = '', eyebrow = '', title = '', tag = '', trailingHtml = '', extraClass = '', tagName = 'div', attrs = '' }) {
+    const lead = avatarHtml || leadHtml
         || `<span class="home-pill__icon" aria-hidden="true">${emoji ? escapeHtml(emoji) : `<i class="fas ${escapeHtml(icon)}"></i>`}</span>`;
     const typeAttr = tagName === 'button' ? ' type="button"' : '';
     return `
@@ -1295,6 +1294,21 @@ function reminderPill({ tone = 'event', icon = '', emoji = '', avatarHtml = '', 
             ${tag ? `<span class="home-pill__tag">${escapeHtml(tag)}</span>` : ''}
             ${trailingHtml}
         </${tagName}>`;
+}
+
+/** The little hand-drawn chest that rattles on a special day's chip when the class can open its treasure. */
+function treasureChestLeadHtml(dayIcon = '') {
+    return `<span class="home-pill__icon home-pill__chest" aria-hidden="true">
+        <svg viewBox="0 0 40 36" width="30" height="27">
+            <path class="home-pill__chest-lid" d="M5 15c0-7 6-11 15-11s15 4 15 11z" fill="#d97706" stroke="#78350f" stroke-width="2" stroke-linejoin="round"/>
+            <rect x="4" y="15" width="32" height="17" rx="3" fill="#b45309" stroke="#78350f" stroke-width="2"/>
+            <path d="M4 21h32" stroke="#78350f" stroke-width="1.5" opacity=".5"/>
+            <rect x="17" y="12" width="6" height="20" fill="#fbbf24" stroke="#78350f" stroke-width="1.5"/>
+            <circle cx="20" cy="17" r="3" fill="#fde68a" stroke="#78350f" stroke-width="1.5"/>
+        </svg>
+        ${dayIcon ? `<span class="home-pill__chest-badge">${escapeHtml(dayIcon)}</span>` : ''}
+        <span class="home-pill__chest-glint home-pill__chest-glint--a">✦</span><span class="home-pill__chest-glint home-pill__chest-glint--b">✧</span>
+    </span>`;
 }
 
 function ceremonyPillHtml(cls, pending) {
@@ -1444,29 +1458,32 @@ export function getReminderPills(classId) {
     // 3. HOLIDAYS AND CELEBRATIONS from the school calendar (utils/schoolCalendar.mjs):
     // the holiday going on today or coming within three weeks, and a celebration day
     // (lessons as normal) today or within the week.
-    const calendarDays = upcomingSchoolDays(now);
-    // A special day's treasure (features/dayTreasureDays.js) lives on that day's chip: on its
-    // lesson days the chip opens it; before them it says when.
+    // How early a day's chip shows: a big break 10 days ahead, a single day off 5, a celebration 4.
+    const calendarDays = upcomingSchoolDays(now, { holidayDays: 10, celebrationDays: 4 });
+    if (calendarDays.holiday?.phase === 'upcoming' && calendarDays.holiday.singleDay && calendarDays.holiday.inDays > 5) calendarDays.holiday = null;
+    // A special day's treasure (features/dayTreasureDays.js) lives on that day's chip. The active
+    // class (selected in the header, in its lesson) opens it there; before that the chip says when.
     const todayIso = toIsoDay(now);
-    const treasureItems = treasureItemsOn(utils.getTodayDateString());
-    const shownTreasures = new Set();
+    const activeTreasure = activeClassTreasure();
+    let activeShown = false;
     const weekday = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'short' });
     const treasureLook = (specialIso) => {
-        const items = treasureItems.filter((t) => t.specialIso === specialIso);
-        if (items.length) {
-            items.forEach((t) => shownTreasures.add(t.id));
-            const waiting = items.filter((t) => !t.opened);
-            const pick = waiting.find((t) => t.classId === classId) || waiting[0] || items.find((t) => t.classId === classId) || items[0];
+        if (activeTreasure?.specialIso === specialIso) {
+            activeShown = true;
+            const t = activeTreasure;
             return {
                 tagName: 'button',
-                extraClass: `home-pill--action home-pill--treasure${waiting.length ? ' home-pill--treasure-ready' : ''}`,
-                eyebrow: waiting.length ? `🧰 ${pick.name} · tap to open` : '🪙 Treasure opened · see it again',
-                attrs: `data-day-treasure="${escapeHtml(pick.id)}" data-day-treasure-class="${escapeHtml(pick.classId)}" aria-label="${escapeHtml(waiting.length ? `Open ${pick.name} for ${pick.classLabel}` : `See ${pick.name} again`)}"`,
+                extraClass: `home-pill--action home-pill--treasure${t.opened ? '' : ' home-pill--treasure-ready'}`,
+                emoji: t.opened ? '🪙' : '',
+                leadHtml: t.opened ? '' : treasureChestLeadHtml(t.icon),
+                eyebrow: t.opened ? 'Treasure opened · see it again' : `Open ${t.name}!`,
+                attrs: `data-day-treasure="${escapeHtml(t.id)}" data-day-treasure-class="${escapeHtml(t.classId)}" aria-label="${escapeHtml(t.opened ? `See ${t.name} again` : `Open ${t.name} for ${t.classLabel}`)}"`,
             };
         }
         const planned = treasureForSpecial(specialIso);
-        const days = planned ? eventWindow(planned).filter((iso) => iso > todayIso) : [];
-        return days.length ? { eyebrow: `🧰 Treasure on ${days.map(weekday).join(' & ')}` } : null;
+        const days = planned ? eventWindow(planned).filter((iso) => iso >= todayIso) : [];
+        if (!days.length) return null;
+        return { eyebrow: days[0] === todayIso ? '🧰 Treasure in today\'s lessons' : `🧰 Treasure on ${days.map(weekday).join(' & ')}` };
     };
     if (calendarDays.holiday) {
         const { range, special, phase, inDays, singleDay } = calendarDays.holiday;
@@ -1505,13 +1522,12 @@ export function getReminderPills(classId) {
         const { special, inDays, iso } = calendarDays.celebration;
         pills.push(celebrationPill(special, inDays, iso));
     }
-    // A treasure whose day has no chip of its own (it opens just after the day): its day's chip.
-    [...new Map(treasureItems.filter((t) => !shownTreasures.has(t.id)).map((t) => [t.id, t])).values()].forEach((t) => {
-        const special = describeSchoolDay(t.specialIso).headline;
-        if (!special) return;
-        const inDays = Math.round((Date.parse(`${t.specialIso}T12:00:00Z`) - Date.parse(`${todayIso}T12:00:00Z`)) / 86400000);
-        pills.push(celebrationPill(special, inDays, t.specialIso));
-    });
+    // The active class's treasure when its day has no chip of its own (it opens just after the day).
+    if (activeTreasure && !activeShown) {
+        const special = describeSchoolDay(activeTreasure.specialIso).headline;
+        const inDays = Math.round((Date.parse(`${activeTreasure.specialIso}T12:00:00Z`) - Date.parse(`${todayIso}T12:00:00Z`)) / 86400000);
+        if (special) pills.push(celebrationPill(special, inDays, activeTreasure.specialIso));
+    }
 
     // 4. QUEST EVENTS (Test/Vocab/etc) — use smart date parser (any format)
     const events = state.get('allQuestEvents') || [];

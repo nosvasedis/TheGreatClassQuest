@@ -8,7 +8,7 @@ import * as state from '../state.js';
 import * as utils from '../utils.js';
 import { DEFAULT_SCHOOL_NAME, getQuestLeagueDefinition } from '../constants.js';
 import { escapeHtml } from './roles/shared.js';
-import { composeHomeGreeting, questNudge } from './homeGreetingWords.mjs';
+import { composeHomeGreeting, questNudge, teacherInitial as nameInitial } from './homeGreetingWords.mjs';
 import { getSkyScene, getLastSkyReading } from './skyWeatherStage.js';
 
 const INTRO_MS = 2600;
@@ -59,10 +59,6 @@ export function greetingGlintHtml() {
     return '<span class="greeting-glint" aria-hidden="true"><span class="greeting-glint__band"></span></span>';
 }
 
-function teacherInitial(name) {
-    const ch = String(name || '').trim().charAt(0);
-    return ch ? escapeHtml(ch.toUpperCase()) : '★';
-}
 
 /**
  * Badges under the greeting: school and teacher side by side, then the class's month
@@ -73,7 +69,7 @@ export function greetingBadgesHtml({ nudge = null, todayChip = '' } = {}) {
     const teacher = state.get('currentTeacherName') || 'Quest Master';
     const badges = [
         `<span class="greeting-chip greeting-chip--school" style="--ci:0"><i class="fas fa-university" aria-hidden="true"></i><span data-school-name>${escapeHtml(school)}</span></span>`,
-        `<span class="greeting-chip greeting-chip--teacher" style="--ci:1" title="Teacher"><span class="greeting-chip__crest" aria-hidden="true">${teacherInitial(teacher)}</span><span class="greeting-chip__name">${escapeHtml(teacher)}</span></span>`
+        `<span class="greeting-chip greeting-chip--teacher" style="--ci:1" title="Teacher"><span class="greeting-chip__crest" aria-hidden="true">${escapeHtml(nameInitial(teacher))}</span><span class="greeting-chip__name">${escapeHtml(teacher)}</span></span>`
     ];
     if (nudge) {
         badges.push(`<span class="greeting-chip greeting-chip--quest greeting-chip--quest-${nudge.tone}" style="--ci:2"><i class="fas ${nudge.icon}" aria-hidden="true"></i>${escapeHtml(nudge.text)}</span>`);

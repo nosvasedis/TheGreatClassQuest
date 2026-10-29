@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { composeHomeGreeting, questNudge, skyMood } from '../features/homeGreetingWords.mjs';
+import { composeHomeGreeting, questNudge, skyMood, teacherInitial } from '../features/homeGreetingWords.mjs';
 
 const tuesdayMorning = new Date(2026, 9, 27, 10, 0);
 
@@ -50,4 +50,14 @@ test('the month badge says how the quest stands', () => {
     assert.equal(questNudge({ monthStars: 10, goal: 48, now: new Date(2026, 9, 30) }).tone, 'rush');
     assert.equal(questNudge({ monthStars: 10, goal: 48, now }).text, '10 ★ of 48 this month');
     assert.equal(questNudge({ monthStars: 10, goal: 0, now }), null);
+});
+
+test('the teacher badge letter skips Mr., Ms., Miss, Mrs. and the Greek κ.', () => {
+    assert.equal(teacherInitial('Mr. Nasos'), 'N');
+    assert.equal(teacherInitial('Ms Elena'), 'E');
+    assert.equal(teacherInitial('Miss Anna'), 'A');
+    assert.equal(teacherInitial('Mrs. Papadopoulou'), 'P');
+    assert.equal(teacherInitial('κ. Νάσος'), 'Ν');
+    assert.equal(teacherInitial('Nasos'), 'N');
+    assert.equal(teacherInitial(''), '★');
 });

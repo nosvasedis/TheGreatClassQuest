@@ -191,3 +191,14 @@ export function composeHomeGreeting({
     }
     return { hello, name, line, icon, mood, key: `${hello}|${name}|${line}` };
 }
+
+/** Titles a teacher's name may start with (English and Greek); the crest skips them. */
+const NAME_TITLES = /^(mr|mrs|ms|miss|mx|mister|madam|madame|dr|sir|teacher|κ|κος|κα|κυρία|κύριος|κυρια|κυριος)\.?$/i;
+
+/** The crest letter: the first letter of the teacher's own name, never of "Mr." or "Ms.". */
+export function teacherInitial(name) {
+    const words = String(name || '').trim().split(/\s+/).filter(Boolean);
+    const own = words.find((w) => !NAME_TITLES.test(w)) || words[0] || '';
+    const ch = own.replace(/^[^\p{L}\p{N}]+/u, '').charAt(0);
+    return ch ? ch.toLocaleUpperCase() : '★';
+}

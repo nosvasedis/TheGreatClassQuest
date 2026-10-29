@@ -28,7 +28,7 @@ import {
     routeSegments
 } from './questWorld/worldGeometry.mjs';
 import { describePlace, placeTipHtml } from './questWorld/placeTips.mjs';
-import { BEYOND_MAX, beyondLanes, beyondMarkFor, beyondPoint, isBeyond, nextBeyondMark } from './questWorld/starwardWay.mjs';
+import { BEYOND_MAX, CROWN_AT, beyondLanes, beyondMarkFor, beyondPoint, isBeyond, nextBeyondMark } from './questWorld/starwardWay.mjs';
 import { crystalSkyHtml, crystalSkyInkSvg, skyWayHtml, vistaVeilHtml } from './questWorld/crystalSky.mjs';
 
 // The way up to the Crystal Sky sits on the land just left of the Portal.
@@ -380,7 +380,8 @@ function renderMapToken(item) {
         pct >= 100 && !portalOpen ? 'is-sealed' : '',
         inside ? 'is-inside' : '',
         beyond ? 'is-beyond' : '',
-        beyond && reach >= BEYOND_MAX ? 'is-crowned' : ''
+        beyond && reach >= CROWN_AT ? 'is-crowned' : '',
+        beyond && reach >= BEYOND_MAX ? 'is-celestial' : ''
     ].filter(Boolean).join(' ');
     const where = beyond
         ? `beyond the Crystal Portal on the Starward Way, now ${escapeMapHtml(rank.title)} (Quest Level ${displayLevel})`
@@ -418,7 +419,7 @@ function renderMapToken(item) {
                 <span class="tq-token__rank">${rankPosition}</span>
                 <span class="tq-token__crest">${rankCrestSvg(displayLevel)}</span>
                 ${pct >= 100 && !portalOpen ? '<span class="tq-token__seal"><i class="fas fa-lock"></i></span>' : ''}
-                ${beyond ? `<span class="tq-token__inside tq-token__inside--beyond"><i class="fas ${reach >= BEYOND_MAX ? 'fa-crown' : 'fa-star'}"></i>${formatReach(reach)}</span>` : ''}
+                ${beyond ? `<span class="tq-token__inside tq-token__inside--beyond"><i class="fas ${reach >= BEYOND_MAX ? 'fa-sun' : reach >= CROWN_AT ? 'fa-crown' : 'fa-star'}"></i>${formatReach(reach)}</span>` : ''}
                 ${inside && !beyond ? `<span class="tq-token__inside"><i class="fas fa-wand-magic-sparkles"></i>${insideCount > 1 ? 'Inside' : 'In the Portal'}</span>` : ''}
                 ${isMine ? '<span class="tq-token__pennant"><i class="fas fa-flag"></i>Active</span>' : ''}
             </span>
@@ -535,10 +536,10 @@ function renderBeyondLine(reach, stars, goal) {
     const toNext = next && goal > 0 ? starsToReachPercent(stars, goal, next.at) : 0;
     return `
                 <span class="tq-card__beyond${next ? '' : ' is-crowned'}">
-                    <i class="fas ${next ? 'fa-star' : 'fa-crown'}" aria-hidden="true"></i>
+                    <i class="fas ${next ? (reach >= CROWN_AT ? 'fa-crown' : 'fa-star') : 'fa-sun'}" aria-hidden="true"></i>
                     <span>
                         <small>The Starward Way</small>
-                        <strong>${next ? (mark ? `Reached ${escapeMapHtml(mark.label)}` : 'Climbing the stars') : 'Wears the Star Crown'}</strong>
+                        <strong>${next ? (mark ? (mark.id === 'crown' ? 'Wears the Star Crown' : `Reached ${escapeMapHtml(mark.label)}`) : 'Climbing the stars') : 'Home in the Celestial Palace'}</strong>
                     </span>
                     <em>${next ? `${formatQuestStars(Math.max(1, toNext))}★ to ${escapeMapHtml(next.label)}` : `${BEYOND_MAX}% reached`}</em>
                 </span>`;

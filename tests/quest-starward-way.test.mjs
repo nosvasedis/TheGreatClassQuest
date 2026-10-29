@@ -16,22 +16,24 @@ import { crystalSkyHtml, crystalSkyInkSvg, skyWayHtml } from '../features/questW
 import { describePlace, placeTipHtml } from '../features/questWorld/placeTips.mjs';
 import { describeQuestRaceGaps, describeQuestRaceLine } from '../features/teamQuestRace.mjs';
 
-test('a party steps onto the Starward Way just past its goal and stops at the Star Crown', () => {
+test('a party steps onto the Starward Way just past its goal and stops at the Celestial Palace', () => {
     assert.equal(isBeyond(100), false);
     assert.equal(isBeyond(100.6), false);
     assert.equal(isBeyond(121), true);
     assert.equal(beyondShare(100), 0);
-    assert.equal(beyondShare(125), 0.5);
+    assert.equal(BEYOND_MAX, 200);
+    assert.equal(beyondShare(150), 0.5);
     assert.equal(beyondShare(BEYOND_MAX), 1);
     assert.equal(beyondShare(240), 1);
     assert.deepEqual(beyondPoint(240), beyondPoint(BEYOND_MAX));
 });
 
-test('the Way rises out of the cloud sea and climbs the Crystal Sky to the Crown', () => {
+test('the Way rises out of the cloud sea and climbs the Crystal Sky to the Palace', () => {
     const start = beyondPoint(100);
-    const crown = beyondPoint(BEYOND_MAX);
+    const palace = beyondPoint(BEYOND_MAX);
     assert.ok(start.y > 800, 'starts low, at the Portal in the clouds');
-    assert.ok(crown.y < 200, 'ends high, at the Crown');
+    assert.ok(palace.y < 260, 'ends high, at the Palace');
+    assert.ok(beyondPoint(150).y < beyondPoint(125).y, 'the Star Crown sits above Comet’s Rest');
     assert.ok(beyondPoint(105).y < 790, 'the first stone is already above the clouds');
     for (let reach = 100; reach <= BEYOND_MAX; reach += 2.5) {
         const point = beyondPoint(reach);
@@ -47,7 +49,7 @@ test('the Way rises out of the cloud sea and climbs the Crystal Sky to the Crown
     }
     assert.ok(Math.max(...steps) / Math.min(...steps) < 1.25);
     assert.equal(beyondLitShare(100), 0);
-    assert.ok(beyondLitShare(125) > 0.5 && beyondLitShare(125) < 0.56);
+    assert.ok(beyondLitShare(150) > 0.5 && beyondLitShare(150) < 0.56);
     assert.equal(Math.round(beyondLitShare(BEYOND_MAX) * 1000), 1000);
 });
 
@@ -69,22 +71,25 @@ test('the Crystal Sky is drawn once and moves only by transform and opacity', ()
 
 test('stones light up as far as the furthest party, with named marks', () => {
     const stones = beyondStones(121);
-    assert.equal(stones.length, 10);
+    assert.equal(stones.length, 20);
     assert.deepEqual(stones.filter((stone) => stone.lit).map((stone) => stone.at), [105, 110, 115, 120]);
     assert.equal(stones.find((stone) => stone.at === 110).kind, 'knot');
-    assert.equal(stones.at(-1).kind, 'crown');
+    assert.equal(stones.find((stone) => stone.at === 150).kind, 'crown');
+    assert.equal(stones.at(-1).kind, 'palace');
     assert.equal(beyondMarkFor(121).label, 'Moonstep');
     assert.equal(nextBeyondMark(121).label, 'Comet’s Rest');
     assert.equal(beyondMarkFor(104), null);
-    assert.equal(nextBeyondMark(160), null);
+    assert.equal(nextBeyondMark(160).label, 'Aurora Bridge');
+    assert.equal(beyondMarkFor(163).label, 'The Star Crown');
+    assert.equal(nextBeyondMark(200), null);
 });
 
 test('parties close together on the Way walk side by side', () => {
-    const lanes = beyondLanes([{ key: 'a', reach: 121 }, { key: 'b', reach: 123 }, { key: 'c', reach: 140 }, { key: 'd', reach: 190 }, { key: 'e', reach: 155 }]);
+    const lanes = beyondLanes([{ key: 'a', reach: 121 }, { key: 'b', reach: 123 }, { key: 'c', reach: 140 }, { key: 'd', reach: 240 }, { key: 'e', reach: 205 }]);
     assert.equal(lanes.get('a'), 0);
     assert.equal(lanes.get('b'), 1);
     assert.equal(lanes.get('c'), 0);
-    // Past the Crown they all wait on it: side by side.
+    // Past the Palace they all wait at its gate: side by side.
     assert.deepEqual([lanes.get('e'), lanes.get('d')].sort(), [0, 1]);
 });
 
@@ -113,4 +118,17 @@ test('the race gap counts the stars past the goal too', () => {
         { id: 'b', name: 'Junior B', progress: 127, currentMonthlyStars: 178, goals: { diamond: 140 } }
     ]);
     assert.equal(describeQuestRaceLine(gaps.get('b')), '43★ to catch Junior A');
+});
+
+test('the Celestial Palace crowns the Way at 200% and lights up when a party arrives', () => {
+    const dim = skyWayHtml(163);
+    assert.match(dim, /tqs-palace"/);
+    assert.match(dim, /The Celestial Palace/);
+    assert.match(dim, /Aurora Bridge/);
+    assert.match(dim, /tqs-mark--crown is-reached/);
+    assert.doesNotMatch(dim, /tqs-mark--palace is-reached/);
+    const lit = skyWayHtml(204);
+    assert.match(lit, /tqs-palace is-lit/);
+    assert.match(lit, /tqs-mark--palace is-reached/);
+    assert.match(crystalSkyHtml(), /tqs-bridge/);
 });

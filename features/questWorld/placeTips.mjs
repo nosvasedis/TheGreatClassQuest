@@ -9,7 +9,7 @@
 import { QUEST_MAP_ZONES } from '../questMapZones.mjs';
 import { formatQuestStars, starsToReachPercent } from '../teamQuestRace.mjs';
 import { REALM_PLACES } from './worldGeometry.mjs';
-import { BEYOND_MAX, beyondMarkFor, isBeyond } from './starwardWay.mjs';
+import { BEYOND_MAX, CROWN_AT, beyondMarkFor, isBeyond } from './starwardWay.mjs';
 
 const RANGES = {
     bronze: [0, 30],
@@ -56,8 +56,8 @@ export function describePlace(placeId, parties = []) {
             id: 'beyond',
             title: 'The Starward Way',
             kind: 'Beyond the Portal',
-            desc: 'Above the clouds, parties through the Portal that keep gathering stars climb to the Star Crown. Every stone is 5% more of the month’s goal.',
-            from: `From 100% of the goal · the Star Crown at ${BEYOND_MAX}%`,
+            desc: 'Above the clouds, parties through the Portal that keep gathering stars climb past the Star Crown to the Celestial Palace. Every stone is 5% more of the month’s goal.',
+            from: `The Star Crown at ${CROWN_AT}% · the Celestial Palace at ${BEYOND_MAX}%`,
             here: climbing.length ? climbing : through,
             status: through.length ? 'here' : 'ahead',
             climbing: climbing.length,
@@ -195,7 +195,7 @@ export function placeTipHtml(info, { badge = '' } = {}) {
                 : 'In the Portal, at the foot of the Way';
         }
         const furthest = info.id === 'beyond' && info.furthest?.mark
-            ? `<span class="tq-tip__status tq-tip__status--crown"><i class="fas ${info.furthest.reach >= BEYOND_MAX ? 'fa-crown' : 'fa-star'}" aria-hidden="true"></i>${escapeHtml(info.furthest.name || 'Class')} ${info.furthest.reach >= BEYOND_MAX ? 'wears' : 'has reached'} ${escapeHtml(info.furthest.mark)}</span>`
+            ? `<span class="tq-tip__status tq-tip__status--crown"><i class="fas ${info.furthest.reach >= BEYOND_MAX ? 'fa-sun' : info.furthest.reach >= CROWN_AT ? 'fa-crown' : 'fa-star'}" aria-hidden="true"></i>${escapeHtml(info.furthest.name || 'Class')} has reached ${escapeHtml(info.furthest.mark)}</span>`
             : '';
         status = `<span class="tq-tip__status${info.id === 'portal' || info.id === 'beyond' ? ' tq-tip__status--inside' : ''}"><small>${label}</small><span class="tq-tip__chips">${chips}</span></span>${furthest}${gate}`;
     } else if (info.id === 'portal' && gate) {

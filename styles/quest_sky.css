@@ -454,6 +454,83 @@
 .tq-living-map[data-view='sky'] .tqs-mid,
 .tq-living-map[data-view='sky'] .tqs-way-slot { transition: opacity 600ms ease; }
 
+/* ── Aurora Bridge (175%) ─────────────────────────────────────────────── */
+.tqs-bridge { position: absolute; width: 18.75%; display: block; }
+.tqs-bridge svg { display: block; width: 100%; height: auto; overflow: visible; }
+.tqs-bridge__glow { fill: none; stroke: url(#tqs-bridge); stroke-width: 30; stroke-linecap: round; opacity: 0.38; }
+.tqs-bridge__bow { fill: none; stroke: url(#tqs-bridge); stroke-width: 9; stroke-linecap: round; }
+.tqs-bridge__bow--thin { stroke-width: 4; opacity: 0.75; }
+.tq-living-map[data-fx='full']:not([data-calm='1']) .tqs-bridge { animation: tqs-bridge 4.5s ease-in-out infinite alternate; }
+
+/* ── The Celestial Palace (200%) ──────────────────────────────────────── */
+.tqs-glow--palace { width: 34%; background: radial-gradient(closest-side, rgba(255, 246, 210, 0.85), rgba(255, 216, 150, 0.36) 42%, rgba(220, 180, 255, 0.14) 66%, rgba(255, 200, 120, 0)); }
+.tqs-glow--crown { width: 18%; opacity: 0.8; }
+
+.tqs-palace { position: absolute; display: block; z-index: 1; }
+.tqs-palace svg { position: relative; display: block; width: 100%; height: auto; overflow: visible; }
+.tq-living-map:not([data-calm='1']) .tqs-palace svg { animation: tqs-bob 9s ease-in-out -3s infinite alternate; }
+.tqs-palace__wall { fill: #e9e2ff; stroke: rgba(91, 33, 182, 0.35); stroke-width: 1.4; }
+.tqs-palace__win { fill: #6b54b8; opacity: 0.75; }
+.tqs-palace__gate { fill: #4c3a8f; stroke: #ffe08a; stroke-width: 2; }
+.tqs-palace__flag { fill: #ffd36e; stroke: #b26b12; stroke-width: 1.4; stroke-linejoin: round; }
+.tqs-palace__star { fill: #fff3c4; stroke: #c98a16; stroke-width: 1.4; }
+.tqs-palace.is-lit .tqs-palace__win { fill: #ffd36e; opacity: 1; }
+.tqs-palace.is-lit .tqs-palace__gate { fill: #ffe9a8; }
+
+/* A soft halo and a ring of little stars turning round the spire's star. */
+.tqs-palace__halo {
+    position: absolute;
+    left: 50%;
+    top: 4%;
+    width: 64%;
+    aspect-ratio: 1;
+    translate: -50% -40%;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(255, 249, 220, 0.95), rgba(255, 222, 150, 0.4) 40%, rgba(255, 210, 120, 0));
+    opacity: 0.55;
+}
+.tqs-palace.is-lit .tqs-palace__halo { opacity: 1; }
+.tq-living-map:not([data-calm='1']) .tqs-palace__halo { animation: tqs-beam 3.6s ease-in-out infinite alternate; }
+
+.tqs-palace__ring {
+    position: absolute;
+    left: 50%;
+    top: 4%;
+    width: 30%;
+    aspect-ratio: 1;
+    margin: -15% 0 0 -15%;
+    display: block;
+}
+.tqs-palace__ring i { position: absolute; inset: 0; }
+.tqs-palace__ring i::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 0.4rem;
+    height: 0.4rem;
+    margin: -0.2rem 0 0 -0.2rem;
+    border-radius: 50%;
+    background: #fff7d6;
+    box-shadow: 0 0 0.45rem 0.12rem rgba(255, 214, 120, 0.9);
+}
+.tqs-palace__ring i:nth-child(1) { transform: rotate(0deg); }
+.tqs-palace__ring i:nth-child(2) { transform: rotate(60deg); }
+.tqs-palace__ring i:nth-child(3) { transform: rotate(120deg); }
+.tqs-palace__ring i:nth-child(4) { transform: rotate(180deg); }
+.tqs-palace__ring i:nth-child(5) { transform: rotate(240deg); }
+.tqs-palace__ring i:nth-child(6) { transform: rotate(300deg); }
+.tqs-palace:not(.is-lit) .tqs-palace__ring { opacity: 0.45; }
+.tq-living-map:not([data-calm='1']) .tqs-palace__ring { animation: tqs-spin 26s linear infinite; }
+
+.tqs-mark--palace { font-size: clamp(0.7rem, 1.02vw, 0.92rem); }
+.tqs-mark--palace.is-reached { box-shadow: 0 0 1.2rem rgba(255, 214, 120, 0.85); }
+
+/* A party home in the Palace: a white-gold badge and a ring of light. */
+.tq-token.is-celestial .tq-token__inside--beyond { color: #3b1d6e; border-color: #fff; background: linear-gradient(135deg, #fffdf2, #ffe08a 55%, #d8b4fe); }
+.tq-token.is-celestial .tq-token__disc { box-shadow: 0 0 0 0.18rem #fff, 0 0 0 0.34rem rgba(216, 180, 254, 0.9), 0 0 1.4rem 0.45rem rgba(255, 214, 120, 0.95); }
+
+@keyframes tqs-bridge { from { opacity: 0.75; } to { opacity: 1; } }
 @keyframes tqs-twinkle { from { opacity: 0.25; transform: scale(0.7); } to { opacity: 1; transform: scale(1.15); } }
 @keyframes tqs-aurora { from { transform: translate3d(-2%, 0, 0); opacity: calc(var(--tqs-aurora) * 0.7); } to { transform: translate3d(2%, 1.5%, 0); opacity: var(--tqs-aurora); } }
 @keyframes tqs-bob { from { transform: translate3d(0, -0.35rem, 0); } to { transform: translate3d(0, 0.35rem, 0); } }

@@ -2,7 +2,8 @@
  * The Starward Way: the road beyond the Crystal Portal. A party that has stepped
  * through the Portal and keeps gathering stars climbs a path of star stones up
  * through the Crystal Sky (the view above the map, features/questWorld/crystalSky.mjs),
- * from the Portal's light below to the Star Crown at 150% of its goal.
+ * from the Portal's light below, past the Star Crown at 150%, to the Celestial
+ * Palace at 200% of its goal.
  * Pure (no DOM): features/worldMap.js draws the stones and places the parties.
  *
  * Coordinates are the Crystal Sky's, the same size as the painted world (1600 × 900).
@@ -10,26 +11,32 @@
 
 /** A party steps out of the Portal onto the Way from this share of its goal. */
 export const BEYOND_FROM = 101;
-/** The Star Crown: the Way's end. Parties further still wait on the Crown. */
-export const BEYOND_MAX = 150;
-/** One star stone every 5% of the goal, from 105% to the Crown. */
+/** The Celestial Palace: the Way's end. Parties further still wait at the Palace. */
+export const BEYOND_MAX = 200;
+/** The Star Crown, the great mark halfway up the Way. */
+export const CROWN_AT = 150;
+/** One star stone every 5% of the goal, from 105% to the Palace. */
 export const BEYOND_STEP = 5;
 
 /** The named stones along the Way. */
 export const BEYOND_MARKS = Object.freeze([
-    Object.freeze({ at: 110, id: 'moonstep', label: 'Moonstep' }),
-    Object.freeze({ at: 125, id: 'comet', label: 'Comet’s Rest' }),
-    Object.freeze({ at: 150, id: 'crown', label: 'The Star Crown' })
+    Object.freeze({ at: 110, id: 'moonstep', label: 'Moonstep', icon: 'fa-moon' }),
+    Object.freeze({ at: 125, id: 'comet', label: 'Comet’s Rest', icon: 'fa-meteor' }),
+    Object.freeze({ at: 150, id: 'crown', label: 'The Star Crown', icon: 'fa-crown' }),
+    Object.freeze({ at: 175, id: 'aurora', label: 'Aurora Bridge', icon: 'fa-rainbow' }),
+    Object.freeze({ at: 200, id: 'palace', label: 'The Celestial Palace', icon: 'fa-sun' })
 ]);
 
 // The Way, as the points it passes through: up out of the Portal's light (under the
-// cloud sea, just right of centre), winding between the sky islands to the Crown.
+// cloud sea, just right of centre), winding west between the sky islands to the Star
+// Crown, then back east along the high sky to the Celestial Palace's gate (top right).
 export const WAY_POINTS = Object.freeze([
-    [1000, 905], [1026, 768], [1178, 700], [1306, 606], [1180, 518], [930, 516],
-    [770, 438], [802, 320], [962, 252], [906, 150]
+    [1000, 905], [1030, 770], [1170, 690], [1150, 590], [920, 556], [690, 500],
+    [480, 452], [336, 384], [300, 306], [380, 240], [600, 222], [830, 284],
+    [1060, 304], [1250, 252], [1340, 214], [1390, 206]
 ]);
 // The first stretch rises out of the clouds before the first stone.
-const T_START = 0.035;
+const T_START = 0.35 / (WAY_POINTS.length - 1);
 
 /** Parties further than this many percent apart walk side by side, not on top of each other. */
 const LANE_GAP = 74;
@@ -148,7 +155,7 @@ export function beyondStones(furthest = 0) {
             at,
             x: Math.round(point.x * 10) / 10,
             y: Math.round(point.y * 10) / 10,
-            kind: mark ? (mark.id === 'crown' ? 'crown' : 'knot') : 'stone',
+            kind: mark ? (mark.id === 'crown' || mark.id === 'palace' ? mark.id : 'knot') : 'stone',
             label: mark?.label || '',
             lit: reach >= at
         });

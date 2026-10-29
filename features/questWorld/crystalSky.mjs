@@ -9,7 +9,7 @@
  * Lite keeps the islands' slow bob and the Portal's turn, and rests the rest.
  */
 
-import { BEYOND_MARKS, beyondFoot, beyondLitShare, beyondPathD, beyondPoint, beyondStones } from './starwardWay.mjs';
+import { BEYOND_MARKS, BEYOND_MAX, CROWN_AT, beyondFoot, beyondLitShare, beyondPathD, beyondPoint, beyondStones } from './starwardWay.mjs';
 
 export const SKY_W = 1600;
 export const SKY_H = 900;
@@ -42,11 +42,11 @@ export const starPath = (s) => {
 // Each is its own little SVG (viewBox 200 × 170, the island's top at y 70), so it can
 // bob on the compositor. `crystals`: [x offset, height, hue] on the island's top.
 const ISLES = [
-    { id: 'west', x: 290, y: 540, w: 230, crystals: [[-30, 70, 'violet'], [6, 96, 'cyan'], [38, 58, 'violet']], bob: 7.5, delay: -1.2 },
-    { id: 'north', x: 600, y: 170, w: 140, crystals: [[-14, 52, 'cyan'], [16, 68, 'violet']], bob: 9, delay: -4.1 },
-    { id: 'east', x: 1480, y: 330, w: 170, crystals: [[-22, 64, 'violet'], [14, 82, 'rose']], bob: 8.2, delay: -2.6 },
-    { id: 'far', x: 1240, y: 130, w: 96, crystals: [[0, 40, 'cyan']], bob: 10, delay: -6, far: true },
-    { id: 'low', x: 560, y: 690, w: 120, crystals: [[-10, 46, 'rose'], [16, 34, 'cyan']], bob: 6.5, delay: -3.3 }
+    { id: 'west', x: 250, y: 620, w: 220, crystals: [[-30, 70, 'violet'], [6, 96, 'cyan'], [38, 58, 'violet']], bob: 7.5, delay: -1.2 },
+    { id: 'north', x: 690, y: 380, w: 140, crystals: [[-14, 52, 'cyan'], [16, 68, 'violet']], bob: 9, delay: -4.1 },
+    { id: 'east', x: 1490, y: 420, w: 170, crystals: [[-22, 64, 'violet'], [14, 82, 'rose']], bob: 8.2, delay: -2.6 },
+    { id: 'far', x: 560, y: 110, w: 96, crystals: [[0, 40, 'cyan']], bob: 10, delay: -6, far: true },
+    { id: 'low', x: 640, y: 700, w: 120, crystals: [[-10, 46, 'rose'], [16, 34, 'cyan']], bob: 6.5, delay: -3.3 }
 ];
 
 const CRYSTAL_FILL = { violet: 'url(#tqs-cr-violet)', cyan: 'url(#tqs-cr-cyan)', rose: 'url(#tqs-cr-rose)' };
@@ -146,7 +146,7 @@ function starField() {
 const TWINKLES = [[160, 300], [420, 90], [560, 470], [820, 60], [930, 400], [1160, 110], [1330, 200], [1530, 120], [250, 640], [1420, 560], [760, 560], [1080, 330]];
 
 // Small crystal shards adrift between the islands: [x, y, size, hue].
-const SHARDS = [[200, 250, 18, 'violet'], [420, 420, 14, 'cyan'], [700, 600, 16, 'rose'], [1110, 380, 13, 'cyan'], [1400, 520, 18, 'violet'], [1380, 160, 12, 'rose'], [640, 300, 11, 'cyan']];
+const SHARDS = [[150, 300, 18, 'violet'], [470, 580, 14, 'cyan'], [820, 640, 16, 'rose'], [1110, 380, 13, 'cyan'], [1410, 600, 18, 'violet'], [1500, 560, 12, 'rose'], [520, 330, 11, 'cyan'], [790, 110, 12, 'violet']];
 
 // ── The Way's marks ────────────────────────────────────────────────────────
 function crescentHtml() {
@@ -164,6 +164,60 @@ function cometIsleHtml() {
     const isle = { x: p.x, y: p.y + 30, w: 190, crystals: [[-46, 54, 'cyan'], [44, 66, 'violet']], bob: 7, delay: -0.6 };
     return `${isleHtml(isle)}
         <span class="tqs-comet" style="${at(p.x + 70, p.y - 120)}" aria-hidden="true"><i></i></span>`;
+}
+
+// Aurora Bridge (175%): a bow of northern light the Way passes under.
+function auroraBridgeHtml() {
+    const p = beyondPoint(175);
+    return `<span class="tqs-bridge" style="${at(p.x - 150, p.y - 96)}">
+            <svg viewBox="0 0 300 110" aria-hidden="true">
+                <defs><linearGradient id="tqs-bridge" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7cf5d4" stop-opacity="0"/><stop offset=".2" stop-color="#7cf5d4"/><stop offset=".55" stop-color="#a99bff"/><stop offset=".85" stop-color="#ff9fd8"/><stop offset="1" stop-color="#ff9fd8" stop-opacity="0"/></linearGradient></defs>
+                <path class="tqs-bridge__glow" d="M14 104 C 50 6, 250 6, 286 104"/>
+                <path class="tqs-bridge__bow" d="M14 104 C 50 6, 250 6, 286 104"/>
+                <path class="tqs-bridge__bow tqs-bridge__bow--thin" d="M34 104 C 66 26, 234 26, 266 104"/>
+            </svg>
+        </span>`;
+}
+
+// The Celestial Palace (200%): a palace of crystal and gold at the top of the sky,
+// its gate where the Way ends. Its own small SVG; the halo and ring move, the palace stays still.
+const PALACE_W = 300;
+const PALACE_H = 210;
+function palaceSvg({ ink = false } = {}) {
+    const tower = (cx, top, w, base = 168) => `M${cx - w} ${base} L${cx - w} ${top + w * 1.3} L${cx} ${top} L${cx + w} ${top + w * 1.3} L${cx + w} ${base} Z`;
+    const facet = (cx, top, w, base = 168) => `M${cx - w} ${base} L${cx - w} ${top + w * 1.3} L${cx} ${top} L${cx} ${base} Z`;
+    const towers = [
+        [150, 18, 21, 'gold'], [104, 62, 15, 'violet'], [196, 62, 15, 'violet'],
+        [66, 104, 11, 'cyan'], [234, 104, 11, 'cyan'], [126, 92, 9, 'rose'], [174, 92, 9, 'rose']
+    ];
+    const rock = 'M10 168 C 40 160, 260 160, 290 168 L 268 186 L 230 194 L 206 204 L 170 206 L 150 210 L 130 206 L 94 204 L 70 194 L 32 186 Z';
+    const deck = 'M10 168 C 40 154, 260 154, 290 168 C 260 178, 40 178, 10 168 Z';
+    const wall = 'M50 168 L50 134 L60 134 L60 128 L70 128 L70 134 L230 134 L230 128 L240 128 L240 134 L250 134 L250 168 Z';
+    const gate = 'M136 170 L136 146 C 136 134, 164 134, 164 146 L164 170 Z';
+    const windows = [[104, 112], [196, 112], [150, 72], [150, 102], [66, 138], [234, 138], [86, 150], [214, 150]];
+    if (ink) {
+        return `<path d="${rock}"/><path d="${deck}"/><path d="${wall}"/>${towers.map(([cx, top, w]) => `<path d="${tower(cx, top, w)}"/>`).join('')}<path d="${gate}"/><path d="${starPath(14)}" transform="translate(150 6)"/>`;
+    }
+    return `<path class="tqs-isle__rock" d="${rock}"/>
+        <path class="tqs-isle__top" d="${deck}"/>
+        <path class="tqs-palace__wall" d="${wall}"/>
+        ${towers.map(([cx, top, w, hue]) => `<path d="${tower(cx, top, w)}" fill="${hue === 'gold' ? 'url(#tqs-cr-gold)' : CRYSTAL_FILL[hue]}" class="tqs-isle__crystal"/><path d="${facet(cx, top, w)}" class="tqs-isle__facet"/>`).join('')}
+        ${windows.map(([x, y]) => `<path class="tqs-palace__win" d="M${x - 4} ${y + 9} L${x - 4} ${y + 2} C ${x - 4} ${y - 3}, ${x + 4} ${y - 3}, ${x + 4} ${y + 2} L${x + 4} ${y + 9} Z"/>`).join('')}
+        <path class="tqs-palace__gate" d="${gate}"/>
+        <path class="tqs-palace__flag" d="M104 62 L104 40 L122 46 L104 52"/><path class="tqs-palace__flag" d="M196 62 L196 40 L214 46 L196 52"/>
+        <path class="tqs-palace__star" d="${starPath(15)}" transform="translate(150 8)"/>`;
+}
+
+function palaceHtml(lit) {
+    const p = beyondPoint(BEYOND_MAX);
+    const scale = 0.95;
+    const w = PALACE_W * scale;
+    const h = PALACE_H * scale;
+    return `<span class="tqs-palace${lit ? ' is-lit' : ''}" style="${at(p.x - w / 2, p.y + 8 - h)};width:${pct(w, SKY_W)}" aria-hidden="true">
+            <span class="tqs-palace__halo"></span>
+            <span class="tqs-palace__ring"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <svg viewBox="0 0 ${PALACE_W} ${PALACE_H}">${palaceSvg()}</svg>
+        </span>`;
 }
 
 function portalFromAboveHtml(vortexSrc) {
@@ -186,6 +240,7 @@ export function crystalSkyHtml({ vortexSrc = '', wayHtml = '' } = {}) {
             <linearGradient id="tqs-cr-rose" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff1f6"/><stop offset=".45" stop-color="#f6a6cf"/><stop offset="1" stop-color="#b8558f"/></linearGradient>
             <linearGradient id="tqs-rock" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8c7ab8"/><stop offset=".55" stop-color="#5a4a8a"/><stop offset="1" stop-color="#2f2557"/></linearGradient>
             <linearGradient id="tqs-isle-top" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e9f9ff"/><stop offset="1" stop-color="#b9b0f0"/></linearGradient>
+            <linearGradient id="tqs-cr-gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffbea"/><stop offset=".4" stop-color="#ffe08a"/><stop offset="1" stop-color="#d98a1c"/></linearGradient>
             <linearGradient id="tqs-moon" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fffbe8"/><stop offset="1" stop-color="#ffd772"/></linearGradient>
         </defs>`;
     const clouds = CLOUD_ROWS.map((row) => `<span class="tqs-clouds tqs-clouds--${row.id}" style="--drift:${row.drift}px" aria-hidden="true">
@@ -199,7 +254,8 @@ export function crystalSkyHtml({ vortexSrc = '', wayHtml = '' } = {}) {
     return `
         <div class="tqs-far" aria-hidden="true">
             <span class="tqs-rays"></span>
-            <span class="tqs-glow tqs-glow--crown" style="${at(beyondPoint(150).x, beyondPoint(150).y)}"></span>
+            <span class="tqs-glow tqs-glow--crown" style="${at(beyondPoint(CROWN_AT).x - 92, beyondPoint(CROWN_AT).y - 10)}"></span>
+            <span class="tqs-glow tqs-glow--palace" style="${at(beyondPoint(BEYOND_MAX).x, beyondPoint(BEYOND_MAX).y - 60)}"></span>
             <span class="tqs-aurora"><svg viewBox="0 0 ${SKY_W} 400" preserveAspectRatio="none">
                 <defs><linearGradient id="tqs-aurora" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7cf5d4" stop-opacity="0"/><stop offset=".3" stop-color="#7cf5d4"/><stop offset=".6" stop-color="#9b8cff"/><stop offset="1" stop-color="#f29be0" stop-opacity="0"/></linearGradient>
                 <linearGradient id="tqs-aurora-fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
@@ -219,6 +275,7 @@ export function crystalSkyHtml({ vortexSrc = '', wayHtml = '' } = {}) {
             ${SHARDS.map(([x, y, size, hue], i) => `<span class="tqs-shard tqs-shard--${hue}" style="${at(x, y)};width:${pct(size, SKY_W)};--i:${i}"></span>`).join('')}
             ${crescentHtml()}
             ${cometIsleHtml()}
+            ${auroraBridgeHtml()}
         </div>
         <div class="tqs-way-slot" data-sky-way>${wayHtml}</div>
         <div class="tqs-near" aria-hidden="true">
@@ -255,6 +312,9 @@ export function vistaVeilHtml() {
         + '</svg></div>';
 }
 
+// Where each named stone's banner sits, from its stone.
+const MARK_OFFSETS = { moonstep: [0, 54], comet: [0, 54], crown: [-92, 70], aurora: [0, 46], palace: [0, 86] };
+
 /**
  * The Starward Way for this month: its stones lit as far as the furthest party,
  * the named stones' banners, and the Star Crown.
@@ -265,7 +325,8 @@ export function skyWayHtml(furthest = 0) {
     const stones = beyondStones(furthest);
     const lead = [...stones].reverse().find((stone) => stone.lit) || null;
     const d = beyondPathD({ fromStart: true });
-    const crown = stones[stones.length - 1];
+    const crown = stones.find((stone) => stone.kind === 'crown');
+    const palace = stones[stones.length - 1];
     const crownDots = [[-34, 0], [-36, -32], [-17, -14], [0, -46], [17, -14], [36, -32], [34, 0]];
     const stoneSvg = stones.map((stone) => {
         const size = stone.kind === 'stone' ? 10 : stone.kind === 'knot' ? 15 : 18;
@@ -274,16 +335,17 @@ export function skyWayHtml(furthest = 0) {
                 <path class="tqs-stone__star" d="${starPath(size)}"/>
             </g>`;
     }).join('');
-    const crownSvg = `<g class="tqs-crown${crown.lit ? ' is-lit' : ''}" transform="translate(${crown.x} ${crown.y - 42})">
+    // The Star Crown's constellation hangs beside its stone (the Way climbs on past it).
+    const crownSvg = `<g class="tqs-crown${crown.lit ? ' is-lit' : ''}" transform="translate(${crown.x - 92} ${crown.y + 14})">
             <polyline class="tqs-crown__line" points="${crownDots.map(([x, y]) => `${x},${y}`).join(' ')} -34,0"/>
             ${crownDots.map(([x, y], index) => `<path class="tqs-crown__star" d="${starPath(index % 2 ? 4.5 : 7.5)}" transform="translate(${x} ${y})"/>`).join('')}
         </g>`;
     const banners = BEYOND_MARKS.map((mark) => {
         const p = beyondPoint(mark.at);
         const reached = furthest >= mark.at;
-        const dy = mark.id === 'crown' ? -112 : 54;
-        return `<span class="tqs-mark tqs-mark--${mark.id}${reached ? ' is-reached' : ''}" style="${at(p.x, p.y + dy)}">
-                <i class="fas ${mark.id === 'crown' ? 'fa-crown' : mark.id === 'moonstep' ? 'fa-moon' : 'fa-meteor'}" aria-hidden="true"></i>
+        const [dx, dy] = MARK_OFFSETS[mark.id] || [0, 54];
+        return `<span class="tqs-mark tqs-mark--${mark.id}${reached ? ' is-reached' : ''}" style="${at(p.x + dx, p.y + dy)}">
+                <i class="fas ${mark.icon}" aria-hidden="true"></i>
                 <span>${escapeHtml(mark.label)}</span><b>${mark.at}%</b>
             </span>`;
     }).join('');
@@ -300,6 +362,7 @@ export function skyWayHtml(furthest = 0) {
             ${stoneSvg}
             ${crownSvg}
         </svg>
+        ${palaceHtml(palace.lit)}
         ${lead ? `<span class="tqs-lead" style="${at(lead.x, lead.y)}" aria-hidden="true"></span>` : ''}
         <span class="tqs-mark tqs-mark--portal" style="${at(foot.x - 200, 772)}"><i class="fas fa-dungeon" aria-hidden="true"></i><span>The Crystal Portal</span><b>100%</b></span>
         ${banners}`;
@@ -315,7 +378,9 @@ export function crystalSkyInkSvg() {
     const comet = beyondPoint(125);
     const cometIsle = `<g transform="translate(${comet.x - 95} ${comet.y + 30 - 190 * 0.85 * 0.41}) scale(0.95)">${isleSvg({ crystals: [[-46, 54], [44, 66]], ink: true })}</g>`;
     const moon = beyondPoint(110);
-    const crown = beyondPoint(150);
+    const crown = beyondPoint(CROWN_AT);
+    const palace = beyondPoint(BEYOND_MAX);
+    const bridge = beyondPoint(175);
     const rand = seeded(99);
     let stars = '';
     for (let i = 0; i < 26; i++) {
@@ -329,7 +394,9 @@ export function crystalSkyInkSvg() {
                 ${isles}${cometIsle}
                 <path transform="translate(${moon.x - 70} ${moon.y - 10})" d="M8 14 C 30 66, 110 66, 132 14 C 104 44, 36 44, 8 14 Z"/>
                 <path d="${beyondPathD({ fromStart: true })}" stroke-dasharray="2 12" stroke-width="3"/>
-                <path transform="translate(${crown.x} ${crown.y - 42})" d="M-34 0 L-36 -32 L-17 -14 L0 -46 L17 -14 L36 -32 L34 0 Z"/>
+                <path transform="translate(${crown.x - 92} ${crown.y + 14})" d="M-34 0 L-36 -32 L-17 -14 L0 -46 L17 -14 L36 -32 L34 0 Z"/>
+                <path transform="translate(${bridge.x - 150} ${bridge.y - 96})" d="M14 104 C 50 6, 250 6, 286 104 M34 104 C 66 26, 234 26, 266 104"/>
+                <g transform="translate(${palace.x - PALACE_W * 0.475} ${palace.y + 8 - PALACE_H * 0.95}) scale(0.95)">${palaceSvg({ ink: true })}</g>
                 <g stroke-width="1.6">${stars}</g>
                 <g fill="#efe3c3" stroke-width="2">${clouds}</g>
             </g>

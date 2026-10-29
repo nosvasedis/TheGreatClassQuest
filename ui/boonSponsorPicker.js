@@ -79,7 +79,9 @@ function receiverSlotHtml(receiver) {
     return `<span class="hb-cloud" aria-hidden="true">${buildAwardCloudSvg('b', 'hb-receiver')}</span>
         <span class="hb-end__ring hb-end__ring--receiver">${faceHtml(receiver, 'hb-end__face')}</span>
         <span class="hb-end__name">${escapeHtml(firstName(receiver.name))}</span>
-        <span class="hb-end__note hb-end__note--stars"><i class="fas fa-star" aria-hidden="true"></i>${escapeHtml(receiver.monthlyStars ?? 0)} this month</span>`;
+        ${receiver.monthSealed
+        ? '<span class="hb-end__note hb-end__note--stars"><i class="fas fa-crown" aria-hidden="true"></i>month sealed</span>'
+        : `<span class="hb-end__note hb-end__note--stars"><i class="fas fa-star" aria-hidden="true"></i>${escapeHtml(receiver.monthlyStars ?? 0)} this month</span>`}`;
 }
 
 function dealHtml(option, baseStars, cost) {
@@ -105,7 +107,7 @@ function todayHtml(used, cap) {
 /**
  * Fill the Hero's Boon modal.
  * @param {Array<{id:string,name:string,avatar?:string,gold:number,status:'free'|'ready'|'locked',reason?:string,patronGoldBack?:number,extraStars?:number}>} options
- * @param {{receiver?:{id:string,name:string,avatar?:string,monthlyStars?:number}, boonsToday?:number, dailyCap?:number, cost?:number, baseStars?:number}} context
+ * @param {{receiver?:{id:string,name:string,avatar?:string,monthlyStars?:number,monthSealed?:boolean}, boonsToday?:number, dailyCap?:number, cost?:number, baseStars?:number}} context
  */
 export function renderBoonSponsorPicker(options, context = {}) {
     const root = document.getElementById('boon-sponsor-picker');

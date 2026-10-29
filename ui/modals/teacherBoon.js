@@ -6,6 +6,7 @@ import { hideModal, showAnimatedModal } from './base.js';
 import { escapeHtml } from '../../features/roles/shared.js';
 import { TEACHER_BOON_PRESETS, awardTeacherBoon, formatTeacherBoonReason, getClassDataById, getTeacherBoonForMonth } from '../../features/boons.js';
 import { buildAwardCloudSvg } from '../../features/awardCloudCard.mjs';
+import { isMonthFinaleLesson, monthFinaleContextFrom } from '../../features/monthFinale.js';
 
 const TEACHER_BOON_FIXED_STARS = 2;
 const TEACHER_BOON_STEPS = [
@@ -41,8 +42,14 @@ function getTeacherBoonScore(studentId) {
     return state.get('allStudentScores').find((score) => score.id === studentId) || {};
 }
 
-function getTeacherBoonStudents() {
+/** The class's last lesson of the month: month stars stay sealed until the Ceremony. */
+function isTeacherBoonMonthSealed() {
+    return isMonthFinaleLesson(teacherBoonModalState.classId, monthFinaleContextFrom((key) => state.get(key)));
+}
+
+function getTeacherBoonStudents(sealed = false) {
     const students = state.get('allStudents').filter((student) => student.classId === teacherBoonModalState.classId);
+    if (sealed) return students.sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
     return students.sort((a, b) => {
         const aScore = Number(getTeacherBoonScore(a.id).monthlyStars) || 0;
         const bScore = Number(getTeacherBoonScore(b.id).monthlyStars) || 0;
@@ -110,7 +117,8 @@ function renderTeacherBoonStudentGrid() {
     const grid = document.getElementById('teacher-boon-student-grid');
     if (!grid) return;
 
-    const students = getTeacherBoonStudents();
+    const sealed = isTeacherBoonMonthSealed();
+    const students = getTeacherBoonStudents(sealed);
     if (!students.length) {
         grid.innerHTML = `
             <div class="tb-empty">
@@ -124,7 +132,7 @@ function renderTeacherBoonStudentGrid() {
     grid.innerHTML = students.map((student, index) => {
         const monthlyStars = Number(getTeacherBoonScore(student.id).monthlyStars) || 0;
         const isSelected = teacherBoonModalState.selectedStudentId === student.id;
-        const rankBadge = index < 3 && monthlyStars > 0
+        const rankBadge = !sealed && index < 3 && monthlyStars > 0
             ? `<span class="tb-student__rank tb-student__rank--${index + 1}" aria-label="Rank ${index + 1}">${index + 1}</span>`
             : '';
 
@@ -139,7 +147,7 @@ function renderTeacherBoonStudentGrid() {
                 ${rankBadge}
                 <span class="tb-student__avatar-wrap">${renderAvatar(student, 'tb-student__avatar')}</span>
                 <span class="tb-student__name">${escapeHtml(student.name)}</span>
-                <span class="tb-student__stars"><i class="fas fa-star" aria-hidden="true"></i>${monthlyStars}<span class="sr-only"> stars this month</span></span>
+                ${sealed ? '' : `<span class="tb-student__stars"><i class="fas fa-star" aria-hidden="true"></i>${monthlyStars}<span class="sr-only"> stars this month</span></span>`}
             </button>
         `;
     }).join('');

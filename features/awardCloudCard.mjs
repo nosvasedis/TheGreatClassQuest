@@ -5,7 +5,7 @@
 //
 // Hooks other code relies on (keep them): .student-cloud-card[data-studentid], .reason-btn[data-reason],
 // .star-award-btn[data-stars], .star-selector-container, .post-award-undo-btn, .boon-btn[data-receiver-id],
-// .absence-controls [data-action], #today-stars-<id>, #monthly-stars-<id>, #total-stars-<id>,
+// .absence-controls [data-action], #today-stars-<id>, #monthly-stars-<id> (absent while the month is sealed), #total-stars-<id>,
 // #student-gold-display-<id>, .enlargeable-avatar.
 
 /** The four life skills a teacher can name on a cloud, in button order. */
@@ -173,8 +173,27 @@ export function buildAwardHonoursHtml(honours = {}) {
 
 /** Today, Month and Total each open their own star card (ui/awardRollTip.js builds it on hover). */
 function tallyTipAttrs(view, kind) {
-    const label = { today: 'Stars today', month: 'Stars this month', total: 'Stars all year' }[kind];
+    const label = kind === 'month' && view.monthSealed
+        ? 'Stars this month: sealed until the Ceremony'
+        : { today: 'Stars today', month: 'Stars this month', total: 'Stars all year' }[kind];
     return `data-tip-build="star-${kind}" data-ledger-student="${esc(view.id)}" tabindex="0" aria-label="${esc(label)}"`;
+}
+
+/**
+ * On the class's last lesson of the month the Month chip carries a wax seal
+ * instead of its count (and no id, so live score updates never write one in).
+ */
+function monthTallyHtml(view) {
+    if (view.monthSealed) {
+        return `<div class="aw-tally__item aw-tally__item--month is-sealed" ${tallyTipAttrs(view, 'month')}>`
+            + `<span class="aw-tally__sigil" aria-hidden="true"><i class="fas fa-moon"></i></span>`
+            + `<span class="aw-tally__value aw-tally__seal" aria-hidden="true"><i class="fas fa-crown"></i></span>`
+            + `<span class="aw-tally__label">Sealed</span></div>`;
+    }
+    return `<div class="aw-tally__item aw-tally__item--month" ${tallyTipAttrs(view, 'month')}>`
+        + `<span class="aw-tally__sigil" aria-hidden="true"><i class="fas fa-moon"></i></span>`
+        + `<span class="aw-tally__value font-title" id="monthly-stars-${esc(view.id)}">${esc(formatAwardStars(view.month))}</span>`
+        + `<span class="aw-tally__label">Month</span></div>`;
 }
 
 function tallyHtml(view) {
@@ -186,10 +205,7 @@ function tallyHtml(view) {
         + `<span class="aw-tally__sigil" aria-hidden="true"><i class="fas fa-sun"></i></span>`
         + `<span class="aw-tally__value font-title" id="today-stars-${id}">${esc(formatAwardStars(today))}</span>`
         + `<span class="aw-tally__label">Today</span><span class="aw-tally__pips">${pips}</span></div>`
-        + `<div class="aw-tally__item aw-tally__item--month" ${tallyTipAttrs(view, 'month')}>`
-        + `<span class="aw-tally__sigil" aria-hidden="true"><i class="fas fa-moon"></i></span>`
-        + `<span class="aw-tally__value font-title" id="monthly-stars-${id}">${esc(formatAwardStars(view.month))}</span>`
-        + `<span class="aw-tally__label">Month</span></div>`
+        + monthTallyHtml(view)
         + `<div class="aw-tally__item aw-tally__item--total" ${tallyTipAttrs(view, 'total')}>`
         + `<span class="aw-tally__sigil" aria-hidden="true"><i class="fas fa-star"></i></span>`
         + `<span class="aw-tally__value font-title" id="total-stars-${id}">${esc(formatAwardStars(view.total))}</span>`
@@ -476,8 +492,16 @@ export function buildAwardTodayTipHtml(data = {}) {
 /**
  * This month's card (the Month chip).
  * data: { name, avatar, month, rank: {place, of}, virtues, other, games }
+ *   or, on the class's last lesson of the month, { name, avatar, sealed: true, monthName }
  */
 export function buildAwardMonthTipHtml(data = {}) {
+    if (data.sealed) {
+        const month = data.monthName ? esc(data.monthName) : 'this month';
+        return `<span class="aw-ledger-tip">${ledgerHead(data, 'This month')}`
+            + `<span class="aw-ledger-tip__status is-sealed"><i class="fas fa-crown" aria-hidden="true"></i>Sealed until the Ceremony</span>`
+            + `<span class="aw-ledger-tip__foot">Every star of ${month} is counted. Who wears the crown is revealed next lesson!</span>`
+            + `</span>`;
+    }
     const virtues = data.virtues || {};
     const top = Math.max(1, ...AWARD_VIRTUES.map((v) => Number(virtues[v.key]) || 0));
     const bars = AWARD_VIRTUES.map((v) => {
@@ -505,19 +529,23 @@ export function buildAwardMonthTipHtml(data = {}) {
 /**
  * The whole year's card (the Total chip).
  * data: { name, avatar, total, month, rank: {place, of}, gold, heroTitle, crowns }
+ * month: null while the month's stars are sealed (the class's last lesson of the month)
  */
 export function buildAwardTotalTipHtml(data = {}) {
     const total = Number(data.total) || 0;
+    const sealed = data.month == null;
     const month = Number(data.month) || 0;
-    const share = total > 0 ? Math.min(100, Math.round((month / total) * 100)) : 0;
+    const share = total > 0 && !sealed ? Math.min(100, Math.round((month / total) * 100)) : 0;
     const rank = data.rank?.place ? `<span class="aw-ledger-tip__rank is-night"><i class="fas fa-ranking-star" aria-hidden="true"></i>#${data.rank.place} of ${data.rank.of} in class</span>` : '';
     const facts = [
-        `<span class="aw-ledger-tip__fact"><i class="fas fa-moon" aria-hidden="true"></i><b>${esc(formatAwardStars(month))}</b> earned this month</span>`,
+        sealed
+            ? '<span class="aw-ledger-tip__fact"><i class="fas fa-crown" aria-hidden="true"></i>This month sealed until the Ceremony</span>'
+            : `<span class="aw-ledger-tip__fact"><i class="fas fa-moon" aria-hidden="true"></i><b>${esc(formatAwardStars(month))}</b> earned this month</span>`,
         data.gold != null ? `<span class="aw-ledger-tip__fact"><i class="fas fa-coins" aria-hidden="true"></i><b>${esc(formatAwardStars(data.gold))}</b> Gold in the purse</span>` : '',
         data.heroTitle ? `<span class="aw-ledger-tip__fact"><i class="fas fa-shield-halved" aria-hidden="true"></i>${esc(data.heroTitle)}</span>` : ''
     ].filter(Boolean).join('');
     return `<span class="aw-ledger-tip">${ledgerHead(data, 'All year')}`
         + `<span class="aw-ledger-tip__row">${bigStars(total, 'is-night')}${rank}</span>`
-        + `<span class="aw-ledger-tip__share" style="--w:${share}%"><span></span></span>`
+        + (sealed ? '' : `<span class="aw-ledger-tip__share" style="--w:${share}%"><span></span></span>`)
         + `<span class="aw-ledger-tip__facts">${facts}</span></span>`;
 }

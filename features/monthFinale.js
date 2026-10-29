@@ -1,7 +1,8 @@
 // /features/monthFinale.js
 // A class's month finale: today is its last lesson of the month, so the next
-// lesson opens with the Ceremony. The Hero's Challenge seals its standings on
-// that day to keep the crowning a surprise.
+// lesson opens with the Ceremony. The Hero's Challenge seals its standings and
+// Award Stars seals each hero's month stars on that day to keep the crowning a
+// surprise.
 
 import * as utils from '../utils.js';
 
@@ -32,4 +33,15 @@ export function isMonthFinaleLesson(classId, {
 /** The ids, among `classIds`, whose month finale is today. */
 export function getMonthFinaleClassIds(classIds, context) {
     return new Set((classIds || []).filter((id) => isMonthFinaleLesson(id, context)));
+}
+
+/** The calendar facts the finale check needs, read from the app state's getter. */
+export function monthFinaleContextFrom(get, now = new Date()) {
+    return {
+        allSchoolClasses: get('allSchoolClasses') || [],
+        allScheduleOverrides: get('allScheduleOverrides') || [],
+        schoolHolidayRanges: get('schoolHolidayRanges') || [],
+        classEndDates: get('teacherSettings')?.schoolYearSettings?.classEndDates || {},
+        now
+    };
 }

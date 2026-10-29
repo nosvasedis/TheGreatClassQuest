@@ -36,6 +36,7 @@ import {
 import { buildHeroTieStats, pickProdigyWinners, rankHeroes } from '../../features/heroRanking.js';
 import { withPendingAwards } from '../../features/awardPending.mjs';
 import { withPendingAttendance } from '../../features/attendancePending.mjs';
+import { isMonthFinaleLesson, monthFinaleContextFrom } from '../../features/monthFinale.js';
 import { playAttendanceTurn, readCloudPalette } from '../awardFx.js';
 import { bindAwardRollTips, hideAwardRollTip, refreshAwardRollTip, registerAwardTipBuilder } from '../awardRollTip.js';
 
@@ -223,6 +224,9 @@ function buildAwardClassContext(classId, studentsInClass) {
     const today = utils.getTodayDateString();
     const classHasLessonToday = utils.doesClassMeetOnDate(classId, today, allSchoolClasses, allScheduleOverrides, schoolHolidayRanges, classEndDates);
     const schoolClass = (allSchoolClasses || []).find((c) => c.id === classId);
+    // The class's last lesson of the month: month stars stay sealed, like the
+    // Hero's Challenge standings, so the Ceremony next lesson keeps its surprise.
+    const monthSealed = isMonthFinaleLesson(classId, monthFinaleContextFrom((key) => state.get(key)));
 
     const scoreMap = new Map();
     for (const sc of state.get('allStudentScores') || []) scoreMap.set(sc.id, sc);
@@ -251,6 +255,7 @@ function buildAwardClassContext(classId, studentsInClass) {
         classId,
         today,
         classHasLessonToday,
+        monthSealed,
         scheduleDays: schoolClass?.scheduleDays || [],
         scoreMap,
         bottomThreeIds,
@@ -337,6 +342,7 @@ function buildStudentCloudView(student, ctx, index = 0) {
         gold: getLiveYearGoldFromAppState(scoreData, state),
         today: starsToday,
         month: scoreData.monthlyStars || 0,
+        monthSealed: ctx.monthSealed,
         total: scoreData.totalStars || 0,
         todayReason: reasonToday,
         locked,
@@ -554,8 +560,9 @@ function buildMonthTip(target) {
     return {
         html: buildAwardMonthTipHtml({
             name: student.name, avatar: student.avatar || null,
-            month: Number(scores.monthlyStars) || 0, rank: rankInClass(ctx, student.id, 'monthlyStars'),
-            virtues, other, games: month.games
+            ...(ctx.monthSealed
+                ? { sealed: true, monthName: new Date().toLocaleString('en-US', { month: 'long' }) }
+                : { month: Number(scores.monthlyStars) || 0, rank: rankInClass(ctx, student.id, 'monthlyStars'), virtues, other, games: month.games })
         }),
         tone: 'month'
     };
@@ -569,7 +576,8 @@ function buildTotalTip(target) {
     return {
         html: buildAwardTotalTipHtml({
             name: student.name, avatar: student.avatar || null,
-            total: Number(scores.totalStars) || 0, month: Number(scores.monthlyStars) || 0,
+            total: Number(scores.totalStars) || 0,
+            month: ctx.monthSealed ? null : Number(scores.monthlyStars) || 0,
             rank: rankInClass(ctx, student.id, 'totalStars'),
             gold: getLiveYearGoldFromAppState(scores, state),
             heroTitle: hero?.title || null

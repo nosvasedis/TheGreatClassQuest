@@ -13,6 +13,7 @@ import {
 } from './prodigyHallView.js';
 import { showToast } from '../effects.js';
 import { renderBoonSponsorPicker } from '../boonSponsorPicker.js';
+import { isMonthFinaleLesson, monthFinaleContextFrom } from '../../features/monthFinale.js';
 import { playSound } from '../../audio.js';
 import {
     HERO_CLASSES,
@@ -829,7 +830,9 @@ export function openBestowBoonModal(receiverId) {
             id: receiver.id,
             name: receiver.name,
             avatar: receiver.avatar || '',
-            monthlyStars: Math.round((Number(receiverScore?.monthlyStars) || 0) * 10) / 10
+            monthlyStars: Math.round((Number(receiverScore?.monthlyStars) || 0) * 10) / 10,
+            // The class's last lesson of the month: month stars stay sealed until the Ceremony.
+            monthSealed: isMonthFinaleLesson(receiver.classId, monthFinaleContextFrom((key) => state.get(key)))
         },
         boonsToday: classBoonsToday,
         dailyCap: PEER_BOON_DAILY_CAP,

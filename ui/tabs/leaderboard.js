@@ -45,7 +45,7 @@ import {
     formatStandingsStars,
     writeStandingsSnapshot
 } from './heroStandings.js';
-import { getMonthFinaleClassIds } from '../../features/monthFinale.js';
+import { getMonthFinaleClassIds, monthFinaleContextFrom } from '../../features/monthFinale.js';
 import { playSound } from '../../audio.js';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 import { classPortalStatus } from '../../features/questPortal.js';
@@ -1096,13 +1096,7 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
 
     // A class's last lesson of the month: its standings stay sealed so the
     // Ceremony at the next lesson keeps its surprise (the teacher can peek).
-    const finaleClassIds = getMonthFinaleClassIds(classesInLeague.map((c) => c.id), {
-        allSchoolClasses: state.get('allSchoolClasses') || [],
-        allScheduleOverrides: state.get('allScheduleOverrides') || [],
-        schoolHolidayRanges: state.get('schoolHolidayRanges') || [],
-        classEndDates: state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {},
-        now
-    });
+    const finaleClassIds = getMonthFinaleClassIds(classesInLeague.map((c) => c.id), monthFinaleContextFrom((key) => state.get(key), now));
     const sealFor = (sectionId, isFinale) => {
         if (!isFinale) return null;
         return _heroPeeked.has(heroPeekKey(sectionId)) ? 'open' : 'sealed';

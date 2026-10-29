@@ -37,29 +37,7 @@ export async function handleGetQuestUpdate() {
         const scores = state.get('allStudentScores') || [];
         const { totalStars: monthlyStars, classBonus: classQuestBonus } = utils.getClassMonthlyQuestStars(c, students, scores);
 
-        const BASE_GOAL = 18;
-        const SCALING_FACTOR = 2.5;
-        const now = new Date();
-        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-
-        let holidayDaysLost = 0;
-        (state.get('schoolHolidayRanges') || []).forEach(range => {
-            const start = new Date(range.start);
-            const end = new Date(range.end);
-            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-            const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-            const overlapStart = start > monthStart ? start : monthStart;
-            const overlapEnd = end < monthEnd ? end : monthEnd;
-            if (overlapStart <= overlapEnd) {
-                holidayDaysLost += (Math.ceil(Math.abs(overlapEnd - overlapStart) / (1000 * 60 * 60 * 24)) + 1);
-            }
-        });
-
-        let monthModifier = (daysInMonth - holidayDaysLost) / daysInMonth;
-        monthModifier = now.getMonth() === 5 ? 0.5 : Math.max(0.6, Math.min(1.0, monthModifier));
-
-        const adjustedGoalPerStudent = (BASE_GOAL + ((c.difficultyLevel || 0) * SCALING_FACTOR)) * monthModifier;
-        const diamondGoal = Math.round(Math.max(18, students.length * adjustedGoalPerStudent));
+        const diamondGoal = utils.calculateMonthlyClassGoal(c, students.length, state.get('schoolHolidayRanges'), state.get('allScheduleOverrides'));
         const progress = diamondGoal > 0 ? (monthlyStars / diamondGoal) * 100 : 0;
 
         return { name: c.name, totalStars: monthlyStars, progress, classQuestBonus };
@@ -163,24 +141,7 @@ export async function openMilestoneModal(markerElement) {
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-
-    let holidayDaysLost = 0;
-    const ranges = state.get('schoolHolidayRanges') || [];
-    ranges.forEach(range => {
-        const start = new Date(range.start);
-        const end = new Date(range.end);
-        const monthStart = new Date(currentYear, currentMonth, 1);
-        const monthEnd = new Date(currentYear, currentMonth + 1, 0);
-        const overlapStart = start > monthStart ? start : monthStart;
-        const overlapEnd = end < monthEnd ? end : monthEnd;
-        if (overlapStart <= overlapEnd) {
-            holidayDaysLost += (Math.ceil(Math.abs(overlapEnd - overlapStart) / (1000 * 60 * 60 * 24)) + 1);
-        }
-    });
-
-    let monthModifier = (daysInMonth - holidayDaysLost) / daysInMonth;
-    monthModifier = currentMonth === 5 ? 0.5 : Math.max(0.6, Math.min(1.0, monthModifier));
+    const monthModifier = utils.getMonthlyGoalModifierForDate(classInfo, state.get('schoolHolidayRanges'), state.get('allScheduleOverrides'), now);
 
     let isCompletedThisMonth = false;
     if (classInfo.questCompletedAt) {

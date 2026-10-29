@@ -934,50 +934,64 @@ function normalizeMonthDate(dateInput = new Date()) {
     return new Date(parsed.getFullYear(), parsed.getMonth(), 1);
 }
 
-function isDateInsideRanges(date, ranges) {
-    return (ranges || []).some(range => {
-        const start = new Date(range.start);
-        const end = new Date(range.end);
-        start.setHours(0, 0, 0, 0);
-        end.setHours(23, 59, 59, 999);
-        return date >= start && date <= end;
-    });
-}
-
-export function calculateMonthlyDaysLostForDate(classData, schoolHolidayRanges, allScheduleOverrides, date = new Date()) {
+/**
+ * The class's own lesson month: how many lessons its weekly rotation puts in the month
+ * (`scheduled`) and how many of THOSE it loses (`lost`) to a school holiday or a cancellation.
+ * A holiday on a day the class has no lesson costs it nothing. A one-time (make-up) lesson
+ * gives back a lost lesson: on a lost day it simply runs, on another day it makes up one loss.
+ */
+export function getMonthlyLessonBalanceForDate(classData, schoolHolidayRanges, allScheduleOverrides, date = new Date()) {
     const targetDate = normalizeMonthDate(date);
-    const currentYear = targetDate.getFullYear();
-    const currentMonth = targetDate.getMonth();
-    const monthStart = new Date(currentYear, currentMonth, 1);
-    const monthEnd = new Date(currentYear, currentMonth + 1, 0);
-
-    let holidayDaysLost = 0;
+    const year = targetDate.getFullYear();
+    const month = targetDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const rotation = new Set((Array.isArray(classData?.scheduleDays) ? classData.scheduleDays : []).map(String));
     const ranges = schoolHolidayRanges || [];
 
-    ranges.forEach(range => {
-        const start = new Date(range.start);
-        const end = new Date(range.end);
-        const overlapStart = start > monthStart ? start : monthStart;
-        const overlapEnd = end < monthEnd ? end : monthEnd;
-        if (overlapStart <= overlapEnd) {
-            const diffTime = Math.abs(overlapEnd - overlapStart);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-            holidayDaysLost += diffDays;
-        }
+    const overridesByDate = new Map();
+    (allScheduleOverrides || []).forEach((override) => {
+        if (!override || override.classId !== classData?.id) return;
+        const oDate = parseDDMMYYYY(override.date);
+        if (!oDate || oDate.getMonth() !== month || oDate.getFullYear() !== year) return;
+        const types = overridesByDate.get(oDate.getDate()) || new Set();
+        types.add(override.type);
+        overridesByDate.set(oDate.getDate(), types);
     });
 
-    const overrides = allScheduleOverrides || [];
-    overrides
-        .filter(override => override.classId === classData.id && override.type === 'cancelled')
-        .forEach(override => {
-            const oDate = parseDDMMYYYY(override.date);
-            if (!oDate) return;
-            if (oDate.getMonth() !== currentMonth || oDate.getFullYear() !== currentYear) return;
-            if (isDateInsideRanges(oDate, ranges)) return;
-            holidayDaysLost += 1;
-        });
+    let scheduled = 0;
+    let lost = 0;
+    let makeUps = 0;
+    for (let day = 1; day <= daysInMonth; day += 1) {
+        const current = new Date(year, month, day);
+        const types = overridesByDate.get(day) || new Set();
+        const onRotation = rotation.has(String(current.getDay()));
+        const cancelled = types.has('cancelled');
+        const oneTime = types.has('one-time') && !cancelled;
+        if (onRotation) {
+            scheduled += 1;
+            if (!oneTime && (cancelled || isLessonBlockedByHoliday(current, ranges))) lost += 1;
+        } else if (oneTime) {
+            makeUps += 1;
+        }
+    }
+    return { scheduled, lost: Math.max(0, lost - makeUps) };
+}
 
-    return holidayDaysLost;
+/** Lessons this class loses this month (only its own lesson days count). */
+export function calculateMonthlyDaysLostForDate(classData, schoolHolidayRanges, allScheduleOverrides, date = new Date()) {
+    return getMonthlyLessonBalanceForDate(classData, schoolHolidayRanges, allScheduleOverrides, date).lost;
+}
+
+/**
+ * How much of the usual monthly goal the class needs: the share of its own lessons that still
+ * run (never below 0.6), and always half in June.
+ */
+export function getMonthlyGoalModifierForDate(classData, schoolHolidayRanges, allScheduleOverrides, date = new Date()) {
+    const targetDate = normalizeMonthDate(date);
+    if (targetDate.getMonth() === 5) return 0.5;
+    const { scheduled, lost } = getMonthlyLessonBalanceForDate(classData, schoolHolidayRanges, allScheduleOverrides, targetDate);
+    if (!scheduled || !lost) return 1;
+    return Math.max(0.6, Math.min(1.0, (scheduled - lost) / scheduled));
 }
 
 export function getHistoricalDifficultyForMonth(classData, date = new Date(), questHistoryRecords = []) {
@@ -1010,16 +1024,7 @@ export function calculateMonthlyClassGoalForDate(classData, studentCount, school
     const BASE_GOAL = 18;
     const SCALING_FACTOR = 2.5;
     const targetDate = normalizeMonthDate(date);
-    const currentMonth = targetDate.getMonth();
-    const daysInMonth = new Date(targetDate.getFullYear(), currentMonth + 1, 0).getDate();
-    const daysLost = calculateMonthlyDaysLostForDate(classData, schoolHolidayRanges, allScheduleOverrides, targetDate);
-
-    let monthModifier = (daysInMonth - daysLost) / daysInMonth;
-    if (currentMonth === 5) {
-        monthModifier = 0.5;
-    } else {
-        monthModifier = Math.max(0.6, Math.min(1.0, monthModifier));
-    }
+    const monthModifier = getMonthlyGoalModifierForDate(classData, schoolHolidayRanges, allScheduleOverrides, targetDate);
 
     const effectiveDifficulty = getHistoricalDifficultyForMonth(classData, targetDate, questHistoryRecords);
     const adjustedGoalPerStudent = (BASE_GOAL + (effectiveDifficulty * SCALING_FACTOR)) * monthModifier;

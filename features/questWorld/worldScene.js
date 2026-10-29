@@ -183,6 +183,10 @@ export function mountQuestWorld(root, { tier = 'full' } = {}) {
     world.innerHTML = `
         <div class="tq-world__depth tq-world__depth--sky">
             <div class="tq-sky"></div>
+            <div class="tq-sky__milky"></div>
+            <div class="tq-sky__glow"></div>
+            <div class="tq-sky__horizon"></div>
+            <div class="tq-sky__wisps"><span></span><span></span><span></span><span></span></div>
             <div class="tq-sky__stars"><span></span><span></span></div>
             <div class="tq-sky__shooting"><span></span></div>
             <div class="tq-sky__rays"></div>
@@ -290,6 +294,7 @@ export function mountQuestWorld(root, { tier = 'full' } = {}) {
     const moonEl = world.querySelector('.tq-sky__moon');
     const raysEl = world.querySelector('.tq-sky__rays');
     const cloudsEl = world.querySelector('.tq-sky__clouds');
+    const glowEl = world.querySelector('.tq-sky__glow');
     let cloudsKey = '';
     let moonPhaseKey = -1;
     let skyClock = null;
@@ -305,6 +310,14 @@ export function mountQuestWorld(root, { tier = 'full' } = {}) {
         target.style.top = `${body.y.toFixed(2)}%`;
         raysEl.style.left = sunEl.style.left;
         raysEl.style.top = sunEl.style.top;
+        // The glow of the light: round the sun by day; after sunset it lingers low
+        // where the sun went down (right), before sunrise it gathers where it will rise (left).
+        const glow = span.isDay ? body
+            : sky.light === 'twilight' ? { x: 90, y: 34 }
+            : sky.light === 'dawn' ? { x: 10, y: 34 }
+            : body;
+        glowEl.style.left = `${glow.x.toFixed(2)}%`;
+        glowEl.style.top = `${glow.y.toFixed(2)}%`;
         const phase = moonPhase(now);
         const phaseKey = Math.round(phase * 200);
         if (phaseKey !== moonPhaseKey) {

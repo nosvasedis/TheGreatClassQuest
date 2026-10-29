@@ -29,7 +29,7 @@ import {
 } from './questWorld/worldGeometry.mjs';
 import { describePlace, placeTipHtml } from './questWorld/placeTips.mjs';
 import { BEYOND_MAX, beyondLanes, beyondMarkFor, beyondPoint, isBeyond, nextBeyondMark } from './questWorld/starwardWay.mjs';
-import { crystalSkyHtml, crystalSkyInkSvg, skyWayHtml } from './questWorld/crystalSky.mjs';
+import { crystalSkyHtml, crystalSkyInkSvg, skyWayHtml, vistaVeilHtml } from './questWorld/crystalSky.mjs';
 
 // The way up to the Crystal Sky sits on the land just left of the Portal.
 const SKYWARD_AT = Object.freeze({ x: PORTAL.x - 118, y: PORTAL.y - 30 });
@@ -634,13 +634,14 @@ export function generateLeagueMapHtml(classes, options = {}) {
                 <div class="tq-class-token-layer">${parts.tokensHtml}</div>
             </div>
 
-            <div class="tq-sky" data-sky-realm>
+            <div class="tq-skyrealm" data-sky-realm>
                 ${crystalSkyHtml({ vortexSrc: LIVING_MAP_ASSETS.portalVortex, wayHtml: parts.skyWayHtml })}
                 <div class="tq-class-token-layer tq-sky-tokens" data-sky-tokens>${parts.skyTokensHtml}</div>
                 <button type="button" class="tq-landward" data-sky-go="down" aria-label="Back down to the map">
                     <i class="fas fa-chevron-down" aria-hidden="true"></i><span>Back to the map</span>
                 </button>
             </div>
+            ${vistaVeilHtml()}
 
             <div class="tq-living-map__ink" aria-hidden="true">
                 <img src="${PAINTED_PROPS.sketch}" alt="" draggable="false" decoding="async">
@@ -1309,7 +1310,9 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
     let view = 'land';
     let vistaAnimations = [];
     const skyPartsFor = () => ({
-        far: skyRealm?.querySelector('.tqs-far')
+        far: skyRealm?.querySelector('.tqs-far'),
+        fringe: skyRealm?.querySelector('.tqs-fringe'),
+        veil: root.querySelector('.tq-vista-veil')
     });
 
     /** The parties in the sky climb to where they stand (from the Portal, or from where they were). */
@@ -1392,7 +1395,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         const up = target === 'sky';
         const lite = root.dataset.fx === 'lite';
         const options = { duration: lite ? VISTA_MS.lite : VISTA_MS.full, easing: vistaEase, fill: 'both' };
-        const { far } = skyPartsFor();
+        const { far, fringe, veil } = skyPartsFor();
         const moves = [
             [stage, ['0 0', '0 100%']],
             [skyRealm, ['0 -100%', '0 0']]
@@ -1406,6 +1409,24 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             [{ translate: up ? a : b }, { translate: up ? b : a }],
             options
         ));
+        // The camera flies through a veil of cloud as it passes the seam: the veil is nearer,
+        // so it crosses the whole frame (downwards on the way up), thickest at the middle.
+        // The clouds hanging under the sky gather in as the move begins rather than appearing at once.
+        if (veil) {
+            const path = up ? ['0 -100%', '0 150%'] : ['0 150%', '0 -100%'];
+            vistaAnimations.push(veil.animate([
+                { translate: path[0], opacity: 0 },
+                { opacity: 1, offset: 0.36 },
+                { opacity: 1, offset: 0.62 },
+                { translate: path[1], opacity: 0 }
+            ], { ...options, easing: 'cubic-bezier(0.5, 0, 0.5, 1)' }));
+        }
+        if (fringe) {
+            vistaAnimations.push(fringe.animate(
+                up ? [{ opacity: 0 }, { opacity: 0.96, offset: 0.3 }, { opacity: 0.96 }] : [{ opacity: 0.96 }, { opacity: 0.96, offset: 0.7 }, { opacity: 0 }],
+                options
+            ));
+        }
         // The parties rise into view while the sky is still arriving.
         if (up && rise) later(() => { if (!destroyed && vistaAnimations.length) riseSky({ fromStart: true }); }, options.duration * 0.45);
         const finished = vistaAnimations[0].finished.then(() => true, () => false);

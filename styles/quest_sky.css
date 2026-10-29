@@ -4,16 +4,19 @@
    transform, translate and opacity ever move; each moving piece is its own small
    element. Lite keeps the islands' slow bob and the Portal's turn. */
 
-.tq-sky {
+:is(.tq-skyrealm, .tq-vista-veil) {
     --tqs-top: #6f9fe6;
     --tqs-mid: #a9b8f5;
-    --tqs-low: #f1d4f2;
+    --tqs-low: color-mix(in srgb, #f3d4f2 72%, var(--wx-sky-1, #bfe6ff));
     --tqs-star: 0.35;
     --tqs-aurora: 0.32;
     --tqs-cloud-a: #ffffff;
     --tqs-cloud-b: #efe6ff;
     --tqs-cloud-c: #dcd0fb;
     --tqs-ink: #3b2a6b;
+}
+
+.tq-skyrealm {
     position: absolute;
     inset: 0;
     z-index: 2;
@@ -23,7 +26,7 @@
     pointer-events: none;
 }
 
-.tq-living-map:is([data-light='dawn'], [data-light='golden']) .tq-sky {
+.tq-living-map:is([data-light='dawn'], [data-light='golden']) :is(.tq-skyrealm, .tq-vista-veil) {
     --tqs-top: #6774c8;
     --tqs-mid: #d99fca;
     --tqs-low: #ffd2a1;
@@ -33,7 +36,7 @@
     --tqs-cloud-c: #f7c9d8;
 }
 
-.tq-living-map[data-light='twilight'] .tq-sky {
+.tq-living-map[data-light='twilight'] :is(.tq-skyrealm, .tq-vista-veil) {
     --tqs-top: #1f2463;
     --tqs-mid: #5d4597;
     --tqs-low: #d68ab8;
@@ -44,7 +47,7 @@
     --tqs-cloud-c: #b49ad9;
 }
 
-.tq-living-map[data-light='night'] .tq-sky {
+.tq-living-map[data-light='night'] :is(.tq-skyrealm, .tq-vista-veil) {
     --tqs-top: #0b0f2e;
     --tqs-mid: #23205a;
     --tqs-low: #4a3484;
@@ -56,11 +59,26 @@
 }
 
 /* Which view shows: the land, the sky, or both while the camera moves. */
-.tq-living-map[data-view='sky'] .tq-sky { translate: none; visibility: visible; pointer-events: auto; }
-.tq-living-map.is-vista-moving .tq-sky { visibility: visible; }
+.tq-living-map[data-view='sky'] .tq-skyrealm { translate: none; visibility: visible; pointer-events: auto; }
+.tq-living-map.is-vista-moving .tq-skyrealm { visibility: visible; }
+
+/* The veil of cloud the camera flies through (moved by worldMap.js setView). */
+.tq-vista-veil {
+    position: absolute;
+    left: -4%;
+    right: -4%;
+    top: 0;
+    height: 72%;
+    z-index: 3;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+}
+.tq-vista-veil svg { display: block; width: 100%; height: 100%; }
+.tq-living-map.is-vista-moving .tq-vista-veil { visibility: visible; will-change: translate, opacity; }
 .tq-living-map[data-view='sky'] .tq-stage { translate: 0 100%; visibility: hidden; }
 .tq-living-map.is-vista-moving .tq-stage { visibility: visible; }
-.tq-living-map.is-vista-moving :is(.tq-stage, .tq-sky, .tqs-far) { will-change: translate; }
+.tq-living-map.is-vista-moving :is(.tq-stage, .tq-skyrealm, .tqs-far) { will-change: translate; }
 .tq-living-map:is([data-view='sky'], .is-vista-moving) :is(.tq-map-camera, .tq-map-hint, .tq-lantern-light, .tq-dust) { visibility: hidden; }
 .tq-living-map.is-vista-moving :is(.tq-popover, .tq-tip) { visibility: hidden; }
 
@@ -432,7 +450,7 @@
 .tq-living-map__ink-sky { display: none; position: absolute; inset: 0; width: 100%; height: 100%; }
 .tq-living-map[data-view='sky'] .tq-living-map__ink img { display: none; }
 .tq-living-map[data-view='sky'] .tq-living-map__ink-sky { display: block; }
-.tq-living-map[data-fx='full'][data-view='sky'].is-blooming .tq-sky { animation: tqw-world-settle 1.6s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.tq-living-map[data-fx='full'][data-view='sky'].is-blooming .tq-skyrealm { animation: tqw-world-settle 1.6s cubic-bezier(0.2, 0.7, 0.2, 1); }
 .tq-living-map[data-view='sky'] .tqs-mid,
 .tq-living-map[data-view='sky'] .tqs-way-slot { transition: opacity 600ms ease; }
 
@@ -453,11 +471,11 @@
     100% { opacity: 0; transform: rotate(-24deg) translateX(-160%) scaleX(1); }
 }
 
-.tq-living-map.is-motion-paused .tq-sky *,
-.tq-living-map:not([data-view='sky']):not(.is-vista-moving) .tq-sky * { animation-play-state: paused !important; }
+.tq-living-map.is-motion-paused .tq-skyrealm *,
+.tq-living-map:not([data-view='sky']):not(.is-vista-moving) .tq-skyrealm * { animation-play-state: paused !important; }
 
 @media (prefers-reduced-motion: reduce) {
-    .tq-sky *,
+    .tq-skyrealm *,
     .tq-skyward,
     .tq-skyward * { animation: none !important; }
 }

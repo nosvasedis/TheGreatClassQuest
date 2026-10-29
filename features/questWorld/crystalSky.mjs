@@ -231,6 +231,31 @@ export function crystalSkyHtml({ vortexSrc = '', wayHtml = '' } = {}) {
 }
 
 /**
+ * The veil of cloud the camera flies through between the land and the sky: one band
+ * of cloud, puffy on both edges, that crosses the frame faster than either view.
+ */
+export function vistaVeilHtml() {
+    const H = 520;
+    // Three layers of cloud: a thin wide one behind, a thicker one, and loose puffs in front,
+    // so the veil has depth and the light shows through its edges.
+    const circle = ([cx, cy, r]) => {
+        const r1 = r.toFixed(1);
+        return `M${(cx - r).toFixed(1)} ${cy.toFixed(1)} a${r1} ${r1} 0 1 1 ${(2 * r).toFixed(1)} 0 a${r1} ${r1} 0 1 1 ${(-2 * r).toFixed(1)} 0 Z`;
+    };
+    // A band of cloud from `top` to `bottom`, puffy on both edges (the lower puffs hang down).
+    const band = (seed, top, bottom, height, count) => {
+        const upper = cloudPuffs(seed, { y: top, height, count });
+        const lower = cloudPuffs(seed + 5, { y: bottom, height: height * 0.85, count: count + 1 })
+            .map(([cx, cy, r]) => [cx, bottom + (bottom - cy), r]);
+        return `<path d="${[...upper, ...lower].map(circle).join(' ')} M-80 ${top} H${SKY_W + 80} V${bottom} H-80 Z"/>`;
+    };
+    return `<div class="tq-vista-veil" aria-hidden="true"><svg viewBox="0 0 ${SKY_W} ${H}" preserveAspectRatio="none">`
+        + '<defs><linearGradient id="tqs-veil" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="tqs-cloud-stop--top"/><stop offset=".5" class="tqs-cloud-stop--mid"/><stop offset="1" class="tqs-cloud-stop--low"/></linearGradient></defs>'
+        + `<g fill="url(#tqs-veil)"><g opacity=".4">${band(61, 120, 400, 74, 9)}</g><g opacity=".55">${band(73, 180, 340, 62, 12)}</g><g opacity=".75">${band(89, 232, 288, 50, 14)}</g></g>`
+        + '</svg></div>';
+}
+
+/**
  * The Starward Way for this month: its stones lit as far as the furthest party,
  * the named stones' banners, and the Star Crown.
  * @param {number} furthest  the furthest reach (% of goal) of a party through the Portal

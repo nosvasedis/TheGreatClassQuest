@@ -108,6 +108,120 @@
         linear-gradient(180deg, var(--wx-sky-3, #66a6ff) 0%, var(--wx-sky-2, #79cffd) 24%, var(--wx-sky-1, #89f7fe) 46%, var(--wx-sky-1, #89f7fe) 100%);
 }
 
+/* The light of the moment, painted over the app's sky colours (map only):
+   a glow round the sun (or where it set / will rise), a band of haze on the
+   horizon behind the land, high wisps of cirrus that catch the light, and the
+   Milky Way on clear nights. All still gradients; only the wisps drift (full). */
+.tq-world {
+    --tqs-glow: rgba(255, 250, 226, 0.55);
+    --tqs-glow-2: rgba(255, 240, 200, 0);
+    --tqs-glow-size: 58%;
+    --tqs-glow-alpha: 1;
+    --tqs-haze: rgba(255, 255, 255, 0.34);
+    --tqs-haze-2: rgba(214, 238, 255, 0.18);
+    --tqs-wisp: rgba(255, 255, 255, 0.62);
+}
+.tq-world[data-light='dawn'] {
+    --tqs-glow: rgba(255, 196, 176, 0.78);
+    --tqs-glow-2: rgba(255, 150, 170, 0.22);
+    --tqs-glow-size: 72%;
+    --tqs-haze: rgba(255, 206, 182, 0.5);
+    --tqs-haze-2: rgba(255, 170, 190, 0.24);
+    --tqs-wisp: rgba(255, 196, 206, 0.72);
+}
+.tq-world[data-light='golden'] {
+    --tqs-glow: rgba(255, 178, 92, 0.82);
+    --tqs-glow-2: rgba(255, 112, 96, 0.26);
+    --tqs-glow-size: 80%;
+    --tqs-haze: rgba(255, 186, 112, 0.55);
+    --tqs-haze-2: rgba(255, 128, 120, 0.26);
+    --tqs-wisp: rgba(255, 190, 150, 0.85);
+}
+.tq-world[data-light='twilight'] {
+    --tqs-glow: rgba(255, 128, 120, 0.72);
+    --tqs-glow-2: rgba(196, 86, 196, 0.28);
+    --tqs-glow-size: 86%;
+    --tqs-haze: rgba(255, 140, 150, 0.4);
+    --tqs-haze-2: rgba(150, 96, 220, 0.3);
+    --tqs-wisp: rgba(255, 150, 186, 0.7);
+}
+.tq-world[data-light='night'] {
+    --tqs-glow-alpha: 0;
+    --tqs-haze: rgba(96, 120, 230, 0.24);
+    --tqs-haze-2: rgba(60, 70, 170, 0.18);
+    --tqs-wisp: rgba(170, 186, 255, 0.18);
+}
+/* Under cloud the light spreads thin and grey; storms swallow it. */
+.tq-world:is([data-tone='grey'], [data-tone='snow'], [data-tone='ice'], [data-tone='fog']) { --tqs-glow-alpha: 0.5; --tqs-haze: rgba(232, 236, 244, 0.32); }
+.tq-world:is([data-tone='grey'], [data-tone='snow'], [data-tone='ice'], [data-tone='fog']):is([data-light='golden'], [data-light='dawn'], [data-light='twilight']) { --tqs-haze: color-mix(in srgb, var(--tqs-glow) 55%, rgba(220, 224, 236, 0.4)); }
+.tq-world[data-tone='rain'] { --tqs-glow-alpha: 0.28; --tqs-haze: rgba(196, 206, 222, 0.26); }
+.tq-world[data-tone='storm'] { --tqs-glow-alpha: 0.12; --tqs-haze: rgba(60, 70, 96, 0.3); --tqs-haze-2: rgba(30, 36, 60, 0.2); }
+.tq-world[data-night='1']:not([data-light='twilight']):not([data-light='dawn']) { --tqs-glow-alpha: 0; }
+.tq-world[data-night='1']:not([data-tone='fair']) { --tqs-haze: rgba(70, 84, 120, 0.22); }
+
+.tq-sky__glow,
+.tq-sky__horizon,
+.tq-sky__wisps,
+.tq-sky__milky { position: absolute; pointer-events: none; }
+
+.tq-sky__glow {
+    width: var(--tqs-glow-size);
+    aspect-ratio: 1.6;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(closest-side, var(--tqs-glow), var(--tqs-glow-2) 55%, rgba(0, 0, 0, 0));
+    opacity: var(--tqs-glow-alpha);
+    transition: opacity 1.6s ease, left 2s ease, top 2s ease;
+}
+
+/* The horizon line sits behind the land (about a third of the way down). */
+.tq-sky__horizon {
+    left: 0;
+    right: 0;
+    top: 12%;
+    height: 50%;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0), var(--tqs-haze-2) 42%, var(--tqs-haze) 72%, var(--tqs-haze) 86%, rgba(0, 0, 0, 0));
+}
+
+.tq-sky__wisps {
+    inset: 0 0 auto;
+    height: 40%;
+    display: none;
+}
+.tq-world[data-tone='fair']:not([data-light='night']) .tq-sky__wisps,
+.tq-world[data-tone='grey'] .tq-sky__wisps { display: block; }
+.tq-world[data-tone='grey'] .tq-sky__wisps { opacity: 0.45; }
+.tq-sky__wisps span {
+    position: absolute;
+    left: 8%;
+    top: 14%;
+    width: 34%;
+    height: 9%;
+    border-radius: 50%;
+    background:
+        radial-gradient(ellipse 50% 50% at 40% 50%, var(--tqs-wisp), rgba(255, 255, 255, 0) 70%),
+        radial-gradient(ellipse 34% 40% at 72% 58%, var(--tqs-wisp), rgba(255, 255, 255, 0) 72%);
+    opacity: 0.7;
+    transform: rotate(-4deg);
+}
+.tq-sky__wisps span:nth-child(2) { left: 46%; top: 6%; width: 28%; height: 6%; opacity: 0.55; transform: rotate(3deg); }
+.tq-sky__wisps span:nth-child(3) { left: 62%; top: 30%; width: 30%; height: 7%; opacity: 0.6; transform: rotate(-2deg); }
+.tq-sky__wisps span:nth-child(4) { left: 24%; top: 40%; width: 22%; height: 5%; opacity: 0.42; transform: rotate(5deg); }
+.tq-world[data-tier='full'] .tq-sky__wisps span { animation: tqw-wisp 70s ease-in-out infinite alternate; }
+.tq-world[data-tier='full'] .tq-sky__wisps span:nth-child(2n) { animation-duration: 90s; animation-delay: -30s; }
+
+/* The Milky Way on clear nights. */
+.tq-sky__milky {
+    inset: -10% 0 40%;
+    display: none;
+    background:
+        linear-gradient(118deg, rgba(0, 0, 0, 0) 30%, rgba(170, 160, 255, 0.12) 40%, rgba(236, 226, 255, 0.2) 47%, rgba(255, 214, 236, 0.12) 52%, rgba(0, 0, 0, 0) 62%);
+    -webkit-mask-image: linear-gradient(180deg, #000 30%, transparent);
+    mask-image: linear-gradient(180deg, #000 30%, transparent);
+}
+.tq-world[data-light='night'][data-tone='fair'] .tq-sky__milky { display: block; }
+
 .tq-sky__stars,
 .tq-sky__shooting,
 .tq-sky__clouds,
@@ -246,6 +360,14 @@
 .tq-world[data-light='golden'] .tq-cloud img { filter: sepia(0.5) saturate(1.7) hue-rotate(-12deg) brightness(0.98); }
 .tq-world[data-light='twilight'] .tq-cloud img { filter: brightness(0.62) saturate(0.9) hue-rotate(200deg) sepia(0.2); }
 .tq-world[data-light='night'] .tq-cloud img { filter: brightness(0.36) saturate(0.6) hue-rotate(190deg); }
+/* Grey skies at the edges of the day keep the cloud grey but warm its edge; before
+   dawn (still night) the clouds take the night's colour, not the coming sun's. */
+.tq-world:not([data-tone='fair'])[data-light='dawn'] .tq-cloud img { filter: saturate(0.45) sepia(0.25) brightness(0.86) hue-rotate(-14deg); }
+.tq-world:not([data-tone='fair'])[data-light='golden'] .tq-cloud img { filter: saturate(0.55) sepia(0.32) brightness(0.84) hue-rotate(-10deg); }
+.tq-world:not([data-tone='fair'])[data-light='twilight'] .tq-cloud img { filter: brightness(0.5) saturate(0.6) hue-rotate(210deg) sepia(0.15); }
+.tq-world:is([data-tone='rain'], [data-tone='storm'])[data-light='day'] .tq-cloud img { filter: saturate(0.3) brightness(0.7); }
+.tq-world[data-tone='storm'] .tq-cloud img { filter: saturate(0.3) brightness(0.48) contrast(1.1); }
+.tq-world[data-night='1'][data-light='dawn'] .tq-cloud img { filter: brightness(0.46) saturate(0.7) hue-rotate(200deg) sepia(0.15); }
 
 /* Shadows of the clouds sliding over the land on a bright day. */
 .tq-cloud-shadows { display: none; overflow: hidden; }
@@ -2004,6 +2126,7 @@
 /* ── Keyframes (transform and opacity only) ───────────────────────────── */
 @keyframes tqw-drift { from { transform: translate3d(-130%, 0, 0); } to { transform: translate3d(760%, 0, 0); } }
 @keyframes tqw-shadow-drift { from { transform: translate3d(-110%, 0, 0); } to { transform: translate3d(360%, 0, 0); } }
+@keyframes tqw-wisp { from { transform: translate3d(0, 0, 0) rotate(-3deg); } to { transform: translate3d(9%, 6%, 0) rotate(2deg); } }
 @keyframes tqw-twinkle { from { opacity: 0.25; } to { opacity: 1; } }
 @keyframes tqw-shooting {
     0%, 92% { opacity: 0; transform: rotate(18deg) translate3d(0, 0, 0); }

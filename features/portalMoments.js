@@ -1,8 +1,8 @@
 // features/portalMoments.js
 // What the teacher sees when a class reaches the Crystal Portal, over whatever is on screen
 // (the projector included):
-//  - stepping through: the Portal banner, a little story of its own (the class token walks the
-//    road, the Portal swallows it in a flash and the new rank crest rises); tapping it opens
+//  - stepping through: the Portal banner, a little story of its own (the class emblem, ringed by
+//    its heroes, glides into the Portal, a flash, and the new rank crest rises); tapping it opens
 //    the full story (ui/modals/portalStory.js). Afterwards the app's notification keeps a
 //    "Watch the story" button;
 //  - stars full but a rune still sleeps, or the Guardian waits: the same banner at the sealed
@@ -15,12 +15,11 @@ import * as state from '../state.js';
 import * as utils from '../utils.js';
 import { detectLowPowerTier } from '../utils/devicePerformance.mjs';
 import { rankCrestSvg } from './questRankCrest.mjs';
-import { buildPortalStory, normalizeCrossing, portalMomentKey } from './portalStoryCore.mjs';
+import { buildPortalStory, heroTint, normalizeCrossing, portalMomentKey } from './portalStoryCore.mjs';
 import { displayLevelOf } from './questRanksCore.mjs';
 
 const VORTEX = new URL('../assets/team-quest-map/living-atlas/portal-vortex.webp', import.meta.url).href;
 const VEIL = new URL('../assets/team-quest-map/living-atlas/portal-vortex-veiled.webp', import.meta.url).href;
-const TOKEN = new URL('../assets/team-quest-map/living-atlas/token-gold.webp', import.meta.url).href;
 
 const BANNER_MS = { open: 13000, sealed: 10000, guardian: 10000 };
 const REMOTE_DELAY_MS = 2500;
@@ -88,6 +87,16 @@ export function sleepingRuneLine(status) {
 
 // ─── The banner ──────────────────────────────────────────────────────────────
 
+/** The fellowship in little: a dot for every hero (up to 16) ringed around the emblem. */
+function bandDots(story) {
+    const heroes = story.heroes.shown;
+    const count = Math.min(16, heroes.length);
+    return Array.from({ length: count }, (_, k) => {
+        const hero = heroes[Math.floor((k * heroes.length) / count)];
+        return `<i style="--a:${((360 * k) / count).toFixed(1)}deg;--tint:${heroTint(hero.name)}"></i>`;
+    }).join('');
+}
+
 /** The banner's markup (also used by the preview page). */
 export function portalBannerHtml(story) {
     const open = story.variant === 'open';
@@ -113,7 +122,10 @@ export function portalBannerHtml(story) {
                 </span>
                 ${marks}
                 <span class="pe-banner__walker">
-                    <span class="pe-banner__token"><img src="${TOKEN}" alt="" draggable="false" decoding="async"><b>${esc(story.logo)}</b></span>
+                    <span class="pe-banner__band">
+                        <span class="pe-banner__ring">${bandDots(story)}</span>
+                        <span class="pe-banner__medal"><b>${esc(story.logo)}</b></span>
+                    </span>
                 </span>
                 ${crest}
             </span>

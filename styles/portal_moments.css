@@ -1,6 +1,7 @@
 /* The Crystal Portal banner (features/portalMoments.js). Loaded lazily with that module.
-   A night-crystal strip: on the left a tiny scene (the class token walks the glowing road into
-   the Portal, a flash, the new rank crest rises); on the right the words and "watch" button.
+   A night-crystal strip: on the left a tiny scene (the class emblem, ringed by a dot for each
+   hero, glides along the glowing road into the Portal, a flash, the new rank crest rises); on
+   the right the words and "watch" button.
    Motion only moves transform and opacity; the lite tier drops the spin, the sparks and the halo. */
 
 .pe-host {
@@ -178,52 +179,89 @@
     100% { opacity: 0; transform: rotate(calc(var(--i) * 36deg)) translateY(-68px) scale(1); }
 }
 
-/* The walker spans the stage, so translateX(%) is a share of the stage's width. */
+/* The fellowship glides along the road into the Portal. The walker spans the stage, so its
+   translateX(%) is a share of the stage's width. */
 .pe-banner__walker {
     position: absolute;
     inset: 0;
-    animation: pe-walk 2s 0.5s cubic-bezier(0.45, 0.05, 0.4, 1) both;
+    animation: pe-walk 1.9s 0.55s cubic-bezier(0.45, 0.05, 0.4, 1) both;
 }
 
 @keyframes pe-walk {
     0% { transform: translateX(0); }
-    100% { transform: translateX(64%); }
+    100% { transform: translateX(52%); }
 }
 
-.pe-banner__token {
+.pe-banner__band {
     position: absolute;
-    left: 2%;
-    top: 62%;
-    width: calc(var(--pe-stage) * 0.2);
-    height: calc(var(--pe-stage) * 0.2);
-    max-width: 56px;
-    max-height: 56px;
-    margin-top: calc(var(--pe-stage) * -0.17);
-    display: grid;
-    place-items: center;
-    animation: pe-hop 0.34s 0.5s ease-in-out 6 alternate, pe-enter 0.5s 2.45s cubic-bezier(0.6, 0, 0.8, 0.4) forwards;
+    left: 22%;
+    top: 50%;
+    width: 0;
+    height: 0;
+    animation: pe-band-in 0.6s 0.15s cubic-bezier(0.3, 1.5, 0.5, 1) both, pe-enter 0.55s 2.4s cubic-bezier(0.6, 0, 0.8, 0.4) forwards;
 }
 
-.pe-banner__token img {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-}
-
-.pe-banner__token b {
-    position: relative;
-    font-size: calc(var(--pe-stage) * 0.08);
-    line-height: 1;
-    margin-top: 12%;
-}
-
-@keyframes pe-hop {
-    to { transform: translateY(-6px); }
+@keyframes pe-band-in {
+    from { opacity: 0; transform: scale(0.3); }
+    to { opacity: 1; transform: none; }
 }
 
 @keyframes pe-enter {
-    to { transform: scale(0.1) rotate(300deg); opacity: 0; }
+    to { transform: scale(0.06) rotate(320deg); opacity: 0; }
+}
+
+.pe-banner__ring {
+    position: absolute;
+    left: 0;
+    top: 0;
+    animation: pe-turn 9s linear infinite;
+}
+
+.pe-banner__ring::before {
+    content: '';
+    position: absolute;
+    left: calc(var(--pe-stage) * -0.15);
+    top: calc(var(--pe-stage) * -0.15);
+    width: calc(var(--pe-stage) * 0.3);
+    height: calc(var(--pe-stage) * 0.3);
+    border-radius: 50%;
+    border: 1.5px solid rgba(253, 230, 138, 0.45);
+}
+
+.pe-banner__ring i {
+    position: absolute;
+    left: calc(var(--pe-stage) * -0.028);
+    top: calc(var(--pe-stage) * -0.028);
+    width: calc(var(--pe-stage) * 0.056);
+    height: calc(var(--pe-stage) * 0.056);
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--tint) 60%, #fff), var(--tint) 70%);
+    border: 1.5px solid #fde68a;
+    transform: rotate(var(--a)) translateY(calc(var(--pe-stage) * -0.15));
+}
+
+@keyframes pe-turn {
+    to { transform: rotate(360deg); }
+}
+
+.pe-banner__medal {
+    position: absolute;
+    left: calc(var(--pe-stage) * -0.085);
+    top: calc(var(--pe-stage) * -0.085);
+    width: calc(var(--pe-stage) * 0.17);
+    height: calc(var(--pe-stage) * 0.17);
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 35%, #5b3fc4, #24135c 70%) padding-box, conic-gradient(#fde68a, #f59e0b, #fff7d6, #d97706, #fde68a) border-box;
+    border: calc(var(--pe-stage) * 0.012) solid transparent;
+    box-shadow: 0 0 14px color-mix(in srgb, var(--pe-tone) 70%, transparent), 0 3px 6px rgba(0, 0, 0, 0.45);
+}
+
+.pe-banner__medal b {
+    font-size: calc(var(--pe-stage) * 0.085);
+    line-height: 1;
+    font-weight: 400;
 }
 
 .pe-banner__crest {
@@ -265,9 +303,10 @@
     letter-spacing: 0.07em;
     text-transform: uppercase;
     color: var(--pe-tone-light);
-    white-space: nowrap;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
     overflow: hidden;
-    text-overflow: ellipsis;
     animation: pe-rise 0.5s 0.35s ease-out both;
 }
 
@@ -390,8 +429,8 @@
 /* ── At the gate: the token stops short, the Portal stays veiled, the runes flicker ── */
 .pe-banner--sealed .pe-banner__walker,
 .pe-banner--guardian .pe-banner__walker { animation-name: pe-walk-gate; }
-.pe-banner--sealed .pe-banner__token,
-.pe-banner--guardian .pe-banner__token { animation: pe-hop 0.34s 0.5s ease-in-out 6 alternate; }
+.pe-banner--sealed .pe-banner__band,
+.pe-banner--guardian .pe-banner__band { animation: pe-band-in 0.6s 0.15s cubic-bezier(0.3, 1.5, 0.5, 1) both; }
 .pe-banner--sealed .pe-banner__flash,
 .pe-banner--guardian .pe-banner__flash { display: none; }
 .pe-banner--sealed .pe-banner__vortex,
@@ -406,7 +445,7 @@
 .pe-banner--guardian .pe-banner__cta { animation-delay: 2.5s, 3.1s; }
 
 @keyframes pe-walk-gate {
-    to { transform: translateX(40%); }
+    to { transform: translateX(26%); }
 }
 
 .pe-banner__runes {
@@ -455,7 +494,8 @@
 
 /* ── Weaker laptops: no spin, no sparks, no breathing halo ── */
 .pe--lite .pe-banner__vortex,
-.pe--lite .pe-banner__halo { animation: none; }
+.pe--lite .pe-banner__halo,
+.pe--lite .pe-banner__ring { animation: none; }
 .pe--lite .pe-banner__spark { display: none; }
 .pe--lite .pe-banner__stamp { animation: none; opacity: 0.9; transform: rotate(-14deg); }
 .pe--lite.pe-banner { box-shadow: 0 12px 30px rgba(15, 10, 46, 0.45); }

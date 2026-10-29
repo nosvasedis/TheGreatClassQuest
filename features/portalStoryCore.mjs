@@ -11,6 +11,15 @@
 
 import { rankForLevel, newAtLevel, portalSpoilsGold, runesForLevel, displayLevelOf, PORTAL_RUNES } from './questRanksCore.mjs';
 
+const HERO_TINTS = ['#f472b6', '#38bdf8', '#4ade80', '#facc15', '#a78bfa', '#fb923c', '#2dd4bf', '#f87171'];
+
+/** A hero's colour (from the name, so it stays the same everywhere the hero appears). */
+export function heroTint(name) {
+    let h = 0;
+    for (const ch of String(name)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    return HERO_TINTS[h % HERO_TINTS.length];
+}
+
 function num(value) {
     const n = Number(value);
     return Number.isFinite(n) ? n : 0;
@@ -132,7 +141,7 @@ export function buildPortalStory({ kind = 'crossing', classData = {}, roster = [
                 goalLine,
                 runes.length ? `${runes.length === 1 ? 'The Portal rune glows' : `All ${runes.length} Portal runes glow`}. The way is open.` : 'The Crystal Portal hears them coming…',
                 'The Portal wakes and opens wide…',
-                `${who} step through, hero by hero.`,
+                `${who} step through together, every hero side by side.`,
                 `Welcome, ${toRank.title}! Quest Level ${toRank.displayLevel}.`,
                 crossing.gold > 0 ? `Portal spoils: +${crossing.gold} Gold for every hero.` : 'A new road begins next month.'
             ]
@@ -164,7 +173,7 @@ export function buildPortalStory({ kind = 'crossing', classData = {}, roster = [
             : (sleepingLine || `${sleeping.length} ${sleeping.length === 1 ? 'rune still sleeps' : 'runes still sleep'}.`),
         chapters: [
             goalLine,
-            'The heroes gather at the Crystal Portal…',
+            'The heroes gather around their banner at the Crystal Portal…',
             guardian ? 'Every rune glows, but the Portal Guardian stands in the way.' : 'The runes flicker… but the Portal stays sealed.',
             guardian ? `The Guardian asks ${num(status.guardian?.questions)} riddles and wants ${num(status.guardian?.toPass)} right.` : (sleepingLine || 'A rune still sleeps.'),
             guardian

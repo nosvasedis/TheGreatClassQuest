@@ -1,28 +1,25 @@
 // ui/modals/portalStory.js
-// The Portal story: a short animated scene opened from the Portal banner (or its notification).
-//  - open (the class stepped through): the road lights up, the Portal runes glow one by one,
-//    the Portal opens, the class token leads its heroes up the road and each one steps into the
-//    light; a flash, the old crest gives way to the new rank's crest, Gold rains, and a closing
-//    panel tells the spoils and what the next Portal asks;
-//  - sealed / guardian (stars full, the Portal still closed): the heroes gather at the gate, the
-//    lit runes glow and the sleeping ones flicker (or the Guardian rises), and the panel says
-//    what still opens it.
-// Weaker laptops (detectLowPowerTier) get fewer heroes and no twinkle, rays, coins or road
-// drawing; reduced motion shows the last frame. Story text: features/portalStoryCore.mjs.
+// The Portal story: a full-screen scene opened from the Portal banner (or its notification),
+// made for the projector. The class is one fellowship: its emblem in the middle, every hero in
+// a ring around it (two or three rings for a big class), all of them seen at once.
+//  - open (the class stepped through): the heroes gather around the emblem, the Portal runes
+//    light one by one, the Portal wakes behind them and the whole fellowship spins into it
+//    together; a flash, and they come back out ringed around the new rank's crest. Gold rains,
+//    and the closing cards tell the spoils and what the next Portal asks;
+//  - sealed / guardian (stars full, the Portal still closed): the fellowship gathers before the
+//    veiled Portal, the lit runes glow and the sleeping ones flicker (or the Guardian's key
+//    appears), and the cards say what still opens it.
+// Weaker laptops (detectLowPowerTier) get no twinkle, rays, warp lines, glow or coins; reduced
+// motion shows the last frame. Story text: features/portalStoryCore.mjs.
 // Sound: audio.js playPortalSfx. Styles: styles/portal_story.css (lazy, with this module).
 import '../../styles/portal_story.css';
 import { rankCrestSvg } from '../../features/questRankCrest.mjs';
+import { heroTint } from '../../features/portalStoryCore.mjs';
 
 const VORTEX = new URL('../../assets/team-quest-map/living-atlas/portal-vortex.webp', import.meta.url).href;
 const VEIL = new URL('../../assets/team-quest-map/living-atlas/portal-vortex-veiled.webp', import.meta.url).href;
-const TOKEN = new URL('../../assets/team-quest-map/living-atlas/token-gold.webp', import.meta.url).href;
 
-// The road, in the stage's own 1000 × 562 box: from the meadow (bottom left) to the Portal.
-const ROAD = { sx: 60, sy: 484, cx: 520, cy: 524, ex: 690, ey: 252 };
-const WALK_MS = 2400;
-const ENTER_MS = 450;
-
-const HERO_TINTS = ['#f472b6', '#38bdf8', '#4ade80', '#facc15', '#a78bfa', '#fb923c', '#2dd4bf', '#f87171'];
+const PLUNGE_MS = 2600;
 
 let active = null;
 
@@ -39,14 +36,6 @@ function tierOf(story) {
     return story.lite ? 'lite' : 'full';
 }
 
-/** A point on the road at t (0..1), in stage percentages. */
-function roadAt(t) {
-    const u = 1 - t;
-    const x = u * u * ROAD.sx + 2 * t * u * ROAD.cx + t * t * ROAD.ex;
-    const y = u * u * ROAD.sy + 2 * t * u * ROAD.cy + t * t * ROAD.ey;
-    return { x: x / 10, y: (y / 562) * 100 };
-}
-
 /** Stars painted as box-shadows on one dot (seeded, so every opening looks the same). */
 function starField(count, seed) {
     let s = seed;
@@ -54,248 +43,287 @@ function starField(count, seed) {
     const out = [];
     for (let i = 0; i < count; i += 1) {
         const x = (rand() * 100).toFixed(2);
-        const y = (rand() * 62).toFixed(2);
+        const y = (rand() * 78).toFixed(2);
         const size = rand() > 0.85 ? 1.5 : 0.5;
         out.push(`${x}cqw ${y}cqh 0 ${size}px rgba(255,255,255,${(0.5 + rand() * 0.5).toFixed(2)})`);
     }
     return out.join(',');
 }
 
-function tintFor(name) {
-    let h = 0;
-    for (const ch of String(name)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-    return HERO_TINTS[h % HERO_TINTS.length];
+/**
+ * Where every hero stands around the emblem, in orbit units (the orbit is about 100 units
+ * across): one ring for a class of up to 18, two up to 44, then three. Heroes go clockwise
+ * from the top in name order, outer ring first; an inner ring sits half a step round so
+ * nobody hides behind anybody. `size` is one hero's width in the same units.
+ */
+export function fellowshipLayout(count) {
+    const n = Math.max(0, Math.floor(Number(count) || 0));
+    const rings = n <= 18
+        ? [{ r: 34, share: 1 }]
+        : n <= 44
+            ? [{ r: 39, share: 0.58 }, { r: 26.5, share: 0.42 }]
+            : [{ r: 41, share: 0.42 }, { r: 31, share: 0.33 }, { r: 21.5, share: 0.25 }];
+    let left = n;
+    const counts = rings.map((ring, i) => {
+        const take = i === rings.length - 1 ? left : Math.round(n * ring.share);
+        left -= take;
+        return take;
+    });
+    const cap = rings.length === 1 ? 11 : rings.length === 2 ? 9 : 6.5;
+    const size = Math.min(cap, ...rings.map((ring, i) => (counts[i] ? ((2 * Math.PI * ring.r) / counts[i]) * 0.68 : cap)));
+    const spots = [];
+    rings.forEach((ring, i) => {
+        const k = counts[i];
+        for (let j = 0; j < k; j += 1) {
+            const a = ((-90 + (360 * j) / k + (i % 2 ? 180 / k : 0)) * Math.PI) / 180;
+            spots.push({ x: +(ring.r * Math.cos(a)).toFixed(2), y: +(ring.r * Math.sin(a)).toFixed(2) });
+        }
+    });
+    return { size: +size.toFixed(2), rings: rings.length, radii: rings.map((ring) => ring.r), spots };
+}
+
+/** Time between two heroes popping into the ring: a big class gathers quicker. */
+function popGap(count) {
+    return Math.round(Math.min(110, Math.max(40, 1500 / Math.max(1, count))));
 }
 
 function heroFace(hero) {
     if (hero.avatar) return `<img src="${esc(hero.avatar)}" alt="" draggable="false" decoding="async" loading="eager">`;
-    return `<span class="ps-hero__initial" style="--tint:${tintFor(hero.name)}">${esc(hero.name.charAt(0).toUpperCase() || '★')}</span>`;
+    return `<span class="ps-hero__initial" style="--tint:${heroTint(hero.name)}">${esc(hero.name.charAt(0).toUpperCase() || '★')}</span>`;
 }
 
-/** Walkers on stage: the class token and every hero (nobody is left off). */
-function walkerCount(story) {
-    return 1 + story.heroes.shown.length;
-}
-
-/** Time between two heroes setting off: a big class walks closer together. */
-function walkGap(story) {
-    const count = walkerCount(story);
-    return story.variant === 'open'
-        ? Math.round(Math.min(480, Math.max(170, 5200 / count)))
-        : Math.round(Math.min(230, Math.max(90, 2600 / count)));
-}
-
-/** Small classes walk big; a class of 25+ gets smaller tokens so everyone fits. */
-function crowdSize(story) {
-    const count = walkerCount(story);
-    return count <= 15 ? 's' : count <= 25 ? 'm' : 'l';
-}
-
-/**
- * Where each hero stops at the gate: rows of a crowd on the meadow before the sealed Portal,
- * every second row shifted half a step, the class token in front. Percentages of the stage.
- */
-function gatherSpot(i, total) {
-    const start = roadAt(0);
-    if (i === 0) {
-        const front = roadAt(0.8);
-        return { dx: front.x - start.x, dy: front.y - start.y };
-    }
-    const k = i - 1;
-    const heroes = Math.max(1, total - 1);
-    const cols = Math.min(10, Math.max(5, Math.ceil(heroes / 3)));
-    const row = Math.floor(k / cols);
-    const col = k % cols;
-    const step = cols > 8 ? 4.1 : 5.2;
-    const x = 58 - (cols - 1 - col) * step - (row % 2) * (step / 2);
-    const y = 60 + row * (cols > 8 ? 9.5 : 11);
-    return { dx: x - start.x, dy: y - start.y };
-}
-
-function walkersHtml(story) {
-    const heroes = [{ lead: true, name: story.who, logo: story.logo }, ...story.heroes.shown];
-    const gate = story.variant !== 'open';
-    return heroes.map((hero, i) => {
-        const spot = gate ? gatherSpot(i, heroes.length) : null;
-        const face = hero.lead
-            ? `<span class="ps-hero__token"><img src="${TOKEN}" alt="" draggable="false"><b>${esc(hero.logo)}</b></span>`
-            : heroFace(hero);
-        const label = `<span class="ps-hero__name">${esc(hero.name)}</span>`;
-        const style = `--i:${i}${spot ? `;--gx:${spot.dx.toFixed(2)}%;--gy:${spot.dy.toFixed(2)}%` : ''}`;
-        const cls = `ps-hero${hero.lead ? ' ps-hero--lead' : ''}${!hero.lead && !gate && i % 2 === 0 ? ' ps-hero--up' : ''}`;
-        return `<span class="ps-walker" style="${style}"><span class="${cls}"><span class="ps-hero__body">${face}${label}</span></span></span>`;
+function heroesHtml(story, layout) {
+    const lines = story.heroes.shown.length
+        ? layout.radii.map((r) => `<span class="ps-orbit" style="--r:${r}"></span>`).join('')
+        : '';
+    return lines + story.heroes.shown.map((hero, i) => {
+        const spot = layout.spots[i];
+        // With more than one ring the upper heroes wear their names above their faces: the
+        // gap between the rings and the middle (the runes) stay clear.
+        const up = layout.rings > 1 && spot.y < -6 ? ' ps-hero--up' : '';
+        return `<span class="ps-hero${up}" style="--i:${i};--x:${spot.x};--y:${spot.y}"><span class="ps-hero__pop"><span class="ps-hero__face">${heroFace(hero)}</span><span class="ps-hero__name">${esc(hero.name)}</span></span></span>`;
     }).join('');
 }
 
-/** Every hero's name under the story, so each child finds themselves. */
-function rollHtml(story) {
-    const heroes = story.heroes.shown;
-    if (!heroes.length) return '';
-    const title = story.variant === 'open'
-        ? `Every hero who stepped through · ${heroes.length}`
-        : `Every hero waiting at the gate · ${heroes.length}`;
-    return `
-        <div class="ps-roll">
-            <small><i class="fas fa-users" aria-hidden="true"></i>${esc(title)}</small>
-            <ul>${heroes.map((hero, n) => `<li style="--n:${n}">${hero.avatar ? `<img src="${esc(hero.avatar)}" alt="" loading="lazy" decoding="async">` : `<span style="--tint:${tintFor(hero.name)}">${esc(hero.name.charAt(0).toUpperCase())}</span>`}${esc(hero.name)}</li>`).join('')}</ul>
-        </div>`;
-}
-
-function runesHtml(story) {
+/** The Portal runes, on an arc over the emblem. */
+function runesHtml(story, layout) {
     const list = story.runes;
     if (!list.length) return '';
-    const spread = Math.min(150, 40 * (list.length - 1));
+    const radius = layout.rings === 1 ? 18.5 : layout.rings === 2 ? 17.5 : 14;
+    const step = list.length > 4 ? 24 : 28;
     return list.map((rune, i) => {
-        const angle = list.length === 1 ? 0 : -spread / 2 + (spread / (list.length - 1)) * i;
-        return `<span class="ps-rune-slot" style="--a:${angle}deg;--i:${i}"><span class="ps-rune${rune.met ? ' is-lit' : ''}" title="${esc(rune.name)}"><i class="fas ${esc(rune.icon)}" aria-hidden="true"></i></span></span>`;
+        const angle = -90 + (i - (list.length - 1) / 2) * step;
+        const a = (angle * Math.PI) / 180;
+        return `<span class="ps-rune${rune.met ? ' is-lit' : ''}" style="--i:${i};--x:${(radius * Math.cos(a)).toFixed(2)};--y:${(radius * Math.sin(a)).toFixed(2)}" title="${esc(rune.name)}"><i class="fas ${esc(rune.icon)}" aria-hidden="true"></i></span>`;
     }).join('');
+}
+
+function warpHtml(story, tier) {
+    if (story.variant !== 'open' || tier !== 'full') return '';
+    return `<span class="ps-warp" aria-hidden="true">${Array.from({ length: 20 }, (_, i) => `<i style="--a:${i * 18 + ((i * 7) % 9)}deg;--i:${i % 5}"></i>`).join('')}</span>`;
 }
 
 function coinsHtml(story, tier) {
     if (story.variant !== 'open' || !(story.gold > 0) || tier !== 'full') return '';
-    return Array.from({ length: 16 }, (_, i) => `<span class="ps-coin" style="--x:${(6 + ((i * 37) % 88))}%;--i:${i}"><i class="fas fa-coins" aria-hidden="true"></i></span>`).join('');
+    return Array.from({ length: 18 }, (_, i) => `<span class="ps-coin" style="--x:${(4 + ((i * 37) % 92))}%;--i:${i}"><i class="fas fa-coins" aria-hidden="true"></i></span>`).join('');
 }
 
+function card(cls, icon, small, big, em) {
+    return `<li class="ps-card${cls ? ` ${cls}` : ''}">${icon}<span><small>${small}</small><b>${big}</b>${em ? `<em>${em}</em>` : ''}</span></li>`;
+}
+
+/** The closing cards: what the fellowship won (left) and what comes next (right). */
 function endHtml(story) {
     if (story.variant === 'open') {
+        const rank = card('ps-card--rank', `<span class="ps-card__crests">${rankCrestSvg(story.fromLevel)}<i class="fas fa-arrow-right" aria-hidden="true"></i>${rankCrestSvg(story.toLevel)}</span>`,
+            'New rank', esc(story.toRank.title), `Quest Level ${story.toRank.displayLevel}`);
         const spoils = story.gold > 0
-            ? `<li class="ps-card ps-card--gold"><i class="fas fa-coins" aria-hidden="true"></i><span><small>Portal spoils</small><b>+${story.gold} Gold for every hero</b>${story.heroesPaid ? `<em>${story.heroesPaid} heroes paid</em>` : ''}</span></li>`
-            : '';
-        const rank = `<li class="ps-card ps-card--rank"><span class="ps-card__crests">${rankCrestSvg(story.fromLevel)}<i class="fas fa-arrow-right" aria-hidden="true"></i>${rankCrestSvg(story.toLevel)}</span><span><small>New rank</small><b>${esc(story.toRank.title)}</b><em>Quest Level ${story.toRank.displayLevel}</em></span></li>`;
+            ? card('ps-card--gold', '<i class="fas fa-coins" aria-hidden="true"></i>', 'Portal spoils', `+${story.gold} Gold for every hero`, story.heroesPaid ? `${story.heroesPaid} heroes paid` : '')
+            : card('', '<i class="fas fa-users" aria-hidden="true"></i>', 'Stepped through together', `${story.heroes.total} ${story.heroes.total === 1 ? 'hero' : 'heroes'}`, esc(story.who));
         const next = story.next
-            ? `<li class="ps-card ps-card--next"><i class="fas ${esc(story.next.icon)}" aria-hidden="true"></i><span><small>New at the next Portal</small><b>${esc(story.next.name)}</b><em>${esc(story.next.text)}</em></span></li>`
-            : `<li class="ps-card ps-card--next"><i class="fas fa-road" aria-hidden="true"></i><span><small>Next month</small><b>A longer road</b><em>The goal grows a little; the Portal pays ${story.nextSpoils} Gold.</em></span></li>`;
+            ? card('ps-card--next', `<i class="fas ${esc(story.next.icon)}" aria-hidden="true"></i>`, 'New at the next Portal', esc(story.next.name), esc(story.next.text))
+            : card('ps-card--next', '<i class="fas fa-road" aria-hidden="true"></i>', 'Next month', 'A longer road', `The goal grows a little; the Portal pays ${story.nextSpoils} Gold.`);
         return `
-            <ul class="ps-cards">${rank}${spoils}${next}</ul>
-            ${rollHtml(story)}
-            <div class="ps-actions">
-                <button type="button" class="ps-btn ps-btn--ghost" data-ps="replay"><i class="fas fa-rotate-right" aria-hidden="true"></i>Watch again</button>
-                <button type="button" class="ps-btn ps-btn--ghost" data-ps="portal"><i class="fas fa-door-open" aria-hidden="true"></i>Open the Portal</button>
-                <button type="button" class="ps-btn ps-btn--main" data-ps="close"><i class="fas fa-check" aria-hidden="true"></i>Onward!</button>
+            <div class="ps-side ps-side--won"><ul class="ps-cards">${rank}${spoils}</ul></div>
+            <div class="ps-side ps-side--next">
+                <ul class="ps-cards">${next}</ul>
+                <div class="ps-actions">
+                    <button type="button" class="ps-btn ps-btn--ghost" data-ps="replay"><i class="fas fa-rotate-right" aria-hidden="true"></i>Watch again</button>
+                    <button type="button" class="ps-btn ps-btn--ghost" data-ps="portal"><i class="fas fa-door-open" aria-hidden="true"></i>Open the Portal</button>
+                    <button type="button" class="ps-btn ps-btn--main" data-ps="close"><i class="fas fa-check" aria-hidden="true"></i>Onward!</button>
+                </div>
             </div>`;
     }
     const guardian = story.variant === 'guardian';
     const sleeping = story.sleeping.map((r) => `<span class="ps-chip"><i class="fas ${esc(r.icon)}" aria-hidden="true"></i>${esc(r.short)}</span>`).join('');
     const lit = story.runes.filter((r) => r.met && r.id !== 'guardian').map((r) => `<span class="ps-chip is-lit"><i class="fas ${esc(r.icon)}" aria-hidden="true"></i>${esc(r.short)}</span>`).join('');
     const still = guardian
-        ? `<li class="ps-card ps-card--next"><i class="fas fa-dungeon" aria-hidden="true"></i><span><small>The Guardian's test</small><b>${story.guardianTest.toPass} of ${story.guardianTest.questions} riddles right</b><em>One try each lesson day.</em></span></li>`
-        : `<li class="ps-card ps-card--next"><i class="fas fa-moon" aria-hidden="true"></i><span><small>Still asleep</small><b>${sleeping || 'A rune'}</b><em>${esc(story.subtitle)}</em></span></li>`;
+        ? card('ps-card--next', '<i class="fas fa-dungeon" aria-hidden="true"></i>', "The Guardian's test", `${story.guardianTest.toPass} of ${story.guardianTest.questions} riddles right`, 'One try each lesson day.')
+        : card('ps-card--next', '<i class="fas fa-moon" aria-hidden="true"></i>', 'Still asleep', sleeping || 'A rune', esc(story.subtitle));
+    const glowing = lit ? card('', '<i class="fas fa-gem" aria-hidden="true"></i>', 'Already glowing', lit, '') : '';
+    const beyond = card('ps-card--rank', `<span class="ps-card__crests">${rankCrestSvg(story.toLevel)}</span>`, 'Beyond the Portal', esc(story.toRank.title), `+${story.spoils} Gold for every hero`);
     return `
-        <ul class="ps-cards">
-            ${still}
-            ${lit ? `<li class="ps-card"><i class="fas fa-gem" aria-hidden="true"></i><span><small>Already glowing</small><b>${lit}</b></span></li>` : ''}
-            <li class="ps-card ps-card--rank"><span class="ps-card__crests">${rankCrestSvg(story.toLevel)}</span><span><small>Beyond the Portal</small><b>${esc(story.toRank.title)}</b><em>+${story.spoils} Gold for every hero</em></span></li>
-        </ul>
-        ${rollHtml(story)}
-        <div class="ps-actions">
-            <button type="button" class="ps-btn ps-btn--ghost" data-ps="replay"><i class="fas fa-rotate-right" aria-hidden="true"></i>Watch again</button>
-            ${guardian
-                ? '<button type="button" class="ps-btn ps-btn--main" data-ps="guardian"><i class="fas fa-dungeon" aria-hidden="true"></i>Face the Guardian</button>'
-                : '<button type="button" class="ps-btn ps-btn--main" data-ps="portal"><i class="fas fa-gem" aria-hidden="true"></i>See the runes</button>'}
-            <button type="button" class="ps-btn ps-btn--ghost" data-ps="close"><i class="fas fa-check" aria-hidden="true"></i>Close</button>
+        <div class="ps-side ps-side--won"><ul class="ps-cards">${still}${glowing}</ul></div>
+        <div class="ps-side ps-side--next">
+            <ul class="ps-cards">${beyond}</ul>
+            <div class="ps-actions">
+                <button type="button" class="ps-btn ps-btn--ghost" data-ps="replay"><i class="fas fa-rotate-right" aria-hidden="true"></i>Watch again</button>
+                ${guardian
+                    ? '<button type="button" class="ps-btn ps-btn--main" data-ps="guardian"><i class="fas fa-dungeon" aria-hidden="true"></i>Face the Guardian</button>'
+                    : '<button type="button" class="ps-btn ps-btn--main" data-ps="portal"><i class="fas fa-gem" aria-hidden="true"></i>See the runes</button>'}
+                <button type="button" class="ps-btn ps-btn--ghost" data-ps="close"><i class="fas fa-check" aria-hidden="true"></i>Close</button>
+            </div>
         </div>`;
+}
+
+function topHtml(story) {
+    const from = `<span class="ps-top__set ps-top__set--from"><small>${rankCrestSvg(story.fromLevel)}${esc(story.fromRank.title)} · Quest Level ${story.fromRank.displayLevel}</small><strong class="font-title">The Crystal Portal</strong></span>`;
+    if (story.variant === 'open') {
+        return `${from}<span class="ps-top__set ps-top__set--to"><small>New rank · Quest Level ${story.toRank.displayLevel}</small><strong class="font-title">${esc(story.toRank.title)}</strong><em>${esc(story.toRank.motto)}</em></span>`;
+    }
+    return `${from}<span class="ps-top__set ps-top__set--to"><small>${rankCrestSvg(story.fromLevel)}${esc(story.fromRank.title)} · Quest Level ${story.fromRank.displayLevel}</small><strong class="font-title">${esc(story.title)}</strong></span>`;
 }
 
 export function portalStoryHtml(story, tier = 'full') {
     const open = story.variant === 'open';
-    const gap = walkGap(story);
-    const starsA = tier === 'still' ? '' : starField(70, 7);
-    const starsB = tier === 'still' ? '' : starField(50, 31);
+    const count = story.heroes.shown.length;
+    const layout = fellowshipLayout(count);
+    const starsA = tier === 'still' ? '' : starField(80, 7);
+    const starsB = tier === 'still' ? '' : starField(60, 31);
+    const badge = story.variant === 'guardian'
+        ? '<span class="ps-badge ps-badge--guardian" aria-hidden="true"><i class="fas fa-dungeon"></i></span>'
+        : story.variant === 'sealed' ? '<span class="ps-badge" aria-hidden="true"><i class="fas fa-lock"></i></span>' : '';
     return `
-        <div class="ps-backdrop" data-ps="close"></div>
-        <section class="ps-frame ps--${story.variant} qr-tone--${story.toRank.id}" data-tier="${tier}" data-crowd="${crowdSize(story)}" role="dialog" aria-modal="true" aria-label="${esc(story.headline)}" style="--gap:${gap}ms;--walk:${WALK_MS}ms">
-            <div class="ps-stage">
-                <span class="ps-sky" aria-hidden="true"></span>
-                <span class="ps-stars ps-stars--a" aria-hidden="true" style="box-shadow:${starsA}"></span>
-                <span class="ps-stars ps-stars--b" aria-hidden="true" style="box-shadow:${starsB}"></span>
-                <span class="ps-moon" aria-hidden="true"></span>
-                <svg class="ps-land" viewBox="0 0 1000 562" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-                    <defs>
-                        <linearGradient id="ps-peak" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6d5bd0"/><stop offset="1" stop-color="#2a1d6b"/></linearGradient>
-                        <linearGradient id="ps-hill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f2a7a"/><stop offset="1" stop-color="#140f3d"/></linearGradient>
-                        <linearGradient id="ps-road-fill" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#e9d5ff"/></linearGradient>
-                    </defs>
-                    <path d="M0 330 L70 250 L120 290 L190 190 L260 280 L330 230 L400 300 L470 210 L540 290 L610 240 L700 330 L780 220 L860 300 L930 200 L1000 270 V562 H0 Z" fill="url(#ps-peak)" opacity=".75"/>
-                    <path d="M190 190 L215 225 L200 222 Z M470 210 L492 240 L478 238 Z M780 220 L803 252 L790 250 Z M930 200 L952 230 L940 229 Z" fill="#c4b5fd" opacity=".7"/>
-                    <path d="M0 420 C140 370 260 400 380 380 C520 356 640 330 760 360 C860 384 940 370 1000 352 V562 H0 Z" fill="url(#ps-hill)"/>
-                    <path class="ps-road__bed" d="M${ROAD.sx} ${ROAD.sy} Q${ROAD.cx} ${ROAD.cy} ${ROAD.ex} ${ROAD.ey}" fill="none" stroke="#0b0827" stroke-width="30" stroke-linecap="round" opacity=".55"/>
-                    <path class="ps-road__glow" pathLength="100" d="M${ROAD.sx} ${ROAD.sy} Q${ROAD.cx} ${ROAD.cy} ${ROAD.ex} ${ROAD.ey}" fill="none" stroke="url(#ps-road-fill)" stroke-width="9" stroke-linecap="round" stroke-dasharray="3 2.2"/>
-                </svg>
-                <span class="ps-portal" aria-hidden="true">
-                    <span class="ps-rays"></span>
+        <section class="ps-frame ps--${story.variant} qr-tone--${story.toRank.id}" data-tier="${tier}" data-rings="${layout.rings}" role="dialog" aria-modal="true" aria-label="${esc(story.headline)}"
+                 style="--hs:${layout.size};--pop:${popGap(count)}ms;--plunge:${PLUNGE_MS}ms">
+            <span class="ps-sky" aria-hidden="true"></span>
+            <span class="ps-stars ps-stars--a" aria-hidden="true" style="box-shadow:${starsA}"></span>
+            <span class="ps-stars ps-stars--b" aria-hidden="true" style="box-shadow:${starsB}"></span>
+            <span class="ps-moon" aria-hidden="true"></span>
+            <svg class="ps-land" viewBox="0 0 1000 200" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+                <defs>
+                    <linearGradient id="ps-peak" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4c3fb0"/><stop offset="1" stop-color="#1c1450"/></linearGradient>
+                    <linearGradient id="ps-hill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#231b62"/><stop offset="1" stop-color="#0c0828"/></linearGradient>
+                </defs>
+                <path d="M0 110 L60 52 L110 88 L170 20 L240 96 L300 60 L360 112 L640 112 L700 58 L760 98 L830 26 L890 84 L950 44 L1000 80 V200 H0 Z" fill="url(#ps-peak)" opacity=".7"/>
+                <path d="M170 20 L190 48 L178 46 Z M830 26 L850 54 L838 52 Z M950 44 L966 66 L956 64 Z" fill="#c4b5fd" opacity=".6"/>
+                <path d="M0 150 C160 120 300 140 420 132 C560 124 660 118 780 130 C880 140 950 132 1000 124 V200 H0 Z" fill="url(#ps-hill)"/>
+            </svg>
+            <div class="ps-center" aria-hidden="true">
+                <span class="ps-portal">
                     <span class="ps-halo"></span>
+                    <span class="ps-rays"></span>
                     <img class="ps-vortex" src="${VORTEX}" alt="" draggable="false" decoding="async">
                     <img class="ps-veil" src="${VEIL}" alt="" draggable="false" decoding="async">
-                    ${story.variant === 'guardian' ? '<span class="ps-guardian"><i class="fas fa-dungeon"></i></span>' : ''}
-                    ${story.variant === 'sealed' ? '<span class="ps-seal"><i class="fas fa-lock"></i></span>' : ''}
-                    <span class="ps-runes">${runesHtml(story)}</span>
+                    <span class="ps-seal-ring"></span>
                 </span>
-                <span class="ps-walkers" aria-hidden="true">${walkersHtml(story)}</span>
-                <span class="ps-flash" aria-hidden="true"></span>
-                ${open ? `
-                <span class="ps-ascent" aria-hidden="true">
-                    <span class="ps-ascent__rays"></span>
-                    <span class="ps-ascent__old">${rankCrestSvg(story.fromLevel)}</span>
-                    <span class="ps-ascent__new">${rankCrestSvg(story.toLevel)}</span>
+                ${warpHtml(story, tier)}
+                <span class="ps-fellowship">
+                    <span class="ps-ring">${heroesHtml(story, layout)}</span>
+                    <span class="ps-medal">
+                        <span class="ps-medal__rim"></span>
+                        <span class="ps-medal__face"><b>${esc(story.logo)}</b></span>
+                        ${badge}
+                    </span>
+                    <span class="ps-runes">${runesHtml(story, layout)}</span>
+                    ${open ? `<span class="ps-crest"><span class="ps-crest__rays"></span>${rankCrestSvg(story.toLevel)}</span>` : ''}
+                    <span class="ps-ribbon"><span class="ps-ribbon__logo">${esc(story.logo)}</span>${esc(story.who)}</span>
                 </span>
-                <span class="ps-title"><small>Quest Level ${story.toRank.displayLevel}</small><strong class="font-title">${esc(story.toRank.title)}</strong><em>${esc(story.toRank.motto)}</em></span>` : `
-                <span class="ps-title ps-title--gate"><small>${esc(story.fromRank.title)} · Quest Level ${story.fromRank.displayLevel}</small><strong class="font-title">${esc(story.title)}</strong></span>`}
-                <span class="ps-coins" aria-hidden="true">${coinsHtml(story, tier)}</span>
-                <p class="ps-caption" aria-live="polite"><span data-ps-caption>${esc(story.chapters[0])}</span></p>
-                <button type="button" class="ps-skip" data-ps="skip">Skip <i class="fas fa-forward" aria-hidden="true"></i></button>
+                <span class="ps-flash"></span>
             </div>
+            <div class="ps-top">${topHtml(story)}</div>
+            <span class="ps-coins" aria-hidden="true">${coinsHtml(story, tier)}</span>
+            <p class="ps-caption" aria-live="polite"><span data-ps-caption>${esc(story.chapters[0])}</span></p>
             <div class="ps-end">${endHtml(story)}</div>
+            <button type="button" class="ps-skip" data-ps="skip">Skip <i class="fas fa-forward" aria-hidden="true"></i></button>
             <button type="button" class="ps-close" data-ps="close" aria-label="Close"><i class="fas fa-times" aria-hidden="true"></i></button>
         </section>`;
 }
 
 /** The story's beats: [ms, chapter class, caption index or null, sound, sound options]. */
-function beatsFor(story, tier) {
-    const count = walkerCount(story);
-    const gap = walkGap(story);
+function beatsFor(story) {
+    const count = story.heroes.shown.length;
+    const gap = popGap(count);
+    const gathered = 700 + count * gap + 500;
+    // A soft bell as heroes join the ring: at most 14, spread over the gathering.
+    const bells = Math.min(14, count);
+    const chimes = Array.from({ length: bells }, (_, k) => [700 + Math.round((k * count) / bells) * gap, null, null, 'step', { step: k }]);
     if (story.variant === 'open') {
-        const runes = story.runes.length;
-        const tRunes = 2400;
-        const tOpen = tRunes + runes * 380 + 500;
-        const tWalk = tOpen + 1500;
-        const tFlash = tWalk + (count - 1) * gap + WALK_MS + ENTER_MS + 200;
-        const beats = [
+        const tRunes = Math.max(2600, gathered);
+        const tOpen = tRunes + story.runes.length * 380 + 500;
+        const tPlunge = tOpen + 1500;
+        const tFlash = tPlunge + PLUNGE_MS - 150;
+        return [
             [0, 'is-ch0', 0],
+            ...chimes,
             [tRunes, 'is-ch1', 1],
             ...story.runes.map((_, i) => [tRunes + 200 + i * 380, null, null, 'rune', { step: i }]),
             [tOpen, 'is-ch2', 2, 'open'],
-            [tWalk, 'is-ch3', 3],
-            ...Array.from({ length: count }, (_, i) => [tWalk + i * gap + WALK_MS, null, null, 'step', { step: i }]),
+            [tPlunge, 'is-ch3', 3],
+            ...Array.from({ length: 6 }, (_, i) => [tPlunge + 700 + i * 260, null, null, 'step', { step: i * 2 }]),
             [tFlash, 'is-ch4', null, 'flash'],
-            [tFlash + 500, 'is-ch5', 4, 'crest'],
-            [tFlash + 3300, 'is-ch6', 5, story.gold > 0 ? 'gold' : null],
-            [tFlash + 4600, 'is-end', null]
+            [tFlash + 450, 'is-ch5', 4, 'crest'],
+            [tFlash + 3400, 'is-ch6', 5, story.gold > 0 ? 'gold' : null],
+            [tFlash + 4800, 'is-end', null]
         ];
-        return beats;
     }
-    const gather = 2300;
-    const tRunes = gather + (count - 1) * gap + WALK_MS * 0.9;
+    const tRunes = Math.max(2400, gathered);
     const guardian = story.variant === 'guardian';
     return [
         [0, 'is-ch0', 0],
-        [gather, 'is-ch1', 1],
+        ...chimes,
+        [tRunes - 900, 'is-ch1', 1],
         [tRunes, 'is-ch2', 2, guardian ? 'guardian' : null],
         ...(guardian ? [] : story.runes.map((r, i) => [tRunes + 150 + i * 380, null, null, 'rune', { step: i, lit: r.met }])),
         [tRunes + 400 + story.runes.length * 380, null, null, guardian ? null : 'sealed'],
         [tRunes + 2600, 'is-ch3', 3],
         [tRunes + 5200, 'is-ch4', 4],
-        [tRunes + 5600, 'is-end', null]
+        [tRunes + 5800, 'is-end', null]
     ];
+}
+
+/**
+ * Sizes the orbit to the screen: --u is one orbit unit in px (the orbit is ~100 units across),
+ * between a title band on top and a caption band below. A wide screen (a 16:9 projector) gets
+ * the closing cards in the side columns; a narrow one (4:3, phones) slides them up from the
+ * bottom and lifts the fellowship above them.
+ */
+function measure(frame) {
+    const W = frame.clientWidth;
+    const H = frame.clientHeight;
+    if (!W || !H) return;
+    const top = Math.max(80, H * 0.165);
+    const bottom = Math.max(48, H * 0.09);
+    const u = Math.max(2.4, Math.min((H - top - bottom) / 98, W / 102));
+    const cy = top + (H - top - bottom) / 2;
+    const side = (W - 100 * u) / 2;
+    frame.style.setProperty('--u', `${u.toFixed(2)}px`);
+    frame.style.setProperty('--cy', `${cy.toFixed(1)}px`);
+    frame.style.setProperty('--top', `${top.toFixed(0)}px`);
+    frame.style.setProperty('--side', `${Math.max(0, side).toFixed(0)}px`);
+    frame.dataset.layout = side >= 290 ? 'wide' : 'narrow';
+    let shift = 0;
+    let scale = 1;
+    if (frame.dataset.layout === 'narrow' && frame.classList.contains('is-end')) {
+        const sheet = frame.querySelector('.ps-end');
+        const sheetH = sheet ? sheet.offsetHeight : 0;
+        const room = Math.max(80, H - sheetH - top - 8);
+        scale = Math.min(1, room / (100 * u));
+        shift = top + room / 2 - cy;
+    }
+    frame.style.setProperty('--end-shift', `${shift.toFixed(1)}px`);
+    frame.style.setProperty('--end-scale', scale.toFixed(3));
 }
 
 function close() {
     if (!active) return;
-    const { host, timers, onKey, lastFocus } = active;
+    const { host, timers, onKey, onResize, lastFocus } = active;
     timers.forEach(clearTimeout);
     document.removeEventListener('keydown', onKey, true);
+    window.removeEventListener('resize', onResize);
     active = null;
     host.classList.add('is-leaving');
-    setTimeout(() => host.remove(), 260);
+    setTimeout(() => host.remove(), 300);
     try { lastFocus?.focus?.({ preventScroll: true }); } catch (_) { /* gone */ }
 }
 
@@ -304,6 +332,7 @@ function run(host, story) {
     host.innerHTML = portalStoryHtml(story, tier);
     const frame = host.querySelector('.ps-frame');
     const caption = host.querySelector('[data-ps-caption]');
+    measure(frame);
     const timers = [];
     const setCaption = (index) => {
         const text = story.chapters[index];
@@ -313,7 +342,12 @@ function run(host, story) {
         caption.textContent = text;
         caption.classList.add('is-in');
     };
-    const beats = beatsFor(story, tier);
+    const atEnd = () => {
+        measure(frame);
+        timers.push(setTimeout(() => frame.classList.add('is-rest'), 2500));
+        host.querySelector('.ps-end .ps-btn--main')?.focus({ preventScroll: true });
+    };
+    const beats = beatsFor(story);
     const finish = (skipped) => {
         timers.forEach(clearTimeout);
         timers.length = 0;
@@ -321,8 +355,7 @@ function run(host, story) {
         frame.classList.add('is-skipped');
         if (caption) caption.textContent = story.chapters[story.chapters.length - 1];
         if (skipped) sfx(story.variant === 'open' ? 'crest' : (story.variant === 'guardian' ? 'guardian' : 'sealed'));
-        timers.push(setTimeout(() => frame.classList.add('is-rest'), 1200));
-        host.querySelector('.ps-end [data-ps="close"], .ps-end .ps-btn--main')?.focus({ preventScroll: true });
+        atEnd();
     };
     if (tier === 'still') {
         finish(false);
@@ -332,15 +365,12 @@ function run(host, story) {
                 if (cls) frame.classList.add(cls);
                 if (captionIndex !== null && captionIndex !== undefined) setCaption(captionIndex);
                 if (sound) sfx(sound, opts);
-                if (cls === 'is-end') {
-                    timers.push(setTimeout(() => frame.classList.add('is-rest'), 2500));
-                    host.querySelector('.ps-end .ps-btn--main')?.focus({ preventScroll: true });
-                }
+                if (cls === 'is-end') atEnd();
             }, at));
         });
         requestAnimationFrame(() => frame.classList.add('is-live'));
     }
-    return { timers, finish };
+    return { timers, finish, frame };
 }
 
 /**
@@ -359,8 +389,14 @@ export function openPortalStory(story, handlers = {}) {
     const onKey = (event) => {
         if (event.key === 'Escape') { event.stopPropagation(); close(); }
     };
+    let resizeFrame = 0;
+    const onResize = () => {
+        cancelAnimationFrame(resizeFrame);
+        resizeFrame = requestAnimationFrame(() => measure(runState.frame));
+    };
     document.addEventListener('keydown', onKey, true);
-    active = { host, timers: runState.timers, onKey, lastFocus };
+    window.addEventListener('resize', onResize);
+    active = { host, timers: runState.timers, onKey, onResize, lastFocus };
     host.addEventListener('click', (event) => {
         const action = event.target.closest('[data-ps]')?.dataset.ps;
         if (!action) return;

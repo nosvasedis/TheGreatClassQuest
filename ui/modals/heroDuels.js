@@ -218,13 +218,13 @@ function setupHtml() {
             }).join('')}</div>
         </section>
         <section class="hd-card">
-            <h3>${stepHtml(2)} Big teams <small>${s.teamCount ? 'every duel banks points for the teams' : 'everyone plays for themselves'}</small></h3>
+            <h3>${stepHtml(2)} Big teams <small>${s.teamCount ? 'duels bank team points' : 'each hero for themselves'}</small></h3>
             ${segHtml('data-hd-teams', teamOpts, s.teamCount, 'Big teams')}
             ${s.teamCount ? `
             <div class="hd-row">${segHtml('data-hd-source', sourceOpts, s.source, 'How to make the teams')}
                 ${s.source === 'today' ? '' : '<button type="button" class="hd-btn hd-btn--sky hd-btn--sm" data-hd-shuffle><i class="fas fa-shuffle"></i> Shuffle</button>'}</div>
             <p class="hd-hint">Tap a hero to move them to the next team.${resuming ? ' A hero who moves takes their points along.' : ''}</p>
-            <div class="hd-teamprev" style="--cols:${Math.min(3, s.teams?.length || 2)}">${(s.teams || []).map((ids, i) => {
+            <div class="hd-teamprev">${(s.teams || []).map((ids, i) => {
                 const b = banner(i);
                 return `<div class="hd-teamprev__team" style="--c:${b.primary};--cd:${b.deep};--cs:${b.soft}">
                     <header><span class="hd-teamprev__crest">${shieldSvg()}<span>${b.emoji}</span></span><span class="hd-teamprev__name">${esc(b.name)}</span> <button type="button" class="hd-rename" data-hd-rename="${i}" title="Rename the ${esc(b.short)} or change the icon" aria-label="Rename this team"><i class="fas fa-pen"></i></button><b>${ids.length}</b></header>
@@ -326,7 +326,8 @@ function lastDuelHtml() {
     const bank = {};
     if (ui.game.teams) d.ids.forEach((id) => { const ti = teamOf(id); if (ti >= 0 && d.gains[id]) bank[ti] = (bank[ti] || 0) + d.gains[id]; });
     const chips = Object.entries(bank).map(([ti, pts]) => { const b = banner(Number(ti)); return `<span class="hd-bank" style="--c:${b.primary}">${b.emoji} +${pts}</span>`; }).join('');
-    return `<p class="hd-lastduel" data-qw-key="last-${d.n}"><span class="hd-lastduel__crown" aria-hidden="true">${CROWN_SVG}</span> Duel ${d.n}: <b>${esc(names)}</b> ${d.winners.length > 1 ? 'share the crown' : 'took the crown'} ${chips}</p>`;
+    const said = `Duel ${d.n}: ${names} ${d.winners.length > 1 ? 'share the crown' : 'took the crown'}`;
+    return `<p class="hd-lastduel" data-qw-key="last-${d.n}" title="${esc(said)}" aria-label="${esc(said)}"><span class="hd-lastduel__crown" aria-hidden="true">${CROWN_SVG}</span><span>Duel ${d.n}:</span><b>${esc(names)}</b>${chips}</p>`;
 }
 
 function trayHtml() {
@@ -357,13 +358,12 @@ function pickHtml() {
         <div class="hd-board">
             <div class="hd-board__title">
                 <h2 class="hd-title hd-title--md">Who duels next?</h2>
-                <p>${waiting ? `${waiting} ${waiting === 1 ? 'hero has' : 'heroes have'} not duelled yet` : 'Every hero has duelled. Keep going or finish!'}</p>
-                ${lastDuelHtml()}
+                ${lastDuelHtml() || `<p>${waiting ? `${waiting} ${waiting === 1 ? 'hero has' : 'heroes have'} not duelled yet` : 'Every hero has duelled. Keep going or finish!'}</p>`}
             </div>
             <div class="hd-tray" aria-live="polite" aria-label="${ui.picked.length ? `${ui.picked.length} picked` : `Tap ${MIN_DUEL} to ${MAX_DUEL} heroes`}">${trayHtml()}</div>
             <div class="hd-board__actions">
                 <button type="button" class="hd-btn hd-btn--sky" data-hd-suggest title="The heroes who have waited longest${g.teams ? ', one from each team' : ''}"><i class="fas fa-dice"></i> Pick ${size} for me</button>
-                ${ui.picked.length ? '<button type="button" class="hd-btn hd-btn--paper hd-btn--sm" data-hd-clear><i class="fas fa-eraser"></i> Clear</button>' : ''}
+                <button type="button" class="hd-btn hd-btn--paper hd-btn--sm" data-hd-clear ${ui.picked.length ? '' : 'disabled'}><i class="fas fa-eraser"></i> Clear</button>
                 <button type="button" class="hd-btn hd-btn--green hd-btn--lg hd-go${ready ? ' is-ready' : ''}" data-hd-start ${ready ? '' : 'disabled'}><i class="fas fa-bolt"></i> Start the duel!</button>
             </div>
         </div>

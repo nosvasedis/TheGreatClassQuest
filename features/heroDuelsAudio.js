@@ -3,62 +3,93 @@
 // next duellists are picked, "duel" (drums, a driving bass) while a duel runs. All synthesised, no files.
 //
 // Loaded only with Hero Duels (not in the app's first download). Like audio.js it schedules every note
-// straight onto the audio clock (utils/voiceBank.js VoicePool), and the tune is planned about a second
+// straight onto the audio clock (utils/voiceBank.js VoicePool), and the tune is planned two seconds
 // ahead from a plain timer, so a busy frame on a weak laptop never makes it stutter. The voices are
 // built on first use and disposed after they have been quiet.
+//
+// Clean on every laptop: everything runs through a gentle compressor and a limiter, so a fanfare over
+// the drums never clips (that clipping is the "hazy", crackly sound on small speakers). The hissy noise
+// voices (crowd, cymbals, whooshes) stay dry and quiet. Weaker laptops get a light band: no convolution
+// reverb, single oscillators instead of stacked ones, fewer voices at once and a thinner tune, so the
+// audio thread never runs out of time (which is what cuts the sound off).
 import { isAudioReady } from '../audio.js';
 import { loadTone } from '../utils/lazyLibraries.js';
 import { VoicePool, guardMonoVoice, createVoiceBank, lazyVoices } from '../utils/voiceBank.js';
 
 let Tone = null;
 let chassis = null;
-const MUSIC_LEVEL = 0.38;
+const MUSIC_LEVEL = 0.36;
+
+/** A light band for laptops with 4 cores or 4 GB or less (most school laptops). */
+const LIGHT = (() => {
+    try {
+        const cores = Number(navigator.hardwareConcurrency) || 4;
+        const memory = Number(navigator.deviceMemory) || 4;
+        return cores <= 4 || memory <= 4;
+    } catch { return true; }
+})();
 
 const pool = (keep, Voice, options, max = 8) => keep(new VoicePool(Tone, Voice, options, max));
 const mono = (keep, node) => keep(guardMonoVoice(node));
 
 const bank = createVoiceBank((keep) => {
     if (!chassis) {
-        const bus = new Tone.Gain(0.9).toDestination();
-        const reverb = new Tone.Reverb({ decay: 2.2, wet: 0.24 }).connect(bus);
+        // bus → compressor → limiter → speakers. The music has its own fader on the same bus.
+        const limiter = new Tone.Limiter(-3).toDestination();
+        const comp = new Tone.Compressor({ threshold: -18, ratio: 3.5, attack: 0.005, release: 0.22, knee: 10 }).connect(limiter);
+        const bus = new Tone.Gain(0.58).connect(comp);
+        // A short room for the band; the light band plays dry (a convolver is the costliest node there is).
+        const reverb = LIGHT ? new Tone.Gain(1).connect(bus) : new Tone.Reverb({ decay: 1.5, wet: 0.18 }).connect(bus);
         const musicBus = new Tone.Gain(0).connect(bus);
         chassis = { bus, reverb, musicBus };
     }
     const { bus, reverb, musicBus } = chassis;
+    const bellVoice = LIGHT
+        ? [Tone.Synth, { oscillator: { type: 'sine' }, envelope: { attack: 0.002, decay: 0.5, sustain: 0, release: 0.4 }, volume: -13 }]
+        : [Tone.FMSynth, {
+            harmonicity: 3.01, modulationIndex: 5,
+            envelope: { attack: 0.002, decay: 0.8, sustain: 0, release: 0.8 },
+            modulationEnvelope: { attack: 0.002, decay: 0.3, sustain: 0, release: 0.3 }, volume: -15
+        }];
     const v = lazyVoices({
         // ── The arena band (sound effects) ──
         kick: () => mono(keep, new Tone.MembraneSynth({ pitchDecay: 0.05, octaves: 4, envelope: { attack: 0.001, decay: 0.45, sustain: 0, release: 0.2 }, volume: -6 }).connect(bus)),
         tom: () => mono(keep, new Tone.MembraneSynth({ pitchDecay: 0.03, octaves: 2, envelope: { attack: 0.001, decay: 0.22, sustain: 0, release: 0.1 }, volume: -10 }).connect(reverb)),
         snareFilter: () => keep(new Tone.Filter({ type: 'highpass', frequency: 1500 }).connect(bus)),
-        snare: () => mono(keep, new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.03 }, volume: -18 }).connect(v.snareFilter)),
-        clang: () => mono(keep, new Tone.MetalSynth({ harmonicity: 5.1, modulationIndex: 30, resonance: 3600, octaves: 1.4, envelope: { attack: 0.001, decay: 0.7, release: 0.3 }, volume: -16 }).connect(reverb)),
-        cymbalFilter: () => keep(new Tone.Filter({ type: 'highpass', frequency: 6000 }).connect(reverb)),
-        cymbal: () => mono(keep, new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.002, decay: 1.5, sustain: 0, release: 0.4 }, volume: -24 }).connect(v.cymbalFilter)),
+        snare: () => mono(keep, new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.001, decay: 0.09, sustain: 0, release: 0.03 }, volume: -21 }).connect(v.snareFilter)),
+        // Swords: a ringing metal voice (the light band uses one FM pair instead of six).
+        clang: () => mono(keep, LIGHT
+            ? new Tone.FMSynth({ harmonicity: 7.1, modulationIndex: 18, envelope: { attack: 0.001, decay: 0.5, sustain: 0, release: 0.2 }, modulationEnvelope: { attack: 0.001, decay: 0.25, sustain: 0, release: 0.2 }, volume: -15 }).connect(reverb)
+            : new Tone.MetalSynth({ harmonicity: 5.1, modulationIndex: 30, resonance: 3600, octaves: 1.4, envelope: { attack: 0.001, decay: 0.6, release: 0.3 }, volume: -18 }).connect(reverb)),
+        // Noise stays dry and soft: through a room it turns into hiss.
+        cymbalFilter: () => keep(new Tone.Filter({ type: 'highpass', frequency: 7000 }).connect(bus)),
+        cymbal: () => mono(keep, new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.002, decay: 1.1, sustain: 0, release: 0.3 }, volume: -30 }).connect(v.cymbalFilter)),
         // The crowd: pink noise through a "voice" band. A slow swell sounds like a roar, a low one like "ooh".
-        crowdFilter: () => keep(new Tone.Filter({ type: 'bandpass', frequency: 1100, Q: 0.8 }).connect(reverb)),
-        crowd: () => mono(keep, new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.18, decay: 1.2, sustain: 0, release: 0.4 }, volume: -8 }).connect(v.crowdFilter)),
-        whooshFilter: () => keep(new Tone.Filter({ type: 'bandpass', frequency: 700, Q: 0.7 }).connect(reverb)),
-        whoosh: () => mono(keep, new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.1, decay: 0.3, sustain: 0, release: 0.1 }, volume: -2 }).connect(v.whooshFilter)),
-        mallet: () => pool(keep, Tone.Synth, { oscillator: { type: 'triangle' }, envelope: { attack: 0.002, decay: 0.25, sustain: 0, release: 0.2 }, volume: -8 }, 12).connect(reverb),
-        bell: () => pool(keep, Tone.FMSynth, {
-            harmonicity: 3.01, modulationIndex: 5,
-            envelope: { attack: 0.002, decay: 0.8, sustain: 0, release: 0.8 },
-            modulationEnvelope: { attack: 0.002, decay: 0.3, sustain: 0, release: 0.3 }, volume: -15
-        }, 12).connect(reverb),
-        brassFilter: () => keep(new Tone.Filter({ type: 'lowpass', frequency: 2400, Q: 0.7 }).connect(reverb)),
-        brass: () => pool(keep, Tone.Synth, { oscillator: { type: 'fatsawtooth', count: 2, spread: 16 }, envelope: { attack: 0.025, decay: 0.15, sustain: 0.7, release: 0.35 }, volume: -18 }, 10).connect(v.brassFilter),
+        crowdFilter: () => keep(new Tone.Filter({ type: 'bandpass', frequency: 900, Q: 1.1 }).connect(bus)),
+        crowd: () => mono(keep, new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.2, decay: 1.1, sustain: 0, release: 0.4 }, volume: -15 }).connect(v.crowdFilter)),
+        whooshFilter: () => keep(new Tone.Filter({ type: 'bandpass', frequency: 700, Q: 0.8 }).connect(bus)),
+        whoosh: () => mono(keep, new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.1, decay: 0.3, sustain: 0, release: 0.1 }, volume: -7 }).connect(v.whooshFilter)),
+        mallet: () => pool(keep, Tone.Synth, { oscillator: { type: 'triangle' }, envelope: { attack: 0.002, decay: 0.25, sustain: 0, release: 0.2 }, volume: -9 }, LIGHT ? 6 : 10).connect(reverb),
+        bell: () => pool(keep, bellVoice[0], bellVoice[1], LIGHT ? 5 : 9).connect(reverb),
+        brassFilter: () => keep(new Tone.Filter({ type: 'lowpass', frequency: 2200, Q: 0.6 }).connect(reverb)),
+        brass: () => pool(keep, Tone.Synth, {
+            oscillator: LIGHT ? { type: 'sawtooth' } : { type: 'fatsawtooth', count: 2, spread: 14 },
+            envelope: { attack: 0.025, decay: 0.15, sustain: 0.7, release: 0.3 }, volume: LIGHT ? -17 : -19
+        }, LIGHT ? 6 : 9).connect(v.brassFilter),
         // ── The arena tune (its own voices on the music bus, so an effect never cuts a note) ──
         mKick: () => mono(keep, new Tone.MembraneSynth({ pitchDecay: 0.04, octaves: 3.5, envelope: { attack: 0.001, decay: 0.3, sustain: 0, release: 0.1 }, volume: -6 }).connect(musicBus)),
         mTom: () => mono(keep, new Tone.MembraneSynth({ pitchDecay: 0.025, octaves: 1.8, envelope: { attack: 0.001, decay: 0.2, sustain: 0, release: 0.08 }, volume: -11 }).connect(musicBus)),
         mHatFilter: () => keep(new Tone.Filter({ type: 'highpass', frequency: 7000 }).connect(musicBus)),
-        mHat: () => mono(keep, new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.001, decay: 0.035, sustain: 0, release: 0.02 }, volume: -26 }).connect(v.mHatFilter)),
+        mHat: () => mono(keep, new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.001, decay: 0.03, sustain: 0, release: 0.02 }, volume: -30 }).connect(v.mHatFilter)),
         mBass: () => mono(keep, new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.005, decay: 0.25, sustain: 0.2, release: 0.15 }, volume: -7 }).connect(musicBus)),
-        mMallet: () => pool(keep, Tone.Synth, { oscillator: { type: 'sine' }, envelope: { attack: 0.002, decay: 0.3, sustain: 0, release: 0.25 }, volume: -11 }, 8).connect(musicBus),
-        mBell: () => pool(keep, Tone.FMSynth, {
-            harmonicity: 2.01, modulationIndex: 3,
-            envelope: { attack: 0.003, decay: 0.6, sustain: 0, release: 0.6 },
-            modulationEnvelope: { attack: 0.002, decay: 0.2, sustain: 0, release: 0.2 }, volume: -19
-        }, 6).connect(musicBus),
+        mMallet: () => pool(keep, Tone.Synth, { oscillator: { type: 'sine' }, envelope: { attack: 0.002, decay: 0.3, sustain: 0, release: 0.2 }, volume: -11 }, LIGHT ? 3 : 6).connect(musicBus),
+        mBell: () => (LIGHT
+            ? pool(keep, Tone.Synth, { oscillator: { type: 'sine' }, envelope: { attack: 0.003, decay: 0.45, sustain: 0, release: 0.3 }, volume: -17 }, 2)
+            : pool(keep, Tone.FMSynth, {
+                harmonicity: 2.01, modulationIndex: 3,
+                envelope: { attack: 0.003, decay: 0.6, sustain: 0, release: 0.6 },
+                modulationEnvelope: { attack: 0.002, decay: 0.2, sustain: 0, release: 0.2 }, volume: -19
+            }, 4)).connect(musicBus),
         bus: () => bus,
         musicBus: () => musicBus
     });
@@ -298,7 +329,10 @@ const MOODS = {
     }
 };
 
-const music = { mood: 'off', timer: 0, nextBar: 0, bar: 0, level: MUSIC_LEVEL, duckUntil: 0 };
+// How far ahead the tune is planned. A weak laptop can freeze for a second while the arena draws;
+// with two bars already on the audio clock the tune plays straight through it.
+const AHEAD = LIGHT ? 2.6 : 2;
+const music = { mood: 'off', timer: 0, nextBar: 0, plannedUntil: 0, bar: 0, level: MUSIC_LEVEL, duckUntil: 0 };
 
 /** Plays one bar of the tune at audio time `t`. */
 function scheduleBar(v, mood, index, t) {
@@ -309,10 +343,10 @@ function scheduleBar(v, mood, index, t) {
     if (mood === 'calm') {
         v.mBass.triggerAttackRelease(bar.bass[0], beat * 0.9, t, 0.75);
         v.mBass.triggerAttackRelease(bar.bass[1], beat * 0.9, t + beat * 2, 0.6);
-        arp.forEach((k, i) => v.mMallet.triggerAttackRelease(bar.tones[k], beat * 0.45, t + i * beat / 2, i % 2 ? 0.3 : 0.45));
+        arp.forEach((k, i) => { if (!LIGHT || i % 2 === 0) v.mMallet.triggerAttackRelease(bar.tones[k], beat * 0.45, t + i * beat / 2, i % 2 ? 0.3 : 0.45); });
         v.mKick.triggerAttackRelease('C2', 0.2, t, 0.5);
         v.mKick.triggerAttackRelease('C2', 0.2, t + beat * 2, 0.35);
-        for (let i = 0; i < 4; i++) v.mHat.triggerAttackRelease(0.03, t + i * beat + beat / 2, 0.5);
+        for (let i = 0; i < 4; i += LIGHT ? 2 : 1) v.mHat.triggerAttackRelease(0.03, t + i * beat + beat / 2, 0.5);
         if (index % 2) v.mTom.triggerAttackRelease('G3', 0.1, t + beat * 3.5, 0.35);
         const phraseBar = index % 4;
         m.tune.filter(([, b]) => Math.floor(b / 4) === phraseBar)
@@ -321,9 +355,9 @@ function scheduleBar(v, mood, index, t) {
         for (let i = 0; i < 8; i++) v.mBass.triggerAttackRelease(bar.bass[0], beat * 0.32, t + i * beat / 2, i % 2 ? 0.45 : 0.7);
         [0, 2.5, 3].forEach((b) => v.mKick.triggerAttackRelease('A1', 0.25, t + b * beat, b ? 0.55 : 0.85));
         [[1, 'E3'], [2, 'C3'], [3.5, 'E3']].forEach(([b, n]) => v.mTom.triggerAttackRelease(n, 0.12, t + b * beat, 0.55));
-        for (let i = 0; i < 8; i++) v.mHat.triggerAttackRelease(0.025, t + i * beat / 2, i % 2 ? 0.35 : 0.6);
+        for (let i = 0; i < 8; i += LIGHT ? 2 : 1) v.mHat.triggerAttackRelease(0.025, t + i * beat / 2, i % 2 ? 0.35 : 0.6);
         [0, 2, 1, 3].forEach((k, i) => v.mMallet.triggerAttackRelease(bar.tones[k], beat * 0.35, t + (i * 2 + 1) * beat / 2, 0.32));
-        if (index % 4 === 0) v.mBell.triggerAttackRelease(bar.tones.slice(1), beat * 1.2, t, 0.3);
+        if (index % 4 === 0) v.mBell.triggerAttackRelease(LIGHT ? bar.tones[3] : bar.tones.slice(1), beat * 1.2, t, 0.3);
     }
     return beat * 4;
 }
@@ -334,10 +368,11 @@ function tick() {
     if (!v) return; // the sound is still locked (no click yet): try again on the next tick
     const ctxNow = Tone.now();
     if (!music.nextBar || music.nextBar < ctxNow) {
-        music.nextBar = ctxNow + 0.12;
+        // Bars planned before a stop are still on the clock: carry on after them, never on top of them.
+        music.nextBar = Math.max(ctxNow + 0.12, music.plannedUntil);
         fadeMusicTo(music.level, 0.6);
     }
-    while (music.nextBar < ctxNow + 1.4) {
+    while (music.nextBar < ctxNow + AHEAD) {
         music.nextBar += scheduleBar(v, music.mood, music.bar, music.nextBar);
         music.bar += 1;
     }
@@ -380,7 +415,7 @@ export function setDuelMusic(mood) {
         warmDuelAudio().then(() => {
             if (music.mood === 'off') return;
             bank.hold();
-            if (!music.timer) music.timer = setInterval(tick, 300);
+            if (!music.timer) music.timer = setInterval(tick, 250);
             tick();
         });
     }
@@ -389,6 +424,7 @@ export function setDuelMusic(mood) {
 export function stopDuelMusic() {
     if (music.mood === 'off' && !music.timer) return;
     music.mood = 'off';
+    music.plannedUntil = music.nextBar;
     music.nextBar = 0;
     if (music.timer) { clearInterval(music.timer); music.timer = 0; }
     fadeMusicTo(0, 0.4);

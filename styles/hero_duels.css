@@ -141,9 +141,12 @@
 }
 .hd-team__crown svg { display: block; width: 100%; height: auto; }
 .hd-team.is-lead .hd-team__crown { opacity: 1; transform: translate(-50%, 0) scale(1) rotate(-8deg); }
-.hd-team__body { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+.hd-team__body { position: relative; display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
 .hd-team__top { display: flex; align-items: center; gap: 0.35rem; min-width: 0; }
-.hd-team__name { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-size: clamp(0.95rem, 1.65vw, 1.35rem); line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hd-team__name {
+    font-family: 'Fredoka One', 'Fredoka', sans-serif; font-size: clamp(0.88rem, min(1.65vw, calc(5.6vw / var(--n) + 0.3rem)), 1.35rem); line-height: 1.05;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere;
+}
 .hd-team__track, .hd-finale__bar {
     position: relative; display: block; height: clamp(0.7rem, 1.4vh, 0.95rem); border-radius: 999px; overflow: hidden;
     background: #eadcc0; border: 2.5px solid var(--ink); box-shadow: inset 0 2px 0 rgba(42, 27, 74, 0.18);
@@ -162,7 +165,7 @@
 .hd-team:nth-child(3) .hd-team__shine { animation-delay: 2.4s; }
 .hd-team:nth-child(4) .hd-team__shine { animation-delay: 3.6s; }
 @keyframes hd-shine { 0%, 70% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
-.hd-team__pts { font-size: clamp(1.15rem, 2.3vw, 1.85rem); }
+.hd-team__pts { font-size: clamp(1.15rem, 2.3vw, 1.85rem); min-width: 2.6em; } /* room for two digits: reaching 10 never squeezes the name */
 .hd-team__pts.is-tick { animation: hd-tick 0.18s ease-out; }
 @keyframes hd-tick { 50% { transform: scale(1.3) rotate(-6deg); } }
 .hd-team.is-bump { animation: hd-bump 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
@@ -175,7 +178,7 @@
     transition: transform 0.12s ease;
 }
 .hd-rename:hover { transform: rotate(-12deg) scale(1.12); }
-.hd-team .hd-rename { opacity: 0.45; width: 1.45rem; height: 1.45rem; }
+.hd-team .hd-rename { position: absolute; top: -1.05rem; right: -0.15rem; opacity: 0.55; width: 1.45rem; height: 1.45rem; }
 .hd-team:hover .hd-rename { opacity: 1; }
 
 /* ─── Main area ──────────────────────────────────────────────────────────── */
@@ -184,7 +187,7 @@
 /* The challenge board: who duels next */
 .hd-pick { flex-shrink: 0; }
 .hd-board {
-    display: grid; grid-template-columns: minmax(13rem, auto) minmax(0, 1fr) auto; align-items: center;
+    display: grid; grid-template-columns: clamp(12.5rem, 21vw, 19rem) minmax(0, 1fr) auto; align-items: center;
     gap: clamp(0.6rem, 1.4vw, 1.2rem);
     padding: clamp(0.5rem, 1.3vh, 0.8rem) clamp(0.7rem, 1.4vw, 1.1rem);
     border-radius: 1.4rem;
@@ -194,22 +197,25 @@
     border: 4px solid var(--ink); box-shadow: 0 6px 0 var(--ink), inset 0 3px 0 rgba(255, 255, 255, 0.22);
     color: #fff;
 }
-.hd-board__title > p:not(.hd-lastduel) { margin-top: 0.3rem; font-weight: 700; font-size: clamp(0.8rem, 1.25vw, 1rem); color: #fde9c9; text-shadow: 0 2px 0 rgba(42, 27, 74, 0.6); }
+.hd-board__title { min-width: 0; }
+.hd-board__title > p:not(.hd-lastduel) { display: flex; align-items: center; min-height: 2rem; margin-top: 0.35rem; font-weight: 700; font-size: clamp(0.8rem, 1.25vw, 1rem); color: #fde9c9; text-shadow: 0 2px 0 rgba(42, 27, 74, 0.6); }
 .hd-lastduel {
-    margin-top: 0.45rem; display: inline-flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;
-    padding: 0.2rem 0.75rem 0.2rem 0.3rem; border-radius: 999px;
+    margin-top: 0.35rem; display: inline-flex; align-items: center; gap: 0.35rem; max-width: 100%; height: 2rem; white-space: nowrap;
+    padding: 0.2rem 0.55rem 0.2rem 0.3rem; border-radius: 999px;
     background: var(--paper); color: var(--ink); border: 2.5px solid var(--ink); box-shadow: 0 2px 0 var(--ink);
     font-weight: 700; font-size: clamp(0.78rem, 1.15vw, 0.95rem);
     animation: hd-pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
-.hd-lastduel__crown { width: 1.5rem; }
+.hd-lastduel__crown { width: 1.5rem; flex-shrink: 0; }
+.hd-lastduel b { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.hd-lastduel .hd-bank { flex-shrink: 0; }
 .hd-lastduel__crown svg { display: block; width: 100%; height: auto; }
 .hd-bank { padding: 0.05rem 0.5rem; border-radius: 999px; background: var(--c); color: #fff; border: 2px solid var(--ink); text-shadow: 0 1px 0 var(--ink); }
 @keyframes hd-pop-in { from { transform: scale(0.6); opacity: 0; } }
 
 .hd-tray {
     display: flex; align-items: center; justify-content: center; gap: clamp(0.25rem, 0.6vw, 0.5rem); flex-wrap: wrap;
-    min-height: clamp(4rem, 9vh, 5.2rem); padding: 0.35rem 0.6rem; border-radius: 1.1rem;
+    min-height: 5.9rem; padding: 0.35rem 0.6rem; border-radius: 1.1rem; /* as tall as a filled tray: picking never grows the board */
     background: rgba(42, 27, 74, 0.38); box-shadow: inset 0 4px 0 rgba(0, 0, 0, 0.28);
 }
 .hd-slot { display: grid; place-items: center; width: clamp(2.9rem, 4.2vw, 3.6rem); }
@@ -451,7 +457,8 @@
 @keyframes hd-vs { from { transform: scale(0) rotate(-180deg); opacity: 0; } }
 @keyframes hd-vs-idle { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg) scale(1.05); } }
 .hd-ringfoot__tie .fa-crown { color: var(--gold-3); }
-.hd-ringfoot { position: relative; display: flex; align-items: center; justify-content: center; gap: 0.8rem; flex-wrap: wrap; }
+.hd-ringfoot { position: relative; display: flex; align-items: center; justify-content: center; gap: 0.8rem; flex-wrap: wrap; min-height: var(--foot-h, 4.2rem); }
+/* the foot keeps one height whatever it shows (crown button, a tie, nothing yet), so the cards never hop */
 .hd-ringfoot__tie {
     display: inline-flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; justify-content: center;
     padding: 0.35rem 0.6rem 0.35rem 1rem; border-radius: 999px;
@@ -590,6 +597,12 @@
 
 /* ─── Setup: prepare the tournament ──────────────────────────────────────── */
 .hd-setup { flex: 1; min-height: 0; overflow: auto; padding: 0.2rem 0.3rem 1rem; scrollbar-width: thin; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)); gap: clamp(0.7rem, 1.3vw, 1.1rem); align-items: start; }
+/* Laptops and projectors: three steady columns. Each card scrolls on its own, so a change in one
+   (more teams, fewer heroes) never moves the others, and the page itself never scrolls. */
+@media (min-width: 900px) {
+    .hd-setup { grid-template-columns: minmax(0, 1fr) minmax(0, 1.22fr) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); overflow: hidden; padding-bottom: 0.65rem; }
+    .hd-setup > .hd-card { max-height: 100%; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #c9a46a transparent; scrollbar-gutter: stable; }
+}
 .hd-setup__title { grid-column: 1 / -1; text-align: center; padding: 0.3rem 0 0.2rem; }
 .hd-card {
     position: relative; padding: 1rem 1.1rem 1.1rem; border-radius: 1.4rem;
@@ -600,7 +613,7 @@
 .hd-card:nth-of-type(2) { animation-delay: 0.08s; }
 .hd-card:nth-of-type(3) { animation-delay: 0.16s; }
 .hd-card h3 { display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap; font-family: 'Fredoka One', 'Fredoka', sans-serif; font-weight: 400; font-size: 1.3rem; margin-bottom: 0.55rem; }
-.hd-card h3 small { font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 0.85rem; color: #7a6a8f; }
+.hd-card h3 small { font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 0.85rem; color: #7a6a8f; white-space: nowrap; }
 .hd-step { position: relative; display: inline-grid; place-items: center; width: 2.2rem; aspect-ratio: 64 / 72; flex-shrink: 0; }
 .hd-step b { position: relative; padding-bottom: 12%; font-weight: 400; font-size: 1.1rem; }
 .hd-hint { font-size: 0.85rem; font-weight: 600; color: #6b5a80; margin: 0.4rem 0 0.55rem; }
@@ -628,7 +641,7 @@
 .hd-seg__opt.is-on { background: linear-gradient(#ffe68a, #f7b21b); color: var(--ink); border-color: var(--ink); box-shadow: 0 3px 0 var(--ink); transform: translateY(-1px); }
 .hd-seg__opt:disabled { opacity: 0.4; }
 .hd-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.6rem; }
-.hd-teamprev { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 0.6rem; }
+.hd-teamprev { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11.5rem), 1fr)); gap: 0.6rem; }
 .hd-teamprev__team { border-radius: 1rem; overflow: hidden; background: var(--cs); border: 3px solid var(--ink); box-shadow: 0 4px 0 var(--ink); }
 .hd-teamprev__team header {
     display: flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.55rem;
@@ -637,7 +650,7 @@
 }
 .hd-teamprev__crest { position: relative; display: inline-grid; place-items: center; width: 1.9rem; aspect-ratio: 64 / 72; flex-shrink: 0; text-shadow: none; }
 .hd-teamprev__crest > span { position: relative; padding-bottom: 12%; font-size: 1rem; }
-.hd-teamprev__name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hd-teamprev__name { flex: 1; min-width: 0; line-height: 1.08; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
 .hd-teamprev__team header b { min-width: 1.6rem; height: 1.6rem; padding: 0 0.3rem; border-radius: 999px; display: grid; place-items: center; background: #fff; color: var(--ink); border: 2px solid var(--ink); text-shadow: none; font-weight: 400; font-size: 0.85rem; }
 .hd-teamprev__team > div { display: flex; flex-wrap: wrap; gap: 0.3rem; padding: 0.5rem; }
 .hd-rules { display: flex; flex-direction: column; gap: 0.75rem; }
@@ -650,7 +663,7 @@
 /* ─── Finale: the Champions' Hall ────────────────────────────────────────── */
 .hd-finale {
     position: absolute; inset: 0; z-index: 30;
-    display: grid; place-items: center; padding: 1rem;
+    display: flex; padding: 1rem;
     background: rgba(20, 12, 50, 0.74);
     animation: hd-in 0.35s ease-out both;
     overflow: auto;
@@ -662,7 +675,7 @@
 }
 @keyframes hd-spin { to { transform: rotate(360deg); } }
 .hd-finale__card {
-    position: relative; width: min(66rem, 100%);
+    position: relative; width: min(66rem, 100%); margin: auto; /* centred, and still scrollable from the top when taller than the screen */
     display: flex; flex-direction: column; align-items: stretch; gap: clamp(0.5rem, 1.4vh, 0.85rem);
     padding: clamp(0.9rem, 2.4vh, 1.5rem) clamp(1rem, 2.4vw, 2rem);
     border-radius: 1.8rem; text-align: center;
@@ -820,6 +833,108 @@
 @media (max-height: 740px) {
     .hd-duellist__face { width: clamp(3.4rem, min(12.5vh, calc(26vw / var(--n) + 2.2rem)), 9rem); }
     .hd-duellist__coin { width: clamp(3rem, min(8.4vh, calc(15vw / var(--n) + 2.4rem)), 6rem); }
+    .hd-setup__title .hd-ribbon { font-size: clamp(0.95rem, 2.6vh, 1.3rem); }
+    .hd-setup__title { padding: 0; }
+}
+/* Small laptops (1366×768 with the browser bars, or zoomed to 125%): everything a size smaller so the
+   whole arena fits without scrolling. */
+@media (max-height: 660px) {
+    .hd-stage { gap: 0.4rem; padding: 0.45rem clamp(0.6rem, 1.6vw, 1.2rem) 0.5rem; }
+    .hd-head__crest { width: 2.4rem; }
+    .hd-title { font-size: clamp(1.35rem, 2.6vw, 1.9rem); }
+    .hd-head__text { gap: 0.15rem; }
+    .hd-head__class { font-size: 0.78rem; }
+    .hd-medal { width: 2.85rem; box-shadow: 0 3px 0 var(--ink), inset 0 0 0 3px rgba(255, 255, 255, 0.4); }
+    .hd-medal small { font-size: 0.5rem; }
+    .hd-medal b { font-size: 1.15rem; }
+    .hd-head__tools .hd-btn--sm { font-size: 0.85rem; padding: 0.42em 0.75em; }
+    .hd-head__tools .hd-btn--icon { width: 2.3em; height: 2.3em; }
+    .hd-teams { padding-top: 0.3rem; gap: 0.5rem; }
+    .hd-team { padding: 0.22rem 0.5rem 0.22rem 0.35rem; border-radius: 0.95rem; }
+    .hd-team__crest { width: 2.15rem; }
+    .hd-team__emoji { font-size: 1.05rem; }
+    .hd-team__body { gap: 0.2rem; }
+    .hd-team__track { height: 0.6rem; border-width: 2px; }
+    .hd-team__pts { font-size: 1.05rem; }
+    .hd-main { gap: 0.45rem; }
+    .hd-board { padding: 0.4rem 0.7rem; gap: 0.6rem; border-radius: 1.1rem; }
+    .hd-board .hd-title--md { font-size: 1.3rem; }
+    .hd-tray { min-height: 4.45rem; padding: 0.25rem 0.5rem; }
+    .hd-slot { width: 2.6rem; }
+    .hd-slot.is-filled { min-width: 3.8rem; padding: 0.2rem 0.4rem; font-size: 0.82rem; }
+    .hd-slot.is-filled .ct-face { width: 1.8rem; height: 1.8rem; font-size: 0.85rem; }
+    .hd-roster { padding-top: 0.75rem; }
+    .hd-hero__band { height: 1.05rem; }
+    .hd-hero__face { margin-top: -0.75rem; }
+    .hd-hero .ct-face--lg { width: 2.3rem; height: 2.3rem; font-size: 1rem; }
+    .hd-hero__name { font-size: 0.85rem; }
+    .hd-hero__foot { min-height: 1.4rem; }
+    .hd-hero__pts { min-width: 1.45rem; height: 1.45rem; font-size: 0.8rem; }
+    .hd-ring { padding-top: 2.55rem; gap: 0.4rem; }
+    .hd-duellist { padding: 0.55rem 0.5rem 0.5rem; gap: 0.2rem; border-radius: 1.3rem; box-shadow: 0 5px 0 var(--ink); }
+    .hd-duellist.is-lead { box-shadow: 0 5px 0 var(--ink), 0 0 0 4px var(--gold), 0 0 34px 8px rgba(252, 211, 77, 0.5); }
+    .hd-duellist::before { height: 2.7rem; border-radius: 1rem 1rem 0 0; border-bottom-width: 3px; }
+    .hd-duellist__face { width: clamp(3rem, min(11.5vh, calc(24vw / var(--n) + 2rem)), 7.5rem); padding: 3px; border-width: 3px; margin-top: 0; }
+    .hd-duellist__face .ct-face--xl { font-size: clamp(1.6rem, 5vh, 2.8rem); }
+    .hd-duellist__name { font-size: clamp(1rem, min(4vh, calc(0.8rem + 1.1vw)), 1.7rem); }
+    .hd-duellist__coin { width: clamp(2.5rem, min(7.4vh, calc(13vw / var(--n) + 2rem)), 4.6rem); border-width: 3px; box-shadow: 0 3px 0 var(--ink), inset 0 0 0 4px rgba(255, 255, 255, 0.4); }
+    .hd-duellist__coin b { font-size: clamp(1.25rem, min(4.2vh, calc(6vw / var(--n) + 1rem)), 2.4rem); }
+    .hd-duellist > .hd-crownbtn { width: 2rem; font-size: 0.82rem; top: 0.3rem; right: 0.3rem; }
+    .hd-duellist__team { font-size: 0.8rem; padding: 0.12rem 0.7rem; top: -0.95rem; }
+    .hd-pips i { width: 0.75rem; height: 0.75rem; border-width: 2px; }
+    .hd-pt { padding: 0.36rem 0; font-size: clamp(0.9rem, 1.4vw, 1.15rem); border-radius: 0.7rem; box-shadow: 0 3px 0 var(--ink), inset 0 -3px 0 rgba(0, 0, 0, 0.18), inset 0 2px 0 rgba(255, 255, 255, 0.35); }
+    .hd-vs { width: clamp(2.6rem, calc(8vw / var(--n) + 1.6rem), 4.4rem); }
+    .hd-power { height: 0.8rem; margin-top: 0.25rem; border-width: 2.5px; }
+    .hd-ringfoot { gap: 0.5rem; --foot-h: 3.5rem; }
+    .hd-ringfoot .hd-btn--lg { font-size: 1.05rem; padding: 0.55em 1.2em; }
+    .hd-ringfoot__rules { display: none; }
+    .hd-roster.is-compact { max-height: 13vh; padding: 0.1rem 0.3rem 0.3rem; }
+    .hd-roster.is-compact .hd-rostercol { padding: 0.25rem; }
+    .hd-roster.is-compact .hd-rostergrid { grid-template-columns: repeat(auto-fill, minmax(2.35rem, 1fr)); gap: 0.25rem; }
+    .hd-hero--mini .ct-face { width: 1.45rem; height: 1.45rem; font-size: 0.7rem; }
+    .hd-hero--mini b { font-size: 0.75rem; }
+    .hd-card { padding: 0.75rem 0.85rem 0.85rem; border-radius: 1.15rem; border-width: 3px; box-shadow: 0 4px 0 var(--ink); }
+    .hd-card h3 { font-size: 1.12rem; margin-bottom: 0.35rem; gap: 0.45rem; }
+    .hd-step { width: 1.85rem; }
+    .hd-step b { font-size: 0.95rem; }
+    .hd-hint { font-size: 0.8rem; margin: 0.3rem 0 0.4rem; }
+    .hd-chips { gap: 0.3rem; }
+    .hd-chip { font-size: 0.82rem; padding-right: 0.6rem; }
+    .hd-seg { padding: 0.22rem; gap: 0.2rem; border-radius: 0.85rem; border-width: 2.5px; }
+    .hd-seg__opt { padding: 0.36rem 0.65rem; font-size: 0.84rem; }
+    .hd-row { margin-top: 0.45rem; gap: 0.4rem; }
+    .hd-rules { gap: 0.5rem; }
+    .hd-rule { gap: 0.25rem; }
+    .hd-rule__label { font-size: 0.86rem; }
+    .hd-teamprev__team header { font-size: 0.9rem; padding: 0.28rem 0.45rem; }
+    .hd-teamprev__crest { width: 1.65rem; }
+    .hd-setup__foot .hd-btn--lg { font-size: 1.1rem; padding: 0.55em 1.2em; }
+    .hd-finale { padding: 0.5rem; }
+    .hd-finale__card { gap: 0.45rem; padding: 0.7rem 1rem; }
+    .hd-finale__trophy { width: 3.4rem; }
+    .hd-finale__emoji { display: none; }
+    .hd-finale .hd-ribbon--big { font-size: clamp(1.25rem, 2.8vw, 1.9rem); }
+    .hd-finale__team { padding-top: 0.15rem; padding-bottom: 0.15rem; font-size: 0.95rem; }
+    .hd-medal-sm { width: 1.7rem; height: 1.7rem; font-size: 0.8rem; }
+    .hd-podium { padding-top: 1.1rem; }
+    .hd-podium__step { min-width: 5rem; gap: 0.2rem; }
+    .hd-podium__block { font-size: 1.4rem; }
+    .hd-podium__step--1 .hd-podium__block { height: 3rem; }
+    .hd-podium__step--2 .hd-podium__block { height: 2.2rem; }
+    .hd-podium__step--3 .hd-podium__block { height: 1.6rem; }
+    .hd-podium .ct-face--lg { width: 2.6rem; height: 2.6rem; font-size: 1.05rem; }
+    .hd-podium__step--1 .ct-face--lg { width: 3.1rem; height: 3.1rem; }
+    .hd-podium__crown { width: 2rem; margin-left: -1rem; top: -1.25rem; }
+    .hd-podium__hero b { font-size: 0.88rem; }
+    .hd-podium__hero small { font-size: 0.72rem; }
+    .hd-reward { padding: 0.45rem; gap: 0.35rem; }
+    .hd-finale__foot .hd-btn { font-size: 0.95rem; padding: 0.5em 1em; }
+}
+/* Very short screens: the duel strip of everyone's points steps aside so the duel fits. */
+@media (max-height: 560px) {
+    .hd-setup__title { display: none; }
+    .hd-roster.is-compact { display: none; }
+    .hd-ring { padding-top: 2.4rem; }
 }
 
 /* Weak laptops and reduced motion: no moving arena, no entrance shows, no spinning rays */

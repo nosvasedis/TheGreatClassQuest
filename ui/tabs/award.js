@@ -230,6 +230,14 @@ function buildAwardClassContext(classId, studentsInClass) {
 
     const scoreMap = new Map();
     for (const sc of state.get('allStudentScores') || []) scoreMap.set(sc.id, sc);
+    // When a hero's year total is just this month's stars (the first month of
+    // stars, or a newcomer), the Total chip would give the month away, so the
+    // whole class's Total chips are sealed too.
+    const totalSealed = monthSealed && studentsInClass.some((s) => {
+        const sc = scoreMap.get(s.id) || {};
+        const month = Number(sc.monthlyStars) || 0;
+        return month > 0 && (Number(sc.totalStars) || 0) - month < 0.5;
+    });
 
     // Hero's Boon: the bottom three this month, or anyone sharing a monthly total with a classmate.
     const leaderboard = studentsInClass.map((s) => ({ id: s.id, stars: Number(scoreMap.get(s.id)?.monthlyStars) || 0 }));
@@ -256,6 +264,7 @@ function buildAwardClassContext(classId, studentsInClass) {
         today,
         classHasLessonToday,
         monthSealed,
+        totalSealed,
         scheduleDays: schoolClass?.scheduleDays || [],
         scoreMap,
         bottomThreeIds,
@@ -343,6 +352,7 @@ function buildStudentCloudView(student, ctx, index = 0) {
         today: starsToday,
         month: scoreData.monthlyStars || 0,
         monthSealed: ctx.monthSealed,
+        totalSealed: ctx.totalSealed,
         total: scoreData.totalStars || 0,
         todayReason: reasonToday,
         locked,
@@ -576,9 +586,9 @@ function buildTotalTip(target) {
     return {
         html: buildAwardTotalTipHtml({
             name: student.name, avatar: student.avatar || null,
-            total: Number(scores.totalStars) || 0,
+            total: ctx.totalSealed ? null : Number(scores.totalStars) || 0,
             month: ctx.monthSealed ? null : Number(scores.monthlyStars) || 0,
-            rank: rankInClass(ctx, student.id, 'totalStars'),
+            rank: ctx.totalSealed ? null : rankInClass(ctx, student.id, 'totalStars'),
             gold: getLiveYearGoldFromAppState(scores, state),
             heroTitle: hero?.title || null
         }),

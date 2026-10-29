@@ -1263,7 +1263,7 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
     background: radial-gradient(circle at 35% 30%, #f87171, #b91c1c 55%, #7f1d1d);
     box-shadow: inset 0 -2px 0 rgba(69, 10, 10, 0.35), 0 0 0 2px rgba(185, 28, 28, 0.16);
 }
-.aw-tally__item--month.is-sealed .aw-tally__label { opacity: 0.9; }
+.aw-tally__item.is-sealed .aw-tally__label { opacity: 0.9; }
 
 .aw-tally__item--total {
     --tally-edge: #1e1b4b;

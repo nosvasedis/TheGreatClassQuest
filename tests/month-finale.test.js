@@ -105,3 +105,18 @@ test('the finale check reads the merged school calendar from state', async () =>
   const ctx = monthFinaleContextFrom((k) => store[k], new Date('2026-10-26T09:00:00'));
   assert.equal(isMonthFinaleLesson('class-1', ctx), true, 'a closure on the 29th makes the 26th the finale');
 });
+
+test('the Total chip seals too when a year total is only this month', async () => {
+  const card = await import('../features/awardCloudCard.mjs');
+  const view = { id: 's1', name: 'Maria', today: 1, month: 12, total: 12, gold: 0, honours: {}, boon: {}, monthSealed: true };
+  const sealed = card.buildAwardCloudCardHtml({ ...view, totalSealed: true });
+  assert.doesNotMatch(sealed, /id="total-stars-s1"|id="monthly-stars-s1"/);
+  assert.match(sealed, /aw-tally__item--total is-sealed/);
+  assert.match(card.buildAwardCloudCardHtml(view), /id="total-stars-s1">12</);
+
+  const tip = card.buildAwardTotalTipHtml({ name: 'Maria', total: null, month: null, rank: { place: 1, of: 9 } });
+  assert.match(tip, /Sealed until the Ceremony/);
+  assert.doesNotMatch(tip, /in class|aw-ledger-tip__big/);
+
+  assert.match(read('ui/tabs/award.js'), /const totalSealed = monthSealed && studentsInClass\.some/);
+});

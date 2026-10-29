@@ -16,6 +16,7 @@ import { REALM_STOPS, journalMonth, realmMonthKey } from '../features/realmMomen
 import { getActiveFestival, getFestivalWindow } from '../utils/shopCalendar.js';
 import { teamsForDay, teamBanner } from '../features/teamMakerCore.mjs';
 import { rankCrestSvg } from '../features/questRankCrest.mjs';
+import { starsToReachPercent } from '../features/teamQuestRace.mjs';
 import { portalStatusLine } from '../features/questRanksCore.mjs';
 import { SEALS, isAcademicSeal, sealArtHtml } from '../features/heroSealsCore.mjs';
 import { normalizeDuels, heroStandings, teamTotals } from '../features/heroDuelsCore.mjs';
@@ -317,7 +318,7 @@ async function questRankPortal(classId, now = new Date()) {
     const status = classPortalStatus(cls, { now });
     if (!status || !status.goal) return null;
     const { rank } = status;
-    const toGo = Math.max(0, Math.ceil(status.goal - status.totalStars));
+    const toGo = starsToReachPercent(status.totalStars, status.goal, 100);
     const runes = status.runes.map((r) => `<span class="qc-rune${r.met ? ' is-lit' : ''}" style="--rc:${rank.colors[1]}">
             <i class="fas ${esc(r.icon)}" aria-hidden="true"></i>
             <b>${esc(r.short)}</b>

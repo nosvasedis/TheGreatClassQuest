@@ -8,6 +8,8 @@
  * re-render never swaps them mid-lesson; only a real change (weather, hour, stars) moves them.
  */
 
+import { formatQuestStars, starsToReachPercent } from './teamQuestRace.mjs';
+
 const HELLO = {
     morning: 'Good Morning',
     afternoon: 'Good Afternoon',
@@ -149,18 +151,21 @@ function dateKey(now) {
     return `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
 }
 
-/** How the month's quest stands, as a badge (class view only). */
+/**
+ * How the month's quest stands, as a badge (class view only). Stars can come in halves, so
+ * the count left is the map's own (starsToReachPercent): 45.5 of 48 is 3 to go, never 2.
+ */
 export function questNudge({ monthStars, goal, now = new Date() } = {}) {
-    const stars = Math.max(0, Math.round(Number(monthStars) || 0));
-    const target = Math.round(Number(goal) || 0);
+    const stars = Math.max(0, Number(monthStars) || 0);
+    const target = Number(goal) || 0;
     if (!(target > 0)) return null;
-    const left = target - stars;
+    const left = starsToReachPercent(stars, target, 100);
     const daysLeft = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate();
     if (left <= 0) return { tone: 'won', icon: 'fa-trophy', text: 'Monthly goal reached!' };
     if (left <= Math.max(3, Math.round(target * 0.12))) return { tone: 'close', icon: 'fa-flag-checkered', text: `Only ${left} ★ to the goal!` };
     if (stars === 0 && now.getDate() <= 7) return { tone: 'fresh', icon: 'fa-seedling', text: 'The first star is waiting' };
     if (daysLeft <= 3) return { tone: 'rush', icon: 'fa-hourglass-half', text: `${left} ★ to go, every star counts!` };
-    return { tone: 'road', icon: 'fa-route', text: `${stars} ★ of ${target} this month` };
+    return { tone: 'road', icon: 'fa-route', text: `${formatQuestStars(stars)} ★ of ${formatQuestStars(target)} this month` };
 }
 
 /**

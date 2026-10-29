@@ -52,6 +52,16 @@ test('the month badge says how the quest stands', () => {
     assert.equal(questNudge({ monthStars: 10, goal: 0, now }), null);
 });
 
+test('the month badge counts half stars like the Team Quest map', () => {
+    const now = new Date(2026, 9, 15);
+    // 45.5 of 48: the map says 3 to the Portal, so the badge must too (it used to round to 46 and say 2).
+    assert.equal(questNudge({ monthStars: 45.5, goal: 48, now }).text, 'Only 3 ★ to the goal!');
+    // 47.5 of 48 is not the goal yet.
+    assert.equal(questNudge({ monthStars: 47.5, goal: 48, now }).text, 'Only 1 ★ to the goal!');
+    assert.equal(questNudge({ monthStars: 48, goal: 48, now }).tone, 'won');
+    assert.equal(questNudge({ monthStars: 10.5, goal: 48, now }).text, '10.5 ★ of 48 this month');
+});
+
 test('the teacher badge letter skips Mr., Ms., Miss, Mrs. and the Greek κ.', () => {
     assert.equal(teacherInitial('Mr. Nasos'), 'N');
     assert.equal(teacherInitial('Ms Elena'), 'E');

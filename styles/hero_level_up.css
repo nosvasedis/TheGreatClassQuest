@@ -1,0 +1,470 @@
+/* ============================================================
+   HERO LEVEL UP — the moment a hero reaches a new rank
+   (ui/modals/heroLevelUp.js, markup ui/modals/heroLevelUpView.mjs).
+   A night sky tinted with the hero's class colour (--hlu-aura),
+   the medallion, the rank ladder, the burst, the title ribbon.
+   Final state is the base style; .is-playing adds the entrance,
+   each piece waiting for its own --d. Transform and opacity only;
+   every glow is a pre-drawn gradient, never a filter or blur.
+   ============================================================ */
+
+.hlu {
+    --hlu-aura: #7c3aed;
+    --hlu-aura-rgb: 124, 58, 237;
+    --hlu-burst: 1450ms;
+    --m: clamp(118px, 24vh, 210px);
+    position: fixed;
+    inset: 0;
+    z-index: 96;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    color: #fff;
+    font-family: 'Fredoka', 'Open Sans', sans-serif;
+    -webkit-user-select: none;
+    user-select: none;
+}
+.hlu.hidden { display: none; }
+
+.hlu-veil {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 50% 34%, rgba(var(--hlu-aura-rgb), 0.55) 0, rgba(var(--hlu-aura-rgb), 0.18) 30%, transparent 58%),
+        radial-gradient(ellipse 90% 55% at 50% 112%, rgba(var(--hlu-aura-rgb), 0.45), transparent 70%),
+        linear-gradient(180deg, #120c2c 0%, #0b0820 55%, #07051a 100%);
+}
+
+.hlu-sky { position: absolute; inset: 0; pointer-events: none; }
+.hlu-stars {
+    position: absolute;
+    inset: 0;
+    opacity: 0.75;
+    background: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27400%27 height=%27400%27%3E%3Ccircle cx=%27165%27 cy=%2789%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.45%27/%3E%3Ccircle cx=%27196%27 cy=%2758%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.84%27/%3E%3Ccircle cx=%2768%27 cy=%27130%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.83%27/%3E%3Ccircle cx=%27294%27 cy=%27314%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.94%27/%3E%3Ccircle cx=%27173%27 cy=%2726%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.83%27/%3E%3Ccircle cx=%27277%27 cy=%2749%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.71%27/%3E%3Ccircle cx=%279%27 cy=%27346%27 r=%271.6%27 fill=%27%23fff%27 opacity=%270.60%27/%3E%3Ccircle cx=%27224%27 cy=%27157%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.73%27/%3E%3Ccircle cx=%27116%27 cy=%27353%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.43%27/%3E%3Ccircle cx=%27376%27 cy=%2752%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.45%27/%3E%3Ccircle cx=%27215%27 cy=%27318%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.95%27/%3E%3Ccircle cx=%27250%27 cy=%27108%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.99%27/%3E%3Ccircle cx=%2762%27 cy=%2799%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.87%27/%3E%3Ccircle cx=%2714%27 cy=%27375%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.68%27/%3E%3Ccircle cx=%27148%27 cy=%27382%27 r=%271.6%27 fill=%27%23fff%27 opacity=%271.00%27/%3E%3Ccircle cx=%27132%27 cy=%27354%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.47%27/%3E%3Ccircle cx=%27287%27 cy=%27195%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.91%27/%3E%3Ccircle cx=%2775%27 cy=%27242%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.85%27/%3E%3Ccircle cx=%2754%27 cy=%27282%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.85%27/%3E%3Ccircle cx=%27101%27 cy=%2744%27 r=%271.6%27 fill=%27%23fff%27 opacity=%270.86%27/%3E%3Ccircle cx=%27299%27 cy=%27353%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.95%27/%3E%3Ccircle cx=%2795%27 cy=%27152%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.60%27/%3E%3Ccircle cx=%27122%27 cy=%27190%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.92%27/%3E%3Ccircle cx=%27285%27 cy=%27183%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.49%27/%3E%3Ccircle cx=%27121%27 cy=%27228%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.74%27/%3E%3Ccircle cx=%27217%27 cy=%2799%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.89%27/%3E%3Ccircle cx=%27302%27 cy=%27398%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.47%27/%3E%3Ccircle cx=%27399%27 cy=%27379%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.45%27/%3E%3Ccircle cx=%27253%27 cy=%2737%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.57%27/%3E%3Ccircle cx=%27214%27 cy=%2765%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.70%27/%3E%3Ccircle cx=%27396%27 cy=%2770%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.74%27/%3E%3Ccircle cx=%2797%27 cy=%27272%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.97%27/%3E%3Ccircle cx=%27290%27 cy=%27250%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.98%27/%3E%3Ccircle cx=%27377%27 cy=%27369%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.81%27/%3E%3Ccircle cx=%2714%27 cy=%27270%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.67%27/%3E%3Ccircle cx=%27395%27 cy=%2720%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.49%27/%3E%3Ccircle cx=%27211%27 cy=%27342%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.45%27/%3E%3Ccircle cx=%27272%27 cy=%27297%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.68%27/%3E%3Ccircle cx=%27396%27 cy=%2743%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.86%27/%3E%3Ccircle cx=%27163%27 cy=%27256%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.67%27/%3E%3Ccircle cx=%27338%27 cy=%27221%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.81%27/%3E%3Ccircle cx=%27160%27 cy=%27184%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.67%27/%3E%3Ccircle cx=%27100%27 cy=%27377%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.67%27/%3E%3Ccircle cx=%2777%27 cy=%27307%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.85%27/%3E%3Ccircle cx=%27354%27 cy=%27310%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.92%27/%3E%3Ccircle cx=%27289%27 cy=%27172%27 r=%270.8%27 fill=%27%23fff%27 opacity=%270.85%27/%3E%3C/svg%3E");
+    background-size: 400px 400px;
+}
+.hlu-stars--twinkle {
+    opacity: 0;
+    background-position: 190px 130px;
+}
+
+.hlu-stage {
+    position: relative;
+    z-index: 1;
+    width: min(640px, 100%);
+    max-height: 100%;
+    padding: clamp(10px, 2.4vh, 28px) 16px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: clamp(6px, 1.4vh, 14px);
+}
+
+.hlu-hero {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* ── Rays behind the medallion ─────────────────────────── */
+.hlu-rays {
+    position: absolute;
+    left: 50%;
+    top: calc(100% - var(--m) / 2);
+    width: calc(var(--m) * 4.4);
+    height: calc(var(--m) * 4.4);
+    margin: calc(var(--m) * -2.2) 0 0 calc(var(--m) * -2.2);
+    pointer-events: none;
+}
+.hlu-rays::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.62;
+    background: center / contain no-repeat url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%27-100 -100 200 200%27%3E%3Cdefs%3E%3CradialGradient id=%27g%27 r=%27100%27 cx=%270%27 cy=%270%27 gradientUnits=%27userSpaceOnUse%27%3E%3Cstop offset=%270%27 stop-color=%27%23fff6d5%27 stop-opacity=%27.95%27/%3E%3Cstop offset=%27.35%27 stop-color=%27%23fde68a%27 stop-opacity=%27.45%27/%3E%3Cstop offset=%271%27 stop-color=%27%23fde68a%27 stop-opacity=%270%27/%3E%3C/radialGradient%3E%3C/defs%3E%3Cpath d=%27M0 0L99.5 -9.6L99.5 9.6ZM0 0L96.8 25.0L90.3 43.1ZM0 0L82.4 56.6L70.1 71.3ZM0 0L58.1 81.4L41.5 91.0ZM0 0L26.7 96.4L7.8 99.7ZM0 0L-7.8 99.7L-26.7 96.4ZM0 0L-41.5 91.0L-58.1 81.4ZM0 0L-70.1 71.3L-82.4 56.6ZM0 0L-90.3 43.1L-96.8 25.0ZM0 0L-99.5 9.6L-99.5 -9.6ZM0 0L-96.8 -25.0L-90.3 -43.1ZM0 0L-82.4 -56.6L-70.1 -71.3ZM0 0L-58.1 -81.4L-41.5 -91.0ZM0 0L-26.7 -96.4L-7.8 -99.7ZM0 0L7.8 -99.7L26.7 -96.4ZM0 0L41.5 -91.0L58.1 -81.4ZM0 0L70.1 -71.3L82.4 -56.6ZM0 0L90.3 -43.1L96.8 -25.0Z%27 fill=%27url(%23g)%27/%3E%3C/svg%3E");
+}
+
+/* ── LEVEL UP! ─────────────────────────────────────────── */
+.hlu-kicker {
+    position: relative;
+    margin: 0 0 clamp(4px, 1vh, 10px);
+    font: 400 clamp(2.2rem, 7.2vh, 4.4rem)/1 'Fredoka One', 'Fredoka', sans-serif;
+    letter-spacing: 0.04em;
+    color: #fde68a;
+    text-shadow: 0 3px 0 #b45309, 0 6px 0 rgba(120, 53, 15, 0.55), 0 10px 22px rgba(0, 0, 0, 0.45);
+    white-space: nowrap;
+}
+.hlu-kicker span { display: inline-block; }
+
+/* ── The medallion ─────────────────────────────────────── */
+.hlu-medal {
+    position: relative;
+    width: var(--m);
+    height: var(--m);
+}
+.hlu-medal__glow {
+    position: absolute;
+    inset: -42%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 244, 200, 0.8) 0, rgba(253, 224, 71, 0.35) 30%, rgba(var(--hlu-aura-rgb), 0.28) 48%, transparent 68%);
+    opacity: 0.8;
+}
+.hlu-medal__wave {
+    position: absolute;
+    inset: -4%;
+    border-radius: 50%;
+    border: 4px solid rgba(253, 230, 138, 0.95);
+    opacity: 0;
+}
+.hlu-medal__wave--2 { border-color: rgba(var(--hlu-aura-rgb), 0.9); border-width: 6px; }
+.hlu-medal__ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(from 210deg, #fef3c7, #f59e0b, #fde68a, #b45309, #fcd34d, #fef3c7);
+    box-shadow: 0 0 0 4px rgba(var(--hlu-aura-rgb), 0.95), 0 0 0 9px rgba(255, 255, 255, 0.14), 0 14px 34px rgba(0, 0, 0, 0.5);
+}
+.hlu-medal__face {
+    position: absolute;
+    inset: 7%;
+    border-radius: 50%;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    background: radial-gradient(circle at 35% 30%, #ffffff, #f1f5f9 60%, #e2e8f0);
+    box-shadow: inset 0 3px 10px rgba(0, 0, 0, 0.25);
+}
+.hlu-medal__img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.hlu-medal__initial {
+    font: 400 calc(var(--m) * 0.42)/1 'Fredoka One', 'Fredoka', sans-serif;
+    color: var(--hlu-aura);
+}
+
+.hlu-gem {
+    position: absolute;
+    right: -4%;
+    bottom: -2%;
+    width: calc(var(--m) * 0.36);
+    height: calc(var(--m) * 0.36);
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 28%, #fff7d6, #fbbf24 45%, #b45309 100%);
+    border: 3px solid #fff7d6;
+    box-shadow: 0 0 0 3px rgba(var(--hlu-aura-rgb), 0.95), 0 6px 14px rgba(0, 0, 0, 0.45);
+    overflow: hidden;
+}
+.hlu-gem > span {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font: 400 calc(var(--m) * 0.2)/1 'Fredoka One', 'Fredoka', sans-serif;
+    color: #78350f;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.hlu-gem__old { opacity: 0; }
+
+/* ── Name, ladder, ribbon ──────────────────────────────── */
+.hlu-name {
+    margin: clamp(6px, 1.4vh, 14px) 0 0;
+    font: 600 clamp(1.7rem, 5vh, 2.8rem)/1.1 'Fredoka', sans-serif;
+    text-shadow: 0 3px 12px rgba(0, 0, 0, 0.45);
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+.hlu-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+.hlu-ladder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.hlu-rung {
+    position: relative;
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+}
+.hlu-rung__gem {
+    width: 15px;
+    height: 15px;
+    transform: rotate(45deg);
+    border-radius: 3px;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.06);
+}
+.hlu-rung.is-held .hlu-rung__gem,
+.hlu-rung.is-new .hlu-rung__gem {
+    border-color: #fff7d6;
+    background: linear-gradient(135deg, #fff7d6, #fbbf24 55%, #d97706);
+    box-shadow: 0 0 10px rgba(253, 224, 71, 0.75);
+}
+.hlu-rung.is-new { width: 34px; height: 34px; }
+.hlu-rung.is-new .hlu-rung__gem {
+    width: 21px;
+    height: 21px;
+    box-shadow: 0 0 0 3px rgba(var(--hlu-aura-rgb), 0.95), 0 0 16px rgba(253, 224, 71, 0.9);
+}
+.hlu-rung.is-new::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    border: 3px solid rgba(253, 230, 138, 0.95);
+    opacity: 0;
+}
+.hlu-rung__link {
+    width: clamp(16px, 3.2vw, 30px);
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.hlu-ribbon {
+    position: relative;
+    margin-top: clamp(2px, 0.8vh, 8px);
+    padding: 0 30px;
+}
+.hlu-ribbon::before,
+.hlu-ribbon::after {
+    content: '';
+    position: absolute;
+    top: 22%;
+    width: 46px;
+    height: 78%;
+    background: var(--hlu-aura);
+    background: color-mix(in srgb, var(--hlu-aura) 62%, #1e1b4b);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 26% 50%);
+}
+.hlu-ribbon::before { left: 0; }
+.hlu-ribbon::after { right: 0; transform: scaleX(-1); }
+.hlu-ribbon__body {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45em;
+    padding: 0.32em 1.15em 0.38em;
+    border-radius: 14px;
+    border: 3px solid #fcd34d;
+    background: var(--hlu-aura);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--hlu-aura) 72%, #fff) 0%, var(--hlu-aura) 46%, color-mix(in srgb, var(--hlu-aura) 70%, #000) 100%);
+    box-shadow: 0 6px 0 rgba(0, 0, 0, 0.28), 0 12px 26px rgba(0, 0, 0, 0.35), inset 0 2px 0 rgba(255, 255, 255, 0.35);
+    font: 700 clamp(1.35rem, 4.2vh, 2.2rem)/1.1 'Cinzel Decorative', 'Cinzel', serif;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+    white-space: nowrap;
+}
+.hlu-ribbon__icon { font-size: 0.9em; }
+.hlu-ribbon--max .hlu-ribbon__body {
+    color: #78350f;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+    border-color: #fff7d6;
+    background: linear-gradient(180deg, #fff7d6 0%, #fcd34d 45%, #d97706 100%);
+}
+
+.hlu-sub {
+    margin: 0;
+    font-weight: 600;
+    font-size: clamp(0.95rem, 2.3vh, 1.2rem);
+    color: #fde68a;
+    letter-spacing: 0.02em;
+}
+
+.hlu-paths {
+    margin: clamp(2px, 0.6vh, 6px) 0 0;
+}
+.hlu-paths__lead {
+    margin: 0 0 8px;
+    font-size: clamp(0.95rem, 2.2vh, 1.15rem);
+    color: rgba(255, 255, 255, 0.85);
+}
+.hlu-paths__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px 10px;
+}
+.hlu-path {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: 0.4em 0.95em;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1.5px solid rgba(255, 255, 255, 0.28);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    font-weight: 600;
+    font-size: clamp(0.95rem, 2.2vh, 1.15rem);
+}
+.hlu-path__icon { font-size: 1.15em; }
+.hlu-paths__or { color: rgba(255, 255, 255, 0.6); font-size: 0.95rem; }
+
+.hlu-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px 12px;
+    margin-top: clamp(4px, 1.2vh, 12px);
+}
+.hlu-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0.7em 1.5em;
+    border-radius: 16px;
+    font: 400 clamp(1.05rem, 2.6vh, 1.3rem)/1 'Fredoka One', 'Fredoka', sans-serif;
+    cursor: pointer;
+    transition: transform 0.15s ease, background-color 0.15s ease;
+}
+.hlu-btn:hover { transform: translateY(-2px); }
+.hlu-btn:active { transform: translateY(2px); }
+.hlu-btn:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+.hlu-btn--gold {
+    color: #78350f;
+    border: 2px solid #fef3c7;
+    background: linear-gradient(180deg, #fef3c7 0%, #fcd34d 40%, #f59e0b 100%);
+    box-shadow: 0 5px 0 #b45309, 0 10px 22px rgba(0, 0, 0, 0.35);
+}
+.hlu-btn--gold:active { box-shadow: 0 2px 0 #b45309, 0 6px 14px rgba(0, 0, 0, 0.35); }
+.hlu-btn--ghost {
+    color: #fff;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.1);
+}
+.hlu-btn--ghost:hover { background: rgba(255, 255, 255, 0.18); }
+
+.hlu-queue {
+    margin: 0;
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* ── Sparks (spawned at the burst) ─────────────────────── */
+.hlu-fx { position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; }
+.hlu-spark {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff 0 28%, var(--c, #fde047) 32% 62%, transparent 66%);
+    will-change: transform, opacity;
+}
+.hlu-spark--star {
+    width: 16px;
+    height: 16px;
+    border-radius: 0;
+    background: var(--c, #fde047);
+    clip-path: polygon(50% 0, 61% 36%, 100% 38%, 69% 60%, 80% 100%, 50% 76%, 20% 100%, 31% 60%, 0 38%, 39% 36%);
+}
+.hlu-spark--rain { width: 13px; height: 13px; }
+
+/* ============================================================
+   The entrance (only while .is-playing). Each piece waits for --d.
+   ============================================================ */
+.hlu.is-playing .hlu-veil { animation: hlu-fade 380ms ease-out both; }
+.hlu.is-playing .hlu-sky { animation: hlu-fade 900ms 120ms ease-out both; }
+.hlu.is-playing .hlu-rays { animation: hlu-rays-in 900ms 260ms cubic-bezier(.2, .7, .3, 1) both; }
+.hlu.is-playing .hlu-medal { animation: hlu-rise 680ms var(--d) cubic-bezier(.34, 1.5, .64, 1) both; }
+.hlu.is-playing .hlu-medal__face { animation: hlu-pulse 520ms var(--hlu-burst) cubic-bezier(.3, 1.6, .5, 1) both; }
+.hlu.is-playing .hlu-medal__glow { animation: hlu-flare 900ms var(--hlu-burst) ease-out both; }
+.hlu.is-playing .hlu-medal__wave { animation: hlu-wave 900ms var(--hlu-burst) cubic-bezier(.2, .7, .3, 1) both; }
+.hlu.is-playing .hlu-medal__wave--2 { animation-delay: calc(var(--hlu-burst) + 160ms); animation-duration: 1100ms; }
+.hlu.is-playing .hlu-gem { animation: hlu-pulse 480ms var(--hlu-burst) cubic-bezier(.3, 1.8, .5, 1) both; }
+.hlu.is-playing .hlu-gem__old { animation: hlu-gem-out 420ms var(--hlu-burst) cubic-bezier(.5, 0, .75, 0) both; }
+.hlu.is-playing .hlu-gem__new { animation: hlu-gem-in 520ms calc(var(--hlu-burst) + 120ms) cubic-bezier(.34, 1.6, .64, 1) both; }
+.hlu.is-playing .hlu-kicker span { animation: hlu-slam 460ms var(--d) cubic-bezier(.34, 1.5, .64, 1) both; }
+.hlu.is-playing .hlu-name,
+.hlu.is-playing .hlu-ladder,
+.hlu.is-playing .hlu-sub,
+.hlu.is-playing .hlu-paths,
+.hlu.is-playing .hlu-actions,
+.hlu.is-playing .hlu-queue { animation: hlu-up 480ms var(--d) cubic-bezier(.2, .7, .3, 1) both; }
+.hlu.is-playing .hlu-rung.is-held,
+.hlu.is-playing .hlu-rung.is-new { animation: hlu-light 420ms var(--d) cubic-bezier(.34, 1.6, .64, 1) both; }
+.hlu.is-playing .hlu-rung.is-new::after { animation: hlu-wave 700ms var(--d) ease-out both; }
+.hlu.is-playing .hlu-ribbon { animation: hlu-unfurl 560ms var(--d) cubic-bezier(.34, 1.4, .64, 1) both; }
+
+/* The full tier keeps a little life after the entrance; weaker laptops stay still. */
+.hlu:not(.hlu--lite):not(.hidden) .hlu-rays::before { animation: hlu-breathe 3.6s 2.4s ease-in-out infinite alternate; }
+.hlu:not(.hlu--lite):not(.hidden) .hlu-stars--twinkle { animation: hlu-twinkle 2.8s 1.2s ease-in-out infinite alternate; }
+
+.hlu.is-leaving .hlu-veil,
+.hlu.is-leaving .hlu-sky,
+.hlu.is-leaving .hlu-stage {
+    animation: none;
+    opacity: 0;
+    transition: opacity 240ms ease, transform 240ms ease;
+}
+.hlu.is-leaving .hlu-stage { transform: scale(0.96); }
+
+@keyframes hlu-fade { from { opacity: 0; } }
+@keyframes hlu-rays-in { from { opacity: 0; transform: scale(0.45) rotate(-20deg); } }
+@keyframes hlu-rise {
+    from { opacity: 0; transform: translateY(46px) scale(0.55); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes hlu-pulse {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.12); }
+    100% { transform: scale(1); }
+}
+@keyframes hlu-flare {
+    0% { opacity: 0.45; transform: scale(0.8); }
+    30% { opacity: 1; transform: scale(1.3); }
+    100% { opacity: 0.8; transform: scale(1); }
+}
+@keyframes hlu-wave {
+    0% { opacity: 0; transform: scale(0.8); }
+    12% { opacity: 1; }
+    100% { opacity: 0; transform: scale(2.5); }
+}
+@keyframes hlu-gem-out {
+    from { opacity: 1; transform: none; }
+    to { opacity: 0; transform: translateY(-80%) scale(0.6); }
+}
+@keyframes hlu-gem-in {
+    from { opacity: 0; transform: translateY(90%) scale(0.4); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes hlu-slam {
+    from { opacity: 0; transform: translateY(-46px) scale(1.7); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes hlu-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes hlu-light {
+    0% { opacity: 0.3; transform: scale(0.55); }
+    60% { opacity: 1; transform: scale(1.35); }
+    100% { opacity: 1; transform: none; }
+}
+@keyframes hlu-unfurl {
+    from { opacity: 0; transform: scaleX(0.1) scaleY(0.7); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes hlu-breathe {
+    from { opacity: 0.62; transform: scale(1); }
+    to { opacity: 0.4; transform: scale(1.06); }
+}
+@keyframes hlu-twinkle { to { opacity: 0.8; } }
+
+@media (prefers-reduced-motion: reduce) {
+    .hlu *, .hlu *::before, .hlu *::after { animation: none !important; transition: none !important; }
+}

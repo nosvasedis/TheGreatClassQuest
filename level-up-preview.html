@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hero level up preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Fredoka+One&family=Open+Sans:wght@400;600;700&family=Cinzel:wght@600;700&family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    html, body { margin: 0; min-height: 100%; }
+    body { background: linear-gradient(to bottom, #F0F9FF 0%, #E0F2FE 50%, #D6F9E3 100%); }
+    .pv-toolbar { position: fixed; left: 10px; bottom: 10px; z-index: 3000; display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; border-radius: 14px; background: rgba(15, 23, 42, 0.82); font: 600 12px system-ui; }
+    .pv-toolbar button { border: 0; border-radius: 999px; padding: 5px 10px; font: inherit; cursor: pointer; }
+    body.pv-shot .pv-toolbar { display: none; }
+  </style>
+</head>
+<body>
+  <div id="toast-container"></div>
+  <div id="hero-level-up-modal" class="hlu hidden" role="dialog" aria-modal="true" aria-labelledby="hlu-title"></div>
+  <div class="pv-toolbar">
+    <button data-pv="Artificer:2">Artificer Lv 2</button>
+    <button data-pv="Sage:3">Sage Lv 3</button>
+    <button data-pv="Guardian:1">Guardian Lv 1</button>
+    <button data-pv="Paladin:5">Paladin max</button>
+    <button data-pv="Scholar:3">Scholar max (3)</button>
+    <button data-pv="queue">Three at once</button>
+  </div>
+  <script type="module" src="/level-up-preview.js"></script>
+</body>
+</html>

@@ -29,7 +29,7 @@ import {
     showBatchStarfallModal,
     hideModal,
 } from "../../ui/modals.js";
-import { playSound, playHeroFanfare } from "../../audio.js";
+import { playSound } from "../../audio.js";
 import {
     getTodayDateString,
     getStartOfMonthString,
@@ -664,8 +664,7 @@ export function applyReasonAwardScoreTransaction(
 
 export function showHeroLevelUpCelebration(levelUpInfo) {
     if (!levelUpInfo) return;
-    playHeroFanfare();
-    import("../../ui/modals/hero.js").then((m) =>
+    import("../../ui/modals/heroLevelUp.js").then((m) =>
         m.showHeroLevelUpCelebration(levelUpInfo),
     );
 }

@@ -1,38 +1,6 @@
 // /ui/modals/hero.js
 import * as state from '../../state.js';
-import { HERO_CLASSES } from '../../features/heroClasses.js';
-import { getHeroTitle, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
 import { showAnimatedModal, hideModal } from './base.js';
-
-/** Shows the hero level-up celebration modal. Called after a student levels up in the skill tree. */
-export function showHeroLevelUpCelebration({ studentId, studentName, newHeroLevel, heroClass }) {
-    const modal = document.getElementById('hero-level-up-modal');
-    const inner = document.getElementById('hero-level-up-modal-inner');
-    if (!modal || !inner) return;
-
-    modal.dataset.studentId = studentId;
-
-    const tree = HERO_SKILL_TREE[heroClass];
-    const title = getHeroTitle(heroClass, newHeroLevel);
-    const icon = HERO_CLASSES[heroClass]?.icon || '⚔️';
-    const auraColor = tree?.auraColor || '#7c3aed';
-
-    document.getElementById('hero-level-up-name').textContent = studentName;
-    document.getElementById('hero-level-up-title-text').textContent = title;
-    document.getElementById('hero-level-up-title-icon').textContent = icon;
-    document.getElementById('hero-level-up-level-num').textContent = String(newHeroLevel);
-    document.getElementById('hero-level-up-title-badge').style.background = `linear-gradient(135deg, ${auraColor}, ${auraColor}dd)`;
-
-    const student = state.get('allStudents').find(s => s.id === studentId);
-    const avatarEl = document.getElementById('hero-level-up-avatar');
-    if (student?.avatar) {
-        avatarEl.innerHTML = `<img src="${student.avatar}" alt="${studentName}" class="w-full h-full object-cover">`;
-    } else {
-        avatarEl.innerHTML = `<span class="text-indigo-500">${(studentName || '?').charAt(0)}</span>`;
-    }
-
-    showAnimatedModal('hero-level-up-modal');
-}
 
 import { canUseFeature } from '../../utils/subscription.js';
 import { openAdventurersGuide } from './adventurersGuide.js';

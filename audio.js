@@ -377,6 +377,54 @@ export function playAwardMomentSfx(name) {
     }
 }
 
+/**
+ * The hero level-up moment (ui/modals/heroLevelUp.js), in F major, on the everyday voices
+ * (no file to download, so a weak laptop plays it as easily as a star):
+ * 'rise' the medallion lifts on a harp run · 'step' one bell per rung already climbed ({ step }) ·
+ * 'burst' the new rung lights: a brass "ta-da-da-DAAA", the full chord and a sparkle ({ max } adds
+ * a higher bell crown for the highest rank) · 'ribbon' the title unfurls on a falling cascade.
+ */
+const LEVEL_UP_STEPS = ['C6', 'D6', 'F6', 'G6', 'A6', 'C7'];
+
+export function playLevelUpSfx(name, opts = {}) {
+    if (!soundsReady || !audioRunning()) return;
+    const sounds = getSounds(name === 'burst' ? 5 : 3);
+    const t = Tone.now() + 0.03;
+    const bell = (note, dur, at, vel) => sounds.award_bell.triggerAttackRelease(note, dur, t + at, vel);
+    const harp = (note, at, vel = 0.5) => sounds.pluck.triggerAttackRelease(note, '16n', t + at, vel);
+    const brass = (notes, dur, at, vel = 0.7) => sounds.royal_brass.triggerAttackRelease(notes, dur, t + at, vel);
+    try {
+        if (name === 'rise') {
+            sounds.award_swell.triggerAttackRelease('F1', '8n', t, 0.45);
+            ['F4', 'A4', 'C5', 'F5', 'A5', 'C6'].forEach((n, i) => harp(n, 0.05 + i * 0.06, 0.35 + i * 0.05));
+            sounds.award_sparkle.triggerAttackRelease('8n', t + 0.3);
+        } else if (name === 'step') {
+            const step = Math.max(0, Number(opts.step) || 0);
+            bell(LEVEL_UP_STEPS[step % LEVEL_UP_STEPS.length], '32n', 0, 0.32 + Math.min(step, 4) * 0.05);
+        } else if (name === 'burst') {
+            brass('C5', 0.09, 0, 0.5);
+            brass('F5', 0.09, 0.1, 0.55);
+            brass('A5', 0.09, 0.2, 0.6);
+            const land = 0.3;
+            brass(['F4', 'C5', 'F5', 'A5', 'C6'], 0.9, land, 0.78);
+            sounds.award_swell.triggerAttackRelease('F1', '4n', t + land, 0.9);
+            sounds.award_pad.triggerAttackRelease(['F4', 'C5', 'A5'], '1n', t + land);
+            bell(['F6', 'A6', 'C7', 'F7'], '4n', land + 0.02, 0.8);
+            sounds.award_sparkle.triggerAttackRelease('4n', t + land + 0.02);
+            sounds.star3.triggerAttackRelease('F7', '32n', t + land + 0.18);
+            if (opts.max) {
+                bell(['C7', 'F7', 'A7'], '8n', land + 0.5, 0.6);
+                sounds.award_pad.triggerAttackRelease(['A4', 'F5', 'C6'], '1n', t + land + 0.5);
+            }
+        } else if (name === 'ribbon') {
+            ['C8', 'A7', 'F7', 'C7', 'A6', 'F6'].forEach((n, i) => bell(n, '64n', i * 0.08, 0.34 - i * 0.04));
+            bell(['F6', 'C7'], '8n', 0.62, opts.max ? 0.55 : 0.4);
+        }
+    } catch (e) {
+        console.warn('Level-up sound skipped:', e);
+    }
+}
+
 export async function activateAudioContext() {
     try {
         Tone = Tone || await loadTone();

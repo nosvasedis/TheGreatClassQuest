@@ -127,7 +127,7 @@ A weekly ritual, not a slot machine to mash every lesson. It lives on this tab b
 
 **How the ceremony runs.** Open **Fortune's Wheel** from its button in the Hall. It opens as a celestial **Wheel of Fate**: a night sky with a turning zodiac ring, the wheel framed by star lamps. The four guilds take their turn **one at a time, in a random order**. Each guild gets its own wheel, and an **On this wheel** panel counts how many wedges of each kind it faces. Press **Spin This Guild**. The wheel winds back, races, slows, and sometimes creeps past a wedge and rolls back. Then the landed wedge plays out: a treasure is revealed on a fortune card, a storm rolls clouds and lightning over the wheel, a twist or a trial opens its own moment on the card. **Present Next Guild** moves on, and after the fourth guild **Reveal Final Ledger** deals the week's outcome as four fortune cards. Every gift (and every loss) lands on that guild's members **in this class**. When the wheel cannot spin, it is shown chained and sealed (or recharging, if this class has already spun this week).
 
-**Anything can happen, a little.** Each wheel has **20** wedges in four families, each with its own colour and pattern:
+**Anything can happen, a little (and once in a while, a lot).** Each wheel has **20** wedges in four families, plus a rare Omen, each with its own colour and pattern:
 
 - **Treasure** (common to mythic, jewel colours): +1 to +5 Glory for **each guildmate in this class** (Spark, Surge, Fountain, Cascade, Glory Miracle), stars, Gold, artifacts and Team Quest bonus stars. **Rainbow Bridge** gives +1 Glory to every child in the class, for their own guild. At most two epic, one legendary and one mythic wedge, and always at least one rare-or-better wedge to hope for.
 - **Twist** (magenta, harlequin diamonds), 3 per wheel: the drama.
@@ -143,8 +143,23 @@ A weekly ritual, not a slot machine to mash every lesson. It lives on this tab b
   - **Lightning Round** (30 seconds): name words before the clock runs out. +2 Glory each, or nothing.
   - **Hero's Dare**: a spotlight hops across the guild and picks one child for a dare. +1 star and +10 Gold, or +5 Gold for a brave try.
 - **Storm** (slate with lightning yellow, rain streaks), 2 or 3 per wheel: a small loss. **Rain Cloud** (−1 Glory each), **Leaky Pouch** (3 guildmates drop 5 Gold), **Goblin's Toll** (2 guildmates pay 10 Gold), **Rockslide** (−1 Glory each and 2 guildmates drop 5 Gold) and **Thunderclap** (−2 Glory each). The guild can **Brave the storm** on most of them: answer one question together and the shield holds, nothing lost; a wrong answer lets the storm through. Thunderclap and Leaky Pouch have no shelter.
+- **Omen** (ember gold on eclipse plum, stars and a comet's tail), super rare: about one wheel in three hides **one** Omen, so a guild lands on one roughly once in 57 spins. The stage goes dark (or floods with dawn gold), a ring of runes turns and the Omen's sign falls over the wheel. Omens are the big swings of Glory:
+  - **Wishing Star**: +6 Glory each.
+  - **Golden Dawn**: +3 Glory each, and +1 Glory for every other hero in the class.
+  - **Phoenix Rising**: +2 Glory each, or +5 each if the guild is last in this class this month or a storm hit it last time.
+  - **Falling Comet**: −3 Glory each, unless the guild answers one question together: then it bursts into stardust and gives +1 each instead.
+  - **The Eclipse**: −2 Glory for each hero of the **brightest guild in this class this month** (all guilds tied at the top, if there is a tie), whoever spun it.
+  - **Scales of Fate**: a guild behind the class leader gets +3 Glory each. The leader itself gives 1 each, and the last guild here gets +2 each.
+  - **Dragon's Wager**: tiptoe away with +1 Glory each, or wake the dragon: a friendly one gives +5 each, a grumpy one takes 2 each.
+  Calm and gilded wheels only carry the bright Omens (Wishing Star, Golden Dawn, Phoenix Rising).
 
-**Losses stay small and fair.** A storm never takes stars or artifacts. It takes only Glory a child earned **this month** (nobody goes below 0) and Gold only from children who have some. A guild that a storm (or any loss) hit at its last spin in this class gets **calmer skies** next time: one storm at most. Spin it as a game the whole class is in, and say so when a storm hits: every hero has stormy days.
+More treasure: **Lucky Clover** (+1 Glory each and a star for one hero), **Castle Feast** (+10 Gold and +1 Glory each), **Genie's Wish** (the guild chooses one wish: +2 Glory each, +15 Gold each, or a star for two heroes) and a new twist, **Gift Exchange** (one of your heroes and one hero of another guild here each get +15 Gold).
+
+**A guild with no heroes in the class sends its Envoy.** Its turn still comes, but the wheel becomes the **Envoy's wheel**: 10 moonlit gifts for **every hero in the class, whatever their guild**, and never a loss. Peace Dove (+1 Glory each, for their own guild), Envoy's Map (+4 Team Quest bonus stars), Envoy's Parcel (one hero of every guild here gets +10 Gold), Letter from Afar (3 heroes get +5 Gold), Distant Banner (+2 Glory each for the guild that is last in this class), Wishing Lantern (one hero of every guild here gets a star), Travellers' Feast (+5 Gold each) and Envoy's Juggling (a laugh, nothing else). The absent guild itself gains nothing, so no guild collects Glory from a class it has no heroes in.
+
+**Every hero the fate touched is on the card.** The result card lists each hero by name under their guild, with exactly what they got or lost (+3 ⚜️, +15 🪙, a star, the artifact's name), and a 🛡️ for a hero a storm found no Glory to take from. When a fate reaches several guilds (Golden Dawn, the Eclipse, an Envoy's gift) each guild gets its own Glory tile, and the card spreads out beside the fortune so a whole class fits on the projector. The Final Ledger lists every hero's first name under each card.
+
+**Losses stay small and fair.** A storm or an Omen never takes stars or artifacts. It takes only Glory a child earned **this month** (nobody goes below 0) and Gold only from children who have some. A guild that a storm (or any loss) hit at its last spin in this class gets **calmer skies** next time: one storm at most. Spin it as a game the whole class is in, and say so when a storm hits: every hero has stormy days.
 
 **Wheel Glory is fair per child.** Glory goes to (or comes from) each guild member who is in the spinning class, so a guild's Chapter Glory per member moves by the same small amount whatever its size, and every child in every guild has the same chances each week. Because the Wheel's Glory is small next to a month of stars, effort decides the Chapter and the Wheel adds drama.
 

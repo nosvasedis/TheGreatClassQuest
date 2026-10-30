@@ -154,7 +154,7 @@ export async function applyWheelStudentEffects({
                         description: pick.description,
                         acquiredAt: new Date().toISOString()
                     }];
-                    grantedArtifactsList.push({ id: pick.id, name: pick.name, icon: pick.icon || '🎒', description: pick.description });
+                    grantedArtifactsList.push({ id: pick.id, name: pick.name, icon: pick.icon || '🎒', description: pick.description, studentId });
                     artifactsGranted += 1;
                 }
             }

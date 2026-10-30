@@ -7,9 +7,9 @@ import { WHEEL_RARITY_WEIGHTS, WHEEL_PRISMATIC_CONFIG, getRarityPalette } from '
 import { saveFortuneWheelResult, hasSpunThisWeek } from '../db/actions/guilds.js';
 import { getISOWeekKey, updateGuildScores, awardGloryToStudents, takeGloryFromStudents, getGuildMemberCounts } from './guildScoring.js';
 import { chapterKeyFor } from './guildScoringCore.js';
-import { composeWheel, wheelModeFor } from '../utils/fortuneWheelSegments.mjs';
+import { composeWheel, composeEnvoyWheel, wheelModeFor } from '../utils/fortuneWheelSegments.mjs';
 import { challengeBand } from '../utils/wheelChallenges.mjs';
-import { runStage, cancelStage, fxStorm, fxShield, fxSwirl, fxTwist, fxTrial, fxBurst, fxFlash } from './wheelStages.js';
+import { runStage, cancelStage, fxStorm, fxShield, fxSwirl, fxTwist, fxTrial, fxBurst, fxFlash, fxOmen } from './wheelStages.js';
 import { detectLowPowerTier } from '../utils/devicePerformance.mjs';
 import { applyWheelStudentEffects, applyClassQuestBonusDelta } from '../db/actions/fortuneWheelEffects.js';
 import { checkBountyProgress } from '../db/actions/bounties.js';
@@ -18,6 +18,23 @@ import { ensureAudioReady, playSound, playHeroFanfare, playWheelSfx, warmWheelAu
 import { evaluateWheelAvailability } from '../utils/fortuneWheelEligibility.mjs';
 import { showAnimatedModal, hideModal } from '../ui/modals/base.js';
 import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
+
+/**
+ * Every write the Wheel makes, in one place: the effects below call these, so the preview page
+ * (fortune-wheel-preview.js) can run the real fates against a pretend school without Firestore.
+ */
+export const wheelIo = {
+    awardGlory: awardGloryToStudents,
+    takeGlory: takeGloryFromStudents,
+    studentEffects: applyWheelStudentEffects,
+    questBonus: applyClassQuestBonusDelta,
+    starGlory: updateGuildScores,
+    bounty: checkBountyProgress,
+    questCheck: checkAndRecordQuestCompletion,
+    hasSpun: hasSpunThisWeek,
+    save: saveFortuneWheelResult,
+    availability: null,
+};
 
 /** Compute relative luminance from a hex color for text contrast decisions */
 function _luminance(hex) {
@@ -40,6 +57,13 @@ function _luminance(hex) {
  *   twist:  drama (spin again, three chests, double or nothing, a kindness gift, the Trickster…)
  *   trial:  a quick English challenge the guild (or one hero) takes in front of the class
  *   storm:  a small loss: a little Glory or gold. Some storms can be braved with a right answer.
+ *   omen:   super rare (about one wheel in three hides one): a big swing of Glory. The bright
+ *           ones (phoenix, golden dawn, wishing star) lift a guild; the `harsh` ones (comet,
+ *           eclipse, dragon's wager, scales) can take Glory, still only Glory earned this month.
+ *           The Eclipse and the Scales hit whoever leads the class this month, so they help the
+ *           guilds behind catch up. Calm and gilded wheels only carry bright Omens.
+ *   envoy:  a guild with no heroes in the class sends its Envoy instead: a wheel of gifts for
+ *           every hero in the class, whatever their guild, and never a loss.
  *
  * Fair by design: Glory always goes to (or comes from) each guild member in the spinning class,
  * so every child in every guild faces the same chances, whatever the guild's size. A storm only
@@ -60,6 +84,7 @@ const ALL_SEGMENTS = [
     { id: 'copper_cache',      emoji: '🪙', label: 'Copper Cache',       description: '4 random guildmates get +8 gold each!',                  rarity: 'common',    category: 'perk',  effect: (ctx) => randomGold(ctx, 4, 8) },
     { id: 'star_shower',       emoji: '⭐', label: 'Star Shower',        description: '2 random guildmates get +1 star each!',                  rarity: 'common',    category: 'perk',  effect: (ctx) => randomStars(ctx, 2, 1) },
     { id: 'oracles_vision',    emoji: '🔮', label: "Oracle's Vision",   description: '2 random guildmates get +10 gold for their sharp eyes!', rarity: 'common',    category: 'fun',   effect: (ctx) => randomGold(ctx, 2, 10) },
+    { id: 'lucky_clover',      emoji: '🍀', label: 'Lucky Clover',       description: '+1 Glory each, and 1 lucky guildmate gets +1 star!',     rarity: 'common',    category: 'perk',  effect: (ctx) => combo(ctx, [(c) => classGlory(c, 1, '', 'clover'), (c) => randomStars(c, 1, 1)], 'Four leaves of luck: +1 Glory for every guildmate here, and a star for one of them!') },
 
     // ── Uncommon ──────────────────────────────────────────────────────────────
     { id: 'glory_surge',       emoji: '⚜️', label: 'Glory Surge',        description: '+2 Glory for each guildmate in this class.',            rarity: 'uncommon',  category: 'glory', effect: (ctx) => classGlory(ctx, 2) },
@@ -80,6 +105,7 @@ const ALL_SEGMENTS = [
     { id: 'mystery_gift',      emoji: '🎒', label: 'Mystery Gift',       description: '1 random guildmate gets a free Legendary Artifact!',    rarity: 'rare',      category: 'perk',  effect: (ctx) => randomArtifact(ctx, 1) },
     { id: 'quest_surge',       emoji: '🗺️', label: 'Quest Surge',        description: '+15 Team Quest bonus stars (this month)!',              rarity: 'rare',      category: 'perk',  effect: (ctx) => classQuestBonus(ctx, 15) },
     { id: 'star_cascade',      emoji: '🌠', label: 'Star Cascade',       description: '4 random guildmates get +1 star and +10 gold each!',    rarity: 'rare',      category: 'perk',  effect: (ctx) => starsAndGold(ctx, 4, 1, 10) },
+    { id: 'castle_feast',      emoji: '🍗', label: 'Castle Feast',       description: 'A feast in the great hall: every guildmate here gets +10 gold and +1 Glory!', rarity: 'rare', category: 'fun', effect: (ctx) => combo(ctx, [(c) => randomGold(c, c.memberCount, 10), (c) => classGlory(c, 1, '', 'feast')], 'A feast in the great hall! Every guildmate here gets +10 gold and +1 Glory.') },
 
     // ── Epic ──────────────────────────────────────────────────────────────────
     { id: 'glory_storm',       emoji: '⚜️', label: 'Glory Cascade',      description: '+4 Glory for each guildmate in this class!',            rarity: 'epic',      category: 'glory', effect: (ctx) => classGlory(ctx, 4) },
@@ -87,6 +113,7 @@ const ALL_SEGMENTS = [
     { id: 'teachers_favor',    emoji: '🍎', label: "Teacher's Favor",   description: '1 random guildmate gets +2 stars and +30 gold!',        rarity: 'epic',      category: 'perk',  effect: (ctx) => teachersFavor(ctx) },
     { id: 'double_gift',       emoji: '🎒', label: 'Double Gift',        description: '2 random guildmates each get a Legendary Artifact!',    rarity: 'epic',      category: 'perk',  effect: (ctx) => randomArtifact(ctx, 2) },
     { id: 'gold_rush_extreme', emoji: '💰', label: 'Gold Rush Extreme',  description: 'Every guildmate here gets +50 gold!',                    rarity: 'epic',      category: 'perk',  effect: (ctx) => randomGold(ctx, ctx.memberCount, 50) },
+    { id: 'genies_wish',       emoji: '🧞', label: "Genie's Wish",       description: 'The genie grants one wish. The guild chooses: Glory, gold, or stars!', rarity: 'epic', category: 'perk', stage: 'wish', effect: (ctx, d) => geniesWish(ctx, d) },
 
     // ── Legendary ─────────────────────────────────────────────────────────────
     { id: 'star_supernova',    emoji: '⭐', label: 'Star Supernova',     description: 'Every guildmate here gets +1 star!',                    rarity: 'legendary', category: 'perk',  effect: (ctx) => randomStars(ctx, ctx.memberCount, 1) },
@@ -106,6 +133,7 @@ const ALL_SEGMENTS = [
     { id: 'kindness_gift',     emoji: '💝', label: 'Kindness Gift',      description: 'Choose a guild to share with: you both earn +1 Glory each.', rarity: 'twist', category: 'twist', stage: 'kindness', weight: 2, effect: (ctx, d) => kindnessGift(ctx, d) },
     { id: 'robin_hood',        emoji: '🏹', label: 'Robin Hood',         description: 'Takes 1 Glory from each guildmate here for the guild that is last this month. If you are last, it helps you!', rarity: 'twist', category: 'twist', weight: 1, favoredOk: false, effect: (ctx) => robinHood(ctx) },
     { id: 'mirror_of_fates',   emoji: '🪞', label: 'Mirror of Fates',    description: 'You get exactly what the guild before you got, good or bad!', rarity: 'twist', category: 'twist', weight: 1, favoredOk: false, effect: (ctx) => mirrorOfFates(ctx) },
+    { id: 'gift_exchange',     emoji: '🎁', label: 'Gift Exchange',      description: 'One of your heroes and one hero from another guild here each get +15 gold!', rarity: 'twist', category: 'twist', weight: 1, effect: (ctx) => giftExchange(ctx) },
 
     // ── Trials: a challenge in front of the class ─────────────────────────────
     { id: 'sphinx_riddle',     emoji: '🦁', label: "Sphinx's Riddle",   description: 'Answer the Sphinx together: +3 Glory each if right, −1 each if wrong.', rarity: 'trial', category: 'trial', stage: 'trial', trial: 'riddle', win: '+3 Glory each', lose: '−1 Glory each', weight: 2, effect: (ctx, d) => (d?.passed ? classGlory(ctx, 3, 'The Sphinx bows!', 'sphinx') : stormGlory(ctx, 1, 'The Sphinx keeps its secret.', 'sphinx')) },
@@ -118,6 +146,25 @@ const ALL_SEGMENTS = [
     { id: 'goblin_toll',       emoji: '👺', label: "Goblin's Toll",      description: '2 guildmates pay the goblin 10 gold each.',              rarity: 'storm', category: 'storm', stage: 'storm', brave: true,  weight: 2, favoredOk: false, effect: (ctx, d) => (d?.braved ? braved(ctx, 'The goblin grumbles and runs off empty-handed!') : loseGold(ctx, 2, 10, 'The goblin collects its toll.')) },
     { id: 'rockslide',         emoji: '🪨', label: 'Rockslide',          description: '−1 Glory each, and 2 guildmates drop 5 gold.',           rarity: 'storm', category: 'storm', stage: 'storm', brave: true,  weight: 2, favoredOk: false, effect: (ctx, d) => (d?.braved ? braved(ctx, 'The rocks roll past the guild!') : combo(ctx, [(c) => stormGlory(c, 1), (c) => loseGold(c, 2, 5)], 'Rockslide! A little Glory and gold tumble away.')) },
     { id: 'thunderclap',       emoji: '⛈️', label: 'Thunderclap',        description: '−2 Glory for each guildmate here. No shelter from this one!', rarity: 'storm', category: 'storm', stage: 'storm', brave: false, weight: 1, favoredOk: false, effect: (ctx) => stormGlory(ctx, 2, 'Thunder shakes the hall!') },
+
+    // ── Omens: super rare, big swings of Glory ────────────────────────────────
+    { id: 'wishing_star',      emoji: '🌠', label: 'Wishing Star',       description: 'The rarest light in the sky: +6 Glory for each guildmate here!', rarity: 'omen', category: 'omen', weight: 1, effect: (ctx) => classGlory(ctx, 6, 'A wishing star falls into the guild hall!', 'wish') },
+    { id: 'golden_dawn',       emoji: '🌅', label: 'Golden Dawn',        description: '+3 Glory for each guildmate here, and +1 Glory for every other hero in the class!', rarity: 'omen', category: 'omen', weight: 2, effect: (ctx) => goldenDawn(ctx) },
+    { id: 'phoenix_rising',    emoji: '🔥', label: 'Phoenix Rising',     description: '+2 Glory each, or +5 each if the guild is last in this class this month or a storm hit it last time!', rarity: 'omen', category: 'omen', weight: 2, effect: (ctx) => phoenixRising(ctx) },
+    { id: 'falling_comet',     emoji: '☄️', label: 'Falling Comet',      description: 'A comet falls: −3 Glory each! Answer together and it bursts into stardust: +1 Glory each instead.', rarity: 'omen', category: 'omen', stage: 'omen', brave: true, harsh: true, weight: 2, favoredOk: false, effect: (ctx, d) => fallingComet(ctx, d) },
+    { id: 'eclipse',           emoji: '🌑', label: 'The Eclipse',        description: 'The shadow falls on the brightest guild in this class this month: −2 Glory for each of its heroes here.', rarity: 'omen', category: 'omen', harsh: true, weight: 2, favoredOk: false, effect: (ctx) => eclipse(ctx) },
+    { id: 'scales_of_fate',    emoji: '⚖️', label: 'Scales of Fate',     description: 'Behind the leader? +3 Glory each. Leading this class? −1 each, and the last guild here gets +2 each.', rarity: 'omen', category: 'omen', harsh: true, weight: 2, favoredOk: false, effect: (ctx) => scalesOfFate(ctx) },
+    { id: 'dragons_wager',     emoji: '🐉', label: "Dragon's Wager",     description: 'Walk away with +1 Glory each, or wake the dragon: +5 Glory each… or −2 each!', rarity: 'omen', category: 'omen', stage: 'dragon', harsh: true, weight: 2, effect: (ctx, d) => dragonsWager(ctx, d) },
+
+    // ── The Envoy's wheel: a guild with no heroes here sends gifts for the whole class ──
+    { id: 'envoy_dove',        emoji: '🕊️', label: 'Peace Dove',         description: 'Every hero in this class earns +1 Glory for their own guild.', rarity: 'envoy', category: 'envoy', weight: 3, effect: (ctx) => envoyGlory(ctx, 1) },
+    { id: 'envoy_map',         emoji: '🗺️', label: "Envoy's Map",        description: 'A map from far away: +4 Team Quest bonus stars for the class!', rarity: 'envoy', category: 'envoy', weight: 3, effect: (ctx) => classQuestBonus(ctx, 4) },
+    { id: 'envoy_parcel',      emoji: '📦', label: "Envoy's Parcel",     description: 'One hero from every guild in this class gets +10 gold.', rarity: 'envoy', category: 'envoy', weight: 3, effect: (ctx) => envoyPerGuild(ctx, { gold: 10 }) },
+    { id: 'envoy_letter',      emoji: '📜', label: 'Letter from Afar',   description: '3 heroes in this class get +5 gold, with warm greetings.', rarity: 'envoy', category: 'envoy', weight: 2, effect: (ctx) => envoyGold(ctx, 3, 5) },
+    { id: 'envoy_banner',      emoji: '🚩', label: 'Distant Banner',     description: 'The envoy cheers for the underdog: +2 Glory for each hero of the guild that is last in this class this month.', rarity: 'envoy', category: 'envoy', weight: 1, effect: (ctx) => envoyBanner(ctx) },
+    { id: 'envoy_lantern',     emoji: '🏮', label: 'Wishing Lantern',    description: 'One hero from every guild in this class gets +1 star!', rarity: 'envoy', category: 'envoy', weight: 1, effect: (ctx) => envoyPerGuild(ctx, { stars: 1 }) },
+    { id: 'envoy_feast',       emoji: '🍯', label: "Travellers' Feast",  description: 'Every hero in this class gets +5 gold!', rarity: 'envoy', category: 'envoy', weight: 1, effect: (ctx) => envoyGold(ctx, Infinity, 5) },
+    { id: 'envoy_jest',        emoji: '🤹', label: "Envoy's Juggling",   description: 'The envoy juggles for the class. Big laughs, and nothing else changes!', rarity: 'envoy', category: 'envoy', weight: 1, effect: () => ({ gloryDelta: 0, echo: { kind: 'none' }, description: 'The envoy juggles three apples and a teapot. The whole class laughs, and nothing else changes!' }) },
 ];
 
 const SEGMENTS_BY_ID = new Map(ALL_SEGMENTS.map((seg) => [seg.id, seg]));
@@ -131,9 +178,45 @@ export function getWheelCatalog() {
 // EFFECT IMPLEMENTATIONS
 // ═══════════════════════════════════════════════════════════════════════════════
 
+const _round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+
+/**
+ * Notes what one hero received or lost in this fate. The card then shows every hero touched,
+ * grouped by guild (`spared`: a storm found no Glory of theirs to take).
+ */
+function _mark(ctx, studentId, patch = {}) {
+    if (!ctx?.ledger || !studentId) return;
+    const row = ctx.ledger.get(studentId) || { id: studentId, glory: 0, gold: 0, stars: 0, artifacts: [] };
+    for (const [key, value] of Object.entries(patch)) {
+        if (key === 'artifact') row.artifacts.push(value);
+        else if (key === 'spared') row.spared = true;
+        else row[key] = _round2((row[key] || 0) + (Number(value) || 0));
+    }
+    ctx.ledger.set(studentId, row);
+}
+
+/**
+ * Pays (or charges) the chosen heroes. Firestore refuses one commit that touches 9 or more
+ * heroes' scores, so a big group (a whole class from the Envoy) is written 6 at a time.
+ */
+async function _studentEffects(opts) {
+    const { students = [], count = 0 } = opts;
+    const chosen = students.length > count ? shuffleArray([...students]).slice(0, count) : [...students];
+    if (chosen.length <= 6) return wheelIo.studentEffects({ ...opts, students: chosen, count: chosen.length });
+    const total = { affectedStudents: [], starsDelta: 0, goldDelta: 0, artifactsGranted: 0, artifactsRemoved: 0, grantedArtifacts: [] };
+    for (let i = 0; i < chosen.length; i += 6) {
+        const part = chosen.slice(i, i + 6);
+        const r = await wheelIo.studentEffects({ ...opts, students: part, count: part.length });
+        total.affectedStudents.push(...(r.affectedStudents || []));
+        total.grantedArtifacts.push(...(r.grantedArtifacts || []));
+        for (const key of ['starsDelta', 'goldDelta', 'artifactsGranted', 'artifactsRemoved']) total[key] += Number(r[key]) || 0;
+    }
+    return total;
+}
+
 /** Runs several effects for one wedge and adds their outcomes together. */
 async function combo(ctx, effects, description) {
-    const total = { gloryDelta: 0, starsDelta: 0, goldDelta: 0, classQuestDelta: 0, artifactsGranted: 0, artifactsRemoved: 0, affectedStudents: [] };
+    const total = { gloryDelta: 0, starsDelta: 0, goldDelta: 0, classQuestDelta: 0, artifactsGranted: 0, artifactsRemoved: 0, affectedStudents: [], grantedArtifacts: [] };
     for (const run of effects) {
         const r = (await run(ctx)) || {};
         total.gloryDelta += Number(r.gloryDelta) || 0;
@@ -141,6 +224,7 @@ async function combo(ctx, effects, description) {
         total.goldDelta += Number(r.goldDelta) || 0;
         total.classQuestDelta += Number(r.classQuestDelta) || 0;
         total.artifactsGranted += Number(r.artifactsGranted) || 0;
+        total.grantedArtifacts.push(...(r.grantedArtifacts || []));
         if (r.stormHit) total.stormHit = true;
         total.affectedStudents = [...new Set([...total.affectedStudents, ...(r.affectedStudents || [])])];
     }
@@ -151,11 +235,12 @@ async function combo(ctx, effects, description) {
 async function classGlory(ctx, perMember, lead = '', tag = 'glory') {
     const members = ctx.guildStudents || [];
     if (!members.length) return { gloryDelta: 0, echo: { kind: 'glory', n: perMember }, description: 'No guildmates in this class to receive the Glory.' };
-    const byGuild = await awardGloryToStudents(members.map((s) => s.id), perMember, 'wheel_glory', {
+    const byGuild = await wheelIo.awardGlory(members.map((s) => s.id), perMember, 'wheel_glory', {
         classId: ctx.classId,
         note: "Fortune's Wheel",
         idempotencyPrefix: ctx.spinKey ? `${ctx.spinKey}_${tag}` : null,
     });
+    members.forEach((s) => _mark(ctx, s.id, { glory: perMember }));
     const gloryDelta = Math.round(Number(byGuild[ctx.guildId]) || 0);
     return {
         gloryDelta,
@@ -165,16 +250,29 @@ async function classGlory(ctx, perMember, lead = '', tag = 'glory') {
     };
 }
 
+/** +perHero Glory for each of `students` (any guild), each for their own guild. Returns Glory per guild. */
+async function giveGlory(ctx, students, perHero, tag, source = 'wheel_glory') {
+    if (!students.length) return {};
+    const byGuild = await wheelIo.awardGlory(students.map((s) => s.id), perHero, source, {
+        classId: ctx.classId,
+        note: "Fortune's Wheel",
+        idempotencyPrefix: ctx.spinKey ? `${ctx.spinKey}_${tag}` : null,
+    });
+    students.forEach((s) => _mark(ctx, s.id, { glory: perHero }));
+    return byGuild;
+}
+
 /** A storm: up to `perMember` Glory from each guildmate here, only from Glory earned this month. */
 async function stormGlory(ctx, perMember, lead = '', tag = 'storm') {
     const members = ctx.guildStudents || [];
     if (!members.length) return { gloryDelta: 0, echo: { kind: 'loseGlory', n: perMember }, description: 'No guildmates here, so the storm found no one.' };
-    const { byGuild, byStudent } = await takeGloryFromStudents(members.map((s) => s.id), perMember, 'wheel_storm', {
+    const { byGuild, byStudent } = await wheelIo.takeGlory(members.map((s) => s.id), perMember, 'wheel_storm', {
         classId: ctx.classId,
         note: "Fortune's Wheel storm",
         idempotencyPrefix: ctx.spinKey ? `${ctx.spinKey}_${tag}` : null,
     });
-    const lost = Math.round((Number(byGuild[ctx.guildId]) || 0) * 100) / 100;
+    members.forEach((s) => (byStudent[s.id] ? _mark(ctx, s.id, { glory: -byStudent[s.id] }) : _mark(ctx, s.id, { spared: true })));
+    const lost = _round2(byGuild[ctx.guildId]);
     const spared = members.length - Object.keys(byStudent).length;
     return {
         gloryDelta: -lost,
@@ -187,13 +285,19 @@ async function stormGlory(ctx, perMember, lead = '', tag = 'storm') {
     };
 }
 
+function _goldOf(studentId) {
+    const sc = (state.get('allStudentScores') || []).find((x) => x.id === studentId);
+    return Number(sc?.gold) || 0;
+}
+
 /** A storm: `count` random guildmates (with gold) lose `amount` gold each, never below 0. */
 async function loseGold(ctx, count, amount, lead = '') {
     const members = ctx.guildStudents || [];
-    const scores = new Map((state.get('allStudentScores') || []).map((sc) => [sc.id, sc]));
-    const withGold = members.filter((s) => (Number(scores.get(s.id)?.gold) || 0) > 0);
+    const withGold = members.filter((s) => _goldOf(s.id) > 0);
     if (!withGold.length) return { gloryDelta: 0, echo: { kind: 'loseGold', count, n: amount }, description: `${lead ? `${lead} ` : ''}Empty pockets: nobody here had gold to drop!` };
-    const outcome = await applyWheelStudentEffects({ classId: ctx.classId, students: withGold, count, goldDelta: -amount, note: "Fortune's Wheel storm" });
+    const before = new Map(withGold.map((s) => [s.id, _goldOf(s.id)]));
+    const outcome = await _studentEffects({ classId: ctx.classId, students: withGold, count, goldDelta: -amount, note: "Fortune's Wheel storm" });
+    outcome.affectedStudents.forEach((id) => _mark(ctx, id, { gold: -Math.min(amount, before.get(id) || amount) }));
     const names = members.filter((s) => outcome.affectedStudents.includes(s.id)).map((s) => s.name).join(', ');
     return {
         gloryDelta: 0,
@@ -206,6 +310,7 @@ async function loseGold(ctx, count, amount, lead = '') {
 
 /** A storm the guild braved with a right answer: nothing lost. */
 function braved(ctx, line = 'The guild braved the storm. Its shield held, and nothing was lost!') {
+    (ctx.guildStudents || []).forEach((s) => _mark(ctx, s.id, { spared: true }));
     return { gloryDelta: 0, braved: true, echo: { kind: 'none' }, description: line };
 }
 
@@ -237,18 +342,26 @@ function _classMembersOf(guildId, classId) {
     return (state.get('allStudents') || []).filter((s) => s.guildId === guildId && s.classId === classId);
 }
 
+/** Every hero in this class who belongs to a guild. */
+function _classHeroes(classId) {
+    return (state.get('allStudents') || []).filter((s) => s.classId === classId && GUILD_IDS.includes(s.guildId));
+}
+
+const _guildName = (gid, fallback = 'a guild') => getGuildById(gid)?.name || fallback;
+
 async function kindnessGift(ctx, d = {}) {
     const mine = await classGlory(ctx, 1, '', 'kind');
     const other = d.guildId ? _classMembersOf(d.guildId, ctx.classId) : [];
     if (!other.length) return { ...mine, description: 'No other guild here to share with, so the kindness stays home: +1 Glory each.' };
-    await awardGloryToStudents(other.map((s) => s.id), 1, 'wheel_kindness', {
-        classId: ctx.classId, note: "Fortune's Wheel: Kindness Gift", idempotencyPrefix: ctx.spinKey ? `${ctx.spinKey}_kind_to` : null,
-    });
-    const name = getGuildById(d.guildId)?.name || 'another guild';
+    await giveGlory(ctx, other, 1, 'kind_to', 'wheel_kindness');
+    const name = _guildName(d.guildId, 'another guild');
     return { ...mine, sharedWith: d.guildId, decision: `Shared with ${name}`, description: `A kind heart! Every guildmate here and every ${name} member in this class earn +1 Glory.` };
 }
 
-/** This month's Glory per member for each guild that has members in this class. */
+/**
+ * This month's Glory per member for each guild that has members in this class, lowest first.
+ * Ties keep a stable order; `leaders` are every guild sharing the top, `last` only when alone at the bottom.
+ */
 function _classChapterStandings(classId) {
     const key = chapterKeyFor(new Date());
     const scores = state.get('allGuildScores') || {};
@@ -259,6 +372,14 @@ function _classChapterStandings(classId) {
         .sort((a, b) => a.perMember - b.perMember);
 }
 
+function _standingsShape(classId) {
+    const st = _classChapterStandings(classId);
+    const top = st.length ? st[st.length - 1].perMember : 0;
+    const leaders = st.filter((x) => x.perMember === top).map((x) => x.gid);
+    const lastAlone = st.length > 1 && st[0].perMember < st[1].perMember ? st[0].gid : null;
+    return { st, leaders, soleLeader: leaders.length === 1 && st.length > 1 ? leaders[0] : null, lastAlone };
+}
+
 async function robinHood(ctx) {
     const standings = _classChapterStandings(ctx.classId);
     const last = standings[0]?.gid;
@@ -267,11 +388,8 @@ async function robinHood(ctx) {
         return { ...r, description: `Robin Hood helps the underdog! ${r.description}` };
     }
     const taken = await stormGlory(ctx, 1, '', 'robin');
-    const receivers = _classMembersOf(last, ctx.classId);
-    await awardGloryToStudents(receivers.map((s) => s.id), 1, 'wheel_robin_hood', {
-        classId: ctx.classId, note: "Fortune's Wheel: Robin Hood", idempotencyPrefix: ctx.spinKey ? `${ctx.spinKey}_robin_give` : null,
-    });
-    const name = getGuildById(last)?.name || 'the last guild';
+    await giveGlory(ctx, _classMembersOf(last, ctx.classId), 1, 'robin_give', 'wheel_robin_hood');
+    const name = _guildName(last, 'the last guild');
     return {
         ...taken,
         robinTo: last,
@@ -283,11 +401,13 @@ async function robinHood(ctx) {
 async function mirrorOfFates(ctx) {
     const prev = ctx.previous;
     const echo = prev?.echo;
-    const prevName = prev ? (getGuildById(prev.guildId)?.name || 'the guild before') : null;
+    const prevName = prev ? _guildName(prev.guildId, 'the guild before') : null;
     let r;
-    if (!prev || !echo) {
+    if (!prev || !echo || echo.kind === 'none') {
         r = await classGlory(ctx, 1, '', 'mirror');
-        return { ...r, description: `The mirror shows only your own reflection: +1 Glory for each guildmate here.` };
+        return { ...r, description: prev
+            ? `The mirror cannot copy ${prevName}'s fate, so it shines on you: +1 Glory for each guildmate here.`
+            : 'The mirror shows only your own reflection: +1 Glory for each guildmate here.' };
     }
     if (echo.kind === 'segment' && SEGMENTS_BY_ID.get(echo.id) && !SEGMENTS_BY_ID.get(echo.id).stage) r = await SEGMENTS_BY_ID.get(echo.id).effect({ ...ctx, spinKey: `${ctx.spinKey}_mirror` }, {});
     else if (echo.kind === 'segment' && SEGMENTS_BY_ID.get(echo.id)?.stage === 'storm') r = await SEGMENTS_BY_ID.get(echo.id).effect({ ...ctx, spinKey: `${ctx.spinKey}_mirror` }, { braved: false });
@@ -312,24 +432,177 @@ async function herosDare(ctx, d = {}) {
 
 /** Rainbow Bridge: every child in the class earns Glory for their own guild. */
 async function rainbowBridge(ctx, perMember) {
-    const classStudents = (state.get('allStudents') || []).filter((s) => s.classId === ctx.classId && s.guildId);
+    const classStudents = _classHeroes(ctx.classId);
     if (!classStudents.length) return { gloryDelta: 0, description: 'No guild members in this class yet.' };
-    const byGuild = await awardGloryToStudents(classStudents.map((s) => s.id), perMember, 'wheel_rainbow_bridge', {
-        classId: ctx.classId,
-        note: "Fortune's Wheel: Rainbow Bridge",
-        idempotencyPrefix: ctx.spinKey ? `${ctx.spinKey}_bridge` : null,
-    });
+    const byGuild = await giveGlory(ctx, classStudents, perMember, 'bridge', 'wheel_rainbow_bridge');
     return {
         gloryDelta: Math.round(Number(byGuild[ctx.guildId]) || 0),
         description: `A rainbow bridge! All ${classStudents.length} guild members in this class earn +${perMember} Glory for their own guild.`,
     };
 }
 
+/** Gift Exchange: one of this guild's heroes and one hero of another guild here each get gold. */
+async function giftExchange(ctx) {
+    const members = ctx.guildStudents || [];
+    const others = _classHeroes(ctx.classId).filter((s) => s.guildId !== ctx.guildId);
+    if (!members.length) return { gloryDelta: 0, echo: { kind: 'none' }, description: 'No one here to swap gifts with.' };
+    const mine = await randomGold(ctx, 1, 15);
+    if (!others.length) return { ...mine, echo: { kind: 'none' }, description: `No other guild here to swap with, so ${mine.description}` };
+    const friend = others[Math.floor(Math.random() * others.length)];
+    const theirs = await randomGold({ ...ctx, guildStudents: [friend] }, 1, 15);
+    const me = members.find((s) => (mine.affectedStudents || []).includes(s.id));
+    return {
+        gloryDelta: 0,
+        goldDelta: (mine.goldDelta || 0) + (theirs.goldDelta || 0),
+        affectedStudents: [...(mine.affectedStudents || []), friend.id],
+        echo: { kind: 'none' },
+        decision: `${me?.name || 'A hero'} ⇄ ${friend.name}`,
+        description: `Gifts across the hall! ${me?.name || 'One hero'} and ${friend.name} (${_guildName(friend.guildId)}) each get +15 gold.`,
+    };
+}
+
+async function geniesWish(ctx, d = {}) {
+    if (d.wish === 'gold') {
+        const r = await randomGold(ctx, ctx.memberCount, 15);
+        return { ...r, echo: { kind: 'gold', count: ctx.memberCount, n: 15 }, decision: 'Wished for gold', description: `The genie bows: every guildmate here gets +15 gold!` };
+    }
+    if (d.wish === 'stars') {
+        const r = await randomStars(ctx, 2, 1);
+        return { ...r, echo: { kind: 'none' }, decision: 'Wished for stars', description: `The genie bows: ${r.description}` };
+    }
+    const r = await classGlory(ctx, 2, 'The genie bows!', 'genie');
+    return { ...r, decision: 'Wished for Glory' };
+}
+
+// ── Omens ─────────────────────────────────────────────────────────────────────
+
+async function fallingComet(ctx, d = {}) {
+    if (d.braved) return { ...(await classGlory(ctx, 1, 'The comet burst into stardust!', 'comet')), braved: true, echo: { kind: 'none' }, decision: 'Turned to stardust' };
+    return { ...(await stormGlory(ctx, 3, 'The comet crashes into the guild hall!', 'comet')), echo: { kind: 'none' }, decision: d.attempted ? 'So close! The comet fell' : null };
+}
+
+async function goldenDawn(ctx) {
+    const mine = await classGlory(ctx, 3, '', 'dawn');
+    const others = _classHeroes(ctx.classId).filter((s) => s.guildId !== ctx.guildId);
+    await giveGlory(ctx, others, 1, 'dawn_all');
+    return {
+        ...mine,
+        description: others.length
+            ? `A golden dawn rises over the class! +3 Glory for each guildmate here, and +1 Glory for the ${others.length} other hero${others.length === 1 ? '' : 'es'} in the class.`
+            : `A golden dawn rises over the guild! ${mine.description}`,
+    };
+}
+
+async function phoenixRising(ctx) {
+    const { lastAlone } = _standingsShape(ctx.classId);
+    const isLast = lastAlone === ctx.guildId;
+    const burned = !isLast && stormHitLastTime(ctx.guildId, ctx.classId);
+    const n = isLast || burned ? 5 : 2;
+    const r = await classGlory(ctx, n, '', 'phoenix');
+    const why = isLast ? 'The guild was last in this class, so the phoenix rises high:' : burned ? 'The guild rises from last week\'s storm:' : 'The phoenix spreads its wings:';
+    return { ...r, decision: n === 5 ? 'Risen from the ashes' : null, description: `${why} +${n} Glory for each guildmate here (+${r.gloryDelta} for the guild).` };
+}
+
+async function eclipse(ctx) {
+    const { leaders } = _standingsShape(ctx.classId);
+    const targets = leaders.length ? leaders : [ctx.guildId];
+    let own = { gloryDelta: 0, affectedStudents: [] };
+    const lines = [];
+    for (const gid of targets) {
+        const r = await stormGlory({ ...ctx, guildId: gid, guildStudents: _classMembersOf(gid, ctx.classId) }, 2, '', `eclipse_${gid}`);
+        if (gid === ctx.guildId) own = r;
+        lines.push(r.gloryDelta < 0 ? `${_guildName(gid)} loses ${-r.gloryDelta} Glory` : `${_guildName(gid)} had no Glory this month to lose`);
+    }
+    const self = targets.includes(ctx.guildId);
+    const intro = targets.length > 1
+        ? 'The sky goes dark over the guilds tied at the top of this class!'
+        : self ? 'The sky goes dark… and this guild is the brightest in the class!'
+            : `The sky goes dark over ${_guildName(targets[0])}, the brightest guild in this class this month!`;
+    return {
+        gloryDelta: own.gloryDelta || 0,
+        stormHit: Boolean(self && own.stormHit),
+        affectedStudents: own.affectedStudents || [],
+        eclipsed: targets,
+        echo: { kind: 'none' },
+        decision: self ? 'Eclipsed' : `Eclipsed: ${targets.map((g) => _guildName(g)).join(', ')}`,
+        description: `${intro} ${lines.join('; ')}.`,
+    };
+}
+
+async function scalesOfFate(ctx) {
+    const { soleLeader, st } = _standingsShape(ctx.classId);
+    if (soleLeader !== ctx.guildId) {
+        const r = await classGlory(ctx, 3, '', 'scales');
+        return { ...r, decision: 'The scales lift you', description: `The scales tip toward the guilds behind: +3 Glory for each guildmate here (+${r.gloryDelta} for the guild).` };
+    }
+    const last = st[0].gid;
+    const taken = await stormGlory(ctx, 1, '', 'scales');
+    await giveGlory(ctx, _classMembersOf(last, ctx.classId), 2, 'scales_give');
+    return {
+        ...taken,
+        echo: { kind: 'none' },
+        decision: `Leaders humbled, ${_guildName(last)} lifted`,
+        description: `This guild leads the class, so the scales tip the other way: ${taken.gloryDelta < 0 ? `the guild gives ${-taken.gloryDelta} Glory` : 'nobody here had Glory to give'}, and each ${_guildName(last)} hero here earns +2 Glory.`,
+    };
+}
+
+async function dragonsWager(ctx, d = {}) {
+    if (d.choice !== 'wake') return { ...(await classGlory(ctx, 1, 'The guild tiptoed away from the sleeping dragon.', 'dragon')), echo: { kind: 'none' }, decision: 'Walked away' };
+    if (d.won) return { ...(await classGlory(ctx, 5, 'The dragon roars with joy and shares its hoard!', 'dragon')), echo: { kind: 'none' }, decision: 'Woke the dragon: a friend!' };
+    return { ...(await stormGlory(ctx, 2, 'The dragon snorts smoke over the guild!', 'dragon')), echo: { kind: 'none' }, decision: 'Woke the dragon: grumpy!' };
+}
+
+// ── The Envoy's wheel ─────────────────────────────────────────────────────────
+
+function _envoyNobody() {
+    return { gloryDelta: 0, echo: { kind: 'none' }, description: 'The envoy found no guild heroes in this class to visit.' };
+}
+
+async function envoyGlory(ctx, perHero) {
+    const heroes = ctx.classStudents || [];
+    if (!heroes.length) return _envoyNobody();
+    const byGuild = await giveGlory(ctx, heroes, perHero, 'envoy_dove', 'wheel_envoy');
+    const total = _round2(Object.values(byGuild).reduce((s, n) => s + (Number(n) || 0), 0));
+    return { gloryDelta: 0, classGlory: total, affectedStudents: heroes.map((s) => s.id), echo: { kind: 'none' }, description: `A peace dove circles the class: all ${heroes.length} heroes here earn +${perHero} Glory for their own guild.` };
+}
+
+async function envoyGold(ctx, count, amount) {
+    const heroes = ctx.classStudents || [];
+    if (!heroes.length) return _envoyNobody();
+    const r = await randomGold({ ...ctx, guildStudents: heroes }, Math.min(count, heroes.length), amount);
+    return { ...r, echo: { kind: 'none' }, description: count >= heroes.length ? `Every hero in this class gets +${amount} gold!` : `With greetings from far away: ${r.description}` };
+}
+
+/** One random hero from every guild in this class gets the gift (fair across guilds). */
+async function envoyPerGuild(ctx, { gold = 0, stars = 0 } = {}) {
+    const heroes = ctx.classStudents || [];
+    if (!heroes.length) return _envoyNobody();
+    const byGuild = new Map();
+    heroes.forEach((s) => byGuild.set(s.guildId, [...(byGuild.get(s.guildId) || []), s]));
+    const picked = [...byGuild.values()].map((list) => list[Math.floor(Math.random() * list.length)]);
+    const r = stars
+        ? await randomStars({ ...ctx, guildStudents: picked }, picked.length, stars)
+        : await randomGold({ ...ctx, guildStudents: picked }, picked.length, gold);
+    const what = stars ? `+${stars} star${stars === 1 ? '' : 's'}` : `+${gold} gold`;
+    return { ...r, echo: { kind: 'none' }, description: `The envoy chooses one hero from every guild here: ${picked.map((s) => s.name).join(', ')} each get ${what}.` };
+}
+
+async function envoyBanner(ctx) {
+    const { lastAlone, st } = _standingsShape(ctx.classId);
+    const target = lastAlone || st[0]?.gid;
+    if (!target) return _envoyNobody();
+    const heroes = _classMembersOf(target, ctx.classId);
+    const byGuild = await giveGlory(ctx, heroes, 2, 'envoy_banner', 'wheel_envoy');
+    return { gloryDelta: 0, classGlory: _round2(byGuild[target]), echo: { kind: 'none' }, description: `The envoy raises a banner for ${_guildName(target)}${lastAlone ? ', last in this class this month' : ''}: +2 Glory for each of its ${heroes.length} hero${heroes.length === 1 ? '' : 'es'} here!` };
+}
+
+// ── Treasure helpers ──────────────────────────────────────────────────────────
+
 async function randomStars(ctx, count, amount) {
     const members = ctx.guildStudents || [];
     if (members.length === 0) return { gloryDelta: 0, description: 'No students were present for this guild.' };
 
-    const outcome = await applyWheelStudentEffects({
+    const outcome = await _studentEffects({
         classId: ctx.classId,
         students: members,
         count,
@@ -340,11 +613,14 @@ async function randomStars(ctx, count, amount) {
     if (outcome.affectedStudents?.length) {
         let gloryDelta = 0;
         for (const sid of outcome.affectedStudents) {
-            const event = await updateGuildScores(sid, amount, 'wheel_star_blessing');
-            gloryDelta += Number(event?.totalGloryDelta) || 0;
+            const event = await wheelIo.starGlory(sid, amount, 'wheel_star_blessing');
+            const g = Number(event?.totalGloryDelta) || 0;
+            // Stars carry Glory too, but only the spinning guild's counts toward its tile.
+            if (members.find((s) => s.id === sid)?.guildId === ctx.guildId) gloryDelta += g;
+            _mark(ctx, sid, { stars: amount, glory: g });
         }
-        await checkBountyProgress(ctx.classId, amount * outcome.affectedStudents.length, outcome.affectedStudents);
-        await checkAndRecordQuestCompletion(ctx.classId).catch(() => {});
+        await wheelIo.bounty(ctx.classId, amount * outcome.affectedStudents.length, outcome.affectedStudents);
+        await wheelIo.questCheck(ctx.classId).catch(() => {});
         outcome.gloryDelta = gloryDelta;
     }
 
@@ -354,7 +630,7 @@ async function randomStars(ctx, count, amount) {
     return {
         gloryDelta: Number(outcome.gloryDelta) || 0,
         ...outcome,
-        description: count >= members.length
+        description: count >= members.length && members.length > 1
             ? `All ${members.length} guildmates here gain ${amount} star${amount === 1 ? '' : 's'}!`
             : `${names} ${affected.length > 1 ? 'each gain' : 'gains'} ${amount} star${amount === 1 ? '' : 's'}.`
     };
@@ -364,13 +640,14 @@ async function randomGold(ctx, count, amount) {
     const members = ctx.guildStudents || [];
     if (members.length === 0) return { gloryDelta: 0, description: 'No students were present for this guild.' };
 
-    const outcome = await applyWheelStudentEffects({
+    const outcome = await _studentEffects({
         classId: ctx.classId,
         students: members,
         count,
         goldDelta: amount,
         note: 'Wheel gold blessing'
     });
+    outcome.affectedStudents.forEach((id) => _mark(ctx, id, { gold: amount }));
 
     const affected = members.filter(s => outcome.affectedStudents.includes(s.id));
     const names = affected.map(s => s.name).join(', ');
@@ -378,7 +655,7 @@ async function randomGold(ctx, count, amount) {
     return {
         gloryDelta: 0,
         ...outcome,
-        description: count >= members.length
+        description: count >= members.length && members.length > 1
             ? `All guildmates here gain ${amount} gold!`
             : `${names} ${affected.length > 1 ? 'each gain' : 'gains'} ${amount} gold.`
     };
@@ -388,30 +665,37 @@ async function starsAndGold(ctx, count, stars, gold) {
     const s = await randomStars(ctx, count, stars);
     const picked = (ctx.guildStudents || []).filter((st) => (s.affectedStudents || []).includes(st.id));
     const g = picked.length
-        ? await applyWheelStudentEffects({ classId: ctx.classId, students: picked, count: picked.length, goldDelta: gold, note: 'Wheel gold blessing' })
+        ? await _studentEffects({ classId: ctx.classId, students: picked, count: picked.length, goldDelta: gold, note: 'Wheel gold blessing' })
         : { goldDelta: 0, affectedStudents: [] };
+    (g.affectedStudents || []).forEach((id) => _mark(ctx, id, { gold }));
     return {
         gloryDelta: s.gloryDelta || 0,
         starsDelta: s.starsDelta || 0,
         goldDelta: g.goldDelta || 0,
         affectedStudents: [...new Set([...(s.affectedStudents || []), ...(g.affectedStudents || [])])],
-        description: count >= (ctx.guildStudents || []).length
+        description: count >= (ctx.guildStudents || []).length && (ctx.guildStudents || []).length > 1
             ? `Every guildmate here gets +${stars} star${stars === 1 ? '' : 's'} and +${gold} gold!`
-            : `${picked.map((st) => st.name).join(', ')} each get +${stars} star${stars === 1 ? '' : 's'} and +${gold} gold!`,
+            : `${picked.map((st) => st.name).join(', ')} ${picked.length > 1 ? 'each get' : 'gets'} +${stars} star${stars === 1 ? '' : 's'} and +${gold} gold!`,
     };
+}
+
+/** Marks each granted artifact on the hero who received it. */
+function _markArtifacts(ctx, outcome) {
+    (outcome.grantedArtifacts || []).forEach((a, i) => _mark(ctx, a.studentId || outcome.affectedStudents?.[i], { artifact: { icon: a.icon || '🎒', name: a.name || 'Artifact' } }));
 }
 
 async function randomArtifact(ctx, count) {
     const members = ctx.guildStudents || [];
     if (members.length === 0) return { gloryDelta: 0, description: 'No students were present for this guild.' };
 
-    const outcome = await applyWheelStudentEffects({
+    const outcome = await _studentEffects({
         classId: ctx.classId,
         students: members,
         count,
         artifactsGrantCount: 1,
         note: 'Wheel artifact blessing'
     });
+    _markArtifacts(ctx, outcome);
 
     const affected = members.filter(s => outcome.affectedStudents.includes(s.id));
     const names = affected.map(s => s.name).join(', ');
@@ -419,7 +703,7 @@ async function randomArtifact(ctx, count) {
     return {
         gloryDelta: 0,
         ...outcome,
-        description: count >= members.length
+        description: count >= members.length && members.length > 1
             ? `All guildmates here receive an artifact!`
             : `${names} ${affected.length > 1 ? 'each receive' : 'receives'} an artifact!`
     };
@@ -428,7 +712,7 @@ async function randomArtifact(ctx, count) {
 async function teachersFavor(ctx) {
     const members = ctx.guildStudents || [];
     if (members.length === 0) return { gloryDelta: 0, description: 'No students to receive favor.' };
-    const outcome = await applyWheelStudentEffects({
+    const outcome = await _studentEffects({
         classId: ctx.classId,
         students: members,
         count: 1,
@@ -440,10 +724,11 @@ async function teachersFavor(ctx) {
     const sid = outcome.affectedStudents?.[0];
     let gloryDelta = 0;
     if (sid) {
-        const event = await updateGuildScores(sid, 2, 'wheel_teachers_favor');
+        const event = await wheelIo.starGlory(sid, 2, 'wheel_teachers_favor');
         gloryDelta = Number(event?.totalGloryDelta) || 0;
-        await checkBountyProgress(ctx.classId, 2, [sid]);
-        await checkAndRecordQuestCompletion(ctx.classId).catch(() => {});
+        _mark(ctx, sid, { stars: 2, gold: 30, glory: gloryDelta });
+        await wheelIo.bounty(ctx.classId, 2, [sid]);
+        await wheelIo.questCheck(ctx.classId).catch(() => {});
     }
 
     const student = members.find(s => s.id === sid);
@@ -455,8 +740,8 @@ async function teachersFavor(ctx) {
 }
 
 async function classQuestBonus(ctx, delta) {
-    const outcome = await applyClassQuestBonusDelta(ctx.classId, delta, 'Wheel quest effect');
-    if (outcome.classQuestDelta) await checkAndRecordQuestCompletion(ctx.classId).catch(() => {});
+    const outcome = await wheelIo.questBonus(ctx.classId, delta, 'Wheel quest effect');
+    if (outcome.classQuestDelta) await wheelIo.questCheck(ctx.classId).catch(() => {});
     return {
         gloryDelta: 0,
         ...outcome,
@@ -465,26 +750,28 @@ async function classQuestBonus(ctx, delta) {
 }
 
 async function mythicRelic(ctx) {
-    const quest = await applyClassQuestBonusDelta(ctx.classId, 30, 'Relic of Triumph');
-    const artifacts = await applyWheelStudentEffects({
+    const quest = await wheelIo.questBonus(ctx.classId, 30, 'Relic of Triumph');
+    const artifacts = await _studentEffects({
         classId: ctx.classId,
         students: ctx.guildStudents || [],
         count: 5,
         artifactsGrantCount: 1,
         note: 'Relic of Triumph artifacts'
     });
+    _markArtifacts(ctx, artifacts);
 
-    if (quest.classQuestDelta) await checkAndRecordQuestCompletion(ctx.classId).catch(() => {});
+    if (quest.classQuestDelta) await wheelIo.questCheck(ctx.classId).catch(() => {});
 
     return {
         gloryDelta: 0,
         classQuestDelta: quest.classQuestDelta || 0,
         affectedStudents: artifacts.affectedStudents || [],
         artifactsGranted: artifacts.artifactsGranted || 0,
+        grantedArtifacts: artifacts.grantedArtifacts || [],
         artifactsRemoved: 0,
         starsDelta: 0,
         goldDelta: 0,
-        description: `The Relic of Triumph surges: +${quest.classQuestDelta || 0} Team Quest bonus stars, plus artifacts for ${artifacts.affectedStudents?.length || 0} students!`
+        description: `The Relic of Triumph surges: +${quest.classQuestDelta || 0} Team Quest bonus stars, plus artifacts for ${artifacts.affectedStudents?.length || 0} heroes!`
     };
 }
 
@@ -512,6 +799,11 @@ function shuffleArray(arr) {
 export function generateWheelSegments(leagueLevel, { favored = false, calm = false } = {}) {
     return composeWheel(ALL_SEGMENTS, WHEEL_RARITY_WEIGHTS, { mode: wheelModeFor({ favored, stormLastTime: calm }) })
         .map((seg) => ({ ...seg, effect: SEGMENTS_BY_ID.get(seg.id)?.effect }));
+}
+
+/** The Envoy's wheel, for a guild with no heroes in the spinning class (utils/fortuneWheelSegments.mjs). */
+export function generateEnvoySegments() {
+    return composeEnvoyWheel(ALL_SEGMENTS, { size: 10 }).map((seg) => ({ ...seg, effect: SEGMENTS_BY_ID.get(seg.id)?.effect }));
 }
 
 /** True when a storm (or any loss) hit this guild at its last spin in this class, before this week. */
@@ -545,7 +837,7 @@ export function spinWheel(segmentCount) {
  */
 export async function canSpinThisWeek(classId) {
     if (!classId) return false;
-    const alreadySpun = await hasSpunThisWeek(classId);
+    const alreadySpun = await wheelIo.hasSpun(classId);
     if (alreadySpun) return false;
 
     const availability = evaluateWheelAvailability(classId, {
@@ -592,7 +884,7 @@ async function _spendFortuneFavor(guildId, classId) {
  * @param {{ favored?: boolean }} options - the wheel was gilded by a Fortune's Favor
  * @returns {Promise<object>} result with gloryDelta, description, affectedStudents, etc.
  */
-export async function applyWheelResult(guildId, segment, classId, { favored = false, decision = {}, previous = null } = {}) {
+export async function applyWheelResult(guildId, segment, classId, { favored = false, decision = {}, previous = null, envoy = false } = {}) {
     const allStudents = state.get('allStudents') || [];
     const guildStudents = allStudents.filter(s => s.guildId === guildId && s.classId === classId);
 
@@ -600,8 +892,10 @@ export async function applyWheelResult(guildId, segment, classId, { favored = fa
         guildId,
         classId,
         guildStudents,
+        classStudents: _classHeroes(classId),
         memberCount: guildStudents.length || 1,
         previous,
+        ledger: new Map(),
         // One spin per guild per class per week, so its Glory is written exactly once.
         spinKey: `wheel_${classId}_${getISOWeekKey()}_${guildId}`,
     };
@@ -613,23 +907,35 @@ export async function applyWheelResult(guildId, segment, classId, { favored = fa
         segmentDescription: segment.description,
         rarity: segment.rarity,
         favored: Boolean(favored),
+        ...(envoy ? { envoy: true } : {}),
     };
     try {
         const effect = wheelTestHooks.effect || segment.effect || SEGMENTS_BY_ID.get(segment.id)?.effect;
         const result = (await effect(ctx, decision || {}, segment)) || {};
         if (favored) await _spendFortuneFavor(guildId, classId);
         // What the Mirror of Fates copies: the wedge itself, unless the effect named its own echo.
-        const replayable = !segment.stage || (segment.stage === 'storm' && !result.braved);
+        const replayable = !envoy && (!segment.stage || (segment.stage === 'storm' && !result.braved));
         const echo = result.echo || (replayable ? { kind: 'segment', id: segment.id } : { kind: 'none' });
-        return { ...base, applied: true, ...result, echo };
+        const ledger = _ledgerRows(ctx.ledger);
+        const gloryByGuild = {};
+        ledger.forEach((row) => { if (row.glory) gloryByGuild[row.guildId] = _round2((gloryByGuild[row.guildId] || 0) + row.glory); });
+        return { ...base, applied: true, ...result, echo, ledger, gloryByGuild };
     } catch (err) {
         console.error(`Wheel effect failed for ${segment.id}:`, err);
         return { ...base, applied: false, gloryDelta: 0, echo: { kind: 'none' }, description: `Effect could not be applied${err?.message ? `: ${err.message}` : '.'}` };
     }
 }
 
+/** The ledger as plain rows (saved with the spin), each with the hero's guild. */
+function _ledgerRows(ledger) {
+    const students = new Map((state.get('allStudents') || []).map((s) => [s.id, s]));
+    return [...(ledger?.values() || [])]
+        .filter((row) => students.has(row.id))
+        .map((row) => ({ ...row, guildId: students.get(row.id).guildId || null, name: students.get(row.id).name || 'Hero' }));
+}
+
 /** Lets the guidebook capture and the browser checks run the ceremony without Firestore. */
-export const wheelTestHooks = { effect: null, lite: null };
+export const wheelTestHooks = { effect: null, lite: null, segments: null, pick: null, order: null };
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CANVAS WHEEL RENDERER
@@ -756,6 +1062,54 @@ const FAMILY_PATTERNS = {
                 ctx.fill();
             }
         }
+    },
+    // Omen: a scatter of stars and a comet's tail, with an ember glow at the rim.
+    omen(ctx, radius, start, end, size, conf) {
+        const mid = (start + end) / 2;
+        const glow = ctx.createRadialGradient(Math.cos(mid) * radius * 0.82, Math.sin(mid) * radius * 0.82, 0, Math.cos(mid) * radius * 0.82, Math.sin(mid) * radius * 0.82, radius * 0.5);
+        glow.addColorStop(0, 'rgba(255, 179, 71, 0.45)');
+        glow.addColorStop(1, 'rgba(255, 179, 71, 0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(-radius, -radius, radius * 2, radius * 2);
+        let seed = 7;
+        const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+        for (let k = 0; k < 22; k += 1) {
+            const a = start + (end - start) * rnd();
+            const r = radius * (0.3 + rnd() * 0.66);
+            ctx.beginPath();
+            ctx.arc(Math.cos(a) * r, Math.sin(a) * r, Math.max(0.8, size * (0.0015 + rnd() * 0.0025)), 0, TAU);
+            ctx.fillStyle = `rgba(255, 244, 214, ${(0.35 + rnd() * 0.5).toFixed(2)})`;
+            ctx.fill();
+        }
+        const tail = ctx.createLinearGradient(Math.cos(mid) * radius * 0.35, Math.sin(mid) * radius * 0.35, Math.cos(mid) * radius * 0.7, Math.sin(mid) * radius * 0.7);
+        tail.addColorStop(0, 'rgba(255, 179, 71, 0)');
+        tail.addColorStop(1, conf.color);
+        ctx.strokeStyle = tail;
+        ctx.lineWidth = Math.max(1.5, size * 0.006);
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(mid - 0.04) * radius * 0.35, Math.sin(mid - 0.04) * radius * 0.35);
+        ctx.lineTo(Math.cos(mid) * radius * 0.7, Math.sin(mid) * radius * 0.7);
+        ctx.stroke();
+    },
+    // Envoy: a letter's ruled lines and a wax seal near the hub.
+    envoy(ctx, radius, start, end, size, conf) {
+        ctx.strokeStyle = 'rgba(255, 248, 230, 0.1)';
+        ctx.lineWidth = Math.max(1, size * 0.003);
+        ctx.setLineDash([size * 0.012, size * 0.01]);
+        for (let r = radius * 0.34; r < radius * 0.92; r += Math.max(7, size * 0.026)) {
+            ctx.beginPath();
+            ctx.arc(0, 0, r, start + 0.02, end - 0.02);
+            ctx.stroke();
+        }
+        ctx.setLineDash([]);
+        const mid = (start + end) / 2;
+        ctx.beginPath();
+        ctx.arc(Math.cos(mid) * radius * 0.38, Math.sin(mid) * radius * 0.38, Math.max(3, size * 0.011), 0, TAU);
+        ctx.fillStyle = conf.color;
+        ctx.globalAlpha = 0.55;
+        ctx.fill();
+        ctx.globalAlpha = 1;
     },
     // Trial: rings like a Sphinx's seal.
     trial(ctx, radius, start, end, size) {
@@ -1371,12 +1725,12 @@ async function _evaluateAndRender(classId, leagueLevel) {
 
     let alreadySpun = false;
     try {
-        alreadySpun = classId ? await hasSpunThisWeek(classId) : false;
+        alreadySpun = classId ? await wheelIo.hasSpun(classId) : false;
     } catch (err) {
         console.warn('Wheel availability check failed:', err);
     }
 
-    const availability = evaluateWheelAvailability(classId, {
+    const availability = wheelIo.availability || evaluateWheelAvailability(classId, {
         now: new Date(),
         allSchoolClasses,
         allScheduleOverrides,
@@ -1397,7 +1751,7 @@ async function _evaluateAndRender(classId, leagueLevel) {
         active: true,
         classId,
         leagueLevel,
-        guildOrder: shuffleArray([...GUILD_IDS]),
+        guildOrder: wheelTestHooks.order ? [...wheelTestHooks.order] : shuffleArray([...GUILD_IDS]),
         currentGuildIndex: 0,
         segments: [],
         results: [],
@@ -1467,7 +1821,7 @@ function _renderLockedState(title, message, emoji) {
     const stageFrame = document.getElementById('fw-stage-frame');
     if (stageFrame) {
         stageFrame.classList.add('is-locked');
-        stageFrame.classList.remove('is-spinning');
+        stageFrame.classList.remove('is-spinning', 'is-envoy', 'has-omen');
         stageFrame.dataset.lock = availability.code === 'already_spun' ? 'recharging' : 'sealed';
     }
     _setCardPhase('locked');
@@ -1535,6 +1889,16 @@ function _renderCurrentGuildMembers() {
         : '<div class="fw-guild-members__empty">No students from this guild are in the selected class.</div>';
 
     panel.style.setProperty('--guild-primary', guildDef?.primary || '#e8c46a');
+    if (!students.length) {
+        const heroes = _classHeroes(_wheelState.classId).length;
+        panel.innerHTML = `
+            <div class="fw-guild-members__header">${guildDef?.name || 'This guild'}'s Envoy<span class="fw-guild-members__count">0</span></div>
+            <div class="fw-envoy-note">
+                <span class="fw-envoy-note__seal" aria-hidden="true">📜</span>
+                <p><b>No ${guildDef?.name || 'guild'} heroes in this class.</b> Their Envoy rides in with a wheel of gifts for ${heroes ? `all ${heroes} heroes here, whatever their guild` : 'the class'}. No storms, no losses.</p>
+            </div>`;
+        return;
+    }
     panel.innerHTML = `
         <div class="fw-guild-members__header">${guildDef?.name || 'Active Guild'} Members<span class="fw-guild-members__count">${students.length}</span></div>
         <div class="fw-guild-members__list">${rosterHtml}</div>`;
@@ -1561,6 +1925,23 @@ async function _landingMoment(seg) {
             playSound('quiz_open');
             fxTrial(frame);
             if (seg.stage) await new Promise((r) => setTimeout(r, 600));
+            return;
+        }
+        if (seg.rarity === 'omen') {
+            // The rarest moment on the wheel: the sky darkens, the Omen's sign descends.
+            const dark = Boolean(seg.harsh);
+            _setStageCaption(dark ? 'The sky goes dark… an Omen!' : 'The sky turns to gold… an Omen!');
+            try { playDrumRoll(); } catch (_) { /* optional */ }
+            await fxOmen(frame, { emoji: seg.emoji, label: seg.label, dark, lite });
+            try { stopDrumRoll(); } catch (_) { /* optional */ }
+            if (dark) playWheelSfx('thunder');
+            else playHeroFanfare();
+            return;
+        }
+        if (seg.rarity === 'envoy') {
+            playSound('magic_chime');
+            const o = _fxOrigin();
+            if (o) fxBurst(o.layer, { x: o.x, y: o.y, colors: ['#bfdbfe', '#c4b5fd', '#fef3c7'], count: 14, emojis: ['🕊️', '📜', '✨'], emojiCount: 6, spread: o.size * 0.4, lite });
             return;
         }
         if (seg.rarity === 'mythic' || seg.rarity === 'legendary') playHeroFanfare();
@@ -1654,7 +2035,7 @@ export async function triggerSpin({ power = null } = {}) {
     _setStageCaption('The wheel whirls… every eye on the pointer.');
     _updateSpinButton(true, 'Spinning...');
 
-    await _spinTo(spinWheel(segments.length), { power });
+    await _spinTo(wheelTestHooks.pick ? wheelTestHooks.pick(segments) : spinWheel(segments.length), { power });
     if (stale()) return;
     if (_wheelState._aborting) return _closeAfterSpin();
 
@@ -1693,18 +2074,21 @@ export async function triggerSpin({ power = null } = {}) {
         _setCardPhase('staging');
         _setStageCaption(winningSeg.rarity === 'storm'
             ? `A storm gathers over ${guildName}!`
-            : `${guildName} faces ${winningSeg.label}.`);
+            : winningSeg.rarity === 'omen'
+                ? `An Omen! ${guildName} faces ${winningSeg.label}.`
+                : `${guildName} faces ${winningSeg.label}.`);
         decision = await runStage(winningSeg.stage, _stageOptions(winningSeg, _openStageCard(winningSeg)));
         if (stale()) return;
     }
 
-    const previous = _wheelState.results[_wheelState.results.length - 1] || null;
+    // The Mirror copies the last guild that spun its own wheel (an Envoy's gifts can't be copied).
+    const previous = [..._wheelState.results].reverse().find((r) => !r.envoy) || null;
     // Closing while the fate is being written waits for it, so it lands in the log too.
     _wheelState.phase = 'applying';
     // The card turns over the moment the wheel (or the stage) settles; the numbers
     // follow onto the same card as soon as the fate has been written.
     _renderWheelPending(winningSeg, guildDef, { whirlwind: Boolean(whirlwind), braved: Boolean(decision?.braved) });
-    const result = await applyWheelResult(guildId, winningSeg, _wheelState.classId, { favored: Boolean(_wheelState.favored), decision, previous });
+    const result = await applyWheelResult(guildId, winningSeg, _wheelState.classId, { favored: Boolean(_wheelState.favored), decision, previous, envoy: Boolean(_wheelState.envoy) });
     if (whirlwind) {
         result.segmentLabel = `${whirlwind.emoji} ${whirlwind.label} → ${result.segmentLabel}`;
         result.whirlwind = true;
@@ -1727,9 +2111,14 @@ export async function triggerSpin({ power = null } = {}) {
 
 function _prepareGuildWheel() {
     const guildId = _wheelState.guildOrder[_wheelState.currentGuildIndex];
-    _wheelState.favored = isGuildWheelFavored(guildId, _wheelState.classId);
-    _wheelState.calm = !_wheelState.favored && stormHitLastTime(guildId, _wheelState.classId);
-    _wheelState.segments = generateWheelSegments(_wheelState.leagueLevel, { favored: _wheelState.favored, calm: _wheelState.calm });
+    // No heroes of this guild in the class: its Envoy spins a wheel of gifts for everyone.
+    _wheelState.envoy = _classMembersOf(guildId, _wheelState.classId).length === 0;
+    _wheelState.favored = !_wheelState.envoy && isGuildWheelFavored(guildId, _wheelState.classId);
+    _wheelState.calm = !_wheelState.envoy && !_wheelState.favored && stormHitLastTime(guildId, _wheelState.classId);
+    _wheelState.segments = _wheelState.envoy
+        ? generateEnvoySegments()
+        : generateWheelSegments(_wheelState.leagueLevel, { favored: _wheelState.favored, calm: _wheelState.calm });
+    if (wheelTestHooks.segments) _wheelState.segments = wheelTestHooks.segments(_wheelState.segments, { envoy: _wheelState.envoy, catalog: ALL_SEGMENTS });
     _wheelState.rotationAngle = 0;
 }
 
@@ -1768,7 +2157,7 @@ export async function closeFortunesWheel() {
     if (_wheelState.classId && _wheelState.results.length > 0) {
         try {
             // Firestore refuses undefined fields; the JSON round trip drops them.
-            await saveFortuneWheelResult(_wheelState.classId, JSON.parse(JSON.stringify(_wheelState.results)));
+            await wheelIo.save(_wheelState.classId, JSON.parse(JSON.stringify(_wheelState.results)));
         } catch (err) {
             console.error('Failed to save wheel results:', err);
         }
@@ -1817,7 +2206,7 @@ function _renderWheelLegend() {
         legendEl.innerHTML = '';
         return;
     }
-    const order = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'twist', 'trial', 'storm'];
+    const order = ['omen', 'common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'twist', 'trial', 'storm', 'envoy'];
     const counts = new Map();
     for (const seg of segments) counts.set(seg.rarity, (counts.get(seg.rarity) || 0) + 1);
     const chips = order
@@ -1829,8 +2218,9 @@ function _renderWheelLegend() {
             </span>`;
         }).join('');
     legendEl.innerHTML = `
-        <div class="fw-wheel-legend__header">On this wheel</div>
-        <div class="fw-wheel-legend__chips">${chips}</div>`;
+        <div class="fw-wheel-legend__header">${_wheelState.envoy ? 'The Envoy brings' : 'On this wheel'}</div>
+        <div class="fw-wheel-legend__chips">${chips}</div>
+        ${counts.get('omen') ? '<div class="fw-wheel-legend__omen"><span aria-hidden="true">✦</span> An Omen hides on this wheel. Its fate is huge, for better or worse!</div>' : ''}`;
     legendEl.classList.remove('hidden');
 }
 
@@ -1850,7 +2240,7 @@ function _renderWheelPhase() {
                     ${emblemUrl ? `<img src="${emblemUrl}" alt="${guildDef?.name || guildId}" class="fw-guild-banner__crest-image">` : `<span class="fw-guild-banner__crest-fallback">${guildNum}</span>`}
                 </div>
                 <div class="fw-guild-banner__copy">
-                    <div class="fw-guild-banner__eyebrow">Guild ${guildNum} of ${_wheelState.guildOrder.length}</div>
+                    <div class="fw-guild-banner__eyebrow">Guild ${guildNum} of ${_wheelState.guildOrder.length}${_wheelState.envoy ? ' · Envoy' : ''}</div>
                     <div class="fw-guild-banner__name">${guildDef?.name || guildId}</div>
                 </div>
                 ${guildDef?.emoji ? `<div class="fw-guild-banner__flag" aria-hidden="true">${guildDef.emoji}</div>` : ''}
@@ -1862,11 +2252,16 @@ function _renderWheelPhase() {
     _renderWheelLegend();
     _setStageEmblem(guildId);
     const guildName = guildDef?.name || 'This guild';
-    _setStageCaption(_wheelState.favored
-        ? `${guildName} steps up to a gilded wheel: Fortune's Favor cleared the storms and the Trickster.`
-        : _wheelState.calm
-            ? `${guildName} steps up to calmer skies: only one storm this time. Spin!`
-            : `${guildName} steps up to the wheel. Treasure, twists, trials… or a storm?`);
+    const omen = (_wheelState.segments || []).some((seg) => seg.rarity === 'omen');
+    _setStageCaption(_wheelState.envoy
+        ? `No ${guildName} heroes in this class, so their Envoy spins: gifts for the whole class!`
+        : _wheelState.favored
+            ? `${guildName} steps up to a gilded wheel: Fortune's Favor cleared the storms and the Trickster.${omen ? ' An Omen glows on it!' : ''}`
+            : _wheelState.calm
+                ? `${guildName} steps up to calmer skies: only one storm this time.${omen ? ' And an Omen glows!' : ' Spin!'}`
+                : omen
+                    ? `${guildName} steps up to the wheel… and an Omen glows on it tonight!`
+                    : `${guildName} steps up to the wheel. Treasure, twists, trials… or a storm?`);
     _setCardPhase('ready');
 
     const stageFrame = document.getElementById('fw-stage-frame');
@@ -1876,6 +2271,8 @@ function _renderWheelPhase() {
         delete stageFrame.dataset.lock;
         stageFrame.style.setProperty('--guild-primary', guildDef?.primary || '#e8c46a');
         stageFrame.style.setProperty('--guild-glow', guildDef?.glow || guildDef?.primary || '#fbbf24');
+        stageFrame.classList.toggle('is-envoy', Boolean(_wheelState.envoy));
+        stageFrame.classList.toggle('has-omen', omen);
     }
 
     // The ledger must be gone before the wheel measures its stage.
@@ -1887,7 +2284,7 @@ function _renderWheelPhase() {
     }
     _sizeAndRenderWheel();
 
-    _updateSpinButton(false, 'Spin This Guild', 'The relic chooses a fate');
+    _updateSpinButton(false, _wheelState.envoy ? 'Spin for the Envoy' : 'Spin This Guild', _wheelState.envoy ? 'Gifts for the whole class' : 'The relic chooses a fate');
     const resultEl = document.getElementById('fw-result');
     if (resultEl) resultEl.classList.add('hidden');
     const nextBtn = document.getElementById('fw-next-btn');
@@ -1961,14 +2358,14 @@ function _hideResultReveal() {
     const shell = revealLayer?.querySelector('.fw-reveal-layer__shell');
     if (shell) {
         delete shell.dataset.rarity;
-        shell.classList.remove('is-prismatic');
+        shell.classList.remove('is-prismatic', 'is-wide');
         shell.style.removeProperty('--shell-rarity-color');
         shell.style.removeProperty('--shell-rarity-glow');
         shell.style.removeProperty('--shell-rarity-bg');
     }
 }
 
-function _showResultReveal({ cardHtml, rarity = 'common', rarityColor = null, rarityGlow = null, rarityBg = null, isPrismatic = false, primaryAction = null, secondaryAction = null }) {
+function _showResultReveal({ cardHtml, rarity = 'common', rarityColor = null, rarityGlow = null, rarityBg = null, isPrismatic = false, primaryAction = null, secondaryAction = null, wide = null }) {
     const revealLayer = document.getElementById('fw-reveal-layer');
     const revealCard = document.getElementById('fw-reveal-card');
     const primaryBtn = document.getElementById('fw-reveal-primary-btn');
@@ -1990,6 +2387,8 @@ function _showResultReveal({ cardHtml, rarity = 'common', rarityColor = null, ra
         if (rarityColor) shell.style.setProperty('--shell-rarity-color', rarityColor);
         if (rarityGlow)  shell.style.setProperty('--shell-rarity-glow',  rarityGlow);
         if (rarityBg)    shell.style.setProperty('--shell-rarity-bg',    rarityBg);
+        // Room for every hero's chip when a fate touches many of them (null keeps the width).
+        if (wide !== null) shell.classList.toggle('is-wide', Boolean(wide));
     }
 
     // Tint the backdrop to the rarity glow colour
@@ -2017,12 +2416,94 @@ function _showResultReveal({ cardHtml, rarity = 'common', rarityColor = null, ra
     revealLayer.classList.remove('hidden');
 }
 
+const _esc = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+
+function _avatarHtml(student, cls) {
+    return student?.avatar
+        ? `<img src="${_esc(student.avatar)}" class="${cls}" alt="">`
+        : `<span class="${cls} ${cls}--initial">${_esc((student?.name || '?').charAt(0).toUpperCase())}</span>`;
+}
+
+/** A guild's crest as a tiny inline image (for stat tiles), or its emoji. */
+function _crestIcon(guildId) {
+    const url = getGuildEmblemUrl(guildId);
+    return url ? `<img src="${_esc(url)}" alt="" class="fw-result-stat__crest">` : (getGuildById(guildId)?.emoji || '⚜️');
+}
+
+function _ribbonText(segment, rarityConf, guildDef, { braved = false, whirlwind = false } = {}) {
+    if (braved) return segment.rarity === 'omen' ? 'Omen defied!' : 'Storm braved!';
+    if (segment.rarity === 'envoy') return `${guildDef?.name || 'The'} Envoy`;
+    if (segment.rarity === 'omen') return `✦ Omen · ${segment.harsh ? 'fate shakes' : 'fate shines'} ✦`;
+    return whirlwind ? `Whirlwind · ${rarityConf.label}` : rarityConf.label;
+}
+
+/** Many heroes, or heroes of more than one guild: the card spreads out beside the fortune. */
+function _ledgerIsBig(result) {
+    const rows = result.ledger || [];
+    return rows.length > 4 || new Set(rows.map((r) => r.guildId)).size > 1;
+}
+
+const _fmtDelta = (n) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(Math.round(n * 100) / 100)}`;
+
+/**
+ * Every hero this fate touched, grouped by guild (the spinning guild first), each with exactly
+ * what they received or lost. A storm's spared heroes show a little shield.
+ */
+function _heroLedgerHtml(result) {
+    const rows = (result.ledger || []).filter((r) => r.glory || r.gold || r.stars || r.artifacts?.length || r.spared);
+    if (!rows.length) return '';
+    const students = new Map((state.get('allStudents') || []).map((s) => [s.id, s]));
+    const groups = new Map();
+    for (const row of rows) groups.set(row.guildId, [...(groups.get(row.guildId) || []), row]);
+    const order = [result.guildId, ...GUILD_IDS.filter((g) => g !== result.guildId), null];
+    let k = 0;
+    const groupHtml = [...groups.keys()].sort((a, b) => order.indexOf(a) - order.indexOf(b)).map((gid) => {
+        const def = getGuildById(gid);
+        const list = groups.get(gid).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        const glory = _round2(list.reduce((sum, r) => sum + (r.glory || 0), 0));
+        const crest = getGuildEmblemUrl(gid);
+        const chips = list.map((row) => {
+            const st = students.get(row.id) || { name: row.name };
+            const badges = [
+                row.glory ? `<span class="fw-hero__b fw-hero__b--glory${row.glory < 0 ? ' is-neg' : ''}">${_fmtDelta(row.glory)}<i aria-hidden="true">⚜️</i></span>` : '',
+                row.stars ? `<span class="fw-hero__b fw-hero__b--star${row.stars < 0 ? ' is-neg' : ''}">${_fmtDelta(row.stars)}<i aria-hidden="true">⭐</i></span>` : '',
+                row.gold ? `<span class="fw-hero__b fw-hero__b--gold${row.gold < 0 ? ' is-neg' : ''}">${_fmtDelta(row.gold)}<i aria-hidden="true">🪙</i></span>` : '',
+                ...(row.artifacts || []).map((a) => `<span class="fw-hero__b fw-hero__b--artifact" title="${_esc(a.name)}"><i aria-hidden="true">${_esc(a.icon)}</i>${_esc(a.name)}</span>`),
+            ].join('');
+            const spared = !badges && row.spared;
+            const neg = (row.glory || 0) < 0 || (row.gold || 0) < 0;
+            return `
+                <li class="fw-hero${spared ? ' is-spared' : ''}${neg ? ' is-hit' : ''}" style="--k:${k++}">
+                    ${_avatarHtml(st, 'fw-hero__avatar')}
+                    <span class="fw-hero__name">${_esc(st.name || 'Hero')}</span>
+                    <span class="fw-hero__badges">${badges || (spared ? '<span class="fw-hero__b fw-hero__b--safe">🛡️ safe</span>' : '')}</span>
+                </li>`;
+        }).join('');
+        return `
+            <section class="fw-heroes__group${gid === result.guildId ? ' is-home' : ''}" style="--g:${def?.primary || '#e8c46a'}">
+                <header class="fw-heroes__head">
+                    ${crest ? `<img src="${_esc(crest)}" alt="" class="fw-heroes__crest">` : `<span class="fw-heroes__crest fw-heroes__crest--blank">${_esc(def?.emoji || '⚜️')}</span>`}
+                    <span class="fw-heroes__guild">${_esc(def?.name || 'Heroes')}</span>
+                    <span class="fw-heroes__count">${list.length} hero${list.length === 1 ? '' : 'es'}</span>
+                    ${glory ? `<span class="fw-heroes__glory${glory < 0 ? ' is-neg' : ''}">${_fmtDelta(glory)} ⚜️</span>` : ''}
+                </header>
+                <ul class="fw-heroes__list">${chips}</ul>
+            </section>`;
+    }).join('');
+    return `
+        <div class="fw-result-divider"></div>
+        <div class="fw-heroes" aria-label="Every hero touched by this fate">
+            <div class="fw-heroes__title"><span aria-hidden="true">✦</span> Who the fate found <span aria-hidden="true">✦</span></div>
+            ${groupHtml}
+        </div>`;
+}
+
 /** The fate card shown at once on landing, while its Glory, gold and stars are written. */
 function _renderWheelPending(segment, guildDef, { whirlwind = false, braved = false } = {}) {
     const rarityConf = getRarityPalette(segment.rarity, segment.paletteIndex);
     const emblemUrl = getGuildEmblemUrl(guildDef?.id);
-    const family = ['storm', 'twist', 'trial'].includes(segment.rarity) ? segment.rarity : 'treasure';
-    const ribbon = braved ? 'Storm braved!' : whirlwind ? `Whirlwind · ${rarityConf.label}` : rarityConf.label;
+    const family = ['storm', 'twist', 'trial', 'omen', 'envoy'].includes(segment.rarity) ? segment.rarity : 'treasure';
+    const ribbon = _ribbonText(segment, rarityConf, guildDef, { braved, whirlwind });
     const cardHtml = `
         <div class="fw-result-card fw-result-card--v2 is-pending${segment.isPrismatic ? ' is-prismatic' : ''}"
              data-rarity="${segment.rarity}" data-family="${family}" data-outcome="${braved ? 'braved' : 'gain'}"
@@ -2059,27 +2540,15 @@ function _renderWheelResult(segment, result, guildDef) {
     // ── Resolve affected student objects ─────────────────────────────────
     const allStudents = state.get('allStudents') || [];
     const affectedStudentIds = result.affectedStudents || [];
-    const affectedStudents = affectedStudentIds
+
+    // ── Every hero this fate touched, grouped by guild (nobody hidden behind "+N more") ──
+    const heroLedgerHtml = _heroLedgerHtml(result);
+    const affectedStudents = (result.ledger || []).length ? [] : affectedStudentIds
         .map(id => allStudents.find(s => s.id === id))
         .filter(Boolean);
-
-    // ── Student chips HTML ────────────────────────────────────────────────
-    let studentChipsHtml = '';
-    if (affectedStudents.length > 0) {
-        const MAX_SHOWN = 3;
-        const shown = affectedStudents.slice(0, MAX_SHOWN);
-        const overflow = affectedStudents.length - MAX_SHOWN;
-        const chips = shown.map(s => {
-            const avatarHtml = s.avatar
-                ? `<img src="${s.avatar}" class="fw-result-student-avatar" alt="${s.name}">`
-                : `<span class="fw-result-student-avatar--initial">${s.name.charAt(0).toUpperCase()}</span>`;
-            return `<div class="fw-result-student-chip">${avatarHtml}<span>${s.name}</span></div>`;
-        }).join('');
-        const overflowChip = overflow > 0
-            ? `<div class="fw-result-student-overflow">+${overflow} more</div>`
-            : '';
-        studentChipsHtml = `<div class="fw-result-student-row">${chips}${overflowChip}</div>`;
-    }
+    const studentChipsHtml = affectedStudents.length
+        ? `<div class="fw-result-student-row">${affectedStudents.map(s => `<div class="fw-result-student-chip">${_avatarHtml(s, 'fw-result-student-avatar')}<span>${_esc(s.name)}</span></div>`).join('')}</div>`
+        : '';
 
     // ── Impact stat tiles ─────────────────────────────────────────────────
     // Artifacts get their own showcase block below, so only show the generic
@@ -2089,8 +2558,11 @@ function _renderWheelResult(segment, result, guildDef) {
 
     const statDefs = [
         result.gloryDelta
-            ? { icon: '⚜️', label: 'Glory',       displayStr: `${result.gloryDelta >= 0 ? '+' : ''}${result.gloryDelta}`,           isNeg: result.gloryDelta < 0 }
+            ? { icon: '⚜️', label: result.envoy ? 'Glory' : 'Guild Glory', displayStr: `${result.gloryDelta >= 0 ? '+' : ''}${result.gloryDelta}`, isNeg: result.gloryDelta < 0 }
             : null,
+        ...Object.entries(result.gloryByGuild || {})
+            .filter(([gid, n]) => n && (result.envoy || gid !== result.guildId))
+            .map(([gid, n]) => ({ icon: _crestIcon(gid), label: `${getGuildById(gid)?.name || 'Guild'} Glory`, displayStr: `${n >= 0 ? '+' : ''}${n}`, isNeg: n < 0 })),
         result.goldDelta
             ? { icon: '🪙', label: 'Gold',        displayStr: `${result.goldDelta >= 0 ? '+' : ''}${result.goldDelta}`,             isNeg: result.goldDelta < 0 }
             : null,
@@ -2134,34 +2606,28 @@ function _renderWheelResult(segment, result, guildDef) {
             }
         }
         const unique = [...counts.values()];
-        const MAX_SHOWN = 4;
-        const shownArtifacts = unique.slice(0, MAX_SHOWN);
-        const overflowCount = unique.length - MAX_SHOWN;
-        const pills = shownArtifacts.map(a => `
+        const pills = unique.map(a => `
             <div class="fw-result-artifact-pill">
                 <span class="fw-result-artifact-pill__icon">${a.icon}</span>
                 <span class="fw-result-artifact-pill__name">${a.name}${a.count > 1 ? ` ×${a.count}` : ''}</span>
             </div>`).join('');
-        const overflowPill = overflowCount > 0
-            ? `<div class="fw-result-artifact-overflow">+${overflowCount} more</div>`
-            : '';
         artifactShowcaseHtml = `
             <div class="fw-result-divider"></div>
             <div class="fw-result-artifacts-header">🎒 Artifacts Received</div>
-            <div class="fw-result-artifacts-showcase">${pills}${overflowPill}</div>`;
+            <div class="fw-result-artifacts-showcase">${pills}</div>`;
     }
 
     // ── Outcome: how the fate turned out (storm braved, chest chosen, coin flipped…) ──
-    const family = ['storm', 'twist', 'trial'].includes(segment.rarity) ? segment.rarity : 'treasure';
+    const family = ['storm', 'twist', 'trial', 'omen', 'envoy'].includes(segment.rarity) ? segment.rarity : 'treasure';
     const outcome = result.braved ? 'braved' : result.stormHit ? 'hit' : (result.gloryDelta || 0) < 0 ? 'hit' : 'gain';
-    const ribbon = result.braved ? 'Storm braved!' : result.whirlwind ? `Whirlwind · ${rarityConf.label}` : rarityConf.label;
+    const ribbon = _ribbonText(segment, rarityConf, guildDef, { braved: result.braved, whirlwind: result.whirlwind });
     const decisionHtml = result.decision
         ? `<div class="fw-result-decision">${result.decision}</div>`
         : '';
 
     // ── Full card HTML ────────────────────────────────────────────────────
     const cardHtml = `
-        <div class="fw-result-card fw-result-card--v2${settled ? ' is-settled' : ''}${segment.isPrismatic ? ' is-prismatic' : ''}"
+        <div class="fw-result-card fw-result-card--v2${settled ? ' is-settled' : ''}${segment.isPrismatic ? ' is-prismatic' : ''}${heroLedgerHtml && _ledgerIsBig(result) ? ' has-heroes' : ''}"
              data-rarity="${segment.rarity}" data-family="${family}" data-outcome="${outcome}"
              style="--rarity-color:${rarityConf.color};--rarity-glow:${rarityConf.glow};--rarity-bg:${rarityConf.bg};border-color:${rarityConf.color};">
             <div class="fw-result-ribbon">${ribbon}</div>
@@ -2175,12 +2641,15 @@ function _renderWheelResult(segment, result, guildDef) {
             <div class="fw-result-description">${result.description || segment.description}</div>
             ${statsBlockHtml}
             ${artifactShowcaseHtml}
+            ${heroLedgerHtml}
             ${studentChipsHtml}
         </div>`;
 
     const guildName = guildDef?.name || 'The guild';
-    _setStageCaption(result.braved
-        ? `${guildName} braved the storm! Advance when you are ready for the next guild.`
+    _setStageCaption(result.envoy
+        ? `${guildName}'s Envoy has delivered its gift. Advance when you are ready.`
+        : result.braved
+        ? `${guildName} braved the ${segment.rarity === 'omen' ? 'Omen' : 'storm'}! Advance when you are ready for the next guild.`
         : outcome === 'hit'
             ? `A stormy moment for ${guildName}. Every hero has one. Advance when you are ready.`
             : `${guildName} has received ${segment.label}. Advance when you are ready for the next reveal.`);
@@ -2188,6 +2657,7 @@ function _renderWheelResult(segment, result, guildDef) {
     _updateSpinButton(true, 'Fate Revealed', 'Prepare the next presentation');
     if (settled) _fillPendingCard(cardHtml);
     _showResultReveal({
+        wide: Boolean(heroLedgerHtml) && _ledgerIsBig(result),
         cardHtml: settled ? null : cardHtml,
         rarity: segment.rarity,
         rarityColor: rarityConf.color,
@@ -2241,10 +2711,30 @@ function _playOutcome(segment, result, outcome) {
     const frame = document.getElementById('fw-stage-frame');
     const o = _fxOrigin();
     const lite = _isLite();
+    if (outcome === 'braved' && segment.rarity === 'omen') {
+        // The comet bursts into stardust.
+        try { playHeroFanfare(); } catch (_) { /* optional */ }
+        if (o) {
+            fxFlash(o.layer, 'rgba(255, 214, 140, 0.35)');
+            fxBurst(o.layer, { x: o.x, y: o.y, colors: ['#ffd28a', '#fff7d6', '#c4b5fd', '#93c5fd'], count: 34, emojis: ['✨', '🌟', '💫'], emojiCount: 14, spread: o.size * 0.6, lite });
+        }
+        return;
+    }
     if (outcome === 'braved') {
         try { playWheelSfx('shield'); } catch (_) { /* optional */ }
         fxShield(frame);
         if (o) fxBurst(o.layer, { x: o.x, y: o.y, colors: ['#fde68a', '#fbbf24', '#fff7d6'], count: 18, emojis: ['🛡️', '✨'], emojiCount: 5, spread: o.size * 0.4, lite });
+        return;
+    }
+    if (segment.rarity === 'omen' && (result.eclipsed || []).length && !result.eclipsed.includes(result.guildId)) {
+        // The Eclipse passed this guild by and fell on the leader: a hush, then a shadow.
+        try { setTimeout(() => playSound('star_remove'), 250); } catch (_) { /* optional */ }
+        if (o) fxBurst(o.layer, { x: o.x, y: o.y, colors: ['#ffb347', '#475569', '#fde68a'], count: 14, emojis: ['🌑', '✨'], emojiCount: 6, spread: o.size * 0.45, lite });
+        return;
+    }
+    if (outcome === 'hit' && segment.rarity === 'omen') {
+        try { setTimeout(() => playSound('star_remove'), 250); } catch (_) { /* optional */ }
+        if (o) fxBurst(o.layer, { x: o.x, y: o.y * 0.7, colors: ['#ffb347', '#7c2d12', '#94a3b8'], count: 16, emojis: [segment.emoji || '☄️', '💨'], emojiCount: 8, spread: o.size * 0.45, lite });
         return;
     }
     if (outcome === 'hit') {
@@ -2253,8 +2743,10 @@ function _playOutcome(segment, result, outcome) {
         return;
     }
     const hasGain = (result.gloryDelta || 0) > 0 || (result.goldDelta || 0) > 0 || (result.starsDelta || 0) > 0
-        || (result.artifactsGranted || 0) > 0 || (result.classQuestDelta || 0) > 0;
+        || (result.artifactsGranted || 0) > 0 || (result.classQuestDelta || 0) > 0 || (result.classGlory || 0) > 0;
     if (TREASURE_FX[segment.rarity]) triggerWheelRevealEffects(segment.rarity);
+    else if (segment.rarity === 'omen' && hasGain) triggerWheelRevealEffects('mythic');
+    else if (segment.rarity === 'envoy' && hasGain && o) fxBurst(o.layer, { x: o.x, y: o.y, colors: ['#bfdbfe', '#c4b5fd', '#a7f3d0', '#fef3c7'], count: 20, emojis: ['🕊️', '💌', '✨'], emojiCount: 8, spread: o.size * 0.5, lite });
     else if (hasGain) triggerWheelRevealEffects(segment.rarity === 'trial' ? 'rare' : 'uncommon');
     // Secondary sounds, staggered after the landing sound.
     if ((result.starsDelta || 0) > 0)       setTimeout(() => playSound('star2'),       400);
@@ -2272,6 +2764,7 @@ function _renderWheelSummary() {
     if (canvasWrap) canvasWrap.classList.add('hidden');
     const stageFrame = document.getElementById('fw-stage-frame');
     if (stageFrame) stageFrame.classList.add('is-locked');
+    stageFrame?.classList.remove('is-envoy', 'has-omen');
     const resultEl = document.getElementById('fw-result');
     if (resultEl) resultEl.classList.add('hidden');
     const headerEl = document.getElementById('fw-guild-header');
@@ -2304,6 +2797,8 @@ function _renderWheelSummary() {
             const signed = (n) => `${n >= 0 ? '+' : ''}${n}`;
             const deltas = [
                 r.gloryDelta ? deltaChip(signed(r.gloryDelta), '⚜️', 'Glory', r.gloryDelta < 0) : '',
+                ...Object.entries(r.gloryByGuild || {}).filter(([gid, n]) => n && (r.envoy || gid !== r.guildId))
+                    .map(([gid, n]) => deltaChip(signed(n), _crestIcon(gid), `${getGuildById(gid)?.name || 'Guild'} Glory`, n < 0)),
                 r.goldDelta ? deltaChip(signed(r.goldDelta), '🪙', 'Gold', r.goldDelta < 0) : '',
                 r.starsDelta ? deltaChip(signed(r.starsDelta), '⭐', 'Stars', r.starsDelta < 0) : '',
                 r.classQuestDelta ? deltaChip(signed(r.classQuestDelta), '🗺️', 'Quest Bonus', r.classQuestDelta < 0) : '',
@@ -2311,16 +2806,26 @@ function _renderWheelSummary() {
                     ? deltaChip(`${r.artifactsGranted ? `+${r.artifactsGranted}` : ''}${r.artifactsGranted && r.artifactsRemoved ? ' / ' : ''}${r.artifactsRemoved ? `-${r.artifactsRemoved}` : ''}`, '🎒', 'Artifacts', (r.artifactsRemoved || 0) > 0)
                     : '',
             ].join('');
+            // Every hero the fate touched, by name (other guilds' heroes wear their guild's colour).
+            const heroes = (r.ledger || []).filter((row) => row.glory || row.gold || row.stars || row.artifacts?.length);
+            const heroesHtml = heroes.length
+                ? `<ul class="fw-summary-heroes">${heroes.map((row) => {
+                    const g = getGuildById(row.guildId);
+                    const neg = (row.glory || 0) < 0 || (row.gold || 0) < 0;
+                    return `<li class="${neg ? 'is-neg' : ''}${row.guildId !== r.guildId ? ' is-other' : ''}" style="--hg:${g?.primary || '#e8c46a'}">${_esc(String(row.name || 'Hero').split(' ')[0])}</li>`;
+                }).join('')}</ul>`
+                : '';
             return `
-                <div class="fw-summary-item" data-rarity="${r.rarity}" style="--guild-primary:${guildDef?.primary || '#9a7128'};--rarity-color:${rarityConf.color};--rarity-bg:${rarityConf.bg};animation-delay:${(0.08 + index * 0.1).toFixed(2)}s">
+                <div class="fw-summary-item${r.envoy ? ' is-envoy' : ''}" data-rarity="${r.rarity}" style="--guild-primary:${guildDef?.primary || '#9a7128'};--rarity-color:${rarityConf.color};--rarity-bg:${rarityConf.bg};animation-delay:${(0.08 + index * 0.1).toFixed(2)}s">
                     <div class="fw-summary-guild">
                         ${emblemUrl ? `<img src="${emblemUrl}" alt="${guildDef?.name || r.guildId}" class="fw-summary-emblem">` : ''}
-                        <span>${guildDef?.name || r.guildId}</span>
+                        <span>${guildDef?.name || r.guildId}${r.envoy ? ' <small>Envoy</small>' : ''}</span>
                     </div>
                     <div class="fw-summary-result">${r.segmentLabel}</div>
-                    <div class="fw-summary-rarity">${rarityConf.label}</div>
+                    <div class="fw-summary-rarity">${r.envoy ? 'Gift for the class' : rarityConf.label}</div>
                     <div class="fw-summary-desc">${r.description || r.segmentDescription}</div>
                     ${deltas ? `<div class="fw-summary-deltas">${deltas}</div>` : ''}
+                    ${heroesHtml}
                 </div>`;
         }).join('')}
         </div>`;

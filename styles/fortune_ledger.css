@@ -298,6 +298,8 @@
 .fl-r--storm { --r: #64748b; }
 .fl-r--twist { --r: #db2777; }
 .fl-r--trial { --r: #0d9488; }
+.fl-r--omen { --r: #ea7a1c; }
+.fl-r--envoy { --r: #6d8fd6; }
 .fl-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.55rem; margin: 0; padding: 0; list-style: none; }
 .fl-cards--one { grid-template-columns: minmax(0, 18rem); }
 .fl-card {

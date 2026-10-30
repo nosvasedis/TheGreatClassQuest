@@ -1,7 +1,7 @@
 // features/wheelStages.js — Fortune's Wheel: the interactive moments after the wheel stops
 // (brave a storm, answer the Sphinx, a hero's dare, double or nothing, three chests, a kindness
-// gift, the Whirlwind and the Trickster's fake-out) and the stage effects (storm, shield, swirl,
-// bursts). Every animation moves only transform and opacity, and the lite tier trims the extras.
+// gift, the Whirlwind, the Trickster's fake-out, the Omens' comet and dragon, the genie's wish)
+// and the stage effects (storm, omen, shield, swirl, bursts). Every animation moves only transform and opacity, and the lite tier trims the extras.
 
 import { drawChallenge } from '../utils/wheelChallenges.mjs';
 import '../styles/fortunes_wheel_fates.css';
@@ -323,6 +323,88 @@ async function kindnessStage(cardEl, opts) {
     return { guildId: btn.dataset.guild };
 }
 
+// ─── Omens: the comet (brave it together), the dragon's wager, the genie's wish ─────────
+
+async function omenStage(cardEl, opts) {
+    const { segment, guild, band, sfx, sound } = opts;
+    cardEl.innerHTML = `
+        <div class="fwx fwx--omen" data-step="omen">
+            <div class="fwx-omen-sky" aria-hidden="true"><i></i><i></i><i></i></div>
+            ${headHtml({ family: 'omen', kicker: '✦ An Omen ✦', emoji: segment.emoji, title: segment.label, guild })}
+            <p class="fwx-text">${esc(segment.description)}</p>
+            <p class="fwx-hint fwx-hint--omen"><i class="fa-solid fa-wand-sparkles" aria-hidden="true"></i> Answer one question together. Get it right and the comet bursts into stardust: <b>+1 Glory each</b> instead!</p>
+            <div class="fwx-actions">
+                <button type="button" class="fwx-btn fwx-btn--omen" data-act="brave"><i class="fa-solid fa-wand-sparkles" aria-hidden="true"></i> Face the comet</button>
+                <button type="button" class="fwx-btn fwx-btn--quiet" data-act="accept">Let it fall</button>
+            </div>
+        </div>`;
+    const { act } = await nextAction(cardEl);
+    if (act !== 'brave') return { braved: false, attempted: false };
+    const passed = await trialStep(cardEl, {
+        family: 'omen', kicker: 'Turn the comet to stardust', emoji: '✨', title: segment.label,
+        win: 'Stardust: +1 Glory each', lose: 'The comet crashes: −3 each', kind: 'riddle', band, extra: opts.extra, sfx, sound, guild,
+    });
+    return { braved: passed, attempted: true };
+}
+
+async function dragonStage(cardEl, opts) {
+    const { segment, guild, sfx, sound, drum, lite } = opts;
+    cardEl.innerHTML = `
+        <div class="fwx fwx--omen fwx--dragon" data-step="choice">
+            <div class="fwx-dragon" aria-hidden="true">
+                <span class="fwx-dragon__hoard">💰</span>
+                <span class="fwx-dragon__beast">🐉</span>
+                <span class="fwx-dragon__zz">z<i>z</i><i>z</i></span>
+            </div>
+            ${headHtml({ family: 'omen', kicker: '✦ An Omen · the guild decides ✦', emoji: segment.emoji, title: segment.label, guild })}
+            <p class="fwx-text">A dragon sleeps on a mountain of gold. Do you dare to wake it?</p>
+            <div class="fwx-options">
+                <button type="button" class="fwx-option" data-act="walk"><b>Tiptoe away</b><span>+1 Glory for each guildmate here</span></button>
+                <button type="button" class="fwx-option fwx-option--risk" data-act="wake"><b>Wake the dragon!</b><span>A friendly dragon: +5 Glory each · A grumpy one: −2 Glory each</span></button>
+            </div>
+        </div>`;
+    const { act } = await nextAction(cardEl);
+    if (act !== 'wake') return { choice: 'walk' };
+    const root = cardEl.querySelector('.fwx');
+    root.dataset.step = 'wake';
+    root.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+    const won = crypto.getRandomValues(new Uint32Array(1))[0] % 2 === 0;
+    try { drum?.start?.(); } catch (_) { /* optional */ }
+    await wait(lite ? 1400 : 2000);
+    try { drum?.stop?.(); } catch (_) { /* optional */ }
+    root.classList.add(won ? 'is-friendly' : 'is-grumpy');
+    try { sfx?.(won ? 'chest' : 'thunder'); sound?.(won ? 'quiz_correct' : 'quiz_wrong'); } catch (_) { /* optional */ }
+    root.insertAdjacentHTML('beforeend', `<div class="fwx-verdict fwx-verdict--${won ? 'win' : 'lose'}">${won ? 'A FRIENDLY DRAGON! +5 Glory each' : 'A GRUMPY DRAGON! −2 Glory each'}</div>`);
+    await wait(1500);
+    return { choice: 'wake', won };
+}
+
+const WISHES = [
+    { act: 'glory', icon: '⚜️', name: 'Glory', text: '+2 Glory for each guildmate here' },
+    { act: 'gold', icon: '🪙', name: 'Gold', text: '+15 gold for each guildmate here' },
+    { act: 'stars', icon: '⭐', name: 'Stars', text: '2 guildmates get +1 star' },
+];
+
+async function wishStage(cardEl, opts) {
+    const { segment, guild, sound } = opts;
+    cardEl.innerHTML = `
+        <div class="fwx fwx--wish" data-step="pick">
+            <div class="fwx-lamp" aria-hidden="true"><span>🪔</span><i></i><i></i><i></i></div>
+            ${headHtml({ family: 'epic', kicker: 'The genie grants one wish', emoji: segment.emoji, title: segment.label, guild })}
+            <p class="fwx-text">Choose together. The genie only grants <b>one</b>!</p>
+            <div class="fwx-wishes">${WISHES.map((w, i) => `
+                <button type="button" class="fwx-wish" data-act="${w.act}" style="--i:${i}">
+                    <span class="fwx-wish__icon" aria-hidden="true">${w.icon}</span><b>${esc(w.name)}</b><small>${esc(w.text)}</small>
+                </button>`).join('')}</div>
+        </div>`;
+    const { act, btn } = await nextAction(cardEl, WISHES.map((w) => w.act));
+    btn.classList.add('is-chosen');
+    cardEl.querySelectorAll('.fwx-wish').forEach((b) => { b.disabled = true; if (b !== btn) b.classList.add('is-faded'); });
+    try { sound?.('magic_chime'); } catch (_) { /* optional */ }
+    await wait(1100);
+    return { wish: act };
+}
+
 // ─── Whirlwind and Trickster: short scenes on the card ──────────────────────────────────
 
 async function whirlwindStage(cardEl, opts) {
@@ -366,6 +448,7 @@ async function tricksterStage(cardEl, opts) {
 /**
  * Runs the interactive moment for a wedge and resolves with the decision its effect needs.
  * @param {string} kind - 'storm' | 'trial' | 'dare' | 'coin' | 'chests' | 'kindness' | 'whirlwind' | 'trickster'
+ *                        | 'omen' (brave the comet) | 'dragon' | 'wish'
  */
 export async function runStage(kind, opts) {
     const { cardEl } = opts;
@@ -377,6 +460,9 @@ export async function runStage(kind, opts) {
     if (kind === 'kindness') return kindnessStage(cardEl, opts);
     if (kind === 'whirlwind') return whirlwindStage(cardEl, opts);
     if (kind === 'trickster') return tricksterStage(cardEl, opts);
+    if (kind === 'omen') return omenStage(cardEl, opts);
+    if (kind === 'dragon') return dragonStage(cardEl, opts);
+    if (kind === 'wish') return wishStage(cardEl, opts);
     if (kind === 'trial') {
         const { segment, guild, band, extra, sfx, sound } = opts;
         const passed = await trialStep(cardEl, {
@@ -420,6 +506,23 @@ export function fxStorm(frameEl, { lite = false } = {}) {
     const t = setTimeout(() => frameEl.classList.remove('is-quaking'), 1200);
     onCleanup(() => clearTimeout(t));
     return wait(1500);
+}
+
+/**
+ * An Omen lands: the stage dims to night (or floods with dawn gold), a ring of runes turns,
+ * and the Omen's sign descends over the wheel with its name. About 2.2s; lite skips the runes.
+ */
+export function fxOmen(frameEl, { emoji = '✦', label = '', dark = true, lite = false } = {}) {
+    if (!frameEl) return wait(0);
+    addTemp(frameEl, `
+        <div class="fwx-omen${dark ? ' is-dark' : ' is-bright'}${lite ? ' is-lite' : ''}" aria-hidden="true">
+            <span class="fwx-omen__veil"></span>
+            ${lite ? '' : '<span class="fwx-omen__runes"></span>'}
+            <span class="fwx-omen__ring"></span>
+            <span class="fwx-omen__sign">${esc(emoji)}</span>
+            <span class="fwx-omen__name"><small>✦ Omen ✦</small>${esc(label)}</span>
+        </div>`, 2900);
+    return wait(2750);
 }
 
 /** A golden shield dome rises over the wheel. */

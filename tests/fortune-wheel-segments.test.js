@@ -203,3 +203,74 @@ test('challenges: the class\'s grammar questions make up most riddles', async ()
   assert.equal(prev.text, extra[0].q);
   assert.notEqual(drawChallenge('riddle', 'm', { extra: [extra[0]], previous: prev, rng: () => 0 }).text, extra[0].q);
 });
+
+// ─── Omens and the Envoy (2026-10-30) ───
+
+function withOmens(catalog) {
+  return [...catalog,
+    { id: 'wishing_star', rarity: 'omen', weight: 1 },
+    { id: 'golden_dawn', rarity: 'omen', weight: 2 },
+    { id: 'falling_comet', rarity: 'omen', weight: 2, harsh: true, favoredOk: false },
+    { id: 'eclipse', rarity: 'omen', weight: 2, harsh: true, favoredOk: false },
+    { id: 'dragons_wager', rarity: 'omen', weight: 2, harsh: true },
+  ];
+}
+
+test('Omens are rare: at most one per wheel, about a third of wheels, and never a harsh one on calm or gilded wheels', async () => {
+  const { composeWheel, OMEN_CHANCE } = await loadSegments();
+  const catalog = withOmens(buildCatalog());
+  let withOmen = 0;
+  for (let i = 0; i < 2000; i += 1) {
+    const segs = composeWheel(catalog, WEIGHTS, { mode: 'normal' });
+    assert.equal(segs.length, 20);
+    assert.ok(countOf(segs, 'omen') <= 1);
+    if (countOf(segs, 'omen')) withOmen += 1;
+    assert.equal(countOf(segs, 'twist'), 3, 'an Omen takes a treasure\'s place, never a twist');
+  }
+  assert.ok(Math.abs(withOmen / 2000 - OMEN_CHANCE.normal) < 0.06, `${withOmen} of 2000 wheels had an Omen`);
+  for (const mode of ['calm', 'favored']) {
+    for (let i = 0; i < 600; i += 1) {
+      const segs = composeWheel(catalog, WEIGHTS, { mode });
+      assert.ok(!segs.some((s) => s.harsh), `${mode}: no harsh Omen`);
+    }
+  }
+});
+
+test('the Envoy\'s wheel: only gifts, every gift at least once, no twin side by side', async () => {
+  const { composeEnvoyWheel } = await loadSegments();
+  const catalog = [...buildCatalog(), ...['dove', 'map', 'parcel', 'letter', 'banner', 'lantern', 'feast', 'jest'].map((id, i) => ({ id: `envoy_${id}`, rarity: 'envoy', weight: i < 3 ? 3 : 1 }))];
+  for (let i = 0; i < 300; i += 1) {
+    const segs = composeEnvoyWheel(catalog, { size: 10 });
+    assert.equal(segs.length, 10);
+    assert.ok(segs.every((s) => s.rarity === 'envoy'));
+    assert.equal(new Set(segs.map((s) => s.id)).size, 8);
+    segs.forEach((s, k) => assert.notEqual(s.id, segs[(k + 1) % segs.length].id));
+  }
+});
+
+test('live Omens: big but capped, harsh ones only take this month\'s Glory; Envoy gifts never take anything', () => {
+  const omens = wedges.filter((w) => w.rarity === 'omen');
+  assert.ok(omens.length >= 6, 'omens');
+  assert.ok(omens.some((w) => /harsh: true/.test(w.line)), 'some Omens can take Glory');
+  assert.ok(omens.some((w) => !/harsh: true/.test(w.line)), 'some Omens only give');
+  omens.filter((w) => /favoredOk: false/.test(w.line)).forEach((w) => assert.match(w.line, /harsh: true/));
+  const known = new Set([...fs.readFileSync(path.join(__dirname, '..', 'features', 'wheelStages.js'), 'utf8').matchAll(/kind === '([a-z]+)'/g)].map((m) => m[1]));
+  omens.filter((w) => w.stage).forEach((w) => assert.ok(known.has(w.stage), `${w.id} → ${w.stage}`));
+  // every Glory loss in the effects goes through stormGlory, capped at 3 each
+  const effects = wheelSrc.split('// ── Omens ──')[1].split('// ── The Envoy')[0];
+  [...effects.matchAll(/stormGlory\([^,]+, (\d+)/g)].forEach((m) => assert.ok(Number(m[1]) <= 3, 'an Omen takes at most 3 Glory each'));
+  [...wheelSrc.matchAll(/stormGlory\(ctx, (\d+), 'The comet/g)].forEach((m) => assert.ok(Number(m[1]) <= 3));
+
+  const envoy = wedges.filter((w) => w.rarity === 'envoy');
+  assert.ok(envoy.length >= 6, 'envoy gifts');
+  envoy.forEach((w) => assert.doesNotMatch(w.line, /stormGlory|loseGold|harsh/, `${w.id} never takes anything`));
+  const envoyEffects = wheelSrc.split('// ── The Envoy\'s wheel ──')[1].split('// ── Treasure helpers')[0];
+  assert.doesNotMatch(envoyEffects, /stormGlory|loseGold|takeGlory|goldDelta: -/);
+});
+
+test('a guild with no heroes in the class gets the Envoy, and the result card never hides heroes behind "+N more"', () => {
+  assert.match(wheelSrc, /_wheelState\.envoy = _classMembersOf\(guildId, _wheelState\.classId\)\.length === 0/);
+  assert.match(wheelSrc, /generateEnvoySegments\(\)/);
+  assert.doesNotMatch(wheelSrc, /\+\$\{overflow\w*\} more/);
+  assert.doesNotMatch(wheelSrc, /MAX_SHOWN/);
+});

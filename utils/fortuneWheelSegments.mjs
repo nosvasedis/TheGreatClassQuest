@@ -6,10 +6,20 @@
 //   twist:  drama (spin again, pick a chest, double or nothing, the Trickster…)
 //   trial:  a quick challenge the guild answers in front of the class
 //   storm:  a small loss (a little Glory or gold), some of which can be braved
+//   omen:   super rare (about one wheel in three hides one): a big Glory swing, up or down
+// A guild with no heroes in the class spins the Envoy's wheel instead (composeEnvoyWheel):
+// gifts for the whole class, never a loss.
 
 export const TREASURE_RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
 export const FAMILY_RARITIES = ['storm', 'twist', 'trial'];
 const RARE_PLUS = ['rare', 'epic', 'legendary', 'mythic'];
+
+/**
+ * How often a wheel hides one Omen wedge (it takes a treasure's place). With 20 wedges a guild
+ * lands on an Omen about once in 57 spins. Calm and gilded wheels only carry the bright Omens
+ * (`harsh: true` Omens can take Glory away).
+ */
+export const OMEN_CHANCE = { normal: 0.35, calm: 0.35, favored: 0.5 };
 
 /** How many wedges of each family a wheel carries. */
 export const WHEEL_MIX = {
@@ -79,6 +89,9 @@ export function composeWheel(catalog, rarityWeights = {}, { mode = 'normal', rng
         family.push(...pickWeighted(ofFamily(name), want, (seg) => seg.weight ?? 1, rng));
     }
 
+    const omenPool = catalog.filter((seg) => seg.rarity === 'omen' && usable(seg) && (mode === 'normal' || !seg.harsh));
+    if (omenPool.length && rng() < (OMEN_CHANCE[mode] ?? 0)) family.push(...pickWeighted(omenPool, 1, (seg) => seg.weight ?? 1, rng));
+
     const caps = TREASURE_CAPS[favored ? 'favored' : 'normal'];
     const treasurePool = catalog.filter((seg) => TREASURE_RARITIES.includes(seg.rarity) && usable(seg)
         && (!favored || seg.rarity !== 'common'));
@@ -106,6 +119,41 @@ export function composeWheel(catalog, rarityWeights = {}, { mode = 'normal', rng
     return spreadFamilies(shuffle([...family, ...treasure], rng)).map((seg) => ({ ...seg, paletteIndex: Math.floor(rng() * 3) }));
 }
 
+/**
+ * The Envoy's wheel: for a guild with no heroes in the spinning class. `size` wedges drawn by
+ * weight (a wedge may appear twice, never side by side), all from the 'envoy' family.
+ */
+export function composeEnvoyWheel(catalog, { size = 10, rng = defaultRng } = {}) {
+    const pool = catalog.filter((seg) => seg.rarity === 'envoy');
+    if (!pool.length) return [];
+    const out = [];
+    const total = pool.reduce((s, seg) => s + Math.max(0, seg.weight ?? 1), 0);
+    // every envoy gift shows up at least once, the rest by weight
+    const bag = shuffle([...pool], rng).slice(0, size);
+    while (bag.length < size) {
+        let roll = rng() * total;
+        let pick = pool[pool.length - 1];
+        for (const seg of pool) { roll -= Math.max(0, seg.weight ?? 1); if (roll <= 0) { pick = seg; break; } }
+        bag.push(pick);
+    }
+    shuffle(bag, rng);
+    for (let pass = 0; pass < 8; pass += 1) {
+        let changed = false;
+        for (let i = 0; i < bag.length; i += 1) {
+            const k = (i + 1) % bag.length;
+            if (bag[i].id !== bag[k].id) continue;
+            const j = bag.findIndex((seg, m) => seg.id !== bag[i].id
+                && bag[(m + bag.length - 1) % bag.length].id !== bag[i].id && bag[(m + 1) % bag.length].id !== bag[i].id);
+            if (j < 0) continue;
+            [bag[k], bag[j]] = [bag[j], bag[k]];
+            changed = true;
+        }
+        if (!changed) break;
+    }
+    for (const seg of bag) out.push({ ...seg, paletteIndex: Math.floor(rng() * 3) });
+    return out;
+}
+
 /** Which mode a guild's wheel takes this week. */
 export function wheelModeFor({ favored = false, stormLastTime = false } = {}) {
     if (favored) return 'favored';
@@ -116,7 +164,7 @@ export function wheelModeFor({ favored = false, stormLastTime = false } = {}) {
 /** Keeps two wedges of the same family (two storms, two twists…) from sitting side by side. */
 export function spreadFamilies(segments) {
     const out = [...segments];
-    const fam = (seg) => (FAMILY_RARITIES.includes(seg.rarity) ? seg.rarity : 'treasure');
+    const fam = (seg) => (FAMILY_RARITIES.includes(seg.rarity) || seg.rarity === 'omen' ? seg.rarity : 'treasure');
     for (let pass = 0; pass < 6; pass += 1) {
         let changed = false;
         for (let i = 0; i < out.length; i += 1) {

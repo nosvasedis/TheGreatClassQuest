@@ -1355,9 +1355,18 @@ const LEDGER_PAGE = 4;
 const LEDGER_RARITY = {
     common: 'Common', uncommon: 'Uncommon', rare: 'Rare', epic: 'Epic',
     legendary: 'Legendary', mythic: 'Mythic', cursed: 'Twist',
-    storm: 'Storm', twist: 'Twist', trial: 'Trial',
+    storm: 'Storm', twist: 'Twist', trial: 'Trial', omen: 'Omen', envoy: 'Envoy',
 };
-const LEDGER_RARITY_RANK = { storm: 0, cursed: 0, twist: 1, common: 1, trial: 2, uncommon: 2, rare: 3, epic: 4, legendary: 5, mythic: 6 };
+const LEDGER_RARITY_RANK = { storm: 0, cursed: 0, envoy: 0, twist: 1, common: 1, trial: 2, uncommon: 2, rare: 3, epic: 4, legendary: 5, mythic: 6, omen: 6 };
+
+/**
+ * Glory a spin moved, per guild. Newer spins record it for every guild they touched (a Golden
+ * Dawn, an Eclipse, an Envoy's gift…); older ones only the spinning guild's own Glory.
+ */
+function _spinGloryByGuild(r) {
+    if (r?.gloryByGuild && typeof r.gloryByGuild === 'object') return r.gloryByGuild;
+    return r?.guildId ? { [r.guildId]: Number(r.gloryDelta) || 0 } : {};
+}
 let _ledgerShown = LEDGER_PAGE;
 /** 'all' or a guild id */
 let _ledgerGuild = 'all';
@@ -1389,13 +1398,17 @@ function _ledgerGifts(r) {
         out.push(`<span class="fl-gift${cls}${v < 0 ? ' fl-gift--loss' : ''}">${_signed(v)} ${what}</span>`);
     };
     chip(r.gloryDelta, GLORY_EMOJI, ' fl-gift--glory');
+    Object.entries(r.gloryByGuild || {}).forEach(([gid, n]) => {
+        if (gid === r.guildId && !r.envoy) return;
+        chip(n, `${GLORY_EMOJI} ${_escapeHtml(getGuildById(gid)?.name || '')}`, ' fl-gift--glory');
+    });
     chip(r.starsDelta, '⭐');
     chip(r.goldDelta, '🪙');
     if (Number(r.artifactsGranted) > 0) out.push(`<span class="fl-gift">+${_fmtNumber(r.artifactsGranted)} 🎁</span>`);
     chip(r.classQuestDelta, 'Team Quest ⭐');
     if (r.braved) out.push('<span class="fl-gift fl-gift--braved">🛡️ Braved</span>');
     else if (r.decision) out.push(`<span class="fl-gift fl-gift--quiet">${_escapeHtml(r.decision)}</span>`);
-    if (!out.length) out.push(`<span class="fl-gift fl-gift--quiet">${r.segmentId === 'trickster' || r.rarity === 'cursed' ? 'A harmless trick' : r.rarity === 'storm' ? 'The storm found nothing' : 'A little magic'}</span>`);
+    if (!out.length) out.push(`<span class="fl-gift fl-gift--quiet">${r.segmentId === 'trickster' || r.rarity === 'cursed' ? 'A harmless trick' : r.rarity === 'storm' ? 'The storm found nothing' : r.envoy ? 'A laugh for the class' : 'A little magic'}</span>`);
     return out.join('');
 }
 
@@ -1406,10 +1419,10 @@ function _fmtNumber(n) {
 function _ledgerTallies(logs) {
     const t = Object.fromEntries(GUILD_IDS.map((id) => [id, { glory: 0, stars: 0, gold: 0, finds: 0, braved: 0, best: null }]));
     logs.forEach((entry) => (entry.results || []).forEach((r) => {
+        Object.entries(_spinGloryByGuild(r)).forEach(([gid, n]) => { if (t[gid]) t[gid].glory += Number(n) || 0; });
         const row = t[r?.guildId];
         if (!row) return;
         row.finds += 1;
-        row.glory += Number(r.gloryDelta) || 0;
         row.stars += Number(r.starsDelta) || 0;
         row.gold += Number(r.goldDelta) || 0;
         if (r.braved) row.braved += 1;
@@ -1465,7 +1478,7 @@ function _renderLedgerChrome(logs, tallies) {
 function _ledgerEntryHtml(entry, i, classNames) {
     const date = _ledgerDate(entry);
     const results = (entry.results || []).filter((r) => r && (_ledgerGuild === 'all' || r.guildId === _ledgerGuild));
-    const total = results.reduce((sum, r) => sum + (Number(r.gloryDelta) || 0), 0);
+    const total = results.reduce((sum, r) => sum + Object.values(_spinGloryByGuild(r)).reduce((a, n) => a + (Number(n) || 0), 0), 0);
     const className = classNames.get(entry.classId) || '';
     const by = entry.spunBy?.name || '';
     return `

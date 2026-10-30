@@ -239,6 +239,16 @@ export const WHEEL_RARITY_CONFIG = {
     trial: [
         { label: 'Trial',     color: '#5eead4', bg: '#0d3b37', glow: '#5eead480' },   // Sphinx teal
     ],
+    // Omens: the super rare big Glory swings (comet, eclipse, dragon, phoenix…).
+    omen: [
+        { label: 'Omen',      color: '#ffb347', bg: '#2b0b2e', glow: '#ff8a3d99' },   // Comet ember on eclipse plum
+    ],
+    // The Envoy's wheel: a guild with no heroes in the class sends gifts for everyone.
+    envoy: [
+        { label: 'Envoy',     color: '#93c5fd', bg: '#1b2a4a', glow: '#93c5fd80' },   // Moonlit letter blue
+        { label: 'Envoy',     color: '#c4b5fd', bg: '#2a2250', glow: '#c4b5fd80' },   // Wax-seal lilac
+        { label: 'Envoy',     color: '#a7f3d0', bg: '#173b39', glow: '#a7f3d080' },   // Traveller's green
+    ],
 };
 
 /** Prismatic config for ultra-rare rainbow segments (used on mythic/legendary isPrismatic segments) */

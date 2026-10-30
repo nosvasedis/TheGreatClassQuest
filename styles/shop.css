@@ -847,7 +847,6 @@ body.projector-mode .bounty-actions {
 }
 
 .shop-buy-btn:hover:not(:disabled) {
-    transform: translateY(-1px);
     filter: brightness(1.06);
 }
 

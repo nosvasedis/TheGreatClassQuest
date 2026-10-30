@@ -39,6 +39,7 @@ import {
 } from './marketView.mjs';
 import { renderFestivalStall } from './festivalStall.mjs';
 import '../../styles/festival_stall.css';
+import '../../styles/market_charms.css';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 import { initMarketKeeperFloat, keeperFloatSay } from './marketKeeperFloat.js';
 import { closeMarketCurtains, openMarketCurtains, shopStageIsLive } from './marketCurtains.js';
@@ -491,6 +492,8 @@ function initializeShopTabContent({ allowAutoEnsure = false } = {}) {
     }
 }
 
+let lastShelfSignature = '';
+
 export function renderShopUI() {
     if (!isShopSeasonLive()) {
         applyShopSeasonLock(false);
@@ -532,6 +535,21 @@ export function renderShopUI() {
             .filter(i => i.league === league && i.festivalId === activeFestival.festivalId && isVisibleFestivalShopItem(i))
             .sort((a,b) => a.price - b.price)
         : [];
+
+    // Every stall update (a sale, a picture, a stock sync) used to rebuild every card, even
+    // when nothing on the shelf changed, and the shelf flickered under the mouse. Redraw only
+    // when something shown changes; otherwise just refresh the shopper's buttons.
+    const shelfSignature = JSON.stringify([
+        league, currentMonthKey, activeFestival?.festivalId || '', shopRestockBusy,
+        canUseFeature('eliteAI'), canUseFeature('familiars'), seasonalSoldOut,
+        [...seasonalItems, ...festivalItems].map((i) => [i.id, i.name, i.price, i.image, i.description, i.stock, i.charm || '', i.collection || ''])
+    ]);
+    if (shelfSignature === lastShelfSignature && container?.querySelector('.mm-ware')) {
+        updateShopStudentDisplay(document.getElementById('shop-student-select')?.value || '')
+            .catch((e) => console.warn('Shop: updateShopStudentDisplay failed', e));
+        return;
+    }
+    lastShelfSignature = shelfSignature;
 
     // 2. Get Legendary Artifacts (from our new file)
     import('../../features/powerUps.js').then(m => {
@@ -686,6 +704,12 @@ function resetShopWareCard(card) {
 }
 
 export async function updateShopStudentDisplay(studentId) {
+    // Load what the checks need before touching any card: resetting first and awaiting after
+    // made every button flash "Pick a shopper" for a moment on each refresh.
+    const [{ LEGENDARY_ARTIFACTS, isItemUsable }, { stallBuyCheckFor }] = await Promise.all([
+        import('../../features/powerUps.js'),
+        import('../../db/actions/smartStock.js')
+    ]);
     const goldDisplay = document.getElementById('shop-student-gold');
     const buyBtns = document.querySelectorAll('.shop-buy-btn');
     const till = document.getElementById('shop-till');
@@ -767,8 +791,6 @@ export async function updateShopStudentDisplay(studentId) {
     const legLimitReached = legendariesThisMonth.length >= 2;
 
     // LIMIT CHECK 2: Pathfinder Map (1 per class per month)
-    const { LEGENDARY_ARTIFACTS, isItemUsable } = await import('../../features/powerUps.js');
-    const { stallBuyCheckFor } = await import('../../db/actions/smartStock.js');
     const classData = state.get('allSchoolClasses').find(c => c.id === student.classId);
     const pathfinderBonusThisMonth = Number(classData?.teamQuestBonuses?.[currentMonthKey]) || 0;
 

@@ -18,6 +18,7 @@ import {
     pickProdigyWinners,
     rankHeroes
 } from './heroRanking.js';
+import { heroBoonEligibleIds } from './heroBoonEligibility.js';
 
 /** Stars this month from a student_scores doc, kept to two decimals so half stars (19.5) rank and tie exactly. */
 export function heroMonthStars(scoreData, monthStart = utils.getStartOfMonthString()) {
@@ -53,15 +54,26 @@ export function heroMonthTieStats(studentId, options = {}) {
  */
 export function rankClassHeroesThisMonth(classId, { now = new Date() } = {}) {
     const students = (state.get('allStudents') || []).filter((s) => s.classId === classId);
+    const ids = new Set(students.map((s) => s.id));
     const allStudentScores = state.get('allStudentScores') || [];
-    const allLogs = state.get('allAwardLogs') || [];
-    const allScores = state.get('allWrittenScores') || [];
+    // Narrowed to the class once, so each hero's own filter stays short.
+    const allLogs = (state.get('allAwardLogs') || []).filter((l) => ids.has(l.studentId));
+    const allScores = (state.get('allWrittenScores') || []).filter((sc) => ids.has(sc.studentId));
     const monthStart = utils.getStartOfMonthString();
     return rankHeroes(students.map((s) => ({
         ...s,
         stars: heroMonthStars(allStudentScores.find((sc) => sc.id === s.id), monthStart),
         stats: heroMonthTieStats(s.id, { allLogs, allScores, now })
     })));
+}
+
+/** Hero's Boon receivers for one class this month: { eligibleIds: Set, starsById: Map }. */
+export function classHeroBoonEligibility(classId, options = {}) {
+    const ranked = rankClassHeroesThisMonth(classId, options);
+    return {
+        eligibleIds: heroBoonEligibleIds(ranked),
+        starsById: new Map(ranked.map((hero) => [hero.id, hero.stars]))
+    };
 }
 
 // --- Reigning Prodigies --------------------------------------------------------

@@ -21,3 +21,30 @@ test('Teacher Boon and the Hero\'s Challenge rank heroes from one shared source'
     assert.match(board, /getReigningProdigies/);
     assert.doesNotMatch(board, /async function getReigningProdigies/);
 });
+
+test('Hero\'s Boon eligibility reads the same ranking in Award Stars and the modal', () => {
+    const award = read('ui/tabs/award.js');
+    const modal = read('ui/modals/rankings.js');
+    assert.match(award, /classHeroBoonEligibility/);
+    assert.match(modal, /classHeroBoonEligibility/);
+    assert.doesNotMatch(award, /bottomThreeIds/);
+    assert.doesNotMatch(modal, /bottomThreeIds/);
+});
+
+test('Hero\'s Boon: bottom three places count whole, and equal stars still count as a tie', async () => {
+    const { rankHeroes } = await import('../features/heroRanking.js');
+    const { heroBoonEligibleIds } = await import('../features/heroBoonEligibility.js');
+    const hero = (id, stars, count3 = 0) => ({ id, name: id, stars, stats: { count3 } });
+
+    // Four heroes share last place: all four qualify, none left out by chance.
+    let ids = heroBoonEligibleIds(rankHeroes([hero('a', 20), hero('b', 15), hero('c', 4), hero('d', 4), hero('e', 4), hero('f', 4)]));
+    assert.deepEqual([...ids].sort(), ['c', 'd', 'e', 'f']);
+
+    // Level on stars but split by a tie-break: still a tie the class can see.
+    ids = heroBoonEligibleIds(rankHeroes([hero('a', 20, 3), hero('b', 20, 1), hero('c', 15), hero('d', 10), hero('e', 8), hero('f', 6)]));
+    assert.deepEqual([...ids].sort(), ['a', 'b', 'd', 'e', 'f']);
+
+    // Small classes: everyone is in the bottom three.
+    assert.equal(heroBoonEligibleIds(rankHeroes([hero('a', 9), hero('b', 3)])).size, 2);
+    assert.equal(heroBoonEligibleIds([]).size, 0);
+});

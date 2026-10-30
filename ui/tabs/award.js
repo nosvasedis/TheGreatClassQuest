@@ -39,6 +39,7 @@ import { withPendingAttendance } from '../../features/attendancePending.mjs';
 import { isMonthFinaleLesson, monthFinaleContextFrom } from '../../features/monthFinale.js';
 import { playAttendanceTurn, readCloudPalette } from '../awardFx.js';
 import { bindAwardRollTips, hideAwardRollTip, refreshAwardRollTip, registerAwardTipBuilder } from '../awardRollTip.js';
+import { classHeroBoonEligibility } from '../../features/heroMonthStandings.js';
 
 // --- REIGNING PRODIGY CACHE (previous month, with tie-breaker) ---
 let _awardProdigyCacheKey = null;
@@ -239,13 +240,6 @@ function buildAwardClassContext(classId, studentsInClass) {
         return month > 0 && (Number(sc.totalStars) || 0) - month < 0.5;
     });
 
-    // Hero's Boon: the bottom three this month, or anyone sharing a monthly total with a classmate.
-    const leaderboard = studentsInClass.map((s) => ({ id: s.id, stars: Number(scoreMap.get(s.id)?.monthlyStars) || 0 }));
-    leaderboard.sort((a, b) => a.stars - b.stars);
-    const bottomThreeIds = new Set(leaderboard.slice(0, 3).map((x) => x.id));
-    const scoreCounts = {};
-    leaderboard.forEach((x) => { scoreCounts[x.stars] = (scoreCounts[x.stars] || 0) + 1; });
-    const monthlyById = new Map(leaderboard.map((x) => [x.id, x.stars]));
     const classBoonsToday = (state.get('allAwardLogs') || []).filter((l) =>
         l.classId === classId && l.date === today && l.reason === 'peer_boon'
     ).length;
@@ -267,9 +261,13 @@ function buildAwardClassContext(classId, studentsInClass) {
         totalSealed,
         scheduleDays: schoolClass?.scheduleDays || [],
         scoreMap,
-        bottomThreeIds,
-        scoreCounts,
-        monthlyById,
+        // Hero's Boon: the bottom three places on the Hero's Challenge board, or
+        // level on stars with a classmate. Worked out only when a cloud asks.
+        get boonEligibleIds() {
+            const ids = classHeroBoonEligibility(classId).eligibleIds;
+            Object.defineProperty(this, 'boonEligibleIds', { value: ids });
+            return ids;
+        },
         dailyLimitReached,
         absentTodaySet,
         absentPrevSet,
@@ -286,8 +284,7 @@ function buildAwardClassContext(classId, studentsInClass) {
 
 function isBoonEligible(ctx, studentId) {
     if (ctx.dailyLimitReached) return false;
-    const stars = ctx.monthlyById.get(studentId);
-    return ctx.bottomThreeIds.has(studentId) || (stars != null && ctx.scoreCounts[stars] > 1);
+    return ctx.boonEligibleIds.has(studentId);
 }
 
 function getHeroClassView(student, scoreData, ctx) {

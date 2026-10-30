@@ -3,6 +3,7 @@ import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
 import { buildHeroTieStats, pickProdigyWinners, rankHeroes } from '../../features/heroRanking.js';
+import { classHeroBoonEligibility } from '../../features/heroMonthStandings.js';
 import { showAnimatedModal } from './base.js';
 import {
     buildProdigyEmptyHtml,
@@ -746,36 +747,13 @@ export function openBestowBoonModal(receiverId) {
     }
 
     // --- RULE 2: ELIGIBILITY CHECK ---
-    // Criteria: Must be in Bottom 3 OR must be Tied with someone
-
+    // The bottom three places on the Hero's Challenge board, or level on stars
+    // with a classmate (features/heroBoonEligibility.js).
     const scores = state.get('allStudentScores');
     const studentsInClass = state.get('allStudents').filter(s => s.classId === receiver.classId);
+    const { eligibleIds, starsById } = classHeroBoonEligibility(receiver.classId);
 
-    // 1. Build Leaderboard
-    const leaderboard = studentsInClass.map(s => {
-        const scoreData = scores.find(sc => sc.id === s.id);
-        return {
-            id: s.id,
-            stars: scoreData ? (Number(scoreData.monthlyStars) || 0) : 0
-        };
-    });
-
-    // 2. Identify Bottom 3 Students (Sorted by lowest score)
-    leaderboard.sort((a, b) => a.stars - b.stars);
-    const bottomThreeIds = leaderboard.slice(0, 3).map(s => s.id);
-
-    // 3. Identify Tied Students (Anyone with a score shared by another)
-    const scoreCounts = {};
-    leaderboard.forEach(s => {
-        scoreCounts[s.stars] = (scoreCounts[s.stars] || 0) + 1;
-    });
-
-    const receiverData = leaderboard.find(s => s.id === receiverId);
-    const isTied = receiverData && scoreCounts[receiverData.stars] > 1;
-    const isBottomThree = bottomThreeIds.includes(receiverId);
-
-    // 4. Final Validation
-    if (!isBottomThree && !isTied) {
+    if (!eligibleIds.has(receiverId)) {
         showToast("Boons are for the Bottom 3 or Tied students only!", "error");
         return;
     }
@@ -824,13 +802,12 @@ export function openBestowBoonModal(receiverId) {
         select.innerHTML = placeholder + optionsHtml;
     }
     document.getElementById('boon-confirm-btn').disabled = true;
-    const receiverScore = scores.find(sc => sc.id === receiverId);
     renderBoonSponsorPicker(pickerOptions, {
         receiver: {
             id: receiver.id,
             name: receiver.name,
             avatar: receiver.avatar || '',
-            monthlyStars: Math.round((Number(receiverScore?.monthlyStars) || 0) * 10) / 10,
+            monthlyStars: starsById.get(receiverId) ?? 0,
             // The class's last lesson of the month: month stars stay sealed until the Ceremony.
             monthSealed: isMonthFinaleLesson(receiver.classId, monthFinaleContextFrom((key) => state.get(key)))
         },

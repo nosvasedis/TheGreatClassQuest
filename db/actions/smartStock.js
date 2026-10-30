@@ -57,7 +57,7 @@ export async function syncSmartStallStock(league) {
                     if (!snap.exists()) return null;
                     const data = snap.data() || {};
                     const update = {};
-                    if (charm && !data.charm) update.charm = charm;
+                    if (charm && data.charm !== charm) update.charm = charm;
                     if (needsResize(data, target, roster.children)) {
                         // A stall made before stock was counted has no stockMax: its tier's old size.
                         const before = Number(data.stockMax) > 0 ? Number(data.stockMax) : stockMaxForTier(tier);

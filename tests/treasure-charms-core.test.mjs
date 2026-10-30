@@ -119,3 +119,14 @@ test('a satchel entry keeps what the fair rules and the Hoard need', () => {
     assert.equal(entry.source, 'quiz_prize');
     assert.ok(TREASURE_CHARMS.rare.some((c) => c.id === entry.charm));
 });
+
+test('charms stay small lesson moments: no homework, tests, stars or Glory', () => {
+    const all = Object.values(TREASURE_CHARMS).flat();
+    all.forEach((charm) => {
+        const words = `${charm.title} ${charm.young} ${charm.older}`.toLowerCase();
+        assert.doesNotMatch(words, /\b(homework|skip|stars?|glory|gold|marks?|grades?)\b/);
+    });
+    // A retired charm on an old satchel entry falls back to a current one.
+    assert.ok(TREASURE_CHARMS.rare.some((c) => c.id === charmFor({ id: 'old', tier: 'rare', charm: 'shield' }).id));
+    assert.ok(TREASURE_CHARMS.legendary.some((c) => c.id === charmFor({ id: 'old', tier: 'legendary', charm: 'pass' }).id));
+});

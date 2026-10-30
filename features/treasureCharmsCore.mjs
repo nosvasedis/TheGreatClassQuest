@@ -3,6 +3,7 @@
 //
 // - Every seasonal or festival treasure carries one Charm: a small classroom privilege the
 //   child can call on once. The treasure stays in the collection; only the charm is spent.
+//   Charms are small lesson moments only: never stars, Glory, Gold, marks, homework or tests.
 // - Treasures fill the child's Collector's Hoard (points by rarity). Each new Hoard rank pays
 //   a little Gold once. Nothing here touches stars, Glory, goals or rankings.
 // - Stalls share copies fairly: one copy of a treasure per child, a rarity limit per child,
@@ -23,16 +24,16 @@ export const TREASURE_CHARMS = {
     ],
     rare: [
         { id: 'partner', icon: '🤝', title: 'Partner Pick', young: 'Choose your partner for the next pair game.', older: 'Choose your partner for the next pair activity.' },
-        { id: 'hint', icon: '🦉', title: "Wise Owl's Hint", young: 'Ask the teacher for one hint in an exercise.', older: 'Ask for one hint on any exercise or quiz question.' },
-        { id: 'shield', icon: '📝', title: 'Homework Shield', young: 'Skip one homework exercise you choose.', older: 'Skip one homework exercise of your choice.' },
+        { id: 'hint', icon: '🦉', title: "Wise Owl's Hint", young: 'Ask the teacher for one extra hint in a class exercise.', older: 'Ask for one extra hint in a class exercise (not in tests or quizzes).' },
+        { id: 'music', icon: '🎵', title: 'Music Keeper', young: 'Choose the song for tidy-up or quiet work.', older: 'Choose the background music for quiet work time.' },
         { id: 'captain', icon: '🛡️', title: 'Team Captain', young: 'Be captain in the next team game.', older: 'Be captain and name your team in the next team game.' },
         { id: 'spotlight', icon: '🎤', title: 'Spotlight Share', young: 'Show the class something you love.', older: 'Two minutes to share something you love, in English.' }
     ],
     legendary: [
         { id: 'teacher', icon: '🎓', title: 'Teacher for Five', young: 'Lead the class in a game for five minutes.', older: 'Lead the class for five minutes: a word game, a quiz or a story.' },
-        { id: 'decree', icon: '📯', title: 'Royal Decree', young: 'Choose the game for the end of the lesson.', older: 'Choose the class activity for the last ten minutes of a lesson.' },
+        { id: 'decree', icon: '📯', title: 'Royal Decree', young: 'Choose the game for the end of the lesson.', older: 'Choose the class game for the last ten minutes, from the ones the teacher offers.' },
         { id: 'desk', icon: '👑', title: "Teacher's Desk", young: "Sit at the teacher's desk for one lesson.", older: "Sit at the teacher's desk for one lesson." },
-        { id: 'pass', icon: '📜', title: 'Homework Pass', young: 'No homework for one lesson.', older: 'No homework for one lesson (tests and dictations still count).' }
+        { id: 'fame', icon: '🖼️', title: 'Wall of Fame', young: 'Your drawing goes up on the class wall for a week.', older: 'Your best work or drawing goes up on the class wall for a week.' }
     ]
 };
 
@@ -70,7 +71,8 @@ export function charmFor(item = {}) {
     const tier = normalizeTier(item.tier || (item.price !== undefined ? tierForPrice(item.price) : 'common'));
     const list = TREASURE_CHARMS[tier];
     const wanted = text(item.charm);
-    const named = wanted ? Object.values(TREASURE_CHARMS).flat().find((charm) => charm.id === wanted) : null;
+    // A retired charm (an id no longer in the lists) falls back to one of today's charms.
+    const named = wanted ? list.find((charm) => charm.id === wanted) : null;
     const charm = named || list[hashString(text(item.id) || text(item.name)) % list.length];
     return { ...charm, tier };
 }
@@ -92,10 +94,11 @@ export function assignStallCharms(items = []) {
     const out = new Map();
     groups.forEach(({ tier, rows }, key) => {
         const list = TREASURE_CHARMS[tier];
-        const used = new Set(rows.map((row) => text(row.charm)).filter(Boolean));
+        const valid = (row) => list.some((charm) => charm.id === text(row.charm));
+        const used = new Set(rows.filter(valid).map((row) => text(row.charm)));
         const start = hashString(key) % list.length;
         [...rows].sort((a, b) => text(a.id).localeCompare(text(b.id))).forEach((row) => {
-            if (text(row.charm)) return;
+            if (valid(row)) return;
             let pick = null;
             for (let i = 0; i < list.length && !pick; i += 1) {
                 const candidate = list[(start + i) % list.length];

@@ -1156,7 +1156,7 @@ Pre-Junior (5–7) · Junior A (7–8) · Junior B (8–9) · A (9–10) · B (1
 
 ## Τι κάνουν οι θησαυροί: Charms
 
-Κάθε εποχιακός και γιορτινός θησαυρός έχει ένα **Charm**: ένα μικρό προνόμιο μέσα στην τάξη, γραμμένο στην κάρτα του στο Market. Τα common είναι γρήγορα (Seat of Choice, Teacher's Helper, Game Chooser, Golden Pen, First Turn, Name Picker). Τα rare είναι πιο δυνατά (Partner Pick, Wise Owl's Hint, Homework Shield, Team Captain, Spotlight Share). Τα legendary είναι τα μεγάλα (Teacher for Five, Royal Decree, Teacher's Desk, Homework Pass). Οι μικρότερες leagues διαβάζουν πιο απλή διατύπωση.
+Κάθε εποχιακός και γιορτινός θησαυρός έχει ένα **Charm**: ένα μικρό προνόμιο μέσα στην τάξη, γραμμένο στην κάρτα του στο Market. Τα common είναι γρήγορα (Seat of Choice, Teacher's Helper, Game Chooser, Golden Pen, First Turn, Name Picker). Τα rare είναι πιο δυνατά (Partner Pick, Wise Owl's Hint, Music Keeper, Team Captain, Spotlight Share). Τα legendary είναι τα μεγάλα (Teacher for Five, Royal Decree, Teacher's Desk, Wall of Fame). Τα charms είναι μόνο μικρές στιγμές μέσα στο μάθημα: δεν αγγίζουν ποτέ αστέρια, Glory, Gold, βαθμούς, εργασίες ή τεστ. Οι μικρότερες leagues διαβάζουν πιο απλή διατύπωση.
 
 Ένα charm χρησιμοποιείται από το **Trophy Room** (ενότητα Charms). Η τάξη το βλέπει στη συνηθισμένη ειδοποίηση της εφαρμογής και εσύ το τιμάς στο μάθημα. Ο θησαυρός μένει στη συλλογή· ξοδεύεται μόνο το charm. Ένα charm ανά ήρωα τη μέρα και έως 3 ανά τμήμα τη μέρα. Θησαυροί που αγοράστηκαν πριν υπάρξουν τα charms έχουν ένα common charm.
 

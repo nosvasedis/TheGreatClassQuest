@@ -66,7 +66,7 @@ The monthly stall follows **this month’s classroom story** (September is harve
 
 ## What treasures do: Charms
 
-Every seasonal and festival treasure carries a **Charm**: one small classroom privilege, shown on its card in the Market. Common charms are quick (Seat of Choice, Teacher's Helper, Game Chooser, Golden Pen, First Turn, Name Picker). Rare charms are stronger (Partner Pick, Wise Owl's Hint, Homework Shield, Team Captain, Spotlight Share). Legendary charms are the big ones (Teacher for Five, Royal Decree, Teacher's Desk, Homework Pass). Younger leagues read simpler wording.
+Every seasonal and festival treasure carries a **Charm**: one small classroom privilege, shown on its card in the Market. Common charms are quick (Seat of Choice, Teacher's Helper, Game Chooser, Golden Pen, First Turn, Name Picker). Rare charms are stronger (Partner Pick, Wise Owl's Hint, Music Keeper, Team Captain, Spotlight Share). Legendary charms are the big ones (Teacher for Five, Royal Decree, Teacher's Desk, Wall of Fame). Charms are small lesson moments only: they never touch stars, Glory, Gold, marks, homework or tests. Younger leagues read simpler wording.
 
 Use a charm from the **Trophy Room** (Charms section). The class sees it in the app's normal notification, and you honour it in the lesson. The treasure stays in the collection; only the charm is spent. One charm per hero per day, and up to 3 per class per day. Treasures bought before charms existed carry a common charm.
 

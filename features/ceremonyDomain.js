@@ -191,12 +191,18 @@ export function buildGrowthPublicSequence({ classes = [], spotlights = [], pathf
     };
 }
 
-export function buildCeremonySnapshot({ classId, className, classLogo, questLeague, monthKey, schoolYearKey, classResults = [], studentResults = [], students = [], spotlightOptions = {}, snapshotVersion = 1, createdBy, risingStar = null } = {}) {
+export function buildCeremonySnapshot({ classId, className, classLogo, questLeague, monthKey, schoolYearKey, classResults = [], studentResults = [], students = [], spotlightOptions = {}, spotlights: givenSpotlights = null, snapshotVersion = 1, createdBy, risingStar = null } = {}) {
     const modeResult = resolveCeremonyMode(questLeague);
     if (!modeResult.ok) throw new Error(modeResult.reason);
     const winners = chooseCanonicalWinners({ classResults, studentResults });
-    const spotlights = modeResult.mode === CEREMONY_MODES.GROWTH ? buildGrowthSpotlights(students, spotlightOptions, { classId, monthKey, snapshotVersion }) : [];
-    const publicSequence = modeResult.mode === CEREMONY_MODES.GROWTH ? buildGrowthPublicSequence({ classes: classResults, spotlights, pathfinderId: winners.classWinner?.id, classId, monthKey, snapshotVersion }) : { classes: winners.classResults, students: winners.studentResults, risingStar: risingStar || null };
+    const growth = modeResult.mode === CEREMONY_MODES.GROWTH;
+    // Spotlights the live ceremony already built (with the month's logs) are kept as they are,
+    // in the same order, so a resumed garden tells the same bloom stories in the same order.
+    const given = growth && Array.isArray(givenSpotlights) && givenSpotlights.length ? givenSpotlights : null;
+    const spotlights = growth ? (given || buildGrowthSpotlights(students, spotlightOptions, { classId, monthKey, snapshotVersion })) : [];
+    const publicSequence = growth
+        ? { ...buildGrowthPublicSequence({ classes: classResults, spotlights, pathfinderId: winners.classWinner?.id, classId, monthKey, snapshotVersion }), ...(given ? { parade: given } : {}) }
+        : { classes: winners.classResults, students: winners.studentResults, risingStar: risingStar || null };
     return {
         schemaVersion: 1, schoolYearKey, classId, className, classLogo, questLeague, monthKey, mode: modeResult.mode, status: 'draft',
         classResults: winners.classResults, studentResultsPrivate: winners.studentResults, classWinner: winners.classWinner, prodigyWinners: winners.prodigyWinners,

@@ -416,8 +416,26 @@ export function playCeremonySfx(name) {
                 fx.brass.triggerAttackRelease(['D4', 'F#4', 'A4', 'D5'], 1.6, now + 0.05);
                 ['D6', 'A5', 'F#6', 'D7', 'A6'].forEach((note, i) => fx.bells.triggerAttackRelease(note, '8n', now + 0.1 + i * 0.07, 0.8));
                 break;
+            // ---- The Chronicle and the Honours of the Month ----
+            case 'scroll':
+                // A parchment unrolling: a soft low rush and a little run of wooden plucks.
+                fx.whooshFilter.frequency.cancelScheduledValues(now);
+                fx.whooshFilter.frequency.setValueAtTime(260, now);
+                fx.whooshFilter.frequency.exponentialRampToValueAtTime(900, now + 0.6);
+                fx.whooshNoise.triggerAttackRelease(0.6, now);
+                ['C4', 'E4', 'G4', 'C5'].forEach((note, i) => fx.pluck.triggerAttackRelease(note, '32n', now + 0.12 + i * 0.09));
+                break;
+            case 'pling': {
+                // One bright bell per hero, climbing a pentatonic ladder.
+                const ladder = ['C6', 'D6', 'E6', 'G6', 'A6', 'C7'];
+                plingStep = (plingStep + 1) % ladder.length;
+                fx.bells.triggerAttackRelease(ladder[plingStep], '16n', now, 0.55);
+                break;
+            }
             default:
                 break;
         }
     } catch (_) { /* audio node busy */ }
 }
+
+let plingStep = -1;

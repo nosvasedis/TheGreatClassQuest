@@ -17,7 +17,7 @@
 /* ---------------------------------------------------------------- shell in the garden */
 
 .cer-screen[data-mode="garden"] .cer-layout { padding-bottom: calc(var(--gdn-bed-h) + 10px); }
-.cer-screen[data-mode="garden"] .cer-topbar__crumb { font-family: var(--gdn-font); font-weight: 600; letter-spacing: 0.06em; color: #1e5a3a; }
+.cer-screen[data-mode="garden"] .cer-topbar__crumb { font-family: var(--gdn-font); font-weight: 600; letter-spacing: 0.06em; color: #1e5a3a; background: rgba(255, 255, 255, 0.7); border-color: rgba(255, 255, 255, 0.9); }
 .cer-screen[data-mode="garden"] .cer-keyhint { color: #1e5a3a; }
 .cer-screen[data-mode="garden"] .cer-keyhint kbd { border-color: rgba(30, 90, 58, 0.35); background: rgba(255, 255, 255, 0.6); }
 .cer-screen[data-mode="garden"] .cer-iconbtn { background: rgba(255, 255, 255, 0.75); border-color: rgba(255, 255, 255, 0.9); color: #15803d; }
@@ -97,6 +97,7 @@
 .cer-screen[data-realm="dusk"] .gdn-dusk-veil { opacity: 1; }
 .cer-screen[data-mode="garden"][data-realm="dusk"] .cer-topbar__crumb,
 .cer-screen[data-mode="garden"][data-realm="dusk"] .cer-keyhint { color: #fdf4ff; }
+.cer-screen[data-mode="garden"][data-realm="dusk"] .cer-topbar__crumb { background: rgba(49, 46, 129, 0.5); border-color: rgba(253, 244, 255, 0.3); }
 
 .gdn-cloud { position: absolute; fill: #fff; opacity: 0.92; }
 .gdn-cloud--a { top: 9%; left: -4%; width: clamp(120px, 16vw, 220px); animation: gdn-drift 60s linear infinite; }
@@ -585,4 +586,15 @@
     .gdn-butterfly { display: none; }
     .gdn-sun { top: 11%; right: -8%; width: 80px; }
     .gdn-flag { width: 16px; height: 22px; }
+}
+
+/* The league garden stays one row for any league size: pots and blooms share the width. */
+.gdn-league__row { flex-wrap: nowrap; gap: clamp(6px, 2vw, 32px); }
+.gdn-league__row .gdn-planter { width: clamp(80px, calc((100vw - 64px) / var(--n, 5) - 2vw), 160px); flex: none; }
+.gdn-league__row .gdn-bloom--pot { --size: clamp(56px, min(13vh, calc((100vw - 64px) / var(--n, 5) * 0.58)), 104px); }
+.gdn-league__row .gdn-tag { padding: 5px 8px; }
+.gdn-league__row .gdn-tag b { overflow-wrap: anywhere; }
+@media (max-height: 800px) {
+    .gdn-league__row .gdn-tag em { display: none; }
+    .gdn-league__row .gdn-planter__stem { height: clamp(22px, 4vh, 40px); }
 }

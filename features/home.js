@@ -1331,16 +1331,24 @@ function ceremonyPillHtml(cls, pending) {
     `;
 }
 
+function toast(message, kind) {
+    import('../ui/effects.js').then((fx) => fx.showToast(message, kind)).catch(() => {});
+}
+
 function wireCeremonyPill(classId) {
     const btn = document.getElementById('trigger-ceremony-btn');
     if (!btn) return;
     btn.onclick = (e) => {
         e.stopPropagation();
-        import('./ceremony.js').then(m => {
-            m.checkAndInitCeremony(classId).then(params => {
+        if (btn.dataset.opening) return;
+        btn.dataset.opening = '1';
+        import('./ceremony.js')
+            .then(m => m.checkAndInitCeremony(classId).then(params => {
                 if (params) m.startCeremony(params);
-            });
-        });
+                else toast('No ceremony is waiting for this class right now.', 'info');
+            }))
+            .catch(() => toast('The ceremony could not load. Check the connection and try again.', 'error'))
+            .finally(() => { delete btn.dataset.opening; });
     };
 }
 

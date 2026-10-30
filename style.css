@@ -148,8 +148,6 @@
 
 /* 31. Shared app effects + Ceremony of the Month (torchlit arena, storybook garden) */
 @import url('./styles/ceremony2.css');
-@import url('./styles/ceremony_arena.css');
-@import url('./styles/ceremony_garden.css');
 @import url('./styles/special_quests.css');
 @import url('./styles/quest_events.css');
 

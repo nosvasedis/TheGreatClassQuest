@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ceremony of the Month preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Fredoka+One&family=Lora:ital@0;1&family=Open+Sans:wght@400;600;700&family=Cinzel:wght@600;700;900&family=Cinzel+Decorative:wght@700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/node_modules/@fortawesome/fontawesome-free/css/all.min.css" />
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    html, body { margin: 0; min-height: 100%; background: #0f172a; }
+    .pv-toolbar { position: fixed; right: 10px; bottom: 10px; z-index: 99999; display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; border-radius: 14px; background: rgba(15, 23, 42, 0.82); font: 600 12px system-ui; max-width: 520px; }
+    .pv-toolbar a, .pv-toolbar button { border: 0; border-radius: 999px; padding: 5px 10px; font: inherit; cursor: pointer; background: #e2e8f0; color: #0f172a; text-decoration: none; }
+    body.pv-shot .pv-toolbar { display: none; }
+  </style>
+  <script>
+    // The preview pretends today is 2 November 2026 (?date=YYYY-MM-DD to change), so the
+    // October ceremony is the pending one.
+    (function () {
+      var q = new URLSearchParams(location.search).get('date') || '2026-11-02';
+      var Real = Date, base = new Real(q + 'T10:30:00').getTime(), start = Real.now();
+      function Fake() { var a = Array.prototype.slice.call(arguments); return a.length ? new (Function.prototype.bind.apply(Real, [null].concat(a)))() : new Real(base + (Real.now() - start)); }
+      Fake.prototype = Real.prototype; Fake.now = function () { return base + (Real.now() - start); }; Fake.UTC = Real.UTC; Fake.parse = Real.parse;
+      window.Date = Fake;
+    })();
+  </script>
+</head>
+<body>
+  <div id="toast-container"></div>
+  <div id="pv-app"></div>
+  <div class="pv-toolbar">
+    <a href="?league=A">Arena (League A)</a>
+    <a href="?league=D&amp;tie=1">League D, tied Prodigies</a>
+    <a href="?league=A&amp;cross=0&amp;classes=1">One class, no Portal</a>
+    <a href="?league=Pre-Junior">Garden (Pre-Junior)</a>
+    <a href="?league=A&amp;tier=lite">Arena, lite</a>
+    <button id="pv-restart" type="button">Restart</button>
+  </div>
+  <script type="module" src="/ceremony-preview.js"></script>
+</body>
+</html>

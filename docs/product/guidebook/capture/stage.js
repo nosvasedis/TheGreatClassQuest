@@ -1,3 +1,5 @@
+import '../../../../styles/ceremony_arena.css';
+import '../../../../styles/ceremony_garden.css';
 import { headerHTML, svgFiltersHTML } from '../../../../templates/app/header.js';
 import { navHTML } from '../../../../templates/app/nav.js';
 import { ceremonyHTML } from '../../../../templates/app/screens/ceremony.js';

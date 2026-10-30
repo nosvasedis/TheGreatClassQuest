@@ -1,5 +1,9 @@
 /* --- CEREMONY FEATURE STYLES --- */
 
+/* Any full-screen ceremony (Ceremony of the Month, Grand Guild Ceremony) hides the app behind it. */
+html.cer-open { overflow: hidden; }
+html.cer-open #app-screen { visibility: hidden; }
+
 /* Star Ring on Home Button when ceremony is ready */
 @keyframes ceremony-star-orbit {
     from { transform: rotate(0deg) translateX(28px) rotate(0deg); }

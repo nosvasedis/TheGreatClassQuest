@@ -176,7 +176,7 @@ export function gardenLeagueHtml(classes = [], { pathfinderId = null, myClassId 
             </div>
         </li>`;
     }).join('');
-    return `<div class="gdn-league"><ol class="gdn-league__row">${pots}</ol></div>`;
+    return `<div class="gdn-league"><ol class="gdn-league__row" style="--n:${list.length}">${pots}</ol></div>`;
 }
 
 export function gardenTransitionHtml() {

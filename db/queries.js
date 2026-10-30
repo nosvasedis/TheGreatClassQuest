@@ -128,6 +128,8 @@ export async function fetchLogsForMonth(year, month, options = {}) {
         } else {
             console.error("Error fetching logs for month:", error);
         }
+        // The Ceremony must not lock a month it could not read (it would lock zeros).
+        if (options.throwOnError) throw error;
         return [];
     }
 }

@@ -5,6 +5,8 @@
 // ceremonyArenaView.js / ceremonyGardenView.js; effects in ui/ceremonyFx.js;
 // sound in ceremonyAudio.js.
 
+import '../styles/ceremony_arena.css';
+import '../styles/ceremony_garden.css';
 import { db, updateDoc, setDoc, getDoc, doc, collection, getDocs, query, where } from '../firebase.js';
 import * as state from '../state.js';
 import {
@@ -42,6 +44,7 @@ import { getCeremonyStarVerdict, ensureCeremonyStarVerdict } from './ceremonySta
 import { rankForLevel } from './questRanksCore.mjs';
 import { buildQuestAscent, crossedPortalInMonth, hasNextQuestMonth, nextMonthKeyOf } from './ceremonyAscentCore.mjs';
 import { prepareCeremonySnapshot, lockCeremonySnapshot, saveCeremonyPlayback, ceremonySnapshotId, stripUndefinedDeep } from './ceremonySnapshots.js';
+import { buildMonthMoments, buildMonthHonours } from './ceremonyMomentsCore.mjs';
 import {
     arenaBackdropHtml,
     arenaIntroHtml,
@@ -190,14 +193,14 @@ async function loadCeremonyResults() {
     try {
         if (ceremonyData.snapshot && ['locked', 'completed'].includes(ceremonyData.snapshot.status)) {
             hydrateCeremonyFromSnapshot(ceremonyData.snapshot, ceremonyData.replay);
-            await loadQuestAscent();
+            await Promise.all([loadQuestAscent(), loadMonthMoments()]);
             ceremonyData.loaded = true;
             return true;
         }
         if (ceremonyData.mode === 'growth_festival') {
             await loadGrowthCeremonyData();
             await persistPreparedCeremonySnapshot();
-            await loadQuestAscent();
+            await Promise.all([loadQuestAscent(), loadMonthMoments()]);
             ceremonyData.loaded = true;
             return true;
         }
@@ -205,8 +208,9 @@ async function loadCeremonyResults() {
         const { monthStart } = getCeremonyMonthBounds(ceremonyData.monthKey);
         const allStudents = state.get('allStudents') || [];
         
-        // 1. Fetch Logs
-        const logs = await fetchLogsForMonth(year, month);
+        // 1. Fetch Logs (a failed read must stop here: the results are locked once prepared)
+        const logs = await fetchLogsForMonth(year, month, { throwOnError: true });
+        ceremonyData.monthLogs = logs;
         const { fetchMonthlyHistory } = await import('../state.js');
         const archived = await fetchMonthlyHistory(ceremonyData.monthKey).catch(() => ({}));
         const activeYearKey = state.getActiveSchoolYearKey();
@@ -305,11 +309,16 @@ async function loadCeremonyResults() {
             };
         })).map(({ stars, ...rest }) => rest);
 
+        // The class had stars that month (that is why the ceremony is offered), so a month that
+        // reads as completely empty is a read that went wrong (offline cache): never lock it.
+        if (!ceremonyData.replay && !logs.length && !Object.keys(archived || {}).length) {
+            throw new Error('The month read as empty; not locking the ceremony.');
+        }
         ceremonyData.studentQueue = studentStats.reverse();
         ceremonyData.risingStar = await findRisingStar(studentsInClass, logs, monthlyScores, studentStats);
         ceremonyData.phase = 'class_reveal';
         await persistPreparedCeremonySnapshot();
-        await loadQuestAscent();
+        await Promise.all([loadQuestAscent(), loadMonthMoments()]);
         ceremonyData.loaded = true;
         return true;
     } catch (e) {
@@ -431,6 +440,62 @@ async function loadQuestAscent() {
     }
 }
 
+/** Resolves `promise`, or `fallback` after `ms` (a slow read never holds the ceremony up). */
+function withinTime(promise, ms, fallback) {
+    return Promise.race([
+        Promise.resolve(promise).catch(() => fallback),
+        new Promise((resolve) => setTimeout(() => resolve(fallback), ms))
+    ]);
+}
+
+/**
+ * The Chronicle of the Month (the class's moments across the newer quests) and, in the
+ * Classic Arena, the Honours of the Month (Quiz Champions, Seal Bearers, new Legends).
+ * Read live like the Portal Ascent; anything that cannot be read in time is simply left out.
+ */
+async function loadMonthMoments() {
+    ceremonyData.moments = [];
+    ceremonyData.honours = null;
+    try {
+        const classId = ceremonyData.classId;
+        const monthKey = ceremonyData.monthKey;
+        const classData = (state.get('allSchoolClasses') || []).find((c) => c.id === classId);
+        if (!classData) return;
+        const [year, month] = monthKey.split('-').map(Number);
+        const students = (state.get('allStudents') || []).filter((s) => s.classId === classId && existedByMonthEnd(s, monthKey));
+        const scores = state.get('allStudentScores') || [];
+        const [logs, oaths, quizzes] = await Promise.all([
+            ceremonyData.monthLogs || withinTime(fetchLogsForMonth(year, month), 4000, []),
+            (state.get('allEmberOaths') || []).length
+                ? state.get('allEmberOaths')
+                : withinTime(import('../db/actions/emberOaths.js').then((m) => m.loadEmberOaths(classId)), 3500, []),
+            withinTime(import('../db/actions/quizOfTheWeek.js').then((m) => m.getQuizHistory(classId, 12)), 3500, [])
+        ]);
+        if (!ceremonyData.active || ceremonyData.classId !== classId) return;
+        const young = ceremonyData.mode === 'growth_festival' || utils.isYoungLearnerLeague(ceremonyData.league);
+        ceremonyData.moments = buildMonthMoments({
+            monthKey,
+            classData,
+            studentIds: students.map((s) => s.id),
+            logs: logs || [],
+            oaths: oaths || [],
+            bounties: state.get('allQuestBounties') || [],
+            quizzes: quizzes || [],
+            scores,
+            young
+        });
+        if (ceremonyData.mode !== 'growth_festival') {
+            const honours = buildMonthHonours({ monthKey, students, scores, quizzes: quizzes || [], classId });
+            ceremonyData.honours = honours.sections.length ? honours : null;
+        }
+        if (ceremonyData.moments.length || ceremonyData.honours) import('./ceremonyMoments.js').catch(() => {});
+    } catch (error) {
+        console.warn('Month moments skipped:', error);
+        ceremonyData.moments = [];
+        ceremonyData.honours = null;
+    }
+}
+
 async function loadDataAndAdvance() {
     const stage = $('ceremony-stage-area');
     if (ceremonyData.mode !== 'growth_festival') {
@@ -492,6 +557,8 @@ async function persistPreparedCeremonySnapshot() {
                 ? (ceremonyData.growthCanonicalStudentResults || [])
                 : (ceremonyData.studentQueue || []).map((item) => ({ ...item, count3: item.stats?.count3 ?? 0, count2: item.stats?.count2 ?? 0, uniqueReasons: item.stats?.uniqueReasons ?? 0, academicAvg: item.stats?.academicAvg ?? 0 })),
             students: ceremonyData.growthStudents || [],
+            // The bloom stories already worked out from the month (a resumed ceremony shows the same).
+            spotlights: ceremonyData.mode === 'growth_festival' ? (ceremonyData.growthSpotlights || []) : undefined,
             risingStar: ceremonyData.mode === 'growth_festival' ? null : (ceremonyData.risingStar || null),
             spotlightOptions: {},
             snapshotVersion: 1
@@ -506,12 +573,19 @@ async function persistPreparedCeremonySnapshot() {
 
 function persistCeremonyPlayback() {
     if (!ceremonyData.snapshot || !['locked', 'completed'].includes(ceremonyData.snapshot.status)) return;
-    void saveCeremonyPlayback(ceremonyData.classId, ceremonyData.monthKey, { phase: ceremonyData.phase, index: ceremonyData.growthPointer || ceremonyData.studentPointer || ceremonyData.classPointer || 0 }).catch(() => {});
+    const phase = ceremonyData.phase;
+    const index = phase === 'growth_parade' ? ceremonyData.growthPointer
+        : phase === 'student_reveal' ? ceremonyData.studentPointer
+            : phase === 'class_reveal' ? ceremonyData.classPointer : 0;
+    void saveCeremonyPlayback(ceremonyData.classId, ceremonyData.monthKey, { phase, index: Number(index) || 0 }).catch(() => {});
 }
 
 async function loadGrowthCeremonyData() {
     const [year, month] = ceremonyData.monthKey.split('-').map(Number);
-    const logs = await fetchLogsForMonth(year, month).catch(() => []);
+    // As in the arena: an unreadable month must not be locked into the snapshot.
+    const logs = await fetchLogsForMonth(year, month, { throwOnError: true });
+    if (!logs.length && !ceremonyData.replay) throw new Error('The month read as empty; not locking the ceremony.');
+    ceremonyData.monthLogs = logs;
     const previousDate = new Date(year, month - 2, 1);
     const previousLogs = await fetchLogsForMonth(previousDate.getFullYear(), previousDate.getMonth() + 1).catch(() => []);
     const students = (state.get('allStudents') || []).filter((student) => student.classId === ceremonyData.classId && student.enrollmentStatus !== 'inactive');
@@ -677,6 +751,7 @@ function setAction(label, handler, { disabled = false } = {}) {
     if (labelEl) labelEl.textContent = label;
     btn.disabled = disabled;
     btn.onclick = () => {
+        if (pressTooSoon()) return;
         if (finishTimeline()) return;
         handler?.();
     };
@@ -688,7 +763,7 @@ function setAction(label, handler, { disabled = false } = {}) {
 // `fast = true`, so a teacher is never stuck waiting for an animation.
 function runTimeline(steps, onDone) {
     cancelTimeline();
-    const tl = { steps: steps.map((step) => ({ ...step, done: false })), timers: [], onDone };
+    const tl = { steps: steps.map((step) => ({ ...step, done: false })), timers: [], onDone, startedAt: Date.now() };
     timeline = tl;
     const settle = () => {
         if (tl.steps.every((step) => step.done)) {
@@ -705,6 +780,16 @@ function runTimeline(steps, onDone) {
         }, step.at));
     });
     if (!tl.steps.length) settle();
+}
+
+// A quick double press (or a held Space) must not skip the moment it just opened:
+// presses that land right after the last one, or right as a timeline begins, are ignored.
+let lastPressAt = 0;
+function pressTooSoon() {
+    const now = Date.now();
+    const tooSoon = now - lastPressAt < 350 || (timeline && now - timeline.startedAt < 650);
+    if (!tooSoon) lastPressAt = now;
+    return tooSoon;
 }
 
 function finishTimeline() {
@@ -787,9 +872,10 @@ function handleCeremonyKeys(e) {
     if (e.target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
     if (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowRight') {
         e.preventDefault();
+        if (e.repeat) return;
         const btn = $('ceremony-action-btn');
         if (btn && !btn.disabled) btn.click();
-        else finishTimeline();
+        else if (!pressTooSoon()) finishTimeline();
     } else if (e.key === 'Escape') {
         e.preventDefault();
         closeCeremony();
@@ -886,6 +972,7 @@ export function startCeremony(params) {
 function closeCeremony() {
     ceremonyData.active = false;
     import('./familiarParade.js').then((m) => m.stopFamiliarParade()).catch(() => {});
+    if (screenEl()) delete screenEl().dataset.parade;
     cancelTimeline();
     window.removeEventListener('keydown', handleCeremonyKeys);
     stopCeremonyAudio({ fade: 0.6 });
@@ -919,7 +1006,10 @@ function ladderReset(type, upTo = 0) {
     ladder.dataset.type = type;
     screen.dataset.ladder = 'on';
     const queue = type === 'student' ? ceremonyData.studentQueue : ceremonyData.classQueue;
+    // A big class: slimmer tokens, and the newest one always in view.
+    ladder.dataset.dense = queue.length > 9 ? 'on' : 'off';
     queue.slice(0, upTo).forEach((entry) => ladder.insertAdjacentHTML('beforeend', arenaLadderTokenHtml(entry, type)));
+    ladder.scrollTop = ladder.scrollHeight;
 }
 
 function ladderAdd(entry, type) {
@@ -928,7 +1018,9 @@ function ladderAdd(entry, type) {
     ladder.insertAdjacentHTML('beforeend', arenaLadderTokenHtml(entry, type));
     const token = ladder.lastElementChild;
     token?.classList.add('is-new');
-    ladder.scrollTo?.({ left: ladder.scrollWidth, behavior: 'smooth' });
+    ladder.dataset.overflow = ladder.scrollHeight > ladder.clientHeight + 2 ? 'on' : 'off';
+    if (typeof ladder.scrollTo === 'function') ladder.scrollTo({ top: ladder.scrollHeight, behavior: 'smooth' });
+    else ladder.scrollTop = ladder.scrollHeight;
 }
 
 function ladderOff() {
@@ -1096,7 +1188,7 @@ function handleDuelReveal() {
         delete screen.dataset.spot;
     } });
     runTimeline(steps, () => {
-        setAction(finishedClassShowdown ? afterTeamQuestLabel() : (ceremonyData.risingStar ? 'One more star rises…' : 'Show Final Standings'), advanceCeremony);
+        setAction(finishedClassShowdown ? afterTeamQuestLabel() : afterHeroesLabel(), advanceCeremony);
     });
 }
 
@@ -1155,13 +1247,34 @@ async function renderRisingStar() {
 
 let ascentView = null;
 
+function hasMoments() {
+    return Boolean(ceremonyData.moments?.length);
+}
+
+function hasHonours() {
+    return Boolean(ceremonyData.honours?.sections?.length);
+}
+
 function afterTeamQuestPhase() {
-    return ceremonyData.ascent ? 'class_ascent' : 'transition';
+    if (ceremonyData.ascent) return 'class_ascent';
+    return hasMoments() ? 'class_moments' : 'transition';
 }
 
 function afterTeamQuestLabel() {
-    if (!ceremonyData.ascent) return "On to the Hero's Challenge";
-    return ceremonyData.ascent.crossed ? 'Our New Quest Rank ✦' : 'Our Next Quest';
+    if (ceremonyData.ascent) return ceremonyData.ascent.crossed ? 'Our New Quest Rank ✦' : 'Our Next Quest';
+    if (hasMoments()) return `The Chronicle of ${ceremonyData.monthName} 📜`;
+    return "On to the Hero's Challenge";
+}
+
+/** After the hero duel (or a lone hero): the Rising Star, the Honours, then the standings. */
+function afterHeroesPhase() {
+    if (ceremonyData.risingStar) return 'rising_star';
+    return hasHonours() ? 'honours' : 'final_leaderboard';
+}
+
+function afterHeroesLabel() {
+    if (ceremonyData.risingStar) return 'One more star rises…';
+    return hasHonours() ? 'Honours of the Month ✦' : 'Show Final Standings';
 }
 
 /**
@@ -1256,6 +1369,116 @@ async function renderAscent(nextLabel) {
     }
 }
 
+// ---------------------------------------------------------------- THE CHRONICLE AND THE HONOURS
+
+let momentsView = null;
+
+async function loadMomentsView() {
+    momentsView = momentsView || await import('./ceremonyMoments.js');
+    return momentsView;
+}
+
+/** The class's month across the newer quests: a scroll unrolls, then each moment is stamped in. */
+async function renderMoments(nextLabel) {
+    const stage = $('ceremony-stage-area');
+    const garden = ceremonyData.mode === 'growth_festival';
+    const tiles = ceremonyData.moments || [];
+    setAction('Unrolling the chronicle…', null, { disabled: true });
+    let view;
+    try { view = await loadMomentsView(); } catch (error) { console.warn('Chronicle view unavailable:', error); advanceCeremony(); return; }
+    if (!ceremonyData.active || !stage) return;
+    ladderOff();
+    silenceAICommentary();
+    setScene('moments', { realm: garden ? 'day' : 'ember' });
+    stage.innerHTML = view.monthMomentsHtml(tiles, { monthName: ceremonyData.monthName, className: ceremonyData.className, garden });
+    setHeading('', '');
+    setHerald('');
+    setAction(nextLabel, advanceCeremony);
+    stopCeremonyOneShots({ fade: 0.8 });
+    const theme = garden ? 'garden_theme' : 'arena_theme';
+    ceremonyData.music = theme;
+    playCeremonyTrack(theme, { fade: 1.2 });
+    duckCeremonyMusic(false);
+    const box = stage.querySelector('.cer-mom');
+    const items = [...stage.querySelectorAll('.cer-mom__tile')];
+    const gap = items.length > 5 ? 430 : 560;
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const steps = [{ at: 60, run: (fast) => { box?.classList.add('is-open'); if (!fast) playCeremonySfx('scroll'); } }];
+    items.forEach((tile, i) => steps.push({ at: 900 + i * gap, run: (fast) => {
+        tile.classList.remove('is-pending');
+        tile.classList.add('is-in');
+        countUp(tile.querySelector('.cer-count'), tile.querySelector('.cer-count')?.dataset.count, { fast, duration: 700 });
+        if (fast) return;
+        playCeremonySfx('stamp');
+        if (!reduced) {
+            const p = fxPoint(tile.querySelector('.cer-mom__seal'));
+            ceremonyFx?.burst(p.x, p.y, { colors: garden ? ['#fde68a', '#f9a8d4', '#ffffff'] : ['#fde68a', '#fca5a5', '#ffffff'], count: 22, speed: 150, gravity: 60 });
+        }
+    } }));
+    steps.push({ at: 900 + items.length * gap + 200, run: (fast) => {
+        const cheer = garden
+            ? `What a wonderful ${ceremonyData.monthName} we had together! 🌸`
+            : `${ceremonyData.monthName}, written in deeds. Well done, ${ceremonyData.className}!`;
+        setHerald(cheer);
+        if (!fast) playCeremonySfx(garden ? 'chime' : 'reveal');
+    } });
+    runTimeline(steps);
+}
+
+/** Named heroes of the month: Quiz Champions, Seal Bearers and new Legends. */
+async function renderHonours(nextLabel) {
+    const stage = $('ceremony-stage-area');
+    setAction('Calling the heroes…', null, { disabled: true });
+    let view;
+    try { view = await loadMomentsView(); } catch (error) { console.warn('Honours view unavailable:', error); advanceCeremony(); return; }
+    if (!ceremonyData.active || !stage) return;
+    ladderOff();
+    silenceAICommentary();
+    setScene('honours', { realm: 'violet' });
+    stage.innerHTML = view.monthHonoursHtml(ceremonyData.honours, { monthName: `${ceremonyData.monthName} · ${ceremonyData.className}` });
+    setHeading('', '');
+    setHerald('');
+    setAction(nextLabel, advanceCeremony);
+    stopCeremonyOneShots({ fade: 0.8 });
+    ceremonyData.music = 'heroes_theme';
+    playCeremonyTrack('heroes_theme', { fade: 1.2 });
+    const box = stage.querySelector('.cer-hon');
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const steps = [{ at: 40, run: (fast) => { box?.classList.add('is-open'); if (!fast) playCeremonySfx('whoosh'); } }];
+    let t = 500;
+    [...stage.querySelectorAll('.cer-hon__col')].forEach((col) => {
+        steps.push({ at: t, run: (fast) => {
+            col.classList.remove('is-pending');
+            col.classList.add('is-in');
+            if (!fast) playCeremonySfx('drop');
+        } });
+        t += 380;
+        const heroes = [...col.querySelectorAll('.cer-hon__hero')];
+        const each = heroes.length > 5 ? 170 : 260;
+        heroes.forEach((hero, i) => {
+            steps.push({ at: t + i * each, run: (fast) => {
+                hero.classList.remove('is-pending');
+                hero.classList.add('is-in');
+                if (fast) return;
+                if (i < 6) playCeremonySfx('pling');
+                if (!reduced && i < 4) {
+                    const p = fxPoint(hero.querySelector('.cer-hon__face-wrap'));
+                    ceremonyFx?.burst(p.x, p.y, { colors: METAL_SPARKS.gold, count: 14, speed: 120, gravity: 50 });
+                }
+            } });
+        });
+        t += heroes.length * each + 260;
+    });
+    steps.push({ at: t + 150, run: (fast) => {
+        setHerald(`Every one of them earned it. Bravo, heroes of ${ceremonyData.monthName}!`);
+        if (!fast) {
+            playCeremonySfx('fanfare');
+            if (!reduced) ceremonyFx?.stars({ count: 30, colors: ['#fef3c7', '#fde68a', '#c4b5fd'], duration: 2000 });
+        }
+    } });
+    runTimeline(steps);
+}
+
 function addAscentRibbon(host) {
     const ascent = ceremonyData.ascent;
     if (!host || !ascent || !(ascent.nextGoal > 0)) return;
@@ -1275,10 +1498,38 @@ function renderStandings() {
     } else {
         stage.innerHTML = arenaStandingsHtml(queue.slice().reverse(), { monthName: ceremonyData.monthName, risingStarId: ceremonyData.risingStar?.id || null });
         setHeading('', '');
+        glideStandings(stage.querySelector('.cer-roll__list'));
     }
     setHerald('');
     ceremonyFx?.confetti({ count: 70, duration: 1800 });
     playCeremonySfx('fanfare');
+}
+
+/**
+ * A long roll of honour glides down slowly once the rows are in, so the whole class is read
+ * out on the projector without anyone touching the scroll bar; it stops if the teacher scrolls.
+ */
+function glideStandings(list) {
+    if (!list || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    let stopped = false;
+    const stop = () => { stopped = true; };
+    list.addEventListener('wheel', stop, { once: true, passive: true });
+    list.addEventListener('pointerdown', stop, { once: true, passive: true });
+    const rows = list.children.length;
+    setTimeout(() => {
+        const distance = list.scrollHeight - list.clientHeight;
+        if (stopped || distance < 8 || !list.isConnected) return;
+        const speed = 34; // px per second: easy to read aloud
+        const start = performance.now();
+        const from = list.scrollTop;
+        const step = (now) => {
+            if (stopped || !list.isConnected || !ceremonyData.active) return;
+            const y = Math.min(distance, from + ((now - start) / 1000) * speed);
+            list.scrollTop = y;
+            if (y < distance) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+    }, 1400 + Math.min(rows, 14) * 70);
 }
 
 function renderArenaOutro() {
@@ -1348,8 +1599,15 @@ function advanceCeremony() {
     }
 
     if (ceremonyData.phase === 'class_ascent') {
+        ceremonyData.phase = hasMoments() ? 'class_moments' : 'transition';
+        renderAscent(hasMoments() ? `The Chronicle of ${ceremonyData.monthName} 📜` : "On to the Hero's Challenge");
+        return;
+    }
+
+    if (ceremonyData.phase === 'class_moments') {
         ceremonyData.phase = 'transition';
-        renderAscent("On to the Hero's Challenge");
+        if (!hasMoments()) { advanceCeremony(); return; }
+        renderMoments("On to the Hero's Challenge");
         return;
     }
 
@@ -1378,8 +1636,8 @@ function advanceCeremony() {
         if (queue.length === 1) {
             revealRank(queue[0], 'student');
             setHeading(ceremonyData.className, 'Class Hero');
-            ceremonyData.phase = 'final_leaderboard';
-            setAction('See Full Results', advanceCeremony);
+            ceremonyData.phase = afterHeroesPhase();
+            setAction(ceremonyData.phase === 'final_leaderboard' ? 'See Full Results' : afterHeroesLabel(), advanceCeremony);
             return;
         }
         const pointer = ceremonyData.studentPointer;
@@ -1410,17 +1668,26 @@ function advanceCeremony() {
     }
 
     if (ceremonyData.phase === 'student_showdown_done') {
-        ceremonyData.phase = ceremonyData.risingStar ? 'rising_star' : 'final_leaderboard';
+        ceremonyData.phase = afterHeroesPhase();
         advanceCeremony();
         return;
     }
 
     if (ceremonyData.phase === 'rising_star') {
-        ceremonyData.phase = 'final_leaderboard';
+        const next = hasHonours() ? 'honours' : 'final_leaderboard';
+        ceremonyData.phase = next;
+        if (!ceremonyData.risingStar) { advanceCeremony(); return; }
         setAction('Showing the Rising Star…', null, { disabled: true });
         renderRisingStar().finally(() => {
-            if (ceremonyData.active && ceremonyData.phase === 'final_leaderboard') setAction('Show Final Standings', advanceCeremony);
+            if (ceremonyData.active && ceremonyData.phase === next) setAction(next === 'honours' ? 'Honours of the Month ✦' : 'Show Final Standings', advanceCeremony);
         });
+        return;
+    }
+
+    if (ceremonyData.phase === 'honours') {
+        ceremonyData.phase = 'final_leaderboard';
+        if (!hasHonours()) { advanceCeremony(); return; }
+        renderHonours('Show Final Standings');
         return;
     }
 
@@ -1675,7 +1942,18 @@ function queueFamiliarParade() {
     setTimeout(() => {
         if (!ceremonyData.active || ceremonyData.classId !== classId) return;
         import('./familiarParade.js')
-            .then((m) => m.startFamiliarParade(classId, { host: screenEl() || document.body, muted: isCeremonyAudioMuted() }))
+            .then((m) => {
+                const screen = screenEl();
+                if (!m.startFamiliarParade(classId, { host: screen || document.body, muted: isCeremonyAudioMuted() }) || !screen) return;
+                // The companions walk along the bottom: the outro steps up and the herald rests.
+                screen.dataset.parade = 'on';
+                const watch = setInterval(() => {
+                    if (!screen.querySelector('.fam-parade') || !ceremonyData.active) {
+                        clearInterval(watch);
+                        delete screen.dataset.parade;
+                    }
+                }, 800);
+            })
             .catch((e) => console.warn('Familiar Parade could not start:', e));
     }, 2600);
 }
@@ -1711,6 +1989,9 @@ function advanceGrowthCeremony() {
         if (ceremonyData.ascent) {
             setAction(ceremonyData.ascent.crossed ? 'Our Garden Grows 🌱' : 'Our Next Adventure 🌱', advanceCeremony);
             ceremonyData.phase = 'growth_ascent';
+        } else if (hasMoments()) {
+            setAction(`Our ${ceremonyData.monthName} Story 📖`, advanceCeremony);
+            ceremonyData.phase = 'growth_moments';
         } else {
             setAction('Finish Ceremony 🌿', advanceCeremony);
             ceremonyData.phase = 'growth_end';
@@ -1718,8 +1999,14 @@ function advanceGrowthCeremony() {
         return;
     }
     if (ceremonyData.phase === 'growth_ascent') {
+        ceremonyData.phase = hasMoments() ? 'growth_moments' : 'growth_end';
+        renderAscent(hasMoments() ? `Our ${ceremonyData.monthName} Story 📖` : 'Finish Ceremony 🌿');
+        return;
+    }
+    if (ceremonyData.phase === 'growth_moments') {
         ceremonyData.phase = 'growth_end';
-        renderAscent('Finish Ceremony 🌿');
+        if (!hasMoments()) { advanceGrowthCeremony(); return; }
+        renderMoments('Finish Ceremony 🌿');
         return;
     }
     if (ceremonyData.phase === 'growth_end') {

@@ -255,12 +255,18 @@ export function leagueRoster(classes = [], students = [], league = '') {
     return { classIds: [...ids], sizes, children, classCount: inLeague.length };
 }
 
-/** New copy count after a resize, keeping every copy already sold sold. */
-export function resizedStock({ stock, stockMax, target }) {
+/**
+ * New copy count after a resize. Before a treasure's first sale it takes the league's size.
+ * Once it has sold, a resize can add copies but never takes away copies already on the shelf,
+ * so a stall that is selling never loses a treasure because the league count changed.
+ * `sold` is how many heroes own it; without it, the stall's own count is used.
+ */
+export function resizedStock({ stock, stockMax, target, sold = null }) {
     const max = Math.max(0, Math.floor(Number(stockMax) || 0));
     const left = Math.max(0, Math.floor(Number(stock) || 0));
-    const sold = Math.max(0, max - left);
-    return { stock: Math.max(0, target - sold), stockMax: target, sold };
+    const gone = Number.isFinite(Number(sold)) && sold !== null ? Math.max(0, Math.floor(Number(sold))) : Math.max(0, max - left);
+    const next = gone > 0 ? Math.max(left, target - gone) : target;
+    return { stock: next, stockMax: gone + next, sold: gone };
 }
 
 /** The stall an item or an owned treasure belongs to: one shelf of one league for one month or festival. */

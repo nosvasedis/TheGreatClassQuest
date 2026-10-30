@@ -26,6 +26,21 @@ function needsResize(item, target, children) {
     return Number(item.stockSizedFor) !== children || !(Number(item.stockMax) > 0);
 }
 
+/** How many of the teacher's heroes own this treasure (bought or won). */
+function ownersOf(itemId) {
+    return (state.get('allStudentScores') || []).reduce((sum, score) => sum + (Array.isArray(score?.inventory)
+        ? score.inventory.filter((entry) => entry?.id === itemId).length
+        : 0), 0);
+}
+
+/**
+ * The first version of smart stock could shrink a treasure that was already selling down to
+ * nothing (it vanished from the shelf). Give back the copies its original stall still had.
+ */
+function needsRepair(data) {
+    return Number(data.stockSizedFor) > 0 && shopItemStock(data) <= 0 && !data.stockRepaired;
+}
+
 export async function syncSmartStallStock(league) {
     const teacherId = state.get('currentUserId');
     if (!league || !teacherId || running.has(league)) return 0;
@@ -43,7 +58,7 @@ export async function syncSmartStallStock(league) {
             const target = smartStockMax({ tier, shelf: shopItemShelf(item), children: roster.children });
             return { item, tier, target, charm: charms.get(item.id) || '' };
         })
-        .filter(({ item, target, charm }) => charm || needsResize(item, target, roster.children));
+        .filter(({ item, target, charm }) => charm || needsResize(item, target, roster.children) || needsRepair(item));
     if (!work.length) return 0;
 
     running.add(league);
@@ -58,11 +73,19 @@ export async function syncSmartStallStock(league) {
                     const data = snap.data() || {};
                     const update = {};
                     if (charm && data.charm !== charm) update.charm = charm;
-                    if (needsResize(data, target, roster.children)) {
+                    const owners = ownersOf(item.id);
+                    if (needsRepair(data)) {
+                        const original = stockMaxForTier(tier) - owners;
+                        update.stockRepaired = true;
+                        if (original > 0) {
+                            Object.assign(update, { stock: original, stockMax: owners + original, soldOutAt: null });
+                        }
+                    } else if (needsResize(data, target, roster.children)) {
                         // A stall made before stock was counted has no stockMax: its tier's old size.
                         const before = Number(data.stockMax) > 0 ? Number(data.stockMax) : stockMaxForTier(tier);
-                        const next = resizedStock({ stock: shopItemStock(data), stockMax: before, target });
-                        Object.assign(update, { stock: next.stock, stockMax: next.stockMax, stockSizedFor: roster.children });
+                        const next = resizedStock({ stock: shopItemStock(data), stockMax: before, target, sold: owners });
+                        // stockRepaired: sized by today's rules, so a later sell-out is real and never "repaired".
+                        Object.assign(update, { stock: next.stock, stockMax: next.stockMax, stockSizedFor: roster.children, stockRepaired: true });
                         if (next.stock <= 0 && !data.soldOutAt) update.soldOutAt = new Date().toISOString();
                         if (next.stock > 0 && data.soldOutAt) update.soldOutAt = null;
                     }

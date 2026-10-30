@@ -63,8 +63,12 @@ test('smart stock follows the league size and keeps rare things rare', () => {
     assert.equal(smartStockMax({ tier: 'rare', children: 36 }), 2);
     assert.equal(smartStockMax({ tier: 'legendary', children: 36 }), 1);
     assert.equal(smartStockMax({ tier: 'legendary', shelf: 'festival', children: 36 }), 2);
-    assert.deepEqual(resizedStock({ stock: 3, stockMax: 5, target: 3 }), { stock: 1, stockMax: 3, sold: 2 });
-    assert.equal(resizedStock({ stock: 0, stockMax: 5, target: 3 }).stock, 0);
+    // Before the first sale the league size decides; after it, a resize never takes copies away.
+    assert.deepEqual(resizedStock({ stock: 5, stockMax: 5, target: 3 }), { stock: 3, stockMax: 3, sold: 0 });
+    assert.deepEqual(resizedStock({ stock: 3, stockMax: 5, target: 2, sold: 2 }), { stock: 3, stockMax: 5, sold: 2 });
+    assert.deepEqual(resizedStock({ stock: 2, stockMax: 5, target: 2, sold: 3 }), { stock: 2, stockMax: 5, sold: 3 });
+    assert.deepEqual(resizedStock({ stock: 1, stockMax: 2, target: 4, sold: 1 }), { stock: 3, stockMax: 4, sold: 1 });
+    assert.equal(resizedStock({ stock: 0, stockMax: 5, target: 3, sold: 5 }).stock, 0);
 });
 
 test('league roster counts only the classes that share the stall', () => {

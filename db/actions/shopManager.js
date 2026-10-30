@@ -91,7 +91,7 @@ export async function saveManagedShopItem(itemId, draft = {}) {
             stock: fields.stock,
             stockMax: fields.stockMax,
             // The teacher's count stands until the league's size changes.
-            ...(children > 0 ? { stockSizedFor: children } : {}),
+            ...(children > 0 ? { stockSizedFor: children, stockRepaired: true } : {}),
             ...(fields.stock > 0 ? { soldOutAt: null } : (item.soldOutAt ? {} : { soldOutAt: new Date().toISOString() }))
         });
         showToast(`${fields.name} is updated on the stall.`, 'success');

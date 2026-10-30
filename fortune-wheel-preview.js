@@ -39,6 +39,12 @@ const ARTIFACTS = [['🗡️', 'Blade of Dawn'], ['🔮', 'Seer’s Orb'], ['�
 Object.assign(wheelIo, {
     awardGlory: async (ids, n) => { ids.forEach((id) => monthGlory.set(id, (monthGlory.get(id) || 0) + n)); return byGuildOf(ids, n); },
     monthGlory: (id) => monthGlory.get(id) || 0,
+    // Pretend Chapter places: Owl Wisdom leads, then Grizzly, Dragon, Phoenix (?wind=0 turns it off).
+    wind: (gid) => {
+        if (params.get('wind') === '0') return { place: null, behind: 0, perHero: 0 };
+        const place = { owl_wisdom: 1, grizzly_might: 2, dragon_flame: 3, phoenix_rising: 4 }[gid] || 1;
+        return { place, behind: place - 1, perHero: (place - 1) * 0.5 };
+    },
     takeGlory: async (ids, n) => {
         const byGuild = {}; const byStudent = {};
         ids.forEach((id) => {

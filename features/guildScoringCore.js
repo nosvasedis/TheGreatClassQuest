@@ -232,6 +232,26 @@ export function rankChapter(tallies = {}) {
 }
 
 /**
+ * Comeback wind: each Wheel spin adds `perPlace` Glory per hero for every place a guild trails
+ * the live Chapter's leader (at most `maxPlaces`), so a guild that drew fewer star-collectors
+ * still has a real chance at a month. Effort (stars) stays the main way to win.
+ */
+export const COMEBACK_WIND = { perPlace: 0.5, maxPlaces: 3 };
+
+/**
+ * The wind for one guild, from rankChapter() of the live Chapter. A guild with no Glory yet
+ * counts as behind every guild that has some. Before anyone has Glory there is no wind.
+ */
+export function comebackWindFor(ranked = {}, guildId) {
+    const places = Object.values(ranked).map((r) => r?.place).filter((p) => Number(p) > 0);
+    const row = ranked[guildId];
+    if (!row || !places.length) return { place: null, behind: 0, perHero: 0 };
+    const place = row.place || Math.max(...places) + 1;
+    const behind = Math.min(COMEBACK_WIND.maxPlaces, Math.max(0, place - 1));
+    return { place, behind, perHero: roundTo(behind * COMEBACK_WIND.perPlace, 2) };
+}
+
+/**
  * Chapters that ended and still need sealing: keys some guild has data for, from `firstKey`
  * on, before the current Chapter, and not yet sealed on every guild.
  */

@@ -25,6 +25,7 @@ import {
     chapterKeyFromMonthKey,
     chapterTally,
     chaptersToSeal,
+    comebackWindFor,
     compareCrownRaceRows,
     countedGuildGlory,
     exactGuildGloryDelta,
@@ -713,6 +714,21 @@ export function getGuildLeaderboardData(now = new Date()) {
 
     rows.sort(compareCrownRaceRows);
     return rows;
+}
+
+/** This guild's comeback wind for a Wheel spin now (none before the Crown Race's first Chapter). */
+export function getComebackWind(guildId, now = new Date()) {
+    const schoolYearKey = state.getActiveSchoolYearKey();
+    const liveKey = chapterKeyFor(now);
+    const firstKey = getFirstCrownChapter(schoolYearKey);
+    if (firstKey && liveKey < firstKey) return { place: null, behind: 0, perHero: 0 };
+    const allGuildScores = state.get('allGuildScores') || {};
+    const members = _memberIdsByGuild();
+    const tallies = Object.fromEntries(GUILD_IDS.map((gid) => [gid,
+        chapterTally(guildChapterBook(allGuildScores[gid] || {}, schoolYearKey).chapters[liveKey] || {}, members[gid])]));
+    // Guilds with no members anywhere can't race, so they don't count as places ahead.
+    const racing = Object.fromEntries(Object.entries(tallies).filter(([, t]) => t.memberCount > 0));
+    return comebackWindFor(rankChapter(racing), guildId);
 }
 
 /** The Chapter keys the Crown Road shows for this school year. */

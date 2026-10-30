@@ -1652,6 +1652,7 @@
 .fw-hero__b--star:not(.is-neg) { color: #fef08a; background: rgba(250, 204, 21, 0.16); }
 .fw-hero__b--artifact { max-width: 100%; color: #e9d5ff; background: rgba(168, 85, 247, 0.18); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fw-hero__b--safe { color: #cbd5e1; background: rgba(148, 163, 184, 0.16); font-weight: 600; }
+.fw-hero__b--wind { color: #bae6fd; background: rgba(125, 211, 252, 0.16); }
 
 /* The Fortune Ledger: every hero's first name under each card */
 .fw-summary-item.is-envoy .fw-summary-guild small {
@@ -1873,4 +1874,50 @@
 
 @media (max-width: 520px) {
     .fw-heroes__list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ── Comeback wind: a guild behind the Chapter's leader gets a little extra on every spin ── */
+
+.fw-wheel-legend__wind {
+    display: flex;
+    gap: 0.45rem;
+    align-items: flex-start;
+    margin-top: 0.55rem;
+    padding: 0.45rem 0.6rem;
+    border-radius: 0.6rem;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    color: #e0f2fe;
+    background: linear-gradient(90deg, rgba(125, 211, 252, 0.16), rgba(30, 41, 89, 0.4));
+    border: 1px solid rgba(125, 211, 252, 0.4);
+}
+
+.fw-wheel-legend__wind > span:first-child {
+    font-size: 1rem;
+    animation: fw-wind-sway 2.6s ease-in-out infinite;
+}
+
+.fw-wheel-legend__wind b { color: #bae6fd; }
+
+.fw-result-wind {
+    margin: 0.45rem auto 0;
+    padding: 0.35rem 0.75rem;
+    max-width: 30rem;
+    border-radius: 0.7rem;
+    font-size: 0.8rem;
+    line-height: 1.35;
+    color: #e0f2fe;
+    background: rgba(125, 211, 252, 0.12);
+    border: 1px dashed rgba(125, 211, 252, 0.5);
+}
+
+@keyframes fw-wind-sway {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(3px); }
+}
+
+#fortunes-wheel-modal.fw--lite .fw-wheel-legend__wind > span:first-child { animation: none; }
+
+@media (prefers-reduced-motion: reduce) {
+    .fw-wheel-legend__wind > span:first-child { animation: none; }
 }

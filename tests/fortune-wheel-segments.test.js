@@ -297,3 +297,27 @@ test('a guild with no heroes in the class gets the Envoy, and the result card ne
   assert.doesNotMatch(wheelSrc, /\+\$\{overflow\w*\} more/);
   assert.doesNotMatch(wheelSrc, /MAX_SHOWN/);
 });
+
+// ─── Comeback wind (2026-10-30) ───
+
+test('comeback wind: +0.5 Glory per hero for each place behind the Chapter leader, none for the leader or before anyone scores', async () => {
+  const { comebackWindFor, rankChapter, COMEBACK_WIND } = await import('../features/guildScoringCore.js');
+  assert.equal(COMEBACK_WIND.perPlace, 0.5);
+  const t = (perMember) => ({ perMember, unity: false });
+  const ranked = rankChapter({ a: t(10), b: t(8), c: t(8), d: t(0) });
+  assert.deepEqual(comebackWindFor(ranked, 'a'), { place: 1, behind: 0, perHero: 0 });
+  assert.equal(comebackWindFor(ranked, 'b').perHero, 0.5);
+  assert.equal(comebackWindFor(ranked, 'c').perHero, 0.5, 'tied guilds share the place and the wind');
+  assert.deepEqual(comebackWindFor(ranked, 'd'), { place: 3, behind: 2, perHero: 1 }, 'no Glory yet: behind every guild that has some');
+  assert.equal(comebackWindFor(rankChapter({ a: t(4), b: t(3), c: t(2), d: t(1) }), 'd').perHero, 1.5);
+  assert.equal(comebackWindFor(rankChapter({ a: t(0), b: t(0) }), 'a').perHero, 0, 'no wind before anyone has Glory');
+  assert.equal(comebackWindFor(ranked, 'zz').perHero, 0);
+});
+
+test('the wheel adds the comeback wind after the fate, never for the Envoy, and shows it before and after the spin', () => {
+  assert.match(wheelSrc, /if \(!envoy && wind\?\.perHero > 0 && guildStudents\.length\)/);
+  assert.match(wheelSrc, /wheelIo\.awardGlory\(guildStudents\.map\(\(s\) => s\.id\), wind\.perHero, 'wheel_comeback_wind'/);
+  assert.match(wheelSrc, /_wheelState\.wind = _wheelState\.envoy \? null : wheelIo\.wind\(guildId\)/);
+  assert.match(wheelSrc, /fw-wheel-legend__wind/);
+  assert.match(wheelSrc, /fw-result-wind/);
+});

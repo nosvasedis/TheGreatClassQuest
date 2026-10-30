@@ -332,7 +332,7 @@ async function omenStage(cardEl, opts) {
             <div class="fwx-omen-sky" aria-hidden="true"><i></i><i></i><i></i></div>
             ${headHtml({ family: 'omen', kicker: '✦ An Omen ✦', emoji: segment.emoji, title: segment.label, guild })}
             <p class="fwx-text">${esc(segment.description)}</p>
-            <p class="fwx-hint fwx-hint--omen"><i class="fa-solid fa-wand-sparkles" aria-hidden="true"></i> Answer one question together. Get it right and the comet bursts into stardust: <b>+1 Glory each</b> instead!</p>
+            <p class="fwx-hint fwx-hint--omen"><i class="fa-solid fa-wand-sparkles" aria-hidden="true"></i> Answer one question together. Get it right and the comet bursts into stardust: <b>+2 Glory each</b> instead!</p>
             <div class="fwx-actions">
                 <button type="button" class="fwx-btn fwx-btn--omen" data-act="brave"><i class="fa-solid fa-wand-sparkles" aria-hidden="true"></i> Face the comet</button>
                 <button type="button" class="fwx-btn fwx-btn--quiet" data-act="accept">Let it fall</button>
@@ -342,7 +342,7 @@ async function omenStage(cardEl, opts) {
     if (act !== 'brave') return { braved: false, attempted: false };
     const passed = await trialStep(cardEl, {
         family: 'omen', kicker: 'Turn the comet to stardust', emoji: '✨', title: segment.label,
-        win: 'Stardust: +1 Glory each', lose: 'The comet crashes: −3 each', kind: 'riddle', band, extra: opts.extra, sfx, sound, guild,
+        win: 'Stardust: +2 Glory each', lose: 'The comet crashes: −5 each', kind: 'riddle', band, extra: opts.extra, sfx, sound, guild,
     });
     return { braved: passed, attempted: true };
 }
@@ -360,7 +360,7 @@ async function dragonStage(cardEl, opts) {
             <p class="fwx-text">A dragon sleeps on a mountain of gold. Do you dare to wake it?</p>
             <div class="fwx-options">
                 <button type="button" class="fwx-option" data-act="walk"><b>Tiptoe away</b><span>+1 Glory for each guildmate here</span></button>
-                <button type="button" class="fwx-option fwx-option--risk" data-act="wake"><b>Wake the dragon!</b><span>A friendly dragon: +5 Glory each · A grumpy one: −2 Glory each</span></button>
+                <button type="button" class="fwx-option fwx-option--risk" data-act="wake"><b>Wake the dragon!</b><span>A friendly dragon: +8 Glory each · A grumpy one: −4 Glory each</span></button>
             </div>
         </div>`;
     const { act } = await nextAction(cardEl);
@@ -374,7 +374,7 @@ async function dragonStage(cardEl, opts) {
     try { drum?.stop?.(); } catch (_) { /* optional */ }
     root.classList.add(won ? 'is-friendly' : 'is-grumpy');
     try { sfx?.(won ? 'chest' : 'thunder'); sound?.(won ? 'quiz_correct' : 'quiz_wrong'); } catch (_) { /* optional */ }
-    root.insertAdjacentHTML('beforeend', `<div class="fwx-verdict fwx-verdict--${won ? 'win' : 'lose'}">${won ? 'A FRIENDLY DRAGON! +5 Glory each' : 'A GRUMPY DRAGON! −2 Glory each'}</div>`);
+    root.insertAdjacentHTML('beforeend', `<div class="fwx-verdict fwx-verdict--${won ? 'win' : 'lose'}">${won ? 'A FRIENDLY DRAGON! +8 Glory each' : 'A GRUMPY DRAGON! −4 Glory each'}</div>`);
     await wait(1500);
     return { choice: 'wake', won };
 }

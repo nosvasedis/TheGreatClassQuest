@@ -37,12 +37,14 @@ const byGuildOf = (ids, n) => ids.reduce((acc, id) => { const g = students.find(
 const pick = (list, n) => [...list].sort(() => Math.random() - 0.5).slice(0, Math.min(n, list.length));
 const ARTIFACTS = [['🗡️', 'Blade of Dawn'], ['🔮', 'Seer’s Orb'], ['🪶', 'Phoenix Quill'], ['🛡️', 'Aegis of Owls'], ['📿', 'Moonstone Charm']];
 Object.assign(wheelIo, {
-    awardGlory: async (ids, n) => byGuildOf(ids, n),
+    awardGlory: async (ids, n) => { ids.forEach((id) => monthGlory.set(id, (monthGlory.get(id) || 0) + n)); return byGuildOf(ids, n); },
+    monthGlory: (id) => monthGlory.get(id) || 0,
     takeGlory: async (ids, n) => {
         const byGuild = {}; const byStudent = {};
         ids.forEach((id) => {
             const take = Math.min(n, monthGlory.get(id) || 0);
             if (!take) return;
+            monthGlory.set(id, (monthGlory.get(id) || 0) - take);
             byStudent[id] = take;
             const g = students.find((s) => s.id === id).guildId;
             byGuild[g] = (byGuild[g] || 0) + take;
@@ -77,7 +79,7 @@ wheelTestHooks.segments = (segs, { envoy, catalog: all }) => {
         const at = out.findIndex((s) => ['common', 'uncommon', 'envoy'].includes(s.rarity));
         out[at >= 0 ? at : 0] = { ...full, paletteIndex: 0 };
     };
-    if (params.has('omen') && !envoy && !out.some((s) => s.rarity === 'omen')) put(['falling_comet', 'eclipse', 'golden_dawn', 'dragons_wager'][Math.floor(Math.random() * 4)]);
+    if (params.has('omen') && !envoy && !out.some((s) => s.rarity === 'omen')) put((o => o[Math.floor(Math.random() * o.length)])(['falling_comet', 'eclipse', 'golden_dawn', 'dragons_wager', 'shadow_thief', 'swap_of_fates', 'topsy_turvy', 'the_void']));
     if (wanted && (envoy === (wanted.rarity === 'envoy'))) put(wanted.id);
     return out;
 };

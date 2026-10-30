@@ -132,7 +132,7 @@ test('storms are small: never stars or artifacts, and never on a gilded wheel', 
     assert.doesNotMatch(storm.line, /randomStars|randomArtifact|starsAndGold|starsDelta|artifact/i, `${storm.id} touches only Glory or gold`);
     assert.match(storm.line, /stormGlory\(|loseGold\(/, `${storm.id} is a small loss`);
     const losses = [...storm.line.matchAll(/stormGlory\(\w+, (\d+)/g)].map((m) => Number(m[1]));
-    losses.forEach((n) => assert.ok(n <= 2, `${storm.id} takes at most 2 Glory each`));
+    losses.forEach((n) => assert.ok(n <= 3, `${storm.id} takes at most 3 Glory each`));
     const gold = [...storm.line.matchAll(/loseGold\(\w+, (\d+), (\d+)/g)].map((m) => Number(m[1]) * Number(m[2]));
     gold.forEach((n) => assert.ok(n <= 20, `${storm.id} takes at most 20 gold in all`));
   }
@@ -213,6 +213,10 @@ function withOmens(catalog) {
     { id: 'falling_comet', rarity: 'omen', weight: 2, harsh: true, favoredOk: false },
     { id: 'eclipse', rarity: 'omen', weight: 2, harsh: true, favoredOk: false },
     { id: 'dragons_wager', rarity: 'omen', weight: 2, harsh: true },
+    { id: 'shadow_thief', rarity: 'omen', weight: 2, harsh: true, favoredOk: false },
+    { id: 'swap_of_fates', rarity: 'omen', weight: 1, harsh: true, favoredOk: false },
+    { id: 'topsy_turvy', rarity: 'omen', weight: 1, harsh: true, favoredOk: false },
+    { id: 'the_void', rarity: 'omen', weight: 1, harsh: true, favoredOk: false },
   ];
 }
 
@@ -236,36 +240,55 @@ test('Omens are rare: at most one per wheel, about a third of wheels, and never 
   }
 });
 
-test('the Envoy\'s wheel: only gifts, every gift at least once, no twin side by side', async () => {
-  const { composeEnvoyWheel } = await loadSegments();
-  const catalog = [...buildCatalog(), ...['dove', 'map', 'parcel', 'letter', 'banner', 'lantern', 'feast', 'jest'].map((id, i) => ({ id: `envoy_${id}`, rarity: 'envoy', weight: i < 3 ? 3 : 1 }))];
-  for (let i = 0; i < 300; i += 1) {
-    const segs = composeEnvoyWheel(catalog, { size: 10 });
-    assert.equal(segs.length, 10);
+test('the Envoy\'s wheel: every wedge once, the rare trick on about a third of wheels, no twin or two tolls side by side', async () => {
+  const { composeEnvoyWheel, ENVOY_RARE_CHANCE } = await loadSegments();
+  const gifts = ['dove', 'map', 'parcel', 'letter', 'banner', 'lantern', 'feast', 'jest'].map((id, i) => ({ id: `envoy_${id}`, rarity: 'envoy', weight: i < 3 ? 3 : 1 }));
+  const tolls = ['toll', 'spy', 'fog'].map((id) => ({ id: `envoy_${id}`, rarity: 'envoy', harsh: true, weight: 1 }));
+  const trick = { id: 'envoy_trick', rarity: 'envoy', harsh: true, envoyRare: true, weight: 1 };
+  const catalog = [...buildCatalog(), ...gifts, ...tolls, trick];
+  let tricks = 0;
+  for (let i = 0; i < 1500; i += 1) {
+    const segs = composeEnvoyWheel(catalog);
+    assert.equal(segs.length, 14);
     assert.ok(segs.every((s) => s.rarity === 'envoy'));
-    assert.equal(new Set(segs.map((s) => s.id)).size, 8);
-    segs.forEach((s, k) => assert.notEqual(s.id, segs[(k + 1) % segs.length].id));
+    [...gifts, ...tolls].forEach((g) => assert.ok(segs.some((s) => s.id === g.id), `${g.id} on the wheel`));
+    tolls.forEach((t) => assert.equal(segs.filter((s) => s.id === t.id).length, 1, 'each toll once'));
+    const t = segs.filter((s) => s.id === 'envoy_trick').length;
+    assert.ok(t <= 1);
+    tricks += t;
+    segs.forEach((s, k) => {
+      const next = segs[(k + 1) % segs.length];
+      assert.notEqual(s.id, next.id);
+      assert.ok(!(s.harsh && next.harsh), 'two tolls side by side');
+    });
   }
+  assert.ok(Math.abs(tricks / 1500 - ENVOY_RARE_CHANCE) < 0.05, `${tricks} of 1500 Envoy wheels had the trick`);
 });
 
-test('live Omens: big but capped, harsh ones only take this month\'s Glory; Envoy gifts never take anything', () => {
+test('live Omens: big but capped at OMEN_MAX_SWING, harsh ones only take this month\'s Glory; the Envoy can take a little', () => {
   const omens = wedges.filter((w) => w.rarity === 'omen');
-  assert.ok(omens.length >= 6, 'omens');
+  assert.ok(omens.length >= 10, 'omens');
   assert.ok(omens.some((w) => /harsh: true/.test(w.line)), 'some Omens can take Glory');
   assert.ok(omens.some((w) => !/harsh: true/.test(w.line)), 'some Omens only give');
   omens.filter((w) => /favoredOk: false/.test(w.line)).forEach((w) => assert.match(w.line, /harsh: true/));
+  ['shadow_thief', 'swap_of_fates', 'topsy_turvy', 'the_void'].forEach((id) => assert.ok(omens.some((w) => w.id === id && /harsh: true/.test(w.line) && /favoredOk: false/.test(w.line)), id));
   const known = new Set([...fs.readFileSync(path.join(__dirname, '..', 'features', 'wheelStages.js'), 'utf8').matchAll(/kind === '([a-z]+)'/g)].map((m) => m[1]));
   omens.filter((w) => w.stage).forEach((w) => assert.ok(known.has(w.stage), `${w.id} → ${w.stage}`));
-  // every Glory loss in the effects goes through stormGlory, capped at 3 each
-  const effects = wheelSrc.split('// ── Omens ──')[1].split('// ── The Envoy')[0];
-  [...effects.matchAll(/stormGlory\([^,]+, (\d+)/g)].forEach((m) => assert.ok(Number(m[1]) <= 3, 'an Omen takes at most 3 Glory each'));
-  [...wheelSrc.matchAll(/stormGlory\(ctx, (\d+), 'The comet/g)].forEach((m) => assert.ok(Number(m[1]) <= 3));
+  const max = Number(wheelSrc.match(/export const OMEN_MAX_SWING = (\d+);/)[1]);
+  assert.ok(max >= 5 && max <= 10, 'a big swing, still kind to kids');
+  // every flat Glory loss goes through stormGlory and stays within the cap; varied ones through _takeEach, which clamps to it
+  const effects = wheelSrc.split('// ── Omens ──')[1].split('// ── Treasure helpers')[0];
+  [...effects.matchAll(/stormGlory\([^,]+, (\d+)/g)].forEach((m) => assert.ok(Number(m[1]) <= max));
+  assert.match(wheelSrc, /Math\.min\(n, OMEN_MAX_SWING, _monthGlory\(s\.id\)\)/, 'a loss never exceeds the cap or this month\'s Glory');
+  assert.match(wheelSrc, /Math\.min\(OMEN_MAX_SWING, Math\.round\(Math\.abs\(avgA - avgB\)\)\)/, 'a swap moves at most the cap per hero');
+  assert.doesNotMatch(effects, /takeGlory\((?!\[s\.id\])/, 'Omens and the Envoy take only through _takeEach');
 
   const envoy = wedges.filter((w) => w.rarity === 'envoy');
-  assert.ok(envoy.length >= 6, 'envoy gifts');
-  envoy.forEach((w) => assert.doesNotMatch(w.line, /stormGlory|loseGold|harsh/, `${w.id} never takes anything`));
-  const envoyEffects = wheelSrc.split('// ── The Envoy\'s wheel ──')[1].split('// ── Treasure helpers')[0];
-  assert.doesNotMatch(envoyEffects, /stormGlory|loseGold|takeGlory|goldDelta: -/);
+  assert.ok(envoy.length >= 12, 'envoy wedges');
+  const harsh = envoy.filter((w) => /harsh: true/.test(w.line));
+  assert.ok(harsh.length >= 3 && harsh.length <= envoy.length / 3, 'the Envoy mostly gives');
+  assert.equal(envoy.filter((w) => /envoyRare: true/.test(w.line)).length, 1);
+  envoy.filter((w) => !/harsh: true/.test(w.line)).forEach((w) => assert.doesNotMatch(w.line, /Toll|Spy|Fog|topsy/i, `${w.id} is a gift`));
 });
 
 test('a guild with no heroes in the class gets the Envoy, and the result card never hides heroes behind "+N more"', () => {

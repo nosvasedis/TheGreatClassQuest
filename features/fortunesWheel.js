@@ -5,7 +5,7 @@ import { db, doc, updateDoc } from '../firebase.js';
 import { GUILD_IDS, getGuildById, getGuildEmblemUrl } from './guilds.js';
 import { WHEEL_RARITY_WEIGHTS, WHEEL_PRISMATIC_CONFIG, getRarityPalette } from '../constants.js';
 import { saveFortuneWheelResult, hasSpunThisWeek } from '../db/actions/guilds.js';
-import { getISOWeekKey, updateGuildScores, awardGloryToStudents, takeGloryFromStudents, getGuildMemberCounts } from './guildScoring.js';
+import { getISOWeekKey, updateGuildScores, awardGloryToStudents, takeGloryFromStudents, chapterGloryOf, getGuildMemberCounts } from './guildScoring.js';
 import { chapterKeyFor } from './guildScoringCore.js';
 import { composeWheel, composeEnvoyWheel, wheelModeFor } from '../utils/fortuneWheelSegments.mjs';
 import { challengeBand } from '../utils/wheelChallenges.mjs';
@@ -26,6 +26,7 @@ import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 export const wheelIo = {
     awardGlory: awardGloryToStudents,
     takeGlory: takeGloryFromStudents,
+    monthGlory: chapterGloryOf,
     studentEffects: applyWheelStudentEffects,
     questBonus: applyClassQuestBonusDelta,
     starGlory: updateGuildScores,
@@ -59,11 +60,13 @@ function _luminance(hex) {
  *   storm:  a small loss: a little Glory or gold. Some storms can be braved with a right answer.
  *   omen:   super rare (about one wheel in three hides one): a big swing of Glory. The bright
  *           ones (phoenix, golden dawn, wishing star) lift a guild; the `harsh` ones (comet,
- *           eclipse, dragon's wager, scales) can take Glory, still only Glory earned this month.
- *           The Eclipse and the Scales hit whoever leads the class this month, so they help the
- *           guilds behind catch up. Calm and gilded wheels only carry bright Omens.
- *   envoy:  a guild with no heroes in the class sends its Envoy instead: a wheel of gifts for
- *           every hero in the class, whatever their guild, and never a loss.
+ *           eclipse, dragon's wager, scales, thief, swaps, the Void) can take Glory or move it
+ *           between guilds, still only Glory earned this month and at most OMEN_MAX_SWING per hero.
+ *           The Eclipse, the Scales and the Thief hit whoever leads the class this month, so they
+ *           help the guilds behind catch up. Calm and gilded wheels only carry bright Omens.
+ *   envoy:  a guild with no heroes in the class sends its Envoy instead: a wheel for every hero
+ *           in the class, whatever their guild. Mostly gifts, a few tolls (`harsh`), and one
+ *           rare trick (`envoyRare`) that swaps the top and bottom guilds' Glory.
  *
  * Fair by design: Glory always goes to (or comes from) each guild member in the spinning class,
  * so every child in every guild faces the same chances, whatever the guild's size. A storm only
@@ -145,18 +148,21 @@ const ALL_SEGMENTS = [
     { id: 'leaky_pouch',       emoji: '🕳️', label: 'Leaky Pouch',        description: '3 guildmates drop 5 gold each.',                         rarity: 'storm', category: 'storm', stage: 'storm', brave: false, weight: 3, favoredOk: false, effect: (ctx) => loseGold(ctx, 3, 5, 'A hole in the pouch!') },
     { id: 'goblin_toll',       emoji: '👺', label: "Goblin's Toll",      description: '2 guildmates pay the goblin 10 gold each.',              rarity: 'storm', category: 'storm', stage: 'storm', brave: true,  weight: 2, favoredOk: false, effect: (ctx, d) => (d?.braved ? braved(ctx, 'The goblin grumbles and runs off empty-handed!') : loseGold(ctx, 2, 10, 'The goblin collects its toll.')) },
     { id: 'rockslide',         emoji: '🪨', label: 'Rockslide',          description: '−1 Glory each, and 2 guildmates drop 5 gold.',           rarity: 'storm', category: 'storm', stage: 'storm', brave: true,  weight: 2, favoredOk: false, effect: (ctx, d) => (d?.braved ? braved(ctx, 'The rocks roll past the guild!') : combo(ctx, [(c) => stormGlory(c, 1), (c) => loseGold(c, 2, 5)], 'Rockslide! A little Glory and gold tumble away.')) },
-    { id: 'thunderclap',       emoji: '⛈️', label: 'Thunderclap',        description: '−2 Glory for each guildmate here. No shelter from this one!', rarity: 'storm', category: 'storm', stage: 'storm', brave: false, weight: 1, favoredOk: false, effect: (ctx) => stormGlory(ctx, 2, 'Thunder shakes the hall!') },
+    { id: 'thunderclap',       emoji: '⛈️', label: 'Thunderclap',        description: '−3 Glory for each guildmate here. No shelter from this one!', rarity: 'storm', category: 'storm', stage: 'storm', brave: false, weight: 1, favoredOk: false, effect: (ctx) => stormGlory(ctx, 3, 'Thunder shakes the hall!') },
 
     // ── Omens: super rare, big swings of Glory ────────────────────────────────
-    { id: 'wishing_star',      emoji: '🌠', label: 'Wishing Star',       description: 'The rarest light in the sky: +6 Glory for each guildmate here!', rarity: 'omen', category: 'omen', weight: 1, effect: (ctx) => classGlory(ctx, 6, 'A wishing star falls into the guild hall!', 'wish') },
-    { id: 'golden_dawn',       emoji: '🌅', label: 'Golden Dawn',        description: '+3 Glory for each guildmate here, and +1 Glory for every other hero in the class!', rarity: 'omen', category: 'omen', weight: 2, effect: (ctx) => goldenDawn(ctx) },
-    { id: 'phoenix_rising',    emoji: '🔥', label: 'Phoenix Rising',     description: '+2 Glory each, or +5 each if the guild is last in this class this month or a storm hit it last time!', rarity: 'omen', category: 'omen', weight: 2, effect: (ctx) => phoenixRising(ctx) },
-    { id: 'falling_comet',     emoji: '☄️', label: 'Falling Comet',      description: 'A comet falls: −3 Glory each! Answer together and it bursts into stardust: +1 Glory each instead.', rarity: 'omen', category: 'omen', stage: 'omen', brave: true, harsh: true, weight: 2, favoredOk: false, effect: (ctx, d) => fallingComet(ctx, d) },
-    { id: 'eclipse',           emoji: '🌑', label: 'The Eclipse',        description: 'The shadow falls on the brightest guild in this class this month: −2 Glory for each of its heroes here.', rarity: 'omen', category: 'omen', harsh: true, weight: 2, favoredOk: false, effect: (ctx) => eclipse(ctx) },
-    { id: 'scales_of_fate',    emoji: '⚖️', label: 'Scales of Fate',     description: 'Behind the leader? +3 Glory each. Leading this class? −1 each, and the last guild here gets +2 each.', rarity: 'omen', category: 'omen', harsh: true, weight: 2, favoredOk: false, effect: (ctx) => scalesOfFate(ctx) },
-    { id: 'dragons_wager',     emoji: '🐉', label: "Dragon's Wager",     description: 'Walk away with +1 Glory each, or wake the dragon: +5 Glory each… or −2 each!', rarity: 'omen', category: 'omen', stage: 'dragon', harsh: true, weight: 2, effect: (ctx, d) => dragonsWager(ctx, d) },
-
-    // ── The Envoy's wheel: a guild with no heroes here sends gifts for the whole class ──
+    { id: 'wishing_star',      emoji: '🌠', label: 'Wishing Star',       description: 'The rarest light in the sky: +8 Glory for each guildmate here!', rarity: 'omen', category: 'omen', weight: 1, effect: (ctx) => classGlory(ctx, 8, 'A wishing star falls into the guild hall!', 'wish') },
+    { id: 'golden_dawn',       emoji: '🌅', label: 'Golden Dawn',        description: '+4 Glory for each guildmate here, and +1 Glory for every other hero in the class!', rarity: 'omen', category: 'omen', weight: 2, effect: (ctx) => goldenDawn(ctx) },
+    { id: 'phoenix_rising',    emoji: '🔥', label: 'Phoenix Rising',     description: '+2 Glory each, or +6 each if the guild is last in this class this month or a storm hit it last time!', rarity: 'omen', category: 'omen', weight: 2, effect: (ctx) => phoenixRising(ctx) },
+    { id: 'falling_comet',     emoji: '☄️', label: 'Falling Comet',      description: 'A comet falls: −5 Glory each! Answer together and it bursts into stardust: +2 Glory each instead.', rarity: 'omen', category: 'omen', stage: 'omen', brave: true, harsh: true, weight: 2, favoredOk: false, effect: (ctx, d) => fallingComet(ctx, d) },
+    { id: 'eclipse',           emoji: '🌑', label: 'The Eclipse',        description: 'The shadow falls on the brightest guild in this class this month: −4 Glory for each of its heroes here.', rarity: 'omen', category: 'omen', harsh: true, weight: 2, favoredOk: false, effect: (ctx) => eclipse(ctx) },
+    { id: 'scales_of_fate',    emoji: '⚖️', label: 'Scales of Fate',     description: 'Behind the leader? +3 Glory each. Leading this class? −3 each, and the last guild here gets +4 each.', rarity: 'omen', category: 'omen', harsh: true, weight: 2, favoredOk: false, effect: (ctx) => scalesOfFate(ctx) },
+    { id: 'dragons_wager',     emoji: '🐉', label: "Dragon's Wager",     description: 'Walk away with +1 Glory each, or wake the dragon: +8 Glory each… or −4 each!', rarity: 'omen', category: 'omen', stage: 'dragon', harsh: true, weight: 2, effect: (ctx, d) => dragonsWager(ctx, d) },
+    { id: 'shadow_thief',      emoji: '🦹', label: 'Shadow Thief',       description: 'A thief steals up to 3 Glory from each hero of the class leader and hands it to this guild. If this guild leads, it is robbed for the last guild instead!', rarity: 'omen', category: 'omen', harsh: true, weight: 2, favoredOk: false, effect: (ctx) => shadowThief(ctx) },
+    { id: 'swap_of_fates',     emoji: '🔄', label: 'Swap of Fates',      description: 'This guild and another guild here trade places: their Glory this month swaps (up to 8 per hero). Lucky if you are behind!', rarity: 'omen', category: 'omen', harsh: true, weight: 1, favoredOk: false, effect: (ctx) => swapOfFates(ctx) },
+    { id: 'topsy_turvy',       emoji: '🙃', label: 'Topsy-Turvy',        description: 'The top and bottom guilds in this class swap their Glory this month (up to 8 per hero)!', rarity: 'omen', category: 'omen', harsh: true, weight: 1, favoredOk: false, effect: (ctx) => topsyTurvy(ctx) },
+    { id: 'the_void',          emoji: '🌌', label: 'The Void',           description: 'The rarest dark sky: the Void swallows half of each guildmate\'s Glory this month (up to 8 each).', rarity: 'omen', category: 'omen', harsh: true, weight: 1, favoredOk: false, effect: (ctx) => theVoid(ctx) },
+    // ── The Envoy's wheel: a guild with no heroes here sends gifts (and a few tolls) for the whole class ──
     { id: 'envoy_dove',        emoji: '🕊️', label: 'Peace Dove',         description: 'Every hero in this class earns +1 Glory for their own guild.', rarity: 'envoy', category: 'envoy', weight: 3, effect: (ctx) => envoyGlory(ctx, 1) },
     { id: 'envoy_map',         emoji: '🗺️', label: "Envoy's Map",        description: 'A map from far away: +4 Team Quest bonus stars for the class!', rarity: 'envoy', category: 'envoy', weight: 3, effect: (ctx) => classQuestBonus(ctx, 4) },
     { id: 'envoy_parcel',      emoji: '📦', label: "Envoy's Parcel",     description: 'One hero from every guild in this class gets +10 gold.', rarity: 'envoy', category: 'envoy', weight: 3, effect: (ctx) => envoyPerGuild(ctx, { gold: 10 }) },
@@ -164,6 +170,10 @@ const ALL_SEGMENTS = [
     { id: 'envoy_banner',      emoji: '🚩', label: 'Distant Banner',     description: 'The envoy cheers for the underdog: +2 Glory for each hero of the guild that is last in this class this month.', rarity: 'envoy', category: 'envoy', weight: 1, effect: (ctx) => envoyBanner(ctx) },
     { id: 'envoy_lantern',     emoji: '🏮', label: 'Wishing Lantern',    description: 'One hero from every guild in this class gets +1 star!', rarity: 'envoy', category: 'envoy', weight: 1, effect: (ctx) => envoyPerGuild(ctx, { stars: 1 }) },
     { id: 'envoy_feast',       emoji: '🍯', label: "Travellers' Feast",  description: 'Every hero in this class gets +5 gold!', rarity: 'envoy', category: 'envoy', weight: 1, effect: (ctx) => envoyGold(ctx, Infinity, 5) },
+    { id: 'envoy_toll',        emoji: '🧾', label: "Envoy's Toll",       description: 'The envoy collects a toll: −1 Glory from every hero in this class (only Glory earned this month).', rarity: 'envoy', category: 'envoy', harsh: true, weight: 1, effect: (ctx) => envoyToll(ctx, 1) },
+    { id: 'envoy_spy',         emoji: '🕵️', label: 'Spy from Afar',      description: 'A spy slips into the leading guild\'s camp: −3 Glory for each of its heroes here.', rarity: 'envoy', category: 'envoy', harsh: true, weight: 1, effect: (ctx) => envoySpy(ctx, 3) },
+    { id: 'envoy_fog',         emoji: '🌫️', label: 'Sour Fog',           description: 'A fog rolls in from far away: one hero from every guild here drops 10 gold.', rarity: 'envoy', category: 'envoy', harsh: true, weight: 1, effect: (ctx) => envoyFog(ctx, 10) },
+    { id: 'envoy_trick',       emoji: '🃏', label: "Envoy's Trick",      description: 'The rarest card in the envoy\'s sleeve: the top and bottom guilds in this class swap their Glory this month (up to 8 per hero)!', rarity: 'envoy', category: 'envoy', harsh: true, envoyRare: true, weight: 1, effect: (ctx) => topsyTurvy(ctx, 'envoy_trick') },
     { id: 'envoy_jest',        emoji: '🤹', label: "Envoy's Juggling",   description: 'The envoy juggles for the class. Big laughs, and nothing else changes!', rarity: 'envoy', category: 'envoy', weight: 1, effect: () => ({ gloryDelta: 0, echo: { kind: 'none' }, description: 'The envoy juggles three apples and a teapot. The whole class laughs, and nothing else changes!' }) },
 ];
 
@@ -179,6 +189,9 @@ export function getWheelCatalog() {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const _round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+
+/** The most Glory a single fate can move for one hero, up or down (losses only from this month's Glory). */
+export const OMEN_MAX_SWING = 8;
 
 /**
  * Notes what one hero received or lost in this fate. The card then shows every hero touched,
@@ -477,18 +490,18 @@ async function geniesWish(ctx, d = {}) {
 // ── Omens ─────────────────────────────────────────────────────────────────────
 
 async function fallingComet(ctx, d = {}) {
-    if (d.braved) return { ...(await classGlory(ctx, 1, 'The comet burst into stardust!', 'comet')), braved: true, echo: { kind: 'none' }, decision: 'Turned to stardust' };
-    return { ...(await stormGlory(ctx, 3, 'The comet crashes into the guild hall!', 'comet')), echo: { kind: 'none' }, decision: d.attempted ? 'So close! The comet fell' : null };
+    if (d.braved) return { ...(await classGlory(ctx, 2, 'The comet burst into stardust!', 'comet')), braved: true, echo: { kind: 'none' }, decision: 'Turned to stardust' };
+    return { ...(await stormGlory(ctx, 5, 'The comet crashes into the guild hall!', 'comet')), echo: { kind: 'none' }, decision: d.attempted ? 'So close! The comet fell' : null };
 }
 
 async function goldenDawn(ctx) {
-    const mine = await classGlory(ctx, 3, '', 'dawn');
+    const mine = await classGlory(ctx, 4, '', 'dawn');
     const others = _classHeroes(ctx.classId).filter((s) => s.guildId !== ctx.guildId);
     await giveGlory(ctx, others, 1, 'dawn_all');
     return {
         ...mine,
         description: others.length
-            ? `A golden dawn rises over the class! +3 Glory for each guildmate here, and +1 Glory for the ${others.length} other hero${others.length === 1 ? '' : 'es'} in the class.`
+            ? `A golden dawn rises over the class! +4 Glory for each guildmate here, and +1 Glory for the ${others.length} other hero${others.length === 1 ? '' : 'es'} in the class.`
             : `A golden dawn rises over the guild! ${mine.description}`,
     };
 }
@@ -497,10 +510,10 @@ async function phoenixRising(ctx) {
     const { lastAlone } = _standingsShape(ctx.classId);
     const isLast = lastAlone === ctx.guildId;
     const burned = !isLast && stormHitLastTime(ctx.guildId, ctx.classId);
-    const n = isLast || burned ? 5 : 2;
+    const n = isLast || burned ? 6 : 2;
     const r = await classGlory(ctx, n, '', 'phoenix');
     const why = isLast ? 'The guild was last in this class, so the phoenix rises high:' : burned ? 'The guild rises from last week\'s storm:' : 'The phoenix spreads its wings:';
-    return { ...r, decision: n === 5 ? 'Risen from the ashes' : null, description: `${why} +${n} Glory for each guildmate here (+${r.gloryDelta} for the guild).` };
+    return { ...r, decision: n === 6 ? 'Risen from the ashes' : null, description: `${why} +${n} Glory for each guildmate here (+${r.gloryDelta} for the guild).` };
 }
 
 async function eclipse(ctx) {
@@ -509,7 +522,7 @@ async function eclipse(ctx) {
     let own = { gloryDelta: 0, affectedStudents: [] };
     const lines = [];
     for (const gid of targets) {
-        const r = await stormGlory({ ...ctx, guildId: gid, guildStudents: _classMembersOf(gid, ctx.classId) }, 2, '', `eclipse_${gid}`);
+        const r = await stormGlory({ ...ctx, guildId: gid, guildStudents: _classMembersOf(gid, ctx.classId) }, 4, '', `eclipse_${gid}`);
         if (gid === ctx.guildId) own = r;
         lines.push(r.gloryDelta < 0 ? `${_guildName(gid)} loses ${-r.gloryDelta} Glory` : `${_guildName(gid)} had no Glory this month to lose`);
     }
@@ -536,20 +549,189 @@ async function scalesOfFate(ctx) {
         return { ...r, decision: 'The scales lift you', description: `The scales tip toward the guilds behind: +3 Glory for each guildmate here (+${r.gloryDelta} for the guild).` };
     }
     const last = st[0].gid;
-    const taken = await stormGlory(ctx, 1, '', 'scales');
-    await giveGlory(ctx, _classMembersOf(last, ctx.classId), 2, 'scales_give');
+    const taken = await stormGlory(ctx, 3, '', 'scales');
+    await giveGlory(ctx, _classMembersOf(last, ctx.classId), 4, 'scales_give');
     return {
         ...taken,
         echo: { kind: 'none' },
         decision: `Leaders humbled, ${_guildName(last)} lifted`,
-        description: `This guild leads the class, so the scales tip the other way: ${taken.gloryDelta < 0 ? `the guild gives ${-taken.gloryDelta} Glory` : 'nobody here had Glory to give'}, and each ${_guildName(last)} hero here earns +2 Glory.`,
+        description: `This guild leads the class, so the scales tip the other way: ${taken.gloryDelta < 0 ? `the guild gives ${-taken.gloryDelta} Glory` : 'nobody here had Glory to give'}, and each ${_guildName(last)} hero here earns +4 Glory.`,
     };
 }
 
 async function dragonsWager(ctx, d = {}) {
     if (d.choice !== 'wake') return { ...(await classGlory(ctx, 1, 'The guild tiptoed away from the sleeping dragon.', 'dragon')), echo: { kind: 'none' }, decision: 'Walked away' };
-    if (d.won) return { ...(await classGlory(ctx, 5, 'The dragon roars with joy and shares its hoard!', 'dragon')), echo: { kind: 'none' }, decision: 'Woke the dragon: a friend!' };
-    return { ...(await stormGlory(ctx, 2, 'The dragon snorts smoke over the guild!', 'dragon')), echo: { kind: 'none' }, decision: 'Woke the dragon: grumpy!' };
+    if (d.won) return { ...(await classGlory(ctx, 8, 'The dragon roars with joy and shares its hoard!', 'dragon')), echo: { kind: 'none' }, decision: 'Woke the dragon: a friend!' };
+    return { ...(await stormGlory(ctx, 4, 'The dragon snorts smoke over the guild!', 'dragon')), echo: { kind: 'none' }, decision: 'Woke the dragon: grumpy!' };
+}
+
+/** This month's Glory for one hero: all a loss can ever reach. */
+function _monthGlory(studentId) {
+    return Math.max(0, Number(wheelIo.monthGlory(studentId)) || 0);
+}
+
+/** Average Glory this month per hero of `heroes` (this class's heroes of one guild). */
+function _avgMonthGlory(heroes) {
+    return heroes.length ? heroes.reduce((sum, s) => sum + _monthGlory(s.id), 0) / heroes.length : 0;
+}
+
+/**
+ * Takes a different amount from each hero (`plan`: [{ s, n }]), never more than they earned this
+ * month. Heroes with nothing to lose show the 🛡️. Returns what was taken, per guild and in total.
+ */
+async function _takeEach(ctx, plan, tag, source = 'wheel_storm') {
+    const byGuild = {};
+    let total = 0;
+    for (const { s, n } of plan) {
+        const ask = _round2(Math.min(n, OMEN_MAX_SWING, _monthGlory(s.id)));
+        let took = 0;
+        if (ask > 0) {
+            const r = await wheelIo.takeGlory([s.id], ask, source, {
+                classId: ctx.classId,
+                note: "Fortune's Wheel",
+                idempotencyPrefix: ctx.spinKey ? `${ctx.spinKey}_${tag}` : null,
+            });
+            took = _round2(r?.byStudent?.[s.id]);
+        }
+        if (took > 0) {
+            _mark(ctx, s.id, { glory: -took });
+            byGuild[s.guildId] = _round2((byGuild[s.guildId] || 0) + took);
+            total = _round2(total + took);
+        } else {
+            _mark(ctx, s.id, { spared: true });
+        }
+    }
+    return { byGuild, total };
+}
+
+const _heroWord = (n) => `hero${n === 1 ? '' : 'es'}`;
+
+/**
+ * Two guilds trade places: the guild with more Glory per hero here this month gives each of its
+ * heroes' difference away (only Glory they have), and each hero of the other guild gains it.
+ * The swing is rounded to whole Glory and capped at OMEN_MAX_SWING per hero.
+ */
+async function _swapGuilds(ctx, gA, gB, tag) {
+    const heroesA = _classMembersOf(gA, ctx.classId);
+    const heroesB = _classMembersOf(gB, ctx.classId);
+    const avgA = _avgMonthGlory(heroesA);
+    const avgB = _avgMonthGlory(heroesB);
+    const swing = Math.min(OMEN_MAX_SWING, Math.round(Math.abs(avgA - avgB)));
+    if (!swing) return { swing: 0, avgA, avgB, net: {} };
+    const [rich, richHeroes, poor, poorHeroes] = avgA > avgB ? [gA, heroesA, gB, heroesB] : [gB, heroesB, gA, heroesA];
+    const taken = await _takeEach(ctx, richHeroes.map((s) => ({ s, n: swing })), `${tag}_from`, 'wheel_swap');
+    await giveGlory(ctx, poorHeroes, swing, `${tag}_to`, 'wheel_swap');
+    return {
+        swing, avgA, avgB, rich, poor,
+        net: { [rich]: -(taken.byGuild[rich] || 0), [poor]: _round2(swing * poorHeroes.length) },
+    };
+}
+
+const _per = (n) => `${_round2(n)}`;
+
+/** Shadow Thief: Glory moves from the class leader's heroes to this guild (or from this guild, if it leads, to the last). */
+async function shadowThief(ctx) {
+    const members = ctx.guildStudents || [];
+    if (!members.length) return { gloryDelta: 0, echo: { kind: 'none' }, description: 'The thief found no one here to rob.' };
+    const { soleLeader, st } = _standingsShape(ctx.classId);
+    let victim = soleLeader && soleLeader !== ctx.guildId ? soleLeader : null;
+    let winner = ctx.guildId;
+    if (soleLeader === ctx.guildId) {
+        victim = ctx.guildId;
+        winner = st[0].gid;
+    } else if (!victim) {
+        const others = st.map((x) => x.gid).filter((g) => g !== ctx.guildId);
+        victim = others.length ? others[Math.floor(Math.random() * others.length)] : null;
+    }
+    if (!victim) {
+        const r = await classGlory(ctx, 1, '', 'thief');
+        return { ...r, echo: { kind: 'none' }, decision: 'Nobody to rob', description: `The thief finds no other guild here to rob and leaves a coin of thanks: +1 Glory for each guildmate here.` };
+    }
+    const victimHeroes = _classMembersOf(victim, ctx.classId);
+    const winnerHeroes = _classMembersOf(winner, ctx.classId);
+    const taken = await _takeEach(ctx, victimHeroes.map((s) => ({ s, n: 3 })), 'thief_from', 'wheel_thief');
+    if (!taken.total) {
+        return { gloryDelta: 0, echo: { kind: 'none' }, decision: 'An empty sack', description: `The thief sneaks into ${_guildName(victim)}'s camp… but nobody there has Glory this month. The sack stays empty!` };
+    }
+    const each = Math.min(OMEN_MAX_SWING, Math.floor((taken.total / winnerHeroes.length) * 100) / 100);
+    await giveGlory(ctx, winnerHeroes, each, 'thief_to', 'wheel_thief');
+    const robbedSelf = victim === ctx.guildId;
+    return {
+        gloryDelta: robbedSelf ? -taken.total : _round2(each * winnerHeroes.length),
+        stormHit: robbedSelf,
+        echo: { kind: 'none' },
+        decision: robbedSelf ? `Robbed for ${_guildName(winner)}` : `Stole from ${_guildName(victim)}`,
+        description: robbedSelf
+            ? `This guild leads the class, so the thief robs it: ${taken.total} Glory slips away from its heroes here, and each ${_guildName(winner)} hero (last in the class) catches +${_per(each)} Glory.`
+            : `The thief sneaks out of ${_guildName(victim)}'s camp with ${taken.total} Glory, and each guildmate here catches +${_per(each)}!`,
+    };
+}
+
+/** Swap of Fates: this guild trades this month's Glory with a random other guild here. */
+async function swapOfFates(ctx) {
+    const members = ctx.guildStudents || [];
+    const others = GUILD_IDS.filter((g) => g !== ctx.guildId && _classMembersOf(g, ctx.classId).length);
+    if (!members.length || !others.length) {
+        const r = await classGlory(ctx, 1, '', 'swap');
+        return { ...r, echo: { kind: 'none' }, decision: 'No one to swap with', description: `There is no other guild here to swap with, so the fates smile instead: +1 Glory for each guildmate here.` };
+    }
+    const partner = others[Math.floor(Math.random() * others.length)];
+    const r = await _swapGuilds(ctx, ctx.guildId, partner, 'swap');
+    const name = _guildName(partner);
+    if (!r.swing) {
+        return { gloryDelta: 0, echo: { kind: 'none' }, decision: `Swapped with ${name}`, description: `The fates swap this guild and ${name}… but they are already level this month (about ${_per(r.avgA)} Glory per hero), so nothing changes!` };
+    }
+    const gained = r.poor === ctx.guildId;
+    return {
+        gloryDelta: r.net[ctx.guildId] || 0,
+        stormHit: !gained && (r.net[ctx.guildId] || 0) < 0,
+        echo: { kind: 'none' },
+        swapped: [ctx.guildId, partner],
+        decision: `Swapped with ${name}`,
+        description: gained
+            ? `The fates swap places with ${name}! This guild had ${_per(r.avgA)} Glory per hero this month, ${name} had ${_per(r.avgB)}: each guildmate here gains +${r.swing}, and each ${name} hero gives up to ${r.swing}.`
+            : `The fates swap places with ${name}! This guild had ${_per(r.avgA)} Glory per hero this month, ${name} had ${_per(r.avgB)}: each guildmate here gives up to ${r.swing}, and each ${name} hero gains +${r.swing}.`,
+    };
+}
+
+/** Topsy-Turvy (and the Envoy's Trick): the top and bottom guilds in this class trade this month's Glory. */
+async function topsyTurvy(ctx, tag = 'topsy') {
+    const ranked = GUILD_IDS
+        .map((g) => ({ g, heroes: _classMembersOf(g, ctx.classId) }))
+        .filter((x) => x.heroes.length)
+        .map((x) => ({ ...x, avg: _avgMonthGlory(x.heroes) }))
+        .sort((a, b) => b.avg - a.avg);
+    if (ranked.length < 2 || Math.round(ranked[0].avg - ranked[ranked.length - 1].avg) === 0) {
+        return { gloryDelta: 0, echo: { kind: 'none' }, decision: 'All level', description: ranked.length < 2 ? 'Only one guild here, so the world stays the right way up.' : 'The world flips… but the guilds here are level this month, so it lands just as it was!' };
+    }
+    const top = ranked[0].g;
+    const bottom = ranked[ranked.length - 1].g;
+    const r = await _swapGuilds(ctx, top, bottom, tag);
+    return {
+        gloryDelta: r.net[ctx.guildId] || 0,
+        stormHit: (r.net[ctx.guildId] || 0) < 0,
+        loss: true,
+        echo: { kind: 'none' },
+        swapped: [top, bottom],
+        decision: `${_guildName(top)} ⇄ ${_guildName(bottom)}`,
+        description: `The world turns upside down! ${_guildName(top)} (top here, ${_per(r.avgA)} Glory per hero this month) and ${_guildName(bottom)} (bottom, ${_per(r.avgB)}) swap: each ${_guildName(top)} hero gives up to ${r.swing}, and each ${_guildName(bottom)} hero gains +${r.swing}.`,
+    };
+}
+
+/** The Void: half of each guildmate's Glory this month, at most OMEN_MAX_SWING each. */
+async function theVoid(ctx) {
+    const members = ctx.guildStudents || [];
+    if (!members.length) return { gloryDelta: 0, echo: { kind: 'none' }, description: 'The Void found no one here.' };
+    const taken = await _takeEach(ctx, members.map((s) => ({ s, n: _monthGlory(s.id) / 2 })), 'void');
+    return {
+        gloryDelta: -taken.total,
+        stormHit: taken.total > 0,
+        affectedStudents: members.map((s) => s.id),
+        echo: { kind: 'none' },
+        description: taken.total > 0
+            ? `The Void opens over the guild hall and swallows half of each guildmate's Glory this month (at most ${OMEN_MAX_SWING} each): the guild loses ${taken.total} Glory.`
+            : 'The Void opens… but nobody here has Glory this month for it to swallow!',
+    };
 }
 
 // ── The Envoy's wheel ─────────────────────────────────────────────────────────
@@ -594,6 +776,48 @@ async function envoyBanner(ctx) {
     const heroes = _classMembersOf(target, ctx.classId);
     const byGuild = await giveGlory(ctx, heroes, 2, 'envoy_banner', 'wheel_envoy');
     return { gloryDelta: 0, classGlory: _round2(byGuild[target]), echo: { kind: 'none' }, description: `The envoy raises a banner for ${_guildName(target)}${lastAlone ? ', last in this class this month' : ''}: +2 Glory for each of its ${heroes.length} hero${heroes.length === 1 ? '' : 'es'} here!` };
+}
+
+// The Envoy's tolls: a guild far away can bring trouble too (only Glory earned this month, gold only from heroes who have some).
+
+async function envoyToll(ctx, perHero) {
+    const heroes = ctx.classStudents || [];
+    if (!heroes.length) return _envoyNobody();
+    const taken = await _takeEach(ctx, heroes.map((s) => ({ s, n: perHero })), 'envoy_toll', 'wheel_envoy');
+    const lines = Object.entries(taken.byGuild).map(([gid, n]) => `${_guildName(gid)} −${n}`);
+    return {
+        gloryDelta: 0, classGlory: -taken.total, loss: taken.total > 0, echo: { kind: 'none' },
+        description: taken.total > 0
+            ? `The envoy collects a toll at the gate: up to ${perHero} Glory from every hero here (${lines.join(', ')}).`
+            : 'The envoy holds out a hand for the toll… but nobody here has Glory this month. It shrugs and rides on!',
+    };
+}
+
+async function envoySpy(ctx, perHero) {
+    const { leaders } = _standingsShape(ctx.classId);
+    const targets = leaders.length ? leaders : [];
+    if (!targets.length) return _envoyNobody();
+    const heroes = targets.flatMap((gid) => _classMembersOf(gid, ctx.classId));
+    const taken = await _takeEach(ctx, heroes.map((s) => ({ s, n: perHero })), 'envoy_spy', 'wheel_envoy');
+    const names = targets.map((g) => _guildName(g)).join(' and ');
+    return {
+        gloryDelta: 0, classGlory: -taken.total, loss: taken.total > 0, echo: { kind: 'none' },
+        decision: `Spied on ${names}`,
+        description: taken.total > 0
+            ? `A spy slips into the camp of ${names}, ${targets.length > 1 ? 'tied at the top' : 'the leader'} of this class: up to ${perHero} Glory from each of their ${heroes.length} ${_heroWord(heroes.length)} here (−${taken.total} in all).`
+            : `A spy slips into the camp of ${names}… but finds no Glory this month to carry off!`,
+    };
+}
+
+async function envoyFog(ctx, amount) {
+    const heroes = ctx.classStudents || [];
+    if (!heroes.length) return _envoyNobody();
+    const byGuild = new Map();
+    heroes.filter((s) => _goldOf(s.id) > 0).forEach((s) => byGuild.set(s.guildId, [...(byGuild.get(s.guildId) || []), s]));
+    const picked = [...byGuild.values()].map((list) => list[Math.floor(Math.random() * list.length)]);
+    if (!picked.length) return { gloryDelta: 0, echo: { kind: 'none' }, description: 'A sour fog rolls in… but nobody here has gold to drop!' };
+    const r = await loseGold({ ...ctx, guildStudents: picked }, picked.length, amount);
+    return { ...r, stormHit: false, loss: true, echo: { kind: 'none' }, description: `A sour fog rolls in from far away: ${picked.map((s) => s.name).join(', ')} each drop up to ${amount} gold.` };
 }
 
 // ── Treasure helpers ──────────────────────────────────────────────────────────
@@ -803,7 +1027,7 @@ export function generateWheelSegments(leagueLevel, { favored = false, calm = fal
 
 /** The Envoy's wheel, for a guild with no heroes in the spinning class (utils/fortuneWheelSegments.mjs). */
 export function generateEnvoySegments() {
-    return composeEnvoyWheel(ALL_SEGMENTS, { size: 10 }).map((seg) => ({ ...seg, effect: SEGMENTS_BY_ID.get(seg.id)?.effect }));
+    return composeEnvoyWheel(ALL_SEGMENTS).map((seg) => ({ ...seg, effect: SEGMENTS_BY_ID.get(seg.id)?.effect }));
 }
 
 /** True when a storm (or any loss) hit this guild at its last spin in this class, before this week. */
@@ -942,6 +1166,11 @@ export const wheelTestHooks = { effect: null, lite: null, segments: null, pick: 
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const TAU = Math.PI * 2;
+
+/** How a wedge is painted: an Envoy's toll wears the storm's colours, so the class sees the risk. */
+function _wedgeLook(seg) {
+    return seg?.rarity === 'envoy' && seg.harsh ? 'storm' : seg?.rarity;
+}
 
 // ─── Offscreen wheel cache (pre-rendered static wheel for fast blitting) ────
 let _wheelCache = { canvas: null, key: '', size: 0 };
@@ -1199,7 +1428,8 @@ function _renderStaticWheelAtOrigin(ctx, size, segments, guildDef) {
         const seg = segments[i];
         const startAngle = i * segAngle;
         const endAngle = startAngle + segAngle;
-        const rarityConf = getRarityPalette(seg.rarity, seg.paletteIndex);
+        const look = _wedgeLook(seg);
+        const rarityConf = getRarityPalette(look, seg.paletteIndex);
         const isPrismatic = seg.isPrismatic === true;
 
         // Jewel-toned wedge
@@ -1238,11 +1468,11 @@ function _renderStaticWheelAtOrigin(ctx, size, segments, guildDef) {
         }
 
         // Storms, twists and trials carry a pattern too, so a family reads at a glance.
-        if (FAMILY_PATTERNS[seg.rarity]) {
+        if (FAMILY_PATTERNS[look]) {
             ctx.save();
             _wedgePath(ctx, radius, startAngle, endAngle);
             ctx.clip();
-            FAMILY_PATTERNS[seg.rarity](ctx, radius, startAngle, endAngle, size, rarityConf);
+            FAMILY_PATTERNS[look](ctx, radius, startAngle, endAngle, size, rarityConf);
             ctx.restore();
         }
 
@@ -1485,7 +1715,7 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef, highlightIn
     // wedge, then gild the winning one.
     if (Number.isInteger(highlightIndex) && highlightIndex >= 0 && highlightIndex < segCount) {
         const seg = segments[highlightIndex];
-        const rarityConf = getRarityPalette(seg?.rarity, seg?.paletteIndex);
+        const rarityConf = getRarityPalette(_wedgeLook(seg), seg?.paletteIndex);
         const startAngle = highlightIndex * segAngle;
         const endAngle = startAngle + segAngle;
 
@@ -1895,7 +2125,7 @@ function _renderCurrentGuildMembers() {
             <div class="fw-guild-members__header">${guildDef?.name || 'This guild'}'s Envoy<span class="fw-guild-members__count">0</span></div>
             <div class="fw-envoy-note">
                 <span class="fw-envoy-note__seal" aria-hidden="true">📜</span>
-                <p><b>No ${guildDef?.name || 'guild'} heroes in this class.</b> Their Envoy rides in with a wheel of gifts for ${heroes ? `all ${heroes} heroes here, whatever their guild` : 'the class'}. No storms, no losses.</p>
+                <p><b>No ${guildDef?.name || 'guild'} heroes in this class.</b> Their Envoy rides in with a wheel for ${heroes ? `all ${heroes} heroes here, whatever their guild` : 'the class'}: mostly gifts, a few tolls, and sometimes one rare trick.</p>
             </div>`;
         return;
     }
@@ -1936,6 +2166,11 @@ async function _landingMoment(seg) {
             try { stopDrumRoll(); } catch (_) { /* optional */ }
             if (dark) playWheelSfx('thunder');
             else playHeroFanfare();
+            return;
+        }
+        if (seg.rarity === 'envoy' && seg.harsh) {
+            playWheelSfx('thunder');
+            await fxStorm(frame, { lite });
             return;
         }
         if (seg.rarity === 'envoy') {
@@ -2111,7 +2346,7 @@ export async function triggerSpin({ power = null } = {}) {
 
 function _prepareGuildWheel() {
     const guildId = _wheelState.guildOrder[_wheelState.currentGuildIndex];
-    // No heroes of this guild in the class: its Envoy spins a wheel of gifts for everyone.
+    // No heroes of this guild in the class: its Envoy spins a wheel for everyone.
     _wheelState.envoy = _classMembersOf(guildId, _wheelState.classId).length === 0;
     _wheelState.favored = !_wheelState.envoy && isGuildWheelFavored(guildId, _wheelState.classId);
     _wheelState.calm = !_wheelState.envoy && !_wheelState.favored && stormHitLastTime(guildId, _wheelState.classId);
@@ -2206,14 +2441,15 @@ function _renderWheelLegend() {
         legendEl.innerHTML = '';
         return;
     }
-    const order = ['omen', 'common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'twist', 'trial', 'storm', 'envoy'];
+    const order = ['omen', 'common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'twist', 'trial', 'storm', 'envoy', 'toll'];
     const counts = new Map();
-    for (const seg of segments) counts.set(seg.rarity, (counts.get(seg.rarity) || 0) + 1);
+    const keyOf = (seg) => (seg.rarity === 'envoy' && seg.harsh ? 'toll' : seg.rarity);
+    for (const seg of segments) counts.set(keyOf(seg), (counts.get(keyOf(seg)) || 0) + 1);
     const chips = order
         .filter(rarity => counts.get(rarity))
         .map(rarity => {
-            const conf = getRarityPalette(rarity, 0);
-            return `<span class="fw-wheel-legend__chip" data-rarity="${rarity}" style="--chip-color:${conf.color};--chip-bg:${conf.bg};">
+            const conf = rarity === 'toll' ? { ...getRarityPalette('storm', 0), label: 'Toll' } : getRarityPalette(rarity, 0);
+            return `<span class="fw-wheel-legend__chip" data-rarity="${rarity === 'toll' ? 'storm' : rarity}" style="--chip-color:${conf.color};--chip-bg:${conf.bg};">
                 <span class="fw-wheel-legend__gem"></span>${conf.label}<b>×${counts.get(rarity)}</b>
             </span>`;
         }).join('');
@@ -2254,7 +2490,7 @@ function _renderWheelPhase() {
     const guildName = guildDef?.name || 'This guild';
     const omen = (_wheelState.segments || []).some((seg) => seg.rarity === 'omen');
     _setStageCaption(_wheelState.envoy
-        ? `No ${guildName} heroes in this class, so their Envoy spins: gifts for the whole class!`
+        ? `No ${guildName} heroes in this class, so their Envoy spins for the whole class: gifts… or a toll!`
         : _wheelState.favored
             ? `${guildName} steps up to a gilded wheel: Fortune's Favor cleared the storms and the Trickster.${omen ? ' An Omen glows on it!' : ''}`
             : _wheelState.calm
@@ -2284,7 +2520,7 @@ function _renderWheelPhase() {
     }
     _sizeAndRenderWheel();
 
-    _updateSpinButton(false, _wheelState.envoy ? 'Spin for the Envoy' : 'Spin This Guild', _wheelState.envoy ? 'Gifts for the whole class' : 'The relic chooses a fate');
+    _updateSpinButton(false, _wheelState.envoy ? 'Spin for the Envoy' : 'Spin This Guild', _wheelState.envoy ? 'Gifts or tolls for the whole class' : 'The relic chooses a fate');
     const resultEl = document.getElementById('fw-result');
     if (resultEl) resultEl.classList.add('hidden');
     const nextBtn = document.getElementById('fw-next-btn');
@@ -2430,10 +2666,10 @@ function _crestIcon(guildId) {
     return url ? `<img src="${_esc(url)}" alt="" class="fw-result-stat__crest">` : (getGuildById(guildId)?.emoji || '⚜️');
 }
 
-function _ribbonText(segment, rarityConf, guildDef, { braved = false, whirlwind = false } = {}) {
+function _ribbonText(segment, rarityConf, guildDef, { braved = false, whirlwind = false, outcome = null } = {}) {
     if (braved) return segment.rarity === 'omen' ? 'Omen defied!' : 'Storm braved!';
     if (segment.rarity === 'envoy') return `${guildDef?.name || 'The'} Envoy`;
-    if (segment.rarity === 'omen') return `✦ Omen · ${segment.harsh ? 'fate shakes' : 'fate shines'} ✦`;
+    if (segment.rarity === 'omen') return `✦ Omen · ${segment.harsh && outcome !== 'gain' ? 'fate shakes' : 'fate shines'} ✦`;
     return whirlwind ? `Whirlwind · ${rarityConf.label}` : rarityConf.label;
 }
 
@@ -2619,8 +2855,8 @@ function _renderWheelResult(segment, result, guildDef) {
 
     // ── Outcome: how the fate turned out (storm braved, chest chosen, coin flipped…) ──
     const family = ['storm', 'twist', 'trial', 'omen', 'envoy'].includes(segment.rarity) ? segment.rarity : 'treasure';
-    const outcome = result.braved ? 'braved' : result.stormHit ? 'hit' : (result.gloryDelta || 0) < 0 ? 'hit' : 'gain';
-    const ribbon = _ribbonText(segment, rarityConf, guildDef, { braved: result.braved, whirlwind: result.whirlwind });
+    const outcome = result.braved ? 'braved' : result.stormHit ? 'hit' : (result.gloryDelta || 0) < 0 ? 'hit' : (result.loss && !((result.gloryDelta || 0) > 0)) ? 'hit' : 'gain';
+    const ribbon = _ribbonText(segment, rarityConf, guildDef, { braved: result.braved, whirlwind: result.whirlwind, outcome });
     const decisionHtml = result.decision
         ? `<div class="fw-result-decision">${result.decision}</div>`
         : '';
@@ -2647,7 +2883,7 @@ function _renderWheelResult(segment, result, guildDef) {
 
     const guildName = guildDef?.name || 'The guild';
     _setStageCaption(result.envoy
-        ? `${guildName}'s Envoy has delivered its gift. Advance when you are ready.`
+        ? (outcome === 'hit' ? `${guildName}'s Envoy brought trouble this time. Every class has stormy days. Advance when you are ready.` : `${guildName}'s Envoy has delivered its gift. Advance when you are ready.`)
         : result.braved
         ? `${guildName} braved the ${segment.rarity === 'omen' ? 'Omen' : 'storm'}! Advance when you are ready for the next guild.`
         : outcome === 'hit'
@@ -2822,7 +3058,7 @@ function _renderWheelSummary() {
                         <span>${guildDef?.name || r.guildId}${r.envoy ? ' <small>Envoy</small>' : ''}</span>
                     </div>
                     <div class="fw-summary-result">${r.segmentLabel}</div>
-                    <div class="fw-summary-rarity">${r.envoy ? 'Gift for the class' : rarityConf.label}</div>
+                    <div class="fw-summary-rarity">${r.envoy ? "The Envoy's fate" : rarityConf.label}</div>
                     <div class="fw-summary-desc">${r.description || r.segmentDescription}</div>
                     ${deltas ? `<div class="fw-summary-deltas">${deltas}</div>` : ''}
                     ${heroesHtml}

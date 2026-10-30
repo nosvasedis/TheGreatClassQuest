@@ -6,6 +6,7 @@ import { isCompleteShopItem, isCurrentStallItem, shopItemInStock, shopItemShelf,
 import { shopMonthKey, getActiveFestival } from '../../utils/shopCalendar.js';
 import { getLiveYearGold, getLiveYearGoldContextFromState } from '../../utils/yearGold.js';
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
+import { stallInventoryEntry } from '../../features/treasureCharmsCore.mjs';
 
 
 /**
@@ -46,7 +47,7 @@ export async function loadLeagueStall(league, { festivalId = '' } = {}) {
 
 /**
  * Gives the first candidate still in stock to the student: the stall loses one copy (the last
- * copy leaves the shelf). Falls back to `fallbackGold` when every candidate is gone.
+ * copy stays on record as sold out). A treasure the child already owns is skipped. Falls back to `fallbackGold` when every candidate is gone.
  * Returns { studentId, kind: 'treasure', item, league } or { studentId, kind: 'gold', gold, league }.
  */
 export async function grantStallTreasure(studentId, candidates = [], { league = '', source = 'prize', fallbackGold = 10 } = {}) {
@@ -61,28 +62,23 @@ export async function grantStallTreasure(studentId, candidates = [], { league = 
                 const item = { id: itemSnap.id, ...itemSnap.data() };
                 const remaining = shopItemStock(item) - 1;
                 if (remaining < 0) return null;
-                if (remaining === 0) transaction.delete(itemRef);
-                else transaction.update(itemRef, { stock: remaining });
                 const inventory = Array.isArray(scoreSnap.data().inventory) ? scoreSnap.data().inventory : [];
+                if (inventory.some((entry) => entry?.id === item.id)) return null;
+                transaction.update(itemRef, remaining === 0
+                    ? { stock: 0, soldOutAt: new Date().toISOString() }
+                    : { stock: remaining });
+                const classId = (state.get('allStudents') || []).find((s) => s.id === studentId)?.classId || '';
                 transaction.update(scoreRef, {
-                    inventory: [...inventory, {
-                        id: item.id,
-                        name: item.name,
-                        image: item.image || null,
-                        icon: item.icon || null,
-                        description: item.description || '',
-                        acquiredAt: new Date().toISOString(),
-                        source
-                    }]
+                    inventory: [...inventory, stallInventoryEntry(item, { classId, source })]
                 });
                 return { item, remaining };
             });
             if (!granted) continue;
             const { item, remaining } = granted;
             const shopItems = state.get('currentShopItems') || [];
-            state.setCurrentShopItems(remaining > 0
-                ? shopItems.map((entry) => (entry.id === item.id ? { ...entry, stock: remaining } : entry))
-                : shopItems.filter((entry) => entry.id !== item.id));
+            state.setCurrentShopItems(shopItems.map((entry) => (entry.id === item.id
+                ? { ...entry, stock: remaining, ...(remaining === 0 ? { soldOutAt: new Date().toISOString() } : {}) }
+                : entry)));
             return {
                 studentId,
                 kind: 'treasure',

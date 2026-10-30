@@ -11,6 +11,7 @@ import {
 } from '../../utils/shopRestock.js';
 import { manageShopItem } from '../../utils/adminRuntime.js';
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
+import { smartStockFor, stallRosterFor } from './smartStock.js';
 
 
 function assertSeasonLive() {
@@ -71,7 +72,8 @@ export async function saveManagedShopItem(itemId, draft = {}) {
         // dropping it to 10 gold or hiding it with 0 copies.
         price: blank(draft.price) ? item.price : draft.price,
         stock: blank(draft.stock) ? shopItemStock(item) : draft.stock
-    });
+    }, { stockMax: (tier) => smartStockFor(item.league, tier, shopItemShelf(item)) });
+    const children = stallRosterFor(item.league).children;
     if (!fields.name || !fields.description) {
         showToast('Give this treasure a name and a short description.', 'error');
         return null;
@@ -87,7 +89,10 @@ export async function saveManagedShopItem(itemId, draft = {}) {
             price: fields.price,
             tier: fields.tier,
             stock: fields.stock,
-            stockMax: fields.stockMax
+            stockMax: fields.stockMax,
+            // The teacher's count stands until the league's size changes.
+            ...(children > 0 ? { stockSizedFor: children } : {}),
+            ...(fields.stock > 0 ? { soldOutAt: null } : (item.soldOutAt ? {} : { soldOutAt: new Date().toISOString() }))
         });
         showToast(`${fields.name} is updated on the stall.`, 'success');
         return fields;

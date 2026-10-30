@@ -5,6 +5,7 @@ import { getUpgradeMessage } from '../../config/tiers/features.js';
 import { escapeHtml } from '../../features/roles/shared.js';
 import { isGameplaySeasonLiveFromAppState } from '../../utils/schoolYear.js';
 import { shopMonthKey, getMonthlyShopTheme, getActiveFestival } from '../../utils/shopCalendar.js';
+import { smartStockFor, syncSmartStallStock } from '../../db/actions/smartStock.js';
 import {
     isCurrentStallItem,
     isManagedShopShelf,
@@ -60,9 +61,14 @@ function marketManagerVisible() {
 
 const TIER_LABELS = { common: 'Common', rare: 'Rare', legendary: 'Legendary' };
 
-function tierHint(price) {
+// Copies follow the size of the league sharing this stall (smart stock), else the tier's default.
+function managerStockMax(tier, shelf = 'seasonal') {
+    return smartStockFor(resolveLeague(), tier, shelf) || stockMaxForTier(tier);
+}
+
+function tierHint(price, shelf = 'seasonal') {
     const tier = shopItemTier(price);
-    return `${TIER_LABELS[tier]} · up to ${stockMaxForTier(tier)} copies`;
+    return `${TIER_LABELS[tier]} · up to ${managerStockMax(tier, shelf)} copies for this league`;
 }
 
 function resolveLeague() {
@@ -121,7 +127,7 @@ const BROKEN_PICTURE_HTML = '<div class="market-manager-card__art market-manager
 
 function renderCard(item) {
     const stock = shopItemStock(item);
-    const stockMax = Number(item.stockMax) || stockMaxForTier(shopItemTier(item.price));
+    const stockMax = Number(item.stockMax) || managerStockMax(shopItemTier(item.price), shopItemShelf(item));
     const image = String(item.image || '').trim();
     const imageHtml = image
         ? `<img src="${escapeHtml(image)}" alt="" class="market-manager-card__art">`
@@ -132,7 +138,7 @@ function renderCard(item) {
         ? '<span class="market-manager-pill">Coming in</span>'
         : '';
     const soldOut = !item.incoming && stock <= 0
-        ? '<span class="market-manager-pill market-manager-pill--warn">Hidden on the Market</span>'
+        ? '<span class="market-manager-pill market-manager-pill--warn">Sold out this month</span>'
         : '';
 
     return `
@@ -148,7 +154,7 @@ function renderCard(item) {
                 <div class="market-manager-grid">
                     <label class="market-manager-label">Gold
                         <input type="number" class="market-manager-input" data-field="price" min="10" max="120" step="1" value="${escapeHtml(priceValue)}">
-                        <span class="market-manager-hint" data-tier-hint>${escapeHtml(tierHint(priceValue))}</span>
+                        <span class="market-manager-hint" data-tier-hint>${escapeHtml(tierHint(priceValue, shopItemShelf(item)))}</span>
                     </label>
                     <label class="market-manager-label">Copies left
                         <input type="number" class="market-manager-input" data-field="stock" min="0" max="${stockMax}" step="1" value="${escapeHtml(draftValue(item, 'stock', stock))}">
@@ -440,6 +446,8 @@ export function renderMarketManagerUi() {
     ].join('');
     restoreFocus(list, focus);
     autoFillOnce(items, scope);
+    // Copies follow the league's size; the listener redraws this list if any change.
+    syncSmartStallStock(league).catch((error) => console.warn('Smart stock skipped:', error));
 }
 
 async function fillStall(button) {
@@ -463,10 +471,12 @@ function markDirty(card, itemId) {
 
 function syncTierHint(card, priceField) {
     const tier = shopItemTier(priceField.value);
+    const item = (state.get('currentShopItems') || []).find((row) => row.id === card.dataset.itemId);
+    const shelf = item ? shopItemShelf(item) : 'seasonal';
     const hint = card.querySelector('[data-tier-hint]');
-    if (hint) hint.textContent = tierHint(priceField.value);
+    if (hint) hint.textContent = tierHint(priceField.value, shelf);
     const stockField = card.querySelector('[data-field="stock"]');
-    if (stockField) stockField.max = String(stockMaxForTier(tier));
+    if (stockField) stockField.max = String(managerStockMax(tier, shelf));
 }
 
 export function wireMarketManagerEvents() {

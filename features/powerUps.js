@@ -388,6 +388,12 @@ export async function handleUseItem(studentId, itemIndex) {
     const item = current ? { ...ownedItem, name: current.name, icon: current.icon, description: current.description } : ownedItem;
     const runEffect = _effectFor(ownedItem);
     if (!runEffect) {
+        // Market treasures carry a Charm instead of a power.
+        const { isStallTreasure } = await import('./treasureCharmsCore.mjs');
+        if (isStallTreasure(ownedItem)) {
+            const { handleUseCharm } = await import('./treasureCharms.js');
+            return handleUseCharm(studentId, itemIndex);
+        }
         showToast('This item is a collectible and has no active power.', 'info');
         return { success: false, cancelled: true };
     }

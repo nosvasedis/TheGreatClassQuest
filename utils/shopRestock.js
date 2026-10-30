@@ -82,12 +82,16 @@ export function isManagedShopShelf(item) {
     return shelf === 'seasonal' || shelf === 'festival';
 }
 
-export function shopManagerFieldsFromInput(input = {}) {
+// `options.stockMax` is the stall's smart copy count for this league, when the app knows it.
+export function shopManagerFieldsFromInput(input = {}, options = {}) {
     const name = String(input.name || '').trim().slice(0, 48);
     const description = String(input.description || input.desc || '').trim().slice(0, 160);
     const price = clampShopItemPrice(input.price);
     const tier = shopItemTier(price);
-    const stockMax = stockMaxForTier(tier);
+    const smartMax = typeof options.stockMax === 'function' ? options.stockMax(tier) : options.stockMax;
+    const stockMax = Number.isFinite(Number(smartMax)) && Number(smartMax) > 0
+        ? Math.floor(Number(smartMax))
+        : stockMaxForTier(tier);
     const stock = clampShopItemStock(input.stock, stockMax);
     return { name, description, price, tier, stock, stockMax };
 }
@@ -144,6 +148,10 @@ export function planShopRestock(items = [], options = {}) {
     const complete = list.filter(isCompleteShopItem);
     const incomplete = list.filter((item) => !isCompleteShopItem(item) && text(item?.name));
     const active = complete.filter((item) => !item.incoming && shopItemInStock(item));
+    // A sold-out treasure keeps its place until the month (or festival) ends. Refilling it
+    // would mean the stall never really runs out.
+    const soldOut = complete.filter((item) => !item.incoming && !shopItemInStock(item));
+    const stocked = [...active, ...soldOut];
     const incomingComplete = complete.filter((item) => item.incoming);
     const incomingIncomplete = incomplete.filter((item) => item.incoming);
     const fillIncomplete = incomplete.filter((item) => !item.incoming);
@@ -152,7 +160,7 @@ export function planShopRestock(items = [], options = {}) {
     // treasure meanwhile; otherwise the half-made new stall would be thrown away.
     const replacing = incomingComplete.length + incomingIncomplete.length > 0;
 
-    if (active.length >= targetCount || replacing) {
+    if (stocked.length >= targetCount || replacing) {
         const incomingSlots = [...incomingComplete, ...incomingIncomplete];
         const needed = Math.max(0, targetCount - incomingSlots.length);
         const readyToSwap = incomingComplete.length >= targetCount;
@@ -162,23 +170,23 @@ export function planShopRestock(items = [], options = {}) {
             targetCount,
             keepIds: incomingComplete.map((item) => item.id).filter(Boolean),
             retry: incomingIncomplete,
-            retireIds: readyToSwap ? active.map((item) => item.id).filter(Boolean) : [],
+            retireIds: readyToSwap ? stocked.map((item) => item.id).filter(Boolean) : [],
             removeIds: fillIncomplete.map((item) => item.id).filter(Boolean),
             needed,
             incoming: true,
-            existingNames: namesOf([...active, ...incomingSlots]),
+            existingNames: namesOf([...stocked, ...incomingSlots]),
             tiers: remainingShopTiers(incomingSlots, needed, tierTargets),
             swapIncomingIds: readyToSwap ? incomingComplete.map((item) => item.id).filter(Boolean) : []
         };
     }
 
-    const slots = [...active, ...fillIncomplete];
+    const slots = [...stocked, ...fillIncomplete];
     const needed = Math.max(0, targetCount - slots.length);
     return {
         mode: 'fill',
         shelf,
         targetCount,
-        keepIds: active.map((item) => item.id).filter(Boolean),
+        keepIds: stocked.map((item) => item.id).filter(Boolean),
         retry: fillIncomplete,
         retireIds: [...incomingComplete, ...incomingIncomplete].map((item) => item.id).filter(Boolean),
         removeIds: [],

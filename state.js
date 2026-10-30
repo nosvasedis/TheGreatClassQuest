@@ -754,6 +754,7 @@ export function setUnsubscribeFortuneWheelLog(func) {
 }
 export function setCurrentShopItems(items) {
     state.currentShopItems = items;
+    _notify("currentShopItems");
 }
 export function setUnsubscribeParentSnapshot(func) {
     state.unsubscribeParentSnapshot = func;

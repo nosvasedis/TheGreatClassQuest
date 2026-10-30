@@ -1,5 +1,6 @@
 // features/trophyRoomCore.mjs — pure view model for the Trophy Room (a student's satchel).
 // No DOM, no state: the modal passes in the inventory, score doc and an `isUsable(name)` check.
+import { charmFor, charmText, isStallTreasure, treasureTierLabel } from './treasureCharmsCore.mjs';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -25,7 +26,7 @@ export function trophySourceLabel(item) {
  * Split an inventory into Relics (usable power-ups, stacked by name) and Treasures (kept for good).
  * Relic `indices` point into the original inventory so "Use" spends the right copy.
  */
-export function buildTrophySatchel(inventory, { isUsable = () => false, present = null } = {}) {
+export function buildTrophySatchel(inventory, { isUsable = () => false, present = null, young = false } = {}) {
     // `present` maps an owned item to how it shows today (a renamed relic shows its new name).
     const list = (Array.isArray(inventory) ? inventory : []).map((item) => {
         const shown = item && typeof present === 'function' ? present(item) : null;
@@ -53,8 +54,14 @@ export function buildTrophySatchel(inventory, { isUsable = () => false, present 
             }
             return;
         }
+        const stall = isStallTreasure(item);
+        const charm = stall ? charmFor(item) : null;
         treasures.push({
             index,
+            tier: charm ? charm.tier : '',
+            tierLabel: charm ? treasureTierLabel(charm.tier) : '',
+            charm: charm ? { id: charm.id, icon: charm.icon, title: charm.title, text: charmText(charm, { young }) } : null,
+            charmUsed: Boolean(stall && item.charmUsedAt),
             name: item.name,
             icon: item.icon || '',
             image: item.image || '',
@@ -70,10 +77,12 @@ export function buildTrophySatchel(inventory, { isUsable = () => false, present 
     const dated = treasures.filter((t) => t.acquiredAt).sort((a, b) => (a.acquiredAt < b.acquiredAt ? 1 : a.acquiredAt > b.acquiredAt ? -1 : a.index - b.index));
     const undated = treasures.filter((t) => !t.acquiredAt);
     const relics = [...relicsByName.values()];
+    const sorted = [...dated, ...undated];
 
     return {
         relics,
-        treasures: [...dated, ...undated],
+        treasures: sorted,
+        charms: sorted.filter((t) => t.charm && !t.charmUsed),
         relicCount: relics.reduce((sum, r) => sum + r.count, 0),
         treasureCount: treasures.length,
         total: relics.reduce((sum, r) => sum + r.count, 0) + treasures.length,
@@ -98,7 +107,10 @@ export function previewTrophySatchel(satchel, { treasureLimit = 8 } = {}) {
 /** Counts for the hero list: how many items, and how many can be used right now. */
 export function summarizeSatchel(inventory, { isUsable = () => false } = {}) {
     const list = Array.isArray(inventory) ? inventory.filter((item) => item && item.name) : [];
-    return { total: list.length, ready: list.filter((item) => isUsable(item.name)).length };
+    return {
+        total: list.length,
+        ready: list.filter((item) => isUsable(item.name) || (isStallTreasure(item) && !item.charmUsedAt)).length,
+    };
 }
 
 /** Effects already switched on for this student (spent relics still working). */

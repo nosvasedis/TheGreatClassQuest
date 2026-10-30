@@ -425,6 +425,11 @@
     box-shadow: 0 4px 10px rgba(249, 115, 22, 0.28);
 }
 
+#trophy-room-modal .tr-section--charms .tr-section-icon {
+    background: linear-gradient(135deg, #c084fc, #7c3aed);
+    box-shadow: 0 4px 10px rgba(124, 58, 237, 0.28);
+}
+
 #trophy-room-modal .tr-section--treasures .tr-section-icon {
     background: linear-gradient(135deg, #8b5cf6, #6366f1);
     box-shadow: 0 4px 10px rgba(99, 102, 241, 0.28);
@@ -657,6 +662,128 @@
 
 #trophy-room-modal .tr-emoji {
     line-height: 1;
+}
+
+/* Treasure charms and the Collector's Hoard */
+#trophy-room-modal .tr-treasure.is-rare .tr-treasure-art {
+    box-shadow: inset 0 0 0 2px #93c5fd;
+}
+
+#trophy-room-modal .tr-treasure.is-legendary .tr-treasure-art {
+    box-shadow: inset 0 0 0 2px #f5b84a, 0 0 12px rgba(245, 158, 11, 0.25);
+}
+
+#trophy-room-modal .tr-treasure-charm {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    max-width: 100%;
+    margin-top: 0.1rem;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.66rem;
+    font-weight: 700;
+    color: #6d28d9;
+    background: #f5f3ff;
+    border: 1px solid #ddd6fe;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#trophy-room-modal .tr-treasure-charm.is-spent {
+    color: #9591b0;
+    background: #f8f7fc;
+    border-color: #ece9f6;
+}
+
+#trophy-room-modal .tr-charm {
+    background: linear-gradient(135deg, #f5f3ff 0%, #fff 65%);
+    border-color: #ddd6fe;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.08);
+}
+
+#trophy-room-modal .tr-charm .tr-relic-art {
+    background: radial-gradient(circle at 35% 30%, #fff 0%, #ede9fe 50%, #ddd6fe 100%);
+}
+
+#trophy-room-modal .tr-charm-icon {
+    background: #fff;
+    color: inherit;
+    border-color: #ddd6fe;
+    font-size: 0.85rem;
+}
+
+#trophy-room-modal .tr-charm .tr-relic-text p.tr-charm-from {
+    margin-top: 0.2rem;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: #9591b0;
+}
+
+#trophy-room-modal .tr-charm-btn {
+    background: linear-gradient(135deg, #a78bfa, #7c3aed);
+    box-shadow: 0 4px 10px rgba(124, 58, 237, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+#trophy-room-modal .tr-hoard {
+    margin-top: 0.9rem;
+    padding: 0.7rem 0.9rem;
+    border-radius: 1.1rem;
+    background: linear-gradient(135deg, #fff7ed 0%, #fff 70%);
+    border: 1px solid #fcdca6;
+}
+
+#trophy-room-modal .tr-hoard-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.75rem;
+}
+
+#trophy-room-modal .tr-hoard-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #b45309;
+}
+
+#trophy-room-modal .tr-hoard-rank {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    color: #1e1b4b;
+}
+
+#trophy-room-modal .tr-hoard-points {
+    margin-left: auto;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #92400e;
+}
+
+#trophy-room-modal .tr-hoard-bar {
+    height: 0.45rem;
+    margin: 0.45rem 0 0.35rem;
+    border-radius: 999px;
+    background: #fde7c4;
+    overflow: hidden;
+}
+
+#trophy-room-modal .tr-hoard-bar span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #fbbf24, #f97316);
+}
+
+#trophy-room-modal .tr-hoard-next {
+    margin: 0;
+    font-size: 0.72rem;
+    color: #8a7a64;
 }
 
 /* Empty + idle states */

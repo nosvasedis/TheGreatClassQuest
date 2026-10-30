@@ -381,6 +381,30 @@ export async function initializeShopTab() {
     }
 }
 
+let smartStockWatch = false;
+let smartStockTimer = null;
+
+// Size each treasure to the children who share this stall; redraw if any copies changed.
+function sizeStallForLeague(league) {
+    if (!league) return;
+    import('../../db/actions/smartStock.js')
+        .then((m) => m.syncSmartStallStock(league))
+        .then((changed) => { if (changed) renderShopUI(); })
+        .catch((error) => console.warn('Smart stock skipped:', error));
+    if (smartStockWatch) return;
+    smartStockWatch = true;
+    // New treasures arriving while the Market is open are sized as they land.
+    state.subscribe(['currentShopItems'], () => {
+        clearTimeout(smartStockTimer);
+        smartStockTimer = setTimeout(() => {
+            const classId = state.get('globalSelectedClassId');
+            const cls = (state.get('allTeachersClasses') || []).find((c) => c.id === classId);
+            const current = state.get('globalSelectedLeague') || cls?.questLevel;
+            if (current) import('../../db/actions/smartStock.js').then((m) => m.syncSmartStallStock(current)).catch(() => {});
+        }, 1500);
+    });
+}
+
 function initializeShopTabContent({ allowAutoEnsure = false } = {}) {
     const seasonLive = isShopSeasonLive();
     applyShopSeasonLock(seasonLive);
@@ -447,6 +471,7 @@ function initializeShopTabContent({ allowAutoEnsure = false } = {}) {
     populateShopStudentPicker(validStudents);
 
     renderShopUI();
+    sizeStallForLeague(league);
     const stallScope = { league, monthKey: shopMonthKey(), festivalId: getActiveFestival()?.festivalId };
     const currentLeagueItems = (state.get('currentShopItems') || []).filter((item) => isCurrentStallItem(item, stallScope));
     const stockNeedsEnsure = shopInventoryNeedsEnsure(currentLeagueItems, {
@@ -492,6 +517,9 @@ export function renderShopUI() {
         .filter(i => i.monthKey === currentMonthKey && i.league === league && isVisibleSeasonalShopItem(i))
         .sort((a,b) => a.price - b.price);
     // Festival treasures follow the festival, not the month: Easter's stall opens in the month before.
+    // Sold-out treasures stay on record (hidden from the shelf) so the stall truly runs out.
+    const seasonalSoldOut = shopItems.filter(i => i.monthKey === currentMonthKey && i.league === league
+        && i.shelf !== 'festival' && !i.incoming && i.image && Number(i.stock) <= 0 && i.stock !== undefined && i.stock !== null && i.stock !== '').length;
     const festivalItems = activeFestival
         ? shopItems
             .filter(i => i.league === league && i.festivalId === activeFestival.festivalId && isVisibleFestivalShopItem(i))
@@ -551,7 +579,7 @@ export function renderShopUI() {
                 id: 'seasonal', label: 'Seasonal', icon: 'fa-leaf', tone: 'amber',
                 title: 'Seasonal Treasures',
                 month: collectionName ? `${monthLabel} · ${collectionName}` : monthLabel,
-                desc: "This month's classroom treasures. Heroes of the Day earn discounts, and Aurum Satchels stack on the price.",
+                desc: `This month's treasures, each with a classroom Charm to use once. One of each per hero, and every class gets its fair share until the last week.${seasonalSoldOut ? ` ${seasonalSoldOut} already sold out.` : ''}`,
                 body: seasonalItems.length === 0
                     ? noSeasonalHtml
                     : renderShelf(seasonalItems.map(item => renderShopItemCard(item, 'seasonal')).join(''))
@@ -732,6 +760,7 @@ export async function updateShopStudentDisplay(studentId) {
 
     // LIMIT CHECK 2: Pathfinder Map (1 per class per month)
     const { LEGENDARY_ARTIFACTS, isItemUsable } = await import('../../features/powerUps.js');
+    const { stallBuyCheckFor } = await import('../../db/actions/smartStock.js');
     const classData = state.get('allSchoolClasses').find(c => c.id === student.classId);
     const pathfinderBonusThisMonth = Number(classData?.teamQuestBonuses?.[currentMonthKey]) || 0;
 
@@ -818,6 +847,12 @@ export async function updateShopStudentDisplay(studentId) {
         }
 
         const alreadyOwned = inventory.some(i => i.id === itemId);
+        // Stall treasures: one per hero, a rarity limit per hero, and a fair share per class.
+        const stallItem = isLegendary ? null : (state.get('currentShopItems') || []).find(i => i.id === itemId);
+        const fairness = stallItem ? stallBuyCheckFor(studentId, stallItem) : null;
+        if (card && fairness?.classLeft !== null && fairness?.classLeft !== undefined) {
+            card.dataset.classLeft = String(fairness.classLeft);
+        }
         const legendaryArtifact = isLegendary ? LEGENDARY_ARTIFACTS.find(a => a.id === itemId) : null;
         const isLegendaryUsable = !!(legendaryArtifact && isItemUsable(legendaryArtifact.name));
 
@@ -833,6 +868,10 @@ export async function updateShopStudentDisplay(studentId) {
         } else if (itemId === 'leg_protagonist' && protagonistThisMonth) {
             setShopBuyBtn(btn, 'danger', 'Limit: 1/month');
             setState('limit');
+        } else if (fairness && !fairness.ok) {
+            const owned = fairness.label === 'Owned';
+            setShopBuyBtn(btn, owned ? 'success' : 'danger', fairness.label, { title: fairness.reason });
+            setState(owned ? 'owned' : 'limit');
         } else if (gold >= finalPrice) {
             setShopBuyBtn(btn, 'cta', `Buy for ${finalPrice}`, { disabled: false });
             setState('affordable');

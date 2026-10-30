@@ -178,7 +178,7 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'seasonal', icon: 'fa-leaf', name: 'Seasonal and Festival stalls', tier: 'elite',
                     where: 'Mystic Market tab', go: 'tab:shop-tab',
-                    text: `A monthly stall of 15 treasures that follows the classroom season and suits each league's age, with limited copies of each. Every stall is one of the month's collections, and the round brass Restock button on the counter brings a brand-new stall from a different one. A Festival Stall opens for Halloween, Christmas, New Year's Luck, Apokries, Easter, May Day and the End of Year Fair. The reigning Hero of the Day gets 25% off this shelf. Teacher Settings, Market repairs or replaces a piece.`,
+                    text: `A monthly stall of 15 treasures that follows the classroom season and suits each league's age. Copies are sized to the children in that league, sold-out pieces stay sold out, and each class gets a fair share of every rarity until the month's last week (one of each treasure per hero). Every treasure carries a Charm, a classroom privilege used once from the Trophy Room, and adds to the hero's Collector's Hoard, whose ranks pay a little Gold. Every stall is one of the month's collections, and the round brass Restock button on the counter brings a brand-new stall from a different one. A Festival Stall opens for Halloween, Christmas, New Year's Luck, Apokries, Easter, May Day and the End of Year Fair. The reigning Hero of the Day gets 25% off this shelf. Teacher Settings, Market repairs or replaces a piece.`,
                     keys: 'restock festival stall seasonal treasures collection halloween christmas new year vasilopita easter apokries may day end of year discount'
                 },
                 {
@@ -523,7 +523,7 @@ export const GUIDE_CHAPTERS = {
                 },
                 {
                     id: 'trophy-room', icon: 'fa-box-open', name: 'Your satchel', tier: 'starter',
-                    text: `Everything you buy waits in your satchel in the Trophy Room until you use it. Treasures you win stay there for good.`,
+                    text: `Everything you buy waits in your satchel in the Trophy Room until you use it. Treasures stay there for good: each one carries a Charm, a small classroom privilege you can use once, and fills your Collector's Hoard.`,
                     keys: 'trophy room inventory'
                 },
                 {

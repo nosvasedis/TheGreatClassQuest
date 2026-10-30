@@ -3,6 +3,24 @@
 import { shopItemStock } from '../../utils/shopRestock.js';
 import { FAMILIAR_STAGE_BOND } from '../../features/familiarProgression.mjs';
 import { buildFamiliarEggSvg, describeFamiliar, getFamiliarPresets } from '../../features/familiarForge.mjs';
+import { charmFor, charmText, treasureTierLabel } from '../../features/treasureCharmsCore.mjs';
+
+const YOUNG_LEAGUES = ['Pre-Junior', 'Junior A', 'Junior B'];
+
+/** The privilege a stall treasure carries, shown under its blurb so heroes know what it does. */
+export function shopCharmMarkup(item) {
+    const charm = charmFor(item);
+    const words = charmText(charm, { young: YOUNG_LEAGUES.includes(String(item?.league || '')) });
+    return `
+                <div class="mm-ware__charm mm-ware__charm--${charm.tier}" title="${escapeShopHtml(`${charm.title}: ${words} Use it once from the Trophy Room; the treasure stays.`)}">
+                    <span class="mm-ware__charm-head">
+                        <span class="mm-ware__charm-icon" aria-hidden="true">${escapeShopHtml(charm.icon)}</span>
+                        <b class="mm-ware__charm-title">${escapeShopHtml(charm.title)}</b>
+                        <span class="mm-ware__charm-tier">${treasureTierLabel(charm.tier)}</span>
+                    </span>
+                    <span class="mm-ware__charm-text">${escapeShopHtml(words)}</span>
+                </div>`;
+}
 
 /** The class's egg, drawn by the Familiar Forge in its signature colours. */
 function familiarEggArt(typeId) {
@@ -101,6 +119,7 @@ export function renderShopItemCard(item, kind = 'seasonal') {
             <div class="shop-item-body mm-ware__body">
                 <h3 class="font-title mm-ware__name">${escapeShopHtml(item.name)}</h3>
                 <p class="mm-ware__desc">${escapeShopHtml(item.description)}</p>
+                ${isLegendary ? '' : shopCharmMarkup(item)}
                 <div class="shop-item-footer mm-ware__footer">
                     <button type="button" class="${shopBuyBtnClass(false, 'waiting')}"
                             data-id="${escapeShopHtml(item.id)}" data-type="${isLegendary ? 'legendary' : 'seasonal'}" disabled

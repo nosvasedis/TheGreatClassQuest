@@ -31,6 +31,8 @@ import { monthlyStarsChange } from './monthlyStars.js';
 import { planMonthlyRollover } from '../../features/monthlyStarsCore.mjs';
 import { parseTrialScore, trialRowValue, UNMARKABLE_VALUE } from '../../features/trialLogCore.mjs';
 import { showShopPurchasePopup } from '../../ui/core/marketParcel.js';
+import { hoardRankPayout, stallInventoryEntry, charmFor } from '../../features/treasureCharmsCore.mjs';
+import { stallBuyCheckFor, childStallCheck } from './smartStock.js';
 // GUILD_IDS not needed at module level but kept for reference
 
 // --- THE ECONOMY (SHOP & INVENTORY) ---
@@ -508,6 +510,16 @@ export async function handleBuyItem(studentId, itemId) {
     // 2. UI Pre-check and Optimistic Update preparation
     const buyBtn = document.querySelector(`.shop-buy-btn[data-id="${itemId}"]`);
 
+    // Fair shares: one copy per hero, a rarity limit per hero, and each class's share.
+    if (!isLegendary) {
+        const fair = stallBuyCheckFor(studentId, item);
+        if (!fair.ok) {
+            showToast(fair.reason, 'info');
+            import('../../ui/core.js').then(m => m.updateShopStudentDisplay(studentId));
+            return;
+        }
+    }
+
     // 3. DB Transaction
     const publicDataPath = PUBLIC_DATA_PATH;
     const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
@@ -517,24 +529,30 @@ export async function handleBuyItem(studentId, itemId) {
         let appliedFinalPrice = item.price;
         let purchasedItemIndex = -1;
         let remainingAfterBuy = 0;
+        let boughtEntry = null;
+        let hoardPaid = null;
 
         await runTransaction(db, async (transaction) => {
+            hoardPaid = null;
             const scoreDoc = await transaction.get(scoreRef);
             if (!scoreDoc.exists()) throw "Student data missing";
 
             // If it's seasonal, we MUST verify it still exists in the database
+            let stallItem = null;
             if (!isLegendary) {
                 const itemRef = doc(db, `${publicDataPath}/shop_items`, itemId);
                 const itemDoc = await transaction.get(itemRef);
                 if (!itemDoc.exists()) throw "Item already sold!";
-                const remaining = shopItemStock(itemDoc.data()) - 1;
+                stallItem = { id: itemDoc.id, ...itemDoc.data() };
+                const remaining = shopItemStock(stallItem) - 1;
                 if (remaining < 0) throw "Item already sold!";
+                const own = childStallCheck(studentId, stallItem, scoreDoc.data().inventory);
+                if (!own.ok) throw own.reason;
                 remainingAfterBuy = remaining;
-                if (remaining <= 0) {
-                    transaction.delete(itemRef);
-                } else {
-                    transaction.update(itemRef, { stock: remaining });
-                }
+                // The last copy stays on record as sold out, so the stall does not refill that place.
+                transaction.update(itemRef, remaining <= 0
+                    ? { stock: 0, soldOutAt: new Date().toISOString() }
+                    : { stock: remaining });
             }
 
             const data = scoreDoc.data();
@@ -586,19 +604,35 @@ export async function handleBuyItem(studentId, itemId) {
 
             newGoldBalance = currentDbGold - calculatedPrice; // Calculate for UI
 
-            const nextUpdate = {
-                // Exact balance from the doc read in this transaction: a score without a gold field
-                // (legacy, gold = stars) would go negative with increment().
-                gold: newGoldBalance,
-                inventory: [...currentInventory, {
+            boughtEntry = isLegendary
+                ? {
                     id: item.id,
                     name: item.name,
                     image: item.image || null,
                     icon: item.icon || null, // NEW: Save the icon for legendaries
                     description: item.description,
                     acquiredAt: new Date().toISOString()
-                }]
+                }
+                : stallInventoryEntry(stallItem, { classId: student.classId || '' });
+            const nextInventory = [...currentInventory, boughtEntry];
+
+            const nextUpdate = {
+                // Exact balance from the doc read in this transaction: a score without a gold field
+                // (legacy, gold = stars) would go negative with increment().
+                gold: newGoldBalance,
+                inventory: nextInventory
             };
+
+            // Collector's Hoard: a new rank pays its Gold once.
+            if (!isLegendary) {
+                const payout = hoardRankPayout(nextInventory, data.hoardRankPaid);
+                if (payout.gold > 0) {
+                    newGoldBalance += payout.gold;
+                    nextUpdate.gold = newGoldBalance;
+                    nextUpdate.hoardRankPaid = payout.rank;
+                    hoardPaid = payout;
+                }
+            }
 
             if (itemId === 'leg_protagonist') {
                 nextUpdate.lastProtagonistPurchaseMonth = currentMonthKey;
@@ -629,16 +663,12 @@ export async function handleBuyItem(studentId, itemId) {
                 const stockEl = card.querySelector('.shop-item-stock');
                 if (stockEl) stockEl.textContent = remainingAfterBuy <= 1 ? 'Only 1' : `${remainingAfterBuy} left`;
             }
+        }
+        if (!isLegendary) {
             const shopItems = state.get('currentShopItems') || [];
-            const shopIndex = shopItems.findIndex((entry) => entry.id === itemId);
-            if (shopIndex !== -1) {
-                if (remainingAfterBuy <= 0) {
-                    shopItems.splice(shopIndex, 1);
-                } else {
-                    shopItems[shopIndex] = { ...shopItems[shopIndex], stock: remainingAfterBuy };
-                }
-                state.setCurrentShopItems([...shopItems]);
-            }
+            state.setCurrentShopItems(shopItems.map((entry) => (entry.id === itemId
+                ? { ...entry, stock: Math.max(0, remainingAfterBuy), ...(remainingAfterBuy <= 0 ? { soldOutAt: new Date().toISOString() } : {}) }
+                : entry)));
         }
 
         emitShopPurchaseEvent('gcq:shop-purchase', {
@@ -653,7 +683,9 @@ export async function handleBuyItem(studentId, itemId) {
         // 3. Show Nice Purchase Modal
         const popupShown = showShopPurchasePopup({
             itemName: item.name,
-            itemDescription: item.description || 'A rare artifact for your collection!',
+            itemDescription: isLegendary
+                ? (item.description || 'A rare artifact for your collection!')
+                : `${item.description || ''} Charm: ${charmFor(boughtEntry).title}.`.trim(),
             itemVisualHtml: item.icon ? item.icon : (item.image ? `<img src="${item.image}" class="w-16 h-16 object-contain mx-auto">` : '🎁'),
             finalPrice: appliedFinalPrice,
             basePrice: item.price,
@@ -682,14 +714,8 @@ export async function handleBuyItem(studentId, itemId) {
             // Also push the new item to inventory so the button says "Owned" immediately
             if (!allScores[studentIndex].inventory) allScores[studentIndex].inventory = [];
 
-            allScores[studentIndex].inventory.push({
-                id: item.id,
-                name: item.name,
-                image: item.image || null,
-                icon: item.icon || null,
-                description: item.description,
-                acquiredAt: new Date().toISOString()
-            });
+            allScores[studentIndex].inventory.push(boughtEntry);
+            if (hoardPaid) allScores[studentIndex].hoardRankPaid = hoardPaid.rank;
             if (itemId === 'leg_protagonist') {
                 allScores[studentIndex].lastProtagonistPurchaseMonth = currentMonthKey;
             }
@@ -698,6 +724,13 @@ export async function handleBuyItem(studentId, itemId) {
                 allScores[studentIndex].aurumVoucherMonth = null;
             }
             state.setAllStudentScores(allScores);
+        }
+
+        if (hoardPaid) {
+            const top = hoardPaid.ranks[hoardPaid.ranks.length - 1];
+            setTimeout(() => {
+                showPraiseToast(`${student.name} is now a ${top.title} in the Collector's Hoard! +${hoardPaid.gold} Gold`, top.icon);
+            }, 1600);
         }
 
         // 4. Refresh buttons logic (disable items they can no longer afford)

@@ -8,6 +8,8 @@ import { currentArtifactFor, handleUseItem, isItemUsable } from '../../features/
 import { showInventoryItemDetail } from '../core/avatar.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 import { buildTrophySatchel, summarizeSatchel, buildActiveEffects } from '../../features/trophyRoomCore.mjs';
+import { buildHoard } from '../../features/treasureCharmsCore.mjs';
+import { isYoungClass } from '../../features/treasureCharms.js';
 import { renderTrophyRosterHtml, renderTrophyIdleHtml, renderTrophySatchelHtml } from './trophyRoomView.js';
 import '../../styles/hero_seals.css';
 import { buildSealBookView } from '../../features/heroSealsCore.mjs';
@@ -105,8 +107,9 @@ function renderSatchel({ animate = false, keepScroll = false } = {}) {
         },
         classLabel: classLabel(findClass(student.classId)),
         gold: getLiveYearGoldFromAppState(scoreData, state),
-        satchel: buildTrophySatchel(scoreData?.inventory, usable),
+        satchel: buildTrophySatchel(scoreData?.inventory, { ...usable, young: isYoungClass(student.classId) }),
         effects: buildActiveEffects(scoreData, utils.getLocalMonthKey()),
+        hoard: buildHoard(scoreData?.inventory),
         seals: buildSealBookView({ student, heroSeals: scoreData?.heroSeals || null }),
     });
     contentEl.scrollTop = keepScroll ? scrollTop : 0;

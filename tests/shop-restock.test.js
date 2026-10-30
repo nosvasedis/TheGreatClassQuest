@@ -235,8 +235,25 @@ test('an empty monthly stall plans fifteen kinds and an empty festival stall pla
   assert.equal(emptyFestival.needed, FESTIVAL_STALL_ITEM_COUNT);
   assert.deepEqual(emptyFestival.tiers, { common: 2, rare: 2, legendary: 1 });
 
+  // A sold-out treasure keeps its place: the stall really runs out instead of refilling.
   const soldOut = planShopRestock([complete({ id: 'gone', stock: 0 })]);
-  assert.equal(soldOut.needed, SHOP_RESTOCK_ITEM_COUNT);
+  assert.equal(soldOut.needed, SHOP_RESTOCK_ITEM_COUNT - 1);
+  assert.deepEqual(soldOut.keepIds, ['gone']);
+});
+
+test('a stall sold out to the last treasure needs no refill, and the server planner agrees', async () => {
+  const app = await loadShopRestock();
+  const fn = await import('../functions/shop/restock.mjs');
+  const stall = Array.from({ length: app.SHOP_RESTOCK_ITEM_COUNT }, (_, index) => complete({
+    id: `s-${index}`, name: `S ${index}`, stock: index % 2 ? 0 : 2
+  }));
+  for (const lib of [app, fn]) {
+    const plan = lib.planShopRestock(stall);
+    assert.equal(lib.shopStallNeedsWork(plan), false);
+    // A manual Restock still brings a fresh stall and retires the sold-out ones on swap.
+    assert.equal(lib.shopStallNeedsWork(plan, { forceReplace: true }), true);
+  }
+  assert.equal(app.shopManagerFieldsFromInput({ name: 'Bell', description: 'Rings.', price: 12, stock: 9 }, { stockMax: () => 4 }).stock, 4);
 });
 
 test('Market Manager clamps gold, copies, and names before save', async () => {

@@ -56,19 +56,35 @@ Always in stock. **Two legendary buys per student per month.** Use them from the
 
 The monthly stall follows **this month’s classroom story** (September is harvest and back-to-school, not Halloween) and is written for the league’s age: Pre-Junior gets cosy toys and six-word descriptions with sticker pictures, while C and D get crafted artefacts and nothing babyish. Each stall is one of the month’s three **collections** (October: Mushroom Ring, Chestnut Fire, Foggy Forest Library), shown next to the month on the shelf. Elite fills **15** kinds automatically when the stall is empty — keep teaching; pictures land in the background. Tap the round brass **Restock** button (circling arrows, at the left end of the counter; it reads "Restock the shelves" when you point at it) for a brand-new monthly stall from a different collection; today’s treasures stay until the new pictures are ready. Festival Stall is separate and arrives on its own.
 
-Each kind has copies: Common **5**, Rare **2**, Legendary seasonal **1**. Buying spends one copy; the last copy leaves the shelf. If every monthly kind sells out, the merchant restocks that stall without a tap.
+**Smart stock.** Copies follow the size of the league that shares your stall (your classes in that league): about one common for every two children, rare and legendary pieces much scarcer. For 24 children that is 3 copies of each common, 1 of each rare and 1 of each legendary; 10 children get 2, 1 and 1; 36 children get 4, 2 and 1. Copies already sold stay sold when a class grows. Buying spends one copy; when the last copy goes, the treasure is **sold out for the month**. The stall does not refill it.
+
+**Fair shares.**
+
+- One of each treasure per hero.
+- Per hero per stall: up to 5 common, 2 rare and 1 legendary (Festival Stall: 2 common, 1 rare, 1 legendary).
+- With two or more classes in a league, each class may take its share of each rarity, sized by how many children it has (always at least one). In the **last 7 days of the month** (the last 3 days of a festival) anything left is open to every class.
+
+## What treasures do: Charms
+
+Every seasonal and festival treasure carries a **Charm**: one small classroom privilege, shown on its card in the Market. Common charms are quick (Seat of Choice, Teacher's Helper, Game Chooser, Golden Pen, First Turn, Name Picker). Rare charms are stronger (Partner Pick, Wise Owl's Hint, Homework Shield, Team Captain, Spotlight Share). Legendary charms are the big ones (Teacher for Five, Royal Decree, Teacher's Desk, Homework Pass). Younger leagues read simpler wording.
+
+Use a charm from the **Trophy Room** (Charms section). The class sees it in the app's normal notification, and you honour it in the lesson. The treasure stays in the collection; only the charm is spent. One charm per hero per day, and up to 3 per class per day. Treasures bought before charms existed carry a common charm.
+
+## What treasures count for: the Collector's Hoard
+
+Every treasure (bought or won as a quiz or raid prize) adds Hoard points: common 1, rare 3, legendary 6, plus 1 for a festival piece. New Hoard ranks pay a little Gold once: Trinket Finder (3 points, +3), Treasure Seeker (8, +5), Curator (15, +8), Hoard Keeper (25, +12), Legendary Collector (40, +15), Keeper of Wonders (60, +20). Rank-ups are paid on the hero's next purchase. The Hoard shows in the Trophy Room. Charms and the Hoard never touch stars, Glory, Team Quest goals or any ranking.
 
 - 5 Common kinds (about 10–18 Gold)
 - 5 Rare kinds (about 35–50)
 - 5 Legendary seasonal trophies (about 80–120)
 
-Junior language and art stay toy-like; senior items read as RPG relics. There is **no** limit on seasonal items per month: Gold, copies in stock and your own judgement are the only limits.
+Junior language and art stay toy-like; senior items read as RPG relics.
 
 ## Festival Stall (Elite)
 
 A small extra shelf for **Halloween** (31 Oct), **Christmas** (25 Dec), **New Year’s Luck** (2 to 25 Jan, the vasilopita season), Greek **Carnival / Apokries**, **Orthodox Easter**, **May Day Flowers** (two weeks before 1 May) and the **End of Year Fair** (all of June). Halloween, Christmas, Apokries and Easter appear about **22 days** before the feast, once their stock is ready; each stall is removed the day after its celebration. When Easter falls late, its stall takes the place of May Day. The Market shows a banner (and a one-time toast) when limited festival treasures have arrived.
 
-Festival kinds: 2 Common, 2 Rare, 1 Legendary, with the same copy rules. If the Festival Stall sells out, a **new** holiday batch is made at the end of that day. School Office holiday ranges do **not** drive this shelf.
+Festival kinds: 2 Common, 2 Rare, 1 Legendary, sized to the league the same way. A sold-out festival treasure stays sold out until the festival ends. School Office holiday ranges do **not** drive this shelf.
 
 ### Shop discounts (seasonal shelf)
 

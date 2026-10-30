@@ -49,11 +49,11 @@ export function renderTrophyIdleHtml({ heroCount = 0, itemCount = 0, readyCount 
         <div class="tr-idle">
             <div class="tr-idle-art" aria-hidden="true">🎒</div>
             <h3 class="font-title">Choose a hero</h3>
-            <p>Pick a name to open their satchel. Relics can be used from here; treasures stay kept for good.</p>
+            <p>Pick a name to open their satchel. Relics and treasure charms can be used from here; treasures stay kept for good.</p>
             <div class="tr-idle-stats">
                 <span><b>${heroCount}</b> hero${heroCount === 1 ? '' : 'es'}</span>
                 <span><b>${itemCount}</b> item${itemCount === 1 ? '' : 's'} kept</span>
-                <span class="is-ready"><b>${readyCount}</b> relic${readyCount === 1 ? '' : 's'} ready</span>
+                <span class="is-ready"><b>${readyCount}</b> ready to use</span>
             </div>
         </div>`;
 }
@@ -76,14 +76,58 @@ function relicCardHtml(relic, studentId) {
 }
 
 function treasureTileHtml(treasure) {
-    const meta = [treasure.sourceLabel, treasure.acquiredLabel].filter(Boolean).join(' · ');
+    const meta = [treasure.tierLabel, treasure.sourceLabel, treasure.acquiredLabel].filter(Boolean).join(' · ');
+    const charm = treasure.charm
+        ? `<span class="tr-treasure-charm${treasure.charmUsed ? ' is-spent' : ''}" title="${escTrophy(treasure.charmUsed ? `Charm used: ${treasure.charm.title}` : `Charm: ${treasure.charm.title}`)}">
+                <span aria-hidden="true">${escTrophy(treasure.charm.icon)}</span>${treasure.charmUsed ? 'Charm used' : escTrophy(treasure.charm.title)}
+            </span>`
+        : '';
     return `
-        <button type="button" class="tr-treasure tr-zoom${treasure.kind === 'keepsake' ? ' is-keepsake' : ''}" data-item-index="${treasure.index}"
+        <button type="button" class="tr-treasure tr-zoom${treasure.kind === 'keepsake' ? ' is-keepsake' : ''}${treasure.tier ? ` is-${treasure.tier}` : ''}" data-item-index="${treasure.index}"
             aria-label="Look closer at ${escTrophy(treasure.name)}">
             <span class="tr-treasure-art">${itemArtHtml(treasure)}</span>
             <span class="tr-treasure-name">${escTrophy(treasure.name)}</span>
             ${meta ? `<span class="tr-treasure-meta">${escTrophy(meta)}</span>` : ''}
+            ${charm}
         </button>`;
+}
+
+function charmCardHtml(treasure, studentId) {
+    return `
+        <article class="tr-relic tr-charm is-${escTrophy(treasure.tier)}">
+            <button type="button" class="tr-relic-art tr-zoom" data-item-index="${treasure.index}" aria-label="Look closer at ${escTrophy(treasure.name)}">
+                ${itemArtHtml(treasure)}
+                <span class="tr-stack tr-charm-icon" aria-hidden="true">${escTrophy(treasure.charm.icon)}</span>
+            </button>
+            <div class="tr-relic-text">
+                <h5 class="font-title">${escTrophy(treasure.charm.title)}</h5>
+                <p>${escTrophy(treasure.charm.text)}</p>
+                <p class="tr-charm-from">From ${escTrophy(treasure.name)} · ${escTrophy(treasure.tierLabel)}</p>
+            </div>
+            <button type="button" class="tr-use-btn tr-charm-btn" data-student-id="${escTrophy(studentId)}" data-item-index="${treasure.index}">
+                <i class="fas fa-hand-sparkles" aria-hidden="true"></i><span>Use charm</span>
+            </button>
+        </article>`;
+}
+
+/** The Collector's Hoard: points from every treasure, the rank reached and the next one. */
+export function renderTrophyHoardHtml(hoard) {
+    if (!hoard) return '';
+    const pct = Math.round((hoard.progress || 0) * 100);
+    const rankLine = hoard.rank > 0 ? `${escTrophy(hoard.icon)} ${escTrophy(hoard.title)}` : 'No rank yet';
+    const nextLine = hoard.next
+        ? `${hoard.toNext} point${hoard.toNext === 1 ? '' : 's'} to ${escTrophy(hoard.next.icon)} ${escTrophy(hoard.next.title)} (+${hoard.next.gold} Gold)`
+        : 'The highest rank of the Hoard!';
+    return `
+        <section class="tr-hoard" aria-label="Collector's Hoard">
+            <div class="tr-hoard-head">
+                <span class="tr-hoard-label"><i class="fas fa-gem" aria-hidden="true"></i>Collector's Hoard</span>
+                <span class="tr-hoard-rank">${rankLine}</span>
+                <span class="tr-hoard-points">${hoard.points} pt${hoard.points === 1 ? '' : 's'}</span>
+            </div>
+            <div class="tr-hoard-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><span style="width:${pct}%"></span></div>
+            <p class="tr-hoard-next">${nextLine}. Common 1, rare 3, legendary 6, festival +1.</p>
+        </section>`;
 }
 
 /**
@@ -128,8 +172,9 @@ export function renderTrophySealsHtml(seals, student) {
  *   satchel: ReturnType<import('../../features/trophyRoomCore.mjs').buildTrophySatchel>,
  *   effects: Array<{icon:string,title:string,body:string}> }} view
  */
-export function renderTrophySatchelHtml({ student, classLabel = '', gold = 0, satchel, effects = [], seals = null }) {
+export function renderTrophySatchelHtml({ student, classLabel = '', gold = 0, satchel, effects = [], seals = null, hoard = null }) {
     const { relics, treasures, relicCount, treasureCount, total } = satchel;
+    const charms = satchel.charms || [];
 
     const effectsHtml = effects.length ? `
         <section class="tr-effects" aria-label="Working now">
@@ -164,6 +209,18 @@ export function renderTrophySatchelHtml({ student, classLabel = '', gold = 0, sa
                 : '<p class="tr-section-empty">No relics right now. Legendary Artifacts from the Mystic Market wait here until used.</p>'}
         </section>`;
 
+    const charmsHtml = charms.length ? `
+        <section class="tr-section tr-section--charms">
+            <header class="tr-section-head">
+                <span class="tr-section-icon" aria-hidden="true"><i class="fas fa-hand-sparkles"></i></span>
+                <div>
+                    <h4 class="font-title">Charms <span class="tr-section-count">${charms.length}</span></h4>
+                    <p>Every treasure carries one classroom privilege. Use it once; the treasure stays. One charm a day.</p>
+                </div>
+            </header>
+            <div class="tr-relic-grid">${charms.map((t) => charmCardHtml(t, student.id)).join('')}</div>
+        </section>` : '';
+
     const treasuresHtml = `
         <section class="tr-section tr-section--treasures">
             <header class="tr-section-head">
@@ -192,7 +249,8 @@ export function renderTrophySatchelHtml({ student, classLabel = '', gold = 0, sa
                 </div>
             </header>
             ${effectsHtml}
+            ${renderTrophyHoardHtml(hoard)}
             ${renderTrophySealsHtml(seals, student)}
-            ${total === 0 ? emptyAll : relicsHtml + treasuresHtml}
+            ${total === 0 ? emptyAll : charmsHtml + relicsHtml + treasuresHtml}
         </div>`;
 }

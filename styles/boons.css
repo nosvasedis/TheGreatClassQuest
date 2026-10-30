@@ -1099,6 +1099,25 @@
 
 .tb-student__stars .fa-star { color: #f59e0b; font-size: 0.62rem; }
 
+/* A shared place: the same medal number, with a second ring like the podium's "Tied for". */
+.tb-student__rank.is-tied { box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.45); }
+
+/* Last month's Prodigy (or Co-Prodigies), as the Hero's Challenge crowns them. */
+.tb-student__prodigy {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.05rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.66rem;
+    font-weight: 700;
+    color: #6d28d9;
+    background: #ede9fe;
+    white-space: nowrap;
+}
+
+.tb-student__prodigy .fa-crown { color: #f59e0b; font-size: 0.6rem; }
+
 .tb-empty {
     grid-column: 1 / -1;
     display: flex;

@@ -7,6 +7,8 @@ import { escapeHtml } from '../../features/roles/shared.js';
 import { TEACHER_BOON_PRESETS, awardTeacherBoon, formatTeacherBoonReason, getClassDataById, getTeacherBoonForMonth } from '../../features/boons.js';
 import { buildAwardCloudSvg } from '../../features/awardCloudCard.mjs';
 import { isMonthFinaleLesson, monthFinaleContextFrom } from '../../features/monthFinale.js';
+import { getReigningProdigies, peekReigningProdigies, rankClassHeroesThisMonth } from '../../features/heroMonthStandings.js';
+import { formatStandingsStars } from '../tabs/heroStandings.js';
 
 const TEACHER_BOON_FIXED_STARS = 2;
 const TEACHER_BOON_STEPS = [
@@ -38,23 +40,29 @@ function getPresetStyle(key) {
     return TEACHER_BOON_PRESET_STYLE[key] || { icon: 'fa-star', accent: '#f43f5e' };
 }
 
-function getTeacherBoonScore(studentId) {
-    return state.get('allStudentScores').find((score) => score.id === studentId) || {};
-}
-
 /** The class's last lesson of the month: month stars stay sealed until the Ceremony. */
 function isTeacherBoonMonthSealed() {
     return isMonthFinaleLesson(teacherBoonModalState.classId, monthFinaleContextFrom((key) => state.get(key)));
 }
 
+/** The class in the Hero's Challenge order: same stars, tie-breaks and shared places. */
 function getTeacherBoonStudents(sealed = false) {
-    const students = state.get('allStudents').filter((student) => student.classId === teacherBoonModalState.classId);
-    if (sealed) return students.sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
-    return students.sort((a, b) => {
-        const aScore = Number(getTeacherBoonScore(a.id).monthlyStars) || 0;
-        const bScore = Number(getTeacherBoonScore(b.id).monthlyStars) || 0;
-        return bScore - aScore;
-    });
+    if (sealed) {
+        return state.get('allStudents')
+            .filter((student) => student.classId === teacherBoonModalState.classId)
+            .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+    }
+    return rankClassHeroesThisMonth(teacherBoonModalState.classId);
+}
+
+const PLACE_WORDS = { 1: '1st', 2: '2nd', 3: '3rd' };
+
+/** Medal badge for everyone holding 1st-3rd with stars, so a tie shares the number (as on the podium). */
+function renderTeacherBoonRankBadge(student, students) {
+    if (!(student.stars > 0) || !(student.rank <= 3)) return '';
+    const tied = students.filter((other) => other.rank === student.rank).length > 1;
+    const label = `${tied ? 'Tied for' : ''} ${PLACE_WORDS[student.rank]} place`.trim();
+    return `<span class="tb-student__rank tb-student__rank--${student.rank}${tied ? ' is-tied' : ''}" title="${label}" aria-label="${label}">${student.rank}</span>`;
 }
 
 function getTeacherBoonSelectedStudent() {
@@ -129,11 +137,12 @@ function renderTeacherBoonStudentGrid() {
         return;
     }
 
+    const prodigies = peekReigningProdigies()[teacherBoonModalState.classId];
     grid.innerHTML = students.map((student, index) => {
-        const monthlyStars = Number(getTeacherBoonScore(student.id).monthlyStars) || 0;
         const isSelected = teacherBoonModalState.selectedStudentId === student.id;
-        const rankBadge = !sealed && index < 3 && monthlyStars > 0
-            ? `<span class="tb-student__rank tb-student__rank--${index + 1}" aria-label="Rank ${index + 1}">${index + 1}</span>`
+        const rankBadge = sealed ? '' : renderTeacherBoonRankBadge(student, students);
+        const prodigyChip = prodigies?.has(student.id)
+            ? `<span class="tb-student__prodigy" title="${prodigies.size > 1 ? 'Reigning Co-Prodigy' : 'Reigning Prodigy of the Month'}"><i class="fas fa-crown" aria-hidden="true"></i>${prodigies.size > 1 ? 'Co-Prodigy' : 'Prodigy'}</span>`
             : '';
 
         return `
@@ -147,7 +156,8 @@ function renderTeacherBoonStudentGrid() {
                 ${rankBadge}
                 <span class="tb-student__avatar-wrap">${renderAvatar(student, 'tb-student__avatar')}</span>
                 <span class="tb-student__name">${escapeHtml(student.name)}</span>
-                ${sealed ? '' : `<span class="tb-student__stars"><i class="fas fa-star" aria-hidden="true"></i>${monthlyStars}<span class="sr-only"> stars this month</span></span>`}
+                ${prodigyChip}
+                ${sealed ? '' : `<span class="tb-student__stars"><i class="fas fa-star" aria-hidden="true"></i>${formatStandingsStars(student.stars)}<span class="sr-only"> stars this month</span></span>`}
             </button>
         `;
     }).join('');
@@ -395,6 +405,11 @@ export function openTeacherBoonModal() {
     hideTeacherBoonSuccessOverlay();
     renderTeacherBoonModal();
     showAnimatedModal('teacher-boon-modal');
+    // Last month's Prodigy crowns come from the same cache as the Hero's Challenge.
+    const prodigiesShown = peekReigningProdigies();
+    getReigningProdigies().then((prodigies) => {
+        if (prodigies !== prodigiesShown && teacherBoonModalState.classId === classId) renderTeacherBoonStudentGrid();
+    }).catch(() => {});
 }
 
 export function wireTeacherBoonModal() {

@@ -18,18 +18,15 @@ import { getActiveLivingQuestMap, initializeLivingQuestMap, QUEST_MAP_ZONES, ren
 import { getQuestNextStop } from '../../features/teamQuestRace.mjs';
 import { renderQuestChroniclesHtml } from './teamQuestChronicles.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
-import { getSchoolYearStartMonthDate } from '../../utils/schoolYear.js';
 import {
-    getAwardLogMonthlyStarCredit,
-    mergeMonthlyStarsFromArchivedHistoryAndAwardLogs,
-    sumMonthlyStarCreditsByStudentFromAwardLogs
+    getAwardLogMonthlyStarCredit
 } from '../../features/awardLogReasonMeta.js';
 import {
     buildHeroTieStats,
     currentMonthStarsFromScore,
-    pickProdigyWinners,
     rankHeroes
 } from '../../features/heroRanking.js';
+import { getReigningProdigies, heroMonthRecords, heroMonthStars } from '../../features/heroMonthStandings.js';
 import {
     annotateStandingsChanges,
     buildStandingsSnapshot,
@@ -216,82 +213,6 @@ function generateTeacherMobileRaceHtml(classScores, activeClassId = null) {
             </div>
         </section>
     `;
-}
-
-// --- REIGNING PRODIGY CACHE ---
-// Fetches previous month's award logs once per session (cached by monthKey).
-// Returns { [classId]: Set<studentId> } — a Set to support co-prodigies (ties).
-let _prodigyCacheKey = null;
-let _prodigyCache = {}; // classId -> Set of winner studentIds
-
-async function getReigningProdigies() {
-    const now = new Date();
-    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const cacheKey = `${state.getActiveSchoolYearKey() || 'legacy'}:${prevMonth.getFullYear()}-${prevMonth.getMonth()}`;
-    const yearStart = getSchoolYearStartMonthDate(
-        state.getActiveSchoolYearStartDate(),
-        state.getActiveSchoolYearKey()
-    );
-
-    if (_prodigyCacheKey === cacheKey) return _prodigyCache;
-
-    if (yearStart && prevMonth < yearStart) {
-        _prodigyCacheKey = cacheKey;
-        _prodigyCache = {};
-        return _prodigyCache;
-    }
-
-    try {
-        const { fetchLogsForMonth } = await import('../../db/queries.js');
-        const { fetchMonthlyHistory } = await import('../../state.js');
-
-        const monthKey = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}`;
-        const logs = await fetchLogsForMonth(prevMonth.getFullYear(), prevMonth.getMonth() + 1);
-        const archived = await fetchMonthlyHistory(monthKey).catch(() => ({}));
-        const allScores = state.get('allWrittenScores') || [];
-
-        // Group logs by class
-        const logsByClass = {};
-        logs.forEach(l => {
-            if (!l.classId) return;
-            if (!logsByClass[l.classId]) logsByClass[l.classId] = [];
-            logsByClass[l.classId].push(l);
-        });
-
-        const result = {};
-        const vm = prevMonth.getMonth();
-        const vy = prevMonth.getFullYear();
-
-        Object.entries(logsByClass).forEach(([classId, classLogs]) => {
-            const students = state.get('allStudents').filter(s => s.classId === classId);
-            const fromLogsTotals = sumMonthlyStarCreditsByStudentFromAwardLogs(classLogs);
-            const mergedTotals = mergeMonthlyStarsFromArchivedHistoryAndAwardLogs(fromLogsTotals, archived || {});
-
-            // Same rules as the Ceremony and the Hall of Prodigies (features/heroRanking.js).
-            const ranked = rankHeroes(students.map(s => {
-                const sScores = allScores.filter(sc => {
-                    const scDate = utils.parseFlexibleDate(sc.date);
-                    return sc.studentId === s.id && scDate && scDate.getMonth() === vm && scDate.getFullYear() === vy;
-                });
-                return {
-                    id: s.id,
-                    name: s.name,
-                    stars: Number(mergedTotals[s.id]) || 0,
-                    stats: buildHeroTieStats(classLogs.filter(l => l.studentId === s.id), sScores, getNormalizedPercentForScore)
-                };
-            }));
-            const winners = pickProdigyWinners(ranked);
-            if (winners.length === 0) return;
-
-            result[classId] = new Set(winners.map(w => w.id));
-        });
-
-        _prodigyCacheKey = cacheKey;
-        _prodigyCache = result;
-    } catch (e) {
-        console.warn('Could not load reigning prodigies:', e);
-    }
-    return _prodigyCache;
 }
 
 /** Hall of Prodigies + Trophy Room open for the selected class. */
@@ -876,18 +797,8 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
     // 1. HELPER: Calculate Stats & Tie-Breakers
     const getStudentStats = (studentId) => {
         const studentLogs = allLogs.filter(log => log.studentId === studentId);
-        const studentScores = allScores.filter(s => s.studentId === studentId);
-
         const now = new Date();
-        const currentMonthIndex = now.getMonth();
-        const currentYear = now.getFullYear();
-
-        const monthlyLogs = studentLogs.filter(log => {
-            const logDate = utils.parseDDMMYYYY(log.date);
-            return logDate.getMonth() === currentMonthIndex &&
-                logDate.getFullYear() === currentYear &&
-                log.reason !== 'pathfinder_bonus';
-        });
+        const { logs: monthlyLogs, scores: monthlyScores } = heroMonthRecords(studentId, { allLogs, allScores, now });
 
         // A. Weekly Stars (Monday to Friday)
         const dayOfWeek = now.getDay(); // 0 (Sun) to 6 (Sat)
@@ -928,12 +839,6 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
         const topSkill = topReasonEntry ? topReasonEntry[0] : null;
 
         // D. Tie-breakers, by the same rules as the Ceremony (features/heroRanking.js)
-        const monthlyScores = studentScores.filter(s => {
-            if (!s.date) return false;
-            const sDate = utils.parseFlexibleDate(s.date);
-            return sDate && sDate.getMonth() === currentMonthIndex && sDate.getFullYear() === currentYear;
-        });
-
         return {
             weeklyStars, topSkill, streak,
             ...buildHeroTieStats(monthlyLogs, monthlyScores, getNormalizedPercentForScore)
@@ -947,10 +852,9 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
             const studentClass = state.get('allSchoolClasses').find(c => c.id === s.classId);
             const scoreData = allStudentScores.find(sc => sc.id === s.id) || {};
             // Kept to two decimals so half stars (19.5) rank and tie exactly.
-            const rawScore = state.get('studentStarMetric') === 'monthly'
-                ? currentMonthStarsFromScore(scoreData, monthStart)
-                : (Number(scoreData.totalStars) || 0);
-            const score = Math.round(rawScore * 100) / 100;
+            const score = state.get('studentStarMetric') === 'monthly'
+                ? heroMonthStars(scoreData, monthStart)
+                : Math.round((Number(scoreData.totalStars) || 0) * 100) / 100;
             const totalStars = scoreData.totalStars || 0;
 
             // NEW: Get Gold

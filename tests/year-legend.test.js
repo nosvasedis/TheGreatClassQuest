@@ -77,13 +77,13 @@ test('shop, diary, and halls wire year-scoped legend and prodigy stats', () => {
     const economy = read('db/actions/economy.js');
     const quests = read('db/actions/quests.js');
     const rankings = read('ui/modals/rankings.js');
-    const leaderboard = read('ui/tabs/leaderboard.js');
+    const standings = read('features/heroMonthStandings.js');
     const functions = read('functions/index.js');
 
     assert.match(shop, /getYearScopedHeroOfDayWinsFromAppState/);
     assert.match(economy, /getYearScopedHeroOfDayWinsFromAppState/);
     assert.match(quests, /nextHeroOfDayWinWrite/);
     assert.match(rankings, /getViewableCompletedMonthStart/);
-    assert.match(leaderboard, /prevMonth < yearStart/);
+    assert.match(standings, /prevMonth < yearStart/);
     assert.match(functions, /isCarriedPriorYearLegendWins/);
 });

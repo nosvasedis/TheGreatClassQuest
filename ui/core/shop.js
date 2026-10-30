@@ -289,6 +289,13 @@ function bindShopStorefrontListeners() {
     });
 
     const container = document.getElementById('shop-items-container');
+    container?.addEventListener('click', (e) => {
+        const guideBtn = e.target.closest('[data-market-guide]');
+        if (!guideBtn) return;
+        import('./marketGuide.js')
+            .then((m) => m.openMarketGuide({ studentId: document.getElementById('shop-student-select')?.value || '', opener: guideBtn }))
+            .catch((error) => console.warn('Market guide failed to open:', error));
+    });
     let hoverTimer = null;
     let hoveredCard = null;
     container?.addEventListener('pointerover', (e) => {
@@ -579,7 +586,8 @@ export function renderShopUI() {
                 id: 'seasonal', label: 'Seasonal', icon: 'fa-leaf', tone: 'amber',
                 title: 'Seasonal Treasures',
                 month: collectionName ? `${monthLabel} · ${collectionName}` : monthLabel,
-                desc: `This month's treasures, each with a classroom Charm to use once. One of each per hero, and every class gets its fair share until the last week.${seasonalSoldOut ? ` ${seasonalSoldOut} already sold out.` : ''}`,
+                desc: `Every treasure carries a Charm: a small classroom privilege to use once. Copies are shared fairly between the classes.${seasonalSoldOut ? ` ${seasonalSoldOut} already sold out.` : ''}`,
+                action: '<button type="button" class="mm-guide-btn" data-market-guide><i class="fas fa-circle-question" aria-hidden="true"></i><span>How treasures work</span></button>',
                 body: seasonalItems.length === 0
                     ? noSeasonalHtml
                     : renderShelf(seasonalItems.map(item => renderShopItemCard(item, 'seasonal')).join(''))

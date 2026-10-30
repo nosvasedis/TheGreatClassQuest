@@ -7,18 +7,30 @@ import { charmFor, charmText, treasureTierLabel } from '../../features/treasureC
 
 const YOUNG_LEAGUES = ['Pre-Junior', 'Junior A', 'Junior B'];
 
-/** The privilege a stall treasure carries, shown under its blurb so heroes know what it does. */
+const TIER_GEMS = { common: 1, rare: 2, legendary: 3 };
+
+/** Rarity as one to three small gems: easier to read across a room than a word. */
+export function charmGemsMarkup(tier) {
+    const lit = TIER_GEMS[tier] || 1;
+    return [1, 2, 3].map((n) => `<i class="mm-charm__gem${n <= lit ? ' is-lit' : ''}"></i>`).join('');
+}
+
+/**
+ * The privilege a stall treasure carries: a little hanging charm tag under its blurb.
+ * The seal's rim and the gems show the rarity; the words say what it lets the hero do.
+ */
 export function shopCharmMarkup(item) {
     const charm = charmFor(item);
     const words = charmText(charm, { young: YOUNG_LEAGUES.includes(String(item?.league || '')) });
+    const tierLabel = treasureTierLabel(charm.tier);
     return `
-                <div class="mm-ware__charm mm-ware__charm--${charm.tier}" title="${escapeShopHtml(`${charm.title}: ${words} Use it once from the Trophy Room; the treasure stays.`)}">
-                    <span class="mm-ware__charm-head">
-                        <span class="mm-ware__charm-icon" aria-hidden="true">${escapeShopHtml(charm.icon)}</span>
-                        <b class="mm-ware__charm-title">${escapeShopHtml(charm.title)}</b>
-                        <span class="mm-ware__charm-tier">${treasureTierLabel(charm.tier)}</span>
+                <div class="mm-charm mm-charm--${charm.tier}" title="${escapeShopHtml(`${charm.title}: ${words} Use it once from the Trophy Room; the treasure stays.`)}">
+                    <span class="mm-charm__seal" aria-hidden="true"><span class="mm-charm__icon">${escapeShopHtml(charm.icon)}</span></span>
+                    <span class="mm-charm__body">
+                        <span class="mm-charm__kicker">Charm<span class="mm-charm__gems" role="img" aria-label="${tierLabel}">${charmGemsMarkup(charm.tier)}</span></span>
+                        <b class="mm-charm__title">${escapeShopHtml(charm.title)}</b>
+                        <span class="mm-charm__text">${escapeShopHtml(words)}</span>
                     </span>
-                    <span class="mm-ware__charm-text">${escapeShopHtml(words)}</span>
                 </div>`;
 }
 
@@ -177,7 +189,7 @@ export function renderShelf(cardsHtml) {
 }
 
 /** One department: hanging aisle sign + its shelf (or a callout). */
-export function renderMarketAisle({ id, label, icon, tone, title, month = '', desc, badge = '', before = '', body }) {
+export function renderMarketAisle({ id, label, icon, tone, title, month = '', desc, badge = '', action = '', before = '', body }) {
     return `
         <section class="mm-aisle mm-aisle--${tone}" data-aisle="${id}" data-label="${escapeShopHtml(label)}" data-icon="${icon}" id="shop-aisle-${id}">
             ${before}
@@ -188,7 +200,7 @@ export function renderMarketAisle({ id, label, icon, tone, title, month = '', de
                     ${month ? `<p class="shop-section-season-month">${escapeShopHtml(month)}</p>` : ''}
                     <p class="shop-section-desc">${desc}</p>
                 </div>
-                ${badge ? `<span class="shop-section-badge shop-section-badge--${tone}">${badge}</span>` : ''}
+                ${action || (badge ? `<span class="shop-section-badge shop-section-badge--${tone}">${badge}</span>` : '')}
             </header>
             ${body}
             <p class="mm-aisle__none">Nothing on this shelf is in reach yet. Keep earning stars!</p>

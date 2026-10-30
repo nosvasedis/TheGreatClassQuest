@@ -685,7 +685,7 @@ export async function handleBuyItem(studentId, itemId) {
             itemName: item.name,
             itemDescription: isLegendary
                 ? (item.description || 'A rare artifact for your collection!')
-                : `${item.description || ''} Charm: ${charmFor(boughtEntry).title}.`.trim(),
+                : `${item.description || ''} ${charmFor(boughtEntry).icon} Charm: ${charmFor(boughtEntry).title}. Use it once from the Trophy Room.`.trim(),
             itemVisualHtml: item.icon ? item.icon : (item.image ? `<img src="${item.image}" class="w-16 h-16 object-contain mx-auto">` : '🎁'),
             finalPrice: appliedFinalPrice,
             basePrice: item.price,

@@ -1,9 +1,10 @@
 // features/grandGuildCeremony.js — the Grand Guild Ceremony: the end-of-year
-// "Midsummer Festival of the Guilds". Six chapters (Legends of the Day, the
-// Quest Road, the Crown Road, Wonders of the Year, the Guild Crowning, the
-// Hall of Heroes). Markup lives in grandCeremonyView.js; celebrations run on
-// the shared canvas engine (ui/ceremonyFx.js); music and effects come from
-// ceremonyAudio.js and only load when the ceremony opens.
+// "Midsummer Festival of the Guilds". A prelude and six chapters (Legends of the
+// Day, the Quest Road, the Prodigy Road, Wonders of the Year, the Guild Crowning
+// with the Story of the Year, the Hall of Heroes), each opened by a title card.
+// Markup lives in grandCeremonyView.js, the year's maths in grandCeremonyCore.mjs;
+// celebrations run on the shared canvas engine (ui/ceremonyFx.js); music and
+// effects come from ceremonyAudio.js and only load when the ceremony opens.
 
 import { db, doc, writeBatch } from '../firebase.js';
 import * as state from '../state.js';
@@ -12,8 +13,8 @@ import { callGeminiApi } from '../api.js';
 import { canUseFeature } from '../utils/subscription.js';
 import * as utils from '../utils.js';
 import { GUILDS, GUILD_IDS, getGuildById } from './guilds.js';
-import { getGuildLeaderboardData } from './guildScoring.js';
-import { compareFinalCrownRows } from './guildScoringCore.js';
+import { getFirstCrownChapter } from './guildScoring.js';
+import { finalCrownStandings, wheelYearSummary, raidYearSummary } from './grandCeremonyCore.mjs';
 import { getAwardLogMonthlyStarCredit } from './awardLogReasonMeta.js';
 import { getYearScopedHeroOfDayWinsFromAppState } from '../utils/yearLegend.js';
 import { createCeremonyFx } from '../ui/ceremonyFx.js';
@@ -23,10 +24,12 @@ import {
     prepareCeremonyAudio,
     playCeremonyTrack,
     stopCeremonyMusic,
+    stopCeremonyOneShots,
     stopCeremonyAudio,
     startCeremonyDrumroll,
     stopCeremonyDrumroll,
-    playCeremonySfx
+    playCeremonySfx,
+    playCeremonyTally
 } from '../ceremonyAudio.js';
 import {
     GRAND_CHAPTERS,
@@ -46,12 +49,37 @@ import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 
 const $ = (id) => document.getElementById(id);
 
+/**
+ * Everything the ceremony reads from outside the app state. The preview page
+ * (grand-ceremony-preview.html) swaps these for pretend data; the app never does.
+ */
+export const grandCeremonyIo = {
+    now: () => new Date(),
+    fetchMonth: async (m, schoolYearKey) => {
+        const { fetchMonthlyHistory } = await import('../state.js');
+        const opts = schoolYearKey ? { schoolYearKey } : {};
+        const [logs, archived] = await Promise.all([
+            fetchLogsForMonth(m.year, m.month, opts).catch(() => []),
+            fetchMonthlyHistory(m.monthKey, opts).catch(() => ({}))
+        ]);
+        return { logs: logs || [], archived: archived || {} };
+    },
+    /** The whole year's Fortune's Wheel log for these classes (state only keeps the latest 20 spins). */
+    fetchWheelLog: async (classIds) => {
+        const { getYearWheelLog } = await import('../db/actions/guilds.js');
+        return getYearWheelLog(classIds);
+    },
+    save: null
+};
+
 let ceremony = freshCeremony();
 let fx = null;
 let timeline = null;
 let anthem = null;
 let anthemRaf = 0;
 let frozenAnimations = [];
+let cardTimer = 0;
+let starting = false;
 
 function freshCeremony() {
     return {
@@ -61,7 +89,8 @@ function freshCeremony() {
         ceremonyDate: null,
         data: null,
         dataPromise: null,
-        revealPointer: 0,
+        revealQueue: [],
+        music: 'grand_theme',
         saved: false
     };
 }
@@ -75,14 +104,14 @@ function getCeremonyYearKey() {
 function getYearLabel() {
     const key = getCeremonyYearKey();
     if (key) return String(key).replace(/-/g, '–');
-    const now = new Date();
+    const now = grandCeremonyIo.now();
     const startYear = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
     return `${startYear}–${startYear + 1}`;
 }
 
 /** Months of the active school year up to (and including) this month. */
 function getYearMonthsSoFar() {
-    const now = new Date();
+    const now = grandCeremonyIo.now();
     const years = state.get('allSchoolYears') || [];
     const yearData = years.find((item) => item.id === getCeremonyYearKey());
     let start = null;
@@ -105,28 +134,23 @@ function getYearMonthsSoFar() {
 
 // ============================================================== DATA
 
-/** One fetch per month of the year, shared by the Quest Road and the Crown Road. */
+/** One fetch per month of the year, shared by the Quest Road and the Prodigy Road. */
 async function gatherYearLogs(months) {
     const schoolYearKey = getCeremonyYearKey();
-    const { fetchMonthlyHistory } = await import('../state.js');
     return Promise.all(months.map(async (m) => {
-        const [logs, archived] = await Promise.all([
-            fetchLogsForMonth(m.year, m.month, schoolYearKey ? { schoolYearKey } : {}).catch(() => []),
-            fetchMonthlyHistory(m.monthKey, schoolYearKey ? { schoolYearKey } : {}).catch(() => ({}))
-        ]);
-        return { ...m, logs: logs || [], archived: archived || {} };
+        const got = await grandCeremonyIo.fetchMonth(m, schoolYearKey).catch(() => ({}));
+        return { ...m, logs: got?.logs || [], archived: got?.archived || {} };
     }));
 }
 
 function gatherHeroes(classIds) {
     const classSet = new Set(classIds);
     const classes = state.get('allSchoolClasses') || [];
-    const scores = state.get('allStudentScores') || [];
+    const scores = new Map((state.get('allStudentScores') || []).map((sc) => [sc.id, sc]));
     const heroes = (state.get('allStudents') || [])
         .filter((s) => classSet.has(s.classId))
         .map((s) => {
-            const score = scores.find((sc) => sc.id === s.id) || {};
-            const wins = getYearScopedHeroOfDayWinsFromAppState(score, state);
+            const wins = getYearScopedHeroOfDayWinsFromAppState(scores.get(s.id) || {}, state);
             const cls = classes.find((c) => c.id === s.classId);
             return { id: s.id, name: s.name, avatar: s.avatar || null, wins, className: classIds.length > 1 ? cls?.name || '' : '' };
         })
@@ -135,23 +159,44 @@ function gatherHeroes(classIds) {
     return { top: heroes.slice(0, 7), totalWins: heroes.reduce((sum, h) => sum + h.wins, 0) };
 }
 
-function gatherQuestYear(classIds, monthsWithLogs) {
+async function gatherQuestYear(classIds, monthsWithLogs) {
+    let ranks = null;
+    try {
+        const [core, crest] = await Promise.all([import('./questRanksCore.mjs'), import('./questRankCrest.mjs')]);
+        ranks = { core, crest };
+    } catch (_) { /* ranks are a nice extra */ }
     const classes = (state.get('allSchoolClasses') || []).filter((c) => classIds.includes(c.id));
     const students = state.get('allStudents') || [];
+    const holidays = state.get('schoolHolidayRanges');
+    const overrides = state.get('allScheduleOverrides');
     return classes.map((c) => {
         const ids = new Set(students.filter((s) => s.classId === c.id).map((s) => s.id));
         const studentCount = ids.size;
-        const goal = studentCount ? utils.calculateMonthlyClassGoal(c, studentCount, state.get('schoolHolidayRanges'), state.get('allScheduleOverrides')) : 0;
         const months = monthsWithLogs.map((m) => {
             const fromLogs = m.logs.filter((log) => log.classId === c.id).reduce((sum, log) => sum + getAwardLogMonthlyStarCredit(log), 0);
-            const archivedIds = Object.keys(m.archived).filter((id) => ids.has(id));
-            const fromArchive = archivedIds.reduce((sum, id) => sum + (Number(m.archived[id]) || 0), 0);
-            const stars = Math.round(Math.max(fromLogs, fromArchive));
-            return { monthKey: m.monthKey, stars };
+            const fromArchive = Object.keys(m.archived).filter((id) => ids.has(id)).reduce((sum, id) => sum + (Number(m.archived[id]) || 0), 0);
+            const bonus = Number(c.teamQuestBonuses?.[m.monthKey]) || 0;
+            const stars = Math.round(Math.max(fromLogs, fromArchive) + bonus);
+            let goal = 0;
+            try {
+                goal = studentCount ? utils.calculateMonthlyClassGoalForDate(c, studentCount, holidays, overrides, new Date(m.year, m.monthIndex, 15)) : 0;
+            } catch (_) { goal = 0; }
+            const crossed = Boolean(c.portalCrossings?.[m.monthKey]);
+            return { monthKey: m.monthKey, stars, goalMet: crossed || (goal > 0 && stars >= goal) };
         });
         const totalStars = months.reduce((sum, m) => sum + m.stars, 0);
-        const goalsMet = goal > 0 ? months.filter((m) => m.stars >= goal).length : 0;
-        return { id: c.id, name: c.name, logo: c.logo || '📚', league: c.questLevel || '', months, totalStars, goalsMet };
+        const goalsMet = months.filter((m) => m.goalMet).length;
+        let rank = null;
+        let rankCrest = '';
+        if (ranks) {
+            try {
+                const level = ranks.core.displayLevelOf(c.difficultyLevel);
+                rank = ranks.core.rankForLevel(level);
+                rankCrest = ranks.crest.rankCrestSvg(level, { className: 'grd-quest__crest' });
+            } catch (_) { rank = null; }
+        }
+        const crossings = Object.keys(c.portalCrossings || {}).length;
+        return { id: c.id, name: c.name, logo: c.logo || '📚', league: c.questLevel || '', months, totalStars, goalsMet, rank, rankCrest, crossings };
     });
 }
 
@@ -159,7 +204,7 @@ async function gatherProdigyRoad(classIds, monthsWithLogs) {
     const { buildProdigyMonthOutcome } = await import('../ui/modals/rankings.js');
     const students = state.get('allStudents') || [];
     const written = state.get('allWrittenScores') || [];
-    const now = new Date();
+    const now = grandCeremonyIo.now();
     const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const completed = monthsWithLogs.filter((m) => m.monthKey < currentKey);
     const winCounts = new Map();
@@ -187,32 +232,29 @@ async function gatherProdigyRoad(classIds, monthsWithLogs) {
     return { months, mostCrowned, mostCount, totalCrowns: [...winCounts.values()].reduce((a, b) => a + b, 0) };
 }
 
-function gatherWheel(classIds) {
-    const classSet = new Set(classIds);
-    const entries = (state.get('fortuneWheelLog') || []).filter((entry) => classSet.has(entry.classId));
-    const byGuild = {};
-    entries.forEach((entry) => (entry.results || []).forEach((result) => {
-        if (!result.guildId) return;
-        byGuild[result.guildId] = (byGuild[result.guildId] || 0) + (Number(result.gloryDelta) || 0);
-    }));
-    const lucky = Object.entries(byGuild).sort(([, a], [, b]) => b - a)[0];
-    return {
-        totalSpins: entries.length,
-        luckiestGuild: lucky && lucky[1] > 0 ? { guildId: lucky[0], totalGlory: lucky[1] } : null
-    };
+async function gatherWheel(classIds) {
+    let entries = null;
+    try {
+        entries = await grandCeremonyIo.fetchWheelLog(classIds);
+    } catch (error) {
+        console.warn('Grand ceremony: full Wheel log unavailable, using the recent spins', error);
+    }
+    if (!Array.isArray(entries)) entries = state.get('fortuneWheelLog') || [];
+    return wheelYearSummary(entries, classIds);
 }
 
 async function gatherFamiliars(classIds) {
     const classSet = new Set(classIds);
     const students = (state.get('allStudents') || []).filter((s) => classSet.has(s.classId));
-    const scores = state.get('allStudentScores') || [];
-    const result = { totalHatched: 0, totalEggs: 0, mostAdvanced: [] };
-    let getLevel = null;
+    const scores = new Map((state.get('allStudentScores') || []).map((sc) => [sc.id, sc]));
+    const result = { totalHatched: 0, totalEggs: 0, finalForm: 0, highestForm: 0, mostAdvanced: [] };
+    let progression = null;
     try {
-        ({ getUnlockedFamiliarLevel: getLevel } = await import('./familiarProgression.mjs'));
+        progression = await import('./familiarProgression.mjs');
     } catch (_) { /* optional */ }
+    const maxLevel = progression?.FAMILIAR_MAX_LEVEL || 5;
     students.forEach((s) => {
-        const score = scores.find((sc) => sc.id === s.id);
+        const score = scores.get(s.id);
         const familiar = score?.familiar;
         if (!familiar) return;
         if (familiar.state === 'egg') {
@@ -221,58 +263,83 @@ async function gatherFamiliars(classIds) {
         }
         if (familiar.state !== 'alive') return;
         result.totalHatched += 1;
-        const level = getLevel ? getLevel(familiar, Number(score?.totalStars) || 0) : 0;
-        if (level >= 3) result.mostAdvanced.push({ id: s.id, name: s.name });
+        let level = Number(familiar.level) || 1;
+        try {
+            if (progression) level = Math.max(level, progression.getUnlockedFamiliarLevel(familiar, Number(score?.totalStars) || 0));
+        } catch (_) { /* keep the stored level */ }
+        result.highestForm = Math.max(result.highestForm, Math.min(maxLevel, level));
+        if (level >= maxLevel) {
+            result.finalForm += 1;
+            result.mostAdvanced.push({ id: s.id, name: s.name });
+        }
     });
     return result;
 }
 
+function membersByGuild() {
+    const byGuild = Object.fromEntries(GUILD_IDS.map((gid) => [gid, []]));
+    (state.get('allStudents') || []).forEach((s) => { if (byGuild[s.guildId]) byGuild[s.guildId].push(s.id); });
+    return byGuild;
+}
+
+/** The Crown Race as it ends tonight, plus each guild's brightest heroes from the classes on stage. */
 function gatherGuilds(classIds) {
     const classSet = new Set(classIds);
+    const allGuildScores = state.get('allGuildScores') || {};
+    const schoolYearKey = getCeremonyYearKey();
     const students = (state.get('allStudents') || []).filter((s) => classSet.has(s.classId));
-    const scores = state.get('allStudentScores') || [];
-    // The June Chapter is sealed as it stands: its Crowns count tonight.
-    const rows = getGuildLeaderboardData()
-        .filter((row) => Number(row.memberCount) > 0)
-        .sort(compareFinalCrownRows)
-        .map((row, index) => {
-            const guild = getGuildById(row.guildId) || GUILDS[row.guildId] || {};
-            const heroes = students
-                .filter((s) => s.guildId === row.guildId)
-                .map((s) => ({ id: s.id, name: s.name, avatar: s.avatar || null, totalStars: Number(scores.find((sc) => sc.id === s.id)?.totalStars) || 0 }))
-                .sort((a, b) => b.totalStars - a.totalStars)
-                .slice(0, 4);
-            return {
-                guildId: row.guildId,
-                guildName: guild.name || row.guildName,
-                guild,
-                crowns: (Number(row.crowns) || 0) + (Number(row.liveCrowns) || 0),
-                chapterWins: [...(row.chapterWins || []), ...(row.live?.counts && row.live?.place === 1 ? [row.live.key] : [])],
-                yearGloryPerMember: Number(row.yearGloryPerMember) || 0,
-                rank: index + 1,
-                heroes,
-            };
-        });
-    return rows;
+    const scores = new Map((state.get('allStudentScores') || []).map((sc) => [sc.id, sc]));
+    const rows = finalCrownStandings({
+        allGuildScores,
+        membersByGuild: membersByGuild(),
+        guildIds: GUILD_IDS,
+        schoolYearKey,
+        firstKey: getFirstCrownChapter(schoolYearKey),
+        now: grandCeremonyIo.now()
+    });
+    return rows.map((row) => {
+        const guild = getGuildById(row.guildId) || GUILDS[row.guildId] || {};
+        const doc_ = allGuildScores[row.guildId] || {};
+        const yearGlory = doc_.memberGloryYear && doc_.memberGloryYear === doc_.activeSchoolYearKey ? (doc_.memberGlory || {}) : null;
+        const heroes = students
+            .filter((s) => s.guildId === row.guildId)
+            .map((s) => {
+                const totalStars = Number(scores.get(s.id)?.totalStars) || 0;
+                return { id: s.id, name: s.name, avatar: s.avatar || null, totalStars, glory: yearGlory ? Number(yearGlory[s.id]) || 0 : totalStars * 2 };
+            })
+            .sort((a, b) => b.glory - a.glory || b.totalStars - a.totalStars || String(a.name).localeCompare(String(b.name)))
+            .slice(0, 4);
+        return { ...row, guildName: guild.name || row.guildId, guild, heroes };
+    });
 }
 
 async function gatherAllData(classIds) {
     const months = getYearMonthsSoFar();
     const monthsWithLogs = await gatherYearLogs(months);
-    const [prodigies, familiars] = await Promise.all([
+    const [prodigies, familiars, questYear, wheel] = await Promise.all([
         gatherProdigyRoad(classIds, monthsWithLogs).catch((error) => {
             console.warn('Grand ceremony: prodigy road unavailable', error);
             return { months: [], mostCrowned: [], mostCount: 0, totalCrowns: 0 };
         }),
-        gatherFamiliars(classIds)
+        gatherFamiliars(classIds).catch(() => ({ totalHatched: 0, totalEggs: 0, finalForm: 0, highestForm: 0, mostAdvanced: [] })),
+        gatherQuestYear(classIds, monthsWithLogs),
+        gatherWheel(classIds).catch(() => wheelYearSummary([], classIds))
     ]);
+    const classes = (state.get('allSchoolClasses') || []).filter((c) => classIds.includes(c.id));
+    let guilds = [];
+    try {
+        guilds = gatherGuilds(classIds);
+    } catch (error) {
+        console.error('Grand ceremony: Crown Race standings failed', error);
+    }
     return {
         heroes: gatherHeroes(classIds),
-        questYear: gatherQuestYear(classIds, monthsWithLogs),
+        questYear,
         prodigies,
-        wheel: gatherWheel(classIds),
+        wheel,
         familiars,
-        guilds: gatherGuilds(classIds),
+        raids: raidYearSummary(classes),
+        guilds,
         chronicles: await import('./guildChronicleCore.js').then((m) => m.yearChronicles()).catch(() => [])
     };
 }
@@ -307,18 +374,23 @@ function replay(el, className) {
     el.classList.add(className);
 }
 
+/** Scene keys that belong to a chapter of the ribbon. */
+const SCENE_CHAPTER = { champion: 'guilds', story: 'guilds', farewell: 'end' };
+
 function setScene(scene, { realm } = {}) {
     const screen = screenEl();
     if (!screen) return;
     screen.dataset.scene = scene;
     if (realm) screen.dataset.realm = realm;
     screen.classList.remove('is-drumroll', 'is-revealed');
-    const chapterKey = scene === 'champion' ? 'guilds' : scene;
-    const chapterIndex = GRAND_CHAPTERS.findIndex((c) => c.key === chapterKey || chapterKey.startsWith(`${c.key}-`));
+    const chapterKey = SCENE_CHAPTER[scene] || scene;
+    const chapterIndex = chapterKey === 'end' ? GRAND_CHAPTERS.length : GRAND_CHAPTERS.findIndex((c) => c.key === chapterKey);
     document.querySelectorAll('#grd-chapters li').forEach((li, i) => {
         li.classList.toggle('is-done', chapterIndex > i);
         li.classList.toggle('is-on', chapterIndex === i);
     });
+    const ribbon = $('grd-chapters');
+    if (ribbon) ribbon.style.setProperty('--done', String(Math.max(0, Math.min(GRAND_CHAPTERS.length - 1, chapterIndex)) / (GRAND_CHAPTERS.length - 1)));
 }
 
 function setHeading(kicker = '', title = '') {
@@ -361,6 +433,30 @@ function setAction(label, handler, { disabled = false } = {}) {
     replay(btn, 'is-fresh');
 }
 
+/**
+ * The chapter title card: a numeral, the chapter's name and its line sweep across the stage for
+ * about 1.6s. Returns how long the scene below should wait before it starts revealing.
+ */
+function playChapterCard(key) {
+    const chapter = GRAND_CHAPTERS.find((c) => c.key === key);
+    const card = $('grd-card');
+    if (!chapter || !card) return 0;
+    $('grd-card-numeral').textContent = chapter.numeral;
+    $('grd-card-kicker').textContent = `Chapter ${chapter.numeral}`;
+    $('grd-card-title').textContent = chapter.title;
+    $('grd-card-line').textContent = chapter.line || '';
+    clearTimeout(cardTimer);
+    replay(card, 'is-on');
+    playCeremonySfx('grand_chapter');
+    cardTimer = setTimeout(() => card.classList.remove('is-on'), 1750);
+    return 1250;
+}
+
+function hideChapterCard() {
+    clearTimeout(cardTimer);
+    $('grd-card')?.classList.remove('is-on');
+}
+
 function runTimeline(steps, onDone) {
     cancelTimeline();
     const tl = { steps: steps.map((s) => ({ ...s, done: false })), timers: [], onDone };
@@ -375,21 +471,26 @@ function runTimeline(steps, onDone) {
         tl.timers.push(setTimeout(() => {
             if (timeline !== tl || step.done) return;
             step.done = true;
-            step.run(false);
+            try { step.run(false); } catch (error) { console.warn('Grand ceremony step failed', error); }
             settle();
         }, step.at));
     });
     if (!tl.steps.length) settle();
 }
 
+/** Jumps the running sequence to its end. True when there was one to finish. */
 function finishTimeline() {
     const tl = timeline;
     if (!tl) return false;
     timeline = null;
     tl.timers.forEach(clearTimeout);
+    hideChapterCard();
     const screen = screenEl();
     screen?.classList.add('is-skipping');
-    tl.steps.filter((s) => !s.done).forEach((s) => { s.done = true; s.run(true); });
+    tl.steps.filter((s) => !s.done).forEach((s) => {
+        s.done = true;
+        try { s.run(true); } catch (error) { console.warn('Grand ceremony step failed', error); }
+    });
     tl.onDone?.();
     requestAnimationFrame(() => requestAnimationFrame(() => screen?.classList.remove('is-skipping')));
     return true;
@@ -429,17 +530,25 @@ function guildColors(guild) {
     return [guild?.primary || '#fbbf24', guild?.secondary || '#f59e0b', guild?.glow || '#fde68a', '#ffffff'];
 }
 
+function music(key, opts) {
+    ceremony.music = key;
+    playCeremonyTrack(key, opts);
+}
+
 function handleKeys(e) {
     if (!ceremony.active) return;
     if (e.target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
-    if (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowRight') {
+    if (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowRight' || e.key === 'PageDown') {
         e.preventDefault();
+        if (e.repeat) return;
         const btn = $('grd-action-btn');
         if (btn && !btn.disabled) btn.click();
         else finishTimeline();
     } else if (e.key === 'Escape') {
         e.preventDefault();
         closeCeremony();
+    } else if (e.key === 'm' || e.key === 'M') {
+        $('grd-sound-btn')?.click();
     }
 }
 
@@ -473,6 +582,7 @@ export function updateCeremonyButtons() {
 // ============================================================== START / CLOSE
 
 export async function startGrandGuildCeremony(classIds = null) {
+    if (ceremony.active) return;
     if (!canUseFeature('guilds')) {
         const { showUpgradePrompt } = await import('../utils/upgradePrompt.js');
         const { getUpgradeMessage } = await import('../config/tiers/features.js');
@@ -483,18 +593,22 @@ export async function startGrandGuildCeremony(classIds = null) {
     if (!participatingClasses.length) return;
     const screen = screenEl();
     if (!screen) return;
+    if (starting) return;
+    starting = true;
+    try {
+        await import('../styles/ceremony_grand.css');
+    } catch (error) {
+        console.warn('Grand ceremony styles failed to load', error);
+    } finally {
+        starting = false;
+    }
+    if (ceremony.active) return;
 
     ceremony = freshCeremony();
     ceremony.active = true;
     ceremony.participatingClasses = participatingClasses;
     ceremony.ceremonyDate = utils.getTodayDateString();
-    ceremony.dataPromise = gatherAllData(participatingClasses).then((data) => {
-        ceremony.data = data;
-        return data;
-    }).catch((error) => {
-        console.error('Grand ceremony data failed', error);
-        return null;
-    });
+    loadData();
 
     const guilds = GUILD_IDS.map((id) => GUILDS[id]).filter(Boolean);
     const backdrop = $('grd-backdrop');
@@ -502,10 +616,11 @@ export async function startGrandGuildCeremony(classIds = null) {
         backdrop.innerHTML = grandBackdropHtml(guilds);
         backdrop.dataset.ready = '1';
     }
+    backdrop?.querySelectorAll('.grd-banner').forEach((b) => b.classList.remove('is-up'));
     const chapters = $('grd-chapters');
-    if (chapters) chapters.innerHTML = GRAND_CHAPTERS.map((c) => `<li title="${c.title}"><i class="fas ${c.icon}" aria-hidden="true"></i><span>${c.numeral}</span></li>`).join('');
+    if (chapters) chapters.innerHTML = GRAND_CHAPTERS.map((c) => `<li title="Chapter ${c.numeral} · ${c.title}"><i class="fas ${c.icon}" aria-hidden="true"></i><span>${c.numeral}</span></li>`).join('');
 
-    screen.classList.remove('hidden');
+    screen.classList.remove('hidden', 'is-drumroll', 'is-revealed', 'is-flashing', 'is-raised');
     document.documentElement.classList.add('cer-open');
     const host = $('grd-fx-host');
     if (host && !fx) fx = createCeremonyFx(host, { className: 'grd-fx' });
@@ -533,8 +648,8 @@ export async function startGrandGuildCeremony(classIds = null) {
 
     ceremony.music = 'grand_theme';
     prepareCeremonyAudio('grand').then(() => {
-        if (!ceremony.active) return;
-        playCeremonyTrack('grand_theme');
+        if (!ceremony.active || ceremony.phase !== 'opening') return;
+        playCeremonyTrack('grand_theme', { fade: 2.5 });
         playCeremonySfx('gong');
     });
 
@@ -542,22 +657,53 @@ export async function startGrandGuildCeremony(classIds = null) {
     setScene('opening', { realm: 'dusk' });
     $('grd-stage').innerHTML = grandOpeningHtml({ yearLabel: getYearLabel(), classes, guilds });
     setHeading('', '');
-    setHerald('The lanterns are lit. Welcome to the end-of-year festival!');
+    setHerald('');
     setAction('Begin the Festival', advance);
-    fx?.embers({ count: 30, duration: 4000, colors: ['#fde68a', '#fb923c', '#f9a8d4'] });
+    screen.classList.remove('is-raised');
+    const opening = $('grd-stage').querySelector('.grd-opening');
+    const banners = [...screen.querySelectorAll('.grd-banner')];
+    runTimeline([
+        { at: 150, run: () => screen.classList.add('is-raised') },
+        { at: 500, run: () => opening?.classList.add('is-on') },
+        ...banners.map((b, i) => ({ at: 900 + i * 260, run: (fast) => {
+            b.classList.add('is-up');
+            if (!fast) playCeremonySfx('chime');
+        } })),
+        { at: 2100, run: (fast) => {
+            setHerald('The lanterns are lit. Welcome, heroes, to the end-of-year festival!');
+            if (fast) return;
+            const p = fxPoint(opening?.querySelector('.grd-orbit__heart'));
+            fx?.burst(p.x, p.y, { colors: ['#fde68a', '#fb923c', '#f9a8d4', '#ffffff'], count: 60, speed: 220, ring: true });
+            fx?.embers({ count: 30, duration: 4000, colors: ['#fde68a', '#fb923c', '#f9a8d4'] });
+        } },
+        { at: 2800, run: (fast) => { if (!fast) fx?.fireworks({ count: 3, spread: 1600, colors: ['#fde68a', '#f9a8d4', '#a5f3fc'] }); } }
+    ]);
     herald('grand_opening', { classCount: participatingClasses.length });
 }
 
+function loadData() {
+    ceremony.dataPromise = gatherAllData(ceremony.participatingClasses).then((data) => {
+        ceremony.data = data;
+        return data;
+    }).catch((error) => {
+        console.error('Grand ceremony data failed', error);
+        return null;
+    });
+}
+
 function closeCeremony() {
+    if (!ceremony.active && screenEl()?.classList.contains('hidden')) return;
     ceremony.active = false;
+    heraldToken += 1;
     cancelTimeline();
+    hideChapterCard();
     stopAnthem();
     window.removeEventListener('keydown', handleKeys);
     stopCeremonyAudio({ fade: 0.6 });
     fx?.clear();
     const screen = screenEl();
     if (screen) {
-        screen.classList.remove('is-open');
+        screen.classList.remove('is-open', 'is-drumroll', 'is-revealed', 'is-flashing', 'is-raised');
         screen.classList.add('hidden');
     }
     document.documentElement.classList.remove('cer-open');
@@ -580,7 +726,7 @@ async function advance() {
         if (!ceremony.data) {
             setHerald("The year's scrolls could not be read. Check the connection and try again.");
             setAction('Try again', () => {
-                ceremony.dataPromise = gatherAllData(ceremony.participatingClasses).then((d) => { ceremony.data = d; return d; }).catch(() => null);
+                loadData();
                 advance();
             });
             return;
@@ -596,8 +742,7 @@ async function advance() {
         'guilds-reveal': revealNextGuild,
         'guilds-crown': renderChampion,
         champion: renderHall,
-        hall: renderFarewell,
-        gather: renderHeroes
+        hall: renderFarewell
     }[ceremony.phase];
     next?.();
 }
@@ -609,21 +754,25 @@ function renderHeroes() {
     const stage = $('grd-stage');
     stage.innerHTML = grandHeroesHtml(top, { totalWins });
     chapterHeading('heroes', 'Heroes of the Day');
-    setHerald(top[0] ? `${top[0].name} was Hero of the Day ${top[0].wins} ${top[0].wins === 1 ? 'time' : 'times'}!` : 'Every day had its hero!');
-    playCeremonySfx('whoosh');
+    setHerald('');
+    const t0 = playChapterCard('heroes');
     const lanterns = [...stage.querySelectorAll('.grd-hero')].sort((a, b) => Number(b.style.getPropertyValue('--i')) - Number(a.style.getPropertyValue('--i')));
-    const steps = lanterns.map((li, i) => ({ at: 200 + i * 380, run: (fast) => {
+    const steps = lanterns.map((li, i) => ({ at: t0 + 200 + i * 420, run: (fast) => {
         li.classList.add('is-lit');
         countAll(li, fast);
         if (!fast) {
-            playCeremonySfx(li.classList.contains('grd-hero--top') ? 'reveal' : 'chime');
+            const isTop = li.classList.contains('grd-hero--top');
+            playCeremonySfx(isTop ? 'reveal' : 'chime');
             const p = fxPoint(li.querySelector('.grd-hero__lantern'));
-            fx?.burst(p.x, p.y, { colors: ['#fde68a', '#fb923c', '#ffffff'], count: li.classList.contains('grd-hero--top') ? 70 : 26, speed: 180, gravity: 40 });
+            fx?.burst(p.x, p.y, { colors: ['#fde68a', '#fb923c', '#ffffff'], count: isTop ? 80 : 26, speed: isTop ? 240 : 180, gravity: 40, ring: isTop });
         }
     } }));
-    steps.push({ at: 300 + lanterns.length * 380, run: (fast) => countAll(stage.querySelector('.grd-heroes__total'), fast) });
+    steps.push({ at: t0 + 300 + lanterns.length * 420, run: (fast) => {
+        countAll(stage.querySelector('.grd-heroes__total'), fast);
+        setHerald(top[0] ? `${top[0].name} was Hero of the Day ${top[0].wins} ${top[0].wins === 1 ? 'time' : 'times'}!` : 'Every day had its hero!');
+        if (!fast) herald('hero_gallery', { top: top[0], totalWins });
+    } });
     runTimeline(steps);
-    herald('hero_gallery', { top: top[0], totalWins });
     setAction('On to the Quest Road', advance);
 }
 
@@ -634,16 +783,19 @@ function renderQuestYear() {
     const classes = ceremony.data.questYear;
     stage.innerHTML = grandQuestYearHtml(classes);
     chapterHeading('quest', 'A Year of Team Quests');
-    setHerald('Month by month, star by star, every class walked its own road.');
-    playCeremonySfx('whoosh');
+    setHerald('');
+    const t0 = playChapterCard('quest');
     const cards = [...stage.querySelectorAll('.grd-quest')];
-    runTimeline(cards.map((card, i) => ({ at: 150 + i * 450, run: (fast) => {
-        card.classList.add('is-raised');
-        countAll(card, fast);
-        if (!fast) playCeremonySfx('count');
-    } })));
-    herald('team_quest_journey', { classes });
-    setAction('Walk the Crown Road', advance);
+    const gap = cards.length > 6 ? 220 : 420;
+    runTimeline([
+        ...cards.map((card, i) => ({ at: t0 + 150 + i * gap, run: (fast) => {
+            card.classList.add('is-raised');
+            countAll(card, fast);
+            if (!fast) playCeremonyTally({ seconds: 0.9, steps: 8 });
+        } })),
+        { at: t0 + 300 + cards.length * gap, run: () => setHerald('Month by month, star by star, every class walked its own road.') }
+    ]);
+    setAction('Walk the Prodigy Road', advance);
 }
 
 function renderProdigyRoad() {
@@ -653,31 +805,54 @@ function renderProdigyRoad() {
     const road = ceremony.data.prodigies;
     stage.innerHTML = grandProdigyRoadHtml(road.months, { mostCrowned: road.mostCrowned, mostCount: road.mostCount });
     chapterHeading('prodigies', 'Every Prodigy of the Month');
-    setHerald(road.months.length ? 'One crown for every month of the year.' : '');
+    setHerald('');
+    const t0 = playChapterCard('prodigies');
     const tiles = [...stage.querySelectorAll('.grd-month')];
-    const steps = tiles.map((tile, i) => ({ at: 150 + i * 260, run: (fast) => {
+    const steps = tiles.map((tile, i) => ({ at: t0 + 150 + i * 280, run: (fast) => {
         tile.classList.add('is-shown');
-        if (!fast) playCeremonySfx('tick');
+        if (!fast) playCeremonySfx('grand_medal');
     } }));
     const plaque = stage.querySelector('.grd-crowned');
-    if (plaque) {
-        steps.push({ at: 500 + tiles.length * 260, run: (fast) => {
-            plaque.classList.add('is-shown');
-            if (!fast) {
-                playCeremonySfx('gold');
-                const p = fxPoint(plaque);
-                fx?.burst(p.x, p.y, { colors: ['#fde68a', '#fbbf24', '#ffffff'], count: 90, speed: 260, ring: true });
-            }
-        } });
-    }
+    steps.push({ at: t0 + 500 + tiles.length * 280, run: (fast) => {
+        setHerald(road.months.length ? 'One Prodigy for every month of the year.' : '');
+        if (!plaque) return;
+        plaque.classList.add('is-shown');
+        if (!fast) {
+            playCeremonySfx('gold');
+            const p = fxPoint(plaque);
+            fx?.burst(p.x, p.y, { colors: ['#fde68a', '#fbbf24', '#ffffff'], count: 90, speed: 260, ring: true });
+            herald('prodigy_timeline', { mostCrowned: road.mostCrowned, mostCount: road.mostCount });
+        }
+    } });
     runTimeline(steps);
-    herald('prodigy_timeline', { mostCrowned: road.mostCrowned, mostCount: road.mostCount, totalCrowns: road.totalCrowns });
     setAction(hasWonders() ? 'Wonders of the Year' : 'The Guild Crowning', advance);
 }
 
+function wonderTiles() {
+    const { wheel, familiars, raids } = ceremony.data;
+    const tiles = [];
+    if (wheel.totalSpins > 0) {
+        tiles.push({ tone: 'wheel', icon: '🎡', value: wheel.totalSpins, label: "Fortune's Wheel spins" });
+        if (wheel.omens > 0) tiles.push({ tone: 'omen', icon: '🌠', value: wheel.omens, label: wheel.omens === 1 ? 'Omen in the sky' : 'Omens in the sky', note: 'the rarest fates of all' });
+        if (wheel.braved > 0) tiles.push({ tone: 'storm', icon: '⛈️', value: wheel.braved, label: wheel.braved === 1 ? 'Storm braved' : 'Storms braved' });
+        const lucky = wheel.luckiestGuild ? getGuildById(wheel.luckiestGuild.guildId) : null;
+        if (lucky) tiles.push({ tone: 'luck', crest: lucky, value: lucky.name, label: 'Luckiest guild at the Wheel', note: `+${Math.round(wheel.luckiestGuild.totalGlory)} Glory from Fortune` });
+        if (wheel.rarestFind) {
+            const finder = getGuildById(wheel.rarestFind.guildId);
+            tiles.push({ tone: 'find', icon: String(wheel.rarestFind.label).split(' ')[0] || '✨', value: String(wheel.rarestFind.label).replace(/^\S+\s*/, '') || 'A rare find', label: 'Rarest find of the year', note: finder ? `found by ${finder.name}` : '' });
+        }
+    }
+    if (familiars.totalHatched > 0 || familiars.totalEggs > 0) {
+        tiles.push({ tone: 'hatch', icon: '🥚', value: familiars.totalHatched, label: 'Familiars hatched', note: familiars.totalEggs ? `${familiars.totalEggs} still in their eggs` : '' });
+        if (familiars.finalForm > 0) tiles.push({ tone: 'legend', icon: '🐉', value: familiars.finalForm, label: 'Familiars at their final form' });
+        else if (familiars.highestForm > 1) tiles.push({ tone: 'legend', icon: '🐉', value: `Form ${familiars.highestForm}`, label: 'Highest familiar form' });
+    }
+    if (raids.victories > 0) tiles.push({ tone: 'raid', icon: '🦌', value: raids.victories, label: raids.victories === 1 ? 'Realm Raid won' : 'Realm Raids won', note: raids.legendary ? `${raids.legendary} legendary` : 'Eldhorn bowed' });
+    return tiles;
+}
+
 function hasWonders() {
-    const d = ceremony.data;
-    return Boolean(d && (d.wheel.totalSpins > 0 || d.familiars.totalHatched > 0 || d.familiars.totalEggs > 0));
+    return Boolean(ceremony.data && wonderTiles().length);
 }
 
 function renderWonders() {
@@ -685,18 +860,23 @@ function renderWonders() {
     setScene('wonders', { realm: 'dusk' });
     const stage = $('grd-stage');
     const { wheel, familiars } = ceremony.data;
-    const luckyGuild = wheel.luckiestGuild ? getGuildById(wheel.luckiestGuild.guildId) : null;
-    stage.innerHTML = grandWondersHtml({ wheel, familiars, luckyGuild });
-    chapterHeading('wonders', "The Wheel & the Familiars");
-    setHerald('Fate spun, eggs cracked, and new friends were born.');
+    stage.innerHTML = grandWondersHtml(wonderTiles());
+    chapterHeading('wonders', 'Fate, Friends and Battles');
+    setHerald('');
+    const t0 = playChapterCard('wonders');
     const tiles = [...stage.querySelectorAll('.grd-wonder')];
-    runTimeline(tiles.map((tile, i) => ({ at: 150 + i * 380, run: (fast) => {
-        tile.classList.add('is-shown');
-        countAll(tile, fast);
-        if (!fast) playCeremonySfx('pop');
-    } })));
-    herald('wonders', { wheel, familiars });
-    setAction('The Guild Crowning', advance);
+    runTimeline([
+        ...tiles.map((tile, i) => ({ at: t0 + 150 + i * 360, run: (fast) => {
+            tile.classList.add('is-shown');
+            countAll(tile, fast);
+            if (!fast) playCeremonySfx('pop');
+        } })),
+        { at: t0 + 300 + tiles.length * 360, run: (fast) => {
+            setHerald('Fate spun, eggs cracked, and new friends were born.');
+            if (!fast) herald('wonders', { wheel, familiars });
+        } }
+    ]);
+    setAction(hasStory() ? 'The Story of the Year' : 'The Guild Crowning', advance);
 }
 
 function hasStory() {
@@ -710,19 +890,21 @@ async function renderStory() {
     try { view = await import('./guildChronicleView.js'); } catch (error) { console.warn('Story of the Year unavailable:', error); renderGuildPillars(); return; }
     if (!ceremony.active) return;
     setScene('story', { realm: 'night' });
+    music('grand_story', { fade: 1.6 });
     const stage = $('grd-stage');
     const chronicles = ceremony.data.chronicles;
     stage.innerHTML = view.grandStoryHtml(chronicles);
     chapterHeading('guilds', 'The Story of the Year');
-    setHerald('Every Chapter has its tale. Listen to the Chronicle of the Crown Race.');
-    playCeremonySfx('whoosh');
+    setHerald('');
+    const t0 = playChapterCard('guilds');
     const paper = stage.querySelector('.grd-story__paper');
     const stanzas = [...stage.querySelectorAll('.grd-story__stanza')];
-    runTimeline(stanzas.map((el, i) => ({ at: 300 + i * 2600, run: (fast) => {
+    const gap = stanzas.length > 6 ? 2000 : 2600;
+    runTimeline(stanzas.map((el, i) => ({ at: t0 + 300 + i * gap, run: (fast) => {
         el.classList.add('is-read');
         if (fast) return;
         playCeremonySfx('chime');
-        if (paper) paper.scrollTop = Math.max(0, el.offsetTop - paper.clientHeight / 3);
+        if (paper) paper.scrollTo?.({ top: Math.max(0, el.offsetTop - paper.clientHeight / 3), behavior: 'smooth' });
         setHerald(`${chronicles[i].month}: ${chronicles[i].lines[0]}`);
     } })), () => setHerald('And so the year was written, Chapter by Chapter.'));
     setAction('The Guild Crowning', advance);
@@ -730,29 +912,50 @@ async function renderStory() {
 
 function renderGuildPillars() {
     ceremony.phase = 'guilds-reveal';
-    setScene('guilds', { realm: 'night' });
     const rows = ceremony.data.guilds;
-    const stage = $('grd-stage');
     if (!rows.length) {
         renderHall();
         return;
     }
+    const fromStory = screenEl()?.dataset.scene === 'story';
+    setScene('guilds', { realm: 'night' });
+    const stage = $('grd-stage');
     const maxCrowns = Math.max(1, ...rows.map((r) => r.crowns));
     const display = GUILD_IDS.map((id) => rows.find((r) => r.guildId === id)).filter(Boolean);
     stage.innerHTML = grandGuildPillarsHtml(display, { maxCrowns });
     chapterHeading('guilds', 'Which guild wears the crown?');
-    setHerald('Four guilds. One crown. A year of Chapters decides.');
-    ceremony.music = 'grand_suspense';
-    playCeremonyTrack('grand_suspense');
-    playCeremonySfx('gong');
+    setHerald('');
+    const t0 = fromStory ? 0 : playChapterCard('guilds');
+    music('grand_suspense');
     // Reveal order: last place first, champion last.
     ceremony.revealQueue = rows.slice(1).map((r) => r.guildId).reverse();
     const pillars = stage.querySelector('.grd-pillars');
     runTimeline([
-        { at: 120, run: () => pillars?.classList.add('is-rising') }
+        { at: t0 + 120, run: (fast) => {
+            pillars?.classList.add('is-rising');
+            if (!fast) playCeremonySfx('gong');
+        } },
+        { at: t0 + 900, run: () => setHerald(`${rows.length} guilds. One crown. A whole year of Chapters decides.`) }
     ]);
     if (ceremony.revealQueue.length) setAction(`Reveal #${rows.length}`, advance);
-    else setAction('🥁 Crown the Champion', crownChampion);
+    else setAction('Crown the Champions', crownChampion);
+}
+
+function revealPillar(pillar, { fast = false, champion = false } = {}) {
+    if (!pillar) return;
+    pillar.classList.add('is-revealed');
+    if (champion) pillar.classList.add('is-champion');
+    countAll(pillar.querySelector('.grd-pillar__value'), fast);
+    const medals = [...pillar.querySelectorAll('.grd-medal')];
+    if (fast) {
+        medals.forEach((m) => m.classList.add('is-on'));
+        return;
+    }
+    medals.forEach((m, i) => setTimeout(() => {
+        if (!m.isConnected) return;
+        m.classList.add('is-on');
+        if (i % 2 === 0) playCeremonySfx('grand_medal');
+    }, 350 + i * 90));
 }
 
 function revealNextGuild() {
@@ -760,19 +963,20 @@ function revealNextGuild() {
     const stage = $('grd-stage');
     const pillar = stage.querySelector(`.grd-pillar[data-guild="${id}"]`);
     if (pillar) {
-        pillar.classList.add('is-revealed');
-        countAll(pillar, false);
+        revealPillar(pillar);
         playCeremonySfx('reveal');
         const guild = getGuildById(id);
+        const row = ceremony.data.guilds.find((r) => r.guildId === id);
         const p = fxPoint(pillar.querySelector('.grd-pillar__crest'));
         fx?.burst(p.x, p.y, { colors: guildColors(guild), count: 60, speed: 220 });
-        setHerald(`${guild?.name || 'A guild'} takes place #${pillar.dataset.rank}!`);
+        const place = ['', 'first', 'second', 'third', 'fourth'][Number(pillar.dataset.rank)] || `#${pillar.dataset.rank}`;
+        setHerald(`${guild?.name || 'A guild'} takes ${place} place with ${row?.crowns ?? 0} Crowns!`);
     }
     if (ceremony.revealQueue.length) {
         const nextRank = ceremony.data.guilds.find((r) => r.guildId === ceremony.revealQueue[0])?.rank;
         setAction(`Reveal #${nextRank}`, advance);
     } else {
-        setAction('🥁 Crown the Champion', crownChampion);
+        setAction('Crown the Champions', crownChampion);
     }
 }
 
@@ -780,20 +984,20 @@ function crownChampion() {
     const stage = $('grd-stage');
     const screen = screenEl();
     const champion = ceremony.data.guilds[0];
+    const runnerUp = ceremony.data.guilds[1];
     const pillar = stage.querySelector(`.grd-pillar[data-guild="${champion.guildId}"]`);
     const others = [...stage.querySelectorAll('.grd-pillar:not(.is-revealed)')];
-    setAction('Crowning…', null);
+    setAction('Crowning…', null, { disabled: true });
     screen.classList.add('is-drumroll');
     stopCeremonyMusic({ fade: 0.4 });
     startCeremonyDrumroll(3.2);
-    setHerald('');
+    setHerald(others.length > 1 ? 'Which guild wears the crown…?' : 'The crown is ready…');
     const steps = [];
     [0, 420, 780, 1080, 1340, 1560, 1750, 1910, 2050, 2170, 2280, 2380, 2470, 2550, 2630, 2700, 2770, 2830, 2890, 2950, 3000, 3050].forEach((at, i) => {
         steps.push({ at, run: (fast) => {
             if (fast) return;
             others.forEach((el) => el.classList.remove('is-spot'));
             others[i % others.length]?.classList.add('is-spot');
-            if (i % 3 === 0) playCeremonySfx('tick');
         } });
     });
     steps.push({ at: 3250, run: (fast) => {
@@ -801,24 +1005,26 @@ function crownChampion() {
         others.forEach((el) => el.classList.remove('is-spot'));
         screen.classList.remove('is-drumroll');
         screen.classList.add('is-revealed');
-        pillar?.classList.add('is-revealed', 'is-champion');
-        countAll(pillar, fast);
+        revealPillar(pillar, { fast, champion: true });
         stage.querySelector('.grd-pillars')?.classList.add('is-crowned');
         setHeading('Guild Champions of the Year', champion.guild?.name || champion.guildName);
+        setHerald(champion.tieBreak && runnerUp && runnerUp.crowns === champion.crowns
+            ? `Level on ${champion.crowns} Crowns, and the year's Glory per hero crowns ${champion.guild?.name || 'them'}!`
+            : `${champion.guild?.name || 'The champions'} wears the crown with ${champion.crowns} Crowns!`);
         if (!fast) {
             replay(screen, 'is-flashing');
-            playCeremonyTrack('grand_crowning');
-            playCeremonySfx('gold');
+            music('grand_crowning');
+            playCeremonySfx('grand_crown');
             const colors = guildColors(champion.guild);
             const p = fxPoint(pillar?.querySelector('.grd-pillar__crest'));
             fx?.burst(p.x, p.y, { colors, count: 160, speed: 420, ring: true });
             fx?.fireworks({ count: 9, colors, spread: 3200 });
             fx?.confetti({ count: 170, colors, duration: 1600 });
+            herald('guild_crowning', { guild: champion.guild });
         }
-        herald('guild_crowning', { guild: champion.guild });
     } });
     ceremony.phase = 'guilds-crown';
-    runTimeline(steps, () => setAction(`Hear the ${champion.guild?.name || 'champion'} anthem`, advance));
+    runTimeline(steps, () => setAction(champion.guild?.anthem ? `Hear the ${champion.guild?.name || 'champion'} anthem` : 'Raise the banner', advance));
 }
 
 function stopAnthem() {
@@ -826,37 +1032,41 @@ function stopAnthem() {
     anthemRaf = 0;
     if (anthem) {
         try { anthem.pause(); } catch (_) { /* ignore */ }
-        anthem.src = '';
+        anthem.removeAttribute('src');
         anthem = null;
     }
 }
 
 function playAnthem(guild, lyricsEl) {
     stopAnthem();
+    const lines = [...(lyricsEl?.querySelectorAll('li') || [])];
     if (!guild?.anthem || isCeremonyAudioMuted()) {
-        lyricsEl?.querySelectorAll('li').forEach((li) => li.classList.add('is-sung'));
+        lines.forEach((li) => li.classList.add('is-sung'));
         return;
     }
     stopCeremonyMusic({ fade: 0.8 });
-    anthem = new Audio(guild.anthem);
-    anthem.volume = 0.9;
-    const lines = [...(lyricsEl?.querySelectorAll('li') || [])];
+    stopCeremonyOneShots({ fade: 1.2 });
+    const audio = new Audio(guild.anthem);
+    anthem = audio;
+    audio.volume = 0.9;
     const tick = () => {
-        if (!anthem) return;
-        const t = anthem.currentTime;
+        if (anthem !== audio) return;
+        const t = audio.currentTime;
         lines.forEach((li, i) => {
             const start = Number(li.dataset.time) || 0;
             const next = Number(lines[i + 1]?.dataset.time) || Infinity;
-            li.classList.toggle('is-now', t >= start && t < next);
+            const now = t >= start && t < next;
+            if (now && !li.classList.contains('is-now')) li.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+            li.classList.toggle('is-now', now);
             if (t >= start) li.classList.add('is-sung');
         });
-        if (!anthem.ended) anthemRaf = requestAnimationFrame(tick);
+        if (!audio.ended) anthemRaf = requestAnimationFrame(tick);
     };
-    anthem.addEventListener('ended', () => {
-        lines.forEach((li) => li.classList.remove('is-now'));
-        if (ceremony.active) playCeremonyTrack('grand_theme', { fade: 2 });
+    audio.addEventListener('ended', () => {
+        lines.forEach((li) => { li.classList.remove('is-now'); li.classList.add('is-sung'); });
+        if (ceremony.active && anthem === audio && ceremony.phase === 'champion') music('grand_hall', { fade: 2 });
     });
-    anthem.play().then(tick).catch(() => lines.forEach((li) => li.classList.add('is-sung')));
+    audio.play().then(tick).catch(() => lines.forEach((li) => li.classList.add('is-sung')));
 }
 
 function renderChampion() {
@@ -868,8 +1078,22 @@ function renderChampion() {
     setHeading('', '');
     setHerald(champion.guild?.motto ? `“${champion.guild.motto}”` : '');
     const colors = guildColors(champion.guild);
-    fx?.fireworks({ count: 6, colors, spread: 4000 });
-    runTimeline([{ at: 700, run: () => playAnthem(champion.guild, stage.querySelector('.grd-lyrics')) }]);
+    const scene = stage.querySelector('.grd-champion');
+    runTimeline([
+        { at: 60, run: (fast) => {
+            scene?.classList.add('is-raised');
+            if (!fast) playCeremonySfx('grand_unfurl');
+        } },
+        { at: 900, run: (fast) => {
+            scene?.classList.add('is-crowned');
+            if (fast) return;
+            playCeremonySfx('grand_crown');
+            const p = fxPoint(scene?.querySelector('.grd-champion__crest'));
+            fx?.burst(p.x, p.y, { colors, count: 110, speed: 320, ring: true });
+            fx?.fireworks({ count: 6, colors, spread: 4000 });
+        } },
+        { at: 1500, run: (fast) => { if (!fast) playAnthem(champion.guild, stage.querySelector('.grd-lyrics')); else stage.querySelectorAll('.grd-lyrics li').forEach((li) => li.classList.add('is-sung')); } }
+    ]);
     setAction('Enter the Hall of Heroes', advance);
 }
 
@@ -877,8 +1101,7 @@ function renderHall() {
     stopAnthem();
     ceremony.phase = 'hall';
     setScene('hall', { realm: 'night' });
-    ceremony.music = 'grand_theme';
-    playCeremonyTrack('grand_theme', { fade: 1.5 });
+    music('grand_hall', { fade: 1.5 });
     const classSet = new Set(ceremony.participatingClasses);
     const students = (state.get('allStudents') || [])
         .filter((s) => classSet.has(s.classId))
@@ -889,32 +1112,36 @@ function renderHall() {
         { value: students.length, label: 'Heroes' },
         { value: d.questYear.reduce((sum, c) => sum + c.totalStars, 0), label: 'Stars this year' },
         { value: d.heroes.totalWins, label: 'Hero of the Day crowns' },
-        { value: d.prodigies.totalCrowns, label: 'Prodigy crowns' }
-    ];
+        { value: d.prodigies.totalCrowns, label: 'Prodigies of the Month' }
+    ].filter((s, i) => i < 2 || s.value > 0);
     const stage = $('grd-stage');
     stage.innerHTML = grandHallHtml(students, { stats });
     chapterHeading('hall', 'Every hero, a star');
-    setHerald('Every name here helped write this year. Congratulations, heroes!');
+    setHerald('');
+    const t0 = playChapterCard('hall');
     runTimeline([
-        { at: 100, run: () => stage.querySelector('.grd-hall')?.classList.add('is-lit') },
-        { at: 900, run: (fast) => { countAll(stage, fast); if (!fast) playCeremonySfx('gold'); } },
-        { at: 1300, run: (fast) => {
+        { at: t0 + 100, run: () => stage.querySelector('.grd-hall')?.classList.add('is-lit') },
+        { at: t0 + 900, run: (fast) => { countAll(stage, fast); if (!fast) playCeremonySfx('gold'); } },
+        { at: t0 + 1300, run: (fast) => {
+            setHerald('Every name here helped write this year. Congratulations, heroes!');
             if (fast) return;
             fx?.fireworks({ count: 10, spread: 5000 });
             fx?.confetti({ count: 150, duration: 1800 });
+            herald('hall_of_heroes', {});
         } }
     ]);
-    herald('hall_of_heroes', {});
-    setAction('Finish Ceremony', advance);
+    setAction('Finish the Ceremony', advance);
 }
 
 function renderFarewell() {
     ceremony.phase = 'end';
     setScene('farewell', { realm: 'night' });
-    $('grd-stage').innerHTML = grandFarewellHtml({ yearLabel: getYearLabel() });
+    const champion = ceremony.data?.guilds?.[0]?.guild || null;
+    $('grd-stage').innerHTML = grandFarewellHtml({ yearLabel: getYearLabel(), champion });
     setHeading('Ceremony Complete', 'Until next year');
     setHerald('');
-    fx?.fireworks({ count: 6, spread: 3000 });
+    fx?.fireworks({ count: 8, spread: 3600 });
+    fx?.stars?.({ count: 50, duration: 3000 });
     playCeremonySfx('chime');
     saveCeremonyCompletion();
     setAction('Close', closeCeremony);
@@ -930,9 +1157,11 @@ function buildSummary() {
         classStars: Object.fromEntries((d.questYear || []).map((c) => [c.id, c.totalStars])),
         prodigyCrowns: d.prodigies?.totalCrowns || 0,
         mostCrowned: (d.prodigies?.mostCrowned || []).map((p) => p.id),
-        guildRanking: (d.guilds || []).map((g) => ({ guildId: g.guildId, rank: g.rank, crowns: g.crowns, chapterWins: g.chapterWins || [] })),
+        guildRanking: (d.guilds || []).map((g) => ({ guildId: g.guildId, rank: g.rank, crowns: g.crowns, chapterWins: g.chapterWins || [], unitySeals: g.unitySeals || 0 })),
         wheelSpins: d.wheel?.totalSpins || 0,
-        familiarsHatched: d.familiars?.totalHatched || 0
+        wheelOmens: d.wheel?.omens || 0,
+        familiarsHatched: d.familiars?.totalHatched || 0,
+        realmRaidsWon: d.raids?.victories || 0
     };
 }
 
@@ -940,15 +1169,19 @@ async function saveCeremonyCompletion() {
     if (ceremony.saved) return;
     ceremony.saved = true;
     try {
-        const teacherId = state.get('currentUserId');
-        if (!teacherId) return;
         const record = {
             ceremonyDate: ceremony.ceremonyDate,
             participatingClasses: [...ceremony.participatingClasses],
             summary: buildSummary(),
             completedAt: new Date(),
-            ceremonyVersion: 'midsummer-2026'
+            ceremonyVersion: 'midsummer-2027'
         };
+        if (grandCeremonyIo.save) {
+            await grandCeremonyIo.save(record);
+            return;
+        }
+        const teacherId = state.get('currentUserId');
+        if (!teacherId) return;
         const batch = writeBatch(db);
         batch.set(doc(db, `${PUBLIC_DATA_PATH}/teachers`, teacherId), {
             grandCeremonyHistory: { [ceremony.ceremonyDate]: record }
@@ -970,29 +1203,31 @@ async function saveCeremonyCompletion() {
 const HERALD_FALLBACK = {
     grand_opening: 'Welcome, heroes, to the Grand Guild Ceremony!',
     hero_gallery: 'A hero every day. What a year!',
-    team_quest_journey: 'Every class walked its own road, and every road led forward.',
-    prodigy_timeline: 'One crown for every month. Every one of them earned.',
+    prodigy_timeline: 'One Prodigy for every month. Every one of them earned.',
     wonders: 'Luck and friendship made this year magical.',
     guild_crowning: 'The crown has found its guild!',
     hall_of_heroes: 'Every name here helped write this year. Congratulations, heroes!'
 };
 
+/** An Elite AI line for the herald ribbon. Silent if it comes back after the scene moved on. */
 async function herald(phase, data = {}) {
     const token = ++heraldToken;
+    const scene = ceremony.phase;
     if (!canUseFeature('eliteAI')) return;
     const prompts = {
         grand_opening: `Write one short, joyful sentence (max 20 words) opening an end-of-year school ceremony for ${data.classCount} class(es). Festive, for children learning English.`,
-        hero_gallery: data.top ? `Write one short sentence (max 20 words) celebrating ${data.top.name}, who was Hero of the Day ${data.top.wins} times this school year.` : '',
-        guild_crowning: data.guild ? `Write one short, epic sentence (max 20 words) crowning the ${data.guild.name} guild as champions of the school year. Their motto: "${data.guild.motto}".` : '',
-        hall_of_heroes: 'Write one short, warm sentence (max 22 words) thanking every student for a wonderful school year.'
+        hero_gallery: data.top ? `Write one short sentence (max 20 words) celebrating ${data.top.name}, who was Hero of the Day ${data.top.wins} times this school year. Simple English for children.` : '',
+        guild_crowning: data.guild ? `Write one short, epic sentence (max 20 words) crowning the ${data.guild.name} guild as champions of the school year. Their motto: "${data.guild.motto}". Simple English for children.` : '',
+        hall_of_heroes: 'Write one short, warm sentence (max 22 words) thanking every student for a wonderful school year. Simple English for children.'
     };
     const prompt = prompts[phase];
     if (!prompt) return;
+    const fresh = () => token === heraldToken && ceremony.active && ceremony.phase === scene;
     try {
         const text = await callGeminiApi(prompt);
-        if (token === heraldToken && ceremony.active && text) setHerald(String(text).trim().replace(/^"|"$/g, ''));
+        if (fresh() && text) setHerald(String(text).trim().replace(/^"|"$/g, ''));
     } catch (_) {
-        if (token === heraldToken && ceremony.active && HERALD_FALLBACK[phase]) setHerald(HERALD_FALLBACK[phase]);
+        if (fresh() && HERALD_FALLBACK[phase]) setHerald(HERALD_FALLBACK[phase]);
     }
 }
 

@@ -23,7 +23,9 @@ export const CEREMONY_TRACKS = {
     grand: {
         grand_theme: { url: 'assets/ceremony/music/grand-festival.mp3', loop: true, volume: -11 },
         grand_suspense: { url: 'assets/ceremony/music/grand-suspense.mp3', loop: true, volume: -9 },
-        grand_crowning: { url: 'assets/ceremony/music/grand-crowning.mp3', loop: false, volume: -6 }
+        grand_crowning: { url: 'assets/ceremony/music/grand-crowning.mp3', loop: false, volume: -6 },
+        grand_story: { url: 'assets/ceremony/music/grand-story.mp3', loop: true, volume: -12 },
+        grand_hall: { url: 'assets/ceremony/music/grand-hall.mp3', loop: true, volume: -11 }
     }
 };
 
@@ -387,6 +389,32 @@ export function playCeremonySfx(name) {
                 fx.glide.triggerAttack('G4', now + 0.1);
                 fx.glide.setNote('D5', now + 0.3);
                 fx.glide.triggerRelease(now + 0.8);
+                break;
+            // ---- The Grand Guild Ceremony ----
+            case 'grand_chapter':
+                // A chapter title card: low gong, a harp run up and a bell on top.
+                fx.boom.triggerAttackRelease('D1', '4n', now);
+                fx.gong.triggerAttackRelease('D2', 1.6, now + 0.01);
+                ['D4', 'F#4', 'A4', 'D5', 'F#5', 'A5'].forEach((note, i) => fx.pluck.triggerAttackRelease(note, '16n', now + 0.12 + i * 0.06));
+                fx.bells.triggerAttackRelease('D6', '4n', now + 0.5, 0.7);
+                break;
+            case 'grand_medal':
+                fx.bells.triggerAttackRelease('A5', '32n', now, 0.45);
+                fx.tick.triggerAttackRelease('E4', '64n', now);
+                break;
+            case 'grand_unfurl':
+                fx.whooshFilter.frequency.cancelScheduledValues(now);
+                fx.whooshFilter.frequency.setValueAtTime(260, now);
+                fx.whooshFilter.frequency.exponentialRampToValueAtTime(1500, now + 0.6);
+                fx.whooshNoise.triggerAttackRelease(0.6, now);
+                fx.brass.triggerAttackRelease(['D4', 'A4'], 0.5, now + 0.25);
+                break;
+            case 'grand_crown':
+                // The crown lands: a bright clang, a brass chord and a bell cascade.
+                fx.crash.triggerAttackRelease('2n', now);
+                fx.boom.triggerAttackRelease('D1', '4n', now);
+                fx.brass.triggerAttackRelease(['D4', 'F#4', 'A4', 'D5'], 1.6, now + 0.05);
+                ['D6', 'A5', 'F#6', 'D7', 'A6'].forEach((note, i) => fx.bells.triggerAttackRelease(note, '8n', now + 0.1 + i * 0.07, 0.8));
                 break;
             default:
                 break;

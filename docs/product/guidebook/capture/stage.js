@@ -2,6 +2,7 @@ import { headerHTML, svgFiltersHTML } from '../../../../templates/app/header.js'
 import { navHTML } from '../../../../templates/app/nav.js';
 import { ceremonyHTML } from '../../../../templates/app/screens/ceremony.js';
 import { grandGuildCeremonyHTML } from '../../../../templates/app/screens/grandGuildCeremony.js';
+import '../../../../styles/ceremony_grand.css';
 import { heroModalsHTML } from '../../../../templates/modals/hero.js';
 import { attendanceModalsHTML } from '../../../../templates/modals/attendance.js';
 import {

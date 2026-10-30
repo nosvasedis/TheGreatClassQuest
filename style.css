@@ -179,8 +179,7 @@
 
 /* 36b. Familiars: stats overlay redesign — animated card, particles, stagger */
 
-/* 37. Grand Guild Ceremony: Midsummer Festival of the Guilds (end of year) */
-@import url('./styles/ceremony_grand.css');
+/* 37. Grand Guild Ceremony: loaded by features/grandGuildCeremony.js when it opens */
 
 /* 38. Role-aware screens: parent portal, secretary console, access center */
 @import url('./styles/roles.css');

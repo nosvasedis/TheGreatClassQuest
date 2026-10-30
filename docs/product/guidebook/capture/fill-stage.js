@@ -335,6 +335,8 @@ function setGrandChrome({ scene, realm, kicker = '', title = '', herald = '', ac
   screen.dataset.realm = realm;
   const backdrop = document.getElementById('grd-backdrop');
   if (backdrop && !backdrop.childElementCount) backdrop.innerHTML = grandBackdropHtml(GUILD_IDS.map(getGuildById));
+  backdrop?.querySelectorAll('.grd-banner').forEach((b) => b.classList.add('is-up'));
+  screen.classList.add('is-raised');
   const chapters = document.getElementById('grd-chapters');
   if (chapters) {
     const at = GRAND_CHAPTERS.findIndex((c) => c.key === (scene === 'champion' ? 'guilds' : scene));
@@ -358,10 +360,11 @@ export function showGrandCeremony(mode) {
       classes: [{ name: 'Junior B Owls', logo: '🦉' }, { name: 'Junior B Comets', logo: '☄️' }, { name: 'Pre-Junior Bees', logo: '🐝' }, { name: 'Class C Dragons', logo: '🐲' }],
       guilds: GUILD_IDS.map(getGuildById)
     });
+    stage.querySelector('.grd-opening')?.classList.add('is-on');
     return;
   }
   if (mode === 'prodigies') {
-    const stage = setGrandChrome({ scene: 'prodigies', realm: 'dusk', kicker: 'Chapter III · The Crown Road', title: 'A crown for every month', action: 'Wonders of the Year' });
+    const stage = setGrandChrome({ scene: 'prodigies', realm: 'dusk', kicker: 'Chapter III · The Prodigy Road', title: 'Every Prodigy of the Month', action: 'Wonders of the Year' });
     const months = ['2025-09', '2025-10', '2025-11', '2025-12', '2026-01', '2026-02', '2026-03', '2026-04', '2026-05'];
     const names = [['Maria'], ['Alex'], ['Eleni', 'Nikos'], ['Maria'], ['Sofia'], ['Alex'], ['Maria'], ['Yannis'], ['Zoe']];
     stage.innerHTML = grandProdigyRoadHtml(months.map((monthKey, i) => ({ monthKey, winners: names[i].map((name) => ({ name })) })), { mostCrowned: [{ name: 'Maria' }], mostCount: 3 });
@@ -383,6 +386,7 @@ export function showGrandCeremony(mode) {
     const champion = GRAND_ROWS[0];
     const stage = setGrandChrome({ scene: 'champion', realm: 'night', herald: `“${champion.guild?.motto || ''}”`, action: 'Enter the Hall of Heroes' });
     stage.innerHTML = grandChampionHtml(champion, { heroes: [{ name: 'Maria' }, { name: 'Alex' }, { name: 'Eleni' }] });
+    stage.querySelector('.grd-champion')?.classList.add('is-raised', 'is-crowned');
     const lines = stage.querySelectorAll('.grd-lyrics li');
     lines.forEach((li, i) => { if (i < 3) li.classList.add('is-sung'); });
     lines[2]?.classList.add('is-now');

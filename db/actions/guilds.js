@@ -159,6 +159,29 @@ export async function getRecentWheelResults(classId, maxResults = 4) {
 }
 
 /**
+ * Every Fortune's Wheel spin of the active school year for some classes, newest first.
+ * One query per class (the same fields hasSpunThisWeek filters on), for the Grand Guild Ceremony.
+ * @param {string[]} classIds
+ * @returns {Promise<Array>}
+ */
+export async function getYearWheelLog(classIds = []) {
+    const schoolYearKey = state.getActiveSchoolYearKey();
+    if (!schoolYearKey || !classIds.length) return [];
+    const perClass = await Promise.all([...new Set(classIds)].map(async (classId) => {
+        const q = query(
+            collection(db, `${publicDataPath}/fortune_wheel_log`),
+            where('schoolYearKey', '==', schoolYearKey),
+            where('classId', '==', classId),
+            limit(250)
+        );
+        const snap = await getDocs(q);
+        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }));
+    const time = (e) => (typeof e.spunAt?.toMillis === 'function' ? e.spunAt.toMillis() : new Date(e.spunAt || 0).getTime()) || 0;
+    return perClass.flat().sort((a, b) => time(b) - time(a));
+}
+
+/**
  * Adjust guild Glory instantly (positive or negative delta).
  * @param {string} guildId
  * @param {number} delta - Can be negative

@@ -107,7 +107,7 @@ export function heraldChronicleLines(facts) {
     const level = standing.filter((g) => g.crownsSoFar === top.crownsSoFar);
     const line4 = level.length > 1
         ? `After ${month}, ${joinNames(level.map((g) => g.name))} are level with ${top.crownsSoFar} Crowns.`
-        : `After ${month}, ${top.name} lead the Crown Race with ${top.crownsSoFar} Crown${top.crownsSoFar === 1 ? '' : 's'}.`;
+        : `After ${month}, ${top.name} leads the Crown Race with ${top.crownsSoFar} Crown${top.crownsSoFar === 1 ? '' : 's'}.`;
     return [line1, line2, line3, line4];
 }
 

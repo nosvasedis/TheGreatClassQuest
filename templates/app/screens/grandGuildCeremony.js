@@ -35,5 +35,14 @@ export const grandGuildCeremonyHTML = `
                 </button>
             </div>
         </div>
+
+        <div id="grd-card" class="grd-card" aria-hidden="true">
+            <span class="grd-card__rule" aria-hidden="true"></span>
+            <span id="grd-card-numeral" class="grd-card__numeral"></span>
+            <p id="grd-card-kicker" class="grd-card__kicker"></p>
+            <h2 id="grd-card-title" class="grd-card__title"></h2>
+            <p id="grd-card-line" class="grd-card__line"></p>
+            <span class="grd-card__rule" aria-hidden="true"></span>
+        </div>
     </div>
 `;

@@ -100,18 +100,18 @@ The **Guild Spotlight** opens from a guild’s Stats card. Pick any of the four 
 
 ## Grand Guild Ceremony
 
-The end-of-year spectacle, a **Midsummer Festival** under the guild castle. Home shows the call when it is time. The top bar has **Exit** (Esc), six chapter marks and a **sound** toggle; **Space** presses the big button.
+The end-of-year spectacle, a **Midsummer Festival** under the guild castle, with its own music for every part of the night. Home shows the call when it is time. The top bar has **Exit** (Esc), six chapter marks that fill in as the night goes on, and a **sound** toggle (**M**); **Space**, **Enter** or **→** press the big button. Each chapter opens with a short title card.
 
-**Opening.** The castle at sunset with the four guild banners, the school year, and **Begin the Festival**. The app then gathers the year’s tales from every month.
+**Opening.** The castle at sunset, the four guild banners unfurling, the school year, and **Begin the Festival**. The app then gathers the year’s tales from every month.
 
 - **Chapter I · Legends of the Day.** The students with the most Hero of the Day wins this year rise as lanterns, the top hero in the middle.
-- **Chapter II · The Quest Road.** Each class’s year as a row of monthly bars. Classes are not ranked against other leagues.
-- **Chapter III · The Crown Road.** One tile per finished month with its Prodigy of the Month (or Co-Prodigies), and a **Most crowned** plaque.
-- **Chapter IV · Wonders of the Year.** Fortune’s Wheel spins and Familiars hatched, with the luckiest guild. Skipped when the year has neither.
-- **Chapter V · The Guild Crowning.** First comes **The Story of the Year**: every sealed Chapter’s chronicle on one long scroll, read stanza by stanza with the herald repeating each opening line (press the button to show them all at once). Then night falls. The four guild pillars stand with their power hidden and are revealed **from last place up** (**Reveal #4**, **#3**, **#2**). **🥁 Crown the Champion** runs a drumroll with the spotlight sweeping the last two pillars, then crowns the guild with the **most Crowns** (June’s Chapter counts as it stands that day; a tie goes to the year’s Glory per member). Each pillar shows its Crowns and the Chapters it won when it is revealed. Its crest, motto and **anthem** follow, with the lyrics lighting up in time with the music, and the guild’s top heroes.
+- **Chapter II · The Quest Road.** Each class’s year as a row of monthly bars, with the class’s quest rank and crest, the months it reached its goal and the times it crossed the Portal. Classes are not ranked against other leagues.
+- **Chapter III · The Prodigy Road.** One tile per finished month with its Prodigy of the Month (or Co-Prodigies), and a **Most crowned** plaque.
+- **Chapter IV · Wonders of the Year.** The year of Fortune’s Wheel (spins, Omens, storms braved, the luckiest guild and the rarest find), Familiars hatched and their highest form, and Realm Raids won. Only the wonders the year really had are shown; skipped when it had none.
+- **Chapter V · The Guild Crowning.** First comes **The Story of the Year**: every sealed Chapter’s chronicle on one long scroll, read stanza by stanza with the herald repeating each opening line (press the button to show them all at once). Then night falls. The four guild towers rise with their Crowns hidden and are revealed **from last place up** (**Reveal #4**, **#3**, **#2**). Each tower shows its Crowns, a medal for its place in every Chapter (with the Unity Seals), the Chapters it won and its Unity Seals. **Crown the Champions** runs a drumroll with spotlights sweeping the towers still hidden, then crowns the guild with the **most Crowns** (June’s Chapter counts as it stands that day; a tie goes to the year’s Glory per member, and the herald says so). The champion’s banner is raised with its crest, motto and **anthem**, the lyrics lighting up in time with the music, and the guild’s brightest heroes in the classes taking part.
 - **Chapter VI · The Hall of Heroes.** Every hero of the participating classes appears as a star in the night sky, with the numbers of the year.
 
-**Finish Ceremony** saves the year’s summary (heroes, class stars, prodigy crowns, the guild ranking, Wheel spins and Familiars) and says farewell until next year. Guilds are for life: the ceremony never re-sorts anyone.
+**Finish the Ceremony** saves the year’s summary (heroes, class stars, prodigy crowns, the guild ranking with Crowns and Unity Seals, Wheel spins and Omens, Familiars, Realm Raids won) and says farewell until next year. Guilds are for life: the ceremony never re-sorts anyone. On weaker laptops the ceremony uses lighter effects by itself; the music is the same.
 
 This is **not** Ceremony of the Month. Do not run the monthly dual ritual and call it the Guild Ceremony.
 

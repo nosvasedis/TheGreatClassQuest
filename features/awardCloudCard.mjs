@@ -253,6 +253,13 @@ function sealHtml(view) {
         + `<span class="aw-seal__text">for ${esc(name)}</span></div>`;
 }
 
+/** The sleepy moon on an away desk: a crescent, drifting z's and a few drops. */
+function awayDreamHtml() {
+    return '<span class="aw-desk__dream" aria-hidden="true"><span class="aw-desk__moon"><i class="fas fa-moon"></i></span>'
+        + '<span class="aw-desk__z">z</span><span class="aw-desk__z aw-desk__z--b">z</span><span class="aw-desk__z aw-desk__z--c">Z</span>'
+        + '<span class="aw-desk__drop"></span><span class="aw-desk__drop aw-desk__drop--b"></span></span>';
+}
+
 /**
  * The attendance corner (present cloud) or the welcome desk (absent cloud).
  * mode: 'absent-offer' (can be marked absent), 'returning' (was away last lesson),
@@ -269,15 +276,21 @@ export function buildAwardAttendanceHtml(mode, firstName = '') {
             + `<button type="button" class="aw-desk__welcome" data-action="welcome-back" title="Welcome Back Bonus: stars for coming back">`
             + `<span class="aw-desk__sun" aria-hidden="true"></span><span class="aw-desk__welcome-text">Welcome back!</span><span class="aw-desk__welcome-gift">+<i class="fas fa-star"></i></span></button>`
             + `<div class="aw-desk__row"><button type="button" class="aw-desk__btn aw-desk__btn--present" data-action="mark-present" title="Mark present without a bonus"><i class="fas fa-user-check" aria-hidden="true"></i> Present</button>`
-            + `<button type="button" class="aw-desk__btn aw-desk__btn--away" data-action="mark-absent" title="Still away today"><i class="fas fa-bed" aria-hidden="true"></i> Away today</button></div></div>`;
+            + `<button type="button" class="aw-desk__btn aw-desk__btn--away" data-action="mark-absent" title="Still away today"><i class="fas fa-moon" aria-hidden="true"></i> Away today</button></div></div>`;
     }
     if (mode === 'away-today') {
-        return `<div class="aw-desk aw-desk--away"><p class="aw-desk__title"><i class="fas fa-bed" aria-hidden="true"></i> Away today</p>`
-            + `<div class="aw-desk__row"><button type="button" class="aw-desk__btn aw-desk__btn--present" data-action="mark-present" title="Undo: mark present"><i class="fas fa-rotate-left" aria-hidden="true"></i> Mark present</button></div></div>`;
+        return `<div class="aw-desk aw-desk--away">${awayDreamHtml()}`
+            + `<div class="aw-desk__head"><p class="aw-desk__title">Away today</p>`
+            + `<p class="aw-desk__note">${who}'s seat stays warm.</p></div>`
+            + `<button type="button" class="aw-desk__arrive" data-action="mark-present" title="Undo: mark ${who} present" aria-label="${who} is here after all: mark present">`
+            + `<span class="aw-desk__dawn" aria-hidden="true"><span class="aw-desk__dawn-sun"></span><i class="fas fa-cloud aw-desk__dawn-cloud"></i></span>`
+            + `<span class="aw-desk__arrive-text">Here after all!</span><span class="aw-desk__arrive-tag"><i class="fas fa-rotate-left" aria-hidden="true"></i> Undo</span></button>`
+            + `<p class="aw-desk__next"><i class="fas fa-cloud-sun" aria-hidden="true"></i> Welcome back waits next lesson</p></div>`;
     }
     if (mode === 'away-no-lesson') {
-        return `<div class="aw-desk aw-desk--quiet"><p class="aw-desk__title"><i class="fas fa-cloud" aria-hidden="true"></i> Away last lesson</p>`
-            + `<p class="aw-desk__note">Welcome them back on their next lesson day.</p></div>`;
+        return `<div class="aw-desk aw-desk--away aw-desk--quiet">${awayDreamHtml()}`
+            + `<div class="aw-desk__head"><p class="aw-desk__title">Away last lesson</p>`
+            + `<p class="aw-desk__note">Welcome them back on their next lesson day.</p></div></div>`;
     }
     return '';
 }

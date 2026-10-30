@@ -340,6 +340,9 @@ function settleCloudContent(card, toAbsent, reduce) {
     ], { duration: 520, delay, easing: 'cubic-bezier(0.34, 1.4, 0.64, 1)', fill: 'backwards' });
     if (toAbsent) {
         arrive(card.querySelector('.aw-desk'), 260, 'translateY(-10px) scale(0.94)');
+        arrive(card.querySelector('.aw-desk__dream'), 460, 'scale(0.3) rotate(-40deg)');
+        arrive(card.querySelector('.aw-desk__arrive'), 560, 'translateY(8px) scale(0.92)');
+        arrive(card.querySelector('.aw-desk__next'), 700, 'translateY(6px)');
     } else {
         card.querySelectorAll('.aw-virtues > *').forEach((el, i) => arrive(el, 280 + i * 60, 'translateY(10px) scale(0.9)'));
         arrive(card.querySelector('.absence-controls .aw-att'), 520, 'scale(0.4)');

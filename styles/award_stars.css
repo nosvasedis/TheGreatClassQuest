@@ -1797,8 +1797,225 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
 .aw-desk__btn:active { transform: translateY(1px); }
 .aw-desk__btn--present { color: #047857; border-color: #6ee7b7; }
 .aw-desk__btn--present:hover { background: #ecfdf5; }
-.aw-desk__btn--away { color: #475569; border-color: #cbd5e1; }
-.aw-desk__btn--away:hover { background: #f1f5f9; }
+.aw-desk__btn--away { color: #4338ca; border-color: #c7d2fe; }
+.aw-desk__btn--away:hover { background: #eef2ff; }
+
+/* Away today: a dusk desk with a sleepy moon, and a dawn button for "here after all". */
+.aw-desk--away {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 0.7rem;
+    row-gap: 0.55rem;
+    padding: 0.65rem 0.75rem 0.7rem;
+    text-align: left;
+    background:
+        radial-gradient(120% 90% at 0% 0%, rgba(199, 210, 254, 0.55), transparent 60%),
+        linear-gradient(170deg, #fbfaff, #eef0ff 60%, #e4e7fb);
+    border: 1.5px solid #c7d2fe;
+    box-shadow: 0 6px 16px rgba(67, 56, 202, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.aw-desk--away .aw-desk__title { color: #4338ca; }
+.aw-desk--away .aw-desk__note { color: #6366a8; font-size: 0.78rem; }
+
+.aw-desk__head {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+}
+
+.aw-desk__dream {
+    position: relative;
+    width: 2.7rem;
+    height: 2.7rem;
+}
+
+.aw-desk__moon {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    color: #fde68a;
+    font-size: 1.15rem;
+    background: radial-gradient(circle at 35% 30%, #818cf8, #4f46e5 60%, #3730a3);
+    box-shadow: 0 3px 0 #312e81, 0 6px 14px rgba(67, 56, 202, 0.35), inset 0 2px 0 rgba(255, 255, 255, 0.3);
+}
+
+.aw-desk__moon i { filter: drop-shadow(0 0 4px rgba(253, 230, 138, 0.8)); transform: rotate(-18deg); }
+
+.aw-desk__z {
+    position: absolute;
+    top: -0.1rem;
+    right: -0.25rem;
+    color: #6366f1;
+    font: 700 0.62rem/1 'Fredoka One', 'Fredoka', sans-serif;
+    opacity: 0;
+}
+
+.aw-desk__drop {
+    position: absolute;
+    bottom: -0.1rem;
+    left: 0.55rem;
+    width: 2px;
+    height: 0.45rem;
+    border-radius: 2px;
+    background: linear-gradient(#a5b4fc, rgba(165, 180, 252, 0));
+    opacity: 0;
+}
+
+.aw-desk__drop--b { left: 1.75rem; }
+
+.aw-card.is-afloat .aw-desk__moon { animation: aw-moon-rock 5.2s ease-in-out infinite; }
+.aw-card.is-afloat .aw-desk__z { animation: aw-zzz 3.6s ease-out infinite; }
+.aw-card.is-afloat .aw-desk__z--b { animation-delay: 1.2s; font-size: 0.72rem; }
+.aw-card.is-afloat .aw-desk__z--c { animation-delay: 2.4s; font-size: 0.84rem; }
+.aw-card.is-afloat .aw-desk__drop { animation: aw-desk-drop 2.4s ease-in infinite; }
+.aw-card.is-afloat .aw-desk__drop--b { animation-delay: 1.3s; }
+
+@keyframes aw-moon-rock {
+    0%, 100% { transform: rotate(-5deg) translateY(0); }
+    50% { transform: rotate(5deg) translateY(-2px); }
+}
+
+@keyframes aw-zzz {
+    0% { opacity: 0; transform: translate(0, 0) scale(0.6) rotate(-10deg); }
+    20% { opacity: 1; }
+    100% { opacity: 0; transform: translate(0.7rem, -1.1rem) scale(1.1) rotate(8deg); }
+}
+
+@keyframes aw-desk-drop {
+    0%, 30% { opacity: 0; transform: translateY(-0.2rem); }
+    45% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(0.75rem); }
+}
+
+.aw-desk__arrive {
+    grid-column: 1 / -1;
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.45rem 0.55rem 0.45rem 0.45rem;
+    overflow: hidden;
+    border: none;
+    border-radius: 999px;
+    color: #fff;
+    background: linear-gradient(100deg, #38bdf8, #22d3ee 45%, #34d399);
+    box-shadow: 0 4px 0 #0e7490, 0 10px 20px rgba(14, 165, 233, 0.26), inset 0 2px 0 rgba(255, 255, 255, 0.45);
+    cursor: pointer;
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease;
+}
+
+.aw-desk__arrive:hover { transform: translateY(-3px) scale(1.02); }
+.aw-desk__arrive:active { transform: translateY(2px) scale(0.98); box-shadow: 0 1px 0 #0e7490, 0 4px 10px rgba(14, 165, 233, 0.2); }
+.aw-desk__arrive:focus-visible { outline: 3px solid #a5f3fc; outline-offset: 2px; }
+
+.aw-desk__arrive::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 30%;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+    transform: translateX(-120%) skewX(-18deg);
+}
+
+.aw-card.is-afloat .aw-desk__arrive::after { animation: aw-sheen 4.4s ease-in-out 1.2s infinite; }
+
+/* A sun hiding behind a cloud: it peeks out on hover, the way the cloud clears when they arrive. */
+.aw-desk__dawn {
+    position: relative;
+    flex: none;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.28);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
+    overflow: hidden;
+}
+
+.aw-desk__dawn-sun {
+    position: absolute;
+    top: 0.3rem;
+    left: 0.32rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fffbeb 0 40%, #fde047 41% 100%);
+    box-shadow: 0 0 8px rgba(253, 224, 71, 0.9);
+    transform: translate(0.12rem, 0.22rem);
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.aw-desk__dawn-cloud {
+    position: absolute;
+    right: 0.2rem;
+    bottom: 0.32rem;
+    color: #fff;
+    font-size: 0.95rem;
+    filter: drop-shadow(0 1px 0 rgba(14, 116, 144, 0.35));
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.aw-card.is-afloat .aw-desk__dawn-sun { animation: aw-dawn-peek 4.4s ease-in-out infinite; }
+.aw-desk__arrive:hover .aw-desk__dawn-sun { animation: none; transform: translate(-0.05rem, -0.08rem) scale(1.12); }
+.aw-desk__arrive:hover .aw-desk__dawn-cloud { transform: translateX(0.3rem); }
+
+@keyframes aw-dawn-peek {
+    0%, 100% { transform: translate(0.12rem, 0.22rem); }
+    50% { transform: translate(0.02rem, 0.02rem); }
+}
+
+.aw-desk__arrive-text {
+    flex: 1;
+    text-align: left;
+    font: 700 1rem/1.1 'Fredoka One', 'Fredoka', sans-serif;
+    text-shadow: 0 1px 0 #0e7490;
+}
+
+.aw-desk__arrive-tag {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92);
+    color: #0e7490;
+    font: 700 0.72rem/1.2 'Fredoka', sans-serif;
+}
+
+/* Ties the desk to the next lesson's welcome desk: the same amber sun. */
+.aw-desk__next {
+    grid-column: 1 / -1;
+    justify-self: center;
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.18rem 0.65rem;
+    border-radius: 999px;
+    background: #fef3c7;
+    border: 1px solid #fde68a;
+    color: #b45309;
+    font: 600 0.72rem/1.2 'Fredoka', sans-serif;
+}
+
+.aw-desk--quiet.aw-desk--away {
+    background: linear-gradient(170deg, #fbfbfe, #f1f2fb);
+    border-color: #dfe3f7;
+    box-shadow: none;
+}
+
+.aw-desk--quiet .aw-desk__moon {
+    background: radial-gradient(circle at 35% 30%, #a5b4fc, #6366f1 70%);
+    box-shadow: 0 2px 0 #4338ca;
+}
 
 /* ───────────────────────── Award moments (ui/awardFx.js) ───────────────────────── */
 
@@ -1978,7 +2195,8 @@ body.gcq-mobile .aw-card__corner--right { right: 0.7rem; }
 
 body.projector-mode .aw-card__corner,
 body.projector-mode .aw-desk__row,
-body.projector-mode .aw-desk__welcome {
+body.projector-mode .aw-desk__welcome,
+body.projector-mode .aw-desk__arrive {
     display: none !important;
 }
 
@@ -1988,6 +2206,11 @@ body.projector-mode .aw-desk__welcome {
     .aw-card .aw-portrait__levelup,
     .aw-card .aw-desk__sun,
     .aw-card .aw-desk__welcome::after,
+    .aw-card .aw-desk__moon,
+    .aw-card .aw-desk__z,
+    .aw-card .aw-desk__drop,
+    .aw-card .aw-desk__dawn-sun,
+    .aw-card .aw-desk__arrive::after,
     .aw-card .aw-star--3::before,
     .aw-card .aw-star--3::after,
     .aw-card .aw-star__face::after {

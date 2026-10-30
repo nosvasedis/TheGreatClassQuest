@@ -822,6 +822,14 @@
 .gsp--lite .gsp-crest__rays, .gsp--lite .gsp-podium__crown, .gsp--lite .gsp-best::after,
 .gsp--lite .gsp-stone.is-live .gsp-stone__gem::before, .gsp--lite .gsp-wheel-empty__icon { animation: none !important; }
 .gsp--lite .gsp-gauge__arc { filter: none; }
+/* Live refreshes keep the same nodes (ui/modals/guildHeroes.js morphs them), so new values glide. */
+.gsp--still .gsp-gauge__arc { transition: stroke-dasharray 1s var(--sp-ease); }
+.gsp--still .gsp-bar__fill,
+.gsp--still .gsp-meter > span { transition: transform 1s var(--sp-ease); }
+.gsp-card .is-ticked { animation: gsp-tick 1s ease-out; }
+@keyframes gsp-tick {
+    0%, 30% { color: #bbf7d0; }
+}
 @media (prefers-reduced-motion: reduce) {
     .gsp-card *, .gsp-card *::before, .gsp-card *::after { animation: none !important; transition: none !important; }
 }

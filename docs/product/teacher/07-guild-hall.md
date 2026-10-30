@@ -72,10 +72,11 @@ The Hall stays still until the school year has begun and class schedules exist, 
 The Hall is one night-time great hall with three parts, top to bottom.
 
 - **The top bar.** **Fortune’s Wheel** on the left, **Guild Stats** on the right, and in the middle **this month’s Chapter**: a dial with the days left, the month’s name and what it pays (🥇 5 · 🥈 3 · 🥉 2 · 4th 1, plus 1 for the Unity Seal). The **?** opens How the Crown Race works
+- **The herald ribbon**, a slim line under the top bar with a green **Live** light. When Glory lands it calls the news in the guild’s colours: who took the lead, who climbed past whom, a Unity Seal won, or “+1.5 Glory per member” (a Wheel storm shows as “−0.6”). With nothing new it rests on a quiet line. If you come back to the tab after a while, the first line says **Since you last looked**
 - **Four guild banners**, always in the same order so every child finds their house in the same place. Each banner has:
   - its **place this month** as a medal in the corner (gold, silver, bronze, iron); the leader’s banner has a gold edge
   - the crest (tap it for the full banner) and the **music-note** button for the anthem
-  - a **vial** that fills with **this Chapter’s Glory per member**, the number every guild is racing on, with the number under it. When stars land, the number rolls up and a small “+0.4” floats beside it
+  - a **vial** that fills with **this Chapter’s Glory per member**, the number every guild is racing on, with the number under it. When stars land, a drop falls into the vial, the number rolls up and a small “+0.4” floats beside it (Glory taken by a storm darkens the vial and shows a violet “−0.4”). A guild that changes place flips its medal and shows a small arrow (▲ 2nd); a new leader gets a crown dropped on its crest
   - **“+3 👑 if the month ended now”**: the Crowns the guild would take today, Unity Seal included
   - the **Unity Seal** ring: how many members have earned their 6 Glory this month, against how many are needed. When the ring closes the seal turns gold: **Sealed! +1 Crown**
   - any **Guild Standards** raised this Chapter (students who bought one in the Mystic Market)
@@ -84,7 +85,7 @@ The Hall is one night-time great hall with three parts, top to bottom.
 - **Guild Stats** opens a stats card under every banner: this month’s Glory, how many members are earning (with a small green bar), the year’s Glory per member, the months won, a little podium for the **Stars of the month**, the **Legends of the year** (top three each), and a button that opens that guild’s **Spotlight**
 - **Fortune Ledger**: a leather book under the Hall. Its cover shows the year’s spins, the Glory found and each guild’s Wheel Glory; open it for the pages
 
-The Hall waits for the guild scores before it shows a number: until they arrive it shows soft shimmering placeholders, never a row of zeros. After that it only changes what changed, so it never flashes or redraws while you teach. On a slower laptop (and when the computer asks for reduced motion) the Hall keeps every number and colour but drops the looping effects.
+The Hall waits for the guild scores before it shows a number: until they arrive it shows soft shimmering placeholders, never a row of zeros. After that it only changes what changed, so it never flashes or redraws while you teach. Glory that arrives in a burst (a Wheel gift is written one hero at a time) is shown as one change, and while the Wheel or a Spotlight covers the Hall the banners wait and move when it closes, so the class sees it happen. On a slower laptop (and when the computer asks for reduced motion) the Hall keeps every number and colour but drops the looping effects.
 
 ## Guild Stats and the Guild Spotlight
 

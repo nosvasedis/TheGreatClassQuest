@@ -5,6 +5,8 @@ import { getCrownRoadKeys } from '../../features/guildScoring.js';
 import { getGuildById, getGuildEmblemUrl } from '../../features/guilds.js';
 import { CHAPTER_CROWNS, UNITY_SEAL, chapterDaysLeft, chapterName, chapterShortName } from '../../features/guildScoringCore.js';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
+import { morphInto } from '../../utils/domMorph.mjs';
+import { createLivePacer } from '../../features/guildLiveCore.mjs';
 import { hideModal, showAnimatedModal } from './base.js';
 import * as state from '../../state.js';
 import { GLORY_EMOJI } from '../../constants.js';
@@ -63,6 +65,59 @@ function _setHtml(el, html) {
     _htmlCache.set(el, html);
     el.innerHTML = html;
     return true;
+}
+
+/** Live refreshes change only what differs: faces don't blink, the gauge and bars glide. */
+function _morphHtml(el, html) {
+    if (!el || _htmlCache.get(el) === html) return false;
+    const first = !_htmlCache.has(el);
+    _htmlCache.set(el, html);
+    if (first) { el.innerHTML = html; return true; }
+    const before = _numbersIn(el);
+    const spots = new Map([...el.querySelectorAll('[data-morph-key]')].map((n) => [n, n.getBoundingClientRect()]));
+    morphInto(el, html, { keepClasses: ['is-ticked'] });
+    if (!_reduceMotion()) {
+        // Rows that changed places glide there (FLIP), like the Crown Race board.
+        const moved = [];
+        spots.forEach((was, n) => {
+            if (!n.isConnected) return;
+            const now = n.getBoundingClientRect();
+            const dx = was.left - now.left;
+            const dy = was.top - now.top;
+            if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+            n.style.transition = 'none';
+            n.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
+            moved.push(n);
+        });
+        if (moved.length) {
+            void el.offsetHeight;
+            moved.forEach((n) => {
+                n.style.transition = 'transform 0.7s cubic-bezier(0.22, 1, 0.36, 1)';
+                n.style.transform = '';
+                setTimeout(() => { n.style.transition = ''; }, 750);
+            });
+        }
+        _numbersIn(el).forEach((text, node) => {
+            if (before.has(node) && before.get(node) !== text) {
+                node.classList.remove('is-ticked');
+                void node.offsetWidth;
+                node.classList.add('is-ticked');
+                clearTimeout(node._tickTimer);
+                node._tickTimer = setTimeout(() => node.classList.remove('is-ticked'), 900);
+            }
+        });
+    }
+    return true;
+}
+
+/** The numbers worth a little tick when they change: bold values in the Spotlight. */
+function _numbersIn(el) {
+    const map = new Map();
+    el.querySelectorAll('b, .gsp-bar__val, .gsp-podium__val, .gsp-count').forEach((n) => {
+        const text = n.textContent.trim();
+        if (/\d/.test(text)) map.set(n, text);
+    });
+    return map;
 }
 
 function _face(hero, cls = 'gsp-face') {
@@ -193,7 +248,7 @@ function _raceBarsHtml(payload, guild) {
         .sort((a, b) => b.per - a.per);
     const top = Math.max(0.001, ...rows.map((r) => r.per));
     return `<ol class="gsp-bars">${rows.map((r, i) => `
-                <li class="gsp-bar${r.g.guildId === guild.guildId ? ' is-me' : ''}" style="${_guildVars(r.g)}--w:${(r.per / top).toFixed(3)};--i:${i};">
+                <li class="gsp-bar${r.g.guildId === guild.guildId ? ' is-me' : ''}" data-morph-key="bar-${r.g.guildId}" style="${_guildVars(r.g)}--w:${(r.per / top).toFixed(3)};--i:${i};">
                     <span class="gsp-bar__who">${_emblem(r.g.guildId, r.g.guildName, 'gsp-bar__emblem')}<span>${_esc(r.g.guildName)}</span></span>
                     <span class="gsp-bar__track"><span class="gsp-bar__fill"></span></span>
                     <span class="gsp-bar__val">${_one(r.per)}</span>
@@ -238,7 +293,7 @@ function _unityHtml(guild) {
         .map((h, i) => {
             const ready = h.chapterGlory >= UNITY_SEAL.minGlory - 1e-9;
             const p = Math.min(1, h.chapterGlory / UNITY_SEAL.minGlory);
-            return `<li class="gsp-dot${ready ? ' is-ready' : ''}" style="--p:${p.toFixed(2)};--i:${i};" title="${_esc(h.name)}: ${_one(h.chapterGlory)} ${GLORY_EMOJI} this month">${_face(h, 'gsp-dot__face')}</li>`;
+            return `<li class="gsp-dot${ready ? ' is-ready' : ''}" data-morph-key="dot-${_esc(h.studentId)}" style="--p:${p.toFixed(2)};--i:${i};" title="${_esc(h.name)}: ${_one(h.chapterGlory)} ${GLORY_EMOJI} this month">${_face(h, 'gsp-dot__face')}</li>`;
         }).join('');
     const close = heroes
         .filter((h) => h.chapterGlory < UNITY_SEAL.minGlory - 1e-9)
@@ -340,7 +395,7 @@ function _rosterRowsHtml(guild) {
         if (legend && legend.yearGlory > 0 && legend.studentId === h.studentId) badges.push('<span class="gsp-badge gsp-badge--legend">🏅 Legend</span>');
         if (h.chapterGlory >= UNITY_SEAL.minGlory - 1e-9) badges.push('<span class="gsp-badge gsp-badge--unity">🤝 Seal-ready</span>');
         return `
-                <li class="gsp-row" style="--i:${Math.min(i, 12)};">
+                <li class="gsp-row" data-morph-key="hero-${_esc(h.studentId)}" style="--i:${Math.min(i, 12)};">
                     <span class="gsp-row__n">${i + 1}</span>
                     ${_face(h)}
                     <span class="gsp-row__who">
@@ -552,9 +607,12 @@ function _wheelView(guild) {
 
 // ─── Render ──────────────────────────────────────────────────────────────────
 
+let _settledAt = 0; // entry animations run until then; a live refresh waits for them
+
 function _renderAll(payload, { animate = false } = {}) {
     const card = document.getElementById('guild-heroes-card');
     if (!card || !payload?.guilds?.length) return;
+    if (animate) _settledAt = performance.now() + 1700;
     if (!payload.guilds.find((g) => g.guildId === _selectedGuildId)) _selectedGuildId = payload.guilds[0].guildId;
     const guild = payload.guilds.find((g) => g.guildId === _selectedGuildId);
 
@@ -563,8 +621,9 @@ function _renderAll(payload, { animate = false } = {}) {
     card.setAttribute('style', _guildVars(guild));
     card.dataset.view = _activeView;
 
-    _setHtml(document.getElementById('gsp-guilds'), _guildsHtml(payload));
-    _setHtml(document.getElementById('gsp-hero'), _heroHtml(payload, guild));
+    const put = animate ? _setHtml : _morphHtml;
+    put(document.getElementById('gsp-guilds'), _guildsHtml(payload));
+    put(document.getElementById('gsp-hero'), _heroHtml(payload, guild));
     _setHtml(document.getElementById('gsp-tabs'), _tabsHtml());
 
     let body = '';
@@ -574,7 +633,7 @@ function _renderAll(payload, { animate = false } = {}) {
     else body = _monthView(payload, guild);
     const bodyEl = document.getElementById('gsp-body');
     if (animate && bodyEl) _htmlCache.delete(bodyEl);
-    _setHtml(bodyEl, `<div class="gsp-view gsp-view--${_activeView}" data-guild="${guild.guildId}">${body}</div>`);
+    put(bodyEl, `<div class="gsp-view gsp-view--${_activeView}" data-guild="${guild.guildId}">${body}</div>`);
 
     if (animate && !_reduceMotion()) {
         card.classList.remove('is-switching');
@@ -587,27 +646,39 @@ function _rerender(opts) {
     _renderAll(_cachedPayload || (_cachedPayload = getGuildHeroAnalytics()), opts);
 }
 
+function _liveRefresh() {
+    const m = document.getElementById('guild-heroes-modal');
+    if (!m || m.classList.contains('hidden')) return;
+    // Keep a hero search box focused: only its list is patched while someone types.
+    if (document.activeElement?.matches?.('[data-roster-search]')) {
+        _cachedPayload = getGuildHeroAnalytics();
+        const guild = _cachedPayload.guilds.find((g) => g.guildId === _selectedGuildId);
+        if (guild) _morphHtml(document.getElementById('gsp-roster-list'), _rosterRowsHtml(guild));
+        return;
+    }
+    _cachedPayload = getGuildHeroAnalytics();
+    _renderAll(_cachedPayload);
+}
+
+// Several listeners fire for one award (the hero's score, then the guild's Glory): one refresh
+// for all of them, and never while the opening animations are still playing.
+const _livePacer = createLivePacer(() => requestAnimationFrame(_liveRefresh), {
+    settle: 200,
+    maxWait: 900,
+    holdPoll: 250,
+    hold: () => document.hidden || performance.now() < _settledAt,
+});
+
 function _startRealtime() {
     _stopRealtime();
     _unsubscribeRealtime = state.subscribe(
         ['allGuildScores', 'allStudents', 'allStudentScores', 'guildChampions', 'fortuneWheelLog', 'allSchoolClasses'],
-        () => {
-            const m = document.getElementById('guild-heroes-modal');
-            if (!m || m.classList.contains('hidden')) return;
-            // Keep a hero search box focused: only its list is patched while someone types.
-            if (document.activeElement?.matches?.('[data-roster-search]')) {
-                _cachedPayload = getGuildHeroAnalytics();
-                const guild = _cachedPayload.guilds.find((g) => g.guildId === _selectedGuildId);
-                if (guild) _setHtml(document.getElementById('gsp-roster-list'), _rosterRowsHtml(guild));
-                return;
-            }
-            _cachedPayload = getGuildHeroAnalytics();
-            _renderAll(_cachedPayload);
-        }
+        () => _livePacer.request(),
     );
 }
 
 function _stopRealtime() {
+    _livePacer.cancel();
     if (!_unsubscribeRealtime) return;
     try { _unsubscribeRealtime(); } catch (_) { }
     _unsubscribeRealtime = null;

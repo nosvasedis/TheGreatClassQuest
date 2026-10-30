@@ -6,6 +6,8 @@ import { getGuildById, getGuildEmblemUrl, GUILD_IDS } from '../../features/guild
 import { yearChronicles } from '../../features/guildChronicleCore.js';
 import { isSpeaking, isTtsSupported, speakText, stopSpeech } from '../../features/tts.js';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
+import { morphInto } from '../../utils/domMorph.mjs';
+import { createLivePacer, diffStandings, formatGlory, heraldLines, standingsSnapshot } from '../../features/guildLiveCore.mjs';
 import { openGuildHeroesModal } from '../modals/guildHeroes.js';
 import { hideModal, showAnimatedModal } from '../modals/base.js';
 import { openFortunesWheel, advanceWheel, triggerSpin, closeFortunesWheel, canSpinThisWeek, getWheelState } from '../../features/fortunesWheel.js';
@@ -615,6 +617,8 @@ let _chronicleKey = null;
 let _renderFrame = 0;
 const _htmlCache = new WeakMap(); // element → the HTML it last received
 const _shown = new Map(); // `${guildId}:${field}` → the number on screen
+let _lastSnap = null; // the standings the Hall last painted, to tell what changed
+const _COVERS = ['fortunes-wheel-modal', 'guild-heroes-modal']; // live moments wait until these close
 
 /** Glory as shown: one decimal below 100 (0.4, 23.5), whole numbers above. */
 function _fmtGlory(n) {
@@ -738,8 +742,11 @@ function _bannerShellHtml(guildId, i, seasonLive) {
                      style="--g1:${g.primary || '#6b7280'};--g2:${g.secondary || '#9ca3af'};--gg:${g.glow || '#e5e7eb'};--i:${i};">
                 <span class="gh-banner__rod" aria-hidden="true"></span>
                 <div class="gh-banner__cloth">
+                    <span class="gh-banner__burst" aria-hidden="true"></span>
                     <span class="gh-banner__place" data-gh="place" aria-live="polite"></span>
+                    <span class="gh-banner__move" data-gh="move" aria-hidden="true"></span>
                     <div class="gh-banner__crest" data-guild-id="${guildId}" role="button" tabindex="0" aria-label="Unfurl the ${_escapeHtml(name)} banner">
+                        <span class="gh-banner__crown" aria-hidden="true">👑</span>
                         ${_emblemBadge(guildId, name, 'gh-banner__emblem')}
                         <button type="button" class="gh-banner__anthem" data-anthem-guild="${guildId}" aria-label="Play the ${_escapeHtml(name)} anthem"><i class="fas fa-music" aria-hidden="true"></i></button>
                     </div>
@@ -747,6 +754,9 @@ function _bannerShellHtml(guildId, i, seasonLive) {
                     <div class="gh-vial" aria-hidden="true">
                         <div class="gh-vial__liquid" data-gh="liquid" style="transform:translate3d(0,100%,0)">
                             <span class="gh-vial__surface"></span>
+                            <span class="gh-vial__drop"></span>
+                            <span class="gh-vial__ripple"></span>
+                            <span class="gh-vial__shade"></span>
                             <span class="gh-vial__bubbles"><i></i><i></i><i></i></span>
                         </div>
                         <span class="gh-vial__frost"></span>
@@ -767,6 +777,19 @@ function _bannerShellHtml(guildId, i, seasonLive) {
                     <div class="gh-banner__details-clip"><div class="gh-ds" data-gh="detailsInner"></div></div>
                 </div>
             </article>`;
+}
+
+const HERALD_IDLE = 'Every star a hero earns pours Glory into their guild’s vial.';
+
+function _heraldShellHtml() {
+    return `
+            <div class="gh-herald is-quiet" data-gh="herald">
+                <span class="gh-herald__live" aria-hidden="true"><i></i>Live</span>
+                <span class="gh-herald__horn" aria-hidden="true">📯</span>
+                <span class="gh-herald__stage" data-gh="heraldStage" role="status" aria-live="polite">
+                    <span class="gh-herald__line is-idle">${HERALD_IDLE}</span>
+                </span>
+            </div>`;
 }
 
 function _raceShellHtml(model) {
@@ -824,6 +847,7 @@ function _hallShellHtml(model) {
                 </div>
                 ${_statsButtonHtml(live)}
             </div>
+            ${live ? _heraldShellHtml() : ''}
             <div class="gh-banners">${GUILD_IDS.map((id, i) => _bannerShellHtml(id, i, live)).join('')}</div>
             ${live ? _raceShellHtml(model) : ''}
         </div>`;
@@ -835,23 +859,81 @@ function _hallShellHtml(model) {
 function _roll(el, key, to, fmt, { fromZero = false } = {}) {
     if (!el) return to;
     const had = _shown.has(key);
-    const from = had ? _shown.get(key) : (fromZero ? 0 : to);
+    // A roll still running starts again from the number on screen, never from its old target,
+    // so a second gift landing mid-roll keeps counting instead of jumping.
+    const from = el._rollFrame && Number.isFinite(el._rollNow) ? el._rollNow : had ? _shown.get(key) : (fromZero ? 0 : to);
     _shown.set(key, to);
     if (el._rollFrame) cancelAnimationFrame(el._rollFrame);
-    if (from === to || _reduceMotion()) {
+    el._rollFrame = 0;
+    if (from === to || _reduceMotion() || document.hidden) {
+        el._rollNow = to;
         _setText(el, fmt(to));
         return from;
     }
     const start = performance.now();
-    const duration = 1100;
+    const duration = Math.min(1600, 900 + Math.abs(to - from) * 40);
     const step = (now) => {
         const t = Math.min(1, (now - start) / duration);
         const eased = 1 - Math.pow(1 - t, 3);
-        _setText(el, fmt(from + (to - from) * eased));
+        el._rollNow = from + (to - from) * eased;
+        _setText(el, fmt(t < 1 ? el._rollNow : to));
         el._rollFrame = t < 1 ? requestAnimationFrame(step) : 0;
     };
     el._rollFrame = requestAnimationFrame(step);
     return from;
+}
+
+/** A class that comes off by itself after `ms` (restarted when it is set again). */
+function _flash(el, cls, ms) {
+    if (!el || _reduceMotion()) return;
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+    clearTimeout(el[`_t_${cls}`]);
+    el[`_t_${cls}`] = setTimeout(() => el.classList.remove(cls), ms);
+}
+
+/** The +/− chip next to the number. Gifts that land while it still shows add up on it. */
+function _showGain(el, delta) {
+    if (!el || !delta) return;
+    const now = performance.now();
+    const sign = delta > 0 ? 1 : -1;
+    const sum = el._gainUntil > now && el._gainSign === sign ? (el._gainSum || 0) + delta : delta;
+    el._gainSum = Math.round(sum * 10) / 10;
+    el._gainSign = sign;
+    el._gainUntil = now + 2000;
+    _setText(el, `${sign > 0 ? '+' : '−'}${formatGlory(el._gainSum)}`);
+    el.classList.toggle('is-loss', sign < 0);
+    if (_reduceMotion()) return;
+    el.classList.remove('is-up');
+    void el.offsetWidth;
+    el.classList.add('is-up');
+}
+
+/** The month's place, shown as a short arrow chip under the medal. */
+function _showMove(el, from, to) {
+    if (!el) return;
+    const up = (to || 99) < (from || 99);
+    el.classList.toggle('is-down', !up);
+    _setText(el, `${up ? '▲' : '▼'} ${to ? _ordinal(to) : 'no place'}`);
+    _flash(el, 'is-on', 2600);
+}
+
+/** What one guild's change looks like on its banner. */
+function _playBannerMoment(el, change) {
+    if (!el || !change) return;
+    const q = (k) => el.querySelector(`[data-gh="${k}"]`);
+    if (change.delta) {
+        _showGain(q('gain'), change.delta);
+        _flash(q('num'), change.delta > 0 ? 'is-rising' : 'is-falling', 1300);
+        _flash(el.querySelector('.gh-vial'), change.delta > 0 ? 'is-pouring' : 'is-draining', 1400);
+    }
+    if (change.fromPlace !== change.toPlace) {
+        _showMove(q('move'), change.fromPlace, change.toPlace);
+        _flash(q('place'), 'is-flip', 900);
+        if ((change.toPlace || 99) < (change.fromPlace || 99)) _flash(el, 'is-climbing', 1100);
+    }
+    if (change.newLeader) _flash(el, 'is-crowning', 2400);
 }
 
 function _prizeHtml(model, live, tied) {
@@ -915,9 +997,8 @@ function _patchBanner(el, row, model, { fresh }) {
     el.classList.toggle('is-leading', place === 1);
     PLACE_CLASS.forEach((c, i) => el.classList.toggle(`is-${c}`, place === i + 1));
 
-    const placeEl = q('place');
     const placeHtml = place ? `<span class="gh-place__n">${_ordinal(place)}</span><span class="gh-place__sub">${tied ? 'tied' : 'this month'}</span>` : '<span class="gh-place__n">·</span>';
-    if (_setHtml(placeEl, placeHtml) && !fresh) _pulse(placeEl, 'is-pop');
+    _setHtml(q('place'), placeHtml);
 
     const pct = per > 0.005 ? Math.max(4, Math.min(94, (per / model.scale) * 94)) : 0;
     const liquid = q('liquid');
@@ -926,14 +1007,9 @@ function _patchBanner(el, row, model, { fresh }) {
         if (!fresh) liquid.style.transform = liquid.dataset.target;
     }
 
-    const from = _roll(q('num'), `${row.guildId}:per`, Math.round(per * 10) / 10, _fmtGlory, { fromZero: fresh });
-    if (!fresh && per - from > 0.04) {
-        const gain = q('gain');
-        _setText(gain, `+${_fmtGlory(per - from)}`);
-        _pulse(gain, 'is-up');
-    }
+    _roll(q('num'), `${row.guildId}:per`, Math.round(per * 10) / 10, _fmtGlory, { fromZero: fresh });
 
-    _setHtml(q('prize'), _prizeHtml(model, live, tied));
+    if (_setHtml(q('prize'), _prizeHtml(model, live, tied)) && !fresh) _flash(q('prize'), 'is-tick', 900);
 
     const have = Number(live.unityCount) || 0;
     const need = Math.max(1, Number(live.unityNeeded) || 0);
@@ -953,7 +1029,17 @@ function _patchBanner(el, row, model, { fresh }) {
         ? `<span class="gh-standard" title="Raised with a Guild Standard from the Mystic Market"><i class="fas fa-flag" aria-hidden="true"></i>${names.slice(0, 2).map(_escapeHtml).join(' · ')}${names.length > 2 ? ` +${names.length - 2}` : ''}</span>`
         : '');
 
-    _setHtml(q('detailsInner'), _detailsHtml(row));
+    _morph(q('detailsInner'), _detailsHtml(row));
+}
+
+/** Like _setHtml, but keeps every node that can stay (pictures don't blink, bars glide). */
+function _morph(el, html) {
+    if (!el || _htmlCache.get(el) === html) return false;
+    const first = !_htmlCache.has(el);
+    _htmlCache.set(el, html);
+    if (first) el.innerHTML = html;
+    else morphInto(el, html, { keepClasses: ['is-tick', 'is-chronicled'] });
+    return true;
 }
 
 function _stonesHtml(row, model) {
@@ -987,8 +1073,14 @@ function _patchRace(hall, model, { fresh }) {
         const place = model.places[i];
         li.classList.toggle('is-leader', anyCrowns && place === 0);
         _setHtml(li.querySelector('[data-gh="rplace"]'), anyCrowns ? `<span class="gh-medal gh-medal--${PLACE_CLASS[place] || 'iron'}">${place + 1}</span>` : '<span class="gh-medal gh-medal--none">·</span>');
-        _setHtml(li.querySelector('[data-gh="track"]'), _stonesHtml(r, model));
+        const track = li.querySelector('[data-gh="track"]');
+        const liveBefore = track?.querySelector('.gh-stone.is-live')?.textContent;
+        _morph(track, _stonesHtml(r, model));
+        const liveStone = track?.querySelector('.gh-stone.is-live');
+        if (!fresh && liveStone && liveBefore !== undefined && liveStone.textContent !== liveBefore) _flash(liveStone, 'is-tick', 900);
+        const crownsBefore = _shown.get(`${r.guildId}:crowns`);
         _roll(li.querySelector('[data-gh="rcrowns"]'), `${r.guildId}:crowns`, Number(r.crowns) || 0, (v) => String(Math.round(v)), { fromZero: fresh });
+        if (!fresh && crownsBefore !== undefined && (Number(r.crowns) || 0) > crownsBefore) _flash(li, 'is-crowned', 1800);
     });
 
     // Glide rows into their new order (FLIP: measure, reorder, slide from the old spot).
@@ -997,16 +1089,23 @@ function _patchRace(hall, model, { fresh }) {
     if (order.some((li, i) => current[i] !== li)) {
         const before = new Map(current.map((li) => [li, li.getBoundingClientRect().top]));
         order.forEach((li) => list.appendChild(li));
-        if (!_reduceMotion() && !fresh) {
+        if (!_reduceMotion() && !fresh && !document.hidden) {
+            const moved = [];
             order.forEach((li) => {
                 const dy = (before.get(li) || 0) - li.getBoundingClientRect().top;
-                if (!dy) return;
+                if (Math.abs(dy) < 1) return;
                 li.style.transition = 'none';
                 li.style.transform = `translate3d(0, ${dy}px, 0)`;
-                requestAnimationFrame(() => {
-                    li.style.transition = '';
-                    li.style.transform = '';
-                });
+                li.classList.toggle('is-rising', dy > 0);
+                moved.push(li);
+            });
+            // Commit the inverted spot before letting go, or the browser skips the glide.
+            void list.offsetHeight;
+            moved.forEach((li) => {
+                li.style.transition = '';
+                li.style.transform = '';
+                clearTimeout(li._riseTimer);
+                li._riseTimer = setTimeout(() => li.classList.remove('is-rising'), 900);
             });
         }
     }
@@ -1071,7 +1170,75 @@ function _chronicleAction(hall, t) {
     return true;
 }
 
-function _patchHall(hall, model, { fresh }) {
+// ── The herald: one line of news under the Chapter bar ──────────────────────
+
+const _herald = { queue: [], timer: 0, showing: false };
+
+function _heraldSay(hall, lines, { since = false } = {}) {
+    const stage = hall.querySelector('[data-gh="heraldStage"]');
+    if (!stage || !lines.length) return;
+    hall.querySelector('[data-gh="herald"]')?.classList.remove('is-quiet');
+    _flash(hall.querySelector('.gh-herald__live'), 'is-ping', 1200);
+    _herald.queue.push(...lines.map((l, i) => ({ ...l, since: since && i === 0 })));
+    // Keep only the freshest few: a long queue would tell old news.
+    if (_herald.queue.length > 4) _herald.queue.splice(0, _herald.queue.length - 4);
+    if (!_herald.showing) _heraldNext(stage);
+}
+
+function _heraldSwap(stage, html, cls, style = '') {
+    const next = document.createElement('span');
+    next.className = `gh-herald__line ${cls}`;
+    if (style) next.setAttribute('style', style);
+    next.innerHTML = html;
+    const old = [...stage.children];
+    if (_reduceMotion()) {
+        old.forEach((n) => n.remove());
+        stage.appendChild(next);
+        return;
+    }
+    old.forEach((n) => {
+        n.classList.add('is-leaving');
+        setTimeout(() => n.remove(), 520);
+    });
+    next.classList.add('is-entering');
+    stage.appendChild(next);
+}
+
+function _heraldNext(stage) {
+    clearTimeout(_herald.timer);
+    const line = _herald.queue.shift();
+    if (!line) {
+        _herald.showing = false;
+        // Back to the quiet line after a while.
+        _herald.timer = setTimeout(() => {
+            if (!stage.isConnected) return;
+            _heraldSwap(stage, HERALD_IDLE, 'is-idle');
+            stage.closest('[data-gh="herald"]')?.classList.add('is-quiet');
+        }, 9000);
+        return;
+    }
+    _herald.showing = true;
+    const g = getGuildById(line.guildId) || {};
+    const style = `--g1:${g.primary || '#6b7280'};--g2:${g.secondary || '#9ca3af'};--gg:${g.glow || '#e5e7eb'};`;
+    const kicker = line.since ? '<small class="gh-herald__since">Since you last looked</small>' : '';
+    _heraldSwap(stage, `${kicker}<span class="gh-herald__icon" aria-hidden="true">${line.icon}</span><span class="gh-herald__text">${_escapeHtml(line.text)}</span>`, `is-${line.tone}`, style);
+    _herald.timer = setTimeout(() => (stage.isConnected ? _heraldNext(stage) : (_herald.showing = false)), _herald.queue.length ? 3200 : 4200);
+}
+
+/** Compare with what the Hall showed last and let each banner (and the herald) tell it. */
+function _playMoments(hall, model, { first, reason }) {
+    const snap = standingsSnapshot(model.rows, { counts: model.counts });
+    const prev = _lastSnap;
+    _lastSnap = snap;
+    if (first || !prev || document.hidden) return;
+    const diff = diffStandings(prev, snap);
+    if (!diff.changes.length) return;
+    const byGuild = new Map(diff.changes.map((c) => [c.guildId, c]));
+    hall.querySelectorAll('.gh-banner').forEach((el) => _playBannerMoment(el, byGuild.get(el.dataset.guild)));
+    _heraldSay(hall, heraldLines(diff, { month: chapterName(model.liveKey) || 'this month', unityCrowns: UNITY_SEAL.crowns }), { since: reason === 'open' });
+}
+
+function _patchHall(hall, model, { fresh, reason = 'live' }) {
     hall.classList.toggle('is-loading', model.loading);
     if (model.seasonLive) {
         // The calendar never waits for scores.
@@ -1094,6 +1261,7 @@ function _patchHall(hall, model, { fresh }) {
     });
     _patchRace(hall, model, { fresh: first });
     _patchChronicle(hall);
+    _playMoments(hall, model, { first, reason });
 
     if (first) {
         // The vials pour from empty on the first paint with data.
@@ -1152,10 +1320,11 @@ function _wireHall(hall) {
     });
 }
 
-export function renderGuildsTab() {
+export function renderGuildsTab({ reason = 'open' } = {}) {
     const list = document.getElementById('guilds-leaderboard-list');
     if (!list) return;
     if (_renderFrame) { cancelAnimationFrame(_renderFrame); _renderFrame = 0; }
+    _livePacer.cancel();
 
     _ensurePowerExplainerOverlay();
     wireGuildLoreListeners();
@@ -1170,9 +1339,13 @@ export function renderGuildsTab() {
         hall = list.querySelector(':scope > .gh');
         _hallSig = sig;
         _shown.clear();
+        _lastSnap = null;
+        _herald.queue.length = 0;
+        _herald.showing = false;
+        clearTimeout(_herald.timer);
         _wireHall(hall);
     }
-    _patchHall(hall, model, { fresh });
+    _patchHall(hall, model, { fresh, reason });
 
     _wireFortunesWheel();
     _initFortuneLedgerCollapse();
@@ -1180,13 +1353,34 @@ export function renderGuildsTab() {
     _renderFortunesLog();
 }
 
-/** For data listeners: one patch per frame, even when several listeners fire together. */
-export function requestGuildHallRender() {
-    if (_renderFrame) return;
+/** A Wheel or Spotlight covering the Hall, or a hidden window: the news waits to be seen. */
+function _hallCovered() {
+    if (typeof document === 'undefined') return false;
+    if (document.hidden) return true;
+    return _COVERS.some((id) => {
+        const m = document.getElementById(id);
+        return m && !m.classList.contains('hidden');
+    });
+}
+
+const _livePacer = createLivePacer(() => {
     _renderFrame = requestAnimationFrame(() => {
         _renderFrame = 0;
-        renderGuildsTab();
+        renderGuildsTab({ reason: 'live' });
     });
+}, { hold: _hallCovered });
+
+if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => { if (!_hallCovered()) _livePacer.release(); });
+}
+
+/**
+ * For data listeners. Changes that arrive together (a Wheel gift is written one hero at a time)
+ * are painted together, and while the Wheel or the Spotlight covers the Hall they wait, so the
+ * banners move when the class can see them.
+ */
+export function requestGuildHallRender() {
+    _livePacer.request();
 }
 
 function _initFortuneLedgerCollapse() {

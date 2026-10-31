@@ -11,6 +11,9 @@
 @import url('./styles/tailwind.css');
 @import url('@fortawesome/fontawesome-free/css/all.min.css');
 
+/* 0. Shared design tokens: fonts, motion, focus ring, radii, elevation, feedback tones */
+@import url('./styles/tokens.css');
+
 /* 1. Base: Fonts, body, core animations, pop-in/out, date-time */
 @import url('./styles/base.css');
 
@@ -31,6 +34,9 @@
 
 /* 3a. Herald notifications — the single notification style (ui/effects.js notify) */
 @import url('./styles/notifications.css');
+
+/* 3a-ii. Shared empty state (ui/emptyStateView.mjs) for screens without a themed one */
+@import url('./styles/empty_state.css');
 
 /* 3b. Options tab: sub-tabs bar, tier-locked state */
 @import url('./styles/options.css');
@@ -63,7 +69,7 @@
 @import url('./styles/leaderboard.css');
 @import url('./styles/hero_standings.css');
 @import url('./styles/hero_logs.css');
-@import url('./styles/league_archive.css');
+/* styles/league_archive.css loads with the module that draws it (lazy, not first paint) */
 
 /* 11b. Guilds: color schemes, badges, quiz modal, guild leaderboard cards */
 @import url('./styles/guilds.css');
@@ -74,7 +80,7 @@
 @import url('./styles/fortune_ledger.css');
 
 /* 11c. Fortune's Wheel modal */
-@import url('./styles/fortunes_wheel.css');
+/* styles/fortunes_wheel.css loads with the module that draws it (lazy, not first paint) */
 
 /* 12. Diary/adventure log pages, story-weaver styles, quest avatar tooltip */
 @import url('./styles/diary_log.css');
@@ -116,7 +122,7 @@
 @import url('./styles/bulk_trial.css');
 
 /* 23b. Trial History record book: leather boards, sittings, scholar marks */
-@import url('./styles/trial_history.css');
+/* styles/trial_history.css loads with the module that draws it (lazy, not first paint) */
 
 /* 24. Holiday calendar overlays: christmas, easter, generic, makeup work */
 @import url('./styles/holiday.css');
@@ -195,13 +201,13 @@
 @import url('./styles/student_profile.css');
 
 /* 40c. Move Student: transfer orders (another class or the waiting list) */
-@import url('./styles/move_student.css');
+/* styles/move_student.css loads with the module that draws it (lazy, not first paint) */
 
 /* 41. Skill Tree: RPG path, node glows, and branch card animations */
 @import url('./styles/skill_tree.css');
 
 /* 41b. Hero Class selection ceremony */
-@import url('./styles/hero_class_ceremony.css');
+/* styles/hero_class_ceremony.css loads with the module that draws it (lazy, not first paint) */
 
 /* 42. Inventory Refresh: Beautiful expanded inventory view */
 @import url('./styles/inventory_refresh.css');
@@ -242,18 +248,18 @@
 @import url('./styles/diary_chooser.css');
 @import url('./styles/hall_of_heroes.css');
 /* Hall of Prodigies: sunlit marble hall (templates/modals/hero.js, ui/modals/prodigyHallView.js) */
-@import url('./styles/prodigy_hall.css');
+/* styles/prodigy_hall.css loads with the module that draws it (lazy, not first paint) */
 @import url('./styles/attendance_register.css');
 @import url('./styles/quest_board.css');
 @import url('./styles/hero_stage.css');
 @import url('./styles/trophy_room.css');
-@import url('./styles/certificate.css');
+/* styles/certificate.css loads with the module that draws it (lazy, not first paint) */
 /* Weekly Report: The Week's Scroll (ui/modals/weeklyReportView.mjs) */
-@import url('./styles/weekly_report.css');
+/* styles/weekly_report.css loads with the module that draws it (lazy, not first paint) */
 /* Class emblem case (logo picker) + Add New Class and Edit Class charters */
 @import url('./styles/class_charter.css');
 /* Guild Sorting Ceremony (templates/modals/sortingQuiz.js) */
-@import url('./styles/sorting_ceremony.css');
+/* styles/sorting_ceremony.css loads with the module that draws it (lazy, not first paint) */
 @import url('./styles/polish.css');
 @import url('./styles/text_selection.css');
 @import url('./styles/wallpaper_sky.css');
@@ -269,16 +275,16 @@
 @import url('./styles/boons.css');
 
 /* 48. Secretary Office: the school's front office (signs, registry, dialogs, modal motion) */
-@import url('./styles/secretary_office.css');
+/* styles/secretary_office.css loads with the module that draws it (lazy, not first paint) */
 
 /* 49. Post a Bounty: a bounty notice pinned up for the class */
-@import url('./styles/bounty_poster.css');
+/* styles/bounty_poster.css loads with the module that draws it (lazy, not first paint) */
 
 /* 50. Family Portal: a warm home for families (postcard, star jar, fridge door, letters) */
-@import url('./styles/family_portal.css');
+/* styles/family_portal.css loads with the module that draws it (lazy, not first paint) */
 
 /* 51. Adventurer's Guide: a field guide with thumb-index chapters (the (i) button) */
-@import url('./styles/adventurers_guide.css');
+/* styles/adventurers_guide.css loads with the module that draws it (lazy, not first paint) */
 
 /* 52. Sky weather: one palette, storybook clouds and weather layers for every sky (features/skyWeather*.js) */
 @import url('./styles/sky_weather.css');

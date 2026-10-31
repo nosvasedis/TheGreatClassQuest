@@ -156,7 +156,7 @@
 @keyframes qr-rune-glow { 50% { transform: scale(1.06); } }
 .cp-rune__body { display: grid; gap: 0.3rem; min-width: 0; }
 .cp-rune__head { display: flex; align-items: center; gap: 0.6rem; }
-.cp-rune__head strong { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-weight: 400; font-size: 1.02rem; color: #fff; }
+.cp-rune__head strong { font-family: var(--gcq-font-title); font-weight: 400; font-size: 1.02rem; color: #fff; }
 .cp-rune__head em { margin-left: auto; font-style: normal; font-size: 0.72rem; font-weight: 700; color: var(--cp-muted); white-space: nowrap; }
 .cp-rune.is-lit .cp-rune__head em { color: rgb(var(--cp-gold)); }
 .cp-rune__rule { font-size: 0.82rem; color: var(--cp-muted); }
@@ -236,7 +236,7 @@
     text-align: center;
 }
 .cp-ladder__crest { width: 2.6rem; height: 2.6rem; filter: drop-shadow(0 0.2rem 0.35rem rgba(0, 0, 0, 0.35)); }
-.cp-ladder__rank strong { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-weight: 400; font-size: 0.86rem; color: #fff; }
+.cp-ladder__rank strong { font-family: var(--gcq-font-title); font-weight: 400; font-size: 0.86rem; color: #fff; }
 .cp-ladder__rank small { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--cp-muted); }
 .cp-ladder__rank > span { font-size: 0.72rem; line-height: 1.25; color: rgba(236, 228, 255, 0.86); }
 .cp-ladder__runes { min-height: 1.1rem; margin-top: 0.15rem; color: rgba(253, 224, 138, 0.8); font-size: 0.7rem; }
@@ -507,7 +507,7 @@
     border-radius: 999px;
     background: linear-gradient(135deg, #8b5cf6, #4338ca);
     box-shadow: 0 0 0.6rem rgba(167, 139, 250, 0.85);
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 0.52rem;
     font-weight: 800;
     letter-spacing: 0.06em;

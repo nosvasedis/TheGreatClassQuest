@@ -19,6 +19,7 @@
 // motion skip the choreography, and .sf--still (live refreshes) never replays it.
 // Markup shell: templates/modals/studentAnalytics.js · styles: styles/student_analytics.css
 
+import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { callGeminiApi } from '../../api.js';
@@ -859,7 +860,7 @@ async function switchTo(studentId) {
         await Promise.all(parts.map((el) => el.animate(
             [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: `translateX(${-18 * dir}px)` }],
             { duration: 140, easing: 'ease-in', fill: 'forwards' }
-        ).finished.catch(() => {})));
+        ).finished.catch(quietly('ui/modals/studentAnalytics.js'))));
     }
     view.studentId = studentId;
     renderAll();
@@ -1048,7 +1049,7 @@ export async function openStudentAnalyticsModal(studentId, triggerElement = null
         showToast('Student not found.', 'error');
         return;
     }
-    import('../../db/listeners.js').then((m) => m.ensureHeroChronicleNotesListener?.()).catch(() => {});
+    import('../../db/listeners.js').then((m) => m.ensureHeroChronicleNotesListener?.()).catch(quietly('ui/modals/studentAnalytics.js'));
     wire();
     const reopen = view.open;
     view.studentId = studentId;
@@ -1064,7 +1065,7 @@ export async function openStudentAnalyticsModal(studentId, triggerElement = null
     if (view.sealsReading !== student.classId && !(state.get('allStudentScores') || []).find((s) => s.id === studentId)?.heroSeals?.book) {
         view.sealsReading = student.classId;
     }
-    ensureHeroSealsForClass(student.classId).catch(() => {}).finally(() => {
+    ensureHeroSealsForClass(student.classId).catch(quietly('ui/modals/studentAnalytics.js')).finally(() => {
         if (view.sealsReading !== student.classId) return;
         view.sealsReading = '';
         scheduleRefresh();

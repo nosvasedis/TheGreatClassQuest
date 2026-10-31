@@ -402,7 +402,10 @@ export function setAllStudentScores(scores) {
     _notify("allStudentScores");
 }
 export function setAllAwardLogs(logs) {
+    if (state.allAwardLogs === logs) return;
     state.allAwardLogs = logs;
+    // Hero Seals, Realm Raid, the Campfire "ready" badges and the Scholar's Folio listen for this.
+    _notify("allAwardLogs");
 }
 export function setAllAdventureLogs(logs) {
     state.allAdventureLogs = logs;
@@ -490,7 +493,7 @@ export function getLeaderboardEffectiveLeague() {
 
 export function setLeaderboardLeagueOverride(league) {
     state.leaderboardLeagueOverride = league || null;
-    import("./ui/tabs.js").then((tabs) => {
+    import("./ui/tabs/index.js").then((tabs) => {
         tabs.updateAllLeagueSelectors(true);
         const activeTabId =
             localStorage.getItem("quest_last_active_tab") || "about-tab";
@@ -554,7 +557,7 @@ export function setGlobalSelectedClass(classId, isManual = false) {
     }
 
     // DYNAMIC IMPORTS: Solves the circular dependency crash
-    import("./ui/tabs.js")
+    import("./ui/tabs/index.js")
         .then(async (tabs) => {
             tabs.updateAllClassSelectors(isManual);
             tabs.updateAllLeagueSelectors(isManual);
@@ -565,7 +568,7 @@ export function setGlobalSelectedClass(classId, isManual = false) {
         );
 
     // Update bounties separately
-    import("./ui/core.js").then((m) => m.renderActiveBounties());
+    import("./ui/core/index.js").then((m) => m.renderActiveBounties());
 }
 
 export function setGlobalSelectedLeague(league, isManual = false) {
@@ -612,7 +615,7 @@ export function setGlobalSelectedLeague(league, isManual = false) {
     }
 
     // DYNAMIC IMPORT
-    import("./ui/tabs.js").then(async (tabs) => {
+    import("./ui/tabs/index.js").then(async (tabs) => {
         tabs.updateAllLeagueSelectors(isManual);
         // Only sync class selectors when isManual — the class only changes on manual league picks.
         // Calling updateAllClassSelectors during a programmatic (auto) league set interferes with

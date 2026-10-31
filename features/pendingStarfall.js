@@ -3,6 +3,7 @@
 // gets a notice. During the class's next lesson the Scholar's Scroll shows a Starfall call;
 // pressing it summons the Starfall window and the stars are bestowed in front of the class.
 // Marking during the lesson (or a class with no timetable): the Starfall opens at once, as before.
+import { escapeHtml as esc } from '../utils/html.mjs';
 import * as state from '../state.js';
 import * as utils from '../utils.js';
 import { db, doc, runTransaction } from '../firebase.js';
@@ -18,13 +19,6 @@ import {
     takePendingStarfalls
 } from './pendingStarfallCore.mjs';
 import { starfallCallHtml, playStarfallSummon, formatStars, firstName } from '../ui/starfallCall.js';
-
-const esc = (value) => String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 
 function classById(classId) {
     return (state.get('allSchoolClasses') || []).find((c) => c.id === classId)
@@ -111,7 +105,7 @@ function restorePendingStarfalls(classId, entries) {
  */
 export async function routeStarfall({ classId, students, trialDate, trialTitle = '' }) {
     if (!students?.length) return;
-    const showNow = () => import('../ui/modals.js').then((m) => m.showBatchStarfallModal(students));
+    const showNow = () => import('../ui/modals/index.js').then((m) => m.showBatchStarfallModal(students));
     const timing = classLessonTiming(classId);
     if (!shouldDeferStarfall(timing)) {
         await showNow();
@@ -171,8 +165,8 @@ export async function openPendingStarfall(classId, { origin = null } = {}) {
     opening = true;
     try {
         const [{ showBatchStarfallModal }, { handleBatchAwardBonus }] = await Promise.all([
-            import('../ui/modals.js'),
-            import('../db/actions.js')
+            import('../ui/modals/index.js'),
+            import('../db/actions/index.js')
         ]);
         await playStarfallSummon(origin);
         const markedAt = Math.min(...entries.map((e) => Number(e.queuedAt) || Date.now()));

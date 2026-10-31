@@ -118,7 +118,7 @@
 .tm-stepper { display: inline-flex; align-items: center; border-radius: 999px; background: #f1f5f9; padding: 0.2rem; }
 .tm-stepper button { width: 2.1rem; height: 2.1rem; border-radius: 999px; display: grid; place-items: center; background: #fff; color: #334155; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.15); }
 .tm-stepper button:disabled { opacity: 0.35; }
-.tm-stepper output { min-width: 2.2rem; text-align: center; font-family: 'Fredoka One', 'Fredoka', sans-serif; font-size: 1.35rem; color: #0f172a; }
+.tm-stepper output { min-width: 2.2rem; text-align: center; font-family: var(--gcq-font-title); font-size: 1.35rem; color: #0f172a; }
 .tm-modes { display: inline-flex; flex-wrap: wrap; gap: 0.35rem; }
 .tm-mode {
     display: inline-flex; align-items: center; gap: 0.4rem;

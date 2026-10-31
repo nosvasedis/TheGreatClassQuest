@@ -4,6 +4,7 @@
 // Manual opens the page writer, the × leaves the page waiting in the diary. It steps aside when
 // the page gets written another way (the diary, the Wand, another computer), when the header
 // class changes, or when the full chooser sheet (ui/modals/diaryChooser.js) opens for it.
+import { escapeHtml as esc } from '../../utils/html.mjs';
 import * as state from '../../state.js';
 import { notify, showToast } from '../effects.js';
 import { readWaitingPage } from '../modals/diaryChooser.js';
@@ -15,15 +16,6 @@ const KEY = 'todays-page';
 const SETTLE_FALLBACK_MS = 60000;
 
 let current = null; // { logId, classId, className, herald, settle, unwatch }
-
-function esc(value) {
-    return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
 
 /** "Story Weavers' page", "Owl Class's page". */
 function possessive(name) {
@@ -117,7 +109,7 @@ export async function showTodaysPageNotice(logId, { onSettled } = {}) {
         const message = entry.herald?.element?.querySelector('.herald__message');
         const original = message?.innerHTML;
         try {
-            const actions = await import('../../db/actions.js');
+            const actions = await import('../../db/actions/index.js');
             await actions.writeAdventurePageWithChronicler(logId, {
                 onStatus: (text) => { if (message) message.textContent = text; }
             });

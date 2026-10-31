@@ -1,3 +1,5 @@
+import { escapeHtml as esc } from '../../utils/html.mjs';
+import { emptyStateHtml } from '../emptyStateView.mjs';
 import { showAnimatedModal, hideModal } from './base.js';
 import { startQuestRun, updateQuestProgress, completeQuestRun, reverseQuestCompletion } from '../../features/specialQuestService.js';
 import { QUEST_DEFINITIONS, normalizeQuestType } from '../../features/specialQuestEngine.js';
@@ -9,8 +11,6 @@ let activeEvent = null;
 let activeRun = null;
 let isProjectorMode = false;
 let lastVaultGemCount = null;
-
-const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 
 const QUEST_THEMES = {
   vocabulary_vault: {
@@ -224,7 +224,7 @@ function renderRunner() {
             </label>
           `;
         }).join('')
-      : '<span class="text-sm text-slate-500 col-span-full">No eligible learners found for this class.</span>';
+      : emptyStateHtml({ icon: 'fa-user-group', title: 'No learners to choose yet', line: 'Students in this class who can take part will appear here.', size: 'sm' });
 
     recipientHost.querySelectorAll('[data-recipient-id]').forEach((input) => input.addEventListener('change', () => {
       const id = input.dataset.recipientId;

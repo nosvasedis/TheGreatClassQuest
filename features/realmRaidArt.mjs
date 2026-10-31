@@ -3,6 +3,7 @@
  * in three festival coats, and the class shield made of one shard per class.
  * Pure string builders; motion lives in styles/realm_raid.css (transform and opacity only).
  */
+import { escapeHtml as esc } from '../utils/html.mjs';
 
 export const COATS = Object.freeze({
     winter: {
@@ -229,7 +230,6 @@ export function guardianSvg(seasonId = 'winter', { mood = 'proud', id = 'rrg', t
         </g>
     </svg>`;
 }
-
 
 /** The Legendary crown: a gold circlet that settles between the antlers. */
 function crownSvg(id) {
@@ -478,10 +478,6 @@ function sector(cx, cy, r0, r1, a0, a1) {
     const [x3, y3] = polar(cx, cy, r0, a0);
     const f = (n) => n.toFixed(2);
     return `M${f(x0)},${f(y0)} A${r1},${r1} 0 ${large} 1 ${f(x1)},${f(y1)} L${f(x2)},${f(y2)} A${r0},${r0} 0 ${large} 0 ${f(x3)},${f(y3)} Z`;
-}
-
-function esc(value) {
-    return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 }
 
 /**

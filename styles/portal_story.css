@@ -270,7 +270,7 @@
 }
 
 .ps-hero__initial {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: calc(var(--hs) * var(--u) * 0.48);
     line-height: 1;
     color: #fff;
@@ -424,7 +424,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     border-radius: calc(var(--u) * 1);
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: max(12px, calc(var(--u) * 2.7));
     line-height: 1.3;
     color: #3b1d0a;

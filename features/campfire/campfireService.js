@@ -1,3 +1,4 @@
+import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
 import { db, doc, getDoc, runTransaction, serverTimestamp } from '../../firebase.js';
 import { getLocalIsoDateString as getTodayDateString, getClassesOnDay, findCurrentLessonClass, parseClockToMinutes } from '../../utils.js';
@@ -278,7 +279,7 @@ export async function kindleCampfire(classId, { ai = false, aiBudgetMs = 0, pers
         if (polished && latest && STATUS_ORDER.indexOf(latest.status) > STATUS_ORDER.indexOf(startedStatus)) return latest;
         cache(session, context);
         if (session.script?.embellishments?.some(e => e.depict)) {
-            import('./campfireWordArt.js').then(m => m.prepareCampfireWordImages(classId, session.script.embellishments)).catch(() => {});
+            import('./campfireWordArt.js').then(m => m.prepareCampfireWordImages(classId, session.script.embellishments)).catch(quietly('features/campfire/campfireService.js'));
         }
         if (!persist) return session;
         return saveCampfireSession(session, { script: session.script, source: session.source, logId: session.logId, heroStudentId: session.heroStudentId });
@@ -302,7 +303,7 @@ export async function prepareCampfireFromAssignment(classId) {
     if (todaySession && todaySession.status !== 'completed' && todaySession.status !== 'skipped') {
         const spark = buildTomorrowSpark({ band: getLeagueBand(c.questLevel), ...todayLesson.next, seed: date });
         const script = { ...todaySession.script, tomorrowSpark: todaySession.source === 'ai' ? todaySession.script.tomorrowSpark : spark };
-        await saveCampfireSession(todaySession, { script }).catch(() => {});
+        await saveCampfireSession(todaySession, { script }).catch(quietly('features/campfire/campfireService.js'));
     }
     const upcoming = todayLesson.upcoming;
     if (!upcoming) return;
@@ -325,7 +326,7 @@ export async function prepareCampfireFromAssignment(classId) {
         lessonTarget: nextLesson.lessonTarget, script, source
     }));
     if (script.embellishments?.some(e => e.depict)) {
-        import('./campfireWordArt.js').then(m => m.prepareCampfireWordImages(classId, script.embellishments)).catch(() => {});
+        import('./campfireWordArt.js').then(m => m.prepareCampfireWordImages(classId, script.embellishments)).catch(quietly('features/campfire/campfireService.js'));
     }
 }
 export async function maybeKindleCampfire() {
@@ -354,7 +355,7 @@ export async function openCampfire(classId, { onStep = () => {}, isCancelled = (
     const phone = matchMedia('(max-width: 1023px)').matches;
     // Everything that does not depend on the session starts now, side by side.
     const scene = phone ? null : import('./campfireScene.js');
-    scene?.catch(() => {}); // awaited below; this only keeps an early failure from being reported twice
+    scene?.catch(quietly('features/campfire/campfireService.js')); // awaited below; this only keeps an early failure from being reported twice
     ensureEmberOathsListener();
     const oathsPromise = loadEmberOaths(classId);
     onStep('words');

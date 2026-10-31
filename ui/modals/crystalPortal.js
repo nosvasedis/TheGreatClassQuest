@@ -4,6 +4,7 @@
 // realm overviews (data-modal-mode="portal"). Rules: features/crystalPortalCore.mjs;
 // markup: ./crystalPortalView.mjs; styles: styles/crystal_portal.css.
 
+import { quietly } from '../../utils/runtimeMetrics.js';
 import '../../styles/quest_ranks.css';
 import '../../styles/crystal_portal.css';
 import * as state from '../../state.js';
@@ -56,7 +57,7 @@ function bindPortalNavigation(contentEl) {
         const guardian = event.target.closest('[data-portal-guardian]');
         if (guardian) {
             const classId = state.get('globalSelectedClassId');
-            if (classId) import('../../features/portalGuardian.js').then(({ openPortalGuardian }) => openPortalGuardian(classId)).catch(() => {});
+            if (classId) import('../../features/portalGuardian.js').then(({ openPortalGuardian }) => openPortalGuardian(classId)).catch(quietly('ui/modals/crystalPortal.js'));
             return;
         }
         if (event.target.closest('[data-portal-realm]')) {

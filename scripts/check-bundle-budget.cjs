@@ -38,7 +38,10 @@ for (const row of rows.sort((a, b) => b.gzip - a.gzip)) {
 // Raised from 455 to 460 KiB on 2026-10-30: the Guild Hall live updates took the CSS to ~447 KiB
 // (456.4 total), so every Cloudflare Pages build failed here. Slimming the first-paint CSS (e.g.
 // loading Ceremony styles with the Ceremony) would let it come back down.
-const MAX_COMPRESSED_KIB = 460;
+// Lowered from 460 to 375 KiB on 2026-10-31: the office, family portal and 11 teacher feature
+// sheets now load with the modules that draw them (362.7 KiB total). New feature styles belong in
+// the feature's own module (`import '../styles/x.css'`), not in style.css.
+const MAX_COMPRESSED_KIB = 375;
 if (requestCount > 30 || compressedBytes > MAX_COMPRESSED_KIB * 1024) {
   console.error(`bundle-budget: FAILED (maximum 30 requests and ${MAX_COMPRESSED_KIB} KiB compressed JS/CSS)`);
   process.exit(1);

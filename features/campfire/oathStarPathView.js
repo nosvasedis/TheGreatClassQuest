@@ -1,9 +1,9 @@
 // The Star Path, drawn: a child's own constellation (their kept promises as stars) and the little
 // rewards a kept promise brings. Shared by the Campfire's "A promise kept" moment and the Oath Board.
+import { escapeHtml as esc } from '../../utils/html.mjs';
 import './oathStarPath.css';
 import { personalConstellation, oathPerkFor, STAR_RANKS } from '../oathStarPath.mjs';
 
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const firstName = name => String(name || '').trim().split(/\s+/)[0] || '';
 
 function sparkle(r) {

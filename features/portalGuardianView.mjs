@@ -2,9 +2,8 @@
 // Markup for the Portal Guardian (features/portalGuardian.js): the Guardian drawn in code, a
 // riddle card judged by the teacher, and the ending. Pure, so the preview page can use it.
 // Styles: styles/quest_ranks.css (pg-).
+import { escapeHtml as esc } from '../utils/html.mjs';
 import { rankCrestSvg } from './questRankCrest.mjs';
-
-const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 
 /** The Guardian, drawn in code: a crystal-eyed stone sentinel behind a gate of light. */
 export function guardianArtSvg() {

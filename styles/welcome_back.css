@@ -194,7 +194,7 @@
 }
 .wb-name {
     margin: 0.35rem 0 0.2rem;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: clamp(2rem, 9vw, 2.6rem);
     line-height: 1.1;
     animation: wb-pop 0.6s cubic-bezier(0.2, 1.5, 0.4, 1) 0.55s both;
@@ -252,7 +252,7 @@
     animation-delay: calc(2s + var(--tokens) * 0.22s);
 }
 .wb-amount__plus {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.35rem;
     letter-spacing: 0;
     color: #f59e0b;

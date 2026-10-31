@@ -1,3 +1,5 @@
+import { quietly } from '../utils/runtimeMetrics.js';
+import { onSecond } from '../utils/clock.mjs';
 import { db, collection, query, where, getDocs, addDoc, writeBatch, serverTimestamp, orderBy, limit, doc } from '../firebase.js';
 import * as state from '../state.js';
 import * as utils from '../utils.js';
@@ -295,9 +297,9 @@ export function toggleWallpaperMode() {
             cleanupPortal();
             clearTimeout(directorTimeout);
             clearTimeout(cardGapTimeout);
-            if (wallpaperTimerInterval) clearInterval(wallpaperTimerInterval);
+            wallpaperTimerInterval?.();
             if (wallpaperTimerHideTimeout) clearTimeout(wallpaperTimerHideTimeout);
-            clearInterval(clockInterval);
+            clockInterval?.();
             resetWallpaperClockHandAngles();
             lastWeatherRefresh = 0;
             clearFloatingArea();
@@ -434,7 +436,7 @@ async function toggleWallFullscreen() {
     const fade = (from, to, ms) => Promise.all(parts.map((el) => {
         const anim = el.animate([{ opacity: from }, { opacity: to }], { duration: ms, easing: 'ease-in-out', fill: 'forwards' });
         fades.push(anim);
-        return anim.finished.catch(() => {});
+        return anim.finished.catch(quietly('ui/wallpaper.js'));
     }));
     try {
         await fade(1, 0, 220);
@@ -818,7 +820,8 @@ function startWallpaperClock() {
         }
     };
     update();
-    clockInterval = setInterval(update, 1000);
+    clockInterval?.();
+    clockInterval = onSecond(update);
 }
 
 function identifyCurrentClass() {
@@ -1018,7 +1021,7 @@ async function directorGameLoop({ skipGap = false } = {}) {
     }
 
     // Clear any existing timer interval to prevent stacking
-    if (wallpaperTimerInterval) clearInterval(wallpaperTimerInterval);
+    wallpaperTimerInterval?.();
 
     if (activeTimer) {
         const updateTimerVisuals = async () => {
@@ -1046,7 +1049,7 @@ async function directorGameLoop({ skipGap = false } = {}) {
                 }
             } else {
                 // --- TIMER FINISHED ---
-                clearInterval(wallpaperTimerInterval);
+                wallpaperTimerInterval?.();
                 if (finishedTimerIds.has(activeTimer.id)) return;
                 finishedTimerIds.add(activeTimer.id);
                 const pill = timerOverlay.querySelector('[data-wall-timer-card]');
@@ -1096,7 +1099,7 @@ async function directorGameLoop({ skipGap = false } = {}) {
 
         // Run immediately then set interval
         updateTimerVisuals();
-        wallpaperTimerInterval = setInterval(updateTimerVisuals, 1000);
+        wallpaperTimerInterval = onSecond(updateTimerVisuals);
 
     } else {
         const pill = timerOverlay.querySelector('[data-wall-timer-card]');

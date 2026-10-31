@@ -1,0 +1,152 @@
+/*
+ * confirm_dialog.css: the herald's question (#confirmation-modal, ui/modals/base.js#showModal).
+ * A sky-and-parchment card with a wax seal for the icon. data-tone on .gcq-confirm:
+ *   default    indigo-violet confirm
+ *   danger     rose confirm (titles with Delete / Purge / Reset)
+ *   milestone  gold confirm, bolder message (titles ending in "Milestone!")
+ * Loaded with ui/modals/base.js, not with the first paint.
+ */
+
+.gcq-confirm {
+    --cf-accent-a: #6366f1;
+    --cf-accent-b: #7c3aed;
+    --cf-accent-deep: #3730a3;
+    --cf-glow: rgba(129, 140, 248, 0.35);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 25rem;
+    padding: 2rem 1.75rem 1.6rem;
+    overflow: hidden;
+    text-align: center;
+    border-radius: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    background:
+        radial-gradient(120% 70% at 50% 0%, rgba(224, 231, 255, 0.9), rgba(255, 255, 255, 0) 65%),
+        linear-gradient(180deg, #ffffff 0%, #fbfaff 100%);
+    box-shadow: var(--gcq-shadow-5), 0 0 0 6px rgba(255, 255, 255, 0.35);
+}
+.gcq-confirm[data-tone="danger"] {
+    --cf-accent-a: #f43f5e;
+    --cf-accent-b: #dc2626;
+    --cf-accent-deep: #9f1239;
+    --cf-glow: rgba(251, 113, 133, 0.35);
+}
+.gcq-confirm[data-tone="milestone"] {
+    --cf-accent-a: #fbbf24;
+    --cf-accent-b: #f97316;
+    --cf-accent-deep: #b45309;
+    --cf-glow: rgba(251, 191, 36, 0.4);
+}
+
+/* a soft coloured halo at the top, in the dialog's tone */
+.gcq-confirm__glow {
+    position: absolute;
+    top: -5rem;
+    left: 50%;
+    width: 16rem;
+    height: 9rem;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: var(--cf-glow);
+    filter: blur(40px);
+    pointer-events: none;
+}
+
+.gcq-confirm__seal {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 4.5rem;
+    height: 4.5rem;
+    margin-bottom: 1rem;
+    border-radius: 50%;
+    font-size: 2.2rem;
+    line-height: 1;
+    background:
+        radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 55%),
+        linear-gradient(160deg, #ffffff, color-mix(in srgb, var(--cf-accent-a) 18%, #fff));
+    border: 2px solid color-mix(in srgb, var(--cf-accent-a) 35%, #fff);
+    box-shadow: var(--gcq-shadow-2), inset 0 -3px 0 color-mix(in srgb, var(--cf-accent-a) 18%, transparent);
+    animation: gcq-confirm-bob 3.2s ease-in-out infinite;
+}
+.gcq-confirm__seal.hidden { display: none; }
+
+@keyframes gcq-confirm-bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+}
+
+.gcq-confirm__title {
+    position: relative;
+    margin: 0 0 0.6rem;
+    font-family: var(--gcq-font-title);
+    font-size: 1.75rem;
+    line-height: 1.15;
+    color: #1e1b4b;
+}
+
+.gcq-confirm__message {
+    position: relative;
+    width: 100%;
+    margin: 0 0 1.6rem;
+    font-family: var(--gcq-font-display);
+    font-size: 1.04rem;
+    line-height: 1.5;
+    color: #475569;
+}
+.gcq-confirm[data-tone="milestone"] .gcq-confirm__message {
+    font-weight: 600;
+    color: #312e81;
+}
+
+.gcq-confirm__actions {
+    position: relative;
+    display: flex;
+    gap: 0.7rem;
+    width: 100%;
+}
+
+.gcq-confirm__btn {
+    flex: 1 1 0;
+    min-height: 3rem;
+    padding: 0.7rem 1.2rem;
+    border-radius: 1.1rem;
+    font-family: var(--gcq-font-title);
+    font-size: 1.08rem;
+    cursor: pointer;
+    transition: transform var(--gcq-dur-fast) ease, box-shadow var(--gcq-dur-fast) ease, filter var(--gcq-dur-fast) ease;
+}
+.gcq-confirm__btn--cancel {
+    color: #64748b;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    box-shadow: inset 0 -3px 0 #e2e8f0;
+}
+.gcq-confirm__btn--cancel:hover { background: #e2e8f0; }
+.gcq-confirm__btn--ok {
+    color: #fff;
+    border: 0;
+    background: linear-gradient(135deg, var(--cf-accent-a), var(--cf-accent-b));
+    box-shadow: inset 0 -4px 0 var(--cf-accent-deep), 0 10px 20px -12px var(--cf-accent-deep);
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
+}
+.gcq-confirm__btn--ok:hover { filter: brightness(1.06); }
+.gcq-confirm__btn--ok:active { transform: translateY(2px); box-shadow: inset 0 -2px 0 var(--cf-accent-deep); }
+.gcq-confirm__btn:disabled {
+    cursor: not-allowed;
+    filter: grayscale(0.5);
+    opacity: 0.5;
+}
+
+@media (max-width: 480px) {
+    .gcq-confirm { padding: 1.7rem 1.2rem 1.3rem; border-radius: 1.6rem; }
+    .gcq-confirm__title { font-size: 1.5rem; }
+    .gcq-confirm__actions { flex-direction: column-reverse; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gcq-confirm__seal { animation: none; }
+}

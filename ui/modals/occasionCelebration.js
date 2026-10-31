@@ -2,15 +2,10 @@
 // Birthday and name-day bonus popups: a birthday cake whose candles the class blows out,
 // and an Aegean name-day card with an olive wreath and "Χρόνια πολλά!".
 // No Firebase here; the caller passes what happens on "gift" and how to close.
+import { quietly } from '../../utils/runtimeMetrics.js';
+import { escapeHtml as esc } from '../../utils/html.mjs';
 import { playOccasionSfx } from '../../audio.js';
 import '../../styles/occasion_celebration.css';
-
-const esc = (value) => String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 
 const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -228,7 +223,7 @@ export function prepareOccasionCelebration({ type, student, bonus, onGift, close
         burst(shell, kind);
         // The gift is saved after the song; the save closes the card. If it fails, the card stays usable.
         setTimeout(() => {
-            Promise.resolve(onGift?.()).catch(() => {}).finally(() => {
+            Promise.resolve(onGift?.()).catch(quietly('ui/modals/occasionCelebration.js')).finally(() => {
                 setTimeout(() => {
                     if (modal.classList.contains('hidden')) return;
                     shell.classList.remove('is-giving');

@@ -1415,7 +1415,7 @@ body.adventure-log-editor-open { overflow: hidden; }
 }
 
 .adventure-log-editor-optional {
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--gcq-font-body);
     font-weight: 600;
     font-size: 0.72rem;
     letter-spacing: normal;

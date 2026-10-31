@@ -1,3 +1,4 @@
+import { quietly } from '../utils/runtimeMetrics.js';
 import * as state from '../state.js';
 import * as utils from '../utils.js';
 import { escapeHtml } from '../features/roles/shared.js';
@@ -103,7 +104,7 @@ function ensureDailyQuoteFetched() {
                 const el = document.getElementById('m-daily-quote-text');
                 if (el) el.textContent = `"${cachedQuote}"`;
             }
-        }).catch(() => {});
+        }).catch(quietly('mobile/home.js'));
     });
 }
 
@@ -496,7 +497,7 @@ function attachHomeListeners() {
         const quickTab = event.target.closest('[data-m-quick-tab]');
         if (quickTab) {
             playSound('click');
-            import('../ui/tabs.js').then((tabs) => tabs.showTab(quickTab.dataset.mQuickTab));
+            import('../ui/tabs/index.js').then((tabs) => tabs.showTab(quickTab.dataset.mQuickTab));
             return;
         }
 
@@ -519,34 +520,34 @@ async function handleQuickAction(action, subtab) {
     const classId = state.get('globalSelectedClassId');
 
     if (action === 'open-attendance') {
-        const modals = await import('../ui/modals.js');
+        const modals = await import('../ui/modals/index.js');
         if (classId) modals.openAttendanceChronicle(classId);
     } else if (action === 'open-report') {
-        const modals = await import('../ui/modals.js');
+        const modals = await import('../ui/modals/index.js');
         if (classId) modals.handleGenerateReport(classId);
     } else if (action === 'edit-class') {
-        const modals = await import('../ui/modals.js');
+        const modals = await import('../ui/modals/index.js');
         if (classId) modals.openEditClassModal(classId);
     } else if (action === 'open-class-roster') {
         const { openClassRosterModal } = await import('../ui/modals/classRoster.js');
         if (classId) openClassRosterModal(classId);
     } else if (action === 'open-prodigies') {
-        const modals = await import('../ui/modals.js');
+        const modals = await import('../ui/modals/index.js');
         modals.openProdigyModal();
     } else if (action === 'open-teacher-boon') {
-        const modals = await import('../ui/modals.js');
+        const modals = await import('../ui/modals/index.js');
         modals.openTeacherBoonModal();
     } else if (action === 'open-student-ranks') {
-        const modals = await import('../ui/modals.js');
+        const modals = await import('../ui/modals/index.js');
         modals.openStudentRankingsModal();
     } else if (action === 'create-class') {
-        const modals = await import('../ui/modals.js');
+        const modals = await import('../ui/modals/index.js');
         modals.openCreateClassModal();
     } else if (action === 'open-team-history') {
-        const modals = await import('../ui/modals.js');
+        const modals = await import('../ui/modals/index.js');
         modals.openHistoryModal('team', { league: null });
     } else if (action === 'open-options') {
-        const tabs = await import('../ui/tabs.js');
+        const tabs = await import('../ui/tabs/index.js');
         await tabs.showOptionsSubtab(subtab || 'classes');
     } else if (action === 'open-team-maker') {
         const { openTeamMaker } = await import('../ui/modals/teamMaker.js');
@@ -555,7 +556,7 @@ async function handleQuickAction(action, subtab) {
         const { openFairPicker } = await import('../ui/modals/fairPicker.js');
         openFairPicker(classId || null);
     } else if (action === 'open-day-planner') {
-        const modals = await import('../ui/modals.js');
+        const modals = await import('../ui/modals/index.js');
         modals.openDayPlannerModal(utils.getTodayDateString(), document.body);
     }
 }

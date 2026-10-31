@@ -5,7 +5,7 @@ import * as constants from '../../constants.js';
 import { db, query, collection, where, getDocs } from '../../firebase.js';
 import { showAnimatedModal, showModal } from './base.js';
 import { fetchLogsForDate } from '../../db/queries.js';
-import { ensureHistoryLoaded } from '../../db/actions.js';
+import { ensureHistoryLoaded } from '../../db/actions/index.js';
 
 export function openCreateClassModal(options = {}) {
     const form = document.getElementById('add-class-form');

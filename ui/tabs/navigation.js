@@ -1,20 +1,21 @@
 // /ui/tabs/navigation.js
 
 // --- IMPORTS ---
+import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import * as constants from '../../constants.js';
-import { deleteClass, deleteStudent, ensureHistoryLoaded } from '../../db/actions.js';
+import { deleteClass, deleteStudent, ensureHistoryLoaded } from '../../db/actions/index.js';
 import { filterDocsForActiveYear } from '../../utils/schoolYear.js';
 import { db } from '../../firebase.js';
 import { fetchMonthlyHistory } from '../../state.js';
-import * as modals from '../modals.js';
+import * as modals from '../modals/index.js';
 import * as scholarScroll from '../../features/scholarScroll.js';
 import * as avatar from '../../features/avatar.js';
 import * as storyWeaver from '../../features/storyWeaver.js';
 import { playSound } from '../../audio.js';
 import { showToast } from '../effects.js';
-import { renderActiveBounties } from '../core.js';
+import { renderActiveBounties } from '../core/index.js';
 import { renderClassEndDatesList } from '../core/misc.js';
 import { updateCeremonyStatus } from '../../features/ceremony.js';
 import { renderHomeTab } from '../../features/home.js';
@@ -251,7 +252,7 @@ export async function applyTabPrimaryRefresh(tabId, opts = {}) {
     }
 
     if (tabId === 'class-leaderboard-tab' || tabId === 'student-leaderboard-tab' || tabId === 'guilds-tab') {
-        const { findAndSetCurrentClass } = await import('../core.js');
+        const { findAndSetCurrentClass } = await import('../core/index.js');
         findAndSetCurrentClass();
         updateCeremonyStatus(tabId);
     }
@@ -270,20 +271,20 @@ export async function applyTabPrimaryRefresh(tabId, opts = {}) {
     }
 
     if (tabId === 'award-stars-tab') {
-        const { findAndSetCurrentClass } = await import('../core.js');
+        const { findAndSetCurrentClass } = await import('../core/index.js');
         resetAwardCardVisualSession();
         renderAwardStarsTab();
         findAndSetCurrentClass();
     }
 
     if (tabId === 'adventure-log-tab') {
-        const { findAndSetCurrentClass } = await import('../core.js');
+        const { findAndSetCurrentClass } = await import('../core/index.js');
         renderAdventureLogTab();
         findAndSetCurrentClass();
     }
 
     if (tabId === 'scholars-scroll-tab') {
-        const { findAndSetCurrentClass } = await import('../core.js');
+        const { findAndSetCurrentClass } = await import('../core/index.js');
         await scholarScroll.renderScholarsScrollTab(null, { subtleReenter: opts.subtleScrollEnter === true });
         findAndSetCurrentClass();
     }
@@ -309,7 +310,7 @@ export async function applyTabPrimaryRefresh(tabId, opts = {}) {
 }
 
 function patchOptionsTabForClassChange() {
-    import('../core.js').then(m => {
+    import('../core/index.js').then(m => {
         if (m.renderEconomyStudentSelect) m.renderEconomyStudentSelect();
     });
     renderStarManagerStudentSelect();
@@ -318,7 +319,7 @@ function patchOptionsTabForClassChange() {
         renderAssessmentOptionsUi();
     }
     if (canUseFeature('quizOfTheWeek')) {
-        renderQuizOptionsUi().catch(() => {});
+        renderQuizOptionsUi().catch(quietly('ui/tabs/navigation.js'));
     }
     if (canUseFeature('eliteAI')) {
         renderMarketManagerUi();
@@ -565,7 +566,7 @@ export async function showTab(tabName) {
         if (!hasMarketManager) marketSection?.classList.add('hidden');
 
         // Load teacher-owned settings; isolate failures so one broken renderer doesn't block the others
-        import('../core.js').then(m => {
+        import('../core/index.js').then(m => {
             try {
                 m.renderClassEndDatesList?.();
             } catch (e) {

@@ -89,13 +89,14 @@ async function playInnerClassSwap(inner, runRender) {
 }
 
 // --- IMPORTS ---
+import '../styles/trial_history.css';
 import { db, doc, addDoc, updateDoc, collection, serverTimestamp, writeBatch, runTransaction } from '../firebase.js';
 
 import * as state from '../state.js';
 import * as utils from '../utils.js';
 import { showToast, showUndoToast } from '../ui/effects.js';
 import { playSound } from '../audio.js';
-import * as modals from '../ui/modals.js';
+import * as modals from '../ui/modals/index.js';
 import { wrapAvatarWithLevelUpIndicator } from '../ui/core/avatar.js';
 import { HERO_CLASSES } from '../features/heroClasses.js';
 import {
@@ -1522,7 +1523,7 @@ export function openTrialHistoryModal(classId) {
         const deleteBtn = e.target.closest('.delete-trial-btn');
         if (deleteBtn) {
             const trialId = deleteBtn.dataset.trialId;
-            import('../db/actions.js').then((actions) => actions.handleDeleteTrial(trialId, () => {
+            import('../db/actions/index.js').then((actions) => actions.handleDeleteTrial(trialId, () => {
                 loadedHistoricalScores = loadedHistoricalScores.filter((s) => s.id !== trialId);
                 renderTrialHistoryContent(classId, activeHistoryView());
             }));
@@ -1912,7 +1913,7 @@ export function openSingleTrialEditModal(classId, trialId) {
     const newSaveBtn = saveBtn.cloneNode(true);
     saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
 
-    import('../db/actions.js').then(actions => {
+    import('../db/actions/index.js').then(actions => {
         newSaveBtn.addEventListener('click', actions.handleBulkSaveTrial);
     });
 
@@ -1966,7 +1967,7 @@ function openMakeupModal(classId, studentId, type, title) {
     saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
 
     // We need to import handleBulkSaveTrial from actions to bind it
-    import('../db/actions.js').then(actions => {
+    import('../db/actions/index.js').then(actions => {
         newSaveBtn.addEventListener('click', actions.handleBulkSaveTrial);
     });
 

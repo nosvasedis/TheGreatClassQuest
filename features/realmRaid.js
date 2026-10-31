@@ -5,6 +5,7 @@
 // and went legendary, so a late roster change can never un-break it.
 // Each teacher's app pays its own classes, once, with a receipt on the class (`realmRaids.<raidId>`).
 // Rules live in realmRaidCore.mjs; the hall is ui/modals/realmRaid.js.
+import { quietly } from '../utils/runtimeMetrics.js';
 import '../styles/realm_raid_card.css';
 import * as state from '../state.js';
 import * as utils from '../utils.js';
@@ -315,7 +316,7 @@ function announcePaid(row, paid) {
         duration: 7000,
         message: `${lead} +${paid.gold} Gold for every hero${quest}.`,
         action: { label: 'Open the Raid', icon: 'fa-shield-halved', onClick: () => openRealmRaid() }
-    })).catch(() => {});
+    })).catch(quietly('features/realmRaid.js'));
 }
 
 /** Picks the class's Raid Hero once and gives one festival treasure (or Gold). */

@@ -6,6 +6,7 @@
 // Gestures: Star Flick (award), Hold to Crown, Wheel Slingshot, Shake to Summon, swipe the deck.
 // Markup: remoteWandView.mjs. Styles: styles/quest_remote_wand.css.
 
+import { quietly } from '../../utils/runtimeMetrics.js';
 import '../../styles/quest_remote_wand.css';
 import * as state from '../../state.js';
 import { canUseFeature } from '../../utils/subscription.js';
@@ -125,7 +126,7 @@ export async function openWand({ sessionId = '' } = {}) {
         if (document.hidden) { cancelGestures(); return; }
         if (wand.root.dataset.phase !== 'bound' || !wand.sessionId) return;
         requestWakeLock();
-        channel.beatWand(wand.sessionId).catch(() => {});
+        channel.beatWand(wand.sessionId).catch(quietly('features/questRemote/remoteWand.js'));
         syncLink();
     };
     wand.onNet = () => syncLink();
@@ -134,7 +135,7 @@ export async function openWand({ sessionId = '' } = {}) {
     window.addEventListener('offline', wand.onNet);
     // Today's register on this phone too (the phone may never open a tab that loads it), and a fresh
     // Forge the moment someone is marked absent or arrives: an absent hero is never put in a team.
-    import('../../db/listeners.js').then((m) => m.activateDataFeature?.('attendance')).catch(() => {});
+    import('../../db/listeners.js').then((m) => m.activateDataFeature?.('attendance')).catch(quietly('features/questRemote/remoteWand.js'));
     wand.onRoster = () => {
         clearTimeout(wand?.rosterTimer);
         if (wand) wand.rosterTimer = setTimeout(() => { if (wand) render(); }, 150);
@@ -280,7 +281,7 @@ async function connect(sessionId) {
     });
     w.timers.push(setInterval(() => {
         if (stale()) return;
-        channel.beatWand(w.sessionId).catch(() => {});
+        channel.beatWand(w.sessionId).catch(quietly('features/questRemote/remoteWand.js'));
         syncLink();
     }, HEARTBEAT_MS));
     w.timers.push(setInterval(() => { if (wand?.mode === 'stars' && !wand.sheetKind) refreshRosterIfChanged(); }, 1500));
@@ -325,7 +326,7 @@ function onSession(data, { fromCache = false } = {}) {
     }
     if (data.wandId && !fromCache) wand.boundWandId = data.wandId;
     // The projector reloaded (a new host on the same session): answer at once so it knows the Wand is here.
-    if (data.hostId && wand.hostId && data.hostId !== wand.hostId) channel.beatWand(wand.sessionId).catch(() => {});
+    if (data.hostId && wand.hostId && data.hostId !== wand.hostId) channel.beatWand(wand.sessionId).catch(quietly('features/questRemote/remoteWand.js'));
     wand.hostId = data.hostId || '';
     const beat = channel.toMs(data.hostHeartbeatAt);
     if (beat !== wand.hostBeat) { wand.hostBeat = beat; wand.hostSeenAt = Date.now(); }
@@ -1551,7 +1552,7 @@ function enableMotionPermission() {
     motionAsked = true;
     const DM = window.DeviceMotionEvent;
     if (DM && typeof DM.requestPermission === 'function') {
-        DM.requestPermission().then((r) => { if (r === 'granted') startMotion(); }).catch(() => {});
+        DM.requestPermission().then((r) => { if (r === 'granted') startMotion(); }).catch(quietly('features/questRemote/remoteWand.js'));
     }
 }
 

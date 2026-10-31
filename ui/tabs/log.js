@@ -1,7 +1,7 @@
 // /ui/tabs/log.js
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
-import * as modals from '../modals.js';
+import * as modals from '../modals/index.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { getLogTabCopy } from '../../config/tiers/features.js';
 import { renderAwardStarsStudentList } from './award.js';

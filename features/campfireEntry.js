@@ -1,5 +1,6 @@
 // Hero Campfire entry points: the hearth button in the Adventure Log (under Log / Hall of Heroes),
 // a small Home reminder badge, and the Oath Board shortcut. The heavy scene and service load only on click.
+import { quietly } from '../utils/runtimeMetrics.js';
 import * as state from '../state.js';
 import { canUseFeature } from '../utils/subscription.js';
 import { getTodayDateString, getLocalIsoDateString } from '../utils.js';
@@ -164,7 +165,7 @@ let watching = false;
 function watchOaths() {
     if (watching || state.get('hasLoadedEmberOaths') || state.get('currentUserRole') !== 'teacher') return;
     watching = true;
-    setTimeout(() => import('../db/actions/emberOaths.js').then(m => m.ensureEmberOathsListener()).catch(() => {}).finally(() => { watching = false; }), 1500);
+    setTimeout(() => import('../db/actions/emberOaths.js').then(m => m.ensureEmberOathsListener()).catch(quietly('features/campfireEntry.js')).finally(() => { watching = false; }), 1500);
 }
 
 /** Keep every "N ready" badge true while promises change (check-ins, moments, keeping one). */

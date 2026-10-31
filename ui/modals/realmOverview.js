@@ -3,6 +3,7 @@
 // Shows where every party of the league stands relative to that realm, using
 // the same realm boundaries as the living map (features/questMapZones.mjs).
 
+import { escapeHtml } from '../../utils/html.mjs';
 import '../../styles/quest_ranks.css';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
@@ -41,7 +42,6 @@ const REALM_LORE = {
     }
 };
 
-
 const GROUPS = {
     beyond: { title: 'Journeyed beyond', icon: 'fa-flag-checkered' },
     here: { title: 'Exploring here now', icon: 'fa-location-dot' },
@@ -49,15 +49,6 @@ const GROUPS = {
 };
 
 let currentZoneId = 'bronze';
-
-function escapeHtml(value) {
-    return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
 
 function plural(count, one, many = `${one}s`) {
     return `${count} ${count === 1 ? one : many}`;

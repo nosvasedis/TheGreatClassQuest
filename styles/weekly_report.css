@@ -301,7 +301,7 @@
 
 .wr-stat__value {
     grid-area: value;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 2rem;
     line-height: 1;
     color: var(--wr-ink);
@@ -874,7 +874,7 @@
 
 .wr-reading__headline {
     margin: 0 0 0.6rem;
-    font-family: 'Lora', Georgia, serif;
+    font-family: var(--gcq-font-serif);
     font-style: italic;
     font-weight: 700;
     font-size: 1.35rem;
@@ -884,7 +884,7 @@
 
 .wr-reading__story p {
     margin: 0 0 0.7rem;
-    font-family: 'Lora', Georgia, serif;
+    font-family: var(--gcq-font-serif);
     font-size: 1.02rem;
     line-height: 1.65;
     color: var(--wr-text);
@@ -1146,7 +1146,7 @@
     gap: 0.45rem;
     padding: 0.6rem 1.05rem;
     border-radius: 0.85rem;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     font-size: 0.98rem;
     cursor: pointer;
@@ -1206,7 +1206,7 @@
 
 .wr-print-title__logo { font-size: 40px; }
 .wr-print-title p { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: #f6d365; }
-.wr-print-title h1 { margin: 2px 0 0; font-family: 'Cinzel', serif; font-size: 28px; }
+.wr-print-title h1 { margin: 2px 0 0; font-family: var(--gcq-font-rune); font-size: 28px; }
 
 .wr-body--print {
     overflow: visible;

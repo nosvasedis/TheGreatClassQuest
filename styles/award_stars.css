@@ -45,7 +45,7 @@
     border: 1.5px solid rgba(255, 255, 255, 0.95);
     box-shadow: 0 8px 20px rgba(30, 64, 175, 0.12), inset 0 -2px 0 rgba(191, 219, 254, 0.55);
     color: var(--roll-ink);
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 0.88rem;
     font-weight: 600;
     white-space: nowrap;
@@ -71,7 +71,7 @@
 
 .aw-roll__count b,
 .aw-roll__stars b {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.05rem;
     color: #1d4ed8;
 }
@@ -301,7 +301,7 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
     border: 1.5px solid #bae6fd;
     box-shadow: 0 10px 24px rgba(30, 64, 175, 0.2);
     color: #1e3a8a;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 0.8rem;
     line-height: 1.2;
     pointer-events: none;
@@ -349,7 +349,7 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
 .aw-roll-tip__face--initial {
     display: grid;
     place-items: center;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 0.9rem;
     color: #4338ca;
 }
@@ -446,7 +446,7 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
 }
 
 .aw-ledger-tip__virtue > i { color: var(--v); font-size: 0.7rem; text-align: center; }
-.aw-ledger-tip__virtue b { text-align: right; font-family: 'Fredoka One', 'Fredoka', sans-serif; color: var(--v); }
+.aw-ledger-tip__virtue b { text-align: right; font-family: var(--gcq-font-title); color: var(--v); }
 .aw-ledger-tip__virtue.is-empty { opacity: 0.5; }
 
 .aw-ledger-tip__bar {
@@ -514,7 +514,7 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
     background: linear-gradient(180deg, #fffbeb, #fef3c7);
     box-shadow: inset 0 0 0 1.5px #fcd34d;
 }
-.aw-ledger-tip__big b { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-size: 1.3rem; line-height: 1.1; }
+.aw-ledger-tip__big b { font-family: var(--gcq-font-title); font-size: 1.3rem; line-height: 1.1; }
 .aw-ledger-tip__big .fa-star { font-size: 0.8rem; color: #f59e0b; }
 .aw-ledger-tip__big.is-gold { color: #fff; background: linear-gradient(135deg, #fbbf24, #f59e0b); box-shadow: 0 2px 8px rgba(217, 119, 6, 0.35); }
 .aw-ledger-tip__big.is-gold .fa-star { color: #fff7d6; }
@@ -536,7 +536,7 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
     background: color-mix(in srgb, var(--v) 12%, #fff);
     box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--v) 35%, transparent);
 }
-.aw-ledger-tip__chip b { font-family: 'Fredoka One', 'Fredoka', sans-serif; }
+.aw-ledger-tip__chip b { font-family: var(--gcq-font-title); }
 
 .aw-ledger-tip__status {
     display: inline-flex;
@@ -587,7 +587,7 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
 .aw-ledger-tip__fact i { width: 0.9rem; text-align: center; color: #6366f1; }
 .aw-ledger-tip__fact .fa-coins { color: #d97706; }
 .aw-ledger-tip__fact .fa-moon { color: #8b5cf6; }
-.aw-ledger-tip__fact b { font-family: 'Fredoka One', 'Fredoka', sans-serif; color: #1e3a8a; }
+.aw-ledger-tip__fact b { font-family: var(--gcq-font-title); color: #1e3a8a; }
 
 .aw-roll-tip[data-tone="month"] { border-color: #c4b5fd; background: linear-gradient(180deg, #ffffff, #f5f3ff); }
 .aw-roll-tip[data-tone="month"]::after { background: #f5f3ff; border-color: #c4b5fd; }
@@ -634,7 +634,7 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.86);
     color: #334155;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 1.05rem;
     font-weight: 600;
     box-shadow: 0 8px 20px rgba(30, 64, 175, 0.1);
@@ -966,7 +966,7 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
     place-items: center;
     background: radial-gradient(circle at 35% 30%, #ffffff, #e0e7ff 55%, #c7d2fe);
     color: #4338ca;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 2.1rem;
 }
 
@@ -1646,7 +1646,7 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
     border: 1.5px solid #fcd34d;
     box-shadow: 0 3px 0 #f59e0b, 0 8px 18px rgba(245, 158, 11, 0.2);
     color: #92400e;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     animation: aw-seal-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 

@@ -1,3 +1,4 @@
+import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { playSound } from '../../audio.js';
@@ -409,7 +410,7 @@ export function openTeacherBoonModal() {
     const prodigiesShown = peekReigningProdigies();
     getReigningProdigies().then((prodigies) => {
         if (prodigies !== prodigiesShown && teacherBoonModalState.classId === classId) renderTeacherBoonStudentGrid();
-    }).catch(() => {});
+    }).catch(quietly('ui/modals/teacherBoon.js'));
 }
 
 export function wireTeacherBoonModal() {

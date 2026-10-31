@@ -236,11 +236,6 @@ body.gcq-mobile [data-secretary-section]:not(.hidden) {
     50% { transform: scale(1.35); opacity: 0.7; }
 }
 
-@keyframes m-asset-float {
-    0%, 100% { transform: translateY(0) rotate(-2deg); }
-    50% { transform: translateY(-7px) rotate(3deg); }
-}
-
 @keyframes m-shine-sweep {
     0% { transform: translateX(-100%); }
     60%, 100% { transform: translateX(100%); }
@@ -313,7 +308,6 @@ body.gcq-mobile #m-secretary-dock {
     }
 
     .m-ripple,
-    .m-home-hero__asset,
     .m-home-quest__shine,
     .m-class-pill--follow::after,
     body.gcq-mobile .app-tab.active,

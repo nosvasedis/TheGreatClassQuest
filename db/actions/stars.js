@@ -1,4 +1,5 @@
 // /db/actions/stars.js — scores, stars, award log
+import { quietly } from '../../utils/runtimeMetrics.js';
 import {
     db,
     doc,
@@ -28,7 +29,7 @@ import {
     showStarfallModal,
     showBatchStarfallModal,
     hideModal,
-} from "../../ui/modals.js";
+} from "../../ui/modals/index.js";
 import { playSound } from "../../audio.js";
 import {
     getTodayDateString,
@@ -809,7 +810,7 @@ export async function checkAndRecordQuestCompletion(classId) {
     if (!status.readyToRecord) {
         import("../../features/portalMoments.js")
             .then(({ announcePortalWaiting }) => announcePortalWaiting(classData, status))
-            .catch(() => {});
+            .catch(quietly('db/actions/stars.js'));
         return;
     }
 
@@ -825,7 +826,7 @@ export async function checkAndRecordQuestCompletion(classId) {
     if (!crossing) return;
     import("../../features/portalMoments.js")
         .then(({ announcePortalCrossing }) => announcePortalCrossing(classData, crossing, status))
-        .catch(() => {});
+        .catch(quietly('db/actions/stars.js'));
 }
 
 async function recordPortalCrossing(classData, studentsInClass, status, { payGold = true } = {}) {

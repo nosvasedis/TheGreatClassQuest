@@ -3,6 +3,7 @@
 // close the school, stay a marked day with lessons, or be hidden; the town's patron saint is
 // found from the school's location; and any single date can be opened for lessons.
 
+import { escapeHtml as esc } from '../../utils/html.mjs';
 import * as state from '../../state.js';
 import '../../styles/school_calendar_office.css';
 import {
@@ -16,8 +17,6 @@ import {
     suggestLocalFeast,
     toIsoDay,
 } from '../../utils/schoolCalendar.mjs';
-
-const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 const MODES = [
     { mode: 'closed', label: 'No lessons', icon: 'fa-umbrella-beach' },

@@ -113,7 +113,7 @@
     overflow: hidden;
     background: linear-gradient(145deg, #fff6e8, #f6dcc1);
     color: var(--fp-terracotta-deep);
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     font-size: 1.35rem;
     border: 3px solid #fffaf2;
@@ -145,7 +145,7 @@
 
 .fp-header__title {
     margin: 0.05rem 0 0;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     font-size: 1.6rem;
     line-height: 1.1;
@@ -271,7 +271,7 @@
 
 .fp-card__title {
     margin: 0;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     font-size: 1.15rem;
     line-height: 1.25;
@@ -408,7 +408,7 @@
 }
 
 .fp-leaf__day {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     font-size: 1.35rem;
     line-height: 1;
@@ -445,7 +445,7 @@
 
 .fp-pagehead__title {
     margin: 0;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     font-size: 1.55rem;
     line-height: 1.1;
@@ -502,7 +502,7 @@
 
 .fp-hello__greet {
     margin: 0;
-    font-family: 'Caveat', cursive;
+    font-family: var(--gcq-font-hand);
     font-weight: 700;
     font-size: 1.55rem;
     line-height: 1;
@@ -511,7 +511,7 @@
 
 .fp-hello__title {
     margin: 0.2rem 4rem 0 0;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     font-size: 1.5rem;
     line-height: 1.15;
@@ -607,7 +607,7 @@
 
 .fp-tile__title {
     margin: 0.1rem 0 0;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     font-size: 1rem;
     line-height: 1.2;
@@ -655,7 +655,7 @@
 
 .fp-jar-card__big {
     margin: 0;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 1.1rem;
     color: var(--fp-ink);
 }
@@ -696,7 +696,7 @@
     position: relative;
     margin: 0.6rem 0 0;
     padding-left: 1.4rem;
-    font-family: 'Lora', Georgia, serif;
+    font-family: var(--gcq-font-serif);
     font-style: italic;
     font-size: 1rem;
     line-height: 1.7rem;
@@ -725,7 +725,7 @@
 }
 
 .fp-letter__sign {
-    font-family: 'Caveat', cursive;
+    font-family: var(--gcq-font-hand);
     font-size: 1.3rem;
     font-weight: 600;
     color: var(--fp-terracotta-deep);
@@ -795,7 +795,7 @@
 .fp-moment__title { font-weight: 700; font-size: 0.93rem; color: var(--fp-ink); }
 .fp-moment__note { font-size: 0.82rem; color: var(--fp-ink-soft); font-style: italic; line-height: 1.4; }
 .fp-moment__side { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
-.fp-moment__stars { font-family: 'Fredoka', sans-serif; font-weight: 600; color: #b87708; font-size: 0.98rem; }
+.fp-moment__stars { font-family: var(--gcq-font-display); font-weight: 600; color: #b87708; font-size: 0.98rem; }
 .fp-moment__stars i { font-size: 0.8em; }
 .fp-moment__when { font-size: 0.74rem; color: var(--fp-ink-soft); }
 
@@ -820,7 +820,7 @@
 
 .fp-waiting h2 {
     margin: 0 0 0.4rem;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     color: var(--fp-ink);
     font-size: 1.4rem;
@@ -882,7 +882,7 @@
 
 .fp-note__title {
     margin: 0;
-    font-family: 'Caveat', cursive;
+    font-family: var(--gcq-font-hand);
     font-weight: 700;
     font-size: 2rem;
     line-height: 1.7rem;
@@ -921,7 +921,7 @@
 }
 
 .fp-test--past { opacity: 0.75; }
-.fp-test__title { margin: 0; font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 1.1rem; color: var(--fp-ink); }
+.fp-test__title { margin: 0; font-family: var(--gcq-font-display); font-weight: 600; font-size: 1.1rem; color: var(--fp-ink); }
 .fp-test__when { margin: 0.1rem 0 0; font-size: 0.86rem; color: var(--fp-ink-soft); }
 .fp-test__when strong { color: #634696; }
 .fp-test__topics { margin: 0.35rem 0 0; font-size: 0.86rem; color: #4a3a31; line-height: 1.45; }
@@ -997,7 +997,7 @@
     top: -1.45rem;
     left: 50%;
     transform: translateX(-50%);
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     font-size: 0.9rem;
     color: var(--fp-ink);
@@ -1044,7 +1044,7 @@
 
 .fp-ring--amber { --fp-ring: var(--fp-amber); }
 .fp-ring--rose { --fp-ring: var(--fp-rose); }
-.fp-ring__value { font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 1.15rem; line-height: 1; color: var(--fp-ink); }
+.fp-ring__value { font-family: var(--gcq-font-display); font-weight: 600; font-size: 1.15rem; line-height: 1; color: var(--fp-ink); }
 .fp-ring__value small { font-size: 0.65em; }
 .fp-ring__label { font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fp-ink-soft); }
 
@@ -1082,7 +1082,7 @@
 .fp-result__copy { min-width: 0; display: flex; flex-direction: column; }
 .fp-result__title { font-weight: 700; font-size: 0.93rem; color: var(--fp-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fp-result__date { font-size: 0.76rem; color: var(--fp-ink-soft); }
-.fp-result__score { font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 1rem; color: var(--fp-ink); text-align: right; }
+.fp-result__score { font-family: var(--gcq-font-display); font-weight: 600; font-size: 1rem; color: var(--fp-ink); text-align: right; }
 .fp-result__score--sage { color: #3f6e41; }
 .fp-result__score--amber { color: #9a650a; }
 .fp-result__score--rose { color: #a83a50; }
@@ -1147,7 +1147,7 @@
 .fp-hero__badge { font-size: 1.6rem; line-height: 1.2; }
 .fp-hero__emblem { width: 2rem; height: 2rem; object-fit: contain; }
 .fp-hero__label { font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fp-ink-soft); margin-top: 0.2rem; }
-.fp-hero__value { font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 1.05rem; color: var(--fp-ink); }
+.fp-hero__value { font-family: var(--gcq-font-display); font-weight: 600; font-size: 1.05rem; color: var(--fp-ink); }
 .fp-hero__hint { font-size: 0.76rem; line-height: 1.35; color: var(--fp-ink-soft); }
 
 .fp-explain {
@@ -1201,7 +1201,7 @@
 }
 
 .fp-write__copy { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.fp-write__title { font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 1.1rem; color: var(--fp-ink); }
+.fp-write__title { font-family: var(--gcq-font-display); font-weight: 600; font-size: 1.1rem; color: var(--fp-ink); }
 .fp-write__sub { font-size: 0.84rem; color: #7b5a48; line-height: 1.4; }
 .fp-write__chev { color: var(--fp-terracotta-deep); }
 
@@ -1268,7 +1268,7 @@
     margin-bottom: 0.9rem;
 }
 
-.fp-thread__title { margin: 0; font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 1.25rem; color: var(--fp-ink); line-height: 1.15; }
+.fp-thread__title { margin: 0; font-family: var(--gcq-font-display); font-weight: 600; font-size: 1.25rem; color: var(--fp-ink); line-height: 1.15; }
 .fp-thread__sub { margin: 0.1rem 0 0; font-size: 0.8rem; color: var(--fp-ink-soft); }
 
 .fp-chat {

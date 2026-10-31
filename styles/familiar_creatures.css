@@ -176,7 +176,7 @@
 
 /* ─── Familiar Parade (after the Ceremony of the Month) ───────────────────── */
 .fam-parade { position: fixed; left: 0; right: 0; bottom: 0; height: clamp(120px, 22vh, 220px); z-index: 120; pointer-events: none; overflow: hidden; }
-.fam-parade__banner { position: absolute; left: 50%; top: 0; transform: translateX(-50%); font-family: 'Fredoka One', 'Fredoka', sans-serif; color: #fff; font-size: clamp(14px, 1.6vw, 22px);
+.fam-parade__banner { position: absolute; left: 50%; top: 0; transform: translateX(-50%); font-family: var(--gcq-font-title); color: #fff; font-size: clamp(14px, 1.6vw, 22px);
     letter-spacing: .04em; text-shadow: 0 2px 8px rgba(0,0,0,.6); white-space: nowrap; animation: fam-parade-banner 2.4s ease-out both; }
 .fam-parade__walker { position: absolute; bottom: 8px; left: 0; width: clamp(80px, 12vh, 140px); display: flex; flex-direction: column; align-items: center;
     transform: translateX(-20vw); animation: fam-parade-walk var(--walk, 13s) linear both; animation-delay: var(--delay, 0s); will-change: transform; }

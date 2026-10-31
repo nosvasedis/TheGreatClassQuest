@@ -1,6 +1,7 @@
 // Operator console: an overview of every school, and a page per school to manage its plan,
 // access, office, teachers and data, or delete it. Opened with #operator while signed in;
 // lazily loaded. Every action is checked again by the server (functions/platform*.js).
+import { quietly } from '../utils/runtimeMetrics.js';
 import {
     claimOperator,
     getOperatorStatus,
@@ -196,7 +197,7 @@ export async function openOperatorConsole() {
         if (event.target === overlay) return closeConsole();
         const copy = event.target.closest('[data-copy]');
         if (copy) {
-            navigator.clipboard?.writeText(copy.dataset.copy).then(() => { copy.textContent = 'Copied'; }).catch(() => {});
+            navigator.clipboard?.writeText(copy.dataset.copy).then(() => { copy.textContent = 'Copied'; }).catch(quietly('features/operatorConsole.js'));
             return;
         }
         const row = event.target.closest('[data-open-school]');

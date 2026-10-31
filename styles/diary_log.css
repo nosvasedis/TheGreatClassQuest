@@ -13,7 +13,7 @@
     color: white;
     padding: 6px 10px;
     border-radius: 8px;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 0.9rem;
     text-align: center;
     width: max-content;

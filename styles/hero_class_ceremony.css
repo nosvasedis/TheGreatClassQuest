@@ -133,7 +133,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.6rem;
-    font-family: 'Cinzel', serif;
+    font-family: var(--gcq-font-rune);
     font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 0.28em;
@@ -155,7 +155,7 @@
 
 .hcs-title {
     margin-top: 0.25rem;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: clamp(1.45rem, 3.2vw, 2.05rem);
     line-height: 1.15;
     letter-spacing: 0.02em;
@@ -267,7 +267,7 @@
 }
 
 .hcs-card-numeral {
-    font-family: 'Cinzel', serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: 0.6rem;
     letter-spacing: 0.12em;
@@ -317,7 +317,7 @@
 
 .hcs-card-name {
     margin-top: 7%;
-    font-family: 'Cinzel', serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: clamp(0.6rem, 1.4vw, 0.86rem);
     letter-spacing: 0.04em;
@@ -530,7 +530,7 @@
 }
 
 .hcs-reading-numeral {
-    font-family: 'Cinzel', serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: 0.7rem;
     letter-spacing: 0.3em;
@@ -539,7 +539,7 @@
 
 .hcs-reading-name {
     margin-top: 0.1rem;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.55rem;
     line-height: 1.15;
     color: #fff;
@@ -644,7 +644,7 @@
     display: grid;
     place-items: center;
     border-radius: 50%;
-    font-family: 'Cinzel', serif;
+    font-family: var(--gcq-font-rune);
     font-size: 0.66rem;
     font-weight: 700;
     color: #3b2412;
@@ -681,7 +681,7 @@
     min-height: 3rem;
     padding: 0.7rem 1.4rem;
     border-radius: 9999px;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.05rem;
     letter-spacing: 0.03em;
     transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease, filter 0.2s ease;
@@ -862,7 +862,7 @@
 
 .hcs-result-title {
     margin-top: 0.3rem;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: clamp(1.6rem, 3.6vw, 2.3rem);
     line-height: 1.12;
     color: #fff6e0;
@@ -873,7 +873,7 @@
     position: relative;
     margin: 0.75rem 0 0.2rem;
     padding: 0.32rem 1.6rem;
-    font-family: 'Cinzel', serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: 0.92rem;
     letter-spacing: 0.06em;

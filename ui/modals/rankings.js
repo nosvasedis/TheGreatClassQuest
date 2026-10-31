@@ -1,4 +1,5 @@
 // /ui/modals/rankings.js
+import '../../styles/prodigy_hall.css';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
@@ -1027,7 +1028,7 @@ export async function renderProdigyHistory(classId) {
     else contentEl.classList.add('is-turning');
 
     const countsPromise = getProdigyCountsForClass(classId).catch(() => ({ winCounts: new Map(), winnersByMonth: new Map() }));
-    await import('../../db/actions.js').then(a => a.ensureHistoryLoaded());
+    await import('../../db/actions/index.js').then(a => a.ensureHistoryLoaded());
     if (isStale()) return;
 
     const now = new Date();

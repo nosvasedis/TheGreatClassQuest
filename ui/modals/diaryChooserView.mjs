@@ -2,15 +2,7 @@
 // follows Huzzah!: the crowned hero on a ribbon, what today's ink holds, and two paths,
 // Auto (the AI Chronicler writes the page) or Manual (the teacher writes it all).
 // Model comes from features/adventurePageCore.mjs#buildDiaryChooserModel. No DOM, no state.
-
-function esc(value) {
-    return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
+import { escapeHtml as esc } from '../../utils/html.mjs';
 
 const SPARKS = Array.from({ length: 10 }, (_, i) => `<i style="--i:${i}"></i>`).join('');
 

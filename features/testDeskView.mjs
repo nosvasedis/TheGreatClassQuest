@@ -5,14 +5,8 @@
  * DOM hooks scholarScroll.js relies on: .ss-testdesk-toggle, .ss-testdesk-log, .makeup-trigger,
  * .makeup-dismiss-btn (data-student-id / data-title / data-type), .scroll-makeup-item.
  */
+import { escapeHtml as esc } from '../utils/html.mjs';
 import { paperProgress, testDeskSummary } from './testDeskCore.mjs';
-
-const esc = (value) => String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 
 function dayFromKey(dayKey) {
     const [y, m, d] = String(dayKey || '').split('-').map(Number);

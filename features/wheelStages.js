@@ -3,10 +3,11 @@
 // gift, the Whirlwind, the Trickster's fake-out, the Omens' comet and dragon, the genie's wish)
 // and the stage effects (storm, omen, shield, swirl, bursts). Every animation moves only transform and opacity, and the lite tier trims the extras.
 
+import { quietly } from '../utils/runtimeMetrics.js';
+import { escapeHtml as esc } from '../utils/html.mjs';
 import { drawChallenge } from '../utils/wheelChallenges.mjs';
 import '../styles/fortunes_wheel_fates.css';
 
-const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 let _cleanups = [];
@@ -247,7 +248,7 @@ async function coinStage(cardEl, opts) {
         { transform: `translateY(-38%) rotateY(${end * 0.55}deg)`, offset: 0.45 },
         { transform: `translateY(0) rotateY(${end}deg)` },
     ], { duration: 2100, easing: 'cubic-bezier(0.2, 0.7, 0.3, 1)', fill: 'forwards' });
-    await (anim?.finished?.catch(() => {}) || wait(2100));
+    await (anim?.finished?.catch(quietly('features/wheelStages.js')) || wait(2100));
     try { drum?.stop?.(); } catch (_) { /* optional */ }
     try { sfx?.('coin'); sound?.(heads ? 'quiz_correct' : 'quiz_wrong'); } catch (_) { /* optional */ }
     root.classList.add(heads ? 'is-heads' : 'is-tails');

@@ -2,6 +2,9 @@
 // Markup: templates/modals/sortingQuiz.js. Styles: styles/sorting_ceremony.css.
 // Pure maths / words: features/sortingCeremonyCore.mjs. Quiz state + save: features/sortingQuiz.js.
 
+import { quietly } from '../../utils/runtimeMetrics.js';
+import { escapeHtml } from '../../utils/html.mjs';
+import '../../styles/sorting_ceremony.css';
 import * as state from '../../state.js';
 import * as sortingQuiz from '../../features/sortingQuiz.js';
 import { GUILDS, getGuildById, getGuildEmblemUrl } from '../../features/guilds.js';
@@ -31,15 +34,6 @@ function freshContext() {
 }
 
 const $ = (id) => document.getElementById(id);
-
-function escapeHtml(value) {
-    return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
 
 function reducedMotion() {
     return !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -111,7 +105,7 @@ function clearTimers() {
 }
 
 function sound(name) {
-    import('../../audio.js').then((a) => a.playSound?.(name)).catch(() => {});
+    import('../../audio.js').then((a) => a.playSound?.(name)).catch(quietly('ui/modals/sortingCeremony.js'));
 }
 
 const _guildAudio = {};
@@ -124,7 +118,7 @@ function playGuildVoice(guildId) {
             _guildAudio[guildId].volume = 0.7;
         }
         _guildAudio[guildId].currentTime = 0;
-        _guildAudio[guildId].play().catch(() => {});
+        _guildAudio[guildId].play().catch(quietly('ui/modals/sortingCeremony.js'));
     } catch (_) { /* audio is decoration */ }
 }
 
@@ -358,7 +352,7 @@ function chooseOption(idx) {
         if (step >= questions.length) {
             setStage('seal');
             sound('quiz_open');
-            import('../../audio.js').then((a) => a.warmSortingMusic?.()).catch(() => {});
+            import('../../audio.js').then((a) => a.warmSortingMusic?.()).catch(quietly('ui/modals/sortingCeremony.js'));
             return;
         }
         const wrap = $('sorting-quiz-question');
@@ -424,11 +418,11 @@ async function startReveal() {
         // Closed mid-reveal: the roster still needs the new house.
         const m = modalEl();
         if (m?.classList.contains('hidden') || m?.classList.contains('is-leaving')) {
-            import('../../ui/tabs.js').then((t) => t.renderManageStudentsTab?.());
+            import('../tabs/index.js').then((t) => t.renderManageStudentsTab?.());
         }
         return r;
     });
-    ctx.savePromise.catch(() => {}); // handled at landing
+    ctx.savePromise.catch(quietly('ui/modals/sortingCeremony.js')); // handled at landing
 
     setStage('reveal');
     const line = $('sq-reveal-line');
@@ -763,7 +757,7 @@ export function closeSortingCeremony() {
     clearTimers();
     stopSparks();
     stopFrameWatch();
-    import('../../audio.js').then((a) => a.stopSortingMusic?.()).catch(() => {});
+    import('../../audio.js').then((a) => a.stopSortingMusic?.()).catch(quietly('ui/modals/sortingCeremony.js'));
     const saved = ctx.saved;
     ctx.busy = false;
 
@@ -775,6 +769,6 @@ export function closeSortingCeremony() {
         modal.classList.add('hidden');
         modal.classList.remove('is-leaving');
         document.body.classList.remove('sq-open');
-        if (saved) import('../../ui/tabs.js').then((t) => t.renderManageStudentsTab?.());
+        if (saved) import('../tabs/index.js').then((t) => t.renderManageStudentsTab?.());
     }, reducedMotion() ? 0 : CLOSE_MS);
 }

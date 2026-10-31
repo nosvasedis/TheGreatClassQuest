@@ -1,3 +1,4 @@
+import { quietly } from '../utils/runtimeMetrics.js';
 import * as state from '../state.js';
 import { playSound } from '../audio.js';
 import { auth, signOut } from '../firebaseAuth.js';
@@ -444,12 +445,12 @@ function wire() {
 
     document.getElementById('m-app-info-btn')?.addEventListener('click', () => {
         playSound('click');
-        import('../ui/modals.js').then((modals) => modals.openAppInfoModal());
+        import('../ui/modals/index.js').then((modals) => modals.openAppInfoModal());
     });
 
     document.getElementById('m-header-settings-btn')?.addEventListener('click', () => {
         playSound('click');
-        import('../ui/tabs.js').then((tabs) => tabs.showTab('options-tab'));
+        import('../ui/tabs/index.js').then((tabs) => tabs.showTab('options-tab'));
     });
 
     document.getElementById('m-logout-btn')?.addEventListener('click', () => {
@@ -460,7 +461,7 @@ function wire() {
     document.getElementById('m-more-guide-btn')?.addEventListener('click', () => {
         playSound('click');
         closeMoreSheet();
-        import('../ui/modals.js').then((modals) => modals.openAppInfoModal());
+        import('../ui/modals/index.js').then((modals) => modals.openAppInfoModal());
     });
 
     wireSheetSwipe(document.getElementById('m-more-sheet'), closeMoreSheet);
@@ -473,7 +474,7 @@ function wire() {
         if (btn) {
             playSound('click');
             const tabId = btn.dataset.tab;
-            import('../ui/tabs.js').then((tabs) => tabs.showTab(tabId)).then(() => {
+            import('../ui/tabs/index.js').then((tabs) => tabs.showTab(tabId)).then(() => {
                 if (tabId === 'about-tab') renderMobileHome();
                 measureHeaderHeight();
             });
@@ -495,7 +496,7 @@ function wire() {
         const item = event.target.closest('.nav-button[data-tab]');
         if (item) {
             playSound('click');
-            import('../ui/tabs.js').then((tabs) => tabs.showTab(item.dataset.tab));
+            import('../ui/tabs/index.js').then((tabs) => tabs.showTab(item.dataset.tab));
             closeMoreSheet();
             return;
         }
@@ -566,7 +567,7 @@ function wire() {
                     stopSkyTheater();
                     startSkyTheater();
                 })
-                .catch(() => {});
+                .catch(quietly('mobile/teacher.js'));
         } else {
             closeMoreSheet();
             closeClassPicker();

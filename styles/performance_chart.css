@@ -219,7 +219,7 @@
     color: var(--tone);
 }
 .ss-notice__kicker em {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-style: normal;
     letter-spacing: 0.02em;
     text-transform: none;
@@ -230,7 +230,7 @@
 }
 .ss-notice__title {
     margin: 0.15rem 0 0;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.3rem;
     line-height: 1.2;
     color: var(--ss-ink);
@@ -320,9 +320,9 @@
     color: var(--ss-ink);
     transform: rotate(-2deg);
 }
-.ss-slip__leaf b { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-size: 1.35rem; font-weight: 400; }
+.ss-slip__leaf b { font-family: var(--gcq-font-title); font-size: 1.35rem; font-weight: 400; }
 .ss-slip__leaf small {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 0.66rem;
     font-weight: 700;
     letter-spacing: 0.06em;
@@ -346,7 +346,7 @@
 }
 .ss-slip__kicker > i { font-size: 0.72rem; }
 .ss-slip__kicker em {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-style: normal;
     letter-spacing: 0.02em;
     text-transform: none;
@@ -357,7 +357,7 @@
 }
 .ss-slip__title {
     margin: 0.12rem 0 0;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.12rem;
     font-weight: 400;
     line-height: 1.2;
@@ -413,7 +413,7 @@
 }
 .ss-slip__count {
     flex-shrink: 0;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     font-size: 0.78rem;
     color: #047857;
@@ -523,7 +523,7 @@
 .ss-makeup-dot.is-current { width: 1.2rem; background: linear-gradient(90deg, #f59e0b, #ea580c); }
 .ss-makeup-count {
     flex-shrink: 0;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 0.74rem;
     font-weight: 600;
     color: var(--ss-ink-3);
@@ -549,7 +549,7 @@
     padding: 0 0.75rem;
     border: 0;
     border-radius: 999px;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     font-size: 0.8rem;
     white-space: nowrap;
@@ -712,7 +712,7 @@ button.ss-tile:hover { transform: translateY(-2px); border-color: color-mix(in s
     color: var(--tile);
 }
 .ss-tile__value small {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 0.85rem;
     font-weight: 600;
     color: var(--ss-ink-2);
@@ -1030,7 +1030,7 @@ button.ss-tile:hover { transform: translateY(-2px); border-color: color-mix(in s
     align-items: center;
     gap: 0.35rem;
     max-width: 100%;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     font-size: 1rem;
     color: var(--ss-ink);
@@ -1153,7 +1153,7 @@ button.ss-tile:hover { transform: translateY(-2px); border-color: color-mix(in s
     color: var(--ss-ink-3);
 }
 .ss-awaiting__title b {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     letter-spacing: 0;
     padding: 0 0.45rem;
     border-radius: 999px;

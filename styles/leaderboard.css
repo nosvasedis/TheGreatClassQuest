@@ -110,7 +110,7 @@
 }
 
 .quest-banner-center {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 2.4rem;
     font-weight: 400;          /* Fredoka One is inherently bold */
     letter-spacing: 0.06em;
@@ -192,7 +192,7 @@
 }
 
 .quest-banner-kicker {
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--gcq-font-body);
     font-size: 0.62rem;
     font-weight: 800;
     letter-spacing: 0.3em;

@@ -340,7 +340,7 @@
     min-width: 10.5rem;
     padding: 0 0.4rem;
     text-align: center;
-    font-family: 'Cinzel', serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: 1.02rem;
     color: #4c2a8a;
@@ -467,7 +467,7 @@
     background: #f7f1ff;
 }
 .ph-portrait__initial {
-    font-family: 'Cinzel', serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: calc(var(--ph-portrait) * 0.42);
     color: #5b21b6;
@@ -558,7 +558,7 @@
 .ph-plaque__dot { color: var(--ph-amethyst); font-size: 0.6rem; letter-spacing: 0; }
 .ph-plaque__name {
     margin: 0.2rem 0 0.45rem;
-    font-family: 'Cinzel', serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: clamp(1.55rem, 3.4vw, 2.4rem);
     line-height: 1.12;
@@ -620,7 +620,7 @@
     box-shadow: 0 0 0 2px #fff6d8, 0 0 0 3.5px rgba(212, 176, 96, 0.9);
 }
 .ph-stat__value {
-    font-family: 'Cinzel', serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: 1.65rem;
     line-height: 1;
@@ -722,7 +722,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.4rem 2rem;
-    font-family: 'Cinzel', serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: 0.9rem;
     color: #fff6d8;
@@ -833,7 +833,7 @@
 .ph-empty__title,
 .ph-loading__title {
     margin: 0 0 0.4rem;
-    font-family: 'Cinzel', serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: 1.5rem;
     color: var(--ph-ink);
@@ -873,7 +873,7 @@
     align-items: center;
     gap: 0.4rem;
     flex-shrink: 0;
-    font-family: 'Cinzel', serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: 0.8rem;
     color: #6b4e16;
@@ -933,7 +933,7 @@
     place-items: center;
     background: #fbf7ff;
 }
-.ph-coin__initial { font-family: 'Cinzel', serif; font-weight: 700; font-size: 1rem; color: #5b21b6; }
+.ph-coin__initial { font-family: var(--gcq-font-rune); font-weight: 700; font-size: 1rem; color: #5b21b6; }
 .ph-coin--empty .ph-coin__face {
     background: #efe7d8;
     box-shadow: inset 0 0 0 2px #d6c7a6;

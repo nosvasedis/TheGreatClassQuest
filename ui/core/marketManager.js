@@ -377,7 +377,7 @@ function autoFillOnce(items, scope) {
     if (autoFilledScopes.has(key)) return;
     if (!shopInventoryNeedsEnsure(items, { activeFestivalId: scope.festivalId })) return;
     autoFilledScopes.add(key);
-    import('../../db/actions.js')
+    import('../../db/actions/index.js')
         .then((actions) => actions.handleEnsureShopStock?.())
         .catch((error) => console.warn('Market Manager auto-fill failed', error));
 }
@@ -454,7 +454,7 @@ async function fillStall(button) {
     if (restockBusy) return;
     button.disabled = true;
     try {
-        const actions = await import('../../db/actions.js');
+        const actions = await import('../../db/actions/index.js');
         await actions.handleFillShopStock?.();
     } finally {
         button.disabled = false;

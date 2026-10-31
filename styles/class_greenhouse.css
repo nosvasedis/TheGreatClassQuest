@@ -638,15 +638,15 @@
 }
 .gh-almanac__wait { display: flex; align-items: center; gap: 10px; color: #8a6a3a; font-style: italic; }
 .gh-almanac__wait.is-error { color: #9c4a2a; }
-.gh-almanac__dateline { font-family: 'Open Sans', sans-serif; font-size: 0.72rem; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; color: #8a6a3a; border-bottom: 1px solid #ece2c6; padding-bottom: 6px; margin-bottom: 10px; }
-.gh-almanac__text h4 { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-weight: 400; font-size: 1.15rem; color: var(--gh-leaf-deep); margin: 14px 0 4px; }
+.gh-almanac__dateline { font-family: var(--gcq-font-body); font-size: 0.72rem; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; color: #8a6a3a; border-bottom: 1px solid #ece2c6; padding-bottom: 6px; margin-bottom: 10px; }
+.gh-almanac__text h4 { font-family: var(--gcq-font-title); font-weight: 400; font-size: 1.15rem; color: var(--gh-leaf-deep); margin: 14px 0 4px; }
 .gh-almanac__text p { line-height: 1.6; margin: 6px 0; }
 .gh-almanac__text ul, .gh-almanac__text ol { padding-left: 20px; margin: 4px 0; }
 .gh-almanac__text ul { list-style: none; padding-left: 0; }
 .gh-almanac__text ul li { position: relative; padding-left: 22px; margin: 5px 0; line-height: 1.5; }
 .gh-almanac__text ul li::before { content: '❦'; position: absolute; left: 0; color: var(--gh-leaf); }
 .gh-almanac__text ol { list-style: decimal; }
-.gh-almanac__stale { margin-top: 14px; padding: 10px 12px; border-radius: 12px; background: #fff4df; border: 1px dashed #e0b866; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-family: 'Open Sans', sans-serif; font-size: 0.85rem; font-weight: 700; color: #7a5413; }
+.gh-almanac__stale { margin-top: 14px; padding: 10px 12px; border-radius: 12px; background: #fff4df; border: 1px dashed #e0b866; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-family: var(--gcq-font-body); font-size: 0.85rem; font-weight: 700; color: #7a5413; }
 
 
 /* ---------------------------------------------------------------- the class: one calm page, top to bottom */
@@ -770,22 +770,22 @@
 /* Counsel: the Almanac, a question box and the seed shelf */
 .gh-counsel { animation: gh-rise 460ms cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(120ms + var(--k, 0) * 70ms); }
 .gh-ask { margin: 14px 0 4px; }
-.gh-ask__label { display: flex; align-items: center; gap: 7px; font-family: 'Open Sans', sans-serif; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #8a5a1c; margin-bottom: 6px; }
+.gh-ask__label { display: flex; align-items: center; gap: 7px; font-family: var(--gcq-font-body); font-size: 0.78rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #8a5a1c; margin-bottom: 6px; }
 .gh-ask__row { display: flex; gap: 8px; }
 .gh-ask__input {
     flex: 1; min-width: 0; padding: 10px 14px; border-radius: 14px; border: 2px solid #e4d6b0; background: #fffdf6;
-    font-family: 'Open Sans', sans-serif; font-size: 0.92rem; color: var(--gh-ink);
+    font-family: var(--gcq-font-body); font-size: 0.92rem; color: var(--gh-ink);
 }
 .gh-ask__input:focus { outline: none; border-color: var(--gh-leaf); box-shadow: 0 0 0 4px rgba(63, 154, 92, 0.15); }
 .gh-ask__btn { flex: none; width: 46px; border-radius: 14px; color: #fff; background: linear-gradient(180deg, var(--gh-leaf), var(--gh-leaf-deep)); box-shadow: 0 3px 0 #1f5a33; transition: transform 140ms ease; }
 .gh-ask__btn:hover i { transform: translateX(2px) rotate(-10deg); }
 .gh-ask__btn i { transition: transform 180ms ease; }
 .gh-asked { display: grid; gap: 10px; margin-top: 12px; }
-.gh-asked__item { padding: 12px 14px; border-radius: 14px; background: #fffdf6; border: 1px dashed #e4d6b0; font-family: 'Open Sans', sans-serif; }
+.gh-asked__item { padding: 12px 14px; border-radius: 14px; background: #fffdf6; border: 1px dashed #e4d6b0; font-family: var(--gcq-font-body); }
 .gh-asked__q { font-weight: 800; color: #8a5a1c; margin-bottom: 4px; }
 .gh-almanac__quill { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #fbf0d9; color: #8a5a1c; animation: gh-quill 1.2s ease-in-out infinite; }
 @keyframes gh-quill { 0%, 100% { transform: rotate(-8deg) translateY(0); } 50% { transform: rotate(8deg) translateY(-3px); } }
-.gh-almanac__tip { margin-top: 12px; font-family: 'Open Sans', sans-serif; font-size: 0.75rem; font-weight: 700; color: #9a8a66; }
+.gh-almanac__tip { margin-top: 12px; font-family: var(--gcq-font-body); font-size: 0.75rem; font-weight: 700; color: #9a8a66; }
 .gh-almanac__text .gh-name { font-family: inherit; }
 .gh-shelf { display: flex; flex-direction: column; gap: 12px; }
 .gh-more--shelf > .gh-filters { margin: 12px 0; }

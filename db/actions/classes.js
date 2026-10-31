@@ -16,7 +16,7 @@ import {
 } from '../../firebase.js';
 import * as state from '../../state.js';
 import { showToast } from '../../ui/effects.js';
-import { hideModal } from '../../ui/modals.js';
+import { hideModal } from '../../ui/modals/index.js';
 import { classColorPalettes } from '../../constants.js';
 import { simpleHashCode } from '../../utils.js';
 import { getLimit } from '../../utils/subscription.js';

@@ -1,6 +1,8 @@
 // /ui/modals/emberOaths.js — Ember Oaths board (lazy). One modal under a night sky, four quick views:
 // the class board (what needs you tonight first), the choosing ceremony (one tap per child, auto-advance),
 // a promise's story (check-in, one-tap moments, keep), and the kept-promise celebration.
+import { quietly } from '../../utils/runtimeMetrics.js';
+import { escapeHtml as esc } from '../../utils/html.mjs';
 import '../../features/campfire/emberOaths.css';
 import * as state from '../../state.js';
 import { db, doc, updateDoc } from '../../firebase.js';
@@ -29,7 +31,6 @@ const MODAL_ID = 'ember-oaths-modal';
 const CHECK_IN_QUESTION = 'Did you keep your promise today?';
 const MOODS = [['flame', '🔥', 'I tried'], ['candle', '🕯️', 'A little'], ['moon', '🌙', 'Not today']];
 const FEELINGS = [['🌱', 'Growing'], ['✨', 'Proud'], ['💪', 'Stronger'], ['😊', 'Happy']];
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const prettyDate = iso => { const d = new Date(String(iso) + 'T12:00:00'); return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); };
 const HUES = ['#f97316', '#8b5cf6', '#0ea5e9', '#10b981', '#ec4899', '#f59e0b', '#6366f1', '#14b8a6'];
 const FLAME = '<svg class="eo-flame" viewBox="0 0 48 64" aria-hidden="true"><path class="eo-flame__outer" d="M25 1C38 20 47 29 43 43 39 60 13 65 5 47-2 30 16 23 16 12c6 5 8 9 7 14C30 17 30 9 25 1Z"/><path class="eo-flame__mid" d="M25 20c10 13 14 20 9 29-5 10-20 9-23-1-3-11 9-17 10-23l4 10c4-5 3-9 0-15Z"/><path class="eo-flame__core" d="M24 37c4 7 10 11 5 16-5 6-13 1-11-5 1-4 5-6 6-11Z"/></svg>';
@@ -140,7 +141,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
     async function hydrateFacts() {
         const stale = local.filter(o => o.status === 'active' && !facts.has(o.id) && (o.evidenceRule === 'quiz' || (o.evidenceRule === 'virtue' && o.startDate < monthStart)));
         if (!stale.length) return;
-        await Promise.all(stale.map(o => api.getOathFacts(o).then(f => { facts.set(o.id, f); }).catch(() => {})));
+        await Promise.all(stale.map(o => api.getOathFacts(o).then(f => { facts.set(o.id, f); }).catch(quietly('ui/modals/emberOaths.js'))));
         if (closed) return;
         if (!busy && screen === 'board') renderBoard(); else renderStats();
     }
@@ -614,7 +615,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
                     if (fig && kept.perkPaid !== false && api.completeClassFigure) {
                         api.completeClassFigure(classId, fig.kind, fig.completions, { name: fig.name })
                             .then(added => { if (added && !closed) showToast('✦ ' + fig.name + ' is drawn whole in the class sky! +' + added + ' Team Quest stars', 'success'); })
-                            .catch(() => {});
+                            .catch(quietly('ui/modals/emberOaths.js'));
                     }
                 } catch (e) { focusId = id; if (!closed) renderOath(); throw e; }
             });

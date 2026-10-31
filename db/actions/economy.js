@@ -268,7 +268,7 @@ async function celebrateBulkTrialSave({ savedScoresData, potentialStarfallStuden
                 .then(m => m.routeStarfall({ classId: classData?.id, students: finalEligibleStudents, trialDate: date, trialTitle: title }))
                 .catch((error) => {
                     console.warn('Starfall routing failed; showing it now:', error);
-                    import('../../ui/modals.js').then(m => m.showBatchStarfallModal(finalEligibleStudents));
+                    import('../../ui/modals/index.js').then(m => m.showBatchStarfallModal(finalEligibleStudents));
                 });
         }, 500);
     }
@@ -416,7 +416,7 @@ export async function handleBulkSaveTrial() {
         const shouldCommitBatch = operationsCount > 0;
         if (!shouldCommitBatch && absentStudentIds.length === 0) {
             showToast('No changes to save.', 'info');
-            import('../../ui/modals.js').then(m => m.hideModal('bulk-trial-modal'));
+            import('../../ui/modals/index.js').then(m => m.hideModal('bulk-trial-modal'));
             return;
         }
 
@@ -449,7 +449,7 @@ export async function handleBulkSaveTrial() {
             showToast('All grades saved successfully!', 'success');
 
             // Dynamic import to avoid circular dependency issues
-            import('../../ui/modals.js').then(m => m.hideModal('bulk-trial-modal'));
+            import('../../ui/modals/index.js').then(m => m.hideModal('bulk-trial-modal'));
 
             // Everything below is celebration only. The grades are already in Firestore,
             // so a missing chunk (e.g. a stale tab after a deploy) must never report a failed save.
@@ -460,7 +460,7 @@ export async function handleBulkSaveTrial() {
             }
 
         } else if (absentStudentIds.length > 0) {
-            import('../../ui/modals.js').then(m => m.hideModal('bulk-trial-modal'));
+            import('../../ui/modals/index.js').then(m => m.hideModal('bulk-trial-modal'));
         }
 
         if (absentStudentIds.length > 0) {
@@ -515,7 +515,7 @@ export async function handleBuyItem(studentId, itemId) {
         const fair = stallBuyCheckFor(studentId, item);
         if (!fair.ok) {
             showToast(fair.reason, 'info');
-            import('../../ui/core.js').then(m => m.updateShopStudentDisplay(studentId));
+            import('../../ui/core/index.js').then(m => m.updateShopStudentDisplay(studentId));
             return;
         }
     }
@@ -734,13 +734,13 @@ export async function handleBuyItem(studentId, itemId) {
         }
 
         // 4. Refresh buttons logic (disable items they can no longer afford)
-        import('../../ui/core.js').then(m => m.updateShopStudentDisplay(studentId));
+        import('../../ui/core/index.js').then(m => m.updateShopStudentDisplay(studentId));
 
     } catch (error) {
         console.error(error);
         showToast(typeof error === 'string' ? error : "Transaction failed.", "error");
         emitShopPurchaseEvent('gcq:shop-purchase-failed', { itemId, message: typeof error === 'string' ? error : '' });
-        import('../../ui/core.js').then(m => m.renderShopUI());
+        import('../../ui/core/index.js').then(m => m.renderShopUI());
     }
 }
 
@@ -920,13 +920,13 @@ export async function handleSpecialOccasionBonus(studentId, type) {
 
         if (alreadyGiven) {
             showToast(`${student.name} already received this celebration bonus today.`, 'info');
-            import('../../ui/modals.js').then(m => m.hideModal('celebration-bonus-modal'));
+            import('../../ui/modals/index.js').then(m => m.hideModal('celebration-bonus-modal'));
             return;
         }
 
         reconcileFamiliarLifecycle(studentId, { announce: true, source: 'special-occasion' }).catch((e) => console.warn('Special occasion familiar reconciliation failed:', e));
         showToast(`${student.name} received +${bonus} Stars for their special day!`, 'success');
-        import('../../ui/modals.js').then(m => m.hideModal('celebration-bonus-modal'));
+        import('../../ui/modals/index.js').then(m => m.hideModal('celebration-bonus-modal'));
 
     } catch (error) {
         console.error("Bonus Error:", error);
@@ -1035,12 +1035,12 @@ export async function handleBuyFamiliarEgg(studentId, typeId) {
             }
             state.setAllStudentScores(allScores);
         }
-        import('../../ui/core.js').then(m => m.updateShopStudentDisplay(studentId));
+        import('../../ui/core/index.js').then(m => m.updateShopStudentDisplay(studentId));
     } catch (error) {
         const message = typeof error === 'string' ? error : error.message || 'Purchase failed.';
         showToast(message, 'error');
         emitShopPurchaseEvent('gcq:shop-purchase-failed', { itemId: typeId, message });
-        import('../../ui/core.js').then(m => m.updateShopStudentDisplay(studentId));
+        import('../../ui/core/index.js').then(m => m.updateShopStudentDisplay(studentId));
     }
 }
 

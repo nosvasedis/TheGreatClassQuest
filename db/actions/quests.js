@@ -1,4 +1,5 @@
 // /db/actions/quests.js — quest assignments, adventure log, star manager
+import { quietly } from '../../utils/runtimeMetrics.js';
 import {
     db,
     doc,
@@ -122,7 +123,7 @@ export async function handleSaveQuestAssignment() {
             .catch(error => showToast('Assignment saved; book progress could not be saved: ' + error.message, 'error'));
 
         showToast("Quest assignment updated!", "success");
-        import('../../ui/modals.js').then(m => m.hideModal('quest-assignment-modal'));
+        import('../../ui/modals/index.js').then(m => m.hideModal('quest-assignment-modal'));
 
         syncQuestAssignmentToParentHomework({
             classId,
@@ -173,9 +174,9 @@ export async function handleLogAdventure() {
     if (crowningClassIds.has(classId)) return;
     if (existingLog) {
         if (isAwaitingAdventurePage(existingLog)) {
-            import('../../ui/modals/diaryChooser.js').then(m => m.openDiaryChooser(existingLog.id)).catch(() => {});
+            import('../../ui/modals/diaryChooser.js').then(m => m.openDiaryChooser(existingLog.id)).catch(quietly('db/actions/quests.js'));
         } else {
-            import('../../ui/tabs/log.js').then(m => m.focusDiaryPage(existingLog.id)).catch(() => {});
+            import('../../ui/tabs/log.js').then(m => m.focusDiaryPage(existingLog.id)).catch(quietly('db/actions/quests.js'));
         }
         return;
     }
@@ -189,7 +190,7 @@ export async function handleLogAdventure() {
     }
 
     // Local bank only: this must never queue an AI request in front of the Chronicler.
-    import('../../features/campfire/campfireService.js').then(m => m.kindleCampfire(classId)).catch(() => {});
+    import('../../features/campfire/campfireService.js').then(m => m.kindleCampfire(classId)).catch(quietly('db/actions/quests.js'));
     await crownHeroOfTheDay(classId, classData);
 }
 
@@ -206,7 +207,7 @@ function setCrownButtonBusy(busy) {
         return;
     }
     delete btn.dataset.busy;
-    import('../../ui/tabs/log.js').then(m => m.syncAdventureLogTodayControls()).catch(() => {});
+    import('../../ui/tabs/log.js').then(m => m.syncAdventureLogTodayControls()).catch(quietly('db/actions/quests.js'));
 }
 
 async function crownHeroOfTheDay(classId, classData) {
@@ -705,7 +706,7 @@ function getPresentStudentsForClass(classId) {
 /** Asks Auto or Manual straight away (the Today's Page notice) when there is no crowning to watch first. */
 function offerTodaysPageNow(diaryLogId) {
     if (!diaryLogId) return;
-    import('../../ui/core/todaysPageNotice.js').then(m => m.showTodaysPageNotice(diaryLogId)).catch(() => {});
+    import('../../ui/core/todaysPageNotice.js').then(m => m.showTodaysPageNotice(diaryLogId)).catch(quietly('db/actions/quests.js'));
 }
 
 async function showHeroOfTheDayReveal(heroStudentId, reasonText = 'The Class Hero!', campfireDetail = null, { diaryLogId = null } = {}) {
@@ -717,17 +718,17 @@ async function showHeroOfTheDayReveal(heroStudentId, reasonText = 'The Class Her
     }
 
     state.setReigningHero(heroStudent);
-    import('../../features/home.js').then(m => m.renderHomeTab()).catch(() => {});
+    import('../../features/home.js').then(m => m.renderHomeTab()).catch(quietly('db/actions/quests.js'));
 
     const classId = campfireDetail?.classId || heroStudent.classId;
     const contenders = classId ? getPresentStudentsForClass(classId) : [];
 
     const [{ showAnimatedModal }, audio, { startHeroOfDayReveal }] = await Promise.all([
-        import('../../ui/modals.js'),
+        import('../../ui/modals/index.js'),
         import('../../audio.js'),
         import('../../ui/modals/heroOfDayReveal.js')
     ]);
-    audio.ensureAudioReady?.().then(() => audio.primeHeroRevealSound?.()).catch(() => {});
+    audio.ensureAudioReady?.().then(() => audio.primeHeroRevealSound?.()).catch(quietly('db/actions/quests.js'));
     startHeroOfDayReveal({ hero: heroStudent, contenders, reasonText, audio });
     showAnimatedModal('hero-celebration-modal');
     const modal = document.getElementById('hero-celebration-modal');

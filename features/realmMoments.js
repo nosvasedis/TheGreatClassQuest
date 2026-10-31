@@ -4,6 +4,8 @@
 // a short banner over whatever is on screen (the projector included). Realms found already
 // reached when the app opens are stamped quietly (`late`), so the diary never claims them.
 // Rules live in realmMomentsCore.mjs; the banner's CSS loads with this chunk only.
+import { quietly } from '../utils/runtimeMetrics.js';
+import { escapeHtml as esc } from '../utils/html.mjs';
 import '../styles/realm_moments.css';
 import * as state from '../state.js';
 import * as utils from '../utils.js';
@@ -120,10 +122,6 @@ export function startRealmMoments() {
 
 // ─── The banner ──────────────────────────────────────────────────────────────
 
-function esc(value) {
-    return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
-
 export function realmBannerHtml(classData, realmId, { lite = false } = {}) {
     const stop = getRealmStop(realmId);
     if (!stop) return '';
@@ -153,7 +151,7 @@ export function showRealmBanner(classData, realmId) {
         host.className = 'rm-host';
         host.innerHTML = realmBannerHtml(classData, realmId, { lite });
         document.body.appendChild(host);
-        import('../audio.js').then(({ playSound }) => playSound(realmId === 'crystal' ? 'hero_fanfare' : 'star3')).catch(() => {});
+        import('../audio.js').then(({ playSound }) => playSound(realmId === 'crystal' ? 'hero_fanfare' : 'star3')).catch(quietly('features/realmMoments.js'));
         setTimeout(() => { host.remove(); resolve(); }, BANNER_MS);
     });
 }

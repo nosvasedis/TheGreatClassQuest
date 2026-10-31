@@ -11,7 +11,7 @@
     margin-top: 0.55rem;
     padding-top: 0.45rem;
     border-top: 1px dashed rgba(120, 90, 50, 0.22);
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--gcq-font-body);
     font-size: 0.7rem;
 }
 
@@ -79,7 +79,7 @@
     background: #fffdf8;
     border: 1px solid rgba(124, 58, 237, 0.25);
     box-shadow: 0 12px 28px -18px rgba(46, 36, 69, 0.6);
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--gcq-font-body);
 }
 .hc-pick__top { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
 .hc-pick__search {

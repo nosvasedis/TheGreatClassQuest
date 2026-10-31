@@ -3,12 +3,12 @@
    `.is-lite` (weak laptops) and reduced motion drop every endless loop. */
 .eo-shell{--eo-ink:#3a2622;--eo-soft:#8b6f62;--eo-line:#f1dfcb;--eo-paper:#fff9f0;--eo-gold:#f5b53d;--eo-ember:#f97316;--eo-night:#1d1631;
   position:relative;display:flex;flex-direction:column;width:min(1180px,100%);max-height:min(92vh,calc(100dvh - 1.5rem));height:min(90vh,calc(100dvh - 2rem));
-  border-radius:2.2rem;overflow:hidden;background:var(--eo-paper);color:var(--eo-ink);font-family:'Open Sans',sans-serif;
+  border-radius:2.2rem;overflow:hidden;background:var(--eo-paper);color:var(--eo-ink);font-family:var(--gcq-font-body);
   box-shadow:0 0 0 1px #ffd88a55,0 0 0 6px #fff6,0 40px 90px -20px #120a1fcc}
 .eo-shell *{box-sizing:border-box}
 :where(.eo-shell) button{font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .eo-shell button:focus-visible,.eo-shell input:focus-visible,.eo-shell textarea:focus-visible{outline:3px solid #fb923c;outline-offset:3px}
-.eo-shell .font-title,.eo-shell h2,.eo-shell h3{font-family:'Fredoka One','Fredoka',sans-serif;font-weight:400}
+.eo-shell .font-title,.eo-shell h2,.eo-shell h3{font-family:var(--gcq-font-title);font-weight:400}
 
 /* ─── Header: a night sky with our hearth ─────────────────────────────────── */
 .eo-head{position:relative;flex:none;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem;padding:1.3rem 1.6rem 1.45rem;color:#fff3dc;overflow:hidden;isolation:isolate;
@@ -397,12 +397,12 @@ button.eo-focus:hover{transform:translateY(-2px)}
 .eo-promise-options button:hover{transform:translateY(-1px)}
 .eo-promise-options button[aria-pressed=true]{background:linear-gradient(135deg,#34d399,#10b981);color:#fff;border-color:#10b981}
 .eo-promise-form{display:flex;gap:.5rem;margin-top:.7rem}.eo-promise-form[hidden]{display:none}
-.eo-section-title{margin:.2rem 0 .8rem;font-size:1.1rem;color:#5b2410}.eo-section-title small{font-family:'Open Sans',sans-serif;font-size:.75rem;color:var(--eo-soft);font-weight:700;margin-left:.4rem}
+.eo-section-title{margin:.2rem 0 .8rem;font-size:1.1rem;color:#5b2410}.eo-section-title small{font-family:var(--gcq-font-body);font-size:.75rem;color:var(--eo-soft);font-weight:700;margin-left:.4rem}
 .eo-empty-state{display:grid;place-items:center;gap:.3rem;padding:3rem 1rem;color:var(--eo-soft);font-weight:700;text-align:center}
 .eo-empty-state span{font-size:2.8rem;animation:eo-bob 3s ease-in-out infinite}
 
 /* ─── Hero's Chronicle tab ────────────────────────────────────────────────── */
-.eo-chron{display:flex;flex-direction:column;gap:1rem;font-family:'Open Sans',sans-serif}
+.eo-chron{display:flex;flex-direction:column;gap:1rem;font-family:var(--gcq-font-body)}
 .eo-chron-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1rem;padding:1.1rem 1.3rem;border-radius:1.6rem;color:#fff3dc;
   background:radial-gradient(60% 140% at 0% 100%,#f9731655,transparent 60%),linear-gradient(120deg,#17122b,#2b1a3f 55%,#5a2232)}
 .eo-chron-eyebrow{margin:0;font-size:.68rem;letter-spacing:.22em;font-weight:900;color:#fcd34d}

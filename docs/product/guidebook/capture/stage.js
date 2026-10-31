@@ -1,5 +1,19 @@
 import '../../../../styles/ceremony_arena.css';
 import '../../../../styles/ceremony_garden.css';
+// Feature sheets that load with their modules in the app (no longer in style.css).
+import '../../../../styles/fortunes_wheel.css';
+import '../../../../styles/league_archive.css';
+import '../../../../styles/trial_history.css';
+import '../../../../styles/move_student.css';
+import '../../../../styles/hero_class_ceremony.css';
+import '../../../../styles/prodigy_hall.css';
+import '../../../../styles/certificate.css';
+import '../../../../styles/weekly_report.css';
+import '../../../../styles/sorting_ceremony.css';
+import '../../../../styles/secretary_office.css';
+import '../../../../styles/bounty_poster.css';
+import '../../../../styles/family_portal.css';
+import '../../../../styles/adventurers_guide.css';
 import { headerHTML, svgFiltersHTML } from '../../../../templates/app/header.js';
 import { navHTML } from '../../../../templates/app/nav.js';
 import { ceremonyHTML } from '../../../../templates/app/screens/ceremony.js';

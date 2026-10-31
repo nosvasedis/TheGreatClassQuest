@@ -248,7 +248,7 @@
     top: 2.6rem;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     white-space: nowrap;
 }
 
@@ -416,7 +416,7 @@
 }
 
 .ro-stat strong {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.45rem;
     font-weight: 400;
     line-height: 1;
@@ -593,7 +593,7 @@
 .ro-party__name {
     min-width: 0;
     overflow: hidden;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.08rem;
     font-weight: 400;
     white-space: nowrap;
@@ -761,7 +761,7 @@
 
 .ro-foot em {
     flex-basis: 100%;
-    font-family: 'Caveat', cursive;
+    font-family: var(--gcq-font-hand);
     font-size: 1.15rem;
     font-style: normal;
     font-weight: 600;
@@ -911,7 +911,7 @@
 
 .ro-portal-link__copy { display: grid; flex: 1 1 auto; line-height: 1.15; }
 .ro-portal-link__copy small { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(101, 232, 255, 0.9); }
-.ro-portal-link__copy strong { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-size: 1.05rem; font-weight: 400; }
+.ro-portal-link__copy strong { font-family: var(--gcq-font-title); font-size: 1.05rem; font-weight: 400; }
 .ro-portal-link > i { color: rgba(101, 232, 255, 0.9); }
 
 @keyframes ro-portal-swirl { to { transform: rotate(360deg); } }

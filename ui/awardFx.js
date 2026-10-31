@@ -5,6 +5,7 @@
 // Styles: styles/award_stars.css (.aw-fx-*). The Hero's Boon gift and the Hero of the Day
 // bonus (ui/awardMoments.js) share this layer and these helpers.
 
+import { quietly } from '../utils/runtimeMetrics.js';
 import { playSound } from '../audio.js';
 import { buildAwardCloudSvg } from '../features/awardCloudCard.mjs';
 
@@ -140,7 +141,7 @@ function flyStars(layer, origin, target, tier, count, onLand) {
             { transform: `translate(calc(-50% + ${dx * 0.5 + side * 0.6}px), calc(-50% + ${dy * 0.5 - lift}px)) scale(1.1) rotate(220deg)`, opacity: 1, offset: 0.6 },
             { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(0.45) rotate(360deg)`, opacity: 0.9 }
         ], { duration: 760, delay: i * 120, easing: 'cubic-bezier(0.45, 0, 0.25, 1)' });
-        if (anim) anim.finished.then(() => onLand?.(i)).catch(() => {});
+        if (anim) anim.finished.then(() => onLand?.(i)).catch(quietly('ui/awardFx.js'));
     }
 }
 

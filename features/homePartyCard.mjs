@@ -1,6 +1,7 @@
 // Home tab: the class party card (class virtue + a class photo of the heroes on the meadow).
 // Pure markup, no app state, so the guidebook capture renders the same card
 // (docs/product/guidebook/capture/fill-surfaces.js). Styles: styles/home_party.css.
+import { escapeHtml as esc } from '../utils/html.mjs';
 
 /** Every reason a star can carry, with the crest icon and colour family it shows on the card. */
 const VIRTUES = {
@@ -12,12 +13,6 @@ const VIRTUES = {
     story_weaver: { icon: 'fa-feather-alt', name: 'Story', tone: 'cyan' },
     scholar_s_bonus: { icon: 'fa-graduation-cap', name: 'Scholar', tone: 'orange' }
 };
-
-function esc(value) {
-    return String(value ?? '')
-        .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
-        .replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
 
 function virtueInfo(key) {
     return VIRTUES[key] || { icon: 'fa-star', name: String(key || '').replace(/_/g, ' '), tone: 'slate' };

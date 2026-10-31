@@ -2,7 +2,7 @@
 // Model: features/skillTreeCore.mjs · Markup: ui/modals/skillTreeView.mjs · Styles: styles/skill_tree.css
 import * as state from '../../state.js';
 import { showToast } from '../effects.js';
-import { showAnimatedModal } from '../modals.js';
+import { showAnimatedModal } from './index.js';
 import { playSound, playHeroFanfare } from '../../audio.js';
 import { HERO_SKILL_TREE, getReasonDisplayName } from '../../features/heroSkillTree.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
@@ -46,7 +46,7 @@ function syncLocalStudentScore(studentId, updatedScore) {
 }
 
 async function refreshVisibleSkillIndicators() {
-    const tabs = await import('../tabs.js');
+    const tabs = await import('../tabs/index.js');
     const activeRenderers = [
         ['award-stars-tab', () => tabs.renderAwardStarsStudentList?.(state.get('globalSelectedClassId'), false)],
         ['manage-students-tab', () => tabs.renderManageStudentsTab?.()],

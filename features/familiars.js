@@ -6,6 +6,7 @@
 // notice and revealed in the Evolution Moment (features/familiarMoments.js); until it has been
 // watched the familiar keeps its old form and glows, waiting.
 
+import { quietly } from '../utils/runtimeMetrics.js';
 import { db, doc, getDoc, updateDoc } from '../firebase.js';
 import * as state from '../state.js';
 import { playSound, playFamiliarVoice, ensureAudioReady } from '../audio.js';
@@ -953,7 +954,7 @@ function renderDen(studentId) {
     }
 
     if (!isEgg) {
-        ensureAudioReady().then(() => playFamiliarCall(familiar, studentId)).catch(() => {});
+        ensureAudioReady().then(() => playFamiliarCall(familiar, studentId)).catch(quietly('features/familiars.js'));
     }
 
     const saveBtn = overlay.querySelector('.fam-name-save');

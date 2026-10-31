@@ -5,7 +5,7 @@ import { db, query, collection, where, orderBy, limit, getDocs } from '../../fir
 import { showAnimatedModal, showModal, hideModal, populateDateDropdowns } from './base.js';
 import { showToast } from '../effects.js';
 import { playSound } from '../../audio.js';
-import { handleAwardBonusStar, handleBatchAwardBonus } from '../../db/actions.js';
+import { handleAwardBonusStar, handleBatchAwardBonus } from '../../db/actions/index.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { getUpgradeMessage } from '../../config/tiers/features.js';

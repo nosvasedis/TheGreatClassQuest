@@ -533,7 +533,7 @@
 
 .st-seal-title {
     margin: 0.55rem 0 0;
-    font-family: 'Cinzel', serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: 0.95rem;
     line-height: 1.15;
@@ -680,7 +680,7 @@
 
 .st-skill-name {
     margin-top: 0.35rem;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.02rem;
     line-height: 1.15;
     color: var(--st-ink);
@@ -922,7 +922,7 @@
 
 .st-origin-title {
     margin: 0.5rem 0 0;
-    font-family: 'Cinzel', serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: 0.9rem;
     color: var(--st-ink);
@@ -1223,7 +1223,7 @@
     overflow: hidden;
     padding: 0.9rem 1rem;
     border-radius: 1rem;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1rem;
     color: #fff;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.25), transparent 60%), var(--st-aura);

@@ -10,6 +10,7 @@
 // straight away (db/actions/log.js#saveChronicleNoteAiReadings), so a half-finished round is
 // never wasted, and the note listener refreshes the Greenhouse and the Chronicle by itself.
 
+import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
 import { canUseFeature } from '../../utils/subscription.js';
 
@@ -131,7 +132,7 @@ export async function maybeRunReadingRound({ force = false } = {}) {
         await setDoc(ref, {
             type: 'note_round', teacherId: uid, leaseUntil: 0, lastAttemptAt: now, calls,
             ...(read ? { lastRunAt: now, backlog: left, lastRead: read } : {})
-        }, { merge: true }).catch(() => {});
+        }, { merge: true }).catch(quietly('ui/modals/noteAiReader.js'));
         lastStatus = null;
         return { ran: true, read, calls, failed, pending: left };
     } finally {

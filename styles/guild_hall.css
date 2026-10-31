@@ -156,7 +156,7 @@
 .gh-action__icon i { transition: transform 0.5s var(--gh-ease); }
 .gh-action__text { display: grid; min-width: 0; }
 .gh-action__title {
-    font-family: 'Cinzel', serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: 0.92rem;
     letter-spacing: 0.02em;
@@ -236,7 +236,7 @@
 }
 .gh-chapter__dial > * { position: relative; }
 .gh-chapter__days {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.45rem;
     line-height: 1;
     color: #fde68a;
@@ -261,7 +261,7 @@
     color: var(--gh-gold);
 }
 .gh-chapter__name {
-    font-family: 'Cinzel', serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: 1.3rem;
     line-height: 1.1;
@@ -287,7 +287,7 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: var(--gh-ink-2);
 }
-.gh-payout__item b { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-weight: 400; color: #fde68a; }
+.gh-payout__item b { font-family: var(--gcq-font-title); font-weight: 400; color: #fde68a; }
 .gh-payout__item i { font-size: 0.55rem; color: var(--gh-gold); }
 .gh-payout__place { font-size: 0.72rem; }
 .gh-payout__item--iron .gh-payout__place { font-size: 0.6rem; font-weight: 800; }
@@ -427,7 +427,7 @@
     color: var(--gh-ink-2);
     line-height: 1;
 }
-.gh-place__n { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-size: 0.95rem; }
+.gh-place__n { font-family: var(--gcq-font-title); font-size: 0.95rem; }
 .gh-place__sub { font-size: 0.42rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; opacity: 0.8; margin-top: 0.1rem; }
 .gh-banner.is-gold .gh-banner__place { background: radial-gradient(circle at 35% 30%, #fff6cf, #fbbf24 50%, #b45309); color: #451a03; border-color: #fde68a; }
 .gh-banner.is-silver .gh-banner__place { background: radial-gradient(circle at 35% 30%, #ffffff, #d1d5db 50%, #6b7280); color: #1f2937; border-color: #f3f4f6; }
@@ -461,7 +461,7 @@
     object-fit: cover;
     background: var(--g1);
 }
-.gh-banner__emblem--initial { font-family: 'Cinzel', serif; font-weight: 700; font-size: 1.8rem; color: #fff; }
+.gh-banner__emblem--initial { font-family: var(--gcq-font-rune); font-weight: 700; font-size: 1.8rem; color: #fff; }
 .gh-banner__anthem {
     position: absolute !important;
     left: -0.2rem;
@@ -486,7 +486,7 @@
 .gh-banner__name {
     margin: 0.55rem 0 0.75rem;
     max-width: 100%;
-    font-family: 'Cinzel', serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: 1.02rem;
     letter-spacing: 0.03em;
@@ -586,7 +586,7 @@
 }
 .gh-banner__num-wrap { position: relative; }
 .gh-banner__num {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-weight: 400;
     font-size: 2.35rem;
     font-variant-numeric: tabular-nums;
@@ -604,7 +604,7 @@
     left: 100%;
     top: 0;
     margin-left: 0.2rem;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 0.9rem;
     color: #86efac;
     white-space: nowrap;
@@ -633,7 +633,7 @@
     text-align: center;
 }
 .gh-prize__big {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.15rem;
     line-height: 1.1;
     color: #fde68a;
@@ -756,7 +756,7 @@
 .gh-ds__facts li > span { grid-area: icon; font-size: 1.05rem; }
 .gh-ds__facts b {
     grid-area: num;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-weight: 400;
     font-size: 1rem;
     line-height: 1.05;
@@ -803,7 +803,7 @@
 .gh-ds__face img { width: 100%; height: 100%; object-fit: cover; }
 .gh-ds__face--sm { width: 1.6rem; height: 1.6rem; font-size: 0.65rem; border-width: 1.5px; }
 .gh-ds__who { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.68rem; font-weight: 800; }
-.gh-ds__pts { font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 0.68rem; color: #fde68a; white-space: nowrap; }
+.gh-ds__pts { font-family: var(--gcq-font-display); font-weight: 600; font-size: 0.68rem; color: #fde68a; white-space: nowrap; }
 
 /* Stars of the month: a small podium */
 .gh-ds__podium {
@@ -825,7 +825,7 @@
     padding-top: 0.15rem;
     border-radius: 0.45rem 0.45rem 0.2rem 0.2rem;
     background: linear-gradient(180deg, color-mix(in srgb, var(--g2) 55%, #1a1238), color-mix(in srgb, var(--g1) 35%, #0d0a20));
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 0.75rem;
     color: rgba(255, 255, 255, 0.85);
     transform-origin: bottom center;
@@ -895,7 +895,7 @@
     align-items: center;
     gap: 0.5rem;
     margin: 0;
-    font-family: 'Cinzel', serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: 1.2rem;
     color: #fde68a;
@@ -936,7 +936,7 @@
     width: 2rem;
     height: 2rem;
     border-radius: 50%;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 0.95rem;
 }
 .gh-medal--gold { background: radial-gradient(circle at 35% 30%, #fff6cf, #fbbf24 50%, #b45309); color: #451a03; }
@@ -957,9 +957,9 @@
     background: var(--g1);
     box-shadow: 0 0 0 2px rgba(255, 241, 191, 0.55);
 }
-.gh-race__emblem--initial { font-family: 'Cinzel', serif; font-weight: 700; color: #fff; }
+.gh-race__emblem--initial { font-family: var(--gcq-font-rune); font-weight: 700; color: #fff; }
 .gh-race__name {
-    font-family: 'Cinzel', serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: 0.9rem;
     color: #fff;
@@ -982,7 +982,7 @@
     place-items: center;
     height: 2rem;
     border-radius: 0.6rem;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 0.85rem;
     color: var(--gh-ink);
 }
@@ -1024,7 +1024,7 @@
     align-items: center;
     justify-content: flex-end;
     gap: 0.35rem;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.55rem;
     color: #fde68a;
 }
@@ -1343,7 +1343,7 @@
     right: 0.3rem;
     padding: 0.08rem 0.45rem;
     border-radius: 999px;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 0.68rem;
     white-space: nowrap;
     color: #052e16;

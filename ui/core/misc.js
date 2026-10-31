@@ -42,7 +42,7 @@ export function findAndSetCurrentClass(targetSelectId = null) {
 export function updateStudentCardAttendanceState(studentId, isAbsent) {
     const awardTab = document.getElementById('award-stars-tab');
     if (awardTab && !awardTab.classList.contains('hidden')) {
-        import('../tabs.js').then((tabs) => {
+        import('../tabs/index.js').then((tabs) => {
             tabs.updateStudentCardAttendanceState?.(studentId, isAbsent);
         }).catch((error) => console.warn('Could not refresh award cards after attendance change:', error));
     }

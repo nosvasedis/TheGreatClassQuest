@@ -3,6 +3,7 @@
 // with a commands/ subcollection the Wand writes and the projector reads, runs and deletes.
 // Paths are built at call time (multi-school tenant root), never cached in module constants.
 
+import { quietly } from '../../utils/runtimeMetrics.js';
 import {
     db, doc, setDoc, updateDoc, deleteDoc, getDoc, getDocs, addDoc, collection, query, where,
     limit, onSnapshot, serverTimestamp
@@ -79,7 +80,7 @@ export function watchCommands(sessionId, onCommand, onError) {
     return onSnapshot(q, (snap) => {
         // The first word from the device cache is not the server's: leftovers may still be on their way.
         if (first && snap.metadata.fromCache) {
-            snap.docs.forEach((d) => deleteDoc(d.ref).catch(() => {}));
+            snap.docs.forEach((d) => deleteDoc(d.ref).catch(quietly('features/questRemote/remoteChannel.js')));
             return;
         }
         const changes = snap.docChanges().filter((c) => c.type === 'added')
@@ -90,12 +91,12 @@ export function watchCommands(sessionId, onCommand, onError) {
             });
         if (first) {
             first = false;
-            changes.forEach((c) => deleteDoc(c.doc.ref).catch(() => {}));
+            changes.forEach((c) => deleteDoc(c.doc.ref).catch(quietly('features/questRemote/remoteChannel.js')));
             return;
         }
         for (const change of changes) {
             const data = change.doc.data({ serverTimestamps: 'estimate' });
-            deleteDoc(change.doc.ref).catch(() => {});
+            deleteDoc(change.doc.ref).catch(quietly('features/questRemote/remoteChannel.js'));
             onCommand({ ...data, id: change.doc.id, createdMs: toMs(data.createdAt) });
         }
     }, onError);
@@ -115,7 +116,7 @@ export async function sweepOldSessions(keepId) {
             const beat = toMs(s.hostHeartbeatAt);
             return s.closed || !Number.isFinite(beat) || now - beat > 24 * 60 * 60 * 1000;
         })
-        .map((d) => deleteDoc(d.ref).catch(() => {})));
+        .map((d) => deleteDoc(d.ref).catch(quietly('features/questRemote/remoteChannel.js'))));
 }
 
 /** The teacher's live projectors (newest first) for the Wand's "choose a projector" list. */

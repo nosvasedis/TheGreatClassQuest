@@ -144,7 +144,7 @@
 .date-pill {
     padding: 0.5rem 1.5rem;
     border-radius: 9999px;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     letter-spacing: 0.05em;
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
@@ -262,7 +262,7 @@
 }
 
 .date-pill--ceremony__kicker {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 0.58rem;
     font-weight: 800;
     letter-spacing: 0.16em;
@@ -272,7 +272,7 @@
 }
 
 .date-pill--ceremony__title {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.02rem;
     line-height: 1.05;
     letter-spacing: 0.03em;
@@ -488,7 +488,7 @@
 }
 
 .date-pill--quest .date-pill__title {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1rem;
     line-height: 1.05;
     white-space: nowrap;
@@ -513,7 +513,7 @@
 }
 
 .date-pill--quest .date-pill__value {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.12rem;
     line-height: 1;
     font-variant-numeric: tabular-nums;
@@ -666,118 +666,6 @@
         font-size: 0.54rem;
         letter-spacing: 0.14em;
     }
-}
-
-/* Chronicle Styling & Expansion */
-.chronicle-icon-badge {
-    width: 2rem;
-    height: 2rem;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    backdrop-filter: blur(4px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-.chronicle-card-accent {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    border-radius: 1.5rem 1.5rem 0 0;
-}
-.chronicle-accent-homework { background: linear-gradient(90deg, #818cf8, #a5b4fc); }
-.chronicle-accent-story    { background: linear-gradient(90deg, #22d3ee, #67e8f9); }
-.chronicle-accent-log      { background: linear-gradient(90deg, #34d399, #6ee7b7); }
-
-.chronicle-item {
-    padding: 1.25rem;
-    border-radius: 1.5rem;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1.5px solid rgba(255,255,255,0.55);
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    cursor: pointer;
-    position: relative;
-    box-shadow: 0 6px 18px -4px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0,0,0,0.04);
-    overflow: hidden;
-    animation: card-appear 0.7s ease-out forwards;
-}
-.chronicle-item::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.15) 50%, transparent 60%);
-    animation: shimmer 4s ease-in-out infinite;
-    background-size: 200% 200%;
-    pointer-events: none;
-    opacity: 0.6;
-}
-.chronicle-item:hover {
-    transform: translateY(-2px) scale(1.01);
-    box-shadow: 0 14px 30px -8px rgba(15, 23, 42, 0.13);
-    border-color: rgba(255,255,255,0.7);
-}
-.chronicle-item:hover::before {
-    opacity: 0;
-}
-
-/* Expanded State (Pop-out effect) */
-.chronicle-item.expanded {
-    position: absolute;
-    top: 1rem;
-    left: 1rem;
-    right: 1rem;
-    bottom: 1rem;
-    height: auto;
-    z-index: 50;
-    box-shadow: 0 25px 50px -15px rgba(0, 0, 0, 0.25);
-    transform: scale(1.02);
-    overflow-y: auto;
-    border-width: 2px;
-}
-.chronicle-item.expanded::before {
-    opacity: 0.8;
-    animation-duration: 2.5s;
-}
-.chronicle-item.expanded p {
-    -webkit-line-clamp: unset !important;
-    line-clamp: unset !important;
-    overflow: visible;
-}
-
-/* Gradient Themes */
-.chronicle-homework {
-    background: linear-gradient(145deg, #eef0ff 0%, #e0e7ff 60%, #c7d2fe 100%);
-    border-color: rgba(129, 140, 248, 0.25);
-}
-.chronicle-homework:hover {
-    background: linear-gradient(145deg, #f0f2ff 0%, #eaedff 60%, #dde3ff 100%);
-    border-color: rgba(129, 140, 248, 0.4);
-}
-
-.chronicle-story {
-    background: linear-gradient(145deg, #f0fdff 0%, #e0fafc 60%, #a5f3fc 100%);
-    border-color: rgba(34, 211, 238, 0.25);
-}
-.chronicle-story:hover {
-    background: linear-gradient(145deg, #f6feff 0%, #eafcfd 60%, #c0f6fe 100%);
-    border-color: rgba(34, 211, 238, 0.4);
-}
-
-.chronicle-log {
-    background: linear-gradient(145deg, #f3fef6 0%, #e6fce8 60%, #bbf7d0 100%);
-    border-color: rgba(74, 222, 128, 0.25);
-}
-.chronicle-log:hover {
-    background: linear-gradient(145deg, #f8fff9 0%, #edfef1 60%, #cdfade 100%);
-    border-color: rgba(74, 222, 128, 0.4);
 }
 
 /* Global Tools — launcher tiles (features/homeGlobalTools.mjs). Tone comes from .gt-tile--{tone}. */
@@ -1253,7 +1141,7 @@
     transform: translateY(-4px) scale(1.03);
 }
 .stat-value-big {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 3rem;
     line-height: 1;
     margin-bottom: 0.5rem;
@@ -1356,7 +1244,7 @@
 }
 
 .schedule-card-square .name {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 0.85rem;
     line-height: 1.1;
     color: #1f2937;

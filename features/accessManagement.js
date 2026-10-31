@@ -7,7 +7,7 @@ import * as state from '../state.js';
 import { canUseFeature } from '../utils/subscription.js';
 import { createParentAccess, deleteParentAccess, disableParentAccess, resetParentAccessPassword } from '../utils/adminRuntime.js';
 import { showToast } from '../ui/effects.js';
-import { showModal } from '../ui/modals.js';
+import { showModal } from '../ui/modals/index.js';
 import { friendlyActionError } from '../utils/friendlyErrors.js';
 import { generateFamilyPassword, printFamilySlips, suggestFamilyUsername } from './familyAccessKit.js';
 import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';

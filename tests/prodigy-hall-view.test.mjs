@@ -84,6 +84,7 @@ test('modal template keeps the ids rankings.js and listeners.js rely on', () => 
     for (const id of ['prodigy-modal', 'prodigy-close-btn', 'prodigy-nav-container', 'prodigy-content', 'prodigy-year-strip']) {
         assert.match(template, new RegExp(`id="${id}"`));
     }
-    const css = readFileSync(new URL('../style.css', import.meta.url), 'utf8');
-    assert.match(css, /styles\/prodigy_hall\.css/);
+    // The hall's styles load with the rankings module that opens it, not with the first paint.
+    const rankings = readFileSync(new URL('../ui/modals/rankings.js', import.meta.url), 'utf8');
+    assert.match(rankings, /import '\.\.\/\.\.\/styles\/prodigy_hall\.css';/);
 });

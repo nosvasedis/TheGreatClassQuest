@@ -1,6 +1,8 @@
 // ui/modals/bountyPoster.js — the Post a Bounty poster (templates/modals/misc.js#create-bounty-modal)
 // Fills the poster for the chosen class and keeps its smart picks and live summary in step.
 // Saving stays in db/actions/bounties.js, which reads the same field ids.
+import { escapeHtml } from '../../utils/html.mjs';
+import '../../styles/bounty_poster.css';
 import * as state from '../../state.js';
 import { parseDDMMYYYY, getTodayDateString } from '../../utils.js';
 import { GUILD_IDS, getGuildById } from '../../features/guilds.js';
@@ -22,12 +24,6 @@ const $ = (id) => document.getElementById(id);
 
 // Who the bounty is for. Reset with every fresh poster.
 const audience = { kind: 'class', guildId: null, heroIds: new Set(), team: null };
-
-function escapeHtml(value) {
-    return String(value ?? '')
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
 
 function readSavedMode() {
     try { return localStorage.getItem(MODE_KEY) === 'timer' ? 'timer' : 'standard'; } catch { return 'standard'; }

@@ -77,7 +77,7 @@ export async function handleCreateBounty() {
         }, state.getActiveSchoolYearKey()));
         
         showToast(type === 'timer' ? 'Timer Started!' : 'Bounty Posted!', 'success');
-        import('../../ui/modals.js').then(m => m.hideModal('create-bounty-modal'));
+        import('../../ui/modals/index.js').then(m => m.hideModal('create-bounty-modal'));
     } catch (e) {
         console.error(e);
         showToast('Error starting quest', 'error');

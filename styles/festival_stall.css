@@ -338,7 +338,7 @@
 
 .mm-fest__tagline {
     margin: 0.3rem 0 0;
-    font-family: 'Lora', Georgia, serif;
+    font-family: var(--gcq-font-serif);
     font-style: italic;
     font-size: 0.98rem;
     color: color-mix(in srgb, var(--fest-ink) 88%, transparent);
@@ -363,7 +363,7 @@
 }
 
 .mm-fest__clock-num {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.9rem;
     line-height: 1;
 }

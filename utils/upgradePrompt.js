@@ -2,7 +2,7 @@
 // Single place for "upgrade to Pro/Elite" prompts. Uses the app's confirmation modal.
 // For schools that pay online, shows an "Upgrade" button that opens Stripe Checkout.
 
-import * as modals from '../ui/modals.js';
+import * as modals from '../ui/modals/index.js';
 import { canUseFeature } from './subscription.js';
 import { getUpgradeMessage } from '../config/tiers/features.js';
 import { isOnlineBillingAvailable, requestCheckoutSession } from './billingCheckout.js';

@@ -1,5 +1,6 @@
 // /ui/modals/heroClass.js — Hero Class selection ceremony
 
+import '../../styles/hero_class_ceremony.css';
 import * as state from '../../state.js';
 import { HERO_CLASSES, heroClassChangesRemaining, heroClassLockApplies } from '../../features/heroClasses.js';
 import { getReasonDisplayName, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
@@ -211,7 +212,7 @@ function fillResult(className, { shrine = false, studentName = '' } = {}) {
 }
 
 async function refreshRosterIfVisible() {
-    const tabs = await import('../tabs.js');
+    const tabs = await import('../tabs/index.js');
     tabs.renderManageStudentsTab?.();
 }
 
@@ -237,7 +238,7 @@ async function swearPath() {
         swearBtn.textContent = 'Swearing…';
     }
     try {
-        const { saveStudentHeroClass } = await import('../../db/actions.js');
+        const { saveStudentHeroClass } = await import('../../db/actions/index.js');
         const result = await saveStudentHeroClass(currentStudentId, previewClass);
         if (!result?.saved) {
             if (swearBtn) {

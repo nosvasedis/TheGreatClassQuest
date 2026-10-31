@@ -1,5 +1,7 @@
 // features/fortunesWheel.js — Fortune's Wheel: segment catalog, spin logic, canvas renderer, effect application
 
+import { quietly } from '../utils/runtimeMetrics.js';
+import '../styles/fortunes_wheel.css';
 import * as state from '../state.js';
 import { db, doc, updateDoc } from '../firebase.js';
 import { GUILD_IDS, getGuildById, getGuildEmblemUrl } from './guilds.js';
@@ -845,7 +847,7 @@ async function randomStars(ctx, count, amount) {
             _mark(ctx, sid, { stars: amount, glory: g });
         }
         await wheelIo.bounty(ctx.classId, amount * outcome.affectedStudents.length, outcome.affectedStudents);
-        await wheelIo.questCheck(ctx.classId).catch(() => {});
+        await wheelIo.questCheck(ctx.classId).catch(quietly('features/fortunesWheel.js'));
         outcome.gloryDelta = gloryDelta;
     }
 
@@ -953,7 +955,7 @@ async function teachersFavor(ctx) {
         gloryDelta = Number(event?.totalGloryDelta) || 0;
         _mark(ctx, sid, { stars: 2, gold: 30, glory: gloryDelta });
         await wheelIo.bounty(ctx.classId, 2, [sid]);
-        await wheelIo.questCheck(ctx.classId).catch(() => {});
+        await wheelIo.questCheck(ctx.classId).catch(quietly('features/fortunesWheel.js'));
     }
 
     const student = members.find(s => s.id === sid);
@@ -966,7 +968,7 @@ async function teachersFavor(ctx) {
 
 async function classQuestBonus(ctx, delta) {
     const outcome = await wheelIo.questBonus(ctx.classId, delta, 'Wheel quest effect');
-    if (outcome.classQuestDelta) await wheelIo.questCheck(ctx.classId).catch(() => {});
+    if (outcome.classQuestDelta) await wheelIo.questCheck(ctx.classId).catch(quietly('features/fortunesWheel.js'));
     return {
         gloryDelta: 0,
         ...outcome,
@@ -985,7 +987,7 @@ async function mythicRelic(ctx) {
     });
     _markArtifacts(ctx, artifacts);
 
-    if (quest.classQuestDelta) await wheelIo.questCheck(ctx.classId).catch(() => {});
+    if (quest.classQuestDelta) await wheelIo.questCheck(ctx.classId).catch(quietly('features/fortunesWheel.js'));
 
     return {
         gloryDelta: 0,
@@ -1933,7 +1935,7 @@ export async function openFortunesWheel() {
     document.getElementById('fw-summary')?.classList.add('hidden');
     showAnimatedModal('fortunes-wheel-modal');
     // Wake the audio once the card has landed, so the first spin starts without a stall.
-    setTimeout(() => { ensureAudioReady().then(() => warmWheelAudio()).catch(() => {}); }, 700);
+    setTimeout(() => { ensureAudioReady().then(() => warmWheelAudio()).catch(quietly('features/fortunesWheel.js')); }, 700);
 
     const resolvedClassId = state.get('globalSelectedClassId') || '';
     const allClasses = state.get('allTeachersClasses') || [];

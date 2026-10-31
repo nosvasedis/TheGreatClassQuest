@@ -5,6 +5,7 @@
 // ceremonyArenaView.js / ceremonyGardenView.js; effects in ui/ceremonyFx.js;
 // sound in ceremonyAudio.js.
 
+import { quietly } from '../utils/runtimeMetrics.js';
 import '../styles/ceremony_arena.css';
 import '../styles/ceremony_garden.css';
 import { db, updateDoc, setDoc, getDoc, doc, collection, getDocs, query, where } from '../firebase.js';
@@ -360,7 +361,7 @@ async function findRisingStar(studentsInClass, logs, monthlyScores, rankedStuden
         const pick = chooseRisingStar(candidates, { excludeIds, seed: `${ceremonyData.classId}:${ceremonyData.monthKey}` });
         if (pick) {
             pick.previousMonthName = comparable ? prevDate.toLocaleString('en-GB', { month: 'long' }) : '';
-            import('./ceremonyRisingStar.js').catch(() => {});
+            import('./ceremonyRisingStar.js').catch(quietly('features/ceremony.js'));
         }
         return pick;
     } catch (error) {
@@ -433,7 +434,7 @@ async function loadQuestAscent() {
             young: garden || utils.isYoungLearnerLeague(ceremonyData.league)
         });
         // Fetch the scene (and its stylesheet, which also styles the rank-up chips) early.
-        import('./ceremonyAscent.js').catch(() => {});
+        import('./ceremonyAscent.js').catch(quietly('features/ceremony.js'));
     } catch (error) {
         console.warn('Portal Ascent skipped:', error);
         ceremonyData.ascent = null;
@@ -488,7 +489,7 @@ async function loadMonthMoments() {
             const honours = buildMonthHonours({ monthKey, students, scores, quizzes: quizzes || [], classId });
             ceremonyData.honours = honours.sections.length ? honours : null;
         }
-        if (ceremonyData.moments.length || ceremonyData.honours) import('./ceremonyMoments.js').catch(() => {});
+        if (ceremonyData.moments.length || ceremonyData.honours) import('./ceremonyMoments.js').catch(quietly('features/ceremony.js'));
     } catch (error) {
         console.warn('Month moments skipped:', error);
         ceremonyData.moments = [];
@@ -528,7 +529,7 @@ function hydrateCeremonyFromSnapshot(snapshot, replay = false) {
     ceremonyData.growthStudents = (snapshot.publicSequence?.parade || snapshot.spotlights || []).map((card) => ({ id: card.studentId, name: card.studentName }));
     ceremonyData.growthWinners = snapshot.prodigyWinners || [];
     ceremonyData.risingStar = ceremonyData.mode === 'growth_festival' ? null : (snapshot.publicSequence?.risingStar || null);
-    if (ceremonyData.risingStar) import('./ceremonyRisingStar.js').catch(() => {});
+    if (ceremonyData.risingStar) import('./ceremonyRisingStar.js').catch(quietly('features/ceremony.js'));
     ceremonyData.classPointer = 0;
     ceremonyData.studentPointer = 0;
     ceremonyData.growthPointer = 0;
@@ -577,7 +578,7 @@ function persistCeremonyPlayback() {
     const index = phase === 'growth_parade' ? ceremonyData.growthPointer
         : phase === 'student_reveal' ? ceremonyData.studentPointer
             : phase === 'class_reveal' ? ceremonyData.classPointer : 0;
-    void saveCeremonyPlayback(ceremonyData.classId, ceremonyData.monthKey, { phase, index: Number(index) || 0 }).catch(() => {});
+    void saveCeremonyPlayback(ceremonyData.classId, ceremonyData.monthKey, { phase, index: Number(index) || 0 }).catch(quietly('features/ceremony.js'));
 }
 
 async function loadGrowthCeremonyData() {
@@ -971,7 +972,7 @@ export function startCeremony(params) {
 
 function closeCeremony() {
     ceremonyData.active = false;
-    import('./familiarParade.js').then((m) => m.stopFamiliarParade()).catch(() => {});
+    import('./familiarParade.js').then((m) => m.stopFamiliarParade()).catch(quietly('features/ceremony.js'));
     if (screenEl()) delete screenEl().dataset.parade;
     cancelTimeline();
     window.removeEventListener('keydown', handleCeremonyKeys);
@@ -1484,7 +1485,7 @@ function addAscentRibbon(host) {
     if (!host || !ascent || !(ascent.nextGoal > 0)) return;
     const add = (view) => { if (host.isConnected) host.insertAdjacentHTML('beforeend', view.questAscentRibbonHtml(ascent)); };
     if (ascentView) add(ascentView);
-    else import('./ceremonyAscent.js').then((view) => { ascentView = view; add(view); }).catch(() => {});
+    else import('./ceremonyAscent.js').then((view) => { ascentView = view; add(view); }).catch(quietly('features/ceremony.js'));
 }
 
 function renderStandings() {

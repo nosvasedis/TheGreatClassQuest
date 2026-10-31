@@ -1,7 +1,6 @@
 // /ui/core/index.js
 // Barrel re-exporter — all sub-modules in one place.
-// This file is NOT the entry point used by consumers;
-// consumers import from '../ui/core.js' which re-exports from here.
+// Import from here or the sub-module (the old ui/core.js facade is gone, 2026-10-31).
 
 export * from './listeners.js';
 export * from './avatar.js';

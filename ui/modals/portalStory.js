@@ -12,6 +12,8 @@
 // Weaker laptops (detectLowPowerTier) get no twinkle, rays, warp lines, glow or coins; reduced
 // motion shows the last frame. Story text: features/portalStoryCore.mjs.
 // Sound: audio.js playPortalSfx. Styles: styles/portal_story.css (lazy, with this module).
+import { quietly } from '../../utils/runtimeMetrics.js';
+import { escapeHtml as esc } from '../../utils/html.mjs';
 import '../../styles/portal_story.css';
 import { rankCrestSvg } from '../../features/questRankCrest.mjs';
 import { heroTint } from '../../features/portalStoryCore.mjs';
@@ -23,12 +25,8 @@ const PLUNGE_MS = 2600;
 
 let active = null;
 
-function esc(value) {
-    return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
-
 function sfx(name, opts) {
-    import('../../audio.js').then(({ playPortalSfx }) => playPortalSfx?.(name, opts)).catch(() => {});
+    import('../../audio.js').then(({ playPortalSfx }) => playPortalSfx?.(name, opts)).catch(quietly('ui/modals/portalStory.js'));
 }
 
 function tierOf(story) {

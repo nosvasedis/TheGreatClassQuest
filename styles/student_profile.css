@@ -104,7 +104,7 @@
 
 .sp-cover__title {
     margin: 1px 0 6px;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.65rem;
     line-height: 1.15;
     color: #fff8e4;
@@ -320,7 +320,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 3rem;
     color: #fff;
     text-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
@@ -462,7 +462,7 @@
     border-radius: 11px;
     border: 1.5px solid var(--sp-rule);
     background: rgba(255, 255, 255, 0.9);
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 1.05rem;
     font-weight: 600;
     color: var(--sp-ink);
@@ -587,7 +587,7 @@
 
 .sp-record dd {
     margin: 1px 0 0;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.05rem;
     color: var(--sp-ink);
     white-space: nowrap;
@@ -773,7 +773,7 @@
 
 .sp-stamp__title {
     flex: 1;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 0.95rem;
     color: color-mix(in srgb, var(--stamp) 80%, var(--sp-ink));
 }
@@ -811,7 +811,7 @@
     border-radius: 9px;
     border: 1.5px solid var(--sp-rule);
     background: #fff;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 0.88rem;
     font-weight: 600;
     color: var(--sp-ink);
@@ -851,7 +851,7 @@
 }
 
 .sp-stamp.is-set .sp-stamp__date {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-weight: 400;
     font-size: 0.95rem;
     color: var(--stamp);
@@ -973,7 +973,7 @@
 
 .sp-visa__name {
     margin: 0;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.15rem;
     color: #312e81;
 }
@@ -1118,7 +1118,7 @@
 
 .sp-btn--save {
     padding-inline: 24px;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-weight: 400;
     font-size: 1.05rem;
     color: #3b2805;

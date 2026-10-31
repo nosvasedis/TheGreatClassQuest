@@ -1,7 +1,7 @@
 // /features/storyReader.js — the Story Weavers book reader (storybook-viewer-modal).
 // Reads the class's current story and finished storybooks one spread at a time,
 // with page turns, an all-pages view, and narration that turns the pages by itself.
-import * as modals from '../ui/modals.js';
+import * as modals from '../ui/modals/index.js';
 import { showToast } from '../ui/effects.js';
 import { isSpeaking, speakText, stopSpeech, isTtsSupported } from './tts.js';
 import { readerGridHtml, readerSpreadHtml } from './storyWeaverView.js';

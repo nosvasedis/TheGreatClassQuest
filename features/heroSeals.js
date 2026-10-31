@@ -13,6 +13,7 @@
 // When seals are pressed, the app's ordinary notification says so; its button opens a
 // summary of who pressed what. Seen-ness is kept per teacher in Firestore (teacher_metadata),
 // so each seal is told once, on one computer, and never again after the summary is read.
+import { quietly } from '../utils/runtimeMetrics.js';
 import '../styles/hero_seals.css';
 import * as state from '../state.js';
 import * as utils from '../utils.js';
@@ -613,7 +614,7 @@ export function openHeroSealsSummary() {
         if (who) {
             const id = who.dataset.hsFolio;
             closeSummary();
-            import('../ui/modals/studentAnalytics.js').then((m) => m.openStudentAnalyticsModal(id, null, { tab: 'seals' })).catch(() => {});
+            import('../ui/modals/studentAnalytics.js').then((m) => m.openStudentAnalyticsModal(id, null, { tab: 'seals' })).catch(quietly('features/heroSeals.js'));
         }
     });
     document.body.appendChild(summaryEl);
@@ -622,5 +623,5 @@ export function openHeroSealsSummary() {
         summaryEl?.classList.add('is-in');
         summaryEl?.querySelector('.hs-sum__done')?.focus({ preventScroll: true });
     });
-    import('../audio.js').then(({ playSound }) => playSound('magic_chime')).catch(() => {});
+    import('../audio.js').then(({ playSound }) => playSound('magic_chime')).catch(quietly('features/heroSeals.js'));
 }

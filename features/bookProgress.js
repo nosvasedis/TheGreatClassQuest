@@ -1,3 +1,5 @@
+import { quietly } from '../utils/runtimeMetrics.js';
+import { escapeHtml as escape } from '../utils/html.mjs';
 import * as state from '../state.js';
 import { db, doc, updateDoc } from '../firebase.js';
 import { BOOK_ATLAS, resolveLessonTarget, buildLessonTargetSummary, parsePages, unitForPage, bookPartOptions, hasPageMap, syncLessonRow, unitPageSets, PART_LABELS, extractAssignmentVocabulary, lessonHistoryEntry, appendLessonHistory } from './bookAtlas.mjs';
@@ -7,7 +9,6 @@ import { cleanCampfireText } from './heroCampfireCore.mjs';
 import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 const confirmations = new Map();
 window.addEventListener('gcq:campfire-reset', () => confirmations.clear());
-const escape = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 export function getClassBookPlan(classId) {
     const c = state.get('allTeachersClasses').find(c => c.id === classId);
     return { ...(c?.bookPlan || {}), league: c?.questLevel };
@@ -198,7 +199,7 @@ export function attachBookRecognition(classId, { force = false } = {}) {
                         row.pageText = pageInput.value;
                         row.pagesAuto = false;
                     }));
-                }).catch(() => {});
+                }).catch(quietly('features/bookProgress.js'));
             };
             bookSelect.onchange = () => {
                 collect();

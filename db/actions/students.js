@@ -10,13 +10,16 @@ import {
     where,
     updateDoc,
     getDoc,
-    setDoc
+    setDoc,
+    writeBatch,
+    auth,
+    updateProfile
 } from '../../firebase.js';
 import * as state from '../../state.js';
 import { showToast } from '../../ui/effects.js';
 import { getStartOfMonthString } from '../../utils.js';
 import { HERO_CLASSES, resolveHeroClassChange } from '../../features/heroClasses.js';
-import * as modals from '../../ui/modals.js';
+import * as modals from '../../ui/modals/index.js';
 import { callGeminiApi } from '../../api.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';

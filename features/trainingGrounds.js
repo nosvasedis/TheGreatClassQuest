@@ -6,10 +6,11 @@
 // adventures, council questions) is per Quest League and loads lazily from
 // features/trainingGrounds/content/.
 
+import { quietly } from '../utils/runtimeMetrics.js';
 import '../styles/training_grounds.css';
 import { db, doc, runTransaction } from '../firebase.js';
 import * as state from '../state.js';
-import * as modals from '../ui/modals.js';
+import * as modals from '../ui/modals/index.js';
 import { showToast } from '../ui/effects.js';
 import { playSound } from '../audio.js';
 import { getTodayDateString } from '../utils.js';
@@ -364,7 +365,7 @@ function offerStar(gameKey, classId) {
     modals.showModal(
         `${game.skillLabel} Milestone!`,
         `Two rounds won in ${game.name}! Award a +${TRAINING_BONUS_STARS} ${game.skillLabel} Bonus Star to every student in the class?`,
-        () => import('../db/actions.js').then((m) => m.awardTrainingBonusToClass(classId, gameKey)),
+        () => import('../db/actions/index.js').then((m) => m.awardTrainingBonusToClass(classId, gameKey)),
         'Yes, Award Bonus!',
         'No, Thanks'
     );
@@ -602,7 +603,7 @@ function toggleFullscreen(btn) {
     const stage = btn.closest('[data-tg-stage]');
     if (!stage) return;
     if (document.fullscreenElement) {
-        document.exitFullscreen?.().catch(() => {});
+        document.exitFullscreen?.().catch(quietly('features/trainingGrounds.js'));
     } else {
         stage.requestFullscreen?.().catch(() => showToast('Full screen is not available in this browser.', 'info'));
     }

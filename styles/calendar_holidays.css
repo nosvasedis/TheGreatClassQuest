@@ -745,7 +745,7 @@ body.gcq-mobile .m-cal-edge {
 .qc-tip--days { --tip-ink: #0369a1; --tip-soft: #e0f2fe; }
 .qc-tip--tests { --tip-ink: #b91c1c; --tip-soft: #fee2e2; }
 .qc-tip--off { --tip-ink: #0f766e; --tip-soft: #ccfbf1; }
-.qc-tip__title { font-family: 'Fredoka', sans-serif; font-size: 1rem; line-height: 1.2; color: var(--tip-ink); }
+.qc-tip__title { font-family: var(--gcq-font-display); font-size: 1rem; line-height: 1.2; color: var(--tip-ink); }
 .qc-tip__lead { font-size: 0.74rem; font-weight: 600; line-height: 1.35; color: #475569; }
 .qc-tip__rows { display: flex; flex-direction: column; gap: 0.2rem; margin: 0.15rem 0 0; padding: 0; list-style: none; }
 .qc-tip__rows li {
@@ -909,7 +909,7 @@ body.gcq-mobile .m-cal-edge {
     background: linear-gradient(180deg, var(--hol-ink), color-mix(in srgb, var(--hol-ink) 75%, #000));
     box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.25);
 }
-.qc-special-chip__date b { font-family: 'Fredoka', sans-serif; font-size: 0.92rem; }
+.qc-special-chip__date b { font-family: var(--gcq-font-display); font-size: 0.92rem; }
 .qc-special-chip__date small { font-size: 0.52rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.85; }
 .qc-special-chip__date--range b { font-size: 0.72rem; }
 .qc-special-chip__icon {
@@ -984,7 +984,7 @@ body.gcq-mobile .m-cal-edge {
     box-shadow: 0 0 0 3px var(--hol-b), 0 6px 12px -6px var(--hol-ink);
 }
 .qc-special-tip__body { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; white-space: normal; }
-.qc-special-tip__body strong { font-family: 'Fredoka', sans-serif; font-size: 1rem; line-height: 1.2; color: var(--hol-ink); }
+.qc-special-tip__body strong { font-family: var(--gcq-font-display); font-size: 1rem; line-height: 1.2; color: var(--hol-ink); }
 .qc-special-tip__greek { font-size: 0.76rem; font-weight: 700; color: var(--hol-ink); opacity: 0.8; }
 .qc-special-tip__when,
 .qc-special-tip__state { font-size: 0.72rem; font-weight: 800; color: #475569; }

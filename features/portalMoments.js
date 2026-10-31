@@ -10,6 +10,8 @@
 // The watcher also catches a crossing saved on another device (Quest Remote on the phone, a
 // second laptop), so every screen of the teacher celebrates it once.
 // Rules: questRanksCore.mjs; story text: portalStoryCore.mjs; banner CSS: portal_moments.css.
+import { quietly } from '../utils/runtimeMetrics.js';
+import { escapeHtml as esc } from '../utils/html.mjs';
 import '../styles/portal_moments.css';
 import * as state from '../state.js';
 import * as utils from '../utils.js';
@@ -28,26 +30,22 @@ const told = new Set();
 const queue = [];
 let showing = false;
 
-function esc(value) {
-    return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
-
 function notify(options) {
     return import('../ui/effects.js').then(({ notify: show }) => show(options)).catch(() => null);
 }
 
 function playPortal(name, opts) {
-    import('../audio.js').then(({ playPortalSfx }) => playPortalSfx(name, opts)).catch(() => {});
+    import('../audio.js').then(({ playPortalSfx }) => playPortalSfx(name, opts)).catch(quietly('features/portalMoments.js'));
 }
 
 /** Shows the Portal of the class's own league (the modal follows the selected league). */
 function openPortal(classData) {
     if (classData?.questLevel && !state.get('globalSelectedLeague')) state.set('globalSelectedLeague', classData.questLevel);
-    import('../ui/modals/crystalPortal.js').then(({ openCrystalPortalModal }) => openCrystalPortalModal()).catch(() => {});
+    import('../ui/modals/crystalPortal.js').then(({ openCrystalPortalModal }) => openCrystalPortalModal()).catch(quietly('features/portalMoments.js'));
 }
 
 function openGuardian(classId) {
-    import('./portalGuardian.js').then(({ openPortalGuardian }) => openPortalGuardian(classId)).catch(() => {});
+    import('./portalGuardian.js').then(({ openPortalGuardian }) => openPortalGuardian(classId)).catch(quietly('features/portalMoments.js'));
 }
 
 function openStory(story, classData) {

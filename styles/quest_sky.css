@@ -328,7 +328,7 @@
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.82);
     box-shadow: 0 0.2rem 0.6rem rgba(40, 20, 100, 0.22);
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: clamp(0.58rem, 0.85vw, 0.74rem);
     font-weight: 700;
     white-space: nowrap;
@@ -358,7 +358,7 @@
     border-radius: 999px;
     background: linear-gradient(135deg, #8b5cf6, #4338ca 55%, #2e1065);
     box-shadow: 0 0 0 0.18rem rgba(255, 214, 120, 0.35), 0 0.35rem 0.9rem rgba(46, 16, 101, 0.45), 0 0 1.2rem rgba(196, 160, 255, 0.75);
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: clamp(0.6rem, 0.9vw, 0.78rem);
     font-weight: 800;
     letter-spacing: 0.04em;
@@ -423,7 +423,7 @@
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.9);
     box-shadow: 0 0.3rem 0.9rem rgba(40, 20, 100, 0.3);
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: clamp(0.66rem, 0.95vw, 0.85rem);
     font-weight: 800;
     cursor: pointer;

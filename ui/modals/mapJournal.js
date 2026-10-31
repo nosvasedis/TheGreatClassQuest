@@ -1,6 +1,7 @@
 // /ui/modals/mapJournal.js — the Map Journal page in Team History (League Archive).
 // One page per class of yours: every month of the school year so far, with a stamp for each
 // realm the class reached for the first time that month (see features/realmMoments.js).
+import { escapeHtml as esc } from '../../utils/html.mjs';
 import '../../styles/realm_moments.css';
 import * as state from '../../state.js';
 import { getSchoolYearStartMonthDate } from '../../utils/schoolYear.js';
@@ -11,10 +12,6 @@ const BADGES = {
     gold: new URL('../../assets/team-quest-map/living-atlas/badge-gold.webp', import.meta.url).href,
     crystal: new URL('../../assets/team-quest-map/living-atlas/badge-crystal.webp', import.meta.url).href
 };
-
-function esc(value) {
-    return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
 
 function monthShort(monthKey) {
     const [y, m] = monthKey.split('-').map(Number);

@@ -186,7 +186,7 @@
     color: var(--c2);
 }
 .tg-tab__name {
-    font-family: "Fredoka", sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 700;
     font-size: 1rem;
     line-height: 1.12;
@@ -349,7 +349,7 @@
 .tg-home__title,
 .tg-result__title {
     margin-top: 0.3rem;
-    font-family: "Fredoka One", "Fredoka", sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: clamp(1.6rem, 3vw, 2.3rem);
     line-height: 1.1;
     color: #fffbeb;
@@ -393,7 +393,7 @@
     min-height: 3.3rem;
     padding: 0.7rem 1.6rem;
     border-radius: 9999px;
-    font-family: "Fredoka One", "Fredoka", sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.15rem;
     color: #3b1d05;
     background: linear-gradient(135deg, #fff7d6, var(--sw-gold-2) 40%, var(--sw-gold) 80%, #e8a317);
@@ -461,7 +461,7 @@
 }
 .tg-play__head { display: flex; align-items: center; gap: 1rem; text-align: left; }
 .tg-play__title {
-    font-family: "Fredoka One", "Fredoka", sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: clamp(1.3rem, 2.4vw, 1.75rem);
     line-height: 1.15;
     color: #fffbeb;
@@ -556,7 +556,7 @@
 }
 .tg-treasure__art--gem i { transform: rotate(-45deg); }
 .tg-treasure__word {
-    font-family: "Fredoka", sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 700;
     font-size: clamp(0.85rem, 1.4vw, 1.05rem);
     line-height: 1.1;
@@ -706,7 +706,7 @@ button.tg-stolen:disabled { cursor: default; }
 .tg-map.is-complete { filter: drop-shadow(0 0 22px rgba(252, 211, 77, 0.45)); }
 
 .tg-riddle__ask {
-    font-family: "Fredoka One", "Fredoka", sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: clamp(1.45rem, 3vw, 2.2rem);
     line-height: 1.15;
     color: #fffbeb;
@@ -744,7 +744,7 @@ button.tg-option { cursor: pointer; }
 button.tg-option:hover { transform: translateY(-4px) rotate(-1deg); }
 button.tg-option:focus-visible { outline: 3px solid #fde68a; outline-offset: 3px; }
 .tg-option__art { font-size: clamp(2.2rem, 4vw, 3rem); line-height: 1; }
-.tg-option__word { font-family: "Fredoka", sans-serif; font-weight: 700; font-size: 1rem; line-height: 1.1; }
+.tg-option__word { font-family: var(--gcq-font-display); font-weight: 700; font-size: 1rem; line-height: 1.1; }
 .tg-option.is-out {
     background: linear-gradient(170deg, #d6cfc0, #b9ad91);
     border-color: rgba(190, 18, 60, 0.7);
@@ -803,7 +803,7 @@ button.tg-scrap:hover { transform: rotate(0deg) translateY(-3px); }
     color: #fff;
     background: linear-gradient(135deg, #7c3aed, #4338ca);
 }
-.tg-scrap__text { font-family: "Lora", Georgia, serif; font-size: 1.1rem; line-height: 1.4; font-weight: 700; }
+.tg-scrap__text { font-family: var(--gcq-font-serif); font-size: 1.1rem; line-height: 1.4; font-weight: 700; }
 .tg-scrap__cover { font-size: 0.92rem; font-weight: 700; color: rgba(59, 36, 18, 0.7); }
 .tg-scrap--big { width: min(36rem, 100%); padding: 1.6rem 1.8rem 1.9rem; min-height: 11rem; justify-content: center; }
 .tg-scrap--big .tg-scrap__text { font-size: clamp(1.4rem, 2.8vw, 2rem); }
@@ -863,7 +863,7 @@ button.tg-scrap:hover { transform: rotate(0deg) translateY(-3px); }
     position: relative;
     max-width: 42rem;
     padding: 0.4rem 2.4rem;
-    font-family: "Fredoka One", "Fredoka", sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: clamp(1.5rem, 3.2vw, 2.4rem);
     line-height: 1.15;
     color: #fffbeb;
@@ -872,7 +872,7 @@ button.tg-scrap:hover { transform: rotate(0deg) translateY(-3px); }
 .tg-council__q::before,
 .tg-council__q::after {
     position: absolute;
-    font-family: "Lora", Georgia, serif;
+    font-family: var(--gcq-font-serif);
     font-size: 3.2rem;
     line-height: 1;
     color: var(--sw-gold-2);
@@ -1070,7 +1070,7 @@ button.tg-scrap:hover { transform: rotate(0deg) translateY(-3px); }
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-family: "Fredoka One", "Fredoka", sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 0.85rem;
     color: var(--sw-muted);
     background: #fff;
@@ -1126,7 +1126,7 @@ button.tg-scrap:hover { transform: rotate(0deg) translateY(-3px); }
     width: 100%;
     padding: 0.6rem 0.8rem;
     border-radius: 0.9rem;
-    font-family: "Lora", Georgia, serif;
+    font-family: var(--gcq-font-serif);
     font-size: 0.98rem;
     color: var(--sw-text);
     background: #fff;
@@ -1230,7 +1230,7 @@ button.tg-scrap:hover { transform: rotate(0deg) translateY(-3px); }
 .tg-keepsake__art > svg { max-width: 100%; max-height: 100%; width: auto; height: 100%; }
 .tg-keepsake--map .tg-keepsake__art > svg { width: 100%; height: auto; }
 .tg-keepsake figcaption { display: flex; flex-direction: column; gap: 0.1rem; padding: 0.5rem 0.2rem 0.8rem; text-align: center; }
-.tg-keepsake figcaption strong { font-family: "Fredoka", sans-serif; font-weight: 700; font-size: 0.92rem; line-height: 1.15; color: var(--sw-ink); }
+.tg-keepsake figcaption strong { font-family: var(--gcq-font-display); font-weight: 700; font-size: 0.92rem; line-height: 1.15; color: var(--sw-ink); }
 .tg-keepsake figcaption span { font-size: 0.86rem; letter-spacing: 0.08em; }
 .tg-keepsake figcaption small { font-size: 0.72rem; color: var(--sw-muted); }
 .tg-keepsake .tg-candle__flame,
@@ -1437,7 +1437,7 @@ button.tg-scrap:hover { transform: rotate(0deg) translateY(-3px); }
 }
 .tg-howto__kicker { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: #fef3c7; }
 .tg-howto__title {
-    font-family: "Fredoka One", "Fredoka", sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: clamp(1.5rem, 3.4vw, 2rem);
     line-height: 1.1;
     text-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
@@ -1493,7 +1493,7 @@ button.tg-scrap:hover { transform: rotate(0deg) translateY(-3px); }
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: "Fredoka", sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 700;
     font-size: 0.9rem;
     color: #fff;
@@ -1501,7 +1501,7 @@ button.tg-scrap:hover { transform: rotate(0deg) translateY(-3px); }
     box-shadow: 0 0 0 3px #fffdf7;
 }
 .tg-howto__scene { font-size: 1.9rem; line-height: 1.2; letter-spacing: 0.05em; }
-.tg-howto__step-title { font-family: "Fredoka", sans-serif; font-weight: 700; font-size: 1rem; line-height: 1.15; color: var(--c2); }
+.tg-howto__step-title { font-family: var(--gcq-font-display); font-weight: 700; font-size: 1rem; line-height: 1.15; color: var(--c2); }
 .tg-howto__step-line { font-size: 0.86rem; line-height: 1.35; color: #5b4632; }
 
 .tg-howto__reward {
@@ -1530,7 +1530,7 @@ button.tg-scrap:hover { transform: rotate(0deg) translateY(-3px); }
 .tg-howto__keepsake svg { width: 100%; height: auto; display: block; }
 .tg-howto__book { font-size: 3rem; line-height: 1.6; }
 .tg-howto__reward-copy { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
-.tg-howto__win { font-family: "Fredoka", sans-serif; font-weight: 700; font-size: 1.05rem; color: #7c2d12; }
+.tg-howto__win { font-family: var(--gcq-font-display); font-weight: 700; font-size: 1.05rem; color: #7c2d12; }
 .tg-howto__win i { color: #d4a017; margin-right: 0.2rem; }
 .tg-howto__keepsake-line { font-size: 0.88rem; color: #5b4632; }
 .tg-howto__star { display: flex; align-items: center; gap: 0.55rem; font-size: 0.88rem; color: #5b4632; }
@@ -1651,7 +1651,7 @@ button.tg-scrap:hover { transform: rotate(0deg) translateY(-3px); }
 .tg-beat {
     max-width: 44rem;
     margin: 0.2rem auto 0.6rem;
-    font-family: "Lora", Georgia, serif;
+    font-family: var(--gcq-font-serif);
     font-style: italic;
     font-size: clamp(1rem, 1.8vw, 1.2rem);
     line-height: 1.5;
@@ -1734,7 +1734,7 @@ button.tg-scrap:hover { transform: rotate(0deg) translateY(-3px); }
     animation-delay: calc(var(--i, 0) * 70ms);
 }
 .tg-choice__art { font-size: 1.8rem; line-height: 1; }
-.tg-choice__label { font-family: "Fredoka", sans-serif; font-weight: 700; font-size: 0.95rem; line-height: 1.15; text-align: center; }
+.tg-choice__label { font-family: var(--gcq-font-display); font-weight: 700; font-size: 0.95rem; line-height: 1.15; text-align: center; }
 .tg-choices--big { grid-template-columns: repeat(var(--n, 2), minmax(0, 12rem)); gap: 1rem; }
 .tg-choices--big .tg-choice { padding: 1rem 0.8rem; border-radius: 1.4rem; }
 .tg-choices--big .tg-choice__art { font-size: clamp(3.6rem, 8vw, 5.4rem); }
@@ -1767,7 +1767,7 @@ button.tg-scrap:hover { transform: rotate(0deg) translateY(-3px); }
 .tg-vote__art { font-size: 2.4rem; line-height: 1; }
 .tg-vote__label { font-weight: 800; text-align: center; }
 .tg-vote__count { display: inline-flex; align-items: center; gap: 0.6rem; }
-.tg-vote__count strong { min-width: 2ch; font-family: "Fredoka One", "Fredoka", sans-serif; font-size: 1.7rem; text-align: center; color: #fde68a; }
+.tg-vote__count strong { min-width: 2ch; font-family: var(--gcq-font-title); font-size: 1.7rem; text-align: center; color: #fde68a; }
 .tg-vote__result {
     display: inline-flex;
     align-items: center;
@@ -1798,7 +1798,7 @@ button.tg-scrap:hover { transform: rotate(0deg) translateY(-3px); }
 }
 .sw-spark.hidden { display: none; }
 .sw-spark__head { text-align: center; }
-.sw-spark__kicker { font-family: "Fredoka One", "Fredoka", sans-serif; font-size: 1.15rem; color: #fde68a; }
+.sw-spark__kicker { font-family: var(--gcq-font-title); font-size: 1.15rem; color: #fde68a; }
 .sw-spark__kicker i { margin-right: 0.3rem; }
 .sw-spark__sub { margin-top: 0.15rem; font-size: 0.9rem; color: rgba(255, 255, 255, 0.78); }
 .sw-spark__cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr)); gap: 0.8rem; margin-top: 0.9rem; }
@@ -1835,12 +1835,12 @@ button.tg-scrap:hover { transform: rotate(0deg) translateY(-3px); }
 }
 .sw-spark__card--problem .sw-spark__deck { background: linear-gradient(135deg, #e11d48, #9f1239); }
 .sw-spark__card--genre .sw-spark__deck { background: linear-gradient(135deg, #7c3aed, #4338ca); }
-.sw-spark__value { font-family: "Lora", Georgia, serif; font-weight: 700; font-size: 1.05rem; line-height: 1.35; }
+.sw-spark__value { font-family: var(--gcq-font-serif); font-weight: 700; font-size: 1.05rem; line-height: 1.35; }
 .sw-spark__reroll { position: absolute; right: 0.7rem; bottom: 0.55rem; font-size: 0.8rem; color: rgba(59, 36, 18, 0.45); }
 .sw-spark__opening {
     margin: 1rem auto 0;
     max-width: 44rem;
-    font-family: "Lora", Georgia, serif;
+    font-family: var(--gcq-font-serif);
     font-size: clamp(1.05rem, 2vw, 1.3rem);
     font-style: italic;
     line-height: 1.5;

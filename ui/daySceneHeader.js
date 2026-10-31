@@ -3,11 +3,10 @@
 // the header takes the day's colours, a big faded icon and a few drifting little shapes, the
 // title gets a name badge, and the body opens with a themed day card.
 
+import { escapeHtml as esc } from '../utils/html.mjs';
 import { describeSchoolDay } from '../utils/schoolCalendar.mjs';
 import { parseDDMMYYYY } from '../utils.js';
 import '../styles/day_scene.css';
-
-const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // [light, lighter, ink] for days that don't carry their own colours.
 const THEME_COLORS = {

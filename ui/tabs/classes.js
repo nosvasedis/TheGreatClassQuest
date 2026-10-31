@@ -1,8 +1,10 @@
 // /ui/tabs/classes.js
 import * as state from '../../state.js';
+import { emptyStateHtml } from '../emptyStateView.mjs';
+import { morphInto } from '../../utils/domMorph.mjs';
 import { TRAINING_HERO, withLegacyHeroAliases } from '../../features/heroClassNames.mjs';
-import * as modals from '../modals.js';
-import { deleteClass, deleteStudent } from '../../db/actions.js';
+import * as modals from '../modals/index.js';
+import { deleteClass, deleteStudent } from '../../db/actions/index.js';
 import { showTab } from './navigation.js';
 import * as avatar from '../../features/avatar.js';
 import { wrapAvatarWithLevelUpIndicator } from '../core/avatar.js';
@@ -408,6 +410,62 @@ function openGreenhouse(classId, options) {
     import('../modals/classGreenhouse.js').then(m => m.openClassGreenhouse(classId, options));
 }
 
+// --- Roster tools: one delegated click listener per list, bound once. The list is morphed on
+// every data refresh (rows stay put), so per-button listeners would pile up.
+const ROSTER_ACTIONS = {
+    'delete-student-btn': (id) => modals.showModal('Delete Student?', 'Are you sure you want to delete this student?', () => deleteStudent(id)),
+    'certificate-student-btn': (id) => modals.handleGenerateCertificate(id),
+    'edit-student-btn': (id) => modals.openEditStudentModal(id),
+    'avatar-maker-btn': (id) => {
+        if (!canUseFeature('eliteAI')) {
+            showUpgradePrompt({ feature: 'Avatar Forge', tier: 'Elite', message: getUpgradeMessage('Elite') });
+            return;
+        }
+        avatar.openAvatarMaker(id);
+    },
+    'move-student-btn': (id) => modals.openMoveStudentModal(id),
+    'hero-chronicle-btn': (id) => modals.openHeroChronicleModal(id),
+    'parent-access-student-btn': async (id) => {
+        openAccessCenterForStudent(id);
+        await showTab('options-tab');
+        document.querySelector('#options-tab .options-subtab-btn[data-options-tab="access"]')?.click();
+    },
+    'guild-quiz-btn': (id) => {
+        if (!canUseFeature('guilds')) {
+            showUpgradePrompt({ feature: 'Guild Sorting Quiz', tier: 'Pro', message: getUpgradeMessage('Pro', 'guilds') });
+            return;
+        }
+        modals.openSortingQuizModal(id);
+    },
+    'hero-class-select-btn': (id) => {
+        if (!canUseFeature('heroProgression')) {
+            showUpgradePrompt({ feature: 'Hero Classes & Skill Tree', tier: 'Pro', message: getUpgradeMessage('Pro', 'heroProgression') });
+            return;
+        }
+        modals.openHeroClassSelectModal(id);
+    },
+    'skill-tree-btn': (id) => {
+        if (!canUseFeature('heroProgression')) {
+            showUpgradePrompt({ feature: 'Hero Classes & Skill Tree', tier: 'Pro', message: getUpgradeMessage('Pro', 'heroProgression') });
+            return;
+        }
+        openSkillTreeModal(id);
+    },
+};
+const ROSTER_ACTION_SELECTOR = Object.keys(ROSTER_ACTIONS).map((cls) => `.${cls}`).join(', ');
+const boundRosterLists = new WeakSet();
+
+function bindRosterActions(list) {
+    if (boundRosterLists.has(list)) return;
+    boundRosterLists.add(list);
+    list.addEventListener('click', (event) => {
+        const btn = event.target.closest(ROSTER_ACTION_SELECTOR);
+        if (!btn || !list.contains(btn)) return;
+        const action = Object.keys(ROSTER_ACTIONS).find((cls) => btn.classList.contains(cls));
+        if (action) ROSTER_ACTIONS[action](btn.dataset.id, btn);
+    });
+}
+
 export function renderManageStudentsTab() {
     const list = document.getElementById('student-list');
     const currentManagingClassId = state.get('currentManagingClassId');
@@ -434,15 +492,14 @@ export function renderManageStudentsTab() {
 
     if (studentsInClass.length === 0) {
         const unplacedCount = getUnplacedStudents(state.get('allStudents') || []).length;
-        list.innerHTML = `
-            <div class="text-center py-14 px-6">
-                <div class="text-gray-200 text-6xl mb-4"><i class="fas fa-users"></i></div>
-                <p class="text-gray-500 font-semibold text-lg">No adventurers yet!</p>
-                <p class="text-gray-400 text-sm mt-1">${unplacedCount
-                    ? 'Place returning students from the panel above, or add a brand-new student with the form.'
-                    : 'Add your first student using the form to start the quest.'
-                }</p>
-            </div>`;
+        morphInto(list, emptyStateHtml({
+            icon: 'fa-users',
+            title: 'No adventurers yet',
+            line: unplacedCount
+                ? 'Place returning students from the panel above, or add a brand-new student with the form.'
+                : 'Add your first student using the form to start the quest.',
+            size: 'lg'
+        }));
         return;
     }
 
@@ -457,7 +514,7 @@ export function renderManageStudentsTab() {
         'Patron':    { icon: '💝', bg: '#ffe4e6', text: '#9f1239', ring: '#e11d48' },
     });
 
-    list.innerHTML = studentsInClass.map(s => {
+    morphInto(list, studentsInClass.map(s => {
         const scoreData = state.get('allStudentScores').find(sc => sc.id === s.id);
         const pendingSkill = heroProgressionEnabled && (scoreData?.pendingSkillChoice || false);
         const hc = heroProgressionEnabled && s.heroClass ? (heroClassConfig[s.heroClass] || null) : null;
@@ -538,7 +595,7 @@ export function renderManageStudentsTab() {
         const accent = guild?.primary || (hc ? hc.ring : '');
 
         return `
-        <article class="roster-row"${accent ? ` style="--roster-accent:${accent};"` : ''}>
+        <article class="roster-row" data-morph-key="${s.id}"${accent ? ` style="--roster-accent:${accent};"` : ''}>
             <div class="roster-hero">
                 <div class="roster-hero__avatar">${avatarHtml}</div>
                 <div class="roster-hero__text">
@@ -574,60 +631,7 @@ export function renderManageStudentsTab() {
                 </div>
             </div>
         </article>`;
-    }).join('');
+    }).join(''));
 
-    list.querySelectorAll('.delete-student-btn').forEach(btn => btn.addEventListener('click', () => modals.showModal('Delete Student?', 'Are you sure you want to delete this student?', () => deleteStudent(btn.dataset.id))));
-    list.querySelectorAll('.certificate-student-btn').forEach(btn => btn.addEventListener('click', () => modals.handleGenerateCertificate(btn.dataset.id)));
-    list.querySelectorAll('.edit-student-btn').forEach(btn => btn.addEventListener('click', () => modals.openEditStudentModal(btn.dataset.id)));
-    list.querySelectorAll('.avatar-maker-btn').forEach(btn => btn.addEventListener('click', () => {
-        if (!eliteAiEnabled) {
-            showUpgradePrompt({
-                feature: 'Avatar Forge',
-                tier: 'Elite',
-                message: getUpgradeMessage('Elite')
-            });
-            return;
-        }
-        avatar.openAvatarMaker(btn.dataset.id);
-    }));
-    list.querySelectorAll('.move-student-btn').forEach(btn => btn.addEventListener('click', () => modals.openMoveStudentModal(btn.dataset.id)));
-    list.querySelectorAll('.hero-chronicle-btn').forEach(btn => btn.addEventListener('click', () => modals.openHeroChronicleModal(btn.dataset.id)));
-    list.querySelectorAll('.parent-access-student-btn').forEach(btn => btn.addEventListener('click', async () => {
-        openAccessCenterForStudent(btn.dataset.id);
-        await showTab('options-tab');
-        document.querySelector('#options-tab .options-subtab-btn[data-options-tab="access"]')?.click();
-    }));
-    list.querySelectorAll('.guild-quiz-btn').forEach(btn => btn.addEventListener('click', () => {
-        if (!guildsEnabled) {
-            showUpgradePrompt({
-                feature: 'Guild Sorting Quiz',
-                tier: 'Pro',
-                message: getUpgradeMessage('Pro', 'guilds')
-            });
-            return;
-        }
-        modals.openSortingQuizModal(btn.dataset.id);
-    }));
-    list.querySelectorAll('.hero-class-select-btn').forEach(btn => btn.addEventListener('click', () => {
-        if (!heroProgressionEnabled) {
-            showUpgradePrompt({
-                feature: 'Hero Classes & Skill Tree',
-                tier: 'Pro',
-                message: getUpgradeMessage('Pro', 'heroProgression')
-            });
-            return;
-        }
-        modals.openHeroClassSelectModal(btn.dataset.id);
-    }));
-    list.querySelectorAll('.skill-tree-btn').forEach(btn => btn.addEventListener('click', () => {
-        if (!heroProgressionEnabled) {
-            showUpgradePrompt({
-                feature: 'Hero Classes & Skill Tree',
-                tier: 'Pro',
-                message: getUpgradeMessage('Pro', 'heroProgression')
-            });
-            return;
-        }
-        openSkillTreeModal(btn.dataset.id);
-    }));
+    bindRosterActions(list);
 }

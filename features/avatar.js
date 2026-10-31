@@ -4,7 +4,7 @@
 import { db, auth, doc, updateDoc } from '../firebase.js';
 
 import * as state from '../state.js';
-import * as modals from '../ui/modals.js';
+import * as modals from '../ui/modals/index.js';
 import { showToast } from '../ui/effects.js';
 import { playSound } from '../audio.js';
 import { callCloudflareAiImageApi } from '../api.js';
@@ -426,7 +426,7 @@ export async function handleGenerateAvatar() {
 }
 
 async function refreshVisibleStudentPortraits() {
-    const tabs = await import('../ui/tabs.js');
+    const tabs = await import('../ui/tabs/index.js');
     const activeRenderers = [
         ['award-stars-tab', () => tabs.renderAwardStarsStudentList?.(state.get('globalSelectedClassId'), false)],
         ['manage-students-tab', () => tabs.renderManageStudentsTab?.()],

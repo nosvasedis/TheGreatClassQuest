@@ -6,6 +6,7 @@
 // Riddles: the class's own grammar from the Grammar Forge plus the Wheel's riddle bank, at the
 // league's level (utils/wheelChallenges.mjs). Rules: questRanksCore.mjs (guardianTestFor).
 // Motion: transform and opacity only; the lite tier and reduced motion keep it still.
+import { quietly } from '../utils/runtimeMetrics.js';
 import '../styles/quest_ranks.css';
 import * as state from '../state.js';
 import * as utils from '../utils.js';
@@ -62,12 +63,12 @@ async function finish(passed) {
     session.finished = true;
     session.passed = passed;
     render();
-    import('../audio.js').then(({ playSound }) => playSound(passed ? 'hero_fanfare' : 'magic_chime')).catch(() => {});
+    import('../audio.js').then(({ playSound }) => playSound(passed ? 'hero_fanfare' : 'magic_chime')).catch(quietly('features/portalGuardian.js'));
     try {
         await saveTry(classId, passed);
     } catch (error) {
         console.warn('Portal Guardian: could not save the try', error);
-        import('../ui/effects.js').then(({ notify }) => notify({ type: 'error', message: 'The Guardian\'s answer could not be saved. Please try again.' })).catch(() => {});
+        import('../ui/effects.js').then(({ notify }) => notify({ type: 'error', message: 'The Guardian\'s answer could not be saved. Please try again.' })).catch(quietly('features/portalGuardian.js'));
         return;
     }
     if (passed) {
@@ -97,7 +98,7 @@ function onClick(event) {
     }
     if (act === 'another') { nextChallenge(); render(); return; }
     session.results.push(act === 'right');
-    import('../audio.js').then(({ playSound }) => playSound(act === 'right' ? 'star3' : 'quiz_question_in')).catch(() => {});
+    import('../audio.js').then(({ playSound }) => playSound(act === 'right' ? 'star3' : 'quiz_question_in')).catch(quietly('features/portalGuardian.js'));
     const right = session.results.filter(Boolean).length;
     const left = session.questions - session.results.length;
     if (right >= session.toPass) { finish(true); return; }
@@ -110,7 +111,7 @@ function onClick(event) {
 export async function openPortalGuardian(classId) {
     if (session) return;
     const classData = (state.get('allSchoolClasses') || []).find((c) => c.id === classId);
-    const notice = (message) => import('../ui/effects.js').then(({ notify }) => notify({ type: 'info', title: 'The Portal Guardian', icon: '🗝️', message })).catch(() => {});
+    const notice = (message) => import('../ui/effects.js').then(({ notify }) => notify({ type: 'info', title: 'The Portal Guardian', icon: '🗝️', message })).catch(quietly('features/portalGuardian.js'));
     if (!classData) return;
     if (!ownsClass(classData)) { notice('Only the class\'s own teacher can call the Guardian.'); return; }
     const status = classPortalStatus(classData);
@@ -144,5 +145,5 @@ export async function openPortalGuardian(classId) {
     if (!session) return;
     nextChallenge();
     render();
-    import('../audio.js').then(({ playSound }) => playSound('magic_chime')).catch(() => {});
+    import('../audio.js').then(({ playSound }) => playSound('magic_chime')).catch(quietly('features/portalGuardian.js'));
 }

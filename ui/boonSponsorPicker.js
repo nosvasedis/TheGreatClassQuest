@@ -3,11 +3,8 @@
 // The hidden native <select id="boon-sender-select"> stays the source of truth:
 // picking a tile sets its value and dispatches 'change', so existing listeners keep working.
 
+import { escapeHtml } from '../utils/html.mjs';
 import { buildAwardCloudSvg } from '../features/awardCloudCard.mjs';
-
-const escapeHtml = (value) => String(value ?? '')
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
 const STATUS_ORDER = { free: 0, ready: 1, locked: 2 };
 const SEARCH_THRESHOLD = 12;

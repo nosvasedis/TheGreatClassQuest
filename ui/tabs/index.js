@@ -1,7 +1,6 @@
 // /ui/tabs/index.js
 // Barrel re-exporter — all sub-modules in one place.
-// This file is NOT the entry point used by consumers;
-// consumers import from '../ui/tabs.js' which re-exports from here.
+// Import from here or the sub-module (the old ui/tabs.js facade is gone, 2026-10-31).
 
 export * from './navigation.js';
 export * from './leaderboard.js';

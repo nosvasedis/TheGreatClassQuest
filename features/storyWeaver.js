@@ -1,17 +1,18 @@
 // /features/storyWeaver.js
 
 // --- IMPORTS ---
+import { quietly } from '../utils/runtimeMetrics.js';
 import { db, auth, doc, getDocs, collection, query, orderBy, setDoc, updateDoc, writeBatch, runTransaction, serverTimestamp, increment, limit, onSnapshot } from '../firebase.js';
 
 import * as state from '../state.js';
-import * as modals from '../ui/modals.js';
+import * as modals from '../ui/modals/index.js';
 import { showToast } from '../ui/effects.js';
 import { playSound } from '../audio.js';
 import { callGeminiApi, callCloudflareAiImageApi } from '../api.js';
 import { canUseFeature } from '../utils/subscription.js';
 import { simpleHashCode, compressImageBase64, getAgeGroupForLeague } from '../utils.js';
 import * as constants from '../constants.js';
-import { awardStoryWeaverBonusStarToClass, handleDeleteCompletedStory } from '../db/actions.js';
+import { awardStoryWeaverBonusStarToClass, handleDeleteCompletedStory } from '../db/actions/index.js';
 import { isSpeaking, speakText, stopSpeech, isTtsSupported } from './tts.js';
 import { loadPdfTools } from '../utils/lazyLibraries.js';
 import { detectLowPowerTier } from '../utils/devicePerformance.mjs';
@@ -132,7 +133,7 @@ export function handleStoryWeaversClassSelect() {
 
     import('../db/listeners.js')
         .then(({ ensureCompletedStoriesListener }) => ensureCompletedStoriesListener())
-        .catch(() => {})
+        .catch(quietly('features/storyWeaver.js'))
         .finally(() => renderStoryArchive());
 }
 
@@ -214,7 +215,7 @@ function renderStoryWeaversUI(classId) {
     // Story Spark on an empty book, Twist cards once it has pages (lazy helpers module).
     loadStoryHelpers()
         .then((helpers) => { if (sw.classId === classId) helpers.renderStorySpark(classId, pages.length); })
-        .catch(() => {});
+        .catch(quietly('features/storyWeaver.js'));
 }
 
 /** Puts one page into the open book, turning the leaf when the page changes. */

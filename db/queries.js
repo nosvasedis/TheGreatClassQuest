@@ -1,5 +1,6 @@
 // /db/queries.js
 
+import { quietly } from '../utils/runtimeMetrics.js';
 import { db, collection, query, where, getDocs, orderBy } from '../firebase.js';
 import { parseDDMMYYYY, getLocalIsoDateString } from '../utils.js';
 import * as state from '../state.js';
@@ -161,7 +162,10 @@ export async function fetchAttendanceForMonth(classId, year, month, options = {}
     } catch (error) {
         console.error("Error fetching attendance for month:", error);
         if (error.code === 'failed-precondition') {
-             alert("Database Setup: A composite index is required for Attendance queries (classId + createdAt). Open console for link.");
+            // A missing composite index (classId + createdAt): the console error above carries the link.
+            import('../ui/effects.js')
+                .then((m) => m.showToast('This month\'s attendance could not load yet. Please try again in a few minutes.', 'warning'))
+                .catch(quietly('db/queries.js'));
         }
         return [];
     }

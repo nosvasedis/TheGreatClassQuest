@@ -327,7 +327,7 @@
 
 /* Hour numbers */
 .clock-number {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 14px;
     font-weight: 900;
     fill: rgba(255, 255, 255, 0.95);

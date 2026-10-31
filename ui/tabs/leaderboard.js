@@ -2,7 +2,7 @@
 import * as state from '../../state.js';
 import { getLeaderboardEffectiveLeague } from '../../state.js';
 import * as utils from '../../utils.js';
-import * as modals from '../modals.js';
+import * as modals from '../modals/index.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { getGuildLeaderboardData, getGuildChampionsForMonth } from '../../features/guildScoring.js';
 import { getGuildById, getGuildEmblemUrl, getGuildBadgeHtml } from '../../features/guilds.js';
@@ -642,7 +642,7 @@ function bindTeamQuestBoard(board) {
         const zone = target.closest('.zone-trigger');
         if (zone) {
             playPlaceSound(zone.dataset.zone);
-            import('../modals.js').then((m) => m.openZoneOverviewModal(zone.dataset.zone));
+            import('../modals/index.js').then((m) => m.openZoneOverviewModal(zone.dataset.zone));
             return;
         }
         const toggle = target.closest('[data-chronicle-toggle]');

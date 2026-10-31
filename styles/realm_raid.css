@@ -497,7 +497,7 @@
     gap: 2rem;
     padding: 2rem clamp(1rem, 4vw, 4rem);
     color: #fff;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     overflow: hidden;
     --rr-shift: calc((100vw - 2 * clamp(1rem, 4vw, 4rem) - 2rem) / 4 + 1rem);
 }

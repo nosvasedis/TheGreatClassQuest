@@ -21,6 +21,7 @@
 // ui/modals/classGreenhouseData.js; techniques from features/classGreenhousePlaybook.mjs.
 // Styles: styles/class_greenhouse.css.
 
+import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
 import { db, doc, getDoc, setDoc } from '../../firebase.js';
 import { dataPath } from '../../utils/tenant.mjs';
@@ -99,7 +100,7 @@ export async function openClassGreenhouse(classId, { tab = 'class', studentId = 
     body().innerHTML = `<div class="gh-loading"><span class="gh-loading__sprout" aria-hidden="true">${plantSvg({ profile: 'planted', growth: 0.3, leafiness: 0.4 })}</span><p>Walking the rows…</p></div>`;
     showAnimatedModal(MODAL_ID);
 
-    import('../../db/listeners.js').then(({ ensureHeroChronicleNotesListener }) => ensureHeroChronicleNotesListener()).catch(() => {});
+    import('../../db/listeners.js').then(({ ensureHeroChronicleNotesListener }) => ensureHeroChronicleNotesListener()).catch(quietly('ui/modals/classGreenhouse.js'));
     view.unsubscribe?.();
     let pending = null;
     view.unsubscribe = state.subscribe(['allHeroChronicleNotes', 'allStudentScores', 'allStudents'], () => {
@@ -128,7 +129,7 @@ function showReadingRound(classId) {
             view.aiRound = { next: st.pending ? st.nextLabel : '', pending: st.pending };
             if (isOpen() && view.tab === 'class') renderPanel({ keepScroll: true });
         })
-        .catch(() => {});
+        .catch(quietly('ui/modals/classGreenhouse.js'));
 }
 
 function closeGreenhouse() {

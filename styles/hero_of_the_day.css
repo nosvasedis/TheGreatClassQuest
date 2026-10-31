@@ -151,7 +151,7 @@
     justify-content: center;
     gap: 10px;
     margin: 4px 0 0;
-    font-family: 'Cinzel', serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: 0.72rem;
     letter-spacing: 0.18em;
@@ -166,7 +166,7 @@
 .hod-kicker__line:last-child { transform: scaleX(-1); }
 .hod-title {
     margin: 4px 0 0;
-    font-family: 'Cinzel', serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: 1.6rem;
     letter-spacing: 0.04em;
@@ -200,7 +200,7 @@
     top: 50%;
     width: 110px;
     transform: translate(-50%, -50%);
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1rem;
     line-height: 1.15;
     color: #fff3c4;
@@ -233,7 +233,7 @@
     overflow: hidden;
     clip-path: polygon(0 0, 100% 0, 100% 58%, 50% 100%, 0 58%);
     background: #31477c;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: calc(var(--hod-shield, 44px) * 0.42);
     color: #f8edd0;
 }
@@ -391,7 +391,7 @@
     background: radial-gradient(circle at 40% 35%, #3e5fae, #1a3170);
     border: 5px solid #e9b949;
     box-shadow: 0 0 0 2px #8a5512, 0 8px 18px rgba(0, 0, 0, 0.4);
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 3.6rem;
     color: #fff3c4;
 }
@@ -433,7 +433,7 @@
     overflow: hidden;
     margin: 0;
     padding: 9px 12px 10px;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-weight: 400;
     font-size: clamp(1.35rem, 6vw, 1.9rem);
     line-height: 1.1;
@@ -471,7 +471,7 @@
 }
 .hod-date {
     margin: 2px 0 0;
-    font-family: 'Cinzel', serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: 0.7rem;
     letter-spacing: 0.14em;
@@ -489,7 +489,7 @@
     background: linear-gradient(#fff1b5, #f2c14e 45%, #d39a2c);
     box-shadow: 0 4px 0 #8a5512, 0 8px 14px rgba(0, 0, 0, 0.35);
     color: #4a2a05;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.2rem;
     cursor: pointer;
 }

@@ -5,6 +5,7 @@
 // AI Chronicler (db/actions/quests.js#writeAdventurePageWithChronicler); Manual opens the
 // full page writer (features/adventurePageWriter.js); Later leaves the page waiting in the diary.
 // Lazy: loaded only when a page is waiting. Markup in ./diaryChooserView.mjs.
+import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { db, doc, getDoc } from '../../firebase.js';
@@ -148,7 +149,7 @@ export async function openDiaryChooser(logId, { onSettled } = {}) {
             overlay.querySelector('[data-diary-stage="writing"]').hidden = false;
             overlay.classList.add('is-writing');
             try {
-                const actions = await import('../../db/actions.js');
+                const actions = await import('../../db/actions/index.js');
                 await actions.writeAdventurePageWithChronicler(logId, {
                     onStatus: (text) => {
                         const status = overlay.querySelector('[data-diary-writing-status]');
@@ -209,7 +210,7 @@ function showLockedNote(overlay) {
         note.setAttribute('role', 'status');
         note.textContent = `${getUpgradeMessage('Elite', 'adventureLog')} Choose Manual to write today's page yourself.`;
         stage.querySelector('.dc-choices')?.after(note);
-    }).catch(() => {});
+    }).catch(quietly('ui/modals/diaryChooser.js'));
 }
 
 function trapFocus(event, overlay) {

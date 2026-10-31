@@ -1,6 +1,7 @@
 // The star roll's own tooltip (Award Stars tab): a little sky card above a bead or chip,
 // instead of the browser's title box. Reads data-tip-name / -note / -hint / -avatar.
 // Styles: .aw-roll-tip in styles/award_stars.css.
+import { escapeHtml as esc } from '../utils/html.mjs';
 
 let tipEl = null;
 const builders = new Map();
@@ -11,10 +12,6 @@ export function registerAwardTipBuilder(kind, build) {
 }
 let tipFor = null;
 let touchTimer = 0;
-
-function esc(value) {
-    return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
-}
 
 function ensureTip() {
     if (tipEl?.isConnected) return tipEl;

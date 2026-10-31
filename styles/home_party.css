@@ -216,7 +216,7 @@
 .home-party__avatar--initial {
     display: grid;
     place-items: center;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: calc(var(--s) * 0.42);
     color: #fff;
     background: linear-gradient(150deg, var(--pc-a), var(--pc-b));

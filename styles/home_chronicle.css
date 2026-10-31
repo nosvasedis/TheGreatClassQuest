@@ -1,7 +1,6 @@
 /* ===================================================================
    The Chronicle (Home, class view): three pages of the class diary.
    Markup: features/home.js#getChroniclePageHtml; behaviour: wireChronicleDeck.
-   (The School Office home still uses the older .chronicle-item cards in home.css.)
    =================================================================== */
 
 .ch-deck {
@@ -230,7 +229,7 @@
     overflow-wrap: anywhere;
 }
 .ch-page--story .ch-page__body {
-    font-family: 'Lora', Georgia, serif;
+    font-family: var(--gcq-font-serif);
     font-style: italic;
     font-size: 0.95rem;
 }

@@ -10,6 +10,8 @@
 // Everything that moves is a transform or opacity; low-power machines get fewer particles and
 // reduced motion jumps straight to the reveal. Styles: styles/familiar_moments.css.
 
+import { quietly } from '../utils/runtimeMetrics.js';
+import { escapeHtml as esc } from '../utils/html.mjs';
 import * as state from '../state.js';
 import { ensureAudioReady, playFamiliarEvolutionSfx } from '../audio.js';
 import { detectLowPowerTier } from '../utils/devicePerformance.mjs';
@@ -33,8 +35,6 @@ function ensureStyles() {
     stylesRequested = true;
     import('../styles/familiar_moments.css').catch((e) => console.warn('Familiar moment styles failed to load:', e));
 }
-
-const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 
 let liteTier = null;
 function isLite() {
@@ -154,7 +154,7 @@ export function showFamiliarNotice(studentId, familiar) {
     ensureAudioReady().then(() => {
         playFamiliarEvolutionSfx('notice');
         setTimeout(() => playFamiliarCall({ ...familiar, level: Math.max(1, seen) }, studentId), 380);
-    }).catch(() => {});
+    }).catch(quietly('features/familiarMoments.js'));
 }
 
 // ─── The Evolution Moment ─────────────────────────────────────────────────────

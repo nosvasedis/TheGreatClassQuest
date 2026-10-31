@@ -57,7 +57,7 @@
 }
 
 .qow-review-title {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.6rem;
     color: #78350f;
     line-height: 1.15;
@@ -111,7 +111,7 @@
 }
 
 .qow-review-num {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 0.85rem;
     color: white;
     background: linear-gradient(135deg, #f59e0b, #d97706);
@@ -250,7 +250,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 0.85rem;
     color: #78350f;
     cursor: pointer;
@@ -373,7 +373,7 @@
     color: #115e59;
     font-size: 0.78rem;
     font-weight: 700;
-    font-family: 'Lora', Georgia, serif;
+    font-family: var(--gcq-font-serif);
 }
 
 /* Pick-list (manual log modal and entry editor) */
@@ -404,7 +404,7 @@
 
 .learned-today-pick--word,
 .adventure-log-editor-field label.learned-today-pick--word {
-    font-family: 'Lora', Georgia, serif;
+    font-family: var(--gcq-font-serif);
     background: #ccfbf1;
 }
 
@@ -460,7 +460,7 @@
 }
 
 .wall-lang-line {
-    font-family: "Fredoka", sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     font-size: 1.35rem;
     line-height: 1.35;
@@ -476,7 +476,7 @@
 }
 
 .wall-lang-words span {
-    font-family: "Lora", Georgia, serif;
+    font-family: var(--gcq-font-serif);
     font-weight: 700;
     font-size: 1.3rem;
     padding: 0.2rem 0.75rem;
@@ -529,7 +529,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-family: "Fredoka One", "Fredoka", sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 2rem;
     color: #312e81;
     background: white;
@@ -572,7 +572,7 @@
 }
 
 .wall-lang-pair span {
-    font-family: "Fredoka One", "Fredoka", sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 3.2rem;
     color: #7c2d12;
     background: white;

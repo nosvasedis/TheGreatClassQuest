@@ -125,7 +125,7 @@
     gap: 0.35rem;
     padding: 0.18rem 0.7rem;
     border-radius: 0.4rem;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 0.72rem;
     letter-spacing: 0.06em;
     color: #ecfdf5;
@@ -470,7 +470,7 @@
     border: 1.5px solid var(--mm-brass);
     background: var(--mm-parchment);
     color: var(--mm-ink);
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 0.78rem;
     font-weight: 600;
     white-space: nowrap;
@@ -515,7 +515,7 @@
     gap: 0.4rem;
     padding: 0.38rem 0.8rem;
     border-radius: 0.6rem;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     font-size: 0.82rem;
     color: #fde68a;
@@ -580,7 +580,7 @@
     background: transparent;
     border: 0;
     padding: 0.42rem 0.2rem;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     font-size: 0.82rem;
     color: #eef2ff;
@@ -595,7 +595,7 @@
     gap: 0.4rem;
     padding: 0.42rem 0.8rem;
     border-radius: 0.6rem;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     font-size: 0.82rem;
     color: #fef3c7;
@@ -922,7 +922,7 @@
 
 .mm-shelves .mm-tag .shop-price-value,
 .mm-shelves .mm-tag .shop-price-now {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.12rem;
     line-height: 1;
     color: var(--mm-ink);
@@ -955,7 +955,7 @@
     width: 2.9rem;
     height: 2.9rem;
     place-items: center;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 0.72rem;
     color: #fff;
     background: var(--sale-color, #e11d48);
@@ -1120,7 +1120,7 @@
     top: 45%;
     z-index: 6;
     padding: 0.15rem 0.9rem;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 2rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -1239,7 +1239,7 @@
 }
 
 .mm-closed__word {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.5rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -1733,7 +1733,7 @@
 }
 
 .mm-stage__plaque-title {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.45rem;
     line-height: 1.15;
     color: var(--mm-parchment);

@@ -3,6 +3,7 @@
 // Elite, painted from the teacher's own words. Typing is kept as a draft on this device until
 // the page is saved. Opened from the Today's Page chooser or the blank page in the diary.
 // Lazy; pure rules in ./adventurePageCore.mjs, page shell in ./diaryPageEditor.js.
+import { quietly } from '../utils/runtimeMetrics.js';
 import * as state from '../state.js';
 import * as utils from '../utils.js';
 import { db, doc, getDoc, runTransaction, serverTimestamp } from '../firebase.js';
@@ -308,7 +309,7 @@ export async function openAdventurePageWriter(logId) {
             clearDraft(logId);
             closeWriter();
             showToast('Your page is in the diary! 📖', 'success');
-            import('../ui/tabs/log.js').then(m => m.focusDiaryPage(logId)).catch(() => {});
+            import('../ui/tabs/log.js').then(m => m.focusDiaryPage(logId)).catch(quietly('features/adventurePageWriter.js'));
             return;
         }
         if (document.body.contains(overlay)) {

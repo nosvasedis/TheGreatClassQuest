@@ -34,7 +34,7 @@ body > div > img[src^="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP"] {
     position: relative;
     overflow: hidden;
     color: var(--cert-text);
-    font-family: 'Lora', Georgia, serif;
+    font-family: var(--gcq-font-serif);
     background: var(--cert-paper);
     text-align: center;
 }
@@ -416,7 +416,7 @@ body > div > img[src^="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP"] {
 
 .gcq-cert__honour-label {
     margin-top: 2px;
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--gcq-font-body);
     font-weight: 700;
     font-size: 8.5px;
     letter-spacing: 0.12em;
@@ -458,18 +458,18 @@ body > div > img[src^="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP"] {
     flex-wrap: wrap;
     gap: 2px 8px;
     margin: 6px 0 0;
-    font-family: 'Cinzel', serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: 13px;
     letter-spacing: 0.04em;
     color: var(--cert-gold);
 }
 .gcq-cert__legend-crown { font-size: 12px; }
-.gcq-cert__legend-sub { font-family: 'Open Sans', sans-serif; font-size: 10.5px; font-weight: 600; color: var(--cert-text); opacity: 0.75; }
+.gcq-cert__legend-sub { font-family: var(--gcq-font-body); font-size: 10.5px; font-weight: 600; color: var(--cert-text); opacity: 0.75; }
 
 .gcq-cert__meta {
     margin-top: 4px;
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--gcq-font-body);
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.06em;
@@ -499,7 +499,7 @@ body > div > img[src^="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP"] {
 .gcq-cert__sign-name {
     padding-bottom: 5px;
     border-bottom: 1.5px solid var(--cert-ink);
-    font-family: 'Lora', Georgia, serif;
+    font-family: var(--gcq-font-serif);
     font-style: italic;
     font-weight: 700;
     font-size: 19px;
@@ -603,7 +603,7 @@ body > div > img[src^="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP"] {
         0 30px 80px rgba(0, 0, 0, 0.55),
         inset 0 0 0 1px rgba(255, 220, 160, 0.15),
         inset 0 2px 0 rgba(255, 220, 170, 0.12);
-    font-family: 'Lora', Georgia, serif;
+    font-family: var(--gcq-font-serif);
 }
 
 /* Gold tooling around the cover */
@@ -869,7 +869,7 @@ body > div > img[src^="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP"] {
 .cert-honours-list .cert-h-icon { font-size: 1.1rem; line-height: 1; flex-shrink: 0; }
 .cert-honours-list .cert-h-text { display: flex; flex-direction: column; min-width: 0; }
 .cert-honours-list .cert-h-value { font-weight: 700; font-size: 0.85rem; line-height: 1.2; color: #3a1a0c; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cert-honours-list .cert-h-label { font-family: 'Open Sans', sans-serif; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.05em; line-height: 1.25; text-transform: uppercase; color: #8a6a44; }
+.cert-honours-list .cert-h-label { font-family: var(--gcq-font-body); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.05em; line-height: 1.25; text-transform: uppercase; color: #8a6a44; }
 
 .cert-honours-note {
     margin: 8px 0 0;
@@ -895,7 +895,7 @@ body > div > img[src^="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP"] {
     border: 1.5px solid rgba(164, 122, 44, 0.45);
     background: #fffdf6;
     color: #3b2f25;
-    font-family: 'Lora', Georgia, serif;
+    font-family: var(--gcq-font-serif);
     font-style: italic;
     font-size: 0.95rem;
     line-height: 1.5;
@@ -906,7 +906,7 @@ body > div > img[src^="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP"] {
     justify-content: space-between;
     align-items: center;
     margin-top: 6px;
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--gcq-font-body);
     font-size: 0.7rem;
     color: #8a6a44;
 }

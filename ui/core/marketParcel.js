@@ -4,6 +4,7 @@
 // the purse ticks down. Everything that moves is a transform or opacity; .is-lite (low-power
 // machines) keeps the unwrap but drops the endless loops, and reduced motion shows the final state.
 
+import { escapeHtml } from '../../utils/html.mjs';
 import { handleUseItem, isItemUsable } from '../../features/powerUps.js';
 import { keeperPurchaseLine } from '../../features/marketKeeperCore.mjs';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
@@ -15,10 +16,6 @@ const REVEAL_MS = 1500; // when the ware has risen and the receipt is out
 const USE_IDLE_HTML = '<i class="fas fa-bolt" aria-hidden="true"></i><span>Use it now</span>';
 
 let active = null; // { close } of the parcel on screen
-
-function escapeHtml(value) {
-    return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
-}
 
 function prefersReducedMotion() {
     try { return Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches); } catch { return false; }

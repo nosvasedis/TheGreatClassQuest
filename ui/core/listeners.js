@@ -1,21 +1,22 @@
 // /ui/core/listeners.js
 
 // --- IMPORTS ---
+import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
 import { db, auth, signOut, doc, collection, query, where, getDocs, runTransaction, serverTimestamp } from '../../firebase.js';
 import { walkOutThroughGate } from '../authGate.js';
 import { setupHomeListeners } from '../../features/home.js';
 import { wireHeaderClassSelector } from '../headerClassSelector.js';
 
-import * as modals from '../modals.js';
+import * as modals from '../modals/index.js';
 import { setupSpecialQuestRunnerListeners } from '../modals/specialQuest.js';
 import { prepareBountyPoster, focusBountyPoster, setupBountyPoster, validateBountyPoster } from '../modals/bountyPoster.js';
 import {
     handleGetQuestUpdate,
     downloadCertificateAsPdf,
     openAppInfoModal
-} from '../modals.js';
-import * as tabs from '../tabs.js';
+} from '../modals/index.js';
+import * as tabs from '../tabs/index.js';
 import * as storyWeaver from '../../features/storyWeaver.js';
 import * as avatar from '../../features/avatar.js';
 import * as ceremony from '../../features/ceremony.js';
@@ -59,7 +60,7 @@ import {
     applyReasonAwardScoreTransaction,
     applyAwardOutwardSkillEffects,
     showHeroLevelUpCelebration
-} from '../../db/actions.js';
+} from '../../db/actions/index.js';
 import { handleBestowBoon } from '../../features/boons.js';
 import { handleAvatarClick } from './avatar.js';
 import {
@@ -182,10 +183,10 @@ export function setupUIListeners() {
     document.getElementById('edit-class-close-btn').addEventListener('click', () => modals.hideModal('edit-class-modal'));
     document.getElementById('edit-student-cancel-btn').addEventListener('click', () => modals.hideModal('edit-student-modal'));
     document.getElementById('edit-student-confirm-btn').addEventListener('click', () => {
-        import('../../db/actions.js').then(actions => actions.handleSaveStudentDetails());
+        import('../../db/actions/index.js').then(actions => actions.handleSaveStudentDetails());
     });
     document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
-        import('../../db/actions.js').then(actions => actions.handleLookupNameday());
+        import('../../db/actions/index.js').then(actions => actions.handleLookupNameday());
     });
 
     // Calendar Logic: On-Demand Loading
@@ -223,11 +224,11 @@ export function setupUIListeners() {
 
             try {
                 if (viewing >= thirtyDaysAgo) {
-                    import('../tabs.js').then((m) => m.renderCalendarTab(state.get('allAwardLogs')));
+                    import('../tabs/index.js').then((m) => m.renderCalendarTab(state.get('allAwardLogs')));
                 } else {
                     const { fetchLogsForDate } = await import('../../db/queries.js');
                     const logs = await fetchLogsForDate(utils.getDDMMYYYY(viewing));
-                    import('../tabs.js').then((m) => m.renderCalendarTab(logs));
+                    import('../tabs/index.js').then((m) => m.renderCalendarTab(logs));
                 }
             } catch (error) {
                 console.error('Day history fetch failed:', error);
@@ -262,7 +263,7 @@ export function setupUIListeners() {
             logsForView = state.get('allAwardLogs');
 
             // Re-render immediately
-            import('../tabs.js').then(m => m.renderCalendarTab(logsForView));
+            import('../tabs/index.js').then(m => m.renderCalendarTab(logsForView));
 
         } else {
             // B. Past Month: Fetch On Demand (Save Reads)
@@ -275,7 +276,7 @@ export function setupUIListeners() {
                 logsForView = await fetchLogs(year, month);
 
                 // Render with fetched data
-                import('../tabs.js').then(m => m.renderCalendarTab(logsForView));
+                import('../tabs/index.js').then(m => m.renderCalendarTab(logsForView));
 
             } catch (error) {
                 console.error("History fetch failed:", error);
@@ -323,7 +324,7 @@ export function setupUIListeners() {
 
     document.getElementById('calendar-today-btn')?.addEventListener('click', () => {
         state.set('calendarCurrentDate', new Date());
-        import('../tabs.js').then((m) => {
+        import('../tabs/index.js').then((m) => {
             m.renderCalendarTab(state.get('allAwardLogs'));
             document.querySelector('.qc-day--today')?.focus({ preventScroll: true });
         });
@@ -426,12 +427,12 @@ export function setupUIListeners() {
             `<p class="mb-4">Are you sure you want to mark <b>${dateString}</b> as a School Holiday?</p>
             <p class="text-sm text-red-600 font-bold">This will cancel ALL classes for this day and adjust monthly goals accordingly.</p>`,
             () => {
-                import('../../db/actions.js').then(actions => {
+                import('../../db/actions/index.js').then(actions => {
                     actions.handleRemoveAttendanceColumn(null, dateString, true);
                     modals.hideModal('day-planner-modal');
                     const currentTab = document.querySelector('.app-tab:not(.hidden)');
                     if (currentTab && currentTab.id === 'calendar-tab') {
-                        import('../tabs.js').then(t => t.renderCalendarTab());
+                        import('../tabs/index.js').then(t => t.renderCalendarTab());
                     }
                 });
             },
@@ -582,7 +583,7 @@ export function setupUIListeners() {
                 showToast('The market stays sealed until the school year opens.', 'error');
                 return;
             }
-            import('../../db/actions.js').then(a => a.handleGenerateShopStock());
+            import('../../db/actions/index.js').then(a => a.handleGenerateShopStock());
         });
     }
 
@@ -620,7 +621,7 @@ export function setupUIListeners() {
                 if (itemType === 'familiar') {
                     import('../../db/actions/economy.js').then(a => a.handleBuyFamiliarEgg(studentId, itemId));
                 } else {
-                    import('../../db/actions.js').then(a => a.handleBuyItem(studentId, itemId));
+                    import('../../db/actions/index.js').then(a => a.handleBuyItem(studentId, itemId));
                 }
             }
         });
@@ -644,7 +645,7 @@ export function setupUIListeners() {
     document.getElementById('create-bounty-form')?.addEventListener('submit', (e) => {
         e.preventDefault(); // keep the page from reloading
         if (!validateBountyPoster()) return;
-        import('../../db/actions.js').then(a => a.handleCreateBounty());
+        import('../../db/actions/index.js').then(a => a.handleCreateBounty());
     });
 
     document.getElementById('bounty-cancel-btn')?.addEventListener('click', () => modals.hideModal('create-bounty-modal'));
@@ -662,11 +663,11 @@ export function setupUIListeners() {
         const claimBtn = e.target.closest('.claim-bounty-btn');
 
         if (deleteBtn) {
-            import('../../db/actions.js').then(a => a.handleDeleteBounty(deleteBtn.dataset.id));
+            import('../../db/actions/index.js').then(a => a.handleDeleteBounty(deleteBtn.dataset.id));
         }
         if (claimBtn && !claimBtn.disabled) {
             claimBtn.disabled = true;
-            import('../../db/actions.js')
+            import('../../db/actions/index.js')
                 .then(a => a.handleClaimBounty(claimBtn.dataset.id, null, claimBtn.dataset.reward))
                 .catch((error) => console.error('Bounty claim failed:', error))
                 .finally(() => { if (claimBtn.isConnected) claimBtn.disabled = false; });
@@ -938,7 +939,7 @@ export function setupUIListeners() {
                         type: occasion,
                         student,
                         bonus: occasion === 'birthday' ? 2.5 : 1.5,
-                        onGift: () => import('../../db/actions.js').then(a => a.handleSpecialOccasionBonus(studentId, occasion)),
+                        onGift: () => import('../../db/actions/index.js').then(a => a.handleSpecialOccasionBonus(studentId, occasion)),
                         close: () => modals.hideModal('celebration-bonus-modal'),
                     });
                     modals.showAnimatedModal('celebration-bonus-modal');
@@ -998,7 +999,7 @@ export function setupUIListeners() {
     if (saveGoldBtn) {
         saveGoldBtn.addEventListener('click', () => {
             // Import dynamically to ensure actions.js is loaded
-            import('../../db/actions.js').then(a => a.handleManualGoldUpdate());
+            import('../../db/actions/index.js').then(a => a.handleManualGoldUpdate());
         });
     }
 
@@ -1051,7 +1052,7 @@ export function setupUIListeners() {
             editAdventureLogEntry(editBtn.dataset.logId);
         }
         if (retryBtn) {
-            import('../../db/actions.js').then((a) => a.retryAdventureLogGeneration(retryBtn.dataset.logId));
+            import('../../db/actions/index.js').then((a) => a.retryAdventureLogGeneration(retryBtn.dataset.logId));
         }
     });
     document.getElementById('note-cancel-btn').addEventListener('click', () => modals.hideModal('note-modal'));
@@ -1183,7 +1184,7 @@ export function setupUIListeners() {
     });
 
     setupSpecialQuestRunnerListeners();
-    import('../../features/specialQuestService.js').then(({ scheduleQuestEffectReconcile }) => scheduleQuestEffectReconcile()).catch(() => {});
+    import('../../features/specialQuestService.js').then(({ scheduleQuestEffectReconcile }) => scheduleQuestEffectReconcile()).catch(quietly('ui/core/listeners.js'));
     // Initialize Home/Info Listeners
     setupHomeListeners();
     wireHeaderClassSelector();
@@ -1195,7 +1196,7 @@ export function setupUIListeners() {
             modals.hideModal('hero-celebration-modal');
             Promise.all([import('../modals/heroOfDayReveal.js'), import('../../audio.js')])
                 .then(([reveal, audio]) => reveal.stopHeroOfDayReveal(audio))
-                .catch(() => {});
+                .catch(quietly('ui/core/listeners.js'));
             const modal = document.getElementById('hero-celebration-modal');
             const detail = modal?._campfireDetail;
             const diaryLogId = modal?._diaryLogId;

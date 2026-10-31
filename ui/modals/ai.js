@@ -4,7 +4,7 @@ import * as utils from '../../utils.js';
 import { showAnimatedModal } from './base.js';
 import { showToast } from '../effects.js';
 import { callGeminiApi } from '../../api.js';
-import { ensureHistoryLoaded } from '../../db/actions.js';
+import { ensureHistoryLoaded } from '../../db/actions/index.js';
 import { isSpeaking, speakText, stopSpeech, isTtsSupported } from '../../features/tts.js';
 import { requireEliteAI } from '../../utils/upgradePrompt.js';
 import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';

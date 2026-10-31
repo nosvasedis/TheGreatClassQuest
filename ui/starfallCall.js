@@ -1,15 +1,9 @@
 // ui/starfallCall.js — the look of a Starfall that waited for the lesson: the Scholar's Scroll
 // call and the summon that opens the Starfall window. No Firebase here (see features/pendingStarfall.js).
+import { escapeHtml as esc } from '../utils/html.mjs';
 import { playStarfallSfx } from '../audio.js';
 import { formatMarkedDay } from '../features/pendingStarfallCore.mjs';
 import '../styles/starfall_call.css';
-
-const esc = (value) => String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 
 const reducedMotion = () => Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
 export const firstName = (name) => String(name || '').trim().split(/\s+/)[0] || 'A scholar';

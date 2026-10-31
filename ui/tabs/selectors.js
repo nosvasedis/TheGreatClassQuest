@@ -1,4 +1,5 @@
 // /ui/tabs/selectors.js
+import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import * as constants from '../../constants.js';
@@ -378,7 +379,7 @@ function renderMonthSpecials(items) {
         if (!btn || !btn.dataset.specialDay) return;
         const cell = document.querySelector(`.calendar-day-cell[data-date="${btn.dataset.specialDay}"]`);
         if (cell) cell.click();
-        else import('../modals/planner.js').then((m) => m.openDayPlannerModal(btn.dataset.specialDay, null)).catch(() => {});
+        else import('../modals/planner.js').then((m) => m.openDayPlannerModal(btn.dataset.specialDay, null)).catch(quietly('ui/tabs/selectors.js'));
     };
 }
 
@@ -467,7 +468,7 @@ function renderMonthStats({ stars, events, schoolDays, tests, daysOff = 0, detai
 // If null, defaults to state.allAwardLogs (Current Month).
 export function renderCalendarTab(customLogs = null) {
     // Schedule and event listeners all funnel through here, so keep an open Planner in step.
-    import('../modals/planner.js').then(m => m.refreshOpenDayPlanner?.()).catch(() => {});
+    import('../modals/planner.js').then(m => m.refreshOpenDayPlanner?.()).catch(quietly('ui/tabs/selectors.js'));
 
     if (isMobileCalendarMode()) {
         renderMobileCalendarDay(customLogs);

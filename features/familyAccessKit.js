@@ -4,6 +4,7 @@
 // Shared by the Secretary's Family Logins desk and the teacher's access card.
 // The QR is drawn in the browser (qrcode-generator, MIT); no outside service is called.
 
+import { escapeHtml } from '../utils/html.mjs';
 import { DEFAULT_SCHOOL_ID, getSchoolId, normalizeSchoolId } from '../utils/tenant.mjs';
 
 const LOGO_URL = new URL('../assets/great-class-quest-logo.svg', import.meta.url).href;
@@ -99,15 +100,6 @@ let qrLibPromise = null;
 function loadQrLib() {
     qrLibPromise ??= import('qrcode-generator').then((mod) => mod.default || mod.qrcode || mod);
     return qrLibPromise;
-}
-
-function escapeHtml(value) {
-    return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
 }
 
 /**

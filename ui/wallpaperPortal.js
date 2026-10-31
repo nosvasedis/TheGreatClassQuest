@@ -15,6 +15,7 @@
 // underneath show through. Full screen is settled before anything is measured, every animation
 // starts from a pose laid out over still frames, and render states only change while nothing moves.
 
+import { quietly } from '../utils/runtimeMetrics.js';
 import * as utils from '../utils.js';
 import { getGreetingHillsHtml, treesHtml } from '../features/homeGreetingScene.js';
 
@@ -74,7 +75,7 @@ function animate(el, keyframes, options) {
 }
 
 function settle(animations) {
-    return Promise.all(animations.filter(Boolean).map((a) => a.finished.catch(() => {})));
+    return Promise.all(animations.filter(Boolean).map((a) => a.finished.catch(quietly('ui/wallpaperPortal.js'))));
 }
 
 function pauseAll(animations) {
@@ -100,7 +101,7 @@ function setMask(el, gradient) {
  * full screen). Browsers without the Keyboard Lock API keep their own Esc.
  */
 function lockEscape() {
-    navigator.keyboard?.lock?.(['Escape']).catch(() => {});
+    navigator.keyboard?.lock?.(['Escape']).catch(quietly('ui/wallpaperPortal.js'));
 }
 
 function unlockEscape() {
@@ -128,7 +129,7 @@ export async function leaveFullscreen() {
         document.addEventListener('fullscreenchange', resolve, { once: true });
         setTimeout(resolve, FULLSCREEN_WAIT_MS);
     });
-    document.exitFullscreen().catch(() => {});
+    document.exitFullscreen().catch(quietly('ui/wallpaperPortal.js'));
     await changed;
     await nextFrames();
 }

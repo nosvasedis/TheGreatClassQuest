@@ -3,6 +3,8 @@
 // sheet of the atlas. A month rail with waypoint pips, league chips and a class
 // search sit on top; every league gets a race chart (where each party stopped
 // on the road), a champion's pennant and a standings ledger.
+import { escapeHtml as esc } from '../../utils/html.mjs';
+import '../../styles/league_archive.css';
 import '../../styles/quest_ranks.css';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
@@ -50,15 +52,6 @@ const monthCache = new Map();
 let questHistoryRows = null;
 let archiveToken = 0;
 let bound = false;
-
-function esc(value) {
-    return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
 
 function rankWord(rank) {
     return RANK_WORDS[rank - 1] || `${rank}th`;

@@ -5,6 +5,7 @@
 // - a `#wand=<session>` link (the QR) or More › Quest Remote on a phone → the Wand
 //   (features/questRemote/remoteWand.js);
 // - after a page reload, a projector that was hosting quietly re-opens its session.
+import { quietly } from '../utils/runtimeMetrics.js';
 import { canUseFeature } from '../utils/subscription.js';
 
 const WAND_LINK_RE = /(?:^|[#&?])wand=([a-z0-9]{6,40})(?:&|$)/i;
@@ -92,6 +93,6 @@ export async function beforeSignOut() {
 /** Sign-out: the projector session closes and the Wand is put down. */
 export function onSignedOut() {
     delete document.body.dataset.gcqTeacherReady;
-    hostModule?.then((m) => m.stopQuestRemote({ quiet: true })).catch(() => {});
-    wandModule?.then((m) => m.closeWand({ quiet: true })).catch(() => {});
+    hostModule?.then((m) => m.stopQuestRemote({ quiet: true })).catch(quietly('ui/questRemoteButton.js'));
+    wandModule?.then((m) => m.closeWand({ quiet: true })).catch(quietly('ui/questRemoteButton.js'));
 }

@@ -111,7 +111,7 @@ html[data-wx-night="0"]:is([data-wx-tone="rain"], [data-wx-tone="storm"], [data-
     width: 1.35rem;
     height: 1.35rem;
     border-radius: 999px;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 0.72rem;
     font-weight: 400;
     color: #fff;

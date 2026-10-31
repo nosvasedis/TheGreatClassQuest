@@ -1,5 +1,6 @@
 // /features/guildScoring.js — the Crown Race: Glory ledger writes, monthly Chapters and Crowns
 
+import { quietly } from '../utils/runtimeMetrics.js';
 import {
     db,
     doc,
@@ -522,7 +523,7 @@ export async function correctOrphanMemberGlory() {
         // Rosters load alongside guild scores; look again shortly (once).
         if (!_orphanRetryScheduled) {
             _orphanRetryScheduled = true;
-            setTimeout(() => { correctOrphanMemberGlory().catch(() => {}); }, 20000);
+            setTimeout(() => { correctOrphanMemberGlory().catch(quietly('features/guildScoring.js')); }, 20000);
         }
         return;
     }

@@ -6,6 +6,7 @@
 // the session counts as a completed class bounty. Nothing is ever taken away.
 // Opened from the projector remote (Projector Mode) or the optional header button.
 // Rules: features/quietDragonCore.mjs · Art: ui/quietDragonArt.js · Gift: db/actions/quietDragon.js
+import { quietly } from '../../utils/runtimeMetrics.js';
 import '../../styles/quiet_dragon.css';
 import { playSound, playHeroFanfare } from '../../audio.js';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
@@ -427,7 +428,7 @@ async function startSession() {
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 2048;
     source.connect(analyser);
-    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    if (ctx.state === 'suspended') ctx.resume().catch(quietly('ui/modals/quietDragon.js'));
 
     const level = levelByKey(ui.level);
     const heroIds = classRoster(ui.classId).filter((h) => !h.away).map((h) => h.id);

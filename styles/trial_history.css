@@ -101,7 +101,7 @@
     align-items: center;
     gap: 0.5rem;
     margin: 0.05rem 0 0;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: clamp(1.5rem, 3.2vw, 2.1rem);
     line-height: 1.1;
     color: #fff7e6;
@@ -371,7 +371,7 @@
 .th-date i { margin-top: 0.12rem; font-style: normal; font-size: 0.6rem; color: var(--th-ink-3); }
 .th-trial__main { display: flex; flex-direction: column; gap: 0.2rem; flex: 1; min-width: 0; }
 .th-trial__title {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     font-size: 1.02rem;
     color: var(--th-ink);
@@ -492,7 +492,7 @@
 .th-pill[data-tier="mid"] { --pill: var(--th-mid); }
 .th-pill[data-tier="low"] { --pill: var(--th-low); }
 .th-pill[data-tier="unmarkable"] { --pill: #7c3aed; border-style: dashed; }
-.th-pill b { font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 0.88rem; }
+.th-pill b { font-family: var(--gcq-font-display); font-weight: 700; font-size: 0.88rem; }
 .th-pill small { font-size: 0.7rem; font-weight: 700; opacity: 0.75; }
 
 .th-result__tools { display: flex; gap: 0.2rem; flex-shrink: 0; opacity: 0; transition: opacity 0.16s ease; }
@@ -541,7 +541,7 @@
 .th-scholar__head { display: flex; align-items: center; gap: 0.65rem; }
 .th-scholar__who { display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .th-scholar__name {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     font-size: 1rem;
     color: var(--th-ink);
@@ -586,7 +586,7 @@
 .th-mark[data-tier="mid"] { --pill: var(--th-mid); }
 .th-mark[data-tier="low"] { --pill: var(--th-low); }
 .th-mark small { font-size: 0.62rem; font-weight: 700; color: var(--th-ink-3); }
-.th-mark b { font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 0.85rem; }
+.th-mark b { font-family: var(--gcq-font-display); font-weight: 700; font-size: 0.85rem; }
 button.th-mark { cursor: pointer; transition: transform 0.16s ease, box-shadow 0.16s ease; }
 button.th-mark:hover { transform: translateY(-2px); box-shadow: 0 6px 12px -8px rgba(90, 52, 24, 0.7); }
 
@@ -659,7 +659,7 @@ button.th-mark:hover { transform: translateY(-2px); box-shadow: 0 6px 12px -8px 
     color: #fff7e6;
     background: linear-gradient(180deg, var(--th-leather-1), var(--th-leather-2));
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 0 0 1px rgba(231, 193, 112, 0.3), 0 6px 12px -8px rgba(58, 11, 25, 0.9);
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     font-size: 0.84rem;
     cursor: pointer;

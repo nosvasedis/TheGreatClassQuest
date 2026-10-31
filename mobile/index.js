@@ -1,3 +1,4 @@
+import { quietly } from '../utils/runtimeMetrics.js';
 import './styles/mobile.css';
 import { injectMobileShells } from './templates.js';
 import { initTeacherMobile, syncTeacherClassPill, measureMobileChrome } from './teacher.js';
@@ -126,7 +127,7 @@ function applyMobileMode() {
     // Calendar switches month-grid ↔ day-agenda when mode flips.
     const calendarTab = document.getElementById('calendar-tab');
     if (calendarTab && !calendarTab.classList.contains('hidden')) {
-        import('../ui/tabs.js').then((m) => m.renderCalendarTab()).catch(() => {});
+        import('../ui/tabs/index.js').then((m) => m.renderCalendarTab()).catch(quietly('mobile/index.js'));
     }
 }
 

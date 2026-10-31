@@ -1,16 +1,11 @@
 // Home tab: Quest Progress as a little road through the four Team Quest realms.
 // Pure markup, no app state, so the guidebook capture renders the same card
 // (docs/product/guidebook/capture/fill-surfaces.js). Styles: styles/home_quest_road.css.
+import { escapeHtml as esc } from '../utils/html.mjs';
 import { QUEST_MAP_ZONES, getQuestMapZoneForProgressPercent } from './questMapZones.mjs';
 
 const ROAD_START = 60;   // viewBox x where 0% sits
 const ROAD_END = 940;    // viewBox x where the goal flag sits
-
-function esc(value) {
-    return String(value ?? '')
-        .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
-        .replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
 
 function formatStars(n) {
     const v = Math.round((Number(n) || 0) * 10) / 10;

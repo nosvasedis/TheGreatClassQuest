@@ -340,7 +340,7 @@ async function openHeroStage(avatar, studentId) {
             const action = actionEl.dataset.hsAction;
             if (action === 'close') close();
             else if (!studentId) return;
-            else if (action === 'vault') closeThen(() => import('../modals.js').then((m) => m.openTrophyRoomModal(studentId)));
+            else if (action === 'vault') closeThen(() => import('../modals/index.js').then((m) => m.openTrophyRoomModal(studentId)));
             else if (action === 'stats') closeThen(() => openHeroView(studentId));
             else if (action === 'skills') closeThen(() => openSkillTreeModal(studentId));
             else if (action === 'familiar') closeThen(() => openFamiliarStatsOverlay(studentId));

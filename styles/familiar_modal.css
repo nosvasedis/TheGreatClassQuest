@@ -661,7 +661,7 @@
 }
 .fam-modal-name {
     margin: 2px 0 8px;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 2.1rem;
     line-height: 1.05;
     color: #fff;
@@ -680,7 +680,7 @@
     gap: 6px;
     padding: 5px 18px;
     border-radius: 999px;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 0.8rem;
     font-weight: 700;
     color: #1a1026;
@@ -708,7 +708,7 @@
     margin: 16px 8px 0;
     padding: 0 18px;
     text-align: center;
-    font-family: 'Lora', Georgia, serif;
+    font-family: var(--gcq-font-serif);
     font-style: italic;
     font-size: 0.95rem;
     line-height: 1.5;
@@ -718,7 +718,7 @@
 .fam-modal-quote::before,
 .fam-modal-quote::after {
     position: absolute;
-    font-family: 'Lora', Georgia, serif;
+    font-family: var(--gcq-font-serif);
     font-size: 2.2rem;
     line-height: 1;
     color: var(--den-glow);
@@ -738,7 +738,7 @@
 .fam-den-trait {
     padding: 3px 10px;
     border-radius: 999px;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 0.72rem;
     font-weight: 600;
     color: var(--den-ink);
@@ -769,7 +769,7 @@
 .fam-den-body > .fam-den-panel:nth-of-type(4) { animation-delay: 0.68s; }
 
 .fam-den-label {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 0.66rem;
     font-weight: 700;
     letter-spacing: 0.16em;
@@ -777,7 +777,7 @@
     color: color-mix(in srgb, var(--den-ink) 60%, transparent);
 }
 .fam-den-hint {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 0.75rem;
     color: color-mix(in srgb, var(--den-ink) 62%, transparent);
 }
@@ -860,7 +860,7 @@
     border: 1.5px dashed rgba(255, 255, 255, 0.22);
 }
 .fam-evo-name {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 0.68rem;
     font-weight: 600;
     line-height: 1.15;
@@ -895,19 +895,19 @@
     margin-bottom: 8px;
 }
 .fam-den-next {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.1rem;
     color: #fff;
     text-shadow: 0 0 12px color-mix(in srgb, var(--den-glow) 60%, transparent);
 }
 .fam-den-count {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 0.8rem;
     white-space: nowrap;
     color: color-mix(in srgb, var(--den-ink) 70%, transparent);
 }
 .fam-den-count strong {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.35rem;
     font-weight: 400;
     color: var(--den-glow);
@@ -1021,7 +1021,7 @@
 }
 .fam-modal-stat > div { min-width: 0; }
 .fam-stat-value {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.4rem;
     line-height: 1.1;
     color: #fff;
@@ -1048,7 +1048,7 @@
     width: 100%;
     padding: 9px 12px;
     border-radius: 12px;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 700;
     color: #fff;
     background: linear-gradient(135deg, #ef4444, #b91c1c);
@@ -1068,7 +1068,7 @@
     min-width: 0;
     padding: 9px 12px;
     border-radius: 12px;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 0.9rem;
     color: #fff;
     background: rgba(0, 0, 0, 0.45);
@@ -1085,7 +1085,7 @@
 .fam-name-save {
     padding: 0 16px;
     border-radius: 12px;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 700;
     color: #1a1026;
     background: linear-gradient(135deg, var(--den-ink), var(--den-glow));

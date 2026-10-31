@@ -1,3 +1,4 @@
+import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
 import { db, doc, collection, query, where, getDocs, getDoc, onSnapshot, runTransaction, serverTimestamp, addDoc, updateDoc, increment } from '../../firebase.js';
 import { canUseFeature } from '../../utils/subscription.js';
@@ -174,7 +175,7 @@ export async function completeClassFigure(classId, kind, completions, { bonus = 
         tx.update(classRef, { ['oathFigures.' + c.schoolYearKey + '.' + field]: completions, ['teamQuestBonuses.' + monthKey]: current + bonus,
             lastWheelQuestBonusAt: serverTimestamp(), lastWheelQuestBonusNote: ('Constellation drawn: ' + (name || kind)).slice(0, 160) });
     });
-    if (added) import('./stars.js').then(m => m.checkAndRecordQuestCompletion(classId)).catch(() => {});
+    if (added) import('./stars.js').then(m => m.checkAndRecordQuestCompletion(classId)).catch(quietly('db/actions/emberOaths.js'));
     return added;
 }
 export async function releaseEmberOath(id) {

@@ -7,6 +7,7 @@
 // .star-award-btn[data-stars], .star-selector-container, .post-award-undo-btn, .boon-btn[data-receiver-id],
 // .absence-controls [data-action], #today-stars-<id>, #monthly-stars-<id>, #total-stars-<id> (each absent while sealed),
 // #student-gold-display-<id>, .enlargeable-avatar.
+import { escapeHtml as esc } from '../utils/html.mjs';
 
 /** The four life skills a teacher can name on a cloud, in button order. */
 export const AWARD_VIRTUES = [
@@ -53,12 +54,6 @@ export const AWARD_CLOUD_SHAPES = {
 };
 
 export const AWARD_CLOUD_KEYS = Object.keys(AWARD_CLOUD_SHAPES);
-
-function esc(value) {
-    return String(value ?? '')
-        .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
-        .replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
 
 /** Stars can be fractional (Welcome Back, peer boons); show at most one decimal. */
 export function formatAwardStars(value) {

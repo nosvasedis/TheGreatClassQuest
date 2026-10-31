@@ -217,7 +217,7 @@ html.cer-open #app-screen { visibility: hidden; }
     background: linear-gradient(180deg, #fff6d8, #f8d57e 55%, #c98a1e);
     -webkit-background-clip: text; background-clip: text;
 }
-.grd-card__kicker { margin: 0; font-family: 'Cinzel', serif; font-weight: 700; letter-spacing: 0.32em; text-transform: uppercase; font-size: clamp(0.7rem, 1.6vh, 0.85rem); color: #fbc8a8; }
+.grd-card__kicker { margin: 0; font-family: var(--gcq-font-rune); font-weight: 700; letter-spacing: 0.32em; text-transform: uppercase; font-size: clamp(0.7rem, 1.6vh, 0.85rem); color: #fbc8a8; }
 .grd-card__title { margin: 0; font-family: var(--grd-title-font); font-weight: 400; font-size: clamp(1.8rem, 6.4vh, 3.4rem); line-height: 1.05; color: #fff3d6; text-shadow: 0 3px 0 #7a3a12, 0 0 34px rgba(251, 191, 36, 0.45); }
 .grd-card__line { margin: 2px 0 6px; font-family: var(--grd-body-font); font-style: italic; font-size: clamp(0.9rem, 2.2vh, 1.15rem); color: var(--grd-muted); }
 .grd-card.is-on .grd-card__title { animation: grd-card-title 1.75s cubic-bezier(.2, .9, .3, 1) both; }
@@ -413,7 +413,7 @@ html.cer-open #app-screen { visibility: hidden; }
     color: #fff; font-size: clamp(1.4rem, 4vh, 2.2rem);
     text-shadow: 0 2px 0 rgba(120, 53, 15, 0.6);
 }
-.grd-opening__kicker { margin: 6px 0 0; font-family: 'Cinzel', serif; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; font-size: clamp(0.72rem, 1.4vw, 0.95rem); color: #fbc8a8; }
+.grd-opening__kicker { margin: 6px 0 0; font-family: var(--gcq-font-rune); font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; font-size: clamp(0.72rem, 1.4vw, 0.95rem); color: #fbc8a8; }
 .grd-opening__title { margin: 0; font-family: var(--grd-title-font); font-weight: 400; font-size: clamp(2.1rem, min(7vh, 6.4vw), 4.6rem); line-height: 1.05; color: #fff3d6; text-shadow: 0 3px 0 #7a3a12, 0 0 40px rgba(251, 191, 36, 0.4); }
 .grd-opening__title span { display: inline-block; opacity: 0; transform: translateY(0.4em) scale(0.8); transition: opacity 0.5s ease, transform 0.7s var(--grd-ease-pop); transition-delay: calc(0.35s + var(--i) * 40ms); }
 .grd-opening.is-on .grd-opening__title span { opacity: 1; transform: none; }
@@ -504,7 +504,7 @@ html.cer-open #app-screen { visibility: hidden; }
 .grd-quest__rank small { font-size: 0.58rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--r1, #fde68a); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .grd-quest__total { display: flex; align-items: baseline; gap: 6px; margin: 6px 0 8px; font-family: var(--grd-title-font); font-size: 1.9rem; color: #fde68a; }
 .grd-quest__total i { font-size: 1rem; color: #fbbf24; }
-.grd-quest__total small { font-family: 'Open Sans', sans-serif; font-size: 0.72rem; color: var(--grd-muted); }
+.grd-quest__total small { font-family: var(--gcq-font-body); font-size: 0.72rem; color: var(--grd-muted); }
 .grd-quest__bars { display: flex; align-items: flex-end; gap: 4px; height: clamp(46px, 9vh, 70px); }
 .grd-bar { position: relative; flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 2px; }
 .grd-bar__fill {
@@ -661,7 +661,7 @@ html.cer-open #app-screen { visibility: hidden; }
     font-family: var(--grd-title-font); font-size: clamp(1.3rem, 4vh, 1.9rem); line-height: 1; color: #fff;
     text-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
 }
-.grd-pillar__value small { margin-top: 3px; font-family: 'Open Sans', sans-serif; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.9; }
+.grd-pillar__value small { margin-top: 3px; font-family: var(--gcq-font-body); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.9; }
 .grd-pillar:not(.is-revealed) .grd-pillar__value .grd-count { animation: grd-breathe 1.3s ease-in-out infinite; }
 .grd-pillar__base { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; }
 .grd-medals { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; row-gap: 3px; justify-content: center; gap: 3px; max-width: 100%; }
@@ -762,10 +762,10 @@ html.cer-open #app-screen { visibility: hidden; }
     transition: transform 0.75s cubic-bezier(.3, 1.6, .5, 1), opacity 0.3s ease;
 }
 .grd-champion.is-crowned .grd-champion__crown { transform: translate(-50%, 0) rotate(-6deg); opacity: 1; }
-.grd-champion__year { position: relative; font-family: 'Cinzel', serif; font-weight: 700; font-size: clamp(0.6rem, 1.5vh, 0.8rem); letter-spacing: 0.2em; text-transform: uppercase; color: #fff8ec; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); text-align: center; padding: 0 12%; }
+.grd-champion__year { position: relative; font-family: var(--gcq-font-rune); font-weight: 700; font-size: clamp(0.6rem, 1.5vh, 0.8rem); letter-spacing: 0.2em; text-transform: uppercase; color: #fff8ec; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); text-align: center; padding: 0 12%; }
 .grd-champion__text { max-width: 600px; min-width: 0; display: flex; flex-direction: column; max-height: 100%; opacity: 0; transform: translateY(18px); transition: opacity 0.8s ease 0.4s, transform 0.9s ease 0.4s; }
 .grd-champion.is-raised .grd-champion__text { opacity: 1; transform: none; }
-.grd-champion__kicker { margin: 0; font-family: 'Cinzel', serif; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; font-size: 0.85rem; color: #fbc8a8; }
+.grd-champion__kicker { margin: 0; font-family: var(--gcq-font-rune); font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; font-size: 0.85rem; color: #fbc8a8; }
 .grd-champion__name { margin: 0; font-family: var(--grd-title-font); font-weight: 400; font-size: clamp(2rem, 6vh, 3.6rem); line-height: 1.05; color: #fff3d6; text-shadow: 0 3px 0 color-mix(in srgb, var(--g1) 70%, #000), 0 0 30px var(--gg); }
 .grd-champion__motto { margin: 4px 0 8px; font-family: var(--grd-body-font); font-style: italic; font-size: clamp(0.95rem, 2.2vh, 1.15rem); color: var(--grd-muted); }
 .grd-champion__facts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }

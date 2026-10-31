@@ -56,7 +56,7 @@
 
 .quest-event-section__head h3 {
     margin: 0;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 1.15rem;
     font-weight: 700;
     color: #1e1b4b;
@@ -135,7 +135,7 @@
 }
 
 .quest-event-type-card__name {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 1.05rem;
     font-weight: 700;
     color: #0f172a;
@@ -404,7 +404,7 @@
     background: linear-gradient(95deg, #7c3aed 0%, #c2410c 50%, #d97706 100%);
     background-size: 200% auto;
     color: #fff7ed;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 1.25rem;
     font-weight: 700;
     letter-spacing: 0.02em;
@@ -471,7 +471,7 @@
 
 .m-cal-event__title {
     margin: 0;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 0.98rem;
     font-weight: 700;
     line-height: 1.25;
@@ -559,7 +559,7 @@
 
 .schedule-lesson-card__name {
     margin: 0;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 1.05rem;
     font-weight: 700;
     color: #1e1b4b;
@@ -656,7 +656,7 @@
     padding: 0.9rem 1.1rem;
     border: 0;
     border-radius: 1.15rem;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 1.05rem;
     font-weight: 700;
     cursor: pointer;

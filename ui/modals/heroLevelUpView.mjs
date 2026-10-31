@@ -1,6 +1,7 @@
 // The hero level-up moment: the model and markup (no DOM, so it can be tested in node).
 // The modal itself, its timeline and sparks live in ui/modals/heroLevelUp.js;
 // styles in styles/hero_level_up.css (.hlu-*).
+import { escapeHtml as esc } from '../../utils/html.mjs';
 
 /** When each piece arrives, in ms from opening. The burst is the moment the new level lights. */
 export const HLU_TIMELINE = Object.freeze({
@@ -12,10 +13,6 @@ export const HLU_TIMELINE = Object.freeze({
     actions: 2400,
     done: 2900
 });
-
-function esc(value) {
-    return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
 
 function hexToRgb(hex) {
     const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());

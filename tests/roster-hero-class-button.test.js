@@ -12,5 +12,6 @@ test('a chosen hero class in the roster is a button that opens the Deck of Paths
 });
 
 test('roster class button goes through the same modal that enforces the yearly change limit', () => {
-    assert.match(source, /querySelectorAll\('\.hero-class-select-btn'\)[\s\S]*?modals\.openHeroClassSelectModal\(btn\.dataset\.id\)/);
+    // The roster's tools share one delegated listener (ROSTER_ACTIONS in ui/tabs/classes.js).
+    assert.match(source, /'hero-class-select-btn': \(id\) => \{[\s\S]*?modals\.openHeroClassSelectModal\(id\)/);
 });

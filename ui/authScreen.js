@@ -2,6 +2,7 @@
 // password peek, Caps Lock warning, username hint, QR deep link and remembered role.
 // app.js owns the sign-in flow itself; this file only shapes what people see.
 
+import { escapeHtml } from '../utils/html.mjs';
 import { friendlyAuthError } from '../utils/friendlyErrors.js';
 import { normalizeUsername, ROLE_PARENT, ROLE_SECRETARY, ROLE_TEACHER } from '../utils/roles.js';
 
@@ -68,15 +69,6 @@ const ACTIVATION_COPY = {
     lede: 'This one-time link creates the school’s administrator account.',
     list: []
 };
-
-function escapeHtml(value) {
-    return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
 
 function readStorage(key) {
     try { return window.localStorage.getItem(key) || ''; } catch (_) { return ''; }

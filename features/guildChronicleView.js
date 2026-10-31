@@ -2,9 +2,8 @@
 // Crown Race in the Guild Hall and the "Story of the Year" in the Grand Guild Ceremony.
 // Loaded on demand with its stylesheet, once a Chapter has been sealed.
 
+import { escapeHtml as esc } from '../utils/html.mjs';
 import '../styles/guild_chronicle.css';
-
-const esc = (v) => String(v ?? '').replace(/[<&>"']/g, (ch) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[ch]));
 
 function byline(chronicle) {
     return chronicle.by === 'chronicler'

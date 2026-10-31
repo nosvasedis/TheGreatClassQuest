@@ -522,7 +522,7 @@
 }
 
 .fw-guild-banner__name {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.3rem;
     line-height: 1.1;
     color: var(--fw-moon);
@@ -1089,7 +1089,7 @@
 }
 
 .fw-availability-title {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.02rem;
     line-height: 1.2;
     color: var(--fw-gold-light);
@@ -1297,7 +1297,7 @@
     width: 100%;
     border-radius: 0.9rem;
     cursor: pointer;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     transition: transform 140ms ease, filter 160ms ease, box-shadow 160ms ease;
 }
 
@@ -1354,7 +1354,7 @@
 }
 
 .fw-btn-primary__sub {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 0.66rem;
     font-weight: 700;
     letter-spacing: 0.16em;
@@ -1646,7 +1646,7 @@
     left: 50%;
     transform: translateX(-50%);
     padding: 0.3rem 1.4rem 0.35rem;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 0.72rem;
     letter-spacing: 0.2em;
     text-transform: uppercase;
@@ -1729,7 +1729,7 @@
 
 .fw-result-card--v2 .fw-result-title {
     margin-top: 0.4rem;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: clamp(1.7rem, 4.5vw, 2.35rem);
     line-height: 1.08;
     background: linear-gradient(180deg, #fffbea 0%, #fde68a 45%, color-mix(in srgb, var(--rarity-color) 50%, #f5b93a) 100%);
@@ -1796,7 +1796,7 @@
 
 .fw-result-stat__value {
     margin-top: 0.15rem;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.45rem;
     line-height: 1.1;
     color: #86efac;
@@ -2009,7 +2009,7 @@
 
 .fw-locked-title {
     margin: 0;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.15rem;
     color: var(--fw-gold-light);
 }
@@ -2057,7 +2057,7 @@
 }
 
 .fw-summary-title {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: clamp(1.5rem, 3vw, 2.1rem);
     line-height: 1.1;
     background: linear-gradient(180deg, #fffdf2 0%, var(--fw-gold-light) 45%, var(--fw-gold) 100%);
@@ -2151,7 +2151,7 @@
 
 .fw-summary-result {
     margin-top: 0.3rem;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.12rem;
     line-height: 1.2;
     color: var(--fw-moon);

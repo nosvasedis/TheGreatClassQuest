@@ -1,4 +1,6 @@
 // features/worldMap.js
+import { cubicBezier, assignStableMapLanes, getRoutePoint } from './questWorld/mapRouteCore.mjs';
+import { quietly } from '../utils/runtimeMetrics.js';
 import '../styles/quest_ranks.css';
 import '../styles/quest_sky.css';
 import * as state from '../state.js'; // Import state to get live scores
@@ -180,19 +182,6 @@ const SEAL_BREAK_MS = 560;
 const SEAL_BREAK_LITE_MS = 320;
 const INK_BLOOM_MS = 1600;
 const easeInCubic = (t) => t * t * t;
-function cubicBezier(x1, y1, x2, y2) {
-    const axis = (a, b, t) => ((1 - 3 * b + 3 * a) * t + (3 * b - 6 * a)) * t * t + 3 * a * t;
-    return (x) => {
-        let lo = 0;
-        let hi = 1;
-        for (let i = 0; i < 24; i += 1) {
-            const mid = (lo + hi) / 2;
-            if (axis(x1, x2, mid) < x) lo = mid;
-            else hi = mid;
-        }
-        return axis(y1, y2, (lo + hi) / 2);
-    };
-}
 // A quick flick off the rods that slows as the paper flattens out.
 const easeUnroll = cubicBezier(0.3, 0.02, 0.16, 1);
 // The parties' walk (the same curve as their travel animation), for the footsteps.
@@ -240,30 +229,6 @@ function shouldUseLiteMapFx() {
         if (Number(nav.hardwareConcurrency) > 0 && Number(nav.hardwareConcurrency) <= 2) return true;
     } catch { /* not available */ }
     return false;
-}
-
-function assignStableMapLanes(items) {
-    const laneOrder = [0, -1, 1, -2, 2, -3, 3, -4, 4];
-    const ordered = [...items].sort((a, b) => (
-        a.pct - b.pct || a.tokenKey.localeCompare(b.tokenKey)
-    ));
-    let cluster = [];
-
-    const flushCluster = () => {
-        cluster
-            .sort((a, b) => a.tokenKey.localeCompare(b.tokenKey))
-            .forEach((item, index) => {
-                item.lane = laneOrder[index] ?? (index % 2 === 0 ? index / 2 : -Math.ceil(index / 2));
-            });
-        cluster = [];
-    };
-
-    ordered.forEach((item) => {
-        if (cluster.length && item.pct - cluster[0].pct > 4) flushCluster();
-        cluster.push(item);
-    });
-    flushCluster();
-    return items;
 }
 
 // Parties inside the Portal this month, by class id (their card can replay the Portal story).
@@ -753,7 +718,7 @@ export function renderSealedLeagueMapInto(slot, note = '') {
         // map started yet, fetch them here and show the scroll once they apply.
         root.dataset.styling = 'pending';
         const shown = root;
-        import('../styles/quest_world.css').catch(() => {}).then(() => {
+        import('../styles/quest_world.css').catch(quietly('features/worldMap.js')).then(() => {
             delete shown.dataset.styling;
             arrive(shown);
         });
@@ -761,29 +726,6 @@ export function renderSealedLeagueMapInto(slot, note = '') {
     root.classList.add('is-idle');
     setIdleNote(root, note);
     return root;
-}
-
-function getRoutePoint(routeSegments, progress) {
-    const safeProgress = Math.min(100, Math.max(0, Number(progress) || 0));
-    const segment = routeSegments.find((candidate, index) => (
-        safeProgress >= candidate.minProgress
-        && (safeProgress < candidate.maxProgress || index === routeSegments.length - 1)
-    )) || routeSegments[routeSegments.length - 1];
-    const segmentRange = segment.maxProgress - segment.minProgress || 1;
-    const localProgress = Math.min(1, Math.max(0, (safeProgress - segment.minProgress) / segmentRange));
-    const length = segment.totalLength * localProgress;
-    const point = segment.path.getPointAtLength(length);
-    const before = segment.path.getPointAtLength(Math.max(0, length - 1));
-    const after = segment.path.getPointAtLength(Math.min(segment.totalLength, length + 1));
-    const tangentX = after.x - before.x;
-    const tangentY = after.y - before.y;
-    const magnitude = Math.hypot(tangentX, tangentY) || 1;
-    return {
-        x: point.x,
-        y: point.y,
-        normalX: -tangentY / magnitude,
-        normalY: tangentX / magnitude
-    };
 }
 
 function constrainMapPoint(point) {
@@ -1656,14 +1598,14 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
             if (guardian) {
                 const classId = guardian.dataset.faceGuardian;
                 closePopover();
-                import('./portalGuardian.js').then(({ openPortalGuardian }) => openPortalGuardian(classId)).catch(() => {});
+                import('./portalGuardian.js').then(({ openPortalGuardian }) => openPortalGuardian(classId)).catch(quietly('features/worldMap.js'));
                 return;
             }
             const story = event.target.closest('[data-portal-story]');
             if (story) {
                 const classData = insideClasses.get(story.dataset.portalStory);
                 closePopover();
-                if (classData) import('./portalMoments.js').then(({ openCrossingStory }) => openCrossingStory(classData)).catch(() => {});
+                if (classData) import('./portalMoments.js').then(({ openCrossingStory }) => openCrossingStory(classData)).catch(quietly('features/worldMap.js'));
                 return;
             }
             const cta = event.target.closest('[data-open-chronicle]');

@@ -1,3 +1,4 @@
+import { quietly } from '../../utils/runtimeMetrics.js';
 import { showAnimatedModal, hideModal } from './base.js';
 import * as state from '../../state.js';
 import { playSound, playQuizShowSfx, stopQuizShowSound, warmQuizShowAudio, ensureAudioReady } from '../../audio.js';
@@ -731,7 +732,7 @@ export async function openQuizModal(classId) {
     closePauseCard();
     ensureModalInDOM();
     // Opened by a tap, so the browser lets the show's sounds start now.
-    ensureAudioReady().then((ok) => { if (ok) warmQuizShowAudio(); }).catch(() => {});
+    ensureAudioReady().then((ok) => { if (ok) warmQuizShowAudio(); }).catch(quietly('ui/modals/quizOfTheWeek.js'));
 
     // The stage opens at once with a curtain that says what is happening; the fetching follows.
     const triggerBtn = document.getElementById('quiz-week-trigger-btn');

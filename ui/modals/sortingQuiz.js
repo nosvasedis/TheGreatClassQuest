@@ -2,6 +2,7 @@
 // The ceremony itself (ui/modals/sortingCeremony.js) loads on first open so it
 // stays out of the eager modal barrel.
 
+import { quietly } from '../../utils/runtimeMetrics.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { getUpgradeMessage } from '../../config/tiers/features.js';
@@ -54,7 +55,7 @@ export function openSortingQuizModal(studentId) {
 
 /** Close the ceremony if it has been opened. */
 export function closeSortingQuizModal() {
-    if (_ceremony) _ceremony.then((m) => m.closeSortingCeremony()).catch(() => {});
+    if (_ceremony) _ceremony.then((m) => m.closeSortingCeremony()).catch(quietly('ui/modals/sortingQuiz.js'));
 }
 
 /** Kept for ui/core/listeners.js: the ceremony wires its own buttons on first open. */

@@ -32,7 +32,7 @@ import {
     refreshAdventureLogClassTools,
     updateAwardCardState,
     updateAwardBoonButtons,
-} from "../ui/tabs.js";
+} from "../ui/tabs/index.js";
 
 import {
     renderScholarsScrollTab,
@@ -41,12 +41,12 @@ import {
 import {
     updateStudentCardAttendanceState,
     findAndSetCurrentClass,
-} from "../ui/core.js";
+} from "../ui/core/index.js";
 import { renderStoryArchive } from "../features/storyWeaver.js";
 import { updateCeremonyStatus } from "../features/ceremony.js";
 import * as utils from "../utils.js";
 import { DEFAULT_SCHOOL_NAME } from "../constants.js";
-import * as modals from "../ui/modals.js";
+import * as modals from "../ui/modals/index.js";
 import { renderFamiliarOptionsUi, scheduleFamiliarGrowthSweep } from "../features/familiars.js";
 import { renderHomeTab } from "../features/home.js";
 import { refreshSetupClassesList } from "../features/schoolSetup.js";
@@ -1521,7 +1521,7 @@ export async function setupDataListeners(
                         ),
                 );
                 // Dynamically import to avoid circular dependency
-                const { renderActiveBounties } = await import("../ui/core.js");
+                const { renderActiveBounties } = await import("../ui/core/index.js");
                 renderActiveBounties();
                 scheduleHomeRender();
             },
@@ -1564,7 +1564,7 @@ export async function setupDataListeners(
 
             // Refresh UI
             // We use dynamic imports here to avoid circular dependency issues
-            const { renderCalendarTab } = await import("../ui/tabs.js");
+            const { renderCalendarTab } = await import("../ui/tabs/index.js");
             renderCalendarTab();
 
             const optionsTab = document.getElementById("options-tab");
@@ -1572,7 +1572,7 @@ export async function setupDataListeners(
                 (optionsTab && !optionsTab.classList.contains("hidden")) ||
                 document.getElementById("school-calendar-panel")
             ) {
-                const { renderHolidayList } = await import("../ui/core.js");
+                const { renderHolidayList } = await import("../ui/core/index.js");
                 renderHolidayList();
             }
             scheduleHomeRender();

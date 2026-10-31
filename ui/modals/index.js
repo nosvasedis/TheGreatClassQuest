@@ -1,7 +1,6 @@
 // /ui/modals/index.js
 // Barrel re-exporter — all sub-modules in one place.
-// This file is NOT the entry point used by consumers;
-// consumers import from '../ui/modals.js' which re-exports from here.
+// Import from here or the sub-module (the old ui/modals.js facade is gone, 2026-10-31).
 
 export * from './base.js';
 export * from './planner.js';

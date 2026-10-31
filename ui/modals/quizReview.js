@@ -1,4 +1,5 @@
 // /ui/modals/quizReview.js — optional teacher review of Quiz of the Week questions before they go live.
+import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
 import { showToast } from '../effects.js';
 import { escapeHtml } from '../../features/roles/shared.js';
@@ -92,7 +93,7 @@ function closeOverlay() {
     const overlay = document.getElementById(OVERLAY_ID);
     if (!overlay) return;
     overlay.classList.add('is-closing');
-    import('../../features/tts.js').then(({ stopSpeech }) => stopSpeech()).catch(() => {});
+    import('../../features/tts.js').then(({ stopSpeech }) => stopSpeech()).catch(quietly('ui/modals/quizReview.js'));
     document.removeEventListener('keydown', overlay._escHandler);
     window.setTimeout(() => overlay.remove(), 180);
 }
@@ -181,7 +182,7 @@ export async function openQuizReviewEditor(classId, { onSaved, quiz: preloadedQu
         if (hear) {
             const text = hear.closest('[data-review-card]')?.querySelector('[data-field="listen"]')?.value || '';
             const voice = hear.dataset.voice || '';
-            import('../../features/tts.js').then(({ speakText }) => speakText(text, { rate: quizSpeechRate(band), voice, boost: true })).catch(() => {});
+            import('../../features/tts.js').then(({ speakText }) => speakText(text, { rate: quizSpeechRate(band), voice, boost: true })).catch(quietly('ui/modals/quizReview.js'));
             return;
         }
         const deleteBtn = event.target.closest('[data-review-delete]');

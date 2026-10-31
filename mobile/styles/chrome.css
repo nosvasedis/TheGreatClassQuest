@@ -784,10 +784,6 @@ body.gcq-mobile .role-main {
     scroll-padding-bottom: var(--m-dock-height, 5.4rem);
 }
 
-.m-dock--parent {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
 body.gcq-mobile .m-dock .m-dock-btn {
     --cloud-ink: color-mix(in srgb, var(--tw-gradient-from, #0ea5e9) 58%, #0f172a);
     --cloud-ink-soft: color-mix(in srgb, var(--tw-gradient-from, #0ea5e9) 70%, rgba(15, 23, 42, 0.35));
@@ -1536,5 +1532,15 @@ body.gcq-mobile #m-class-picker-sheet.m-sheet--open {
 
     .m-sheet__list.m-more-grid {
         grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+/* Reduced motion on phones: the desktop net in styles/polish.css skips body.gcq-mobile, so the
+   header swash (left fully drawn), twinkling beads and More-sheet icon bounce stop here. */
+@media (prefers-reduced-motion: reduce) {
+    .m-header__swash path:first-of-type,
+    .m-header__bead,
+    body.gcq-mobile .m-more-item:active .icon {
+        animation: none !important;
     }
 }

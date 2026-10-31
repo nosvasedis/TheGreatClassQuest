@@ -215,7 +215,7 @@
 .hs-id { padding: 0 1.25rem; }
 .hs-name {
     margin: 0.85rem 0 0;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: clamp(1.6rem, 4.5vw, 2.15rem);
     line-height: 1.1;
     color: #fff;
@@ -287,7 +287,7 @@
 }
 .hs-stat i { color: var(--hs-tone); font-size: 1.05rem; }
 .hs-stat b {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-weight: 400;
     font-size: 1.55rem;
     line-height: 1.15;
@@ -469,7 +469,7 @@
     background: radial-gradient(circle at 50% 60%, rgba(251, 113, 133, 0.2), rgba(255, 255, 255, 0.04));
 }
 .hs-treasure--more {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.1rem;
     color: #fcd34d;
     border-style: dashed;

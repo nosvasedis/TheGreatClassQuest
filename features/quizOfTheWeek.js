@@ -1,3 +1,4 @@
+import { quietly } from '../utils/runtimeMetrics.js';
 import * as state from '../state.js';
 import * as utils from '../utils.js';
 import { getISOWeekKey, getTargetWeekKey } from '../features/guildScoring.js';
@@ -593,7 +594,7 @@ export async function finalizeQuiz(classId) {
         await markQuizCompleted(classId, finalResults);
         // The Quiz Champion presses a Hero Seal (read from the quiz history just saved).
         if (rewardResult?.prize?.studentId) {
-            import('./heroSeals.js').then((m) => m.noteQuizChampion(classId)).catch(() => {});
+            import('./heroSeals.js').then((m) => m.noteQuizChampion(classId)).catch(quietly('features/quizOfTheWeek.js'));
         }
         return finalResults;
     } catch (e) {

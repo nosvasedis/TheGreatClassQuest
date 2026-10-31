@@ -3,13 +3,8 @@
 // console while the show runs (with the deck's question and its answer, for the teacher's eyes only), and
 // the finale's rewards. remoteWand.js builds the plain data; styles: styles/quest_remote_wand.css.
 
+import { escapeHtml as esc } from '../../utils/html.mjs';
 import { SHOWDOWN_CLOCK_CHOICES, SHOWDOWN_GOAL_MIN, SHOWDOWN_GOAL_MAX, SHOWDOWN_LIVES_MIN, SHOWDOWN_LIVES_MAX, SHOWDOWN_TUG_MIN, SHOWDOWN_TUG_MAX } from './remoteCore.mjs';
-
-function esc(value) {
-    return String(value ?? '')
-        .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
-        .replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
 
 /** The six ways to split the room, in the order the Forge offers them. */
 export const FORGE_SPLITS = Object.freeze([

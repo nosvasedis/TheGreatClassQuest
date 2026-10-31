@@ -5,6 +5,7 @@
 //     lot the Secretary and the September rollover use, until someone seats them)
 // A student who is already waiting can be seated in one of the teacher's own classes.
 // Markup shell: templates/modals/student.js (#move-student-modal). Styles: styles/move_student.css.
+import '../../styles/move_student.css';
 import * as state from '../../state.js';
 import { showAnimatedModal, hideModal } from './base.js';
 import { showToast } from '../effects.js';

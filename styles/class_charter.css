@@ -812,7 +812,7 @@ body:not(.gcq-mobile) #create-class-modal.cc-backdrop {
     width: 100%;
     padding: 0.8rem 1rem;
     border-radius: 0.9rem;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     font-size: 1.1rem;
     cursor: pointer;
@@ -1086,7 +1086,7 @@ body:not(.gcq-mobile) #edit-class-modal.cc-backdrop {
 
 .cc-summary__text {
     margin: 0.1rem 0 0;
-    font-family: 'Lora', Georgia, serif;
+    font-family: var(--gcq-font-serif);
     font-style: italic;
     font-size: 1rem;
     line-height: 1.35;

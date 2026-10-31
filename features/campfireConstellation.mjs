@@ -3,7 +3,7 @@
  * Each promise kind has its own organic figure and way of joining (same kind only).
  * Covered by tests/campfire-constellation.test.mjs.
  */
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+import { escapeHtml as esc } from '../utils/html.mjs';
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 
 /** Same order and ids as OATH_CATEGORIES on the Oath Board. */

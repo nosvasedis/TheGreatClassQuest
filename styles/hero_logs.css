@@ -440,7 +440,7 @@
 }
 
 .hl-summary__scope {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.05rem;
     color: var(--hl-ink);
 }
@@ -475,7 +475,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.1rem;
     color: #6d28d9;
     background: linear-gradient(145deg, #f5f3ff, #ddd6fe);
@@ -567,7 +567,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.05rem;
     color: #fff;
     text-shadow: 0 2px 0 rgba(46, 16, 101, 0.6);
@@ -704,7 +704,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.05rem;
     line-height: 1.2;
     color: var(--hl-ink);

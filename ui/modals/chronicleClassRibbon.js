@@ -5,12 +5,11 @@
 // the Greenhouse) and the "In the class" section at the top of the Oracle's reading.
 // Everything here is computed on this computer from the Greenhouse records (no AI).
 
+import { escapeHtml as esc } from '../../utils/html.mjs';
 import { classRoleBrief } from '../../features/classGreenhouseCore.mjs';
 
 const ROLE_CACHE_MS = 3 * 60 * 1000;
 const roles = new Map(); // studentId → { at, role }
-
-const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 
 /** Where this child stands in their class (cached for a few minutes; null when unknown). */
 export async function classRoleFor(studentId, { waitMs = 4000, fresh = false } = {}) {

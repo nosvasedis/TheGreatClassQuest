@@ -459,7 +459,7 @@
 
 #attendance-chronicle-modal .attendance-date-chip-day { font-family: var(--ar-round); font-weight: 600; font-size: 1.15rem; line-height: 1; color: var(--ar-ink); letter-spacing: 0; }
 #attendance-chronicle-modal .attendance-date-chip-weekday { font-size: 0.6rem; font-weight: 800; letter-spacing: 0.08em; color: var(--ar-ink-soft); }
-#attendance-chronicle-modal .attendance-date-chip-meta { font-family: 'Open Sans', sans-serif; font-size: 0.6rem; font-weight: 600; letter-spacing: 0; text-transform: none; color: #94a3b8; white-space: nowrap; }
+#attendance-chronicle-modal .attendance-date-chip-meta { font-family: var(--gcq-font-body); font-size: 0.6rem; font-weight: 600; letter-spacing: 0; text-transform: none; color: #94a3b8; white-space: nowrap; }
 
 #attendance-chronicle-modal .attendance-date-col--today,
 #attendance-chronicle-modal .attendance-status-cell--today { background: #fffbeb !important; box-shadow: inset 2px 0 0 var(--ar-gold), inset -2px 0 0 var(--ar-gold); }

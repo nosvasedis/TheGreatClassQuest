@@ -1,6 +1,7 @@
 // Realm Raid preview: the hall, the victory moment and the projector card on a made-up school,
 // no Firebase. /realm-raid-preview.html?season=winter|carnival|summer&phase=herald|active|broken|legendary|won|held
 //   &view=hall|victory|card|help[&lite=1][&shot=1][&focus=<classId>]
+import './styles/tokens.css'; // shared fonts + tokens (this preview skips style.css)
 import './styles/realm_raid.css';
 import './styles/realm_raid_card.css';
 import { raidWindow, findRaid, computeShares, raidStatus, addDays, dayKey, getRaidSeason } from './features/realmRaidCore.mjs';

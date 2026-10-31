@@ -1,15 +1,9 @@
 // ui/modals/starfall.js
 // Starfall: bonus stars fall into a jar for each scholar on a moonlit windowsill.
 // No Firebase here; the caller passes what happens on "bestow" and how to close.
+import { escapeHtml as esc } from '../../utils/html.mjs';
 import { playStarfallSfx } from '../../audio.js';
 import '../../styles/starfall.css';
-
-const esc = (value) => String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 
 const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 

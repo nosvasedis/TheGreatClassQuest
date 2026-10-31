@@ -1,5 +1,6 @@
+import '../styles/secretary_office.css';
 import * as state from '../state.js';
-import * as modals from '../ui/modals.js';
+import * as modals from '../ui/modals/index.js';
 import { db, doc, setDoc, writeBatch } from '../firebase.js';
 import { showToast } from '../ui/effects.js';
 import { postCommunicationMessage, backfillRoleAccessData, updateSecretaryCredentials } from '../utils/adminRuntime.js';

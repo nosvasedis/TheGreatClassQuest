@@ -1,3 +1,4 @@
+import { quietly } from './utils/runtimeMetrics.js';
 import * as state from './state.js';
 import { loadTone } from './utils/lazyLibraries.js';
 import { VoicePool, guardMonoVoice, createVoiceBank, lazyVoices } from './utils/voiceBank.js';
@@ -861,7 +862,7 @@ export function playHeroCrowningSound() {
         const askedAt = Date.now();
         ensureAudioReady().then((ready) => {
             if (ready && Date.now() - askedAt < 1500) playHeroCrowningSound();
-        }).catch(() => {});
+        }).catch(quietly('audio.js'));
         return;
     }
     // The impact's boom is part of the recording too, so play one or the other.

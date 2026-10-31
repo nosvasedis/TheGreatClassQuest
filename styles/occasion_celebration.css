@@ -225,7 +225,7 @@
     color: #fde68a;
 }
 .occ-card--nameday .occ-eyebrow {
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--gcq-font-body);
     font-size: 1.05rem;
     letter-spacing: 0.06em;
     text-transform: none;
@@ -309,7 +309,7 @@
 .occ-card--nameday .occ-gift:focus-visible { outline-color: #1d4ed8; }
 .occ-card--nameday .occ-gift__stars { background: #fff; color: #1e3a8a; }
 .occ-card--nameday .occ-gift__stars b { color: #eab308; }
-.occ-gift__label [lang="el"] { font-family: 'Open Sans', sans-serif; font-weight: 700; }
+.occ-gift__label [lang="el"] { font-family: var(--gcq-font-body); font-weight: 700; }
 
 .is-giving .occ-gift { animation: occ-gift-pop 0.5s ease-out; }
 .is-giving .occ-gift__stars { animation: occ-stars-glow 1s ease-in-out infinite alternate; }

@@ -19,7 +19,7 @@ import {
 } from '../../firebase.js';
 import * as state from '../../state.js';
 import { showToast, showPraiseToast } from '../../ui/effects.js';
-import { showModal, hideModal } from '../../ui/modals.js';
+import { showModal, hideModal } from '../../ui/modals/index.js';
 import { callGeminiApi } from '../../api.js';
 import { playSound } from '../../audio.js';
 import { canUseFeature } from '../../utils/subscription.js';
@@ -1006,7 +1006,7 @@ export async function handleAddQuestEvent() {
         }
         
         showToast(type === 'Day Treasure' ? `${details.icon} ${details.title} is ready! Every class with a lesson on ${formatTreasureDays(details.window)} can open it.` : 'Quest Event added to calendar!', 'success');
-        import('../../ui/modals.js').then(m => m.hideModal('day-planner-modal'));
+        import('../../ui/modals/index.js').then(m => m.hideModal('day-planner-modal'));
         
     } catch (error) {
         console.error("Error adding quest event:", error);
@@ -1206,7 +1206,7 @@ export async function handleRemoveAttendanceColumn(classId, dateString, isGlobal
         showToast(msg, "success");
         
         // Refresh the view
-        const { renderAttendanceChronicle } = await import('../../ui/modals.js');
+        const { renderAttendanceChronicle } = await import('../../ui/modals/index.js');
         await renderAttendanceChronicle(classId);
 
     } catch (error) {

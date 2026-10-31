@@ -1,3 +1,5 @@
+import { quietly } from '../utils/runtimeMetrics.js';
+import { onSecond } from '../utils/clock.mjs';
 import { db, doc, getDoc } from '../firebase.js';
 import * as ceremony from '../features/ceremony.js';
 import { resolvePendingCeremonyMonth } from './ceremonyDomain.js';
@@ -7,8 +9,8 @@ import { normalizeQuestType, QUEST_TYPE_LABELS } from './specialQuestEngine.js';
 import { isSpecialQuestType } from './specialQuestEngine.js';
 import * as utils from '../utils.js';
 import { bountyAudienceLabel } from '../ui/bountyAudienceTag.js';
-import * as tabs from '../ui/tabs.js';
-import * as modals from '../ui/modals.js';
+import * as tabs from '../ui/tabs/index.js';
+import * as modals from '../ui/modals/index.js';
 import { buildHomePartyCardHtml } from './homePartyCard.mjs';
 import { buildHomeQuestRoadCardHtml } from './homeQuestRoadCard.mjs';
 import { normalizeChroniclerText } from './adventurePageCore.mjs';
@@ -156,12 +158,12 @@ function getHomeQuestTimerMeta(deadline) {
 }
 
 function startHomeQuestTimerTicker() {
-    if (homeQuestTimerInterval) clearInterval(homeQuestTimerInterval);
+    homeQuestTimerInterval?.();
 
     const tick = () => {
         const timerCard = document.querySelector('[data-home-quest-timer]');
         if (!timerCard) {
-            clearInterval(homeQuestTimerInterval);
+            homeQuestTimerInterval?.();
             homeQuestTimerInterval = null;
             return;
         }
@@ -200,7 +202,7 @@ function startHomeQuestTimerTicker() {
     };
 
     tick();
-    homeQuestTimerInterval = setInterval(tick, 1000);
+    homeQuestTimerInterval = onSecond(tick);
 }
 
 // --- NEW HELPER FUNCTION ---
@@ -326,7 +328,7 @@ async function executeRenderHome() {
     const spice = { headerQuote: getCuratedDailyQuote(utils.getLocalIsoDateString()) };
     fetchDailySpice().then(s => {
         updateHeaderQuote(s.headerQuote);
-    }).catch(() => {});
+    }).catch(quietly('features/home.js'));
 
     const allClasses = state.get('allSchoolClasses') || [];
     let viewId = 'general';
@@ -442,11 +444,11 @@ function patchHomeDashboard(wrapper, fragment, theme) {
 
 /** Moves the weather card clock hands each second; stops once the card leaves the DOM. */
 function startHomeClockTicker() {
-    if (homeClockInterval) clearInterval(homeClockInterval);
+    homeClockInterval?.();
     const tick = () => {
         const clock = document.querySelector('#home-dashboard-container [data-home-clock]');
         if (!clock) {
-            clearInterval(homeClockInterval);
+            homeClockInterval?.();
             homeClockInterval = null;
             return;
         }
@@ -459,7 +461,7 @@ function startHomeClockTicker() {
         if (clock.getAttribute('aria-label') !== label) clock.setAttribute('aria-label', label);
     };
     tick();
-    homeClockInterval = setInterval(tick, 1000);
+    homeClockInterval = onSecond(tick);
 }
 
 // --- 3. TEMPLATES (VIBRANT HORIZONS) ---
@@ -632,7 +634,7 @@ function getActiveDashboard(classData, theme, spice) {
                 state.setCurrentStoryData(currentData);
                 patchHomeChronicleStory(classId, docSnap.data());
             }
-        }).catch(() => {});
+        }).catch(quietly('features/home.js'));
     }
     const story = state.get('currentStoryData')[classId];
     const storyText = (story && story.currentSentence) ? `"...${story.currentSentence}..."` : "The story awaits its first chapter...";
@@ -1164,8 +1166,8 @@ function setQuizFooter(footer, html, classId) {
     const btn = footer.querySelector('#quiz-week-trigger-btn');
     // Fetch the stage while the teacher is still reading the card, so the press opens it at once.
     const loadStage = () => import('../ui/modals/quizOfTheWeek.js');
-    if ('requestIdleCallback' in window) window.requestIdleCallback(() => loadStage().catch(() => {}), { timeout: 4000 });
-    btn?.addEventListener('pointerenter', () => loadStage().catch(() => {}), { once: true });
+    if ('requestIdleCallback' in window) window.requestIdleCallback(() => loadStage().catch(quietly('features/home.js')), { timeout: 4000 });
+    btn?.addEventListener('pointerenter', () => loadStage().catch(quietly('features/home.js')), { once: true });
     btn?.addEventListener('click', () => {
         if (btn.classList.contains('is-opening')) return;
         btn.classList.add('is-opening');
@@ -1174,7 +1176,7 @@ function setQuizFooter(footer, html, classId) {
             .then((m) => m.openQuizModal(classId))
             .catch((error) => {
                 console.error('Quiz stage could not load:', error);
-                import('../ui/effects.js').then((fx) => fx.showToast('The Quiz of the Week could not open. Please try again.', 'error')).catch(() => {});
+                import('../ui/effects.js').then((fx) => fx.showToast('The Quiz of the Week could not open. Please try again.', 'error')).catch(quietly('features/home.js'));
             })
             .finally(() => {
                 btn.classList.remove('is-opening');
@@ -1332,7 +1334,7 @@ function ceremonyPillHtml(cls, pending) {
 }
 
 function toast(message, kind) {
-    import('../ui/effects.js').then((fx) => fx.showToast(message, kind)).catch(() => {});
+    import('../ui/effects.js').then((fx) => fx.showToast(message, kind)).catch(quietly('features/home.js'));
 }
 
 function wireCeremonyPill(classId) {

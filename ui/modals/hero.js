@@ -1,4 +1,5 @@
 // /ui/modals/hero.js
+import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
 import { showAnimatedModal, hideModal } from './base.js';
 
@@ -188,7 +189,7 @@ export function renderHeroChronicleContent(studentId) {
         `;
     }).join('');
     // Under each note: how it was read, and the teacher's say over it (lazy).
-    import('./chronicleNoteReading.js').then(m => m.paintNoteReadings(notesFeed, studentId)).catch(() => {});
+    import('./chronicleNoteReading.js').then(m => m.paintNoteReadings(notesFeed, studentId)).catch(quietly('ui/modals/hero.js'));
     refreshOracleIfOpen(studentId);
 }
 

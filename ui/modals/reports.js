@@ -1,11 +1,13 @@
 // /ui/modals/reports.js
+import '../../styles/weekly_report.css';
+import '../../styles/certificate.css';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import * as constants from '../../constants.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { getGuildById, getGuildEmblemUrl } from '../../features/guilds.js';
 import { showAnimatedModal } from './base.js';
-import { ensureHistoryLoaded } from '../../db/actions.js';
+import { ensureHistoryLoaded } from '../../db/actions/index.js';
 import { callGeminiApi } from '../../api.js';
 import { requireEliteAI } from '../../utils/upgradePrompt.js';
 import { canUseFeature } from '../../utils/subscription.js';

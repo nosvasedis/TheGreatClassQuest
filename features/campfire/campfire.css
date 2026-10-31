@@ -114,7 +114,7 @@
 .cf-top{position:relative;padding:clamp(14px,2.6vh,30px) clamp(20px,3.2vw,50px);display:flex;justify-content:space-between;align-items:center;gap:1rem;z-index:3;pointer-events:none}
 .cf-top>*{pointer-events:auto}
 .cf-brand{display:flex;align-items:center;gap:.8rem}.cf-brand svg{width:26px;height:36px;filter:drop-shadow(0 0 12px #ffc76a55)}
-.cf-brand span{font-size:9px;letter-spacing:.24em;color:#c4bdca}.cf-brand h1{font-family:"Fredoka One","Fredoka",sans-serif;font-weight:400;font-size:1.25rem;margin-top:2px}
+.cf-brand span{font-size:9px;letter-spacing:.24em;color:#c4bdca}.cf-brand h1{font-family:var(--gcq-font-title);font-weight:400;font-size:1.25rem;margin-top:2px}
 .cf-tools{display:flex;gap:8px}.cf-tools button{display:grid;place-items:center;padding:0;border:1px solid #f9dfb026;color:#e8ddce;border-radius:50%;height:42px;min-width:42px;background:#121a2acc;font-size:1rem}
 .cf-tools button:hover{background:#26304899}
 .cf-tools button[aria-pressed=true]{background:#3a2a18cc;border-color:#f2c17888;box-shadow:0 0 18px #ffb45c55}
@@ -140,7 +140,7 @@
 .cf-content.is-leaving{animation:cf-stage-out .32s cubic-bezier(.4,0,.6,1) both;pointer-events:none}
 .cf-content.is-entering{animation:cf-stage-in .55s cubic-bezier(.2,.7,.3,1) both}
 .cf-eyebrow{font-size:11px;letter-spacing:.34em;color:var(--cf-gold);margin:0 0 14px;font-weight:600}
-.cf-content h2{font-family:"Fredoka One","Fredoka",sans-serif;font-weight:400;font-size:clamp(30px,3.8vw,60px);line-height:1.1;margin:0 auto;max-width:980px;text-wrap:balance;text-shadow:0 2px 0 #0c0f2044,0 0 40px #ffb45c30}
+.cf-content h2{font-family:var(--gcq-font-title);font-weight:400;font-size:clamp(30px,3.8vw,60px);line-height:1.1;margin:0 auto;max-width:980px;text-wrap:balance;text-shadow:0 2px 0 #0c0f2044,0 0 40px #ffb45c30}
 .cf-subtitle{max-width:760px;line-height:1.5;margin:16px auto 0;font-size:clamp(16px,1.4vw,21px);color:#eadfd8;text-wrap:balance}
 .cf-whisper{font-size:.95rem;color:#c3b7b2;margin:22px auto;display:block}
 
@@ -419,14 +419,14 @@
 
 /* ── 2 · Who speaks first? A fair spark hops round the circle and lands on one name ── */
 .cf-pick{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:14px;margin:clamp(16px,3vh,28px) auto 0;min-height:64px}
-.cf-pick-btn{border:1px solid #f2c17888;background:linear-gradient(180deg,#2b1d16f0,#170f14f0);color:#ffe9c2;border-radius:999px;padding:12px 22px;font-family:"Fredoka One","Fredoka",sans-serif;font-size:clamp(15px,1.15vw,18px);box-shadow:0 0 24px #ffb45c33,inset 0 1px 0 #ffe9c233;transition:transform .25s,box-shadow .25s}
+.cf-pick-btn{border:1px solid #f2c17888;background:linear-gradient(180deg,#2b1d16f0,#170f14f0);color:#ffe9c2;border-radius:999px;padding:12px 22px;font-family:var(--gcq-font-title);font-size:clamp(15px,1.15vw,18px);box-shadow:0 0 24px #ffb45c33,inset 0 1px 0 #ffe9c233;transition:transform .25s,box-shadow .25s}
 .cf-pick-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 0 34px #ffb45c66,inset 0 1px 0 #ffe9c233}
 .cf-pick-btn:disabled{opacity:.55}
 .cf-pick-slot{--guild:#e0a55e;display:flex;align-items:center;gap:.75rem;min-width:12rem;padding:6px 22px 6px 6px;border-radius:999px;background:linear-gradient(180deg,#2c1d14f2,#170f14f2);border:2px solid #f2c17855;box-shadow:0 10px 26px #0007}
 .cf-pick-slot[hidden]{display:none}
 .cf-pick-face{width:54px;height:54px;flex:none;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:#3a3f55;border:3px solid var(--guild)}
 .cf-pick-face img,.cf-pick-face span{width:100%;height:100%;object-fit:cover;display:grid;place-items:center;font-family:"Fredoka One",sans-serif;font-size:1.5rem;color:#fce9c8}
-.cf-pick-slot b{font-family:"Fredoka One","Fredoka",sans-serif;font-weight:400;font-size:clamp(22px,2vw,30px);color:#fff0d4;white-space:nowrap}
+.cf-pick-slot b{font-family:var(--gcq-font-title);font-weight:400;font-size:clamp(22px,2vw,30px);color:#fff0d4;white-space:nowrap}
 .cf-pick-slot.is-chosen{border-color:#ffd27a;box-shadow:0 0 0 6px #ffd27a22,0 0 44px #ffb45c88,0 10px 26px #0007;animation:cf-pick-land .7s cubic-bezier(.34,1.56,.64,1) both}
 .cf-pick-slot.is-chosen b{color:#ffe7a8}
 @keyframes cf-pick-land{from{transform:scale(.82)}}

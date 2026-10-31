@@ -22,7 +22,8 @@ test('the move modal offers another class or the waiting list, each on its own c
     assert.match(modal, /allocateReturningStudents\(\{ classId: target\.id, studentIds: \[student\.id\] \}\)/);
     assert.match(read('utils/adminRuntime.js'), /callAdmin\('releaseStudentToPlacement', payload\)/);
     assert.match(read('templates/modals/student.js'), /id="move-student-modal"[\s\S]*class="ms-card pop-in"/);
-    assert.match(read('style.css'), /styles\/move_student\.css/);
+    // The transfer-orders styles load with the modal, not with the first paint.
+    assert.match(modal, /import '\.\.\/\.\.\/styles\/move_student\.css';/);
 });
 
 test('releasing a student puts them in Student placement and keeps where they came from', () => {

@@ -8,7 +8,7 @@
     border: 2px solid color-mix(in srgb, var(--sc-b) 22%, #fff);
 }
 .qc-train__emoji { font-size: 1.7rem; line-height: 1; }
-.qc-train__tile b { font-family: 'Fredoka', sans-serif; font-size: 0.95rem; color: var(--sc-ink); }
+.qc-train__tile b { font-family: var(--gcq-font-display); font-size: 0.95rem; color: var(--sc-ink); }
 .qc-train__tile small { font-size: 0.62rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-soft); }
 .qc-train__tile em { font-style: normal; white-space: nowrap; font-size: 0.72rem; font-weight: 700; color: var(--sc-soft); }
 
@@ -38,7 +38,7 @@
 .qc-prize__img { width: 54px; height: 54px; object-fit: contain; border-radius: 12px; background: #fff; }
 .qc-prize__icon { font-size: 2.2rem; line-height: 1; }
 .qc-prize small { display: block; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-soft); }
-.qc-prize b { font-family: 'Fredoka', sans-serif; font-size: 1.15rem; color: var(--sc-ink); }
+.qc-prize b { font-family: var(--gcq-font-display); font-size: 1.15rem; color: var(--sc-ink); }
 
 .qc-embers {
     display: flex; flex-wrap: wrap; justify-content: center; gap: 6px;
@@ -62,7 +62,7 @@
     opacity: 0.55;
 }
 .qc-stamp img { width: 56px; height: 56px; object-fit: contain; filter: grayscale(1); opacity: 0.5; }
-.qc-stamp b { font-family: 'Fredoka', sans-serif; font-size: 0.85rem; color: var(--sc-ink); line-height: 1.1; }
+.qc-stamp b { font-family: var(--gcq-font-display); font-size: 0.85rem; color: var(--sc-ink); line-height: 1.1; }
 .qc-stamp small { font-size: 0.7rem; font-weight: 700; color: var(--sc-soft); }
 .qc-stamp.is-stamped { opacity: 1; border-style: solid; background: #fff; transform: rotate(-2deg); }
 .qc-stamp.is-stamped img { filter: none; opacity: 1; }
@@ -87,7 +87,7 @@
 .qc-team header {
     display: flex; align-items: center; gap: 0.35rem;
     padding: 0.3rem 0.6rem; background: linear-gradient(135deg, var(--c), var(--cd));
-    color: #fff; font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 1rem;
+    color: #fff; font-family: var(--gcq-font-display); font-weight: 700; font-size: 1rem;
 }
 .qc-team header span { font-size: 1.15rem; }
 .qc-team p { margin: 0; padding: 0.35rem 0.6rem 0.45rem; font-weight: 700; font-size: 0.85rem; line-height: 1.35; color: var(--sc-ink, #1e293b); }
@@ -97,8 +97,8 @@
 .qc-rank__crest { font-size: 4.6rem; line-height: 0; filter: drop-shadow(0 6px 8px rgba(15, 23, 42, 0.25)); }
 .qc-rank__name { display: flex; flex-direction: column; align-items: flex-start; text-align: left; }
 .qc-rank__name small { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sc-soft); }
-.qc-rank__name b { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-weight: 400; font-size: 1.9rem; line-height: 1.05; color: var(--sc-ink); }
-.qc-rank__name em { font-family: 'Lora', Georgia, serif; font-size: 0.95rem; color: var(--sc-soft); }
+.qc-rank__name b { font-family: var(--gcq-font-title); font-weight: 400; font-size: 1.9rem; line-height: 1.05; color: var(--sc-ink); }
+.qc-rank__name em { font-family: var(--gcq-font-serif); font-size: 0.95rem; color: var(--sc-soft); }
 .qc-runes { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.45rem; margin: 0.35rem 0 0.2rem; }
 .qc-rune {
     display: flex; flex-direction: column; align-items: center; gap: 0.1rem; min-width: 88px;
@@ -106,7 +106,7 @@
     background: rgba(255, 255, 255, 0.6); opacity: 0.7;
 }
 .qc-rune i { font-size: 1.35rem; color: color-mix(in srgb, var(--sc-soft) 70%, #fff); }
-.qc-rune b { font-family: 'Fredoka', sans-serif; font-size: 0.88rem; color: var(--sc-ink); }
+.qc-rune b { font-family: var(--gcq-font-display); font-size: 0.88rem; color: var(--sc-ink); }
 .qc-rune small { font-size: 0.68rem; font-weight: 700; color: var(--sc-soft); white-space: nowrap; }
 .qc-rune.is-lit { opacity: 1; border-style: solid; border-color: var(--rc); background: #fff; }
 .qc-rune.is-lit i { color: var(--rc); animation: qc-glow 2.2s ease-in-out infinite alternate; }
@@ -115,7 +115,7 @@
 /* Hero Seals this week */
 .qc-seals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem 0.4rem; margin: 0.4rem 0 0.2rem; }
 .qc-seal { display: flex; flex-direction: column; align-items: center; gap: 0.15rem; min-width: 0; }
-.qc-seal b { font-family: 'Fredoka', sans-serif; font-size: 1rem; color: var(--sc-ink); line-height: 1.1; }
+.qc-seal b { font-family: var(--gcq-font-display); font-size: 1rem; color: var(--sc-ink); line-height: 1.1; }
 .qc-seal small { font-size: 0.72rem; font-weight: 700; color: var(--sc-soft); line-height: 1.15; }
 
 /* Today's Hero Duels */
@@ -124,7 +124,7 @@
 .qc-duel-hero.is-first { order: -1; }
 .qc-duel-top .qc-duel-hero:nth-child(2) { order: -2; }
 .qc-duel-hero__medal { font-size: 1.6rem; line-height: 1; }
-.qc-duel-hero b { font-family: 'Fredoka', sans-serif; font-size: 1.05rem; color: var(--sc-ink); }
+.qc-duel-hero b { font-family: var(--gcq-font-display); font-size: 1.05rem; color: var(--sc-ink); }
 .qc-duel-hero.is-first b { font-size: 1.3rem; }
 .qc-duel-hero small { font-size: 0.75rem; font-weight: 700; color: var(--sc-soft); white-space: nowrap; }
 
@@ -156,7 +156,7 @@
     border: 2px solid color-mix(in srgb, var(--sc-b) 22%, #fff);
 }
 .qc-path__icon { font-size: 1.7rem; line-height: 1; }
-.qc-path b { max-width: 100%; font-family: 'Fredoka', sans-serif; font-size: 0.74rem; color: var(--sc-ink); text-align: center; }
+.qc-path b { max-width: 100%; font-family: var(--gcq-font-display); font-size: 0.74rem; color: var(--sc-ink); text-align: center; }
 .qc-path small { font-size: 0.7rem; font-weight: 700; color: var(--sc-soft); }
 
 /* The Crown Race chronicle */
@@ -166,7 +166,7 @@
     box-shadow: inset 0 0 0 2px #e9d3a2;
 }
 .qc-chronicle li {
-    font-family: 'Lora', Georgia, serif; font-style: italic; font-size: 1.12rem; line-height: 1.45; color: #4a3313;
+    font-family: var(--gcq-font-serif); font-style: italic; font-size: 1.12rem; line-height: 1.45; color: #4a3313;
     animation: qc-ink 700ms ease-out both; animation-delay: calc(var(--i) * 450ms);
 }
 @keyframes qc-ink { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }

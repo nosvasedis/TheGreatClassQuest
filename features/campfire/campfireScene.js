@@ -1,5 +1,6 @@
 // Hero Campfire projector scene (lazy). Seven teacher-paced moments; nothing is spoken, everything is visual.
 // Immersion first: no book codes, units, pages, timers or admin text ever appear on the projector.
+import { quietly } from '../../utils/runtimeMetrics.js';
 import './campfire.css';
 import { CAMPFIRE_STAGES, campfireWordHint } from '../heroCampfireCore.mjs';
 import { evaluateOathEvidence, emberStory, CATEGORY_META } from '../emberOathCore.mjs';
@@ -232,7 +233,7 @@ export function openCampfireScene({ session, students = [], oaths = [], oathFact
                 fx.append(dot); later(() => dot.remove(), 900);
             }, lite ? 70 : 40);
         }
-        return anim.finished.catch(() => {}).then(() => { clearInterval(trailTimer); el.remove(); });
+        return anim.finished.catch(quietly('features/campfire/campfireScene.js')).then(() => { clearInterval(trailTimer); el.remove(); });
     }
 
     // ─── 0 · Kindling: today's stars fall into the sleeping coals ──────────────────
@@ -493,7 +494,7 @@ export function openCampfireScene({ session, students = [], oaths = [], oathFact
     function celebrateFigure(keptOath) {
         const fig = figureCompletedBy(localOaths, keptOath);
         if (!fig) return;
-        if (!preview && keptOath.perkPaid !== false) completeClassFigure(session.classId, fig.kind, fig.completions, { name: fig.name }).catch(() => {});
+        if (!preview && keptOath.perkPaid !== false) completeClassFigure(session.classId, fig.kind, fig.completions, { name: fig.name }).catch(quietly('features/campfire/campfireScene.js'));
         if (early) return;
         const lines = skyEl.querySelector('.cf-star-lines--' + fig.kind.replace('/', '-'));
         lines?.classList.add('is-celebrating');
@@ -517,7 +518,7 @@ export function openCampfireScene({ session, students = [], oaths = [], oathFact
             .then(kept => {
                 if (disposed) return kept;
                 localOaths = localOaths.map(o => o.id === kept.id ? kept : o); keptOathIds.add(kept.id);
-                if (!preview) onSave({ keptOathIds: [...keptOathIds] }).catch(() => {});
+                if (!preview) onSave({ keptOathIds: [...keptOathIds] }).catch(quietly('features/campfire/campfireScene.js'));
                 return kept;
             });
         return keptMoment(oath, saving, keptBefore).catch(e => { if (!disposed) undoMoment(e); });
@@ -638,7 +639,7 @@ export function openCampfireScene({ session, students = [], oaths = [], oathFact
         window.removeEventListener('gcq:campfire-close', close);
         window.removeEventListener('gcq:campfire-art', onArt);
         removeEventListener('resize', fitHearth);
-        if (document.fullscreenElement === root) document.exitFullscreen?.().catch(() => {});
+        if (document.fullscreenElement === root) document.exitFullscreen?.().catch(quietly('features/campfire/campfireScene.js'));
         if (app) app.inert = oldInert;
         // The night fades back into the classroom instead of vanishing.
         if (reducedMotion) root.remove();
@@ -831,8 +832,8 @@ export function openCampfireScene({ session, students = [], oaths = [], oathFact
         });
         if (before === script.readyOathIds.join()) return;
         if (step === 5 && moment.hidden && !moving) showStage(5, { animate: false });
-        if (!preview) onSave({ script }).catch(() => {});
-    }).catch(() => {});
+        if (!preview) onSave({ script }).catch(quietly('features/campfire/campfireScene.js'));
+    }).catch(quietly('features/campfire/campfireScene.js'));
     activeClose = close; paint();
     if (!reducedMotion) content.classList.add('is-entering');
     root.tabIndex = -1; root.focus();

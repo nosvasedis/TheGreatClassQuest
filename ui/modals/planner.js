@@ -7,7 +7,7 @@ import { treasureDayNear, treasureForSpecial, lessonClassIdsOn, eventWindow, isT
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { showAnimatedModal, setCurrentlySelectedDayCell, getCurrentlySelectedDayCell } from './base.js';
-import { handleCancelLesson } from '../../db/actions.js';
+import { handleCancelLesson } from '../../db/actions/index.js';
 import { QUEST_DEFINITIONS, normalizeQuestType, isSchoolWideModifierType } from '../../features/specialQuestEngine.js';
 import { getDayAgenda } from '../../utils/calendarDay.js';
 import { filterDocsForActiveYear } from '../../utils/schoolYear.js';

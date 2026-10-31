@@ -127,7 +127,7 @@
 }
 .gsp-pick__emblem--initial { display: grid; place-items: center; font-weight: 800; color: #fff; }
 .gsp-pick__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
-.gsp-pick__crowns { display: inline-flex; align-items: center; gap: 0.25rem; font-family: 'Fredoka', sans-serif; color: var(--sp-gold); }
+.gsp-pick__crowns { display: inline-flex; align-items: center; gap: 0.25rem; font-family: var(--gcq-font-display); color: var(--sp-gold); }
 .gsp-pick__crowns i { font-size: 0.7rem; }
 
 /* ═══ Hero header: crest, name, Crown Race medal ═════════════════════════════ */
@@ -192,7 +192,7 @@
 }
 .gsp-motto {
     margin: 0.3rem 0 0;
-    font-family: 'Lora', Georgia, serif;
+    font-family: var(--gcq-font-serif);
     font-style: italic;
     font-size: 0.95rem;
     color: var(--sp-ink-2);
@@ -241,8 +241,8 @@
 .gsp-medal--none .gsp-medal__disc,
 .gsp-medal--iron .gsp-medal__disc { color: #fff; }
 .gsp-medal__disc small { font-size: 0.5rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.8; }
-.gsp-medal__disc b { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-size: 1.55rem; line-height: 1; }
-.gsp-medal__crowns { display: inline-flex; align-items: center; gap: 0.35rem; font-family: 'Fredoka One', 'Fredoka', sans-serif; font-size: 1.35rem; color: var(--sp-gold); }
+.gsp-medal__disc b { font-family: var(--gcq-font-title); font-size: 1.55rem; line-height: 1; }
+.gsp-medal__crowns { display: inline-flex; align-items: center; gap: 0.35rem; font-family: var(--gcq-font-title); font-size: 1.35rem; color: var(--sp-gold); }
 .gsp-medal__crowns i { font-size: 1rem; }
 .gsp-medal__line { max-width: 11rem; font-size: 0.72rem; font-weight: 700; color: var(--sp-ink-3); line-height: 1.25; }
 
@@ -308,7 +308,7 @@
     align-items: center;
     gap: 0.45rem;
     margin: 0;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     font-size: 1.08rem;
     color: #fff;
@@ -325,7 +325,7 @@
     font-weight: 800;
     white-space: nowrap;
 }
-.gsp-count { font-family: 'Fredoka', sans-serif; font-size: 0.9rem; color: var(--sp-ink-3); }
+.gsp-count { font-family: var(--gcq-font-display); font-size: 0.9rem; color: var(--sp-ink-3); }
 .gsp-count b { color: var(--sp-ink); font-size: 1.1rem; }
 .gsp-empty { margin: 0.3rem 0; font-size: 0.86rem; color: var(--sp-ink-3); }
 .gsp-foot { margin: 0.7rem 0 0; font-size: 0.74rem; font-weight: 700; color: var(--sp-ink-3); }
@@ -360,7 +360,7 @@
 }
 @keyframes gsp-arc { from { stroke-dasharray: 0 var(--gap); } }
 .gsp-gauge__mid { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
-.gsp-gauge__mid b { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-size: 2.2rem; line-height: 1; color: #fff; }
+.gsp-gauge__mid b { font-family: var(--gcq-font-title); font-size: 2.2rem; line-height: 1; color: #fff; }
 .gsp-gauge__mid small { font-size: 0.64rem; font-weight: 800; color: var(--sp-ink-3); }
 .gsp-gauge__place {
     position: absolute;
@@ -368,7 +368,7 @@
     right: -0.4rem;
     padding: 0.15rem 0.5rem;
     border-radius: 999px;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 0.85rem;
     color: #2a1a05;
     background: linear-gradient(180deg, #fde68a, #d99a2b);
@@ -378,7 +378,7 @@
 .gsp-gauge__place--bronze { background: linear-gradient(180deg, #fed7aa, #c2702d); }
 .gsp-gauge__place--iron { background: linear-gradient(180deg, #cbd5e1, #64748b); color: #fff; }
 .gsp-prize { display: grid; justify-items: center; text-align: center; padding: 0.3rem 0.8rem; border-radius: 0.8rem; background: rgba(0, 0, 0, 0.3); }
-.gsp-prize b { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-size: 1.1rem; color: #fde68a; }
+.gsp-prize b { font-family: var(--gcq-font-title); font-size: 1.1rem; color: #fde68a; }
 .gsp-prize b i { font-size: 0.8rem; }
 .gsp-prize small { font-size: 0.62rem; font-weight: 700; color: var(--sp-ink-3); }
 
@@ -410,7 +410,7 @@
     animation-delay: calc(var(--i, 0) * 80ms + 150ms);
 }
 @keyframes gsp-grow { from { transform: scaleX(0); } }
-.gsp-bar__val { font-family: 'Fredoka', sans-serif; font-weight: 600; color: var(--sp-ink); white-space: nowrap; }
+.gsp-bar__val { font-family: var(--gcq-font-display); font-weight: 600; color: var(--sp-ink); white-space: nowrap; }
 .gsp-bar__val i { color: var(--sp-gold); font-size: 0.75rem; }
 
 /* Unity Seal */
@@ -537,7 +537,7 @@
 .gsp-podium__crown { font-size: 1.3rem; animation: gsp-bob 2.6s ease-in-out infinite; }
 @keyframes gsp-bob { 50% { transform: translateY(-4px); } }
 .gsp-podium__name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 800; font-size: 0.8rem; }
-.gsp-podium__val { font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 0.8rem; color: #fde68a; }
+.gsp-podium__val { font-family: var(--gcq-font-display); font-weight: 600; font-size: 0.8rem; color: #fde68a; }
 .gsp-podium__block {
     display: grid;
     place-items: start center;
@@ -550,7 +550,7 @@
     animation: gsp-rise 0.8s var(--sp-ease) both;
     animation-delay: calc(var(--i, 0) * 120ms + 200ms);
 }
-.gsp-podium__block b { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-size: 1.1rem; color: rgba(255, 255, 255, 0.85); }
+.gsp-podium__block b { font-family: var(--gcq-font-title); font-size: 1.1rem; color: rgba(255, 255, 255, 0.85); }
 .gsp-podium__step--1 .gsp-podium__block { height: 4.2rem; background: linear-gradient(180deg, #fde68a, #b7791f); }
 .gsp-podium__step--1 .gsp-podium__block b { color: #2a1a05; }
 .gsp-podium__step--1 .gsp-face { border-color: var(--sp-gold); box-shadow: 0 0 18px rgba(245, 201, 90, 0.5); }
@@ -573,7 +573,7 @@
     animation: gsp-grow 0.9s var(--sp-ease) both;
     animation-delay: calc(var(--i, 0) * 70ms + 200ms);
 }
-.gsp-classes__val { font-family: 'Fredoka', sans-serif; color: var(--sp-ink-2); }
+.gsp-classes__val { font-family: var(--gcq-font-display); color: var(--sp-ink-2); }
 
 .gsp-roster__head { flex-wrap: wrap; }
 .gsp-search {
@@ -616,7 +616,7 @@
     animation-delay: calc(var(--i, 0) * 30ms);
 }
 .gsp-row:hover { background: rgba(255, 255, 255, 0.08); }
-.gsp-row__n { font-family: 'Fredoka', sans-serif; font-weight: 600; color: var(--sp-ink-3); text-align: center; }
+.gsp-row__n { font-family: var(--gcq-font-display); font-weight: 600; color: var(--sp-ink-3); text-align: center; }
 .gsp-row__who { display: grid; min-width: 0; line-height: 1.2; }
 .gsp-row__who b { font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gsp-row__who small { font-size: 0.7rem; color: var(--sp-ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -626,13 +626,13 @@
 .gsp-badge--legend { background: rgba(196, 181, 253, 0.18); color: #ddd6fe; }
 .gsp-badge--unity { background: rgba(134, 239, 172, 0.16); color: #bbf7d0; }
 .gsp-row__month { display: grid; grid-template-columns: auto auto; justify-content: start; column-gap: 0.3rem; align-items: baseline; }
-.gsp-row__month b { font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 0.85rem; }
+.gsp-row__month b { font-family: var(--gcq-font-display); font-weight: 600; font-size: 0.85rem; }
 .gsp-row__month small, .gsp-row__year small { font-size: 0.62rem; color: var(--sp-ink-3); font-weight: 700; }
 .gsp-row__meter { position: relative; grid-column: 1 / -1; height: 0.4rem; margin-bottom: 0.25rem; border-radius: 999px; background: rgba(255, 255, 255, 0.08); }
 .gsp-row__meter > span { position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(90deg, var(--g1), var(--g2)); transform-origin: left; transform: scaleX(var(--w)); }
 .gsp-row__meter > i { position: absolute; top: -0.12rem; bottom: -0.12rem; left: calc(var(--at) * 100%); width: 2px; background: #86efac; border-radius: 1px; }
 .gsp-row__year { display: grid; justify-items: end; line-height: 1.1; }
-.gsp-row__year b { font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 0.95rem; color: #fde68a; }
+.gsp-row__year b { font-family: var(--gcq-font-display); font-weight: 600; font-size: 0.95rem; color: #fde68a; }
 @keyframes gsp-in { from { transform: translate3d(0, 8px, 0); opacity: 0; } }
 
 /* Crown Road */
@@ -669,7 +669,7 @@
     background: radial-gradient(circle at 35% 30%, var(--s1), var(--s2) 75%);
     box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.25), 0 6px 14px rgba(0, 0, 0, 0.35);
 }
-.gsp-stone__gem b { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-size: 1rem; color: #fff; }
+.gsp-stone__gem b { font-family: var(--gcq-font-title); font-size: 1rem; color: #fff; }
 .gsp-stone.is-gold .gsp-stone__gem { --s1: #fde68a; --s2: #b7791f; }
 .gsp-stone.is-silver .gsp-stone__gem { --s1: #f1f5f9; --s2: #7c8798; }
 .gsp-stone.is-bronze .gsp-stone__gem { --s1: #fed7aa; --s2: #9a4d18; }
@@ -721,7 +721,7 @@
     border: 1px solid color-mix(in srgb, var(--g2) 30%, transparent);
 }
 .gsp-tile__icon { font-size: 1.3rem; }
-.gsp-tile b { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-size: 1.55rem; line-height: 1.1; color: #fff; }
+.gsp-tile b { font-family: var(--gcq-font-title); font-size: 1.55rem; line-height: 1.1; color: #fff; }
 .gsp-tile small { font-size: 0.7rem; font-weight: 700; color: var(--sp-ink-3); }
 
 /* Wheel finds: rarity colours */
@@ -775,7 +775,7 @@
 .gsp-best__icon { display: grid; place-items: center; width: 3.6rem; height: 3.6rem; border-radius: 1rem; background: rgba(0, 0, 0, 0.3); font-size: 2rem; box-shadow: 0 0 0 2px color-mix(in srgb, var(--r) 60%, transparent); }
 .gsp-best__text { display: grid; gap: 0.15rem; min-width: 0; }
 .gsp-best__text small { font-size: 0.66rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--r); }
-.gsp-best__text b { font-family: 'Fredoka', sans-serif; font-size: 1.3rem; font-weight: 600; color: #fff; }
+.gsp-best__text b { font-family: var(--gcq-font-display); font-size: 1.3rem; font-weight: 600; color: #fff; }
 .gsp-best__gifts, .gsp-find__gifts { display: flex; flex-wrap: wrap; gap: 0.3rem; }
 .gsp-gift { padding: 0.12rem 0.5rem; border-radius: 999px; background: rgba(255, 255, 255, 0.08); font-size: 0.72rem; font-weight: 800; white-space: nowrap; }
 .gsp-gift--glory { background: rgba(245, 201, 90, 0.18); color: #fde68a; }

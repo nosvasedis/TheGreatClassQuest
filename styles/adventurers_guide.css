@@ -112,7 +112,7 @@
 
 .ag-cover__title {
     margin: 0;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.85rem;
     line-height: 1.1;
     letter-spacing: 0.01em;
@@ -122,7 +122,7 @@
 
 .ag-cover__sub {
     margin: 0.2rem 0 0;
-    font-family: 'Lora', Georgia, serif;
+    font-family: var(--gcq-font-serif);
     font-style: italic;
     font-size: 0.98rem;
     color: rgba(251, 243, 220, 0.8);
@@ -156,7 +156,7 @@
 }
 
 .ag-stamp__name {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 700;
     font-size: 0.92rem;
     line-height: 1.1;
@@ -216,7 +216,7 @@
     gap: 0.4rem;
     padding: 0.42rem 0.95rem;
     border-radius: 999px;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     font-size: 0.92rem;
     color: #4a5a55;
@@ -314,7 +314,7 @@
     border-radius: 0.8rem 0 0 0.8rem;
     text-align: left;
     color: #3c4a46;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     font-size: 0.95rem;
     line-height: 1.15;
@@ -414,7 +414,7 @@
 
 .ag-chapter__title {
     margin: 0.05rem 0 0.15rem;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.7rem;
     line-height: 1.1;
     color: var(--ag-ink);
@@ -476,7 +476,7 @@
 
 .ag-entry__name {
     margin: 0;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 700;
     font-size: 1.1rem;
     line-height: 1.2;
@@ -515,7 +515,7 @@
     margin: 0.6rem 0 0;
     padding-left: 0.7rem;
     border-left: 3px solid color-mix(in srgb, var(--ag-c) 40%, transparent);
-    font-family: 'Lora', Georgia, serif;
+    font-family: var(--gcq-font-serif);
     font-style: italic;
     font-size: 0.9rem;
     line-height: 1.45;
@@ -567,7 +567,7 @@
     gap: 0.45rem;
     padding: 0.4rem 0.9rem;
     border-radius: 999px;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     font-size: 0.88rem;
     color: #fff;
@@ -601,7 +601,7 @@
     border: 1px solid #e3ddc9;
     background: #fff;
     color: var(--ag-ink);
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     font-size: 0.95rem;
     text-align: left;
@@ -649,7 +649,7 @@
     align-items: center;
     gap: 0.5rem;
     margin: 0 0 0.8rem;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 700;
     font-size: 1.15rem;
     color: var(--ag-ink);
@@ -703,7 +703,7 @@
     border-radius: 50%;
     display: grid;
     place-items: center;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     color: #fff;
     background: var(--ag-c);
     box-shadow: 0 0 0 3px var(--ag-paper);
@@ -721,7 +721,7 @@
 .ag-race h5,
 .ag-day h5 {
     margin: 0;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 700;
     font-size: 1rem;
     color: var(--ag-ink);
@@ -783,7 +783,7 @@
 
 .ag-pair strong {
     display: block;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 700;
     font-size: 0.93rem;
     line-height: 1.2;
@@ -910,7 +910,7 @@
 
 .ag-plan__name {
     margin: 0;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.35rem;
     color: var(--ag-plan);
 }
@@ -926,7 +926,7 @@
 /* Search results */
 .ag-search-count {
     margin: 0 0 1rem;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     color: var(--ag-muted);
 }
@@ -941,7 +941,7 @@
 }
 
 .ag-empty .fas { font-size: 2.2rem; color: #b8a26c; margin-bottom: 0.4rem; }
-.ag-empty p { margin: 0; font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 1.1rem; color: var(--ag-ink); }
+.ag-empty p { margin: 0; font-family: var(--gcq-font-display); font-weight: 600; font-size: 1.1rem; color: var(--ag-ink); }
 
 /* ── "For the class": bigger type for the projector ─────────────────────── */
 

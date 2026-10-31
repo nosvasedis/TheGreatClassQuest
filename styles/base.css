@@ -1,10 +1,10 @@
 /* Custom Font */
 body {
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--gcq-font-body);
     overflow-x: hidden; /* Prevent horizontal scroll from cloud shapes */
 }
 .font-title {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
 }
 
 /* --- NEW ANIMATED GAME-LIKE THEME --- */

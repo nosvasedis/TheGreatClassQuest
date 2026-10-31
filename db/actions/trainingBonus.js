@@ -1,33 +1,19 @@
-// /db/actions.js — facade: re-exports from modular actions; keeps two legacy functions not yet in modules.
-import {
-    db,
-    doc,
-    collection,
-    runTransaction,
-    serverTimestamp,
-    deleteField
-} from '../firebase.js';
-import * as state from '../state.js';
-import { showToast, showPraiseToast } from '../ui/effects.js';
-import { playSound } from '../audio.js';
-import { callGeminiApi } from '../api.js';
-import { getTodayDateString } from '../utils.js';
-import { reconcileFamiliarLifecycle } from '../features/familiars.js';
-import { canUseFeature } from '../utils/subscription.js';
-import {
-    filterDocsForActiveYear,
-    normalizeSchoolYearState,
-    yearScopeClauses,
-    isActiveYearDoc,
-    withSchoolYear,
-} from '../utils/schoolYear.js';
-import { updateGuildScores } from '../features/guildScoring.js';
-import { applyAwardOutwardSkillEffects, applyReasonAwardScoreTransaction, showHeroLevelUpCelebration } from './actions/stars.js';
-import { heroClassEarnsFrom } from '../features/heroSkillTree.js';
-import { TRAINING_BONUS_STARS, TRAINING_GAMES } from '../features/trainingGroundsCore.mjs';
-import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
-
-export * from './actions/index.js';
+// /db/actions/trainingBonus.js — Training Grounds class bonus (Story Weavers, Hoard, Torn Map, Round Table).
+// Moved here from the legacy db/actions.js facade (2026-10-31); behaviour unchanged.
+import { db, doc, collection, runTransaction, serverTimestamp, deleteField } from '../../firebase.js';
+import * as state from '../../state.js';
+import { showToast, showPraiseToast } from '../../ui/effects.js';
+import { playSound } from '../../audio.js';
+import { callGeminiApi } from '../../api.js';
+import { getTodayDateString } from '../../utils.js';
+import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
+import { canUseFeature } from '../../utils/subscription.js';
+import { withSchoolYear } from '../../utils/schoolYear.js';
+import { updateGuildScores } from '../../features/guildScoring.js';
+import { applyAwardOutwardSkillEffects, applyReasonAwardScoreTransaction, showHeroLevelUpCelebration } from './stars.js';
+import { heroClassEarnsFrom } from '../../features/heroSkillTree.js';
+import { TRAINING_BONUS_STARS, TRAINING_GAMES } from '../../features/trainingGroundsCore.mjs';
+import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 
 const trainingBonusInFlight = new Set();
 
@@ -141,52 +127,5 @@ export async function awardTrainingBonusToClass(classId, gameKey = 'story') {
         showToast("Failed to award bonus stars.", "error");
     } finally {
         trainingBonusInFlight.delete(flightKey);
-    }
-}
-
-export async function ensureHistoryLoaded() {
-    if (state.get('hasLoadedCalendarHistory')) return;
-
-    const loader = document.getElementById('calendar-loader');
-    if (loader) loader.classList.remove('hidden');
-
-    const { getDocs, query, collection: firestoreCollection, where, db: firestoreDb } = await import('../firebase.js');
-
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const publicDataPath = PUBLIC_DATA_PATH;
-    const schoolYearState = normalizeSchoolYearState(state.get('schoolYearState'));
-    const activeYearKey = schoolYearState.activeYearKey;
-    const enforceActiveYearQueries = schoolYearState.enforceActiveYearQueries === true;
-    const includeUntagged = !enforceActiveYearQueries;
-
-    const q = query(
-        firestoreCollection(firestoreDb, `${publicDataPath}/award_log`),
-        ...yearScopeClauses(enforceActiveYearQueries, activeYearKey),
-        where('createdAt', '>=', thirtyDaysAgo)
-    );
-
-    try {
-        const snapshot = await getDocs(q);
-        const historyLogs = snapshot.docs
-            .map(d => ({ id: d.id, ...d.data() }))
-            .filter((log) => isActiveYearDoc(log, activeYearKey, { includeUntagged }));
-
-        const currentLogs = filterDocsForActiveYear(state.get('allAwardLogs'), schoolYearState);
-        const logMap = new Map();
-
-        historyLogs.forEach(log => logMap.set(log.id, log));
-        currentLogs.forEach(log => logMap.set(log.id, log));
-
-        const mergedLogs = filterDocsForActiveYear(Array.from(logMap.values()), schoolYearState);
-
-        state.setAllAwardLogs(mergedLogs);
-        state.setHasLoadedCalendarHistory(true);
-
-    } catch (e) {
-        console.error("Error loading history:", e);
-    } finally {
-        if (loader) loader.classList.add('hidden');
     }
 }

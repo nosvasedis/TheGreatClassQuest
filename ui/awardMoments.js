@@ -9,16 +9,14 @@
 // notification; weak laptops get fewer particles and no full-screen glow.
 // Styles: styles/award_moments.css (.amx-*), loaded with this module. Sounds: audio.js playAwardMomentSfx.
 
+import { quietly } from '../utils/runtimeMetrics.js';
+import { escapeHtml as esc } from '../utils/html.mjs';
 import '../styles/award_moments.css';
 import { playAwardMomentSfx } from '../audio.js';
 import { notify } from './effects.js';
 import { formatBoonStars } from './boonSponsorPicker.js';
 import { PEER_BOON_BASE_STARS } from '../features/heroClasses.js';
 import { getLayer, prefersReducedMotion, isLitePower, centerOf, spawn, run, popElement, isOnScreen } from './awardFx.js';
-
-const esc = (value) => String(value ?? '')
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
 const firstName = (name) => String(name || '').trim().split(/\s+/)[0] || 'Hero';
 
@@ -233,7 +231,7 @@ export function startBoonMoment({ giver, receiver, origin } = {}) {
 
     // Arrived and still saving: the heart hovers over the receiver and keeps beating.
     let beating = null;
-    const arrived = flight ? flight.finished.catch(() => {}) : wait(2800);
+    const arrived = flight ? flight.finished.catch(quietly('ui/awardMoments.js')) : wait(2800);
     arrived.then(() => {
         if (settled || !heart.isConnected) return;
         beating = hold(heart, [
@@ -386,7 +384,6 @@ export function playHeroBonusMoment({ studentId, name, avatar } = {}) {
     ], { duration: 520, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' });
     const headRadius = (medal.offsetHeight || 132) / 2;
     const crownAt = { x: anchor.x, y: anchor.y - headRadius - 22 };
-
 
     // The crown falls from the top of the screen, spinning a little, and lands with a bounce.
     const crown = spawn(scene, 'amx-crown', crownAt.x, crownAt.y);

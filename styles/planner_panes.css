@@ -191,7 +191,7 @@
 .qe-treasure__day.is-today .qe-treasure__when small { color: #b45309; }
 .qe-treasure__day.is-viewed { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--day-ink) 45%, transparent); background: rgba(255, 255, 255, 0.92); }
 .qe-treasure__when { display: flex; flex-direction: column; line-height: 1.15; }
-.qe-treasure__when strong { font-family: 'Fredoka', sans-serif; font-size: 1rem; color: var(--day-ink); }
+.qe-treasure__when strong { font-family: var(--gcq-font-display); font-size: 1rem; color: var(--day-ink); }
 .qe-treasure__when small { font-size: 0.7rem; font-weight: 700; color: #64748b; }
 .qe-treasure__classes { display: flex; flex-wrap: wrap; gap: 0.3rem; }
 .qe-treasure__classes em { font-size: 0.75rem; color: #64748b; }
@@ -311,7 +311,7 @@ button.qe-treasure__class.is-ready {
     background: rgba(255, 255, 255, 0.85);
     box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
 }
-.schedule-lesson-card__time-col strong { font-family: 'Fredoka', sans-serif; font-size: 1rem; color: #1e1b4b; }
+.schedule-lesson-card__time-col strong { font-family: var(--gcq-font-display); font-size: 1rem; color: #1e1b4b; }
 .schedule-lesson-card__time-col span { font-size: 0.72rem; font-weight: 700; color: #64748b; }
 .schedule-lesson-card__time-col em { margin-top: 0.15rem; font-size: 0.62rem; font-style: normal; font-weight: 800; color: #6366f1; }
 #day-planner-modal .schedule-lesson-card__main { display: flex; align-items: center; gap: 0.65rem; min-width: 0; }

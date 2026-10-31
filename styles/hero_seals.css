@@ -46,7 +46,7 @@
 .herald .hs-herald-sub {
     display: block;
     margin-top: 0.1rem;
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--gcq-font-body);
     font-size: 0.8rem;
     font-weight: 600;
     color: #a16207;
@@ -147,7 +147,7 @@
 
 .hs-sum__heading h2 {
     margin: 0.1rem 0 0;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-weight: 400;
     font-size: clamp(1.35rem, 3.2vw, 1.8rem);
     line-height: 1.1;
@@ -177,7 +177,7 @@
 .hs-sum__intro {
     margin: 0;
     padding: 0.7rem 1.25rem;
-    font-family: 'Lora', Georgia, serif;
+    font-family: var(--gcq-font-serif);
     font-style: italic;
     font-size: 0.86rem;
     color: #8a6a48;
@@ -246,7 +246,7 @@
     background: #f3e2bd;
     border: 2px solid #fff;
     box-shadow: 0 0 0 1.5px #e6cf9f;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     color: #6b4a2d;
 }
 
@@ -304,7 +304,7 @@
     border-radius: 999px;
     background: linear-gradient(135deg, #7a2a3a, #5a1f2e);
     color: #fff4dc;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1rem;
     box-shadow: 0 8px 18px -10px rgba(90, 31, 46, 0.8);
     cursor: pointer;
@@ -365,7 +365,7 @@
 }
 
 .hs-book__count b {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-weight: 400;
     font-size: 1.7rem;
     color: var(--sf-seal, #be123c);
@@ -521,7 +521,7 @@
     border-radius: 999px;
     background: #fff5f7;
     color: #881337;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     font-size: 0.8rem;
     cursor: pointer;
@@ -573,7 +573,7 @@
 }
 
 #trophy-room-modal .tr-seal-more {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.4rem;
 }
 

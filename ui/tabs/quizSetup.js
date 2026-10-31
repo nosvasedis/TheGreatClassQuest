@@ -4,6 +4,7 @@
  * and what to do next; the plan form below opens when there is something to plan.
  * Wording and pure models: ui/tabs/quizSetupView.mjs.
  */
+import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { showToast } from '../effects.js';
@@ -841,7 +842,7 @@ function renderWeek() {
             .then((verdict) => {
                 if (state.get('globalSelectedClassId') === classId) show($('qwk-play-btn'), verdict === 'show');
             })
-            .catch(() => {});
+            .catch(quietly('ui/tabs/quizSetup.js'));
     }
 }
 

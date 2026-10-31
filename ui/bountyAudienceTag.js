@@ -1,5 +1,6 @@
 // ui/bountyAudienceTag.js — the "for Dragon Flame" / "for 4 heroes" tag on bounty cards.
 // Whole-class bounties get no tag, so older bounties look exactly as before.
+import '../styles/bounty_poster.css';
 import { getGuildById } from '../features/guilds.js';
 import { describeAudience, normalizeAudience } from '../features/bountyAudience.mjs';
 

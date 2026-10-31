@@ -158,7 +158,7 @@
 }
 
 .mm-till:not(.has-shopper) .mm-till__name {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 600;
     font-size: 0.92rem;
     color: rgba(248, 236, 208, 0.72);

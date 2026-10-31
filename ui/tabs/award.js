@@ -1,4 +1,5 @@
 // /ui/tabs/award.js
+import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
@@ -808,7 +809,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
             // A tie turns every winner into a Co-Prodigy, so a size change repaints them all.
             if (prodigies.size !== known.size) changed.push(...prodigies);
             new Set(changed).forEach((id) => refreshAwardCloud(id));
-        }).catch(() => {});
+        }).catch(quietly('ui/tabs/award.js'));
     };
 
     if (fullRender) {

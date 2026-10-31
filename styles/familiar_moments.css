@@ -439,7 +439,7 @@
         linear-gradient(160deg, #1d1840, #100c26);
     border: 1px solid color-mix(in srgb, var(--fam-accent) 55%, transparent);
     box-shadow: 0 12px 28px rgba(2, 6, 23, .45);
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     pointer-events: none;
     opacity: 0;
     transform: translateY(4px) scale(.97);

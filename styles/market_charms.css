@@ -70,7 +70,7 @@
 .mm-charm__gem.is-lit { background: var(--charm-rim); box-shadow: 0 0 4px var(--charm-glow); }
 
 .mm-charm__title {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 0.86rem;
     font-weight: 600;
     line-height: 1.15;

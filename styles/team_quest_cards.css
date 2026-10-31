@@ -44,7 +44,7 @@
 .tq-empty__icon i { animation: tq-rose-wobble 3.2s ease-in-out infinite; }
 
 .tq-empty strong {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.3rem;
     font-weight: 400;
 }
@@ -152,7 +152,7 @@
 .tqc-head__title p {
     margin: 0.2rem 0 0;
     color: #8a6a48;
-    font-family: 'Lora', Georgia, serif;
+    font-family: var(--gcq-font-serif);
     font-size: 0.88rem;
     font-style: italic;
 }
@@ -168,7 +168,7 @@
     border-radius: 999px;
     background: linear-gradient(180deg, #fffaf0, #f3dfb0);
     box-shadow: 0 0.2rem 0 rgba(166, 106, 44, 0.75), 0 0.4rem 0.8rem rgba(50, 30, 10, 0.18);
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-weight: 700;
     cursor: pointer;
     transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;
@@ -349,7 +349,7 @@
     color: #53677c;
     border-radius: 50%;
     background: radial-gradient(circle at 35% 28%, #fff 0 22%, #eef4f8 62%, #b7c5cf 100%);
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 0.95rem;
     line-height: 1;
     transform: translate(-50%, -50%);
@@ -374,7 +374,7 @@
     display: block;
     overflow: hidden;
     color: #2e2216;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.32rem;
     font-weight: 400;
     line-height: 1.1;
@@ -448,7 +448,7 @@
 
 .tqc-card__score strong {
     color: var(--deep);
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.65rem;
     font-weight: 400;
 }
@@ -709,7 +709,7 @@
 .tqc-stat strong {
     overflow: hidden;
     color: #2e2216;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.12rem;
     font-weight: 400;
     line-height: 1.15;
@@ -908,7 +908,7 @@
     max-width: 0;
     overflow: hidden;
     opacity: 0;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 0.95rem;
     white-space: nowrap;
     transition: max-width 260ms ease, opacity 200ms ease, padding 260ms ease;

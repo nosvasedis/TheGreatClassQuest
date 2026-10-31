@@ -1,6 +1,7 @@
 // /ui/core/shop.js
+import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
-import * as modals from '../modals.js';
+import * as modals from '../modals/index.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { FAMILIAR_TYPES, FAMILIAR_LEVEL_THRESHOLDS, buildFamiliarInitData } from '../../features/familiars.js';
 import { getSeasonalShopPriceMeta, getLocalIsoDateString } from '../../utils.js';
@@ -408,7 +409,7 @@ function sizeStallForLeague(league) {
             const classId = state.get('globalSelectedClassId');
             const cls = (state.get('allTeachersClasses') || []).find((c) => c.id === classId);
             const current = state.get('globalSelectedLeague') || cls?.questLevel;
-            if (current) import('../../db/actions/smartStock.js').then((m) => m.syncSmartStallStock(current)).catch(() => {});
+            if (current) import('../../db/actions/smartStock.js').then((m) => m.syncSmartStallStock(current)).catch(quietly('ui/core/shop.js'));
         }, 1500);
     });
 }
@@ -486,7 +487,7 @@ function initializeShopTabContent({ allowAutoEnsure = false } = {}) {
         activeFestivalId: stallScope.festivalId
     });
     if (allowAutoEnsure && canUseFeature('eliteAI') && stockNeedsEnsure) {
-        import('../../db/actions.js').then((actions) => actions.handleEnsureShopStock?.()).catch((error) => {
+        import('../../db/actions/index.js').then((actions) => actions.handleEnsureShopStock?.()).catch((error) => {
             console.warn('Shop auto-ensure failed', error);
         });
     }

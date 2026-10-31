@@ -1,3 +1,4 @@
+import '../styles/family_portal.css';
 import * as state from '../state.js';
 import { postCommunicationMessage, sendFamilyMessage } from '../utils/adminRuntime.js';
 import { showToast } from '../ui/effects.js';

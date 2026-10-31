@@ -1,11 +1,12 @@
 // /ui/modals/attendance.js
+import { emptyStateHtml } from '../emptyStateView.mjs';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { showAnimatedModal, showModal } from './base.js';
 import { showToast } from '../effects.js';
 import { playSound } from '../../audio.js';
 import { fetchAttendanceForMonth } from '../../db/queries.js';
-import { handleMarkAbsent } from '../../db/actions.js';
+import { handleMarkAbsent } from '../../db/actions/index.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { getUpgradeMessage } from '../../config/tiers/features.js';
@@ -294,7 +295,7 @@ export async function renderAttendanceChronicle(classId) {
     const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
 
     if (!classData || studentsInClass.length === 0) {
-        contentEl.innerHTML = `<p class="text-center text-gray-500 py-8">No students in this class to track attendance for.</p>`;
+        contentEl.innerHTML = emptyStateHtml({ icon: 'fa-clipboard-user', title: 'No heroes on the register yet', line: 'Add students to this class and their attendance will appear here.' });
         return;
     }
 
@@ -585,7 +586,7 @@ export async function renderAttendanceChronicle(classId) {
                     
                     // Dynamic import to avoid circular dependency issues if needed, or direct call
                     // We imported handleRemoveAttendanceColumn at the top of this file, so direct call is fine:
-                    import('../../db/actions.js').then(actions => {
+                    import('../../db/actions/index.js').then(actions => {
                         actions.handleRemoveAttendanceColumn(cId, dateStr, isGlobal);
                     });
                 },

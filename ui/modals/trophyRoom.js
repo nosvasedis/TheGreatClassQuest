@@ -1,5 +1,6 @@
 // /ui/modals/trophyRoom.js — Trophy Room modal (a student's satchel)
 // Model: features/trophyRoomCore.mjs. Markup: ui/modals/trophyRoomView.js.
+import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { showToast } from '../effects.js';
@@ -183,7 +184,7 @@ function bindListeners() {
     contentEl.addEventListener('click', (e) => {
         const bookBtn = e.target.closest('.tr-seal-book-btn');
         if (bookBtn) {
-            import('./studentAnalytics.js').then((m) => m.openStudentAnalyticsModal(bookBtn.dataset.studentId, bookBtn, { tab: 'seals' })).catch(() => {});
+            import('./studentAnalytics.js').then((m) => m.openStudentAnalyticsModal(bookBtn.dataset.studentId, bookBtn, { tab: 'seals' })).catch(quietly('ui/modals/trophyRoom.js'));
             return;
         }
         const useBtn = e.target.closest('.tr-use-btn');
@@ -218,7 +219,7 @@ export function openTrophyRoomModal(preselectedStudentId = null) {
     currentClassId = classId;
     currentStudentId = preselected?.id || '';
     bindListeners();
-    ensureHeroSealsForClass(classId).catch(() => {});
+    ensureHeroSealsForClass(classId).catch(quietly('ui/modals/trophyRoom.js'));
     renderRoster();
     renderSatchel();
     showAnimatedModal(MODAL_ID);

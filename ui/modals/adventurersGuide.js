@@ -2,6 +2,7 @@
 // The Adventurer's Guide (the (i) button in the header, and Game Guide on the phone):
 // a field guide with a chapter index, search, and "Take me there" jumps into the app.
 
+import '../../styles/adventurers_guide.css';
 import { getTier, canUseFeature } from '../../utils/subscription.js';
 import { showAnimatedModal, hideModal } from './base.js';
 import {
@@ -132,7 +133,7 @@ async function goTo(target) {
     const [kind, value] = String(target || '').split(':');
     if (!value) return;
     hideModal(MODAL_ID);
-    const tabs = await import('../tabs.js');
+    const tabs = await import('../tabs/index.js');
     if (kind === 'tab') await tabs.showTab(value);
     else if (kind === 'options') await tabs.showOptionsSubtab(value);
 }

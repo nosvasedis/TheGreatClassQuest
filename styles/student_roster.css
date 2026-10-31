@@ -458,7 +458,7 @@ button.roster-tool.is-ready:hover { box-shadow: 0 0 0 2px #d8b4fe, 0 8px 16px -6
 }
 .returning-students-shell__title {
     margin: 0.1rem 0 0;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.3rem;
     line-height: 1.15;
     color: #fff;
@@ -481,14 +481,14 @@ button.roster-tool.is-ready:hover { box-shadow: 0 0 0 2px #d8b4fe, 0 8px 16px -6
     border-radius: 0.9rem;
     background: rgba(255, 255, 255, 0.95);
     color: #b45309;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.2rem;
     line-height: 1;
     box-shadow: 0 4px 10px -4px rgba(120, 53, 15, 0.45);
 }
 .returning-students-shell__count small {
     margin-top: 0.15rem;
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--gcq-font-body);
     font-size: 0.55rem;
     font-weight: 800;
     letter-spacing: 0.1em;
@@ -572,7 +572,7 @@ button.roster-tool.is-ready:hover { box-shadow: 0 0 0 2px #d8b4fe, 0 8px 16px -6
     display: flex;
     align-items: center;
     margin: 0 0 0.55rem 0.2rem;
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--gcq-font-body);
     font-size: 0.66rem !important;
     line-height: 1.3 !important;
     font-weight: 800;
@@ -647,7 +647,7 @@ button.roster-tool.is-ready:hover { box-shadow: 0 0 0 2px #d8b4fe, 0 8px 16px -6
     background: linear-gradient(135deg, #fbbf24, #f97316);
     box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px #fcd9a0;
     color: #fff;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.05rem;
 }
 .returning-student-card__body { min-width: 0; flex: 1; }
@@ -740,4 +740,156 @@ button.roster-tool.is-ready:hover { box-shadow: 0 0 0 2px #d8b4fe, 0 8px 16px -6
     .returning-students-shell__actions { width: 100%; justify-content: space-between; }
     .returning-students-body { padding: 0.85rem 0.75rem 0.9rem; }
     .returning-students-grid { grid-template-columns: 1fr; }
+}
+
+/* ---------- Class banner (templates/app/tabs/students.js) ----------
+   The page head above the register: same teal family as the roster panel. */
+.roster-banner {
+    position: relative;
+    margin-bottom: 1.25rem;
+    border-radius: 1.5rem;
+    overflow: hidden;
+    border: 1px solid rgba(20, 184, 166, 0.22);
+    background:
+        radial-gradient(90% 140% at 100% 0%, rgba(204, 251, 241, 0.7), transparent 60%),
+        linear-gradient(180deg, #ffffff 0%, #f6fffd 100%);
+    box-shadow: var(--gcq-shadow-3);
+}
+.roster-banner::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 4px;
+    background: linear-gradient(90deg, #0d9488, #14b8a6 45%, #06b6d4);
+}
+.roster-banner__row {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.95rem 1rem 0.85rem;
+}
+.roster-banner__name {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.roster-banner__kicker {
+    margin: 0;
+    font-family: var(--gcq-font-display);
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #0d9488;
+    line-height: 1;
+}
+.roster-banner__title {
+    margin: 0.2rem 0 0;
+    font-family: var(--gcq-font-title);
+    font-size: 1.6rem;
+    line-height: 1.15;
+    color: var(--roster-ink, #134e4a);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.roster-banner__back,
+.roster-banner__btn,
+.roster-banner__count {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border-radius: var(--gcq-radius-pill);
+    font-family: var(--gcq-font-display);
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+.roster-banner__back,
+.roster-banner__btn {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: background-color var(--gcq-dur-fast) ease, box-shadow var(--gcq-dur-fast) ease, color var(--gcq-dur-fast) ease;
+}
+.roster-banner__back {
+    color: #115e59;
+    background: #fff;
+    border: 1px solid rgba(20, 184, 166, 0.3);
+    box-shadow: var(--gcq-shadow-1);
+}
+.roster-banner__back:hover { background: #f0fdfa; }
+.roster-banner__btn--greenhouse {
+    color: #065f46;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+}
+.roster-banner__btn--greenhouse:hover { background: #d1fae5; }
+.roster-banner__btn--add {
+    color: #fff;
+    border: 1px solid rgba(13, 148, 136, 0.6);
+    background: linear-gradient(135deg, #14b8a6, #0891b2);
+    box-shadow: 0 6px 14px -8px rgba(13, 148, 136, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.roster-banner__btn--add:hover { background: linear-gradient(135deg, #0d9488, #0e7490); }
+.roster-banner__btn i { font-size: 0.78rem; }
+.roster-banner__count {
+    padding: 0.35rem 0.8rem;
+    color: #0f766e;
+    background: #ccfbf1;
+    border: 1px solid #99f6e4;
+}
+.roster-banner__count i { font-size: 0.72rem; color: #14b8a6; margin-right: 0.1rem; }
+.roster-banner__count.hidden { display: none; }
+
+.roster-banner__add {
+    padding: 0.8rem 1rem 0.95rem;
+    border-top: 1px dashed rgba(20, 184, 166, 0.35);
+    background: rgba(240, 253, 250, 0.85);
+}
+.roster-banner__add.hidden { display: none; }
+.roster-banner__form {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+.roster-banner__input {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0.55rem 1rem;
+    border: 2px solid #99f6e4;
+    border-radius: var(--gcq-radius-md);
+    background: #fff;
+    color: #1f2937;
+    font-family: var(--gcq-font-display);
+    font-size: 0.92rem;
+    transition: border-color var(--gcq-dur-fast) ease, box-shadow var(--gcq-dur-fast) ease;
+}
+.roster-banner__input::placeholder { color: #94a3b8; }
+.roster-banner__input:focus {
+    outline: none;
+    border-color: #2dd4bf;
+    box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.3);
+}
+.roster-banner__submit {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 1.1rem;
+    border: 0;
+    border-radius: var(--gcq-radius-md);
+    color: #fff;
+    font-family: var(--gcq-font-title);
+    font-size: 1rem;
+    background: linear-gradient(90deg, #14b8a6, #06b6d4);
+    box-shadow: var(--gcq-shadow-2);
+    cursor: pointer;
+}
+.roster-banner__submit:hover { background: linear-gradient(90deg, #0d9488, #0891b2); }
+.roster-banner__submit i { font-size: 0.75rem; }
+
+@media (max-width: 640px) {
+    .roster-banner__row { gap: 0.5rem; padding: 0.8rem 0.75rem 0.7rem; }
+    .roster-banner__title { font-size: 1.3rem; }
+    .roster-banner__back,
+    .roster-banner__btn { padding: 0.5rem 0.75rem; }
 }

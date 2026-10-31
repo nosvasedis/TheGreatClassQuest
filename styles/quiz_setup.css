@@ -57,7 +57,7 @@
 #options-tab .qwk-class__copy { display: flex; flex-direction: column; min-width: 0; }
 
 #options-tab .qwk-class__name {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.02rem;
     line-height: 1.15;
     color: var(--accent-ink);
@@ -88,7 +88,7 @@
 
 #options-tab .qwk-empty__title {
     margin-top: 0.4rem;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.2rem;
     color: var(--accent-ink);
 }
@@ -169,7 +169,7 @@
 
 #options-tab .qwk-week__title {
     margin-top: 0.1rem;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.45rem;
     line-height: 1.15;
     color: var(--qwk-tone-ink);
@@ -402,7 +402,7 @@
 }
 
 #options-tab .qwk-plan__title {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.25rem;
     color: var(--accent-ink);
 }
@@ -440,7 +440,7 @@
     display: flex;
     align-items: center;
     gap: 0.6rem;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.08rem;
     color: var(--ts-ink);
 }
@@ -748,7 +748,7 @@
 #options-tab .qwk-type__icon { font-size: 1.5rem; line-height: 1.2; }
 
 #options-tab .qwk-type__label {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1rem;
     color: var(--ts-ink);
 }
@@ -905,7 +905,7 @@
 }
 
 #options-tab .qwk-history__title {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.1rem;
     color: var(--ts-ink);
 }
@@ -958,7 +958,7 @@
 
 #options-tab .qwk-past__pct { font-size: 0.76rem; font-weight: 700; color: var(--ts-ink-soft); }
 
-#options-tab .qwk-past__pct b { font-family: 'Fredoka One', 'Fredoka', sans-serif; font-size: 1rem; font-weight: 400; color: var(--accent-deep); }
+#options-tab .qwk-past__pct b { font-family: var(--gcq-font-title); font-size: 1rem; font-weight: 400; color: var(--accent-deep); }
 
 #options-tab .qwk-past__bar { height: 0.4rem; overflow: hidden; border-radius: 999px; background: var(--ts-line-soft); }
 

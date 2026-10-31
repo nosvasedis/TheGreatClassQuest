@@ -457,16 +457,6 @@ body.gcq-mobile #options-tab .rounded-\[2rem\] {
     border-radius: 1.5rem !important;
 }
 
-body.gcq-mobile .qow-hero {
-    flex-direction: column;
-    text-align: center;
-}
-
-body.gcq-mobile .qow-step {
-    min-width: 4.6rem;
-    padding: 0.55rem 0.7rem;
-}
-
 body.gcq-mobile .app-tab .w-64,
 body.gcq-mobile .app-tab .w-72,
 body.gcq-mobile .app-tab .w-80,
@@ -547,7 +537,7 @@ body.gcq-mobile #manage-students-tab > .max-w-5xl {
     padding-right: 0.25rem !important;
 }
 
-body.gcq-mobile #manage-students-tab .bg-white.rounded-2xl {
+body.gcq-mobile #manage-students-tab .roster-banner {
     padding: 0 !important;
     overflow: hidden !important;
 }

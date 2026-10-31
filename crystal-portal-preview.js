@@ -2,6 +2,7 @@
 // /crystal-portal-preview.html?scene=open|sealed|through|road|runes|guardian|riddle|bowed[&lite=1][&shot=1][&loading=1]
 // runes: your class filled the goal but a rune sleeps; guardian: the Guardian waits;
 // riddle / bowed: the Guardian's riddle card and its happy ending.
+import './styles/tokens.css'; // shared fonts + tokens (this preview skips style.css)
 import './styles/crystal_portal.css';
 import './styles/quest_ranks.css';
 import { buildPortalView } from './features/crystalPortalCore.mjs';

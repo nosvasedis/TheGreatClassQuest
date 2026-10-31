@@ -612,7 +612,7 @@
     border-radius: 999px;
     background: linear-gradient(180deg, #6b4724, #3d2711);
     box-shadow: 0 0.14rem 0.3rem rgba(40, 20, 5, 0.35);
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 0.72rem;
     line-height: 1;
 }
@@ -635,7 +635,7 @@
     border-radius: 999px;
     background: linear-gradient(135deg, #2f7de1, #6c4de6);
     box-shadow: 0 0.2rem 0.45rem rgba(30, 40, 90, 0.3);
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 0.56rem;
     font-weight: 800;
     letter-spacing: 0.06em;
@@ -702,7 +702,7 @@
     border-radius: 999px;
     background: linear-gradient(180deg, #fff6c8, #ffcf52);
     box-shadow: 0 0.3rem 0.7rem rgba(120, 70, 0, 0.35);
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 0.82rem;
     line-height: 1.1;
     white-space: nowrap;
@@ -809,7 +809,7 @@
     border-radius: 50%;
     background: radial-gradient(circle at 35% 30%, #8a6440, #4a2f16);
     box-shadow: 0 0.16rem 0.32rem rgba(50, 25, 5, 0.3);
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 0.78rem;
 }
 
@@ -873,7 +873,7 @@
     display: block;
     overflow: hidden;
     color: #2e2216;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.1rem;
     font-weight: 400;
     line-height: 1.1;
@@ -896,7 +896,7 @@
 
 .tq-card__pct {
     color: var(--deep);
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 1.7rem;
     line-height: 1;
 }
@@ -988,7 +988,7 @@
 
 .tq-card__fact strong {
     color: #2e2216;
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 0.95rem;
     font-weight: 400;
     line-height: 1.05;
@@ -1104,7 +1104,7 @@
     border-radius: 0.85rem;
     background: linear-gradient(135deg, var(--deep), color-mix(in srgb, var(--deep) 70%, #1b1030));
     box-shadow: 0 0.25rem 0 color-mix(in srgb, var(--deep) 60%, #000), 0 0.5rem 0.9rem rgba(40, 20, 5, 0.25);
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
     font-size: 0.78rem;
     font-weight: 700;
     cursor: pointer;
@@ -1146,7 +1146,7 @@
     gap: 0.6rem;
     padding: 0.38rem 0.55rem 0.38rem 0.4rem;
     border-radius: 1rem;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-display);
 }
 
 .tq-chronicle-btn:hover,
@@ -1198,7 +1198,7 @@
 }
 
 .tq-chronicle-btn__copy strong {
-    font-family: 'Fredoka One', 'Fredoka', sans-serif;
+    font-family: var(--gcq-font-title);
     font-size: 0.98rem;
     font-weight: 400;
     white-space: nowrap;

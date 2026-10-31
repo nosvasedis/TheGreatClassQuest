@@ -8,6 +8,7 @@
 // motion shows the last frame. Everything moves by transform and opacity; glows are gradients.
 // Markup: ui/modals/heroLevelUpView.mjs. Styles: styles/hero_level_up.css (lazy, with this module).
 // Sound: audio.js playLevelUpSfx (synthesised, no file to download).
+import { quietly } from '../../utils/runtimeMetrics.js';
 import '../../styles/hero_level_up.css';
 import * as state from '../../state.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
@@ -21,7 +22,7 @@ let current = null;
 let pending = false;
 
 function sfx(name, opts) {
-    import('../../audio.js').then(({ playLevelUpSfx }) => playLevelUpSfx?.(name, opts)).catch(() => {});
+    import('../../audio.js').then(({ playLevelUpSfx }) => playLevelUpSfx?.(name, opts)).catch(quietly('ui/modals/heroLevelUp.js'));
 }
 
 function tier() {

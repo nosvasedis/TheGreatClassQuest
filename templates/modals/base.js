@@ -4,22 +4,17 @@
 export const baseModalsHTML = `
     <div id="confirmation-modal"
         class="fixed inset-0 bg-slate-950/60 z-[2000] flex items-center justify-center p-4 hidden backdrop-blur-sm">
-        <div class="bg-white/95 backdrop-blur-md p-8 rounded-[2.5rem] shadow-2xl max-w-sm w-full pop-in border-4 border-indigo-100 flex flex-col items-center text-center relative overflow-hidden">
-            <div class="absolute -top-10 -right-10 w-32 h-32 bg-indigo-50 rounded-full blur-3xl opacity-50"></div>
-            <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-amber-50 rounded-full blur-3xl opacity-50"></div>
-            
-            <div id="modal-icon-container" class="w-20 h-20 bg-gradient-to-br from-indigo-50 to-white rounded-3xl flex items-center justify-center text-5xl mb-6 shadow-inner border-2 border-indigo-100/50 relative z-10 animate-float hidden"></div>
-            
-            <h2 id="modal-title" class="font-title text-3xl text-indigo-900 mb-3 relative z-10 drop-shadow-sm">Are you sure?</h2>
-            <p id="modal-message" class="text-indigo-600/80 font-title font-normal text-lg mb-8 relative z-10 leading-relaxed italic">This action cannot be undone.</p>
-            
-            <div class="flex flex-col sm:flex-row justify-center gap-3 w-full relative z-10">
-                <button id="modal-cancel-btn"
-                    class="w-full bg-slate-100 hover:bg-slate-200 text-slate-500 font-title text-lg py-3 px-6 rounded-2xl bubbly-button transition-all border-b-4 border-slate-200 active:border-b-0">
+        <!-- The herald's question: tone set by ui/modals/base.js#showModal (default, danger, milestone). -->
+        <div class="gcq-confirm pop-in" data-tone="default" role="alertdialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-message">
+            <span class="gcq-confirm__glow" aria-hidden="true"></span>
+            <div id="modal-icon-container" class="gcq-confirm__seal hidden" aria-hidden="true"></div>
+            <h2 id="modal-title" class="gcq-confirm__title">Are you sure?</h2>
+            <div id="modal-message" class="gcq-confirm__message">This action cannot be undone.</div>
+            <div class="gcq-confirm__actions">
+                <button id="modal-cancel-btn" type="button" class="gcq-confirm__btn gcq-confirm__btn--cancel bubbly-button">
                     Cancel
                 </button>
-                <button id="modal-confirm-btn"
-                    class="w-full bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-title text-lg py-3 px-6 rounded-2xl shadow-lg shadow-indigo-100 transition-all active:scale-95 border-b-4 border-indigo-800 active:border-b-0">
+                <button id="modal-confirm-btn" type="button" class="gcq-confirm__btn gcq-confirm__btn--ok bubbly-button">
                     Confirm
                 </button>
             </div>

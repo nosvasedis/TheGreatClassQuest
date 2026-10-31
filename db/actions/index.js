@@ -1,7 +1,6 @@
 // /db/actions/index.js
 // Barrel re-exporter — all sub-modules in one place.
-// This file is NOT the entry point used by consumers;
-// consumers import from '../db/actions.js' which re-exports from here.
+// The old db/actions.js facade is gone (2026-10-31): import from here or the sub-module.
 
 export * from './classes.js';
 export * from './students.js';
@@ -13,3 +12,5 @@ export * from './economy.js';
 export * from './shopManager.js';
 export * from './guilds.js';
 export * from './quizOfTheWeek.js';
+export * from './trainingBonus.js';
+export * from './history.js';

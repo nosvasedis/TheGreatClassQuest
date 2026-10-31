@@ -10,6 +10,8 @@
 // transaction uses, so the chest opens at once while the Gold is saved in the background. The
 // closing ribbon waits for the save (and offers a retry if it fails).
 
+import { quietly } from '../utils/runtimeMetrics.js';
+import { escapeHtml as esc } from '../utils/html.mjs';
 import '../styles/day_treasure.css';
 import * as state from '../state.js';
 import { db, doc, runTransaction, serverTimestamp, updateDoc, arrayUnion, deleteField } from '../firebase.js';
@@ -24,7 +26,6 @@ import { describeSchoolDay } from '../utils/schoolCalendar.mjs';
 import * as utils from '../utils.js';
 import { showToast } from '../ui/effects.js';
 
-const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const calm = () => Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
 
@@ -251,7 +252,7 @@ function showTreasureStage({ event, cls, special, receipt }) {
         const seed = `${event.id}:${cls.id}:${Date.now()}`;
         const preview = receipt || { shares: rollDayTreasure(studentsOf(cls.id).map((s) => s.id), seed) };
         const saving = receipt && !receipt.pending ? Promise.resolve(receipt) : payTreasure(event, cls.id, seed);
-        saving.catch(() => {});
+        saving.catch(quietly('features/dayTreasure.js'));
 
         hint.textContent = ' ';
         chest.classList.add('is-shaking');

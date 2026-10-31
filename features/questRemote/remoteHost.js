@@ -11,6 +11,7 @@
 // Opt-outs: `data-remote-skip` on a container hides its buttons from the pad; `data-qr-ignore`
 // marks Quest Remote's own layers. `data-remote-label` and `data-remote-bg/-bg2/-fg` set a button's words and colour on the Wand.
 
+import { quietly } from '../../utils/runtimeMetrics.js';
 import '../../styles/quest_remote.css';
 import * as state from '../../state.js';
 import { canUseFeature } from '../../utils/subscription.js';
@@ -107,7 +108,7 @@ async function openHosting({ resume = null } = {}) {
     if (host) return;
     // After a reload there has been no click yet: the browser keeps audio locked until there is one,
     // so a resume must not wait for it (the first click on the page unlocks the sounds).
-    if (resume) ensureAudioReady().catch(() => {});
+    if (resume) ensureAudioReady().catch(quietly('features/questRemote/remoteHost.js'));
     else { try { await ensureAudioReady(); } catch { /* sounds are optional */ } }
     const id = resume?.id || makeSessionId();
     const code = resume?.code || makeSessionCode();
@@ -130,14 +131,14 @@ async function openHosting({ resume = null } = {}) {
     }
     try { sessionStorage.setItem(STORE_KEY, JSON.stringify({ id, code })); } catch { /* private mode */ }
     // Old sessions (closed, or from a tab that was simply shut) are tidied away so the phone's list stays short.
-    if (!resume) channel.sweepOldSessions(id).catch(() => {});
+    if (!resume) channel.sweepOldSessions(id).catch(quietly('features/questRemote/remoteHost.js'));
 
     const h = host;
     h.unsubSession = channel.watchSession(id, onSessionData, (e) => console.warn('Quest Remote session watch', e));
     h.unsubCommands = channel.watchCommands(id, (cmd) => enqueue(cmd), (e) => console.warn('Quest Remote commands watch', e));
     h.beat = setInterval(() => {
         if (host !== h) return;
-        channel.beatHost(id).catch(() => {});
+        channel.beatHost(id).catch(quietly('features/questRemote/remoteHost.js'));
         refreshBondState();
     }, HEARTBEAT_MS);
 
@@ -482,12 +483,12 @@ async function runCast(cmd, tab) {
 async function runClassMode(cmd, mode) {
     if (mode === CLASS_GENERAL) {
         state.setGlobalSelectedClass(null, true);
-        import('../../ui/headerClassSelector.js').then((m) => m.syncHeaderClassSelector?.()).catch(() => {});
+        import('../../ui/headerClassSelector.js').then((m) => m.syncHeaderClassSelector?.()).catch(quietly('features/questRemote/remoteHost.js'));
         return report(cmd, true, 'General view');
     }
     state.setClassFollowScheduleEnabled(true);
     try { (await import('../home.js')).runScheduleBasedClassSyncOnce(); } catch (error) { console.warn('Quest Remote: schedule sync', error); }
-    import('../../ui/headerClassSelector.js').then((m) => m.syncHeaderClassSelector?.()).catch(() => {});
+    import('../../ui/headerClassSelector.js').then((m) => m.syncHeaderClassSelector?.()).catch(quietly('features/questRemote/remoteHost.js'));
     scheduleStage(0);
     const id = state.get('globalSelectedClassId');
     const cls = id && (state.get('allTeachersClasses') || []).find((c) => c.id === id);
@@ -513,7 +514,7 @@ function ensureClass(classId) {
     const mine = (state.get('allTeachersClasses') || []).some((c) => c.id === classId);
     if (!mine) return;
     state.setGlobalSelectedClass(classId, true);
-    import('../../ui/headerClassSelector.js').then((m) => m.syncHeaderClassSelector?.()).catch(() => {});
+    import('../../ui/headerClassSelector.js').then((m) => m.syncHeaderClassSelector?.()).catch(quietly('features/questRemote/remoteHost.js'));
 }
 
 function studentById(id) { return (state.get('allStudents') || []).find((s) => s.id === id) || null; }
@@ -1030,7 +1031,7 @@ async function runCharm(cmd, p) {
         if (!charm) return report(cmd, false, 'Unknown charm');
         // After a reload the browser keeps sound locked until someone clicks the projector once.
         if (!isAudioReady()) {
-            ensureAudioReady().catch(() => {});
+            ensureAudioReady().catch(quietly('features/questRemote/remoteHost.js'));
             if (!isAudioReady()) {
                 showCharmBurst(charm);
                 return report(cmd, false, 'Sound is asleep on the projector: click it once to wake it');

@@ -1,3 +1,4 @@
+import { quietly } from '../../utils/runtimeMetrics.js';
 // Hero Campfire sound: a warm, procedurally synthesised fire (plain Web Audio, no files, no Tone.js).
 // Bed: low filtered noise with a slow breath. Crackles: tiny band-passed noise bursts, sometimes in
 // clusters, now and then a deeper log pop. Plus a whoosh for ignition, a soft tink when a star lands,
@@ -9,7 +10,7 @@ export async function createCampfireAudio() {
     if (!AC) throw new Error('No Web Audio');
     // A roomy output buffer so the fire never crackles in the wrong way while the scene animates.
     const ctx = new AC({ latencyHint: 'playback' });
-    if (ctx.state === 'suspended') await ctx.resume().catch(() => {});
+    if (ctx.state === 'suspended') await ctx.resume().catch(quietly('features/campfire/campfireAudio.js'));
     const out = ctx.createDynamicsCompressor();
     out.threshold.value = -18; out.ratio.value = 3;
     const master = ctx.createGain();
@@ -131,7 +132,7 @@ export async function createCampfireAudio() {
             disposed = true; clearInterval(timer);
             document.removeEventListener('visibilitychange', visibility);
             try { bed.stop(); hiss.stop(); } catch {}
-            ctx.close().catch(() => {});
+            ctx.close().catch(quietly('features/campfire/campfireAudio.js'));
         }
     };
 }

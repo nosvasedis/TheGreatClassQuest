@@ -1,5 +1,6 @@
 // /ui/tabs/guilds.js — Guild Hall: month banners, the Crown Race, lore overlay, guild sounds, anthem modal
 
+import { quietly } from '../../utils/runtimeMetrics.js';
 import { getCrownRoadKeys, getGuildLeaderboardData } from '../../features/guildScoring.js';
 import { CHAPTER_CROWNS, UNITY_SEAL, chapterDaysLeft, chapterName, chapterShortName, sharedPlaces, unityProgress, unityProgressLabel } from '../../features/guildScoringCore.js';
 import { getGuildById, getGuildEmblemUrl, GUILD_IDS } from '../../features/guilds.js';
@@ -136,7 +137,7 @@ function playGuildSound(guildId) {
         }
         const audio = _audioCache[guildId];
         audio.currentTime = 0;
-        audio.play().catch(() => { });
+        audio.play().catch(quietly('ui/tabs/guilds.js'));
     } catch (_) { }
 }
 
@@ -202,7 +203,7 @@ function playGuildAnthem(guildId) {
         audio.currentTime = 0;
         _currentAnthemId = guildId;
         _setupEndFade(audio);
-        audio.play().catch(() => { });
+        audio.play().catch(quietly('ui/tabs/guilds.js'));
     } catch (_) { }
 }
 

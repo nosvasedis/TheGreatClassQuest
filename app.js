@@ -48,7 +48,8 @@ import {
     wireAuthFieldHelpers
 } from './ui/authScreen.js';
 import { clearLocalAppData, getDeviceCacheChoice, offerDeviceCacheChoice } from './utils/deviceCache.js';
-import { recordModuleLoaded } from './utils/runtimeMetrics.js';
+import { recordModuleLoaded, quietly } from './utils/runtimeMetrics.js';
+import { onSecond } from './utils/clock.mjs';
 
 let state;
 let setupDataListeners;
@@ -298,7 +299,7 @@ async function loadAuthenticatedRuntime() {
     authenticatedRuntimePromise = Promise.all([
         import('./state.js'),
         import('./db/listeners.js'),
-        import('./ui/core.js'),
+        import('./ui/core/index.js'),
         import('./ui/wallpaper.js'),
         import('./features/home.js'),
         import('./utils/subscription.js'),
@@ -521,7 +522,7 @@ function hideAllExperienceScreens() {
 }
 
 async function logoutWithLocalCleanup() {
-    await import('./ui/questRemoteButton.js').then((m) => m.beforeSignOut()).catch(() => {});
+    await import('./ui/questRemoteButton.js').then((m) => m.beforeSignOut()).catch(quietly('app.js'));
     await walkOutThroughGate(() => signOut(auth));
     if (getDeviceCacheChoice() === 'shared') clearLocalAppData();
 }
@@ -557,7 +558,7 @@ async function openMainAppForTeacher({ user, loadingScreen, authScreen, appScree
     setTimeout(() => appScreen.classList.remove('app-screen-in'), 500);
     updateDateTime();
     playHeaderIntroWhenRevealed(appScreen.querySelector('header.gcq-sky-header'));
-    const tabs = await import('./ui/tabs.js');
+    const tabs = await import('./ui/tabs/index.js');
     // Register readiness before the first tab render so a fast cached render
     // cannot win the race and leave the loading screen waiting forever.
     dismissLoadingAfterHomeIsReady(loadingScreen);
@@ -644,7 +645,7 @@ function showSubscribeScreen(loadingScreen, authScreen, { audience = 'staff' } =
         status.textContent = '';
     }
     byId('subscribe-refresh-hint')?.classList.toggle('hidden', !canBuy);
-    byId('subscribe-signout-btn').onclick = () => signOut(auth).catch(() => {});
+    byId('subscribe-signout-btn').onclick = () => signOut(auth).catch(quietly('app.js'));
     const backToPlans = byId('subscribe-back-to-plans');
     if (backToPlans) backToPlans.onclick = () => byId('subscribe-plan-cards')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -1322,10 +1323,10 @@ function setupAuthListeners() {
                         if (isCurrentSession()) offerDeviceCacheChoice(profile.role);
                         if (isCurrentSession()) maybeOpenOperatorConsole();
                         if (isCurrentSession() && profile.role !== ROLE_SECRETARY) {
-                            import('./ui/questRemoteButton.js').then((m) => m.onTeacherAppReady()).catch(() => {});
+                            import('./ui/questRemoteButton.js').then((m) => m.onTeacherAppReady()).catch(quietly('app.js'));
                             // The weekly deep reading of Chronicle notes (Elite): a quiet check, once a day, on idle.
                             setTimeout(() => {
-                                const run = () => { if (isCurrentSession()) import('./ui/modals/noteAiReader.js').then((m) => m.maybeRunReadingRound()).catch(() => {}); };
+                                const run = () => { if (isCurrentSession()) import('./ui/modals/noteAiReader.js').then((m) => m.maybeRunReadingRound()).catch(quietly('app.js')); };
                                 if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(run, { timeout: 30000 });
                                 else run();
                             }, 20000);
@@ -1348,7 +1349,7 @@ function setupAuthListeners() {
         } else {
             cancelAuthGate();
             resetAuthSubmitState();
-            import('./ui/questRemoteButton.js').then((m) => m.onSignedOut()).catch(() => {});
+            import('./ui/questRemoteButton.js').then((m) => m.onSignedOut()).catch(quietly('app.js'));
             stopSubscription?.();
             if (state) state.resetState();
             setSchoolId(readDeviceSchoolId());
@@ -1358,7 +1359,7 @@ function setupAuthListeners() {
                     audio.stopAllCeremonyAudio?.();
                     audio.stopDrumRoll?.();
                     audio.stopWritingLoop?.();
-                }).catch(() => {});
+                }).catch(quietly('app.js'));
             }
             appScreen.classList.add('hidden');
             document.getElementById('parent-screen')?.classList.add('hidden');
@@ -1416,15 +1417,8 @@ async function initApp() {
         }
         // --- FIXED SECTION END ---
 
-        let clockInterval = setInterval(updateDateTime, 1000);
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                clearInterval(clockInterval);
-            } else {
-                updateDateTime();
-                clockInterval = setInterval(updateDateTime, 1000);
-            }
-        });
+        // The shared clock pauses while the tab is hidden and ticks at once when it returns.
+        onSecond(updateDateTime);
 
         try {
             const { startSkyTheater } = await import('./features/skyTheater.js');

@@ -12,7 +12,7 @@ export default [
     {
         ignores: [
             'dist/**', 'node_modules/**', 'functions/node_modules/**', 'promo/**', 'docs/**',
-            'scratch/**', '.guidebook-dist/**', 'playwright-report/**', 'test-results/**',
+            'scratch/**', '.guidebook-dist/**', '.claude/**', 'playwright-report/**', 'test-results/**',
             '**/*.data.mjs', 'styles/**',
         ],
     },

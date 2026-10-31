@@ -35,7 +35,14 @@ test('tooltips work by mouse, keyboard and touch, and a hold never opens the too
 test('the roster stays lean: no key row, no Move tile, no class/guild chips under the name', () => {
     assert.doesNotMatch(template, /roster-key/);
     assert.doesNotMatch(classes, /move-student-btn/);
-    assert.doesNotMatch(classes, /roster-guild-chip|roster-chip--class|No Hero Class yet/);
+    assert.doesNotMatch(classes, /roster-guild-chip|roster-chip--class|No Hero Class yet|roster-hero__meta|hero-title-pill/);
+});
+
+test('the Hero Class tile names the class and carries the earned rank as a ribbon', () => {
+    assert.match(classes, /<span class="roster-tool__rank\$\{rank\.length > 10 \? ' is-long' : ''\}" aria-hidden="true">/);
+    assert.match(classes, /rank: heroTitle && heroTitle !== s\.heroClass \? heroTitle : ''/);
+    assert.match(css, /\.roster-group--hero \.roster-tool--class \{ width: var\(--roster-class-tile\); \}/);
+    assert.match(css, /\.roster-tool__rank \{/);
 });
 
 test('the passport offers Move once, beside the Class field', () => {

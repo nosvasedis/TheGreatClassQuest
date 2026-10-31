@@ -89,12 +89,12 @@ If returning heroes are still waiting for a class, a gold **Returning adventurer
 
 Above the rows, a **Waiting for you** line counts what still needs you in this class, for example *2 new skills to choose* or *3 not in a guild yet*. When nothing is waiting, the line goes away.
 
-Each row shows the portrait, the name (with the hero’s rank title once they have one) and a coloured stripe in the guild’s colour at the left, then **the same tools in the same places on every row**. Each tool is a small coloured button with a word under it, and the tools sit in three coloured groups: purple **Hero path**, blue **Records** and warm **Manage**. On a big screen the group names sit once at the top of the roster; on a phone each row shows them, and the tools wrap onto two lines.
+Each row shows the portrait, the name and a coloured stripe in the guild’s colour at the left, then **the same tools in the same places on every row**. Each tool is a small coloured button with a word under it, and the tools sit in three coloured groups: purple **Hero path**, blue **Records** and warm **Manage**. On a big screen the group names sit once at the top of the roster; on a phone each row shows them, and the tools wrap onto two lines.
 
 | Group | Button | What it does |
 |-------|--------|----------------|
 | **Hero path** | **Sort** (wizard hat) | Only for a student with no guild yet (dotted frame): opens the **Sorting Ceremony**, the guild placement quiz (Pro; locked on Starter). Once sorted, the slot shows the guild emblem and is no longer a button — guilds are for life. |
-| | **Class** (shield) | Opens the **Hero Class** ceremony (Pro). With no class yet it has a dotted frame. Once chosen, the slot shows the class emblem and is still a button: tap it to open the **Deck of Paths** and change the class. Its little card tells you how many changes are left this school year. The same two-changes-a-year rule applies (see the Hero Path chapter); when the path is locked it opens as a read-only shrine. |
+| | **Class** (shield) | Opens the **Hero Class** ceremony (Pro). With no class yet it has a dotted frame. Once chosen, the slot shows the class emblem and name, with the hero’s earned rank (such as *Sentinel*) on a small ribbon underneath, gold-rimmed at the top rank. It is still a button: tap it to open the **Deck of Paths** and change the class. Its little card tells you how many changes are left this school year. The same two-changes-a-year rule applies (see the Hero Path chapter); when the path is locked it opens as a read-only shrine. |
 | | **Skills** (sitemap) | Opens the Skill Tree (Pro). It turns purple and **glows** when a new skill is waiting. See the Hero Path chapter. |
 | **Records** | **Chronicle** (book) | Hero’s Chronicle, your private notebook for this child (below). |
 | | **Parents** (shield) | Jumps to Family Access for this child, to make or share the family login (Pro). |

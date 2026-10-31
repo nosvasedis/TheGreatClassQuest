@@ -545,22 +545,18 @@ export function renderManageStudentsTab() {
         const heroTitle = heroProgressionEnabled && s.heroClass && heroLevel > 0 ? getHeroTitle(s.heroClass, heroLevel) : null;
         const tree = heroProgressionEnabled && s.heroClass ? HERO_SKILL_TREE[s.heroClass] : null;
         const auraColor = tree?.auraColor || '#7c3aed';
-        const heroTitlePill = heroTitle
-            ? `<span class="hero-title-pill roster-chip roster-chip--title" style="--chip-color:${auraColor};">${HERO_CLASSES[s.heroClass]?.icon || ''} ${heroTitle}</span>`
-            : '';
         const guild = s.guildId ? getGuildById(s.guildId) : null;
-        // Class and guild already show on their own tiles to the right; only the earned rank title sits under the name.
-        const heroMetaRow = heroTitlePill ? `<div class="roster-hero__meta">${heroTitlePill}</div>` : '';
 
         // Every row carries the same tools in the same slots, so the columns line up down the roster.
         // tipTitle + tip feed the custom tooltip (ui/tabs/rosterTips.js); the accessible name keeps the visible label.
-        const tool = ({ cls, tone, icon, label, tipTitle, tip, locked = false, tag = 'button' }) => {
+        const tool = ({ cls, tone, icon, label, tipTitle, tip, locked = false, tag = 'button', rank = '', style = '' }) => {
             const lock = locked ? '<i class="fas fa-lock roster-tool__lock" aria-hidden="true"></i>' : '';
             const attrs = tag === 'button' ? `type="button" data-id="${s.id}"` : 'tabindex="0" role="img"';
             const name = tipTitle.toLowerCase().includes(label.toLowerCase()) ? tipTitle : `${label}: ${tipTitle}`;
-            return `<${tag} ${attrs} class="roster-tool roster-tool--${tone}${locked ? ' is-locked' : ''}${cls ? ' ' + cls : ''}" aria-label="${escapeHtml(name)}" data-tip-title="${escapeHtml(tipTitle)}" data-tip="${escapeHtml(tip)}">
+            const ribbon = rank ? `<span class="roster-tool__rank${rank.length > 10 ? ' is-long' : ''}" aria-hidden="true">${escapeHtml(rank)}</span>` : '';
+            return `<${tag} ${attrs} class="roster-tool roster-tool--${tone}${locked ? ' is-locked' : ''}${rank ? ' is-ranked' : ''}${cls ? ' ' + cls : ''}" aria-label="${escapeHtml(name)}" data-tip-title="${escapeHtml(tipTitle)}" data-tip="${escapeHtml(tip)}"${style ? ` style="${style}"` : ''}>
                 <span class="roster-tool__icon" aria-hidden="true">${icon}${lock}</span>
-                <span class="roster-tool__label" aria-hidden="true">${escapeHtml(label)}</span>
+                <span class="roster-tool__label" aria-hidden="true">${escapeHtml(label)}</span>${ribbon}
             </${tag}>`;
         };
         const fa = (name) => `<i class="fas ${name}" aria-hidden="true"></i>`;
@@ -581,8 +577,11 @@ export function renderManageStudentsTab() {
             return `Tap to change it in the Deck of Paths. ${left} change${left === 1 ? '' : 's'} left this school year.`;
         };
         const heroClassTool = s.heroClass
-            ? tool({ tag: heroProgressionEnabled ? 'button' : 'span', tone: 'class', cls: `is-set${heroProgressionEnabled ? ' hero-class-select-btn' : ''}`, icon: `<span class="roster-tool__emoji">${hc?.icon || HERO_CLASSES[s.heroClass]?.icon || '🛡️'}</span>`, label: s.heroClass,
-                tipTitle: `Hero Class: ${s.heroClass}`, tip: heroClassSetTip() })
+            ? tool({ tag: heroProgressionEnabled ? 'button' : 'span', tone: 'class', cls: `is-set${heroProgressionEnabled ? ' hero-class-select-btn' : ''}${tree && heroLevel >= tree.titles.length ? ' is-top-rank' : ''}`, icon: `<span class="roster-tool__emoji">${hc?.icon || HERO_CLASSES[s.heroClass]?.icon || '🛡️'}</span>`, label: s.heroClass,
+                // The earned rank rides under the class name as a ribbon in the class's aura colour (gold-rimmed at the top ranks).
+                rank: heroTitle && heroTitle !== s.heroClass ? heroTitle : '',
+                style: heroTitle ? `--rank-color:${auraColor};` : '',
+                tipTitle: heroTitle && heroTitle !== s.heroClass ? `${s.heroClass} · ${heroTitle}` : `Hero Class: ${s.heroClass}`, tip: heroClassSetTip() })
             : tool({ cls: `hero-class-select-btn${heroProgressionEnabled ? ' is-todo' : ''}`, tone: 'class', icon: fa('fa-shield-halved'), label: 'Class', locked: !heroProgressionEnabled,
                 tipTitle: heroProgressionEnabled ? 'Choose a Hero Class' : 'Hero Classes (Pro plan)',
                 tip: heroProgressionEnabled ? 'Opens the Deck of Paths, where the student picks the hero they want to be.' : proTip });
@@ -615,7 +614,6 @@ export function renderManageStudentsTab() {
                 <div class="roster-hero__avatar">${avatarHtml}</div>
                 <div class="roster-hero__text">
                     <p class="roster-hero__name">${escapeHtml(s.name)}</p>
-                    ${heroMetaRow}
                 </div>
             </div>
             <div class="roster-tools">

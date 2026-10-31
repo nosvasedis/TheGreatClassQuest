@@ -11,6 +11,7 @@
 
 #manage-students-tab {
     --roster-tile: 3.6rem;
+    --roster-class-tile: 6.1rem; /* the Hero Class tile is wider: class name with the rank ribbon under it */
     --roster-tile-h: 3.55rem;
     --roster-tile-gap: 0.3rem;
     --roster-group-pad: 0.35rem;
@@ -109,7 +110,8 @@
 .roster-column--records { background: linear-gradient(120deg, #0ea5e9, #14b8a6); }
 .roster-column--admin { background: linear-gradient(120deg, #f59e0b, #ea580c); }
 .roster-column--hero,
-.roster-group--hero .roster-group__tools { width: calc(3 * var(--roster-tile) + 2 * var(--roster-tile-gap) + 2 * var(--roster-group-pad)); }
+.roster-group--hero .roster-group__tools { width: calc(2 * var(--roster-tile) + var(--roster-class-tile) + 2 * var(--roster-tile-gap) + 2 * var(--roster-group-pad)); }
+.roster-group--hero .roster-tool--class { width: var(--roster-class-tile); }
 .roster-column--records,
 .roster-group--records .roster-group__tools { width: calc(4 * var(--roster-tile) + 3 * var(--roster-tile-gap) + 2 * var(--roster-group-pad)); }
 .roster-column--admin,
@@ -218,31 +220,6 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
-.roster-hero__meta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.3rem;
-    margin-top: 0.3rem;
-}
-.roster-chip {
-    --chip-color: #64748b;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.12rem 0.55rem;
-    border-radius: var(--gcq-radius-pill);
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1.35;
-    white-space: nowrap;
-}
-.roster-chip--title {
-    color: #fff;
-    background: linear-gradient(135deg, var(--chip-color), color-mix(in srgb, var(--chip-color) 70%, #1e1b4b));
-    box-shadow: 0 2px 5px -2px color-mix(in srgb, var(--chip-color) 70%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-}
-
 /* ---------- Tool groups ---------- */
 .roster-tools {
     display: flex;
@@ -327,6 +304,43 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+/* Earned rank: a small ribbon in the class's aura colour under the class name */
+.roster-tool.is-ranked { gap: 0.14rem; padding-top: 0.22rem; padding-bottom: 0.22rem; }
+.roster-tool.is-ranked .roster-tool__icon { width: 1.5rem; height: 1.5rem; border-radius: 0.55rem; }
+.roster-tool.is-ranked .roster-tool__emoji { font-size: 0.9rem; }
+.roster-tool__rank {
+    position: relative;
+    max-width: calc(100% - 0.2rem);
+    padding: 0.08rem 0.45rem 0.1rem;
+    border-radius: 0.3rem;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--rank-color, #7c3aed) 82%, #fff), var(--rank-color, #7c3aed) 55%, color-mix(in srgb, var(--rank-color, #7c3aed) 70%, #1e1b4b));
+    box-shadow: 0 2px 4px -2px color-mix(in srgb, var(--rank-color, #7c3aed) 80%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    color: #fff;
+    font-family: var(--gcq-font-display);
+    font-size: 0.56rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    line-height: 1.2;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+/* little stars at each end, left out when the rank is a long one */
+.roster-tool__rank.is-long::before,
+.roster-tool__rank.is-long::after { content: none; }
+.roster-tool__rank::before,
+.roster-tool__rank::after {
+    content: '✦';
+    margin: 0 0.18rem;
+    font-size: 0.45rem;
+    opacity: 0.85;
+    vertical-align: 0.05rem;
+}
+.roster-tool.is-top-rank .roster-tool__rank {
+    box-shadow: 0 0 0 1.5px #fbbf24, 0 2px 6px -1px rgba(245, 158, 11, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 @media (hover: hover) {
@@ -567,7 +581,7 @@ button.roster-tool.is-set { cursor: pointer; }
     /* Hero path and Manage share the first line; Records gets the full second line */
     .roster-tools {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr);
         gap: 0.45rem var(--roster-group-gap);
     }
     .roster-group--hero { grid-column: 1; grid-row: 1; }
@@ -582,7 +596,12 @@ button.roster-tool.is-set { cursor: pointer; }
         grid-auto-flow: column;
         grid-auto-columns: minmax(0, 1fr);
     }
-    .roster-tool { width: auto; height: 3.3rem; padding: 0.3rem 0.05rem 0.25rem; }
+    .roster-group--hero .roster-group__tools { grid-auto-columns: unset; grid-template-columns: minmax(0, 1fr) minmax(0, 1.9fr) minmax(0, 1fr); }
+    .roster-tool,
+    .roster-group--hero .roster-tool--class { width: auto; height: 3.3rem; padding: 0.3rem 0.05rem 0.25rem; }
+    .roster-tool.is-ranked .roster-tool__icon { width: 1.35rem; height: 1.35rem; }
+    .roster-tool__rank { padding: 0.06rem 0.25rem 0.08rem; font-size: 0.5rem; letter-spacing: 0; }
+    .roster-tool__rank::before, .roster-tool__rank::after { display: none; }
     .roster-tool__icon { width: 1.75rem; height: 1.75rem; }
     .roster-tool__label { font-size: 0.62rem; }
     .roster-group--records .roster-tool__label { font-size: 0.66rem; }

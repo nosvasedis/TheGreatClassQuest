@@ -425,19 +425,15 @@ function rosterRow({ name, initial, hero, title, guildId, pending, unsorted }, i
   const tool = (tone, icon, label, extra = '') =>
     `<button type="button" class="roster-tool roster-tool--${tone}${extra}"><span class="roster-tool__icon">${icon}</span><span class="roster-tool__label">${label}</span></button>`;
   const fa = (n) => `<i class="fas ${n}"></i>`;
-  const heroMeta = unsorted || !title
-    ? ''
-    : `<div class="roster-hero__meta"><span class="hero-title-pill roster-chip roster-chip--title" style="--chip-color:#16a34a;">${title}</span></div>`;
   const heroTool = unsorted
     ? tool('class', fa('fa-shield-halved'), 'Class', ' is-todo')
-    : `<button type="button" class="roster-tool roster-tool--class is-set"><span class="roster-tool__icon"><span class="roster-tool__emoji">${hero.split(' ')[0]}</span></span><span class="roster-tool__label">${hero.split(' ').slice(1).join(' ')}</span></button>`;
+    : `<button type="button" class="roster-tool roster-tool--class is-set${title ? ' is-ranked' : ''}"${title ? ' style="--rank-color:#16a34a;"' : ''}><span class="roster-tool__icon"><span class="roster-tool__emoji">${hero.split(' ')[0]}</span></span><span class="roster-tool__label">${hero.split(' ').slice(1).join(' ')}</span>${title ? `<span class="roster-tool__rank">${title.replace(/^\S+\s/, '')}</span>` : ''}</button>`;
   return `
         <article class="roster-row" style="--row-i:${index};${guild ? `--roster-accent:${guild.primary};` : ''}">
             <div class="roster-hero">
                 <div class="roster-hero__avatar"><div class="w-11 h-11 rounded-full bg-gradient-to-br from-teal-400 to-cyan-500 text-white font-title flex items-center justify-center">${initial}</div></div>
                 <div class="roster-hero__text">
                     <p class="roster-hero__name">${name}</p>
-                    ${heroMeta}
                 </div>
             </div>
             <div class="roster-tools">

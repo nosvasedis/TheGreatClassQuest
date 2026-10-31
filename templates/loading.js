@@ -55,10 +55,13 @@ const LOADING_LOGO_URL = new URL('../assets/great-class-quest-logo.svg', import.
 const FILM_CUTS = {
     // pathStart / pathShown: when the constellation starts and finishes rising
     // (--t-path in styles/loading2.css, plus its 0.7s rise).
-    full: { reveal: 3700, pathStart: 4300, pathShown: 4800, signedOutMin: 4400, hold: 3600, tricksAt: 5600, letterWaveMs: 750 },
-    short: { reveal: 1750, pathStart: 2150, pathShown: 2650, signedOutMin: 2400, hold: 2700, tricksAt: 3400, letterWaveMs: 550 },
+    // lineStart / lineDwell: when the line under the title starts rising
+    // (--t-tagline, plus its 0.8s rise), and how long it stays once risen.
+    full: { reveal: 3700, lineStart: 4000, lineDwell: 1400, pathStart: 4300, pathShown: 4800, signedOutMin: 4400, hold: 3600, tricksAt: 5600, letterWaveMs: 750 },
+    short: { reveal: 1750, lineStart: 1950, lineDwell: 1100, pathStart: 2150, pathShown: 2650, signedOutMin: 2400, hold: 2700, tricksAt: 3400, letterWaveMs: 550 },
 };
 const WELCOME_HOLD_REDUCED_MS = 2600;
+const LINE_RISE_MS = 800;
 const FILM_DAY_KEY = 'gcq-loading-film-day';
 let _cut = 'full';
 
@@ -1068,7 +1071,12 @@ export function playLoadingExit(loadingScreen, { schoolName = '', dayPart = '', 
     const timing = cutTiming();
     // The Welcome arrives at the reveal, never before; with no Welcome the
     // woosh waits until the title and the medallion have been seen.
-    const landWait = reduced ? 0 : Math.max(0, (hasWelcome ? timing.reveal : timing.signedOutMin) - sinceShown);
+    let landAt = hasWelcome ? timing.reveal : timing.signedOutMin;
+    // A line under the title that has begun rising gets its moment, read in
+    // full, before the Welcome takes its place (never a flash).
+    const lineDone = timing.lineStart + LINE_RISE_MS + timing.lineDwell;
+    if (hasWelcome && sinceShown >= timing.lineStart && sinceShown < lineDone) landAt = Math.max(landAt, lineDone);
+    const landWait = reduced ? 0 : Math.max(0, landAt - sinceShown);
     const hold = hasWelcome ? (reduced ? WELCOME_HOLD_REDUCED_MS : timing.hold) : 0;
     const wooshAt = landWait + hold;
     const revealIn = wooshAt + (reduced ? 0 : WOOSH_REVEAL_AT_MS);

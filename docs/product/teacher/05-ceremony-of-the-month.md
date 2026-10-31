@@ -69,9 +69,15 @@ A torchlit arena at dusk: a moon, league pennants, a cheering crowd in the stand
 
 **League Duel.** The top two face each other as veiled **Finalist** cards across crossed swords, scores hidden. Press **🥁 Drumroll…**: the spotlights swing between them, then land on the champion, who is crowned while the second card takes the silver step of a podium. A true tie shows **Shared Champions!**
 
+**The Portal Ascent.** Your own class's month on the quest road. If the class stepped through the **Crystal Portal** that month, the old rank crest burns away into the new one, with the new rank's name and motto, the Portal spoils it won and what the next rank asks. If it did not, the scene shows how far up the road the class got. Either way it ends with **next month's quest**: the new goal and what the class needs to open the Portal. There is no next-month goal at the end of June (summer comes first, then a new year).
+
+**The Chronicle of the Month.** A page of what the whole class did together that month, beyond stars: realms reached on the map, Training Grounds rounds won, Ember Oaths kept, calm minutes with the Quiet Dragon, bounties claimed, Starfall stars, Quizzes of the Week played and Hero Seals pressed. Only the things that happened appear, and it never shows marks, absences or anything you keep private.
+
 **Transition.** The torches turn violet and the gate reads **Hero’s Challenge**. Press **Begin Hero’s Challenge**.
 
 **Phase 2 — Hero’s Challenge.** Only students in the selected class, revealed the same way with a portrait medallion instead of a crest. A student who received this month’s **Teacher Boon** carries a **ribbon** on the card: honour, not a rank. The top two meet in the **Hero Duel**; **Crown the Champion** runs the drumroll and crowns the **Prodigy of the Month** (or two **Co-Prodigies**).
+
+**Honours of the Month.** Before the final standings, named heroes are honoured for the month's other achievements: **Quiz Champions** (top of a Quiz of the Week), **Seal Bearers** (heroes who pressed a celebrated Hero Seal) and **New Legends** (a Legend Quest completed). A group only appears when someone earned it.
 
 **Final Standings.** A Roll of Honour lists every hero with their monthly stars and strengths. If nobody earned stars, the screen shows **Our Whole Class Quest** instead. **Finish Ceremony** closes the month; the closing screen says **Well fought** to the class and names the crowns.
 
@@ -87,7 +93,7 @@ A storybook garden on a sunny day: rolling hills, bunting, clouds and butterflie
 
 **Parade of Blooms.** For each learner a seed drops, sprouts and opens into a flower with the child’s initial, and a seed-packet card tells their kind story. **Bloom X of Y** and the chevrons step through the cards. As each card is shown, that child’s little flower is planted in the bed at the bottom, so the whole class garden fills up as the parade goes on.
 
-**The Golden Bloom.** The biggest bud grows, glows and opens: **Prodigy of the Month**, or **Co-Prodigies** side by side, or **Whole Class Garden** when there is no individual winner. **Finish Ceremony 🌿** lets the sun set on the garden.
+**The Golden Bloom.** The biggest bud grows, glows and opens: **Prodigy of the Month**, or **Co-Prodigies** side by side, or **Whole Class Garden** when there is no individual winner. Then the garden tells the class its own month: **Our Garden Grows 🌱** when the class stepped through the Portal (its new rank), or **Our Next Adventure 🌱** with next month's quest, and **Our *Month* Story 📖**, the Chronicle of the Month told in garden words. **Finish Ceremony 🌿** lets the sun set on the garden.
 
 ### On slower laptops
 

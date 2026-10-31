@@ -212,6 +212,8 @@ Weather is not a toy. It ties the classroom to the real morning outside.
 
 With a mouse, a storybook sky-blue and gold **Quest cursor** replaces your normal pointer. It changes shape over buttons, links, text and draggable things, shows a small turning hourglass while something is busy, and gives a brief sparkle when you click an action. It switches itself off on touch screens and in high-contrast mode, and its animations stop if the device asks for reduced motion. To turn it off, go to **Teacher Settings → Profile → Quest cursor**; it takes effect at once, for this browser only, with no Save needed.
 
+**Before anything that cannot be undone**, the Quest asks first in a small card with a wax seal: rose-red with a ⚠️ for **Delete**, **Purge** or **Reset**, gold with a ⭐ for a story **Milestone**, and blue for everything else. **Cancel** always leaves things as they were.
+
 Stars, Gold, the Market, Familiar hatching and evolving, the Quiz and the ceremonies each have their own sounds. Keep them on: children read the room through sound as much as through the screen.
 
 Other quiet treats you will meet elsewhere in this guidebook:

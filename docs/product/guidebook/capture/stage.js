@@ -195,6 +195,10 @@ document.getElementById('about-tab')?.classList.add('hidden');
   if (name) name.textContent = 'Alex';
   if (reason) reason.textContent = 'For outstanding Teamwork today';
   if (avatar) avatar.textContent = 'A';
+  // The reveal plays in phases (drawing lots, hush, reveal); the guidebook shows the crowned moment.
+  if (modal) modal.dataset.phase = 'reveal';
+  const kicker = document.getElementById('hero-celebration-kicker');
+  if (kicker) kicker.textContent = 'Hear ye, hear ye!';
 }
 document.documentElement.dataset.captureMode = 'day';
 window.__gcqCapture = {

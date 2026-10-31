@@ -12,7 +12,7 @@ The greeting follows the real sun: **Good Morning** until noon, **Good Afternoon
 
 The class logo (or 🏫 in General view) sits inside a **day/night ring**, a 24-hour dial with noon at the top and midnight at the bottom. Daylight is painted between today’s real sunrise and sunset, and the night side is a starry sky. The sun (or, after sunset, the moon in tonight’s real phase) travels round the ring to show the time now. Each time you open Home the ring plays a short show as it settles on the current time. Hover over it to see today’s sunrise and sunset times.
 
-Chips under the greeting show the school and either the selected class and league, or how many classes meet today (and how many are yours). Reminder badges next to them all look alike: an icon, a small label, a title and a “when” tag.
+Chips under the greeting show the school and either the selected class and league, or how many classes meet today (and how many are yours). Reminder badges next to them all look alike: an icon, a small label, a title and a “when” tag. On a special day with a planned **Day Treasure**, that day's badge carries a small rattling chest: tap it in the class's lesson to open the treasure (see the Quest Calendar chapter).
 
 The **weather card** is a small window onto the real sky: drifting clouds with rain, snow or lightning when the weather has them, an icon (the moon in its real phase at night), a small analogue clock, the temperature and conditions, today’s high and low, the wind, and the next four hours with the chance of rain.
 

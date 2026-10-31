@@ -72,6 +72,8 @@ When the stars and every rune are ready, the Portal opens by itself (or when the
 
 Open the **Crystal Portal** to see your class's runes one by one (the four virtues with their stars, a lantern per hero, the riddles), who stepped through this month, who waits at the threshold or at the sealed gate, **Beyond the Portal** (your next rank, its spoils and the new challenge it brings) and **The ranks of the road**, every rank with what it asks and pays, with your class's marked **You are here**.
 
+**The Starward Way (after the Portal).** A class that has stepped through the Portal and keeps earning stars does not stop. Above the Portal a **Beyond** button appears on the map with the crests of the classes up there; press it and the view rises into the **Crystal Sky**, a sea of clouds with crystal islands and an aurora. The **Starward Way** climbs through it in star stones, one for every 5% more of the monthly goal, past **Moonstep** (110%), **Comet's Rest** (125%), **the Star Crown** (150%) and the **Aurora Bridge** (175%) to **the Celestial Palace** at twice the goal. It is a place to keep climbing for the rest of the month; it does not change the rank or the Portal spoils.
+
 Past months in History and the ceremony show the level that was true *that* month, not today's higher one. A month where a class filled the goal but the Portal stayed sealed reads "Filled the goal · the Portal stayed sealed" in the League Archive.
 
 ## How the monthly goal is set

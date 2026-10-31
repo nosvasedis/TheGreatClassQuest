@@ -111,7 +111,7 @@ try {
   await page.evaluate(() => {
     document.getElementById('app-screen')?.classList.add('hidden');
   });
-  const hcd = page.locator('#hero-celebration-modal .hcd-card');
+  const hcd = page.locator('#hero-celebration-modal .hod-stage');
   try {
     await hcd.waitFor({ state: 'visible', timeout: 8000 });
     await shot(hcd, 'hero-of-the-day.png');

@@ -477,7 +477,7 @@ export const TERMS = [
     names: { en: 'Quest Event', el: 'Quest Event' },
     aliases: ['quest event'],
     def: {
-      en: 'A Quest Calendar booking from the Day Planner: a 2× Star Day or Reason Bonus Day, or one of the five Special Quests. Not Quiz of the Week and not Quest Assignment.',
+      en: 'A Quest Calendar booking from the Day Planner: a 2× Star Day or Reason Bonus Day, one of the five Special Quests, or a special day\'s Day Treasure. Not Quiz of the Week and not Quest Assignment.',
       el: 'Κράτηση στο Quest Calendar από το Day Planner: 2× Star Day ή Reason Bonus Day, ή ένα από τα πέντε Special Quests. Όχι Quiz of the Week και όχι Quest Assignment.'
     },
     confuse: { en: 'Quiz of the Week, Quest Assignment', el: 'Quiz of the Week, Quest Assignment' }
@@ -505,6 +505,18 @@ export const TERMS = [
       el: 'Κανονικό Quest Event. Τα matching Teamwork, Creativity, Respect ή Focus παίρνουν +1 έξτρα αστέρι. Το εφαρμόζει το Award Stars.'
     },
     confuse: { en: '2× Star Day, Special Quest', el: '2× Star Day, Special Quest' }
+  },
+  {
+    id: 'day-treasure',
+    chapter: 'quest-calendar',
+    widget: 'quest-event',
+    names: { en: 'Day Treasure', el: 'Day Treasure' },
+    aliases: ['day treasure', 'treasure chest', 'pumpkin hoard', 'special day chest'],
+    def: {
+      en: 'A special day\'s own chest (The Pumpkin Hoard for Halloween, Saint Basil\'s Sack for Christmas…), planned once for the school in the Quest Calendar. Each class opens it once from the day\'s chip on Home: every hero finds 10–45 Gold, and one lucky hero may find the Hoard (60–80). No stars.',
+      el: 'Το σεντούκι μιας ξεχωριστής μέρας (The Pumpkin Hoard για το Halloween, Saint Basil\'s Sack για τα Χριστούγεννα…), που προγραμματίζεται μία φορά για όλο το σχολείο στο Quest Calendar. Κάθε τμήμα το ανοίγει μία φορά από το chip της μέρας στο Home: κάθε ήρωας βρίσκει 10–45 Gold και ένας τυχερός μπορεί να βρει το Hoard (60–80). Χωρίς αστέρια.'
+    },
+    confuse: { en: 'Festival Stall (Market), 2× Star Day', el: 'Festival Stall (Market), 2× Star Day' }
   },
   {
     id: 'special-quest',
@@ -912,6 +924,7 @@ export const TERM_ICONS = {
   'quest-event': 'fa-calendar-days',
   'double-star-day': 'fa-star',
   'reason-bonus-day': 'fa-lightbulb',
+  'day-treasure': 'fa-box-open',
   'special-quest': 'fa-wand-magic-sparkles',
   'vocabulary-vault': 'fa-book',
   'grammar-guardians': 'fa-shield-alt',

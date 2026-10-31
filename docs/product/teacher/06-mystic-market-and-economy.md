@@ -64,6 +64,8 @@ The monthly stall follows **this month’s classroom story** (September is harve
 - Per hero per stall: up to 5 common, 2 rare and 1 legendary (Festival Stall: 2 common, 1 rare, 1 legendary).
 - With two or more classes in a league, each class may take its share of each rarity, sized by how many children it has (always at least one). In the **last 7 days of the month** (the last 3 days of a festival) anything left is open to every class.
 
+**How treasures work.** The **How treasures work** button on the Seasonal Treasures sign opens a one-page guide over the Market: the price of each rarity, the charms each rarity can carry, the Hoard ranks, and this league's fair shares in live numbers. With a shopper chosen at the till, it also shows that hero's own Hoard and how far they are from the next rank. It is a good page to put on the projector the first time the class shops.
+
 ## What treasures do: Charms
 
 Every seasonal and festival treasure carries a **Charm**: one small classroom privilege, shown on its card in the Market. Common charms are quick (Seat of Choice, Teacher's Helper, Game Chooser, Golden Pen, First Turn, Name Picker). Rare charms are stronger (Partner Pick, Wise Owl's Hint, Music Keeper, Team Captain, Spotlight Share). Legendary charms are the big ones (Teacher for Five, Royal Decree, Teacher's Desk, Wall of Fame). Charms are small lesson moments only: they never touch stars, Glory, Gold, marks, homework or tests. Younger leagues read simpler wording.

@@ -43,6 +43,15 @@ Choose a card for that date, pick the classes (standard events cover every class
 | **2× Star Day** | Every positive star award that day is **doubled** |
 | **Reason Bonus Day** | Pick Teamwork, Creativity, Respect, or Focus. Matching awards get **+1 extra star** |
 
+**Day Treasures (a special day's own chest of Gold)**
+
+When you open a day that is a special day, or a lesson day close to one (Halloween, Thanksgiving, Ohi Day, Valentine's Day, World Book Day, Carnival, Teachers' Day and the others the app knows), the Quest Event page shows that day's treasure: **The Pumpkin Hoard** for Halloween, **The Harvest Chest** for Thanksgiving, **Saint Basil's Sack** for Christmas, and so on. **Plan the treasure for the school** once, and it is ready for every class.
+
+- **When it opens.** On the special day itself, if the school has lessons then. If the day has no lessons, it opens on the closest lesson days just before it (or the first ones after a break). The page lists those days.
+- **Where it opens.** In each class's own lesson, from the special day's chip on **Home**. A small chest rattles on the chip while the class can still open it. Each class opens its chest **once**; pressing the chip again later only replays the reveal (**see it again**).
+- **What the class finds.** Every hero finds a pile of **Gold**: most find a handful or a full pouch, a few find a treasure chest (**10 to 45** Gold in all). One lucky hero may find **The Hoard** (**60 to 80** Gold). There are **no stars**, so a treasure never changes Team Quest, the Hero's Challenge or Guild Glory.
+- **Changed plans.** **Remove** takes the planned treasure off the calendar.
+
 **Special quests (you run them in the room; the calendar stores the goal and bonus)**
 
 | Quest | You set | In the lesson |

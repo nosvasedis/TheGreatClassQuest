@@ -1,5 +1,7 @@
 // /ui/tabs/classes.js
+import '../../styles/student_roster.css';
 import * as state from '../../state.js';
+import { bindRosterTips } from './rosterTips.js';
 import { emptyStateHtml } from '../emptyStateView.mjs';
 import { morphInto } from '../../utils/domMorph.mjs';
 import { TRAINING_HERO, withLegacyHeroAliases } from '../../features/heroClassNames.mjs';
@@ -472,6 +474,7 @@ export function renderManageStudentsTab() {
     if (!list || !currentManagingClassId) return;
     const greenhouseBtn = document.getElementById('class-greenhouse-roster-btn');
     if (greenhouseBtn) greenhouseBtn.onclick = () => openGreenhouse(currentManagingClassId);
+    bindRosterTips(document.getElementById('manage-students-tab'));
 
     renderReturningStudentsPanel(currentManagingClassId);
 
@@ -491,13 +494,14 @@ export function renderManageStudentsTab() {
     }
 
     if (studentsInClass.length === 0) {
+        renderRosterTodo([]);
         const unplacedCount = getUnplacedStudents(state.get('allStudents') || []).length;
         morphInto(list, emptyStateHtml({
             icon: 'fa-users',
             title: 'No adventurers yet',
             line: unplacedCount
-                ? 'Place returning students from the panel above, or add a brand-new student with the form.'
-                : 'Add your first student using the form to start the quest.',
+                ? 'Place returning students from the panel above, or add a brand-new student with New Student.'
+                : 'Press New Student at the top to add your first student and start the quest.',
             size: 'lg'
         }));
         return;
@@ -514,23 +518,28 @@ export function renderManageStudentsTab() {
         'Patron':    { icon: '💝', bg: '#ffe4e6', text: '#9f1239', ring: '#e11d48' },
     });
 
-    morphInto(list, studentsInClass.map(s => {
+    const todo = { guild: 0, heroClass: 0, skill: 0 };
+
+    morphInto(list, studentsInClass.map((s, index) => {
         const scoreData = state.get('allStudentScores').find(sc => sc.id === s.id);
         const pendingSkill = heroProgressionEnabled && (scoreData?.pendingSkillChoice || false);
         const hc = heroProgressionEnabled && s.heroClass ? (heroClassConfig[s.heroClass] || null) : null;
+        if (guildsEnabled && !s.guildId) todo.guild += 1;
+        if (heroProgressionEnabled && !s.heroClass) todo.heroClass += 1;
+        if (pendingSkill) todo.skill += 1;
 
         const ringStyle = hc
             ? `box-shadow: 0 0 0 2px white, 0 0 0 4px ${hc.ring};`
             : 'box-shadow: 0 0 0 2px white, 0 0 0 4px #d1d5db;';
 
         const avatarInner = s.avatar
-            ? `<img src="${s.avatar}" alt="${s.name}" data-student-id="${s.id}"
+            ? `<img src="${s.avatar}" alt="${escapeHtml(s.name)}" data-student-id="${s.id}"
                 loading="lazy" decoding="async"
                 class="student-avatar large-avatar enlargeable-avatar cursor-pointer"
                 style="${ringStyle}">`
             : `<div data-student-id="${s.id}"
                 class="student-avatar large-avatar enlargeable-avatar cursor-pointer flex items-center justify-center font-title text-white"
-                style="font-size:1.25rem; background: linear-gradient(135deg, #2dd4bf, #06b6d4); ${ringStyle}">${s.name.charAt(0).toUpperCase()}</div>`;
+                style="font-size:1.25rem; background: linear-gradient(135deg, #2dd4bf, #06b6d4); ${ringStyle}">${escapeHtml(s.name.charAt(0).toUpperCase())}</div>`;
         const avatarHtml = wrapAvatarWithLevelUpIndicator(avatarInner, pendingSkill);
 
         const heroLevel = heroProgressionEnabled ? (scoreData?.heroLevel || 0) : 0;
@@ -538,44 +547,53 @@ export function renderManageStudentsTab() {
         const tree = heroProgressionEnabled && s.heroClass ? HERO_SKILL_TREE[s.heroClass] : null;
         const auraColor = tree?.auraColor || '#7c3aed';
         const heroTitlePill = heroTitle
-            ? `<span class="hero-title-pill inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full text-white shadow-sm border border-white/30" style="background: linear-gradient(135deg, ${auraColor}, ${auraColor}dd); box-shadow: 0 1px 3px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.2);">${HERO_CLASSES[s.heroClass]?.icon || ''} ${heroTitle}</span>`
+            ? `<span class="hero-title-pill roster-chip roster-chip--title" style="--chip-color:${auraColor};">${HERO_CLASSES[s.heroClass]?.icon || ''} ${heroTitle}</span>`
             : '';
         const heroClassBadge = hc
-            ? `<span class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full" style="background:${hc.bg};color:${hc.text};">${hc.icon} ${s.heroClass}</span>`
-            : (heroProgressionEnabled ? `<span class="text-[11px] text-gray-400 italic">No class</span>` : '');
-        const guildChip = s.guildId && getGuildById(s.guildId)
-            ? `<span class="roster-guild-chip" style="--chip-color:${getGuildById(s.guildId).primary};">${escapeHtml(getGuildById(s.guildId).name)}</span>`
+            ? `<span class="roster-chip roster-chip--class" style="--chip-color:${hc.ring};">${hc.icon} ${s.heroClass}</span>`
+            : (heroProgressionEnabled ? '<span class="roster-chip roster-chip--none">No Hero Class yet</span>' : '');
+        const guild = s.guildId ? getGuildById(s.guildId) : null;
+        const guildChip = guild
+            ? `<span class="roster-guild-chip" style="--chip-color:${guild.primary};">${escapeHtml(guild.name)}</span>`
             : '';
         const heroMetaRow = (heroClassBadge || heroTitlePill || guildChip)
             ? `<div class="roster-hero__meta">${heroTitlePill || heroClassBadge}${guildChip}</div>`
             : '';
 
         // Every row carries the same tools in the same slots, so the columns line up down the roster.
-        const tool = ({ cls, tone, icon, label, title, locked = false, extra = '', tag = 'button' }) => {
+        // tipTitle + tip feed the custom tooltip (ui/tabs/rosterTips.js); the accessible name keeps the visible label.
+        const tool = ({ cls, tone, icon, label, tipTitle, tip, locked = false, tag = 'button' }) => {
             const lock = locked ? '<i class="fas fa-lock roster-tool__lock" aria-hidden="true"></i>' : '';
-            const attrs = tag === 'button' ? `type="button" data-id="${s.id}" ` : '';
-            return `<${tag} ${attrs}class="roster-tool roster-tool--${tone}${locked ? ' is-locked' : ''}${cls ? ' ' + cls : ''}" title="${title}"${extra}>
-                <span class="roster-tool__icon">${icon}${lock}</span>
-                <span class="roster-tool__label">${label}</span>
+            const attrs = tag === 'button' ? `type="button" data-id="${s.id}"` : 'tabindex="0" role="img"';
+            const name = tipTitle.toLowerCase().includes(label.toLowerCase()) ? tipTitle : `${label}: ${tipTitle}`;
+            return `<${tag} ${attrs} class="roster-tool roster-tool--${tone}${locked ? ' is-locked' : ''}${cls ? ' ' + cls : ''}" aria-label="${escapeHtml(name)}" data-tip-title="${escapeHtml(tipTitle)}" data-tip="${escapeHtml(tip)}">
+                <span class="roster-tool__icon" aria-hidden="true">${icon}${lock}</span>
+                <span class="roster-tool__label" aria-hidden="true">${escapeHtml(label)}</span>
             </${tag}>`;
         };
         const fa = (name) => `<i class="fas ${name}" aria-hidden="true"></i>`;
+        const proTip = 'Part of the Pro plan. Tap to see what it adds.';
 
-        const guild = s.guildId ? getGuildById(s.guildId) : null;
         const guildTool = s.guildId
-            ? tool({ tag: 'span', tone: 'guild', cls: 'is-set', icon: `<span class="guild-badge-wrap">${getGuildBadgeHtml(s.guildId, 'w-7 h-7')}</span>`, label: 'Guild', title: guild ? `Guild: ${guild.name}` : 'Guild' })
-            : tool({ cls: 'guild-quiz-btn', tone: 'guild', icon: fa('fa-hat-wizard'), label: 'Sort', locked: !guildsEnabled, title: guildsEnabled ? 'Take Guild Quiz' : 'Pro plan: Guild Sorting Quiz' });
+            ? tool({ tag: 'span', tone: 'guild', cls: 'is-set', icon: `<span class="guild-badge-wrap">${getGuildBadgeHtml(s.guildId, 'w-7 h-7')}</span>`, label: 'Guild',
+                tipTitle: guild ? `Guild: ${guild.name}` : 'Guild', tip: 'Guilds are for life, so there is nothing to change here.' })
+            : tool({ cls: `guild-quiz-btn${guildsEnabled ? ' is-todo' : ''}`, tone: 'guild', icon: fa('fa-hat-wizard'), label: 'Sort', locked: !guildsEnabled,
+                tipTitle: guildsEnabled ? 'Sort into a guild' : 'Guild Quiz (Pro plan)',
+                tip: guildsEnabled ? 'Opens the Guild Quiz. A few questions, and the student joins a guild for good.' : proTip });
 
-        const heroClassSetTitle = () => {
-            if (!heroProgressionEnabled) return `Hero class: ${s.heroClass}`;
+        const heroClassSetTip = () => {
+            if (!heroProgressionEnabled) return 'Hero Classes are part of the Pro plan.';
             const yearKey = state.getActiveSchoolYearKey();
-            if (heroClassLockApplies(s, yearKey)) return `Hero class: ${s.heroClass} (locked until next school year). Click to view the path.`;
+            if (heroClassLockApplies(s, yearKey)) return 'Locked until next school year. Tap to see the path.';
             const left = heroClassChangesRemaining(s, yearKey);
-            return `Hero class: ${s.heroClass}. Click to change (${left} change${left === 1 ? '' : 's'} left this school year).`;
+            return `Tap to change it in the Deck of Paths. ${left} change${left === 1 ? '' : 's'} left this school year.`;
         };
         const heroClassTool = s.heroClass
-            ? tool({ tag: heroProgressionEnabled ? 'button' : 'span', tone: 'class', cls: `is-set${heroProgressionEnabled ? ' hero-class-select-btn' : ''}`, icon: `<span class="roster-tool__emoji">${hc?.icon || HERO_CLASSES[s.heroClass]?.icon || '🛡️'}</span>`, label: s.heroClass, title: heroClassSetTitle() })
-            : tool({ cls: 'hero-class-select-btn', tone: 'class', icon: fa('fa-shield-halved'), label: 'Class', locked: !heroProgressionEnabled, title: heroProgressionEnabled ? 'Choose Hero Class' : 'Pro plan: Hero Classes & Skill Tree' });
+            ? tool({ tag: heroProgressionEnabled ? 'button' : 'span', tone: 'class', cls: `is-set${heroProgressionEnabled ? ' hero-class-select-btn' : ''}`, icon: `<span class="roster-tool__emoji">${hc?.icon || HERO_CLASSES[s.heroClass]?.icon || '🛡️'}</span>`, label: s.heroClass,
+                tipTitle: `Hero Class: ${s.heroClass}`, tip: heroClassSetTip() })
+            : tool({ cls: `hero-class-select-btn${heroProgressionEnabled ? ' is-todo' : ''}`, tone: 'class', icon: fa('fa-shield-halved'), label: 'Class', locked: !heroProgressionEnabled,
+                tipTitle: heroProgressionEnabled ? 'Choose a Hero Class' : 'Hero Classes (Pro plan)',
+                tip: heroProgressionEnabled ? 'Opens the Deck of Paths, where the student picks the hero they want to be.' : proTip });
 
         const skillTool = tool({
             cls: `skill-tree-btn${!heroProgressionEnabled ? ' skill-tree-btn-locked' : ''}${pendingSkill ? ' is-ready' : ''}`,
@@ -583,19 +601,24 @@ export function renderManageStudentsTab() {
             icon: fa('fa-sitemap') + (pendingSkill ? '<span class="roster-tool__ping" aria-hidden="true"></span>' : ''),
             label: 'Skills',
             locked: !heroProgressionEnabled,
-            title: !heroProgressionEnabled ? 'Pro plan: Hero Classes & Skill Tree' : (pendingSkill ? '✨ New Skill Available!' : 'Skill Tree')
+            tipTitle: !heroProgressionEnabled ? 'Skill Tree (Pro plan)' : (pendingSkill ? 'A new skill is waiting!' : 'Skill Tree'),
+            tip: !heroProgressionEnabled ? proTip
+                : (pendingSkill ? 'Open the Skill Tree so the student can choose their new skill.' : 'The skills this hero has learned, and the ones still ahead.')
         });
 
         const avatarTool = tool({
             cls: `avatar-maker-btn${eliteAiEnabled ? '' : ' avatar-maker-btn-locked'}`,
             tone: 'avatar', icon: fa('fa-user-astronaut'), label: 'Avatar',
-            locked: !eliteAiEnabled, title: eliteAiEnabled ? 'Create/Edit Avatar' : 'Elite plan: Avatar Forge'
+            locked: !eliteAiEnabled,
+            tipTitle: eliteAiEnabled ? 'Avatar Forge' : 'Avatar Forge (Elite plan)',
+            tip: eliteAiEnabled ? 'Make or change this hero\'s portrait.' : 'Part of the Elite plan. Tap to see what it adds.'
         });
 
         const accent = guild?.primary || (hc ? hc.ring : '');
+        const rowStyle = `--row-i:${Math.min(index, 12)};${accent ? `--roster-accent:${accent};` : ''}`;
 
         return `
-        <article class="roster-row" data-morph-key="${s.id}"${accent ? ` style="--roster-accent:${accent};"` : ''}>
+        <article class="roster-row" data-morph-key="${s.id}" style="${rowStyle}">
             <div class="roster-hero">
                 <div class="roster-hero__avatar">${avatarHtml}</div>
                 <div class="roster-hero__text">
@@ -605,7 +628,7 @@ export function renderManageStudentsTab() {
             </div>
             <div class="roster-tools">
                 <div class="roster-group roster-group--hero" role="group" aria-label="Hero path">
-                    <span class="roster-group__caption">Hero path</span>
+                    <span class="roster-group__caption" aria-hidden="true"><i class="fas fa-shield-halved"></i> Hero path</span>
                     <div class="roster-group__tools">
                         ${guildTool}
                         ${heroClassTool}
@@ -613,25 +636,42 @@ export function renderManageStudentsTab() {
                     </div>
                 </div>
                 <div class="roster-group roster-group--records" role="group" aria-label="Records">
-                    <span class="roster-group__caption">Records</span>
+                    <span class="roster-group__caption" aria-hidden="true"><i class="fas fa-book-open"></i> Records</span>
                     <div class="roster-group__tools">
-                        ${tool({ cls: 'hero-chronicle-btn', tone: 'chronicle', icon: fa('fa-book-reader'), label: 'Chronicle', title: "Hero's Chronicle" })}
-                        ${tool({ cls: 'parent-access-student-btn', tone: 'parents', icon: fa('fa-user-shield'), label: 'Parents', title: 'Parent Access' })}
+                        ${tool({ cls: 'hero-chronicle-btn', tone: 'chronicle', icon: fa('fa-book-reader'), label: 'Chronicle', tipTitle: 'Hero\'s Chronicle', tip: 'Your private notebook about this student. Families never see it.' })}
+                        ${tool({ cls: 'parent-access-student-btn', tone: 'parents', icon: fa('fa-user-shield'), label: 'Parents', tipTitle: 'Family login', tip: 'Make or share the login that lets this student\'s family follow along.' })}
                         ${avatarTool}
-                        ${tool({ cls: 'certificate-student-btn', tone: 'certificate', icon: fa('fa-award'), label: 'Certificate', title: 'Generate Certificate' })}
+                        ${tool({ cls: 'certificate-student-btn', tone: 'certificate', icon: fa('fa-award'), label: 'Certificate', tipTitle: 'Certificate', tip: 'Make a certificate of praise to print or save.' })}
                     </div>
                 </div>
                 <div class="roster-group roster-group--admin" role="group" aria-label="Manage">
-                    <span class="roster-group__caption">Manage</span>
+                    <span class="roster-group__caption" aria-hidden="true"><i class="fas fa-sliders-h"></i> Manage</span>
                     <div class="roster-group__tools">
-                        ${tool({ cls: 'move-student-btn', tone: 'move', icon: fa('fa-people-arrows'), label: 'Move', title: 'Move to Another Class' })}
-                        ${tool({ cls: 'edit-student-btn', tone: 'edit', icon: fa('fa-pencil-alt'), label: 'Edit', title: 'Edit Student Details' })}
-                        ${tool({ cls: 'delete-student-btn', tone: 'delete', icon: fa('fa-trash-alt'), label: 'Delete', title: 'Delete Student' })}
+                        ${tool({ cls: 'move-student-btn', tone: 'move', icon: fa('fa-people-arrows'), label: 'Move', tipTitle: 'Move to another class', tip: 'Stars, Gold, guild and notes travel with the student.' })}
+                        ${tool({ cls: 'edit-student-btn', tone: 'edit', icon: fa('fa-pencil-alt'), label: 'Edit', tipTitle: 'Edit details', tip: 'Opens the Adventurer\'s Passport: name, birthday, name day and more.' })}
+                        ${tool({ cls: 'delete-student-btn', tone: 'delete', icon: fa('fa-trash-alt'), label: 'Delete', tipTitle: 'Delete student', tip: 'Removes the student for good. You will be asked first.' })}
                     </div>
                 </div>
             </div>
         </article>`;
     }).join(''));
 
+    renderRosterTodo([
+        todo.skill && { tone: 'skills', icon: 'fa-wand-sparkles', text: `${todo.skill} new skill${todo.skill === 1 ? '' : 's'} to choose` },
+        todo.guild && { tone: 'guild', icon: 'fa-hat-wizard', text: `${todo.guild} not in a guild yet` },
+        todo.heroClass && { tone: 'class', icon: 'fa-shield-halved', text: `${todo.heroClass} without a Hero Class` },
+    ].filter(Boolean));
+
     bindRosterActions(list);
+}
+
+// "Waiting for you" line under the roster key: what still needs the teacher, as plain counts.
+function renderRosterTodo(items) {
+    const line = document.getElementById('roster-todo');
+    if (!line) return;
+    line.classList.toggle('hidden', items.length === 0);
+    line.innerHTML = items.length
+        ? `<span class="roster-todo__label">Waiting for you:</span>${items.map((item) =>
+            `<span class="roster-todo__chip roster-todo__chip--${item.tone}"><i class="fas ${item.icon}" aria-hidden="true"></i>${item.text}</span>`).join('')}`
+        : '';
 }

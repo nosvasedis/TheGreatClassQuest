@@ -419,21 +419,21 @@ export function hideSettings() {
   tab?.classList.remove('capture-settings');
 }
 
-function rosterRow({ name, initial, hero, title, guildId, pending, unsorted }) {
+function rosterRow({ name, initial, hero, title, guildId, pending, unsorted }, index = 0) {
   const guild = GUILDS[guildId];
   const badge = getGuildBadgeHtml(guildId, 'w-7 h-7').replace('./assets/', '/assets/');
   const tool = (tone, icon, label, extra = '') =>
     `<button type="button" class="roster-tool roster-tool--${tone}${extra}"><span class="roster-tool__icon">${icon}</span><span class="roster-tool__label">${label}</span></button>`;
   const fa = (n) => `<i class="fas ${n}"></i>`;
   const heroMeta = unsorted
-    ? `<span class="text-[11px] text-gray-400 italic">No class</span>`
-    : `<span class="hero-title-pill inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full text-white" style="background:linear-gradient(135deg,#16a34a,#16a34add)">${title}</span>`;
+    ? '<span class="roster-chip roster-chip--none">No Hero Class yet</span>'
+    : `<span class="hero-title-pill roster-chip roster-chip--title" style="--chip-color:#16a34a;">${title}</span>`;
   const guildChip = guild ? `<span class="roster-guild-chip" style="--chip-color:${guild.primary};">${guild.name}</span>` : '';
   const heroTool = unsorted
-    ? tool('class', fa('fa-shield-halved'), 'Class')
-    : `<span class="roster-tool roster-tool--class is-set"><span class="roster-tool__icon"><span class="roster-tool__emoji">${hero.split(' ')[0]}</span></span><span class="roster-tool__label">${hero.split(' ').slice(1).join(' ')}</span></span>`;
+    ? tool('class', fa('fa-shield-halved'), 'Class', ' is-todo')
+    : `<button type="button" class="roster-tool roster-tool--class is-set"><span class="roster-tool__icon"><span class="roster-tool__emoji">${hero.split(' ')[0]}</span></span><span class="roster-tool__label">${hero.split(' ').slice(1).join(' ')}</span></button>`;
   return `
-        <article class="roster-row"${guild ? ` style="--roster-accent:${guild.primary};"` : ''}>
+        <article class="roster-row" style="--row-i:${index};${guild ? `--roster-accent:${guild.primary};` : ''}">
             <div class="roster-hero">
                 <div class="roster-hero__avatar"><div class="w-11 h-11 rounded-full bg-gradient-to-br from-teal-400 to-cyan-500 text-white font-title flex items-center justify-center">${initial}</div></div>
                 <div class="roster-hero__text">
@@ -442,15 +442,15 @@ function rosterRow({ name, initial, hero, title, guildId, pending, unsorted }) {
                 </div>
             </div>
             <div class="roster-tools">
-                <div class="roster-group roster-group--hero"><span class="roster-group__caption">Hero path</span><div class="roster-group__tools">
+                <div class="roster-group roster-group--hero"><span class="roster-group__caption"><i class="fas fa-shield-halved"></i> Hero path</span><div class="roster-group__tools">
                     <span class="roster-tool roster-tool--guild is-set"><span class="roster-tool__icon"><span class="guild-badge-wrap">${badge}</span></span><span class="roster-tool__label">Guild</span></span>
                     ${heroTool}
                     ${tool('skills', fa('fa-sitemap') + (pending ? '<span class="roster-tool__ping"></span>' : ''), 'Skills', pending ? ' is-ready' : '')}
                 </div></div>
-                <div class="roster-group roster-group--records"><span class="roster-group__caption">Records</span><div class="roster-group__tools">
+                <div class="roster-group roster-group--records"><span class="roster-group__caption"><i class="fas fa-book-open"></i> Records</span><div class="roster-group__tools">
                     ${tool('chronicle', fa('fa-book-reader'), 'Chronicle')}${tool('parents', fa('fa-user-shield'), 'Parents')}${tool('avatar', fa('fa-user-astronaut'), 'Avatar')}${tool('certificate', fa('fa-award'), 'Certificate')}
                 </div></div>
-                <div class="roster-group roster-group--admin"><span class="roster-group__caption">Manage</span><div class="roster-group__tools">
+                <div class="roster-group roster-group--admin"><span class="roster-group__caption"><i class="fas fa-sliders-h"></i> Manage</span><div class="roster-group__tools">
                     ${tool('move', fa('fa-people-arrows'), 'Move')}${tool('edit', fa('fa-pencil-alt'), 'Edit')}${tool('delete', fa('fa-trash-alt'), 'Delete')}
                 </div></div>
             </div>
@@ -470,11 +470,18 @@ export function showRoster() {
   const num = document.getElementById('student-count-number');
   if (num) num.textContent = '2';
   badge?.classList.remove('hidden');
+  const todo = document.getElementById('roster-todo');
+  if (todo) {
+    todo.innerHTML = '<span class="roster-todo__label">Waiting for you:</span>'
+      + '<span class="roster-todo__chip roster-todo__chip--skills"><i class="fas fa-wand-sparkles"></i>1 new skill to choose</span>'
+      + '<span class="roster-todo__chip roster-todo__chip--class"><i class="fas fa-shield-halved"></i>1 without a Hero Class</span>';
+    todo.classList.remove('hidden');
+  }
   const list = document.getElementById('student-list');
   if (list) {
     list.innerHTML = [
-      rosterRow({ name: 'Alex', initial: 'A', hero: '🛡️ Guardian', title: '🛡️ Sentinel', guildId: 'dragon_flame', pending: true }),
-      rosterRow({ name: 'Maria', initial: 'M', unsorted: true, guildId: 'grizzly_might', pending: false })
+      rosterRow({ name: 'Alex', initial: 'A', hero: '🛡️ Guardian', title: '🛡️ Sentinel', guildId: 'dragon_flame', pending: true }, 0),
+      rosterRow({ name: 'Maria', initial: 'M', unsorted: true, guildId: 'grizzly_might', pending: false }, 1)
     ].join('');
   }
 }

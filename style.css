@@ -237,7 +237,7 @@
 /* Home Quest Progress road (features/homeQuestRoadCard.mjs) */
 @import url('./styles/home_quest_road.css');
 
-@import url('./styles/student_roster.css');
+/* styles/student_roster.css (Students tab roster) loads with ui/tabs/classes.js (lazy, not first paint) */
 /* My Classes: class index cards with a grouped tool tray (ui/tabs/classes.js) */
 @import url('./styles/class_cards.css');
 @import url('./styles/history_archive.css');

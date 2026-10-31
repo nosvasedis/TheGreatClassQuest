@@ -1,21 +1,15 @@
 /* --- PHONE LOADING SCENE -------------------------------------------------
-   The same staged scene as the desktop (styles/loading2.css), fitted to
-   phones and small tablets. templates/loading.js#initLoadingAtmosphere adds
-   .gcq-loading-mobile (max-width: 1023px, the phone shell's breakpoint)
-   before the first paint, and this file ships with style.css, so there is
-   no desktop-then-phone jump.
+   The same film as the desktop (styles/loading.css, styles/loading2.css),
+   fitted to phones and small tablets. templates/loading.js#initLoadingAtmosphere
+   adds .gcq-loading-mobile (max-width: 1023px, the phone shell's breakpoint)
+   before the first paint, so there is no desktop-then-phone jump.
 
-   The stage is one centred column: Lumi, the title (on two balanced lines)
-   or the Welcome, and the quest path. The tip card is pinned above the
-   bottom safe area. The sun peeks in from the top corner, so Lumi's woosh
-   is a short, steep flight up into it. The sky is pared back: 6–8 slow
-   clouds kept out of the middle band, one or two balloons, a single flock
-   and no sky twinkles. */
+   One centred column: Lumi, the title on two balanced lines (or the
+   Welcome) and the constellation, above lower hills. The tip is pinned
+   above the bottom safe area. Fewer stars, two clouds, a few fireflies. */
 
 #loading-screen.gcq-loading-mobile {
-    --sun-size: clamp(7.5rem, 34vw, 10.5rem);
-    --sun-top: calc(env(safe-area-inset-top) - var(--sun-size) * 0.24);
-    --sun-right: calc(var(--sun-size) * -0.24);
+    --land-h: clamp(120px, 24vh, 200px);
     padding:
         max(1rem, env(safe-area-inset-top))
         max(1rem, env(safe-area-inset-right))
@@ -23,128 +17,115 @@
         max(1rem, env(safe-area-inset-left));
 }
 
-#loading-screen.gcq-loading-mobile .loading-twinkles {
-    display: none !important;
+#loading-screen.gcq-loading-mobile .ls-moon {
+    top: max(5%, env(safe-area-inset-top));
+    left: 6%;
+    width: 46px;
 }
 
-/* ── Corner sun ───────────────────────────────────────────── */
-
-#loading-screen.gcq-loading-mobile .loading-sunbeams {
-    width: 130vw;
-    height: 90vh;
+#loading-screen.gcq-loading-mobile .ls-castle {
+    left: 8%;
+    width: 58px;
 }
 
-#loading-screen.gcq-loading-mobile .loading-sunbeams__glow {
-    opacity: 0.4;
-}
-
-#loading-screen.gcq-loading-mobile.loading-final-moment .loading-sunbeams__glow {
-    opacity: 0.85;
-}
-
-/* One slow ray layer is plenty at this size. */
-#loading-screen.gcq-loading-mobile .loading-sun__rays--short {
-    animation: none;
-}
-
-#loading-screen.gcq-loading-mobile.loading-final-moment .loading-cloud-art-layer {
-    opacity: 0.55;
+#loading-screen.gcq-loading-mobile .ls-meteor + .ls-meteor {
+    display: none;
 }
 
 /* ── Stage ─────────────────────────────────────────────────── */
 
 #loading-screen.gcq-loading-mobile .loading-stage {
-    --lumi-size: 5.6rem;
+    --lumi-size: 6.2rem;
     width: 100%;
-    max-width: 22rem;
-    margin-top: -7vh;
+    max-width: 24rem;
+    margin-top: -12vh;
     /* No transform: the fixed tip card keeps the screen (not the stage) as its box. */
     transform: none;
 }
 
 #loading-screen.gcq-loading-mobile .loading-stage::before {
-    width: 92vw;
-    height: 48vh;
+    width: 96vw;
+    height: 54vh;
 }
 
 #loading-screen.gcq-loading-mobile .loading-lumi {
-    margin-bottom: 0.9rem;
+    margin-bottom: 0.6rem;
 }
 
 #loading-screen.gcq-loading-mobile .loading-words {
-    min-height: 8.6rem;
+    min-height: 10rem;
 }
 
 #loading-screen.gcq-loading-mobile .loading-words::before,
 #loading-screen.gcq-loading-mobile .loading-words::after {
-    width: 92vw;
-    height: 220px;
-    margin: -110px 0 0 -46vw;
+    width: 94vw;
+    height: 240px;
+    margin: -120px 0 0 -47vw;
 }
 
 #loading-screen.gcq-loading-mobile .loading-title {
     max-width: 11ch;
-    font-size: clamp(1.75rem, 8vw, 2.3rem);
-    line-height: 1.08;
+    font-size: clamp(2.1rem, 10vw, 2.9rem);
+    line-height: 1.06;
+    white-space: normal;
     text-wrap: balance;
 }
 
-#loading-screen.gcq-loading-mobile .loading-title__ink {
-    -webkit-text-stroke-width: 0.5px;
-}
-
 #loading-screen.gcq-loading-mobile .loading-crest {
-    width: 9rem;
-    margin: 0.5rem auto 0.4rem;
+    width: 10rem;
+    margin: 0.55rem auto 0.4rem;
 }
 
-#loading-screen.gcq-loading-mobile .loading-crest__logo {
-    width: 32px;
-    height: 32px;
+#loading-screen.gcq-loading-mobile .loading-crest__medal {
+    width: 40px;
+    height: 40px;
 }
 
 #loading-screen.gcq-loading-mobile .loading-tagline {
-    max-width: 17rem;
+    max-width: 18rem;
     font-size: 0.86rem;
+    letter-spacing: 0.05em;
 }
 
 #loading-screen.gcq-loading-mobile .loading-welcome__line {
     max-width: 100%;
-    font-size: clamp(1.5rem, 7vw, 1.95rem);
-    line-height: 1.16;
+    font-size: clamp(1.8rem, 8.4vw, 2.4rem);
+    line-height: 1.12;
     letter-spacing: 0.01em;
     text-wrap: balance;
-    -webkit-text-stroke: 0.8px rgba(0, 0, 0, 0.4);
 }
 
-#loading-screen.gcq-loading-mobile .loading-welcome__school {
-    font-size: 1.02rem;
+#loading-screen.gcq-loading-mobile .loading-ribbon {
+    padding: 0.25rem 1.4rem 0.36rem;
+}
+
+#loading-screen.gcq-loading-mobile .loading-ribbon__name {
+    font-size: 1.05rem;
 }
 
 #loading-screen.gcq-loading-mobile .loading-welcome__person {
-    font-size: 0.86rem;
+    font-size: 0.88rem;
 }
 
-/* ── Tip card: pinned above the bottom safe area ──────────── */
+/* ── Tip: pinned above the bottom safe area, over the hills ──── */
 
 #loading-screen.gcq-loading-mobile .loading-tip-card {
     position: fixed;
     left: 1rem;
     right: 1rem;
-    bottom: calc(max(1rem, env(safe-area-inset-bottom)) + 0.75rem);
+    bottom: calc(max(1rem, env(safe-area-inset-bottom)) + 0.5rem);
     width: auto;
     max-width: 21rem;
     min-height: 3.3rem;
     margin: 0 auto;
-    padding: 0.55rem 0.95rem;
+    padding: 0.5rem 0.95rem;
     border-radius: 1rem;
-    background: rgba(255, 255, 255, 0.64);
-    border: 1px solid rgba(255, 255, 255, 0.88);
-    box-shadow: 0 8px 22px rgba(15, 40, 90, 0.1);
+    background: rgba(18, 12, 52, 0.55);
+    border: 1px solid rgba(221, 214, 254, 0.18);
 }
 
 #loading-screen.gcq-loading-mobile .loading-tip {
-    font-size: 0.78rem;
+    font-size: 0.8rem;
     line-height: 1.4;
 }
 
@@ -152,16 +133,16 @@
 
 @media (max-height: 540px) {
     #loading-screen.gcq-loading-mobile {
-        --sun-size: 6.5rem;
+        --land-h: 90px;
     }
 
     #loading-screen.gcq-loading-mobile .loading-stage {
-        --lumi-size: 3.8rem;
+        --lumi-size: 4rem;
         margin-top: -3rem;
     }
 
     #loading-screen.gcq-loading-mobile .loading-lumi {
-        margin-bottom: 0.4rem;
+        margin-bottom: 0.3rem;
     }
 
     #loading-screen.gcq-loading-mobile .loading-words {
@@ -170,11 +151,16 @@
 
     #loading-screen.gcq-loading-mobile .loading-title {
         max-width: none;
-        font-size: 1.6rem;
+        white-space: nowrap;
+        font-size: 1.8rem;
     }
 
     #loading-screen.gcq-loading-mobile .loading-tagline {
         display: none;
+    }
+
+    #loading-screen.gcq-loading-mobile .loading-path {
+        margin-top: 0.4rem;
     }
 
     #loading-screen.gcq-loading-mobile .loading-tip-card {
@@ -182,4 +168,9 @@
         min-height: 2.6rem;
         max-width: 30rem;
     }
+}
+
+#loading-screen.gcq-loading-mobile .ls-grove {
+    right: 4%;
+    width: 110px;
 }

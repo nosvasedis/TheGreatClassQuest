@@ -115,7 +115,7 @@ export function playHeaderIntroWhenRevealed(header) {
     const loading = document.getElementById('loading-screen');
     const covering = () => loading
         && !loading.classList.contains('hidden')
-        && !loading.classList.contains('loading-screen-exit');
+        && !loading.classList.contains('loading-revealing');
     if (!covering()) {
         playHeaderIntro(header);
         return;
@@ -123,8 +123,8 @@ export function playHeaderIntroWhenRevealed(header) {
     const observer = new MutationObserver(() => {
         if (covering()) return;
         observer.disconnect();
-        // The loading scene holds full colour while Lumi wooshes into the sun (styles/loading2.css).
-        window.setTimeout(() => playHeaderIntro(header), loading.classList.contains('hidden') ? 0 : 760);
+        // Lumi's woosh is over and the scene is melting away (templates/loading.js#playLoadingExit).
+        playHeaderIntro(header);
     });
     observer.observe(loading, { attributes: true, attributeFilter: ['class'] });
     window.setTimeout(() => observer.disconnect(), 30000);

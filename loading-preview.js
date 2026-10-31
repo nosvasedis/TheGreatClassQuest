@@ -1,11 +1,11 @@
-// Dev-only preview of the loading screen: Lumi, the quest path, the Welcome and the woosh,
+// Dev-only preview of the loading screen: Lumi, the constellation, the Welcome and the woosh,
 // without Firebase. Open /loading-preview.html under `npm run dev`. Query options:
 //   role=teacher|secretary|parent|signedout  part=morning|afternoon|evening|night
 //   speed=fast|slow  low=1 (weak-laptop scene)  gate=1 (arrive through the sign-in gate)
 //   shot=1 (hide the toolbar)
-// The hand-over below mirrors app.js#animateLoadingScreenOut; window.__pvLog records when
-// each step happened, for headless timing checks.
-import { loadingHTML, initLoadingAtmosphere, initLoadingTips, markLoadingStage, stageLoadingPersonalization, revealStagedLoadingPersonalization, launchLoadingWoosh, reopenLoadingScreen } from './templates/loading.js';
+// The hand-over is the app's own (templates/loading.js#playLoadingExit); window.__pvLog
+// records when each step happened, for headless timing checks.
+import { loadingHTML, initLoadingAtmosphere, initLoadingTips, markLoadingStage, stageLoadingPersonalization, playLoadingExit, reopenLoadingScreen } from './templates/loading.js';
 
 const params = new URLSearchParams(location.search);
 const opts = {
@@ -19,7 +19,6 @@ if (params.get('shot') === '1') document.body.classList.add('pv-shot');
 
 const NAMES = { teacher: 'Ms Maria Papadopoulou', secretary: 'Eleni Georgiou', parent: 'Family of Nikos' };
 const TIMES = { fast: { auth: 350, profile: 800, ready: 1800 }, slow: { auth: 1400, profile: 3600, ready: 7000 } };
-const WELCOME_HOLD_MS = 2300;
 
 const t0 = performance.now();
 window.__pvLog = [];
@@ -35,27 +34,15 @@ if (opts.gate) {
     setTimeout(() => { reopenLoadingScreen({ fromGate: true }); log('reopened'); }, 200);
 }
 
-function finish() {
-    screen.classList.add('opacity-0', 'pointer-events-none', 'hidden');
-    log('hidden');
-}
-
 function exit() {
     screen.dataset.exiting = 'true';
-    const welcomed = revealStagedLoadingPersonalization({ schoolName: 'Rentis English School', dayPart: opts.part });
-    if (welcomed) { screen.classList.add('loading-final-moment'); log('welcome'); }
-    const begin = () => {
-        launchLoadingWoosh(screen);
-        log('woosh');
-        const onEnd = (event) => {
-            if (event.target !== screen) return;
-            screen.removeEventListener('animationend', onEnd);
-            finish();
-        };
-        screen.addEventListener('animationend', onEnd);
-    };
-    if (welcomed) setTimeout(begin, matchMedia('(prefers-reduced-motion: reduce)').matches ? 300 : WELCOME_HOLD_MS);
-    else begin();
+    log('exit');
+    const revealIn = playLoadingExit(screen, {
+        schoolName: params.get('school') ?? 'Prodigies Language School',
+        dayPart: opts.part,
+        onHidden: () => log('hidden'),
+    });
+    setTimeout(() => log('reveal'), revealIn);
 }
 
 const times = TIMES[opts.speed] || TIMES.fast;

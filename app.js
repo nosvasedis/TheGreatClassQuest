@@ -1,7 +1,7 @@
 // /app.js
 
 import { injectHTML } from './templates/index.js';
-import { stageLoadingPersonalization, revealStagedLoadingPersonalization, reopenLoadingScreen, markLoadingStage, launchLoadingWoosh } from './templates/loading.js';
+import { stageLoadingPersonalization, reopenLoadingScreen, markLoadingStage, playLoadingExit, loadingRevealEta } from './templates/loading.js';
 import { playAuthGateEntrance, cancelAuthGate, playAuthGateArrival, playAuthGateExit, consumeGateExit, walkOutThroughGate } from './ui/authGate.js';
 import { DEFAULT_SCHOOL_ID, FOUNDING_SCHOOL_NAME, FOUNDING_SCHOOL_SHORT_NAME, PUBLIC_DATA_PATH, getSchoolId, normalizeSchoolId, resolveProfileSchoolId, setSchoolId } from './utils/tenant.mjs';
 import { readDeviceSchoolId, rememberDeviceSchoolId } from './utils/deviceSchool.mjs';
@@ -350,57 +350,16 @@ let activeAuthMode = 'login';
 let authArrivedByLink = false;
 
 const INITIALIZATION_TIMEOUT_MS = 8000;
-// How long the personalized Welcome stays fully legible before Lumi wooshes
-// into the sun and the loading screen hands over.
-const WELCOME_HOLD_MS = 2300;
-// The woosh lasts 1.2s (styles/loading2.css); this is the safety net if its animationend never arrives.
-const LOADING_EXIT_FALLBACK_MS = 1500;
-
+// The whole hand-over (the Welcome, Lumi's woosh, the stardust and dawn, then
+// hiding the screen) is timed in templates/loading.js#playLoadingExit.
 function animateLoadingScreenOut(loadingScreen) {
     if (!loadingScreen || loadingScreen.dataset.exiting === 'true') return;
-
     loadingScreen.dataset.exiting = 'true';
-    const revealedPersonalization = revealStagedLoadingPersonalization({
+    playLoadingExit(loadingScreen, {
         // state loads with the signed-in runtime; a signed-out exit has no Welcome to fill.
         schoolName: state?.get('schoolName') || '',
-        dayPart: utils.getCurrentDayPart().part
+        dayPart: utils.getCurrentDayPart().part,
     });
-
-    if (revealedPersonalization) {
-        loadingScreen.classList.add('loading-final-moment');
-    }
-
-    const beginExit = () => {
-        requestAnimationFrame(() => {
-            loadingScreen.classList.remove('loading-screen-from-gate');
-            launchLoadingWoosh(loadingScreen);
-        });
-
-        const finishExit = () => {
-            loadingScreen.classList.add('opacity-0', 'pointer-events-none', 'hidden');
-        };
-
-        const onExitAnimationEnd = (event) => {
-            if (event.target !== loadingScreen) return;
-            loadingScreen.removeEventListener('animationend', onExitAnimationEnd);
-            finishExit();
-        };
-
-        loadingScreen.addEventListener('animationend', onExitAnimationEnd);
-        setTimeout(() => {
-            loadingScreen.removeEventListener('animationend', onExitAnimationEnd);
-            finishExit();
-        }, LOADING_EXIT_FALLBACK_MS);
-    };
-
-    if (revealedPersonalization) {
-        // Give the user a moment to actually read their personalized greeting
-        // before the exit/zoom animation whisks it away.
-        const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-        setTimeout(beginExit, reduceMotion ? 300 : WELCOME_HOLD_MS);
-    } else {
-        beginExit();
-    }
 }
 
 // Resolves once the loading screen (including any personalized "Welcome"
@@ -420,7 +379,7 @@ function waitForLoadingScreenSettled(loadingScreen) {
         });
         observer.observe(loadingScreen, { attributes: true, attributeFilter: ['class'] });
         // Safety net in case the loading screen never gets dismissed for some reason.
-        setTimeout(() => { observer.disconnect(); resolve(); }, 6000);
+        setTimeout(() => { observer.disconnect(); resolve(); }, 9000);
     });
 }
 
@@ -1387,13 +1346,11 @@ function setupAuthListeners() {
                 setAuthMode('login');
                 void initializeAuthAvailability();
             }
-            // Cold start: the card rises just as the daylight Lumi woosh opens starts to clear.
-            const loadingStillShowing = loadingScreen
-                && !loadingScreen.classList.contains('hidden')
-                && loadingScreen.dataset.exiting !== 'true';
-            if (consumeGateExit()) playAuthGateExit();
-            else playAuthGateArrival({ delayMs: loadingStillShowing ? 760 : 0 });
+            // Cold start: the card rises as Lumi's dawn melts the loading scene away.
             animateLoadingScreenOut(loadingScreen);
+            const loadingStillShowing = loadingScreen && !loadingScreen.classList.contains('hidden');
+            if (consumeGateExit()) playAuthGateExit();
+            else playAuthGateArrival({ delayMs: loadingStillShowing ? loadingRevealEta() : 0 });
         }
     });
 }

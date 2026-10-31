@@ -118,16 +118,15 @@ export function playGreetingIntro(panel) {
         return;
     }
     const screen = document.getElementById('loading-screen');
-    // Wait for Lumi's woosh (not the Welcome before it), and start as the scene begins to fade.
+    // Wait for Lumi's woosh (not the Welcome before it), and start as the scene begins to melt.
     const observer = new MutationObserver(() => {
-        const hidden = screen.classList.contains('hidden');
-        if (hidden || screen.classList.contains('loading-screen-exit')) {
+        if (screen.classList.contains('hidden') || screen.classList.contains('loading-revealing')) {
             observer.disconnect();
-            setTimeout(start, hidden ? 0 : 760);
+            start();
         }
     });
     observer.observe(screen, { attributes: true, attributeFilter: ['class'] });
-    setTimeout(() => { observer.disconnect(); if (panel.classList.contains('is-greeting-await')) start(); }, 9000);
+    setTimeout(() => { observer.disconnect(); if (panel.classList.contains('is-greeting-await')) start(); }, 12000);
 }
 
 // ─── Following the sky ─────────────────────────────────────────────────────

@@ -153,6 +153,30 @@ export function findNextLessonDate({
     return null;
 }
 
+// The Weekend Break card changes its painting with the month (styles/schedule_weekend.css).
+// Index 0 = January. `look` picks the scene variant; the title stays "Weekend Break".
+export const WEEKEND_LOOKS = [
+    { look: 'jan', icon: '⛄', eyebrow: 'Snowy weekend', message: 'Build a snowman, sip something warm and come back with fresh mana!' },
+    { look: 'feb', icon: '⛸️', eyebrow: 'Frosty weekend', message: 'The pond is frozen and the mountains are white. Stay cosy and recharge!' },
+    { look: 'mar', icon: '🪁', eyebrow: 'Breezy weekend', message: 'Almond trees are blooming and the kites are up. Enjoy the spring breeze!' },
+    { look: 'apr', icon: '🌈', eyebrow: 'Showery weekend', message: 'A little rain, a lot of rainbow. Splash in the puddles and come back bright!' },
+    { look: 'may', icon: '🌼', eyebrow: 'Blooming weekend', message: 'The meadows are full of flowers. Time for a picnic in the sun!' },
+    { look: 'jun', icon: '⛵', eyebrow: 'Island weekend', message: 'Summer is nearly here: sea breeze, white houses and blue skies!' },
+    { look: 'jul', icon: '🏖️', eyebrow: 'Beach weekend', message: 'Sun, sand and sea. Enjoy your weekend and recharge your mana!' },
+    { look: 'aug', icon: '🌠', eyebrow: 'Starry weekend', message: 'Warm nights and shooting stars. Make a wish for the next quest!' },
+    { look: 'sep', icon: '🍇', eyebrow: 'Harvest weekend', message: 'The grapes are ripe and the days are golden. Enjoy the harvest weekend!' },
+    { look: 'oct', icon: '🎃', eyebrow: 'Autumn weekend', message: 'Crunchy leaves and plump pumpkins. Enjoy your autumn weekend!' },
+    { look: 'nov', icon: '🌰', eyebrow: 'Chestnut weekend', message: 'Falling leaves and roasted chestnuts. Wrap up warm and recharge your mana!' },
+    { look: 'dec', icon: '🎄', eyebrow: 'Festive weekend', message: 'Twinkling lights and soft snow. Enjoy a cosy December weekend!' },
+];
+
+/** The Weekend Break banner dressed for the month of `date`. */
+export function buildWeekendState(date = new Date()) {
+    const month = date instanceof Date && !Number.isNaN(date.getTime()) ? date.getMonth() : new Date().getMonth();
+    const { look, icon, eyebrow, message } = WEEKEND_LOOKS[month];
+    return { ...EMPTY_STATES.weekend, look, icon, eyebrow, message };
+}
+
 // Which painted scene each school-calendar theme gets on the Home schedule.
 const THEME_SCENES = {
     national: 'national',
@@ -266,7 +290,7 @@ export function resolveScheduleEmptyState({
 
     const weekday = day.getDay();
     if (weekday === 0 || weekday === 6) {
-        return withNextLesson(EMPTY_STATES.weekend);
+        return withNextLesson(buildWeekendState(day));
     }
 
     return withNextLesson(EMPTY_STATES.heroes_camp);

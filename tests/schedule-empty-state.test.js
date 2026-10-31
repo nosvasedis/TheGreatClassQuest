@@ -143,4 +143,23 @@ assert.doesNotMatch(buildScheduleEmptySceneHtml(sealed), /rest-scene__next/);
 assert.match(buildScheduleEmptySceneHtml({ ...holiday, title: '<b>Fête</b>' }), /&lt;b&gt;Fête&lt;\/b&gt;/);
 assert.match(buildScheduleEmptySceneHtml({ kind: 'mystery' }), /rest-scene--camp/);
 
+// The Weekend Break card dresses for the month (no beach in November).
+{
+  const { buildWeekendState, WEEKEND_LOOKS } = await import('../utils/scheduleEmptyState.js');
+  const { WEEKEND_LOOK_KEYS } = await import('../utils/scheduleEmptyScene.js');
+  assert.equal(WEEKEND_LOOKS.length, 12);
+  assert.deepEqual(WEEKEND_LOOKS.map((l) => l.look), WEEKEND_LOOK_KEYS);
+  const nov = buildWeekendState(new Date(2026, 10, 1));
+  assert.equal(nov.look, 'nov');
+  assert.equal(nov.title, 'Weekend Break');
+  assert.equal(nov.scene, 'weekend');
+  const novHtml = buildScheduleEmptySceneHtml(nov);
+  assert.match(novHtml, /rest-scene--wk-nov/);
+  assert.doesNotMatch(novHtml, /rs-umbrella/);
+  assert.match(buildScheduleEmptySceneHtml(buildWeekendState(new Date(2027, 6, 3))), /rs-umbrella/);
+  assert.match(buildScheduleEmptySceneHtml({ ...nov, look: 'bogus' }), /rest-scene--wk-jul/);
+  const satNov = resolveScheduleEmptyState({ date: new Date(2026, 10, 7), allSchoolClasses: [{ id: 'a', scheduleDays: ['1'] }] });
+  assert.equal(satNov.look, 'nov');
+}
+
 console.log('schedule-empty-state.test.js passed');

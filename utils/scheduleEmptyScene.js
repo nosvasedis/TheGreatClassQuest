@@ -8,7 +8,10 @@
 import { describeSchoolDay } from './schoolCalendar.mjs';
 // The school-calendar scenes and the special-day note load with this module, off the first-paint
 // stylesheet (the base scenes are in schedule_rest.css). Skipped outside the browser (node tests).
-if (typeof document !== 'undefined') import('../styles/schedule_holidays.css');
+if (typeof document !== 'undefined') {
+    import('../styles/schedule_holidays.css');
+    import('../styles/schedule_weekend.css');
+}
 
 const SCENES = new Set(['camp', 'weekend', 'holiday', 'winter', 'spring', 'summer', 'sealed', 'national', 'remembrance', 'kites', 'flowers', 'dove', 'local']);
 
@@ -71,6 +74,161 @@ const pines = (...positions) => positions.map(([x, h]) =>
     `<span class="rs-pine" style="--x:${x}%;--h:${h}px"></span>`
 ).join('');
 
+// ---------- Weekend Break: one painting per month (styles/schedule_weekend.css) ----------
+
+/** Falling leaves / petals spread over the width; `colours` cycle. */
+const drifting = (count, colours, seed = 0) => Array.from({ length: count }, (_, i) => [
+    ((i + seed) * 41 + 9) % 100,
+    0,
+    `--d:${(((i + seed) * 0.97) % 8).toFixed(2)}s;--t:${8 + ((i + seed) % 4) * 1.6}s;--c:${colours[i % colours.length]};--r:${(i % 2 ? 1 : -1) * (200 + (i % 3) * 120)}deg`
+]);
+
+const trees = (...list) => list.map(([dx, h, crown, extra = '']) =>
+    `<span class="rs-tree${extra}" style="--dx:${dx}px;--h:${h}px;--crown:${crown}"><span class="rs-tree__crown"></span></span>`
+).join('');
+
+// Fairy lights hang along a sagging string near the top of the card (December).
+const BULBS = Array.from({ length: 15 }, (_, i) => {
+    const x = 3 + i * 6.8;
+    const u = (x - 50) / 52;
+    const y = 4 + 26 * Math.sqrt(Math.max(0, 1 - u * u));
+    const colours = ['#f87171', '#facc15', '#4ade80', '#60a5fa', '#f472b6'];
+    return `<span class="rs-bulb" style="--x:${x.toFixed(1)}%;--y:${y.toFixed(1)}px;--c:${colours[i % 5]};--d:${((i * 0.37) % 2.4).toFixed(2)}s"></span>`;
+}).join('');
+
+const TREE_LIGHTS = [[50, 30, '#facc15', '0s'], [38, 50, '#f87171', '.5s'], [62, 46, '#60a5fa', '1s'], [30, 74, '#4ade80', '1.4s'], [52, 66, '#f472b6', '.8s'], [70, 76, '#facc15', '1.8s'], [44, 86, '#60a5fa', '.3s']]
+    .map(([x, y, c, d]) => `<span class="rs-xtree__light" style="--x:${x}%;--y:${y}%;--c:${c};--d:${d}"></span>`).join('');
+
+const GRAPES = (dx, bottom, colour) => `<span class="rs-grapes" style="--dx:${dx}px;--b:${bottom}px;--c:${colour}"></span>`;
+
+const WEEKEND_ART = {
+    jan: () => `
+        <span class="rs-sun rs-sun--pale"></span>
+        <span class="rs-cloud rs-cloud--1"></span>
+        <span class="rs-hill rs-hill--far"></span>
+        ${pines([8, 70], [16, 92], [86, 82], [94, 60])}
+        <span class="rs-hill rs-hill--near"></span>
+        <span class="rs-snowman"><span class="rs-snowman__head"></span><span class="rs-snowman__hat"></span><span class="rs-snowman__scarf"></span><span class="rs-snowman__arm"></span></span>
+        ${placed('rs-snow', SNOW.slice(0, 16))}`,
+    feb: () => `
+        <span class="rs-sun rs-sun--pale"></span>
+        <span class="rs-mountain rs-mountain--1"></span>
+        <span class="rs-mountain rs-mountain--2"></span>
+        <span class="rs-hill rs-hill--near"></span>
+        ${pines([10, 66], [18, 84], [90, 72])}
+        <span class="rs-pond"><span class="rs-pond__glint"></span></span>
+        <span class="rs-skates"></span>
+        ${placed('rs-snow', SNOW.slice(0, 10))}`,
+    mar: () => `
+        <span class="rs-cloud rs-cloud--1"></span>
+        <span class="rs-cloud rs-cloud--2"></span>
+        <span class="rs-kite rs-kite--1 rs-kite--wk"></span>
+        <span class="rs-kite-string"></span>
+        <span class="rs-hill rs-hill--far"></span>
+        <span class="rs-hill rs-hill--near"></span>
+        ${trees([90, 108, '#fbcfe8', ' rs-tree--blossom'], [-120, 84, '#fce7f3', ' rs-tree--blossom'])}
+        ${placed('rs-flower', [[12, 0, '--c:#fde047'], [62, 0, '--c:#f9a8d4'], [78, 0, '--c:#fde047']])}
+        ${placed('rs-leaf rs-leaf--petal', drifting(12, ['#fbcfe8', '#fff1f2', '#f9a8d4']))}`,
+    apr: () => `
+        <span class="rs-rainbow"></span>
+        <span class="rs-raincloud">${placed('rs-drop', [[14, 0, '--d:0s'], [34, 0, '--d:.45s'], [54, 0, '--d:.9s'], [74, 0, '--d:.25s'], [90, 0, '--d:.7s']])}</span>
+        <span class="rs-cloud rs-cloud--1"></span>
+        <span class="rs-hill rs-hill--far"></span>
+        <span class="rs-hill rs-hill--near"></span>
+        <span class="rs-puddle"><span class="rs-puddle__ring"></span></span>
+        ${placed('rs-flower', [[10, 0, '--c:#f472b6'], [22, 0, '--c:#a78bfa'], [60, 0, '--c:#fb7185'], [84, 0, '--c:#facc15'], [93, 0, '--c:#a78bfa']])}
+        <span class="rs-butterfly rs-butterfly--1"></span>`,
+    may: () => `
+        <span class="rs-sun"><span class="rs-sun__rays"></span></span>
+        <span class="rs-cloud rs-cloud--2"></span>
+        <span class="rs-hill rs-hill--far"></span>
+        <span class="rs-hill rs-hill--near"></span>
+        ${trees([150, 96, '#4ade80'])}
+        <span class="rs-blanket"></span>
+        <span class="rs-basket"><span class="rs-basket__handle"></span></span>
+        ${placed('rs-flower', [[6, 0, '--c:#f472b6'], [14, 0, '--c:#facc15'], [24, 0, '--c:#fb7185'], [34, 0, '--c:#a78bfa'], [52, 0, '--c:#f472b6'], [86, 0, '--c:#facc15'], [94, 0, '--c:#fb7185']])}
+        <span class="rs-bee rs-bee--1"></span>
+        <span class="rs-bee rs-bee--2"></span>
+        <span class="rs-butterfly rs-butterfly--2"></span>`,
+    jun: () => `
+        <span class="rs-sun"><span class="rs-sun__rays"></span></span>
+        <span class="rs-cloud rs-cloud--2"></span>
+        <span class="rs-gull rs-gull--1"></span>
+        <span class="rs-gull rs-gull--2"></span>
+        <span class="rs-sea"><span class="rs-sea__waves"></span></span>
+        <span class="rs-boat"><span class="rs-boat__sail"></span></span>
+        <span class="rs-island">
+            <span class="rs-house rs-house--1"><span class="rs-house__door"></span></span>
+            <span class="rs-house rs-house--2"><span class="rs-house__dome"></span><span class="rs-house__door"></span></span>
+            <span class="rs-house rs-house--3"><span class="rs-house__door"></span></span>
+        </span>`,
+    jul: () => `
+        <span class="rs-sun"><span class="rs-sun__rays"></span></span>
+        <span class="rs-cloud rs-cloud--1"></span>
+        <span class="rs-cloud rs-cloud--2"></span>
+        <span class="rs-sea"><span class="rs-sea__waves"></span></span>
+        <span class="rs-boat"><span class="rs-boat__sail"></span></span>
+        <span class="rs-sand"></span>
+        <span class="rs-umbrella"><span class="rs-umbrella__pole"></span></span>
+        <span class="rs-ball"></span>`,
+    aug: () => `
+        ${placed('rs-star', STARS)}
+        <span class="rs-meteor rs-meteor--1"></span>
+        <span class="rs-meteor rs-meteor--2"></span>
+        <span class="rs-meteor rs-meteor--3"></span>
+        <span class="rs-moon"></span>
+        <span class="rs-sea"><span class="rs-sea__waves"></span><span class="rs-sea__moonpath"></span></span>
+        <span class="rs-sand"></span>
+        <span class="rs-lantern"><span class="rs-lantern__glow"></span></span>`,
+    sep: () => `
+        <span class="rs-sun rs-sun--low"><span class="rs-sun__rays"></span></span>
+        <span class="rs-hill rs-hill--far rs-hill--vines"></span>
+        <span class="rs-hill rs-hill--near"></span>
+        <span class="rs-vine rs-vine--1"></span>
+        <span class="rs-vine rs-vine--2"></span>
+        ${GRAPES(-70, 46, '#7e22ce')}${GRAPES(-22, 40, '#16a34a')}${GRAPES(96, 44, '#7e22ce')}${GRAPES(140, 38, '#6d28d9')}
+        <span class="rs-basket rs-basket--grapes"><span class="rs-basket__handle"></span></span>
+        ${placed('rs-leaf', drifting(5, ['#eab308', '#a3e635']))}`,
+    oct: () => `
+        <span class="rs-sun"><span class="rs-sun__rays"></span></span>
+        <span class="rs-hill rs-hill--far"></span>
+        ${trees([-150, 88, '#ea580c'], [130, 110, '#dc2626'], [186, 80, '#f59e0b'])}
+        <span class="rs-hill rs-hill--near"></span>
+        <span class="rs-pumpkin rs-pumpkin--1"></span>
+        <span class="rs-pumpkin rs-pumpkin--2"></span>
+        <span class="rs-pumpkin rs-pumpkin--3"></span>
+        ${placed('rs-leaf', drifting(14, ['#ea580c', '#dc2626', '#f59e0b', '#b45309']))}`,
+    nov: () => `
+        <span class="rs-cloud rs-cloud--1 rs-cloud--grey"></span>
+        <span class="rs-cloud rs-cloud--2 rs-cloud--grey"></span>
+        <span class="rs-hill rs-hill--far"></span>
+        ${trees([150, 116, '#b45309', ' rs-tree--bare'], [-160, 84, '#92400e', ' rs-tree--bare'])}
+        <span class="rs-hill rs-hill--near"></span>
+        <span class="rs-puddle"></span>
+        <span class="rs-cart">
+            <span class="rs-cart__glow"></span>
+            <span class="rs-cart__pan"></span>
+            <span class="rs-cart__wheel"></span>
+            <span class="rs-smoke"></span><span class="rs-smoke"></span>
+        </span>
+        ${placed('rs-leaf', drifting(16, ['#b45309', '#92400e', '#d97706', '#78350f'], 3))}`,
+    dec: () => `
+        ${placed('rs-star', STARS.slice(0, 7))}
+        <span class="rs-lights">${BULBS}</span>
+        <span class="rs-hill rs-hill--far"></span>
+        ${pines([8, 64], [92, 70])}
+        <span class="rs-hill rs-hill--near"></span>
+        <span class="rs-cabin">
+            <span class="rs-cabin__roof"></span>
+            <span class="rs-cabin__window"></span>
+            <span class="rs-cabin__chimney"><span class="rs-smoke"></span><span class="rs-smoke"></span></span>
+        </span>
+        <span class="rs-xtree"><span class="rs-xtree__star"></span>${TREE_LIGHTS}<span class="rs-xtree__gift"></span></span>
+        ${placed('rs-snow', SNOW)}`,
+};
+
+export const WEEKEND_LOOK_KEYS = Object.keys(WEEKEND_ART);
+
 const SCENE_ART = {
     camp: () => `
         ${placed('rs-star', STARS)}
@@ -87,15 +245,7 @@ const SCENE_ART = {
             <span class="rs-fire__logs"></span>
             ${placed('rs-ember', EMBERS)}
         </span>`,
-    weekend: () => `
-        <span class="rs-sun"><span class="rs-sun__rays"></span></span>
-        <span class="rs-cloud rs-cloud--1"></span>
-        <span class="rs-cloud rs-cloud--2"></span>
-        <span class="rs-sea"><span class="rs-sea__waves"></span></span>
-        <span class="rs-boat"><span class="rs-boat__sail"></span></span>
-        <span class="rs-sand"></span>
-        <span class="rs-umbrella"><span class="rs-umbrella__pole"></span></span>
-        <span class="rs-ball"></span>`,
+    weekend: (emptyState) => (WEEKEND_ART[emptyState?.look] || WEEKEND_ART.jul)(),
     summer: () => `
         <span class="rs-sun rs-sun--setting"><span class="rs-sun__rays"></span></span>
         <span class="rs-gull rs-gull--1"></span>
@@ -226,12 +376,13 @@ function nextLessonHtml(emptyState) {
 export function buildScheduleEmptySceneHtml(emptyState, { compact = false } = {}) {
     const scene = SCENES.has(emptyState?.scene) ? emptyState.scene : 'camp';
     const classes = ['rest-scene', `rest-scene--${scene}`];
+    if (scene === 'weekend') classes.push(`rest-scene--wk-${WEEKEND_ART[emptyState?.look] ? emptyState.look : 'jul'}`);
     if (compact) classes.push('rest-scene--compact');
 
     return `
     <section class="${classes.join(' ')}" data-rest-kind="${escapeText(emptyState?.kind || 'heroes_camp')}"
         aria-label="${escapeText(emptyState?.title || 'No lessons today')}">
-        <div class="rest-scene__art" aria-hidden="true">${SCENE_ART[scene]()}</div>
+        <div class="rest-scene__art" aria-hidden="true">${SCENE_ART[scene](emptyState)}</div>
         <div class="rest-scene__copy">
             <span class="rest-scene__eyebrow">
                 <span class="rest-scene__emoji">${escapeText(emptyState?.icon || '⛺')}</span>

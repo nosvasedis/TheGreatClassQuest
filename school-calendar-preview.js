@@ -1,6 +1,6 @@
 // School calendar preview: the real Quest Calendar, Home rest scenes, Planner glance and School
 // Office panel with sample classes, no Firebase.
-// /school-calendar-preview.html?view=calendar|scenes|office|breaks[&month=2026-10][&mobile=1][&city=Thessaloniki]
+// /school-calendar-preview.html?view=calendar|scenes|weekends|office|breaks[&month=2026-10][&mobile=1][&city=Thessaloniki]
 import * as state from './state.js';
 import { calendarTabHTML } from './templates/app/tabs/calendar.js';
 import { renderCalendarTab } from './ui/tabs/selectors.js';
@@ -66,6 +66,14 @@ if (view === 'calendar') {
     ${(params.get('notes') || '2027-01-30,2026-12-23,2027-01-04,2026-10-31').split(',').map((iso) => {
         const [y, m, d] = iso.split('-').map(Number);
         return `<div class="vibrant-card card-glass-white"><div class="schedule-list-v2">${buildScheduleDayNoteHtml(new Date(y, m - 1, d))}</div></div>`;
+    }).join('')}</div>`;
+} else if (view === 'weekends') {
+    // ?view=weekends[&months=1,11][&mobile=1] : the Weekend Break card in each month's dress
+    const { buildWeekendState } = await import('./utils/scheduleEmptyState.js');
+    const months = (params.get('months') || '1,2,3,4,5,6,7,8,9,10,11,12').split(',').map(Number);
+    root.innerHTML = `<div class="pv-scenes">${months.map((m) => {
+        const empty = { ...buildWeekendState(new Date(2026, m - 1, 7)), nextLesson: { date: '2026-11-02', inDays: 2 } };
+        return `<div class="vibrant-card card-glass-white"><div class="schedule-list-v2">${buildScheduleEmptySceneHtml(empty, { compact: params.has('mobile') })}</div></div>`;
     }).join('')}</div>`;
 } else if (view === 'office') {
     root.innerHTML = `<div class="pv-office role-shell--secretary office-admin"><article class="role-card secretary-admin-card secretary-settings-card"><div id="school-calendar-panel" class="office-cal"></div></article></div>`;

@@ -1,0 +1,1095 @@
+/* ==========================================================================
+   Weekend Break — one painting per month.
+   Markup: utils/scheduleEmptyScene.js (WEEKEND_ART); the month comes from
+   utils/scheduleEmptyState.js (WEEKEND_LOOKS). Shared pieces (sun, clouds,
+   hills, pines, snow, sea, sand, boat, flowers, butterflies) live in
+   schedule_rest.css. Motion is transform/opacity only, and the reduced-motion
+   rule in schedule_rest.css stills every piece here too.
+   ========================================================================== */
+
+/* ---------- Month palettes ---------- */
+
+.rest-scene.rest-scene--wk-jan {
+    --rs-sky: linear-gradient(180deg, #7fb2f0 0%, #c7dcf7 50%, #eef4fb 100%);
+    --rs-base: #f1f6fd;
+    --rs-ink: #1e3a8a;
+    --rs-body: #44597f;
+    --rs-chip-bg: #dbeafe;
+    --rs-chip-ink: #1d4ed8;
+    --rs-accent: linear-gradient(135deg, #3b82f6, #38bdf8);
+    --rs-accent-shadow: rgba(59, 130, 246, 0.45);
+    --rs-shadow: rgba(30, 58, 138, 0.3);
+    --rs-hill-far: #dbe7f8;
+    --rs-hill-near: #ffffff;
+    --rs-pine: #1f4d4a;
+}
+
+.rest-scene.rest-scene--wk-feb {
+    --rs-sky: linear-gradient(180deg, #a5b4fc 0%, #e9d5ff 45%, #fde2e8 100%);
+    --rs-base: #faf5ff;
+    --rs-ink: #4c1d95;
+    --rs-body: #5f4b7d;
+    --rs-chip-bg: #ede9fe;
+    --rs-chip-ink: #6d28d9;
+    --rs-accent: linear-gradient(135deg, #8b5cf6, #60a5fa);
+    --rs-accent-shadow: rgba(139, 92, 246, 0.45);
+    --rs-shadow: rgba(76, 29, 149, 0.3);
+    --rs-hill-near: #f8fafc;
+    --rs-pine: #334a6b;
+}
+
+.rest-scene.rest-scene--wk-mar {
+    --rs-sky: linear-gradient(180deg, #60b8ef 0%, #bfe4fa 50%, #fdf3dc 100%);
+    --rs-base: #f7fdf4;
+    --rs-ink: #166534;
+    --rs-body: #46694f;
+    --rs-chip-bg: #fce7f3;
+    --rs-chip-ink: #be185d;
+    --rs-accent: linear-gradient(135deg, #22c55e, #ec4899);
+    --rs-accent-shadow: rgba(236, 72, 153, 0.4);
+    --rs-shadow: rgba(21, 128, 61, 0.3);
+    --rs-hill-far: #a7e3a0;
+    --rs-hill-near: #6cc96a;
+}
+
+.rest-scene.rest-scene--wk-apr {
+    --rs-sky: linear-gradient(180deg, #8fa3d9 0%, #b9dcf2 45%, #effbe0 100%);
+    --rs-base: #f3fbf5;
+    --rs-ink: #155e75;
+    --rs-body: #3d6670;
+    --rs-chip-bg: #e0f2fe;
+    --rs-chip-ink: #0369a1;
+    --rs-accent: linear-gradient(135deg, #0ea5e9, #22c55e);
+    --rs-accent-shadow: rgba(14, 165, 233, 0.45);
+    --rs-shadow: rgba(21, 94, 117, 0.3);
+    --rs-hill-far: #93dc9b;
+    --rs-hill-near: #52bf5f;
+}
+
+.rest-scene.rest-scene--wk-may {
+    --rs-sky: linear-gradient(180deg, #5ec1f2 0%, #b4e3fb 45%, #fdf6c8 100%);
+    --rs-base: #fefce8;
+    --rs-ink: #3f6212;
+    --rs-body: #586a3b;
+    --rs-chip-bg: #fef9c3;
+    --rs-chip-ink: #a16207;
+    --rs-accent: linear-gradient(135deg, #84cc16, #f59e0b);
+    --rs-accent-shadow: rgba(132, 204, 22, 0.45);
+    --rs-shadow: rgba(63, 98, 18, 0.3);
+    --rs-hill-far: #b5e48c;
+    --rs-hill-near: #76c043;
+}
+
+.rest-scene.rest-scene--wk-jun {
+    --rs-sky: linear-gradient(180deg, #1d9ae0 0%, #7ccdf5 45%, #e9f7fe 75%);
+    --rs-base: #f0f9ff;
+    --rs-ink: #0c4a6e;
+    --rs-body: #36627d;
+    --rs-chip-bg: #e0f2fe;
+    --rs-chip-ink: #0369a1;
+    --rs-accent: linear-gradient(135deg, #1d4ed8, #0ea5e9);
+    --rs-accent-shadow: rgba(29, 78, 216, 0.45);
+    --rs-shadow: rgba(3, 105, 161, 0.3);
+}
+
+/* July keeps the original beach palette of .rest-scene--weekend (schedule_rest.css). */
+
+.rest-scene.rest-scene--wk-aug {
+    --rs-sky: linear-gradient(180deg, #0b1030 0%, #1e1b4b 45%, #4c2a85 78%, #b4588a 100%);
+    --rs-base: #f5f3ff;
+    --rs-ink: #312e81;
+    --rs-body: #504a7a;
+    --rs-chip-bg: #e0e7ff;
+    --rs-chip-ink: #4338ca;
+    --rs-accent: linear-gradient(135deg, #6366f1, #ec4899);
+    --rs-accent-shadow: rgba(99, 102, 241, 0.5);
+    --rs-shadow: rgba(30, 27, 75, 0.45);
+}
+
+.rest-scene.rest-scene--wk-sep {
+    --rs-sky: linear-gradient(180deg, #f6a95c 0%, #fcd28a 40%, #fdf0c4 75%);
+    --rs-base: #fffbeb;
+    --rs-ink: #6b21a8;
+    --rs-body: #6b5a4a;
+    --rs-chip-bg: #f3e8ff;
+    --rs-chip-ink: #7e22ce;
+    --rs-accent: linear-gradient(135deg, #9333ea, #f59e0b);
+    --rs-accent-shadow: rgba(147, 51, 234, 0.4);
+    --rs-shadow: rgba(120, 53, 15, 0.3);
+    --rs-hill-far: #c5b45a;
+    --rs-hill-near: #a0893c;
+}
+
+.rest-scene.rest-scene--wk-oct {
+    --rs-sky: linear-gradient(180deg, #f48a4a 0%, #fbbf8a 42%, #fff1dc 80%);
+    --rs-base: #fff7ed;
+    --rs-ink: #9a3412;
+    --rs-body: #7a5440;
+    --rs-chip-bg: #ffedd5;
+    --rs-chip-ink: #c2410c;
+    --rs-accent: linear-gradient(135deg, #ea580c, #dc2626);
+    --rs-accent-shadow: rgba(234, 88, 12, 0.45);
+    --rs-shadow: rgba(124, 45, 18, 0.32);
+    --rs-hill-far: #c27a3a;
+    --rs-hill-near: #8a4f22;
+}
+
+.rest-scene.rest-scene--wk-nov {
+    --rs-sky: linear-gradient(180deg, #8e9db3 0%, #c3cbd6 45%, #efe2cc 85%);
+    --rs-base: #faf6f0;
+    --rs-ink: #7c2d12;
+    --rs-body: #6b5a4c;
+    --rs-chip-bg: #fbe8d4;
+    --rs-chip-ink: #9a3412;
+    --rs-accent: linear-gradient(135deg, #b45309, #78350f);
+    --rs-accent-shadow: rgba(180, 83, 9, 0.45);
+    --rs-shadow: rgba(68, 64, 60, 0.35);
+    --rs-hill-far: #a68a5b;
+    --rs-hill-near: #6f5a37;
+}
+
+.rest-scene.rest-scene--wk-dec {
+    --rs-sky: linear-gradient(180deg, #0f172a 0%, #27306f 50%, #4b55b8 100%);
+    --rs-base: #f0f4ff;
+    --rs-ink: #991b1b;
+    --rs-body: #4c4f6b;
+    --rs-chip-bg: #fee2e2;
+    --rs-chip-ink: #b91c1c;
+    --rs-accent: linear-gradient(135deg, #dc2626, #16a34a);
+    --rs-accent-shadow: rgba(220, 38, 38, 0.45);
+    --rs-shadow: rgba(30, 27, 75, 0.45);
+    --rs-hill-far: #c7d7f5;
+    --rs-hill-near: #f8fafc;
+    --rs-pine: #1d3b5c;
+}
+
+/* ---------- Shared month pieces ---------- */
+
+.rs-sun.rs-sun--pale {
+    background: radial-gradient(circle at 40% 38%, #ffffff, #fef3c7 60%, #fde68a);
+    box-shadow: 0 0 30px 10px rgba(255, 255, 255, 0.55);
+    opacity: 0.9;
+}
+
+.rs-sun.rs-sun--low {
+    left: calc(var(--focal) + 40px);
+    top: 22%;
+    background: radial-gradient(circle at 40% 38%, #fff7ed, #fdba74 55%, #f97316);
+    box-shadow: 0 0 46px 14px rgba(251, 146, 60, 0.55);
+}
+
+.rs-cloud.rs-cloud--grey {
+    background: rgba(226, 232, 240, 0.95);
+    box-shadow: 0 6px 0 -2px rgba(148, 163, 184, 0.45);
+}
+
+.rs-cloud--grey.rs-cloud--2 {
+    left: 46%;
+    top: 12%;
+}
+
+/* A round leafy tree: trunk + a crown of three blobs. --dx from the focal point. */
+.rs-tree {
+    left: calc(var(--focal) + var(--dx));
+    bottom: calc(var(--rs-ground) + 2%);
+    width: 8px;
+    height: var(--h);
+    margin-left: -4px;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #6b3a1c, #4a2510);
+}
+
+.rs-tree .rs-tree__crown {
+    left: 50%;
+    top: calc(var(--h) * -0.12);
+    width: calc(var(--h) * 0.78);
+    height: calc(var(--h) * 0.62);
+    margin-left: calc(var(--h) * -0.39);
+    border-radius: 50%;
+    background: var(--crown);
+    box-shadow: inset -10px -8px 0 rgba(0, 0, 0, 0.12);
+    transform-origin: 50% 100%;
+    animation: rs-tree-sway 5s ease-in-out infinite alternate;
+}
+
+.rs-tree .rs-tree__crown::before,
+.rs-tree .rs-tree__crown::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: inherit;
+    box-shadow: inherit;
+}
+
+.rs-tree .rs-tree__crown::before { width: 62%; height: 70%; left: -22%; top: 34%; }
+.rs-tree .rs-tree__crown::after { width: 58%; height: 66%; right: -20%; top: 30%; }
+
+/* Almond blossom: a pale pink crown speckled with white flowers. */
+.rs-tree--blossom .rs-tree__crown,
+.rs-tree--blossom .rs-tree__crown::before,
+.rs-tree--blossom .rs-tree__crown::after {
+    background:
+        radial-gradient(circle, #fff 0 2px, transparent 2.5px) 0 0 / 11px 11px,
+        radial-gradient(circle, #f472b6 0 1.6px, transparent 2px) 5px 6px / 13px 13px,
+        var(--crown);
+    box-shadow: inset -8px -6px 0 rgba(219, 39, 119, 0.12);
+}
+
+/* November: branches showing through a thin, rusty crown. */
+.rs-tree--bare .rs-tree__crown,
+.rs-tree--bare .rs-tree__crown::before,
+.rs-tree--bare .rs-tree__crown::after {
+    background:
+        radial-gradient(circle, var(--crown) 0 3px, transparent 3.5px) 0 0 / 12px 10px,
+        radial-gradient(circle, #d97706 0 2.5px, transparent 3px) 6px 5px / 14px 12px;
+    box-shadow: none;
+}
+
+.rs-tree--bare::before,
+.rs-tree--bare::after {
+    content: '';
+    position: absolute;
+    top: 6%;
+    width: 3px;
+    height: 46%;
+    border-radius: 2px;
+    background: #4a2510;
+    transform-origin: 50% 100%;
+}
+
+.rs-tree--bare::before { left: 2px; transform: rotate(-34deg); }
+.rs-tree--bare::after { left: 3px; transform: rotate(30deg); }
+
+/* A falling leaf or petal: drifts down the card, swaying and spinning. */
+.rs-leaf {
+    left: var(--x);
+    top: -14px;
+    width: 10px;
+    height: 10px;
+    border-radius: 0 80% 0 80%;
+    background: var(--c);
+    opacity: 0;
+    animation: rs-leaf-fall var(--t) linear infinite;
+    animation-delay: calc(var(--d) * -1);
+}
+
+.rs-leaf--petal {
+    width: 7px;
+    height: 7px;
+    border-radius: 60% 0 60% 60%;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+.rs-puddle {
+    left: calc(var(--focal) - 70px);
+    bottom: calc(var(--rs-ground) - 6px);
+    width: 120px;
+    height: 18px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, rgba(186, 230, 253, 0.95), rgba(125, 165, 200, 0.9));
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.6);
+}
+
+.rs-puddle .rs-puddle__ring {
+    left: 30%;
+    top: 4px;
+    width: 26px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 255, 255, 0.9);
+    animation: rs-ripple 2.4s ease-out infinite;
+}
+
+.rs-basket {
+    left: calc(var(--focal) + 64px);
+    bottom: calc(var(--rs-ground) + 2px);
+    width: 44px;
+    height: 26px;
+    border-radius: 4px 4px 12px 12px;
+    background: repeating-linear-gradient(90deg, #b45309 0 5px, #92400e 5px 7px), #b45309;
+    box-shadow: inset 0 4px 0 rgba(0, 0, 0, 0.15);
+}
+
+.rs-basket .rs-basket__handle {
+    left: 6px;
+    right: 6px;
+    top: -18px;
+    height: 24px;
+    border: 3px solid #92400e;
+    border-bottom: 0;
+    border-radius: 20px 20px 0 0;
+}
+
+/* ---------- January: a snowman on a bright snowy day ---------- */
+
+.rs-snowman {
+    left: calc(var(--focal) + 40px);
+    bottom: calc(var(--rs-ground) - 4px);
+    width: 62px;
+    height: 56px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 34%, #fff 50%, #dbe7f5);
+    box-shadow: 0 6px 12px -8px rgba(30, 58, 138, 0.5);
+}
+
+.rs-snowman::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    margin-left: -2.5px;
+    border-radius: 50%;
+    background: #1e293b;
+}
+
+.rs-snowman::before { top: 16px; box-shadow: 0 12px 0 #1e293b; }
+
+.rs-snowman .rs-snowman__head {
+    left: 50%;
+    top: -36px;
+    width: 42px;
+    height: 40px;
+    margin-left: -21px;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at 34% 40%, #1e293b 0 2.5px, transparent 3px),
+        radial-gradient(circle at 64% 40%, #1e293b 0 2.5px, transparent 3px),
+        radial-gradient(circle at 38% 34%, #fff 50%, #dbe7f5);
+}
+
+/* the carrot nose */
+.rs-snowman .rs-snowman__head::after {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 21px;
+    width: 18px;
+    height: 7px;
+    background: #f97316;
+    clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+.rs-snowman .rs-snowman__hat {
+    left: 50%;
+    top: -60px;
+    width: 30px;
+    height: 26px;
+    margin-left: -15px;
+    border-radius: 3px 3px 0 0;
+    background: #1e293b;
+    box-shadow: inset 0 -6px 0 #dc2626;
+}
+
+.rs-snowman .rs-snowman__hat::after {
+    content: '';
+    position: absolute;
+    left: -8px;
+    right: -8px;
+    bottom: -3px;
+    height: 5px;
+    border-radius: 3px;
+    background: #1e293b;
+}
+
+.rs-snowman .rs-snowman__scarf {
+    left: 50%;
+    top: -4px;
+    width: 40px;
+    height: 9px;
+    margin-left: -20px;
+    border-radius: 5px;
+    background: repeating-linear-gradient(90deg, #dc2626 0 6px, #fca5a5 6px 9px);
+}
+
+.rs-snowman .rs-snowman__scarf::after {
+    content: '';
+    position: absolute;
+    right: 4px;
+    top: 5px;
+    width: 9px;
+    height: 20px;
+    border-radius: 0 0 3px 3px;
+    background: repeating-linear-gradient(180deg, #dc2626 0 6px, #fca5a5 6px 9px);
+    transform-origin: 50% 0;
+    animation: rs-scarf 2.6s ease-in-out infinite alternate;
+}
+
+.rs-snowman .rs-snowman__arm {
+    left: -26px;
+    top: 10px;
+    width: 32px;
+    height: 3px;
+    border-radius: 2px;
+    background: #6b3a1c;
+    transform: rotate(-24deg);
+    transform-origin: 100% 50%;
+    animation: rs-wave-arm 2.2s ease-in-out infinite alternate;
+}
+
+/* ---------- February: snowy mountains over a frozen pond ---------- */
+
+.rs-mountain {
+    bottom: calc(var(--rs-ground) + 2%);
+    background: linear-gradient(180deg, #ffffff 0 26%, #a5a9d6 26.5% 100%);
+    clip-path: polygon(50% 0, 62% 18%, 70% 14%, 100% 100%, 0 100%, 36% 22%);
+}
+
+.rs-mountain--1 { left: calc(var(--focal) - 220px); width: 300px; height: 62%; }
+.rs-mountain--2 { left: calc(var(--focal) + 10px); width: 260px; height: 50%; background: linear-gradient(180deg, #ffffff 0 28%, #8d92c7 28.5% 100%); }
+
+.rs-pond {
+    left: calc(var(--focal) - 110px);
+    bottom: calc(var(--rs-ground) - 10px);
+    width: 240px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #e0f2fe, #a5d8f3);
+    box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.85), 0 2px 0 rgba(148, 163, 184, 0.4);
+    overflow: hidden;
+}
+
+.rs-pond .rs-pond__glint {
+    left: 10%;
+    top: 0;
+    width: 30%;
+    height: 100%;
+    background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.9) 50%, transparent 70%);
+    animation: rs-glint-slide 5s ease-in-out infinite;
+}
+
+/* skate trails on the ice */
+.rs-skates {
+    left: calc(var(--focal) - 30px);
+    bottom: calc(var(--rs-ground) + 4px);
+    width: 90px;
+    height: 12px;
+    border-radius: 50%;
+    border-top: 2px solid rgba(255, 255, 255, 0.95);
+    transform: rotate(-4deg);
+}
+
+.rs-skates::after {
+    content: '';
+    position: absolute;
+    left: 24px;
+    top: 3px;
+    width: 70px;
+    height: 10px;
+    border-radius: 50%;
+    border-top: 2px solid rgba(255, 255, 255, 0.8);
+}
+
+/* ---------- March: almond blossom and a kite in the breeze ---------- */
+
+.rs-kite.rs-kite--wk {
+    left: calc(var(--focal) - 10px);
+    top: 10%;
+}
+
+.rs-kite-string {
+    left: calc(var(--focal) + 10px);
+    top: calc(10% + 50px);
+    width: 1px;
+    height: 44%;
+    background: rgba(15, 23, 42, 0.28);
+    transform: rotate(-16deg);
+    transform-origin: top;
+}
+
+/* ---------- April: a passing shower and a rainbow ---------- */
+
+.rest-scene--wk-apr .rs-rainbow {
+    left: calc(var(--focal) - 60px);
+    opacity: 0.75;
+}
+
+.rs-raincloud {
+    left: calc(var(--focal) - 120px);
+    top: 10%;
+    width: 120px;
+    height: 34px;
+    border-radius: 999px;
+    background: #94a3b8;
+    box-shadow: inset 0 -6px 0 rgba(71, 85, 105, 0.25);
+    animation: rs-drift 30s ease-in-out infinite alternate;
+}
+
+.rs-raincloud::before,
+.rs-raincloud::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: inherit;
+}
+
+.rs-raincloud::before { width: 54px; height: 54px; left: 16px; top: -26px; }
+.rs-raincloud::after { width: 40px; height: 40px; left: 60px; top: -18px; }
+
+.rs-raincloud .rs-drop {
+    left: var(--x);
+    top: 30px;
+    width: 3px;
+    height: 10px;
+    border-radius: 2px;
+    background: rgba(56, 129, 220, 0.85);
+    opacity: 0;
+    animation: rs-drop 1.3s linear infinite;
+    animation-delay: var(--d);
+}
+
+/* ---------- May: a picnic in a flower meadow ---------- */
+
+.rs-blanket {
+    left: calc(var(--focal) - 50px);
+    bottom: calc(var(--rs-ground) - 10px);
+    width: 150px;
+    height: 34px;
+    background:
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.55) 0 10px, transparent 10px 20px),
+        repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.55) 0 7px, transparent 7px 14px),
+        #ef4444;
+    clip-path: polygon(14% 0, 86% 0, 100% 100%, 0 100%);
+}
+
+.rest-scene--wk-may .rs-basket {
+    left: calc(var(--focal) + 40px);
+    bottom: calc(var(--rs-ground) + 12px);
+}
+
+.rs-bee {
+    width: 14px;
+    height: 10px;
+    border-radius: 50%;
+    background: repeating-linear-gradient(90deg, #facc15 0 3px, #1f2937 3px 5px);
+    animation: rs-flutter-path 7s ease-in-out infinite alternate;
+}
+
+.rs-bee::before {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: -6px;
+    width: 8px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.85);
+    transform-origin: 50% 100%;
+    animation: rs-wing 0.15s ease-in-out infinite alternate;
+}
+
+.rs-bee--1 { left: calc(var(--focal) - 90px); top: 42%; }
+.rs-bee--2 { left: calc(var(--focal) + 110px); top: 54%; animation-delay: -3s; animation-duration: 9s; }
+
+.rest-scene--wk-may .rs-butterfly--2 { left: calc(var(--focal) + 20px); top: 30%; }
+
+/* ---------- June: a white island village over the sea ---------- */
+
+.rest-scene--wk-jun .rs-sea {
+    bottom: 0;
+    height: calc(var(--rs-ground) + 26%);
+    background: linear-gradient(180deg, #1d8fd8, #0b5fa8);
+}
+
+.rest-scene--wk-jun .rs-sea .rs-sea__waves {
+    background: radial-gradient(circle at 10px 8px, #1d8fd8 7px, transparent 7.5px) 0 0 / 20px 8px repeat-x;
+}
+
+.rest-scene--wk-jun .rs-boat {
+    left: calc(var(--focal) - 120px);
+    bottom: 9%;
+}
+
+.rest-scene--wk-jun .rs-gull::before,
+.rest-scene--wk-jun .rs-gull::after {
+    border-top-color: #f8fafc;
+}
+
+.rs-island {
+    left: calc(var(--focal) - 10px);
+    bottom: calc(var(--rs-ground) + 8%);
+    width: 230px;
+    height: 54px;
+    border-radius: 60% 50% 0 0 / 100% 100% 0 0;
+    background: linear-gradient(180deg, #d9b98a, #b08a5a);
+}
+
+.rs-house {
+    bottom: 34px;
+    background: linear-gradient(90deg, #ffffff 70%, #e2e8f0);
+    border-radius: 2px;
+    box-shadow: 0 6px 10px -8px rgba(15, 23, 42, 0.5);
+}
+
+.rs-house .rs-house__door {
+    left: 40%;
+    bottom: 0;
+    width: 9px;
+    height: 13px;
+    border-radius: 4px 4px 0 0;
+    background: #1d4ed8;
+}
+
+.rs-house--1 { left: 30px; width: 40px; height: 30px; }
+.rs-house--2 { left: 82px; width: 50px; height: 40px; }
+.rs-house--3 { left: 144px; width: 36px; height: 26px; }
+
+.rs-house--1::after,
+.rs-house--3::after {
+    content: '';
+    position: absolute;
+    right: 6px;
+    top: 7px;
+    width: 8px;
+    height: 8px;
+    border-radius: 1px;
+    background: #2563eb;
+}
+
+.rs-house .rs-house__dome {
+    left: 50%;
+    top: -22px;
+    width: 34px;
+    height: 23px;
+    margin-left: -17px;
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+    background: linear-gradient(90deg, #1d4ed8, #3b82f6 50%, #1e40af);
+}
+
+.rs-house .rs-house__dome::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: -10px;
+    width: 2px;
+    height: 10px;
+    margin-left: -1px;
+    background: #f8fafc;
+    box-shadow: 0 3px 0 0 #f8fafc;
+}
+
+/* ---------- August: shooting stars over a night beach ---------- */
+
+.rest-scene--wk-aug .rs-moon {
+    left: calc(var(--focal) + 130px);
+    box-shadow: 9px 7px 0 0 #fef3c7;
+}
+
+.rest-scene--wk-aug .rs-sea {
+    background: linear-gradient(180deg, #312e81, #1e1b4b);
+}
+
+.rest-scene--wk-aug .rs-sea .rs-sea__waves {
+    background: radial-gradient(circle at 10px 8px, #312e81 7px, transparent 7.5px) 0 0 / 20px 8px repeat-x;
+}
+
+.rs-sea .rs-sea__moonpath {
+    left: calc(var(--focal) + 120px);
+    top: 4px;
+    width: 40px;
+    height: 70%;
+    border-radius: 50%;
+    background: repeating-linear-gradient(180deg, rgba(254, 243, 199, 0.55) 0 2px, transparent 2px 8px);
+    -webkit-mask: linear-gradient(180deg, #000, transparent);
+    mask: linear-gradient(180deg, #000, transparent);
+    animation: rs-glint 3s ease-in-out infinite;
+}
+
+.rest-scene--wk-aug .rs-sand {
+    background: linear-gradient(180deg, #8c6f8f, #5b4466);
+}
+
+.rs-meteor {
+    width: 90px;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95));
+    opacity: 0;
+    transform: rotate(-24deg);
+    animation: rs-meteor 7s ease-in infinite;
+}
+
+.rs-meteor--1 { left: calc(var(--focal) - 160px); top: 10%; }
+.rs-meteor--2 { left: calc(var(--focal) + 10px); top: 4%; animation-delay: -2.6s; }
+.rs-meteor--3 { left: calc(var(--focal) + 90px); top: 22%; animation-delay: -5s; width: 60px; }
+
+.rs-lantern {
+    left: calc(var(--focal) - 30px);
+    bottom: calc(var(--rs-ground) - 2px);
+    width: 18px;
+    height: 26px;
+    border-radius: 4px 4px 3px 3px;
+    background: linear-gradient(180deg, #fde68a, #f59e0b);
+    box-shadow: inset 0 0 0 2px #78350f;
+    animation: rs-lamp 2.6s ease-in-out infinite;
+}
+
+.rs-lantern::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: -8px;
+    width: 10px;
+    height: 8px;
+    border: 2px solid #78350f;
+    border-bottom: 0;
+    border-radius: 8px 8px 0 0;
+}
+
+.rs-lantern .rs-lantern__glow {
+    left: 50%;
+    top: 50%;
+    width: 150px;
+    height: 90px;
+    margin: -45px 0 0 -75px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(253, 230, 138, 0.45), transparent 65%);
+    animation: rs-glow 2.6s ease-in-out infinite;
+}
+
+/* ---------- September: the grape harvest ---------- */
+
+.rs-hill--vines {
+    left: -6%;
+    width: 112%;
+    height: 44%;
+    border-radius: 50% 50% 0 0 / 70% 70% 0 0;
+    background: repeating-linear-gradient(90deg, #7f9a3a 0 6px, transparent 6px 26px), var(--rs-hill-far);
+}
+
+.rs-vine {
+    bottom: calc(var(--rs-ground) + 4px);
+    height: 40px;
+    border-radius: 14px 14px 4px 4px;
+    background:
+        radial-gradient(circle at 20% 40%, #65a30d 0 9px, transparent 9.5px),
+        radial-gradient(circle at 50% 25%, #84cc16 0 11px, transparent 11.5px),
+        radial-gradient(circle at 80% 45%, #65a30d 0 9px, transparent 9.5px),
+        linear-gradient(180deg, transparent 60%, #6b3a1c 60% 66%, transparent 66%);
+}
+
+.rs-vine--1 { left: calc(var(--focal) - 100px); width: 110px; }
+.rs-vine--2 { left: calc(var(--focal) + 80px); width: 100px; }
+
+.rs-grapes {
+    left: calc(var(--focal) + var(--dx));
+    bottom: calc(var(--rs-ground) + var(--b) - 30px);
+    width: 18px;
+    height: 22px;
+    background:
+        radial-gradient(circle at 25% 18%, var(--c) 0 4px, transparent 4.5px),
+        radial-gradient(circle at 75% 18%, var(--c) 0 4px, transparent 4.5px),
+        radial-gradient(circle at 50% 44%, var(--c) 0 4px, transparent 4.5px),
+        radial-gradient(circle at 25% 44%, var(--c) 0 3.5px, transparent 4px),
+        radial-gradient(circle at 75% 44%, var(--c) 0 3.5px, transparent 4px),
+        radial-gradient(circle at 50% 74%, var(--c) 0 4px, transparent 4.5px);
+    filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.35));
+    transform-origin: 50% 0;
+    animation: rs-sway 3.4s ease-in-out infinite alternate;
+}
+
+.rs-basket.rs-basket--grapes {
+    left: calc(var(--focal) + 10px);
+    bottom: calc(var(--rs-ground) - 6px);
+    width: 54px;
+    height: 30px;
+}
+
+.rs-basket--grapes::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    top: -10px;
+    height: 14px;
+    border-radius: 50% 50% 0 0;
+    background:
+        radial-gradient(circle at 20% 60%, #7e22ce 0 5px, transparent 5.5px),
+        radial-gradient(circle at 40% 40%, #9333ea 0 5px, transparent 5.5px),
+        radial-gradient(circle at 62% 60%, #6d28d9 0 5px, transparent 5.5px),
+        radial-gradient(circle at 82% 45%, #16a34a 0 5px, transparent 5.5px);
+}
+
+/* ---------- October: an autumn wood with pumpkins ---------- */
+
+.rs-pumpkin {
+    bottom: calc(var(--rs-ground) - 4px);
+    width: 40px;
+    height: 32px;
+    border-radius: 48% 48% 44% 44%;
+    background:
+        linear-gradient(90deg, transparent 30%, rgba(124, 45, 18, 0.25) 31% 33%, transparent 34% 66%, rgba(124, 45, 18, 0.25) 67% 69%, transparent 70%),
+        radial-gradient(circle at 38% 32%, #fdba74, #f97316 45%, #c2410c);
+}
+
+.rs-pumpkin::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: -7px;
+    width: 5px;
+    height: 9px;
+    margin-left: -2px;
+    border-radius: 2px;
+    background: #4d7c0f;
+    transform: rotate(12deg);
+}
+
+.rs-pumpkin--1 { left: calc(var(--focal) - 40px); }
+.rs-pumpkin--2 { left: calc(var(--focal) + 6px); width: 30px; height: 24px; }
+.rs-pumpkin--3 { left: calc(var(--focal) + 70px); width: 50px; height: 38px; }
+
+/* ---------- November: a chestnut seller under falling leaves ---------- */
+
+.rest-scene--wk-nov .rs-puddle {
+    left: calc(var(--focal) + 60px);
+    width: 90px;
+    background: linear-gradient(180deg, rgba(203, 213, 225, 0.95), rgba(148, 163, 184, 0.9));
+}
+
+.rs-cart {
+    left: calc(var(--focal) - 70px);
+    bottom: calc(var(--rs-ground) + 10px);
+    width: 76px;
+    height: 34px;
+    border-radius: 4px;
+    background: linear-gradient(180deg, #b91c1c, #7f1d1d);
+    box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* the cart's legs */
+.rs-cart::before,
+.rs-cart::after {
+    content: '';
+    position: absolute;
+    bottom: -14px;
+    width: 4px;
+    height: 14px;
+    background: #44403c;
+}
+
+.rs-cart::before { left: 8px; }
+.rs-cart::after { right: 22px; }
+
+.rs-cart .rs-cart__wheel {
+    right: 2px;
+    bottom: -18px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 3px solid #292524;
+    background: repeating-conic-gradient(#57534e 0 10deg, transparent 10deg 45deg);
+}
+
+.rs-cart .rs-cart__pan {
+    left: 10px;
+    top: -10px;
+    width: 52px;
+    height: 12px;
+    border-radius: 0 0 26px 26px;
+    background:
+        radial-gradient(circle at 22% 10%, #7c2d12 0 4px, transparent 4.5px),
+        radial-gradient(circle at 46% 0, #92400e 0 4px, transparent 4.5px),
+        radial-gradient(circle at 70% 10%, #7c2d12 0 4px, transparent 4.5px),
+        #292524;
+}
+
+.rs-cart .rs-cart__glow {
+    left: 50%;
+    top: -26px;
+    width: 120px;
+    height: 70px;
+    margin-left: -64px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(251, 146, 60, 0.5), transparent 65%);
+    animation: rs-glow 2.2s ease-in-out infinite;
+}
+
+.rs-cart .rs-smoke {
+    left: 30px;
+    top: -22px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(241, 245, 249, 0.8);
+    animation: rs-smoke 3.2s ease-out infinite;
+}
+
+.rs-cart .rs-smoke + .rs-smoke {
+    left: 20px;
+    animation-delay: -1.6s;
+}
+
+/* ---------- December: a cosy cabin, a lit tree and fairy lights ---------- */
+
+.rest-scene--wk-dec .rs-cabin {
+    left: calc(var(--focal) - 90px);
+}
+
+.rs-lights {
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+}
+
+.rs-lights::before {
+    content: '';
+    position: absolute;
+    left: -2%;
+    width: 104%;
+    top: -22px;
+    height: 56px;
+    border-radius: 50%;
+    border-bottom: 2px solid rgba(15, 23, 42, 0.55);
+}
+
+.rs-lights .rs-bulb {
+    left: var(--x);
+    top: var(--y);
+    width: 7px;
+    height: 10px;
+    margin-left: -3.5px;
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    background: var(--c);
+    box-shadow: 0 0 10px 2px var(--c);
+    animation: rs-bulb 2.4s ease-in-out infinite;
+    animation-delay: calc(var(--d) * -1);
+}
+
+.rs-xtree {
+    left: calc(var(--focal) + 40px);
+    bottom: calc(var(--rs-ground) + 2px);
+    width: 76px;
+    height: 104px;
+}
+
+.rs-xtree::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 8px;
+    background: linear-gradient(180deg, #22c55e, #15803d);
+    clip-path: polygon(50% 0, 70% 28%, 62% 28%, 84% 56%, 74% 56%, 100% 92%, 0 92%, 26% 56%, 16% 56%, 38% 28%, 30% 28%);
+}
+
+.rs-xtree::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: 10px;
+    height: 12px;
+    margin-left: -5px;
+    background: #6b3a1c;
+}
+
+.rs-xtree .rs-xtree__star {
+    left: 50%;
+    top: -12px;
+    width: 20px;
+    height: 20px;
+    margin-left: -10px;
+    background: #fde047;
+    clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    filter: drop-shadow(0 0 6px rgba(253, 224, 71, 0.9));
+    animation: rs-lamp 2.4s ease-in-out infinite;
+}
+
+.rs-xtree .rs-xtree__light {
+    left: var(--x);
+    top: var(--y);
+    z-index: 1;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--c);
+    box-shadow: 0 0 6px 1px var(--c);
+    animation: rs-bulb 1.8s ease-in-out infinite;
+    animation-delay: var(--d);
+}
+
+.rs-xtree .rs-xtree__gift {
+    left: 64px;
+    bottom: 0;
+    width: 24px;
+    height: 18px;
+    border-radius: 2px;
+    background:
+        linear-gradient(90deg, transparent 42%, #fde047 42% 58%, transparent 58%),
+        #dc2626;
+}
+
+/* ---------- Phone and narrow cards: keep the pieces in the shorter art ---------- */
+
+.rest-scene--compact .rs-snowman,
+.rest-scene--compact .rs-xtree,
+.rest-scene--compact .rs-cart,
+.rest-scene--compact .rs-island,
+.rest-scene--compact .rs-pond {
+    scale: 0.8;
+    transform-origin: 50% 100%;
+}
+
+@container (max-width: 620px) {
+    .rs-snowman,
+    .rs-xtree,
+    .rs-cart,
+    .rs-island,
+    .rs-pond {
+        scale: 0.85;
+    }
+}
+
+/* ---------- Motion (transform / opacity only) ---------- */
+
+@keyframes rs-tree-sway {
+    from { rotate: -1.5deg; }
+    to { rotate: 1.5deg; }
+}
+
+@keyframes rs-leaf-fall {
+    0% { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+    8% { opacity: 1; }
+    30% { transform: translate(18px, 100px) rotate(calc(var(--r) * 0.3)); }
+    60% { transform: translate(-10px, 210px) rotate(calc(var(--r) * 0.6)); }
+    90% { opacity: 0.9; }
+    100% { opacity: 0; transform: translate(14px, 340px) rotate(var(--r)); }
+}
+
+@keyframes rs-ripple {
+    0% { opacity: 0.9; transform: scale(0.4); }
+    100% { opacity: 0; transform: scale(1.8); }
+}
+
+@keyframes rs-drop {
+    0% { opacity: 0; transform: translateY(0); }
+    15% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(90px); }
+}
+
+@keyframes rs-scarf {
+    from { transform: rotate(-6deg); }
+    to { transform: rotate(14deg); }
+}
+
+@keyframes rs-wave-arm {
+    from { transform: rotate(-24deg); }
+    to { transform: rotate(-44deg); }
+}
+
+@keyframes rs-glint-slide {
+    0%, 30% { transform: translateX(-120%); opacity: 0; }
+    50% { opacity: 1; }
+    80%, 100% { transform: translateX(320%); opacity: 0; }
+}
+
+@keyframes rs-meteor {
+    0%, 70% { opacity: 0; transform: rotate(-24deg) translateX(0); }
+    74% { opacity: 1; }
+    86%, 100% { opacity: 0; transform: rotate(-24deg) translateX(160px); }
+}
+
+@keyframes rs-bulb {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+}

@@ -130,12 +130,12 @@
 }
 
 
-/* ---------- The title pixie ----------
-   She used to be a spinning ✦ on the title's ::after, moved with left/top.
-   Now she is a little glowing sprite with fluttering wings and a trail of dust,
-   gliding along one smooth motion path over the title, and every flight ends by
-   landing on the star at the tip of the gold swash, which flares as she arrives.
-   The lane is the title's own box; the path is drawn for the sm+ title size. */
+/* ---------- Lumi over the title ----------
+   Lumi, the app's guiding star (the same star as the loading screen), glides
+   along one smooth motion path over the title with a trail of dust, and every
+   flight ends by landing on the star at the tip of the gold swash, which flares
+   as she arrives. The lane is the title's own box; the path is drawn for the
+   sm+ title size. (The class names are still "pixie": she took its place.) */
 .gcq-pixie-lane {
     --pixie-cycle: 26s;
     --pixie-delay: 2.5s;
@@ -159,45 +159,32 @@
 .gcq-pixie {
     width: 18px;
     height: 18px;
-    filter: drop-shadow(0 1px 1px rgba(30, 58, 138, 0.35));
     animation: gcq-pixie-fly var(--pixie-cycle) var(--pixie-delay) infinite;
 }
-.gcq-pixie__body {
+/* A soft warm glow behind her, painted once */
+.gcq-pixie__glow {
     position: absolute;
-    inset: 4px;
+    inset: -9px;
     border-radius: 50%;
-    background: radial-gradient(circle at 40% 35%, #ffffff 0%, #fff7d6 40%, #fcd34d 75%, rgba(245, 158, 11, 0.6) 100%);
-    box-shadow:
-        0 0 4px 1px rgba(255, 255, 255, 0.95),
-        0 0 10px 3px rgba(253, 224, 120, 0.8),
-        0 0 22px 6px rgba(245, 158, 11, 0.35);
+    background: radial-gradient(closest-side, rgba(255, 251, 230, 0.95) 0%, rgba(253, 224, 120, 0.55) 40%, rgba(245, 158, 11, 0) 100%);
 }
-/* A tiny four-point sparkle crossing the body, turning slowly */
-.gcq-pixie__body::before {
-    content: '';
+/* Lumi herself, a touch larger than the old sprite, with a gentle sway as she flies */
+.gcq-pixie__lumi {
     position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 18px;
-    height: 18px;
-    margin: -9px 0 0 -9px;
-    background: rgba(255, 255, 255, 0.95);
-    clip-path: polygon(50% 0, 56% 44%, 100% 50%, 56% 56%, 50% 100%, 44% 56%, 0 50%, 44% 44%);
-    animation: gcq-pixie-glint 1.8s linear infinite;
+    inset: -3px;
+    filter: drop-shadow(0 1px 1px rgba(30, 58, 138, 0.4));
+    animation: gcq-lumi-sway 1.6s ease-in-out infinite alternate;
 }
-.gcq-pixie__wing {
-    position: absolute;
-    top: -2px;
-    width: 12px;
-    height: 9px;
-    border-radius: 60% 60% 50% 50% / 70% 70% 40% 40%;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(224, 242, 254, 0.35));
-    border: 1px solid rgba(253, 230, 138, 0.85);
-    box-shadow: 0 0 5px rgba(255, 255, 255, 0.7);
-    animation: gcq-pixie-flutter 0.16s ease-in-out infinite alternate;
+.gcq-pixie__lumi svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
 }
-.gcq-pixie__wing--l { right: 10px; transform-origin: 100% 90%; transform: rotate(-24deg); }
-.gcq-pixie__wing--r { left: 10px; transform-origin: 0 90%; transform: rotate(24deg); animation-delay: -0.08s; }
+@keyframes gcq-lumi-sway {
+    from { transform: rotate(-12deg) translateY(-1px); }
+    to { transform: rotate(12deg) translateY(1px); }
+}
 
 .gcq-pixie-dust {
     width: 8px;
@@ -223,15 +210,6 @@
     40% { offset-distance: 100%; opacity: calc(0.95 - var(--k) * 0.13); transform: scale(calc(1.05 - var(--k) * 0.12)) rotate(400deg); }
     42% { offset-distance: 100%; opacity: 0; transform: scale(0.1) rotate(440deg); }
     100% { offset-distance: 100%; opacity: 0; transform: scale(0.1); }
-}
-@keyframes gcq-pixie-flutter {
-    from { scale: 1 1; }
-    to { scale: 0.35 1; }
-}
-@keyframes gcq-pixie-glint {
-    from { transform: rotate(0deg) scale(0.9); }
-    50% { transform: rotate(45deg) scale(1.15); }
-    to { transform: rotate(90deg) scale(0.9); }
 }
 /* The swash star answers her landing with a flare */
 .gcq-swash__star {

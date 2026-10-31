@@ -86,7 +86,19 @@ export const headerTrimHTML = `
                 ${trimSparksHTML}
             </div>`;
 
-/** Gold swash under the title, with the star the pixie lands on, and the pixie herself. */
+// Lumi, the app's guiding star, small enough to fly over the title. Flat fills
+// only (no gradient ids): the header is drawn twice (teacher and School Office)
+// and one copy is always hidden, which would stop a shared gradient painting.
+const HEADER_LUMI_SVG = `<svg viewBox="0 0 100 100" focusable="false" aria-hidden="true">
+                                <path d="M45.4 8.7Q50 0 54.6 8.7L60.7 20.3Q65.3 29 75 30.6L87.9 32.9Q97.6 34.5 90.7 41.6L81.6 51Q74.7 58 76.1 67.8L78 80.7Q79.4 90.5 70.6 86.1L58.8 80.3Q50 76 41.2 80.3L29.4 86.1Q20.6 90.5 22 80.7L23.9 67.8Q25.3 58 18.4 51L9.3 41.6Q2.4 34.5 12.1 32.9L25 30.6Q34.7 29 39.3 20.3Z" fill="#ffd84d" stroke="#f2a516" stroke-width="3" stroke-linejoin="round"/>
+                                <ellipse cx="38" cy="31" rx="11" ry="6.5" fill="#fffbe6" opacity="0.75" transform="rotate(-32 38 31)"/>
+                                <ellipse cx="36" cy="63" rx="5.5" ry="3.4" fill="#ff8fa3" opacity="0.65"/>
+                                <ellipse cx="64" cy="63" rx="5.5" ry="3.4" fill="#ff8fa3" opacity="0.65"/>
+                                <g class="gcq-pixie__eyes"><ellipse cx="42" cy="54" rx="4.6" ry="6" fill="#2b2250"/><ellipse cx="58" cy="54" rx="4.6" ry="6" fill="#2b2250"/><circle cx="43.6" cy="51.6" r="1.8" fill="#fff"/><circle cx="59.6" cy="51.6" r="1.8" fill="#fff"/></g>
+                                <path d="M45 62.5Q50 67 55 62.5" stroke="#8a3a2a" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+                            </svg>`;
+
+/** Gold swash under the title, with the star Lumi lands on, and Lumi herself. */
 export const titleFlourishHTML = `
                     <svg class="gcq-swash gcq-swash--title" viewBox="0 0 260 18" aria-hidden="true" focusable="false">
                         <path d="M4 11 C 46 15, 86 4, 128 9 S 206 14, 238 7" fill="none" stroke="url(#gcq-swash-gold)" stroke-width="2.6" stroke-linecap="round"/>
@@ -101,9 +113,8 @@ export const titleFlourishHTML = `
                         <span class="gcq-pixie-dust" style="--k: 2"></span>
                         <span class="gcq-pixie-dust" style="--k: 1"></span>
                         <span class="gcq-pixie">
-                            <span class="gcq-pixie__wing gcq-pixie__wing--l"></span>
-                            <span class="gcq-pixie__wing gcq-pixie__wing--r"></span>
-                            <span class="gcq-pixie__body"></span>
+                            <span class="gcq-pixie__glow"></span>
+                            <span class="gcq-pixie__lumi">${HEADER_LUMI_SVG}</span>
                         </span>
                     </span>`;
 

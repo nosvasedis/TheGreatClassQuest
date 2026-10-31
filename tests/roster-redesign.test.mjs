@@ -45,10 +45,10 @@ test('the Hero Class tile names the class and carries the earned rank as a ribbo
     assert.match(css, /\.roster-tool__rank \{/);
 });
 
-test('the passport offers Move once, beside the Class field', () => {
+test('the passport offers Move once, under Open for this student', () => {
     const passport = read('templates/modals/student.js');
-    assert.match(passport, /id="edit-student-quick-move-btn"/);
-    assert.doesNotMatch(passport, /edit-student-hub-move-btn/);
+    assert.match(passport, /id="edit-student-hub-move-btn"/);
+    assert.doesNotMatch(passport, /edit-student-quick-move/);
 });
 
 test('the roster shows a "Waiting for you" line only when needed', () => {

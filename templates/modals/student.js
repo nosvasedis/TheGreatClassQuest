@@ -80,9 +80,6 @@ export const studentModalsHTML = `
                                         <p id="edit-student-current-class-display" class="sp-field__value">--</p>
                                         <p id="edit-student-current-league-display" class="sp-field__sub">--</p>
                                     </div>
-                                    <button type="button" id="edit-student-quick-move-btn" class="sp-mini-btn bubbly-button" title="Transfer to another class">
-                                        <i class="fas fa-exchange-alt" aria-hidden="true"></i><span id="edit-student-quick-move-label">Move</span>
-                                    </button>
                                 </div>
 
                                 <div class="sp-field sp-field--row">
@@ -165,6 +162,10 @@ export const studentModalsHTML = `
                             <button type="button" id="edit-student-hub-skilltree-btn" class="sp-tool sp-tool--tree bubbly-button" title="Talents & active abilities">
                                 <span class="sp-tool__icon"><i class="fas fa-sitemap"></i></span>
                                 <span class="sp-tool__label">Skill Tree</span>
+                            </button>
+                            <button type="button" id="edit-student-hub-move-btn" class="sp-tool sp-tool--move bubbly-button" title="Move to another class">
+                                <span class="sp-tool__icon"><i class="fas fa-people-arrows"></i></span>
+                                <span id="edit-student-hub-move-label" class="sp-tool__label">Move class</span>
                             </button>
                         </div>
                     </section>

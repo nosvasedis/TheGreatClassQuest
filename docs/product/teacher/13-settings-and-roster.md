@@ -111,9 +111,9 @@ Whatever you change in a student’s Passport, such as their name, is what appea
 
 **Edit** on a roster row opens the student’s profile as one open passport. The cover carries the name and class and guild chips.
 
-**Left page — Identity:** the portrait (tap to view it; **New portrait** opens the Avatar Forge), **Name**, **Class** with **Move**, **Guild** (with **Sort** only while they have no guild), and the quest record: Total stars, This month, Gold, Hero rank. Under it, **Open for this student**: Chronicle, Folio, Certificate, Avatar Forge, Skill Tree.
+**Left page — Identity:** the portrait (tap to view it; **New portrait** opens the Avatar Forge), **Name**, **Class**, **Guild** (with **Sort** only while they have no guild), and the quest record: Total stars, This month, Gold, Hero rank. Under it, **Open for this student**: Chronicle, Folio, Certificate, Avatar Forge, Skill Tree, Move class.
 
-**Move** (beside Class) sends the child to another class, or back to the waiting list. Stars, Gold, guild and notes go with them.
+**Move class** sends the child to another class, or back to the waiting list. Stars, Gold, guild and notes go with them.
 
 **Right page — Special days:** **Birthday** and **Nameday** as postage stamps (pick day and month; **Clear** empties one). **Find from name** reads the Greek name-day calendar (εορτολόγιο) built into the app, on every plan. It knows Greek, Greeklish and English spellings, and moving feasts such as Saint George and Thomas Sunday follow Easter every year. A name the calendar does not hold is asked of the AI on Elite. A new student added with no name day gets it from the calendar. On their day the class sees a celebration banner and they get bonus stars.
 

@@ -487,7 +487,7 @@ export function openEditStudentModal(studentId, options = {}) {
     if (openAvatarBtn) openAvatarBtn.onclick = handleOpenAvatar;
     if (hubAvatarBtn) hubAvatarBtn.onclick = handleOpenAvatar;
 
-    const quickMoveBtn = document.getElementById('edit-student-quick-move-btn');
+    const hubMoveBtn = document.getElementById('edit-student-hub-move-btn');
     const officeMoveBtn = document.getElementById('edit-student-office-move-btn');
     const isWaitingForClass = !classData;
     const handleMove = () => {
@@ -498,12 +498,11 @@ export function openEditStudentModal(studentId, options = {}) {
         }
         openMoveStudentModal(studentId);
     };
-    if (quickMoveBtn) quickMoveBtn.onclick = handleMove;
+    if (hubMoveBtn) hubMoveBtn.onclick = handleMove;
     if (officeMoveBtn) officeMoveBtn.onclick = handleMove;
     // A waiting student can be seated from here: by the Office in any class, by a teacher in one of theirs.
-    if (quickMoveBtn) quickMoveBtn.classList.remove('hidden');
-    const quickMoveLabel = document.getElementById('edit-student-quick-move-label');
-    if (quickMoveLabel) quickMoveLabel.textContent = isWaitingForClass ? 'Seat' : 'Move';
+    const hubMoveLabel = document.getElementById('edit-student-hub-move-label');
+    if (hubMoveLabel) hubMoveLabel.textContent = isWaitingForClass ? 'Seat in a class' : 'Move class';
     const officeMoveLabel = document.getElementById('edit-student-office-move-label');
     if (officeMoveLabel) officeMoveLabel.textContent = isWaitingForClass ? 'Seat in a class' : 'Move class';
 

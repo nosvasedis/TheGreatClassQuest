@@ -2,10 +2,10 @@
 // without Firebase. Open /loading-preview.html under `npm run dev`. Query options:
 //   role=teacher|secretary|parent|signedout  part=morning|afternoon|evening|night
 //   speed=fast|slow  low=1 (weak-laptop scene)  gate=1 (arrive through the sign-in gate)
-//   shot=1 (hide the toolbar)
+//   film=full|short (force a cut)  shot=1 (hide the toolbar)
 // The hand-over is the app's own (templates/loading.js#playLoadingExit); window.__pvLog
 // records when each step happened, for headless timing checks.
-import { loadingHTML, initLoadingAtmosphere, initLoadingTips, markLoadingStage, stageLoadingPersonalization, playLoadingExit, reopenLoadingScreen } from './templates/loading.js';
+import { loadingHTML, initLoadingAtmosphere, initLoadingTips, markLoadingStage, stageLoadingPersonalization, playLoadingExit, reopenLoadingScreen, setLoadingFilmCut } from './templates/loading.js';
 
 const params = new URLSearchParams(location.search);
 const opts = {
@@ -29,9 +29,15 @@ initLoadingAtmosphere();
 initLoadingTips();
 const screen = document.getElementById('loading-screen');
 if (opts.low) screen.classList.add('gcq-perf-low');
+// film=full|short forces a cut; otherwise the first play of the day is full, then short.
+if (params.get('film')) setLoadingFilmCut(params.get('film'));
 if (opts.gate) {
     screen.classList.add('hidden');
-    setTimeout(() => { reopenLoadingScreen({ fromGate: true }); log('reopened'); }, 200);
+    setTimeout(() => {
+        reopenLoadingScreen({ fromGate: true });
+        if (params.get('film')) setLoadingFilmCut(params.get('film'));
+        log('reopened');
+    }, 200);
 }
 
 function exit() {

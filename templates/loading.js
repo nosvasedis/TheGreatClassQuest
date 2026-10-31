@@ -43,15 +43,55 @@ const MOBILE_LOADING_QUERY = '(max-width: 1023px)';
 const LOADING_LOGO_URL = new URL('../assets/great-class-quest-logo.svg', import.meta.url).href;
 
 // ── Timing (ms) ──────────────────────────────────────────────────────
-// The opening (styles/loading2.css) is fully composed by ~5.4s: Lumi has
-// landed (1.75s), written the title (to 3.7s), and the medallion, the line
-// under it, the constellation and the tip have risen in. The Welcome or the
-// woosh never come before STAGE_COMPOSED_MS, so the finished title is seen.
-const STAGE_COMPOSED_MS = 6300;
-// The Welcome takes ~2.9s to arrive in full (big line, then the ribbon, then
-// the name); it then stays still and legible for ~1.6s before the woosh.
-const WELCOME_HOLD_MS = 4500;
+// Two cuts of the same film (styles/loading2.css has the matching clock).
+// The first load of the day on this device plays the full film; later loads
+// the same day play the short cut. In both, the Welcome arrives at THE
+// REVEAL, together with the GCQ medallion and all three stars.
+//   reveal        the medallion pops; the earliest the Welcome can arrive
+//   pathShown     when the constellation has risen in (if still loading)
+//   signedOutMin  the earliest woosh with no Welcome (title and medallion seen)
+//   hold          the Welcome arrives in ~2.3s, then stays still a moment
+//   tricksAt      Lumi's first trick, if the app is still loading
+const FILM_CUTS = {
+    full: { reveal: 3700, pathShown: 4800, signedOutMin: 4400, hold: 3600, tricksAt: 5600, letterWaveMs: 750 },
+    short: { reveal: 1750, pathShown: 2650, signedOutMin: 2400, hold: 2700, tricksAt: 3400, letterWaveMs: 550 },
+};
 const WELCOME_HOLD_REDUCED_MS = 2600;
+const FILM_DAY_KEY = 'gcq-loading-film-day';
+let _cut = 'full';
+
+function todayKey() {
+    const d = new Date();
+    return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
+/** 'full' for the first load of the day on this device, 'short' after that. */
+function loadingFilmCut() {
+    try {
+        return window.localStorage.getItem(FILM_DAY_KEY) === todayKey() ? 'short' : 'full';
+    } catch {
+        return 'full';
+    }
+}
+
+/** The full film has been seen today (it played up to the Welcome). */
+function rememberFullFilmSeen() {
+    try { window.localStorage.setItem(FILM_DAY_KEY, todayKey()); } catch { /* blocked storage: full again next time */ }
+}
+
+function applyFilmCut(cut) {
+    _cut = FILM_CUTS[cut] ? cut : 'full';
+    document.getElementById('loading-screen')?.classList.toggle('loading-short', _cut === 'short');
+}
+
+/** Dev previews: force a cut ('full' or 'short'). */
+export function setLoadingFilmCut(cut) {
+    applyFilmCut(cut);
+    scheduleLumiTricks();
+}
+
+const cutTiming = () => FILM_CUTS[_cut] || FILM_CUTS.full;
+
 // The woosh: a short wind-up, then the flight over the screen.
 const WOOSH_WINDUP_MS = 280;
 const WOOSH_FLIGHT_MS = 1050;
@@ -329,7 +369,8 @@ export const loadingHTML = `
                 <div class="loading-lumi__sprinkle"></div>
             </div>
 
-            <!-- The title and the Welcome share one cell, so swapping them never moves the stage -->
+            <!-- The title, the GCQ medallion, and under them one cell that holds
+                 the line under the title and, from the reveal, the Welcome -->
             <div class="loading-words">
                 <div class="loading-heading">
                     <h1 class="loading-title" aria-label="${LOADING_TITLE_TEXT}">
@@ -342,13 +383,14 @@ export const loadingHTML = `
                         <span class="loading-crest__medal"><img class="loading-crest__logo" src="${LOADING_LOGO_URL}" alt="" /></span>
                         <span class="loading-crest__line"></span>
                     </div>
-                    <p class="loading-tagline">${LOADING_TAGLINE}</p>
-                </div>
-
-                <div id="loading-greeting" class="loading-welcome">
-                    <div id="loading-greeting-text" class="loading-welcome__line"></div>
-                    <div id="loading-greeting-school" class="loading-welcome__school"></div>
-                    <div id="loading-greeting-person" class="loading-welcome__person"></div>
+                    <div class="loading-sub">
+                        <p class="loading-tagline">${LOADING_TAGLINE}</p>
+                        <div id="loading-greeting" class="loading-welcome">
+                            <div id="loading-greeting-text" class="loading-welcome__line"></div>
+                            <div id="loading-greeting-school" class="loading-welcome__school"></div>
+                            <div id="loading-greeting-person" class="loading-welcome__person"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -551,6 +593,7 @@ export function initLoadingAtmosphere() {
     if (loadingScreen) {
         loadingScreen.classList.toggle('gcq-perf-low', lowPower);
         loadingScreen.classList.toggle('gcq-loading-mobile', mobile);
+        applyFilmCut(loadingFilmCut());
         // Her shooting-star tail points back to where she came from (styles/loading2.css).
         const angle = Math.atan2(window.innerHeight * 0.52, window.innerWidth * 0.5) * 180 / Math.PI + 180;
         loadingScreen.style.setProperty('--arrive-angle', `${Math.round(angle)}deg`);
@@ -608,7 +651,7 @@ function scheduleLumiTricks() {
         _trickTimer = setTimeout(next, randomRange(3800, 5200));
     };
     // The first trick waits until the opening is composed, so it never steals its moments.
-    _trickTimer = setTimeout(next, STAGE_COMPOSED_MS + 300);
+    _trickTimer = setTimeout(next, cutTiming().tricksAt);
 }
 
 // ── The constellation ────────────────────────────────────────────────
@@ -637,11 +680,11 @@ function castSpark(star) {
     return SPARK_MS - 60;
 }
 
-// The constellation rises in at 4.6s (styles/loading2.css); a star that is
-// ready earlier waits for it, so every cast can be seen. Casts are spaced so
-// each star gets its own moment.
-const PATH_SHOWN_MS = 5000;
-const CAST_SPACING_MS = 750;
+// While the app is still loading, the constellation rises in after the
+// reveal; a star that is ready earlier waits for it, so every cast can be
+// seen, and casts are spaced so each star gets its own moment. At the
+// Welcome all the remaining stars light together.
+const CAST_SPACING_MS = 700;
 let _litStep = 0;
 let _castTimer = 0;
 
@@ -656,7 +699,7 @@ function castNextStar() {
     clearTimeout(_castTimer);
     _castTimer = 0;
     if (_litStep >= _loadingStep) return;
-    const wait = PATH_SHOWN_MS - (performance.now() - _shownAt);
+    const wait = cutTiming().pathShown - (performance.now() - _shownAt);
     if (wait > 0 && !prefersReducedMotion()) {
         _castTimer = setTimeout(castNextStar, wait);
         return;
@@ -750,9 +793,20 @@ export function revealStagedLoadingPersonalization({ schoolName = '', dayPart = 
     }
     clearTimeout(_trickTimer);
 
+    // The constellation may not have risen yet: it comes in with the Welcome.
+    const early = performance.now() - _shownAt < cutTiming().pathShown;
+    loadingScreen?.classList.toggle('loading-early-welcome', early);
     loadingScreen?.classList.add('loading-final-moment');
-    markLoadingStage(3);
+    // Every star still dark lights now, one quick beat after another.
+    clearTimeout(_castTimer);
+    _castTimer = 0;
+    _loadingStep = 3;
+    for (let i = _litStep, k = 0; i < 3; i += 1, k += 1) {
+        _exitTimers.push(setTimeout(() => lightStar(i), (early ? 450 : 150) + k * 160));
+    }
+    _litStep = 3;
     lumiReact('is-cheer');
+    if (_cut === 'full') rememberFullFilmSeen();
 
     // Three stacked copies of the same letters: a soft glow behind, the
     // starlit ink that rises in letter by letter, and a sheen that sweeps
@@ -768,10 +822,9 @@ export function revealStagedLoadingPersonalization({ schoolName = '', dayPart = 
     greetingText.setAttribute('aria-level', '2');
     greetingText.setAttribute('aria-label', line);
     const count = Array.from(line).length;
-    // The whole wave lands within ~0.75s, however long the line is.
-    const step = Math.min(44, 750 / Math.max(1, count - 1));
-    // The title steps aside first (0.45s), so the letters start at 0.45s.
-    const landed = Math.round(step * (count - 1) + 450 + 700);
+    // The whole wave lands quickly, however long the line is.
+    const step = Math.min(44, cutTiming().letterWaveMs / Math.max(1, count - 1));
+    const landed = Math.round(step * (count - 1) + 120 + 600);
     greetingText.style.setProperty('--lg-step', `${step.toFixed(1)}ms`);
     greetingEl.style.setProperty('--lg-landed', `${landed}ms`);
 
@@ -960,7 +1013,7 @@ export function loadingRevealEta() {
 /**
  * The hand-over, from start to finish: the Welcome (when there is one), the
  * woosh, the stardust, dawn, and the screen hidden at the end. A very early
- * call lets the opening finish first. Returns the milliseconds until the
+ * call waits for the reveal (see FILM_CUTS). Returns the milliseconds until the
  * scene starts melting, so the screen underneath can time its entrance.
  * onHidden runs once the screen is gone.
  */
@@ -976,9 +1029,12 @@ export function playLoadingExit(loadingScreen, { schoolName = '', dayPart = '', 
     clearTimeout(_trickTimer);
     const reduced = prefersReducedMotion();
     const sinceShown = performance.now() - _shownAt;
-    const landWait = reduced ? 0 : Math.max(0, STAGE_COMPOSED_MS - sinceShown);
     const hasWelcome = Boolean(_stagedPersonalization);
-    const hold = hasWelcome ? (reduced ? WELCOME_HOLD_REDUCED_MS : WELCOME_HOLD_MS) : 0;
+    const timing = cutTiming();
+    // The Welcome arrives at the reveal, never before; with no Welcome the
+    // woosh waits until the title and the medallion have been seen.
+    const landWait = reduced ? 0 : Math.max(0, (hasWelcome ? timing.reveal : timing.signedOutMin) - sinceShown);
+    const hold = hasWelcome ? (reduced ? WELCOME_HOLD_REDUCED_MS : timing.hold) : 0;
     const wooshAt = landWait + hold;
     const revealIn = wooshAt + (reduced ? 0 : WOOSH_REVEAL_AT_MS);
     const goneIn = wooshAt + (reduced ? REDUCED_FADE_MS : WOOSH_GONE_AT_MS);
@@ -1028,7 +1084,8 @@ export function reopenLoadingScreen({ fromGate = false } = {}) {
     clearExitTimers();
     _revealAt = 0;
     loadingScreen.dataset.exiting = '';
-    loadingScreen.classList.remove('loading-screen-exit', 'loading-revealing', 'loading-final-moment', 'loading-screen-from-gate', 'hidden');
+    loadingScreen.classList.remove('loading-screen-exit', 'loading-revealing', 'loading-final-moment', 'loading-early-welcome', 'loading-screen-from-gate', 'hidden');
+    applyFilmCut(loadingFilmCut());
     _shownAt = performance.now();
     loadingScreen.style.setProperty('--since', '0ms');
     loadingScreen.querySelectorAll('.loading-lumi__fly, .loading-lumi__pose, .loading-lumi__trail').forEach((el) => {

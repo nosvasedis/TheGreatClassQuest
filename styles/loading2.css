@@ -1,24 +1,56 @@
 /* ── The loading stage: Lumi, the words, the constellation ──────────
    The twilight around it lives in styles/loading.css. The markup and the
-   clock are in templates/loading.js. Times below are from the moment the
-   screen appears; the words subtract --since (how late the font arrived),
-   so a slow font never pushes the film back.
+   clock are in templates/loading.js. Times are from the moment the screen
+   appears; the words subtract --since (how late the font arrived), so a slow
+   font never pushes the film back.
 
-     0       the page dims into twilight; stars, moon and hills arrive
-     0.45s   Lumi streaks in from the moon's corner as a shooting star
-     1.75s   she has unfolded in a ring of light and starts to float
-     1.9s    a spark writes the title in starlight (to ~3.7s); her eyes follow it
-     3.7s    the GCQ medallion, 3.9s its gold lines, 4.2s the line under the title
-     4.6s    the constellation (stars light from here on), 4.9s the tip
-     6.3s    earliest Welcome or woosh: the finished title gets its moment
-     then    small tricks every few seconds (.is-twirl, .is-peek, .is-bounce,
-             .is-sprinkle) and a cast (.is-cast) for each star that lights
-     welcome .loading-final-moment: the title steps aside for the Welcome
-     woosh   .loading-screen-exit: the words step back and she flies (the
-             flight itself is a Web Animation, templates/loading.js)
+   Two cuts of the same film (templates/loading.js#loadingFilmCut):
+                         full (first of the day)   short (.loading-short)
+     Lumi streaks in       0.45s                     0.1s
+     she has unfolded      1.75s                     0.95s
+     the spark writes      1.9s → ~3.7s              0.85s → ~1.9s
+     THE REVEAL            3.7s                      1.75s
+       The GCQ medallion pops and, in the same moment, the Welcome
+       (greeting, school ribbon, name) takes the place of the line under
+       the title and all three stars light together (.loading-final-moment).
+     if still loading      the line under the title, the constellation (lit
+                           star by star as start-up really progresses),
+                           the tip and Lumi's tricks keep the wait alive
+     woosh                 .loading-screen-exit: the words step back and she
+                           flies (a Web Animation, templates/loading.js)
 
    Only transform and opacity ever animate. Weak machines (.gcq-perf-low)
    drop the orbiting sparkles; reduced motion keeps Lumi still. */
+
+#loading-screen {
+    --t-arrive: 0.45s;
+    --arrive-dur: 1.15s;
+    --unfold-dur: 1.3s;
+    --t-burst: 1.5s;
+    --t-landed: 1.75s;
+    --t-pool: 1.2s;
+    --t-pen: 1900ms;
+    --pen-dur: 1.3s;
+    --t-step: 56ms;
+    --t-medal: 3700ms;
+    --t-tagline: 4000ms;
+    --t-path: 4300ms;
+}
+
+#loading-screen.loading-short {
+    --t-arrive: 0.1s;
+    --arrive-dur: 0.75s;
+    --unfold-dur: 0.85s;
+    --t-burst: 0.8s;
+    --t-landed: 0.95s;
+    --t-pool: 0.5s;
+    --t-pen: 850ms;
+    --pen-dur: 0.7s;
+    --t-step: 28ms;
+    --t-medal: 1750ms;
+    --t-tagline: 1950ms;
+    --t-path: 2150ms;
+}
 
 .loading-stage {
     --lumi-size: clamp(104px, 15vh, 150px);
@@ -46,7 +78,7 @@
     pointer-events: none;
     z-index: -1;
     opacity: 0;
-    animation: ls-fade-in 1.6s ease 1.2s forwards;
+    animation: ls-fade-in 1.6s ease var(--t-pool) forwards;
 }
 
 /* ── Lumi ─────────────────────────────────────────────────────── */
@@ -98,11 +130,11 @@
    different wrappers with different easings, so the straight line bends into
    a falling arc. */
 .loading-lumi {
-    animation: lumi-arrive-x 1.15s cubic-bezier(0.25, 0.6, 0.35, 1) 0.45s both;
+    animation: lumi-arrive-x var(--arrive-dur) cubic-bezier(0.25, 0.6, 0.35, 1) var(--t-arrive) both;
 }
 
 .loading-lumi__fly {
-    animation: lumi-arrive-y 1.15s cubic-bezier(0.55, 0.1, 0.35, 1) 0.45s both;
+    animation: lumi-arrive-y var(--arrive-dur) cubic-bezier(0.55, 0.1, 0.35, 1) var(--t-arrive) both;
 }
 
 @keyframes lumi-arrive-x {
@@ -117,7 +149,7 @@
 
 /* While she flies in she is a bright point of light; then she unfolds. */
 .loading-lumi__pose {
-    animation: lumi-unfold 1.3s linear 0.45s both;
+    animation: lumi-unfold var(--unfold-dur) linear var(--t-arrive) both;
 }
 
 @keyframes lumi-unfold {
@@ -144,7 +176,7 @@
     transform-origin: 0 50%;
     opacity: 0;
     pointer-events: none;
-    animation: lumi-arrive-trail 1.3s ease-out 0.45s both;
+    animation: lumi-arrive-trail var(--unfold-dur) ease-out var(--t-arrive) both;
 }
 
 @keyframes lumi-arrive-trail {
@@ -165,7 +197,7 @@
         rgba(253, 224, 71, 0.5) 84%,
         rgba(196, 181, 253, 0) 100%);
     opacity: 0;
-    animation: lumi-burst 1s cubic-bezier(0.16, 1, 0.3, 1) 1.5s both;
+    animation: lumi-burst 1s cubic-bezier(0.16, 1, 0.3, 1) var(--t-burst) both;
 }
 
 @keyframes lumi-burst {
@@ -180,7 +212,7 @@
 
 /* Idle: a slow float and sway */
 .loading-lumi__float {
-    animation: lumi-float 3.4s ease-in-out 1.75s infinite alternate both;
+    animation: lumi-float 3.4s ease-in-out var(--t-landed) infinite alternate both;
 }
 
 @keyframes lumi-float {
@@ -197,7 +229,7 @@
 }
 
 .lumi__eyes {
-    animation: lumi-blink 4.6s ease-in-out 2.9s infinite;
+    animation: lumi-blink 4.6s ease-in-out calc(var(--t-landed) + 1s) infinite;
 }
 
 @keyframes lumi-blink {
@@ -206,7 +238,7 @@
 }
 
 #loading-screen.loading-text-ready .lumi__look {
-    animation: lumi-look-follow 1.7s ease-in-out max(0ms, calc(1850ms - var(--since))) both;
+    animation: lumi-look-follow calc(var(--pen-dur) + 0.4s) ease-in-out max(0ms, calc(var(--t-pen) - 50ms - var(--since))) both;
 }
 
 @keyframes lumi-look-follow {
@@ -231,7 +263,7 @@
     opacity: 0;
     animation:
         lumi-orbit 9s linear infinite,
-        ls-fade-in 0.8s ease 2.2s forwards;
+        ls-fade-in 0.8s ease calc(var(--t-landed) + 0.4s) forwards;
 }
 
 @keyframes lumi-orbit {
@@ -369,7 +401,6 @@
     display: grid;
     place-items: center;
     width: 100%;
-    min-height: 10.5rem;
 }
 
 .loading-heading,
@@ -435,11 +466,11 @@
 /* The pen: a bright spark that runs along the title, letters rising behind it.
    Each letter waits for the pen: 1.6s + 50ms per character. */
 #loading-screen.loading-text-ready .loading-title__ink .lg-l {
-    animation: lg-letter-rise 0.7s cubic-bezier(0.33, 1, 0.68, 1) max(0ms, calc(1900ms + var(--i) * 56ms - var(--since))) both;
+    animation: lg-letter-rise 0.7s cubic-bezier(0.33, 1, 0.68, 1) max(0ms, calc(var(--t-pen) + var(--i) * var(--t-step) - var(--since))) both;
 }
 
 #loading-screen.loading-text-ready .loading-title__glow .lg-l {
-    animation: lg-glow-letter 0.9s ease max(0ms, calc(1950ms + var(--i) * 56ms - var(--since))) both;
+    animation: lg-glow-letter 0.9s ease max(0ms, calc(var(--t-pen) + 50ms + var(--i) * var(--t-step) - var(--since))) both;
 }
 
 @keyframes lg-letter-rise {
@@ -476,11 +507,11 @@
 .loading-title__nib svg { display: block; width: 100%; height: 100%; overflow: visible; }
 
 #loading-screen.loading-text-ready .loading-title__pen {
-    animation: lg-pen-run 1.3s cubic-bezier(0.45, 0.05, 0.55, 0.95) max(0ms, calc(1900ms - var(--since))) both;
+    animation: lg-pen-run var(--pen-dur) cubic-bezier(0.45, 0.05, 0.55, 0.95) max(0ms, calc(var(--t-pen) - var(--since))) both;
 }
 
 #loading-screen.loading-text-ready .loading-title__nib {
-    animation: lg-nib 1.3s linear max(0ms, calc(1900ms - var(--since))) both;
+    animation: lg-nib var(--pen-dur) linear max(0ms, calc(var(--t-pen) - var(--since))) both;
 }
 
 @keyframes lg-pen-run {
@@ -570,10 +601,44 @@
 /* Tailwind's [hidden] rule loses to the display values below. */
 .loading-welcome [hidden] { display: none; }
 
-#loading-screen.loading-final-moment .loading-heading {
+/* The line under the title and the Welcome share one cell; at the reveal
+   the line steps aside and the Welcome rises in its place. */
+.loading-sub {
+    display: grid;
+    place-items: start center;
+    width: 100%;
+}
+
+.loading-sub > * {
+    grid-area: 1 / 1;
+}
+
+/* Specific enough to beat the arrival animations at the end of this file,
+   so a line or tip that has not risen yet never rises under the Welcome. */
+#loading-screen.loading-text-ready.loading-final-moment .loading-tagline {
+    animation: none;
     opacity: 0;
-    transform: translateY(-18px) scale(0.96);
-    transition: opacity 0.45s ease, transform 0.6s var(--gcq-ease-out);
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: opacity 0.3s ease, transform 0.4s var(--gcq-ease-out), visibility 0s linear 0.3s;
+}
+
+/* The tip has done its job once the Welcome arrives. */
+#loading-screen.loading-text-ready.loading-final-moment .loading-tip-card {
+    animation: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.4s ease, visibility 0s linear 0.4s;
+}
+
+/* A Welcome that arrives before the constellation has risen brings it in
+   with it (a new animation name, so it starts now). */
+#loading-screen.loading-text-ready.loading-early-welcome .loading-path {
+    animation: loading-path-in 0.6s var(--gcq-ease-out) 0.25s backwards;
+}
+
+@keyframes loading-path-in {
+    from { opacity: 0; translate: 0 10px; }
 }
 
 /* The big line: three stacked copies of the same letters
@@ -584,8 +649,9 @@
     position: relative;
     display: inline-block;
     max-width: min(92vw, 860px);
+    margin-top: 0.1rem;
     font-family: var(--gcq-font-title);
-    font-size: clamp(2.3rem, 5.8vw, 4rem);
+    font-size: clamp(1.6rem, 3.4vw, 2.5rem);
     line-height: 1.1;
     letter-spacing: 0.025em;
     text-wrap: balance;
@@ -602,7 +668,7 @@
 }
 
 .loading-greeting-visible .loading-greeting-ink .lg-l {
-    animation: lg-letter-rise 0.72s cubic-bezier(0.33, 1, 0.68, 1) calc(var(--i, 0) * var(--lg-step, 30ms) + 450ms) both;
+    animation: lg-letter-rise 0.72s cubic-bezier(0.33, 1, 0.68, 1) calc(var(--i, 0) * var(--lg-step, 30ms) + 120ms) both;
 }
 
 .loading-greeting-glow {
@@ -622,13 +688,13 @@
 }
 
 .loading-greeting-visible .loading-greeting-glow {
-    animation: lg-glow-in 0.9s ease 0.6s both;
+    animation: lg-glow-in 0.9s ease 0.3s both;
 }
 
 /* Under the big line: the school on a gold ribbon (the same ribbon that
    welcomes you on the sign-in card), then the person signing in. */
 .loading-welcome__school {
-    margin-top: 0.9rem;
+    margin-top: 0.7rem;
 }
 
 .loading-ribbon {
@@ -688,7 +754,7 @@
     align-items: center;
     gap: 0.55rem;
     max-width: 92%;
-    margin-top: 0.85rem;
+    margin-top: 0.6rem;
     padding: 0.3rem 1rem 0.3rem 0.32rem;
     border-radius: var(--gcq-radius-pill);
     background: rgba(255, 255, 255, 0.1);
@@ -735,7 +801,7 @@
 }
 
 .loading-greeting-visible .loading-welcome__person {
-    animation: loading-word-rise 0.6s var(--gcq-ease-out) calc(var(--lg-landed, 900ms) + 550ms) backwards;
+    animation: loading-word-rise 0.6s var(--gcq-ease-out) calc(var(--lg-landed, 900ms) + 300ms) backwards;
 }
 
 /* ── Sheen: a band of light sweeping across the Welcome ─────────
@@ -1037,23 +1103,23 @@
 }
 
 #loading-screen.loading-text-ready .loading-crest__medal {
-    animation: loading-crest-pop 0.9s var(--gcq-ease-spring) max(0ms, calc(3700ms - var(--since))) backwards;
+    animation: loading-crest-pop 0.9s var(--gcq-ease-spring) max(0ms, calc(var(--t-medal) - var(--since))) backwards;
 }
 
 #loading-screen.loading-text-ready .loading-crest__line {
-    animation: loading-crest-draw 0.9s var(--gcq-ease-out) max(0ms, calc(3900ms - var(--since))) backwards;
+    animation: loading-crest-draw 0.9s var(--gcq-ease-out) max(0ms, calc(var(--t-medal) + 200ms - var(--since))) backwards;
 }
 
 #loading-screen.loading-text-ready .loading-tagline {
-    animation: loading-word-rise 0.8s var(--gcq-ease-out) max(0ms, calc(4200ms - var(--since))) backwards;
+    animation: loading-word-rise 0.8s var(--gcq-ease-out) max(0ms, calc(var(--t-tagline) - var(--since))) backwards;
 }
 
 #loading-screen.loading-text-ready .loading-path {
-    animation: loading-word-rise 0.7s var(--gcq-ease-out) max(0ms, calc(4600ms - var(--since))) backwards;
+    animation: loading-word-rise 0.7s var(--gcq-ease-out) max(0ms, calc(var(--t-path) - var(--since))) backwards;
 }
 
 #loading-screen.loading-text-ready .loading-tip-card {
-    animation: loading-word-rise 0.7s var(--gcq-ease-out) max(0ms, calc(4900ms - var(--since))) backwards;
+    animation: loading-word-rise 0.7s var(--gcq-ease-out) max(0ms, calc(var(--t-path) + 300ms - var(--since))) backwards;
 }
 
 /* ── The woosh ───────────────────────────────────────────────────

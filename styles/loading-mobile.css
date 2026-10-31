@@ -52,10 +52,6 @@
     margin-bottom: 0.6rem;
 }
 
-#loading-screen.gcq-loading-mobile .loading-words {
-    min-height: 10rem;
-}
-
 #loading-screen.gcq-loading-mobile .loading-words::before,
 #loading-screen.gcq-loading-mobile .loading-words::after {
     width: 94vw;
@@ -89,7 +85,7 @@
 
 #loading-screen.gcq-loading-mobile .loading-welcome__line {
     max-width: 100%;
-    font-size: clamp(1.8rem, 8.4vw, 2.4rem);
+    font-size: clamp(1.4rem, 6.6vw, 1.85rem);
     line-height: 1.12;
     letter-spacing: 0.01em;
     text-wrap: balance;

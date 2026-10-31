@@ -77,8 +77,7 @@
     background: radial-gradient(closest-side, rgba(139, 112, 214, 0.34) 0%, rgba(99, 78, 178, 0.16) 50%, rgba(76, 58, 150, 0) 100%);
     pointer-events: none;
     z-index: -1;
-    opacity: 0;
-    animation: ls-fade-in 1.6s ease var(--t-pool) forwards;
+    animation: ls-fade-in 1.6s ease var(--t-pool) backwards;
 }
 
 /* ── Lumi ─────────────────────────────────────────────────────── */
@@ -260,10 +259,9 @@
 .loading-lumi__orbit {
     position: absolute;
     inset: -34%;
-    opacity: 0;
     animation:
         lumi-orbit 9s linear infinite,
-        ls-fade-in 0.8s ease calc(var(--t-landed) + 0.4s) forwards;
+        ls-fade-in 0.8s ease calc(var(--t-landed) + 0.4s) backwards;
 }
 
 @keyframes lumi-orbit {
@@ -1131,19 +1129,17 @@
 #loading-screen.loading-screen-exit .loading-tip-card {
     opacity: 0;
     transform: translateY(10px) scale(0.98);
-    transition: opacity 0.4s ease 0.1s, transform 0.5s ease 0.1s;
+    transition: opacity 0.6s cubic-bezier(0.4, 0, 0.6, 1) 0.1s, transform 0.7s ease 0.1s;
 }
 
 #loading-screen.loading-screen-exit .loading-stage::before {
     opacity: 0;
-    transition: opacity 0.8s ease 0.3s;
-    animation: none;
+    transition: opacity 0.9s ease 0.3s;
 }
 
 #loading-screen.loading-screen-exit .loading-lumi__orbit {
     opacity: 0;
-    transition: opacity 0.25s ease;
-    animation: none;
+    transition: opacity 0.3s ease;
 }
 
 /* ── Weaker machines (templates/loading.js: detectLowPowerTier) ── */

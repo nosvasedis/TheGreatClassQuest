@@ -70,8 +70,7 @@
 .ls-stars {
     position: absolute;
     inset: 0;
-    opacity: 0;
-    animation: ls-fade-in 1.4s ease 0.5s forwards;
+    animation: ls-fade-in 1.4s ease 0.5s backwards;
 }
 
 .ls-stars--near { animation-delay: 0.8s; }
@@ -83,8 +82,11 @@
     height: 100%;
 }
 
+/* From-only fades with backwards fill: once they have played they leave
+   nothing behind, so a later opacity transition (dawn) can take over
+   smoothly instead of the layer snapping. */
 @keyframes ls-fade-in {
-    to { opacity: 1; }
+    from { opacity: 0; }
 }
 
 /* Each layer twinkles as a whole, out of step with the others. */
@@ -109,7 +111,7 @@
     left: 7%;
     width: clamp(54px, 6vw, 84px);
     aspect-ratio: 1;
-    animation: ls-moon-rise 2.2s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+    animation: ls-moon-rise 2.2s cubic-bezier(0.22, 1, 0.36, 1) 0.3s backwards;
 }
 
 .ls-moon::before {
@@ -130,16 +132,15 @@
 
 @keyframes ls-moon-rise {
     from { opacity: 0; transform: translate3d(0, 26px, 0); }
-    to { opacity: 1; transform: none; }
 }
+
 
 /* Dusky clouds, lit rose from the sunset below (shapes: features/skyWeatherArt.js) */
 .ls-clouds {
     position: absolute;
     inset: 0;
     overflow: hidden;
-    opacity: 0;
-    animation: ls-fade-in 2s ease 0.6s forwards;
+    animation: ls-fade-in 2s ease 0.6s backwards;
 }
 
 .ls-cloud {
@@ -369,13 +370,13 @@
     100% { opacity: 0; transform: scale(1.045); }
 }
 
-/* The stars and moon pale as the morning comes */
+/* The stars, the moon and the clouds pale slowly as the morning comes,
+   while Lumi is still in the air. */
 #loading-screen.loading-screen-exit .ls-stars,
 #loading-screen.loading-screen-exit .ls-moon,
 #loading-screen.loading-screen-exit .ls-meteors {
     opacity: 0;
-    transition: opacity 0.7s ease 0.7s;
-    animation: none;
+    transition: opacity 1.1s cubic-bezier(0.4, 0, 0.6, 1) 0.6s;
 }
 
 /* ── The last stardust, falling over the next screen ─────────────

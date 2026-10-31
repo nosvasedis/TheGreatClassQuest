@@ -24,6 +24,7 @@ import {
     chapterKeyFor,
     chapterKeyFromMonthKey,
     chapterTally,
+    isUnityReady,
     chaptersToSeal,
     comebackWindFor,
     compareCrownRaceRows,
@@ -706,6 +707,8 @@ export function getGuildLeaderboardData(now = new Date()) {
             standards,
             // Per-member Glory, for the Guild Spotlight (this Chapter and the year).
             liveMemberGlory: Object.fromEntries(memberIds.map((id) => [id, roundTo(Number(liveMembers[id]) || 0, 1)])),
+            // Who already has the Unity Seal's Glory, read from exact (unrounded) Glory.
+            liveUnityReady: Object.fromEntries(memberIds.map((id) => [id, isUnityReady(liveMembers[id])])),
             yearMemberGlory: Object.fromEntries(memberIds.map((id) => [id, memberGlory
                 ? roundTo(Number(memberGlory[id]) || 0, 1)
                 : (Number(scoreById.get(id)?.totalStars) || 0) * GLORY_PER_STAR])),

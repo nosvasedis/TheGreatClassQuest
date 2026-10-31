@@ -3,7 +3,7 @@
 import { getGuildHeroAnalytics } from '../../features/guildHeroAnalytics.js';
 import { getCrownRoadKeys } from '../../features/guildScoring.js';
 import { getGuildById, getGuildEmblemUrl } from '../../features/guilds.js';
-import { CHAPTER_CROWNS, UNITY_SEAL, chapterDaysLeft, chapterName, chapterShortName } from '../../features/guildScoringCore.js';
+import { CHAPTER_CROWNS, UNITY_SEAL, chapterDaysLeft, chapterName, chapterShortName, unityProgress, unityProgressLabel } from '../../features/guildScoringCore.js';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 import { morphInto } from '../../utils/domMorph.mjs';
 import { createLivePacer } from '../../features/guildLiveCore.mjs';
@@ -285,33 +285,34 @@ function _gaugeHtml(payload, guild) {
 function _unityHtml(guild) {
     const live = guild.race?.live || {};
     const heroes = guild.heroesAll;
-    const need = Math.max(1, Number(live.unityNeeded) || Math.ceil(heroes.length * UNITY_SEAL.share));
-    const have = heroes.filter((h) => h.chapterGlory >= UNITY_SEAL.minGlory - 1e-9).length;
+    // Same tally as the Hall banner and the guild card (see unityProgress).
+    const up = unityProgress(live);
+    const { needed: need, ready: have, members } = up;
     const sealed = Boolean(live.unity) && live.counts !== false;
     const dots = [...heroes]
         .sort((a, b) => b.chapterGlory - a.chapterGlory || a.name.localeCompare(b.name))
         .map((h, i) => {
-            const ready = h.chapterGlory >= UNITY_SEAL.minGlory - 1e-9;
+            const ready = h.unityReady;
             const p = Math.min(1, h.chapterGlory / UNITY_SEAL.minGlory);
             return `<li class="gsp-dot${ready ? ' is-ready' : ''}" data-morph-key="dot-${_esc(h.studentId)}" style="--p:${p.toFixed(2)};--i:${i};" title="${_esc(h.name)}: ${_one(h.chapterGlory)} ${GLORY_EMOJI} this month">${_face(h, 'gsp-dot__face')}</li>`;
         }).join('');
     const close = heroes
-        .filter((h) => h.chapterGlory < UNITY_SEAL.minGlory - 1e-9)
+        .filter((h) => !h.unityReady)
         .sort((a, b) => b.chapterGlory - a.chapterGlory || a.name.localeCompare(b.name))
         .slice(0, 4);
-    const missing = Math.max(0, need - have);
+    const missing = up.missing;
     const lede = sealed
-        ? `Sealed! At least ${need} of ${heroes.length} heroes earned ${UNITY_SEAL.minGlory} ${GLORY_EMOJI} this month: <b>+${UNITY_SEAL.crowns} Crown</b>.`
+        ? `Sealed! ${have} of ${members} heroes earned ${UNITY_SEAL.minGlory} ${GLORY_EMOJI} this month (${need} needed): <b>+${UNITY_SEAL.crowns} Crown</b>.`
         : missing
-            ? `<b>${_plural(missing, 'more hero', 'more heroes')}</b> with ${UNITY_SEAL.minGlory} ${GLORY_EMOJI} (3 stars) this month ${missing === 1 ? 'seals' : 'seal'} <b>+${UNITY_SEAL.crowns} Crown</b>.`
-            : `Ready to seal: ${have} of ${heroes.length} heroes have ${UNITY_SEAL.minGlory} ${GLORY_EMOJI}.`;
+            ? `${have} of ${members} heroes have ${UNITY_SEAL.minGlory} ${GLORY_EMOJI} (3 stars) this month; ${need} seal it. <b>${_plural(missing, 'more hero', 'more heroes')}</b> ${missing === 1 ? 'seals' : 'seal'} <b>+${UNITY_SEAL.crowns} Crown</b>.`
+            : `Ready to seal: ${have} of ${members} heroes have ${UNITY_SEAL.minGlory} ${GLORY_EMOJI} (${need} needed).`;
     return `
             <section class="gsp-panel gsp-unity${sealed ? ' is-sealed' : ''}" style="--i:1;">
                 <header class="gsp-panel__head">
                     <h4 class="gsp-panel__title"><span class="gsp-unity__seal" aria-hidden="true">🤝</span>Unity Seal</h4>
-                    <span class="gsp-count"><b>${Math.min(have, need)}</b> / ${need}</span>
+                    <span class="gsp-count" title="${unityProgressLabel(up)}"><b>${have}</b> / ${members}</span>
                 </header>
-                <div class="gsp-meter"><span style="--w:${Math.min(1, have / need).toFixed(3)}"></span></div>
+                <div class="gsp-meter"><span style="--w:${(members ? have / members : 0).toFixed(3)}"></span>${members ? `<i class="gsp-meter__line" style="--at:${(need / members).toFixed(3)}" title="${need} needed"></i>` : ''}</div>
                 <p class="gsp-panel__lede">${lede}</p>
                 ${heroes.length ? `<ul class="gsp-dots" aria-label="Who has ${UNITY_SEAL.minGlory} Glory this month">${dots}</ul>` : ''}
                 ${!sealed && close.length ? `

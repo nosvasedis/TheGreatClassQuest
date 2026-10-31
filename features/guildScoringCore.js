@@ -185,6 +185,29 @@ export function guildChapterBook(guildData = {}, schoolYearKey = guildData?.acti
     };
 }
 
+/** True when a member's Chapter Glory reaches the Unity Seal line (6 Glory). */
+export function isUnityReady(glory) {
+    return (Number(glory) || 0) >= UNITY_SEAL.minGlory - 1e-9;
+}
+
+/**
+ * The one way every screen reads Unity Seal progress from a chapterTally():
+ * `ready` of `members` have 6 Glory; `needed` of them (4 in 5) seal it.
+ */
+export function unityProgress(tally = {}) {
+    const members = Math.max(0, Number(tally.memberCount) || 0);
+    const ready = Math.min(members, Math.max(0, Number(tally.unityCount) || 0));
+    const needed = members > 0 ? Math.max(1, Number(tally.unityNeeded) || Math.ceil(members * UNITY_SEAL.share - 1e-9)) : 0;
+    return { ready, members, needed, missing: Math.max(0, needed - ready), fill: needed > 0 ? Math.min(1, ready / needed) : 0 };
+}
+
+/** Short Unity progress words shared by the Hall, the guild banner and the Spotlight. */
+export function unityProgressLabel(progress = {}) {
+    const { ready = 0, members = 0, needed = 0, missing = 0 } = progress;
+    if (!members) return 'No members yet';
+    return `${ready} of ${members} ready · ${missing ? `${needed} needed` : 'enough to seal'}`;
+}
+
 /**
  * One guild's live Chapter: Glory its current members earned in it, shared per member, and
  * how many members already have the Unity Seal's 6 Glory. Leavers' Glory leaves with them.
@@ -198,7 +221,7 @@ export function chapterTally(chapter = {}, memberIds = []) {
     }
     const glory = Math.max(0, roundTo((Number(chapter?.glory) || 0) - leaversGlory, 2));
     const memberCount = memberIds.length;
-    const unityCount = memberIds.filter((id) => (Number(members[id]) || 0) >= UNITY_SEAL.minGlory - 1e-9).length;
+    const unityCount = memberIds.filter((id) => isUnityReady(members[id])).length;
     const contributors = memberIds.filter((id) => (Number(members[id]) || 0) > 0.001).length;
     return {
         glory,

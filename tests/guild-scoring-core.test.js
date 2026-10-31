@@ -174,3 +174,20 @@ test('Glory left on members with no stars is found so it can be taken back', asy
   assert.deepEqual(findOrphanMemberGlory(guild, ['tested', 'real'], { real: 2 }), [{ studentId: 'tested', glory: -12 }]);
   assert.deepEqual(findOrphanMemberGlory({ ...guild, memberGloryYear: 'X' }, ['tested'], {}), [], 'not before the map is built');
 });
+
+test('Unity progress reads members, ready and needed from one tally (26 members, 20 ready)', async () => {
+  const { chapterTally, rankChapter, unityProgress, unityProgressLabel } = await loadCore();
+  const team = ids('u', 26);
+  const glory = Object.fromEntries(team.map((id, i) => [id, i < 20 ? 6 : 2]));
+  glory.gone = 6; // a leaver's Glory never counts toward the Seal
+  const tally = chapterTally(chapterOf(glory), team);
+  const live = rankChapter({ g: tally }).g;
+  const p = unityProgress(live);
+  assert.deepEqual({ ready: p.ready, members: p.members, needed: p.needed, missing: p.missing }, { ready: 20, members: 26, needed: 21, missing: 1 });
+  assert.equal(unityProgressLabel(p), '20 of 26 ready · 21 needed');
+  // Above the line it never claims more needed than members, and ready is never capped at "needed".
+  const all = unityProgress(chapterTally(chapterOf(Object.fromEntries(team.map((id) => [id, 8]))), team));
+  assert.equal(all.ready, 26);
+  assert.equal(unityProgressLabel(all), '26 of 26 ready · enough to seal');
+  assert.equal(unityProgressLabel(unityProgress(chapterTally({}, []))), 'No members yet');
+});

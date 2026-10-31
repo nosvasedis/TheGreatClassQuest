@@ -1,7 +1,7 @@
 // /ui/tabs/guilds.js — Guild Hall: month banners, the Crown Race, lore overlay, guild sounds, anthem modal
 
 import { getCrownRoadKeys, getGuildLeaderboardData } from '../../features/guildScoring.js';
-import { CHAPTER_CROWNS, UNITY_SEAL, chapterDaysLeft, chapterName, chapterShortName, sharedPlaces } from '../../features/guildScoringCore.js';
+import { CHAPTER_CROWNS, UNITY_SEAL, chapterDaysLeft, chapterName, chapterShortName, sharedPlaces, unityProgress, unityProgressLabel } from '../../features/guildScoringCore.js';
 import { getGuildById, getGuildEmblemUrl, GUILD_IDS } from '../../features/guilds.js';
 import { yearChronicles } from '../../features/guildChronicleCore.js';
 import { isSpeaking, isTtsSupported, speakText, stopSpeech } from '../../features/tts.js';
@@ -543,6 +543,7 @@ export function fillGuildLoreCard(guildId, gData, { seasonLive = isGuildSeasonLi
             const crowns = Number(gData?.crowns) || 0;
             const live = gData?.live || {};
             const chapter = chapterName(live.key) || 'This month';
+            const unity = unityProgress({ ...live, memberCount: live.memberCount ?? members });
             const wins = (gData?.chapterWins || []).map(chapterShortName);
             statsEl.innerHTML = `
                 <div class="guild-lore-metrics-primary">
@@ -564,7 +565,7 @@ export function fillGuildLoreCard(guildId, gData, { seasonLive = isGuildSeasonLi
                     </div>
                 </div>
                 <div class="guild-lore-metrics-secondary">
-                    <span class="guild-lore-stat guild-lore-stat--pill"><span aria-hidden="true">🤝</span> <strong>${Number(live.unityCount) || 0}/${members}</strong> Unity</span>
+                    <span class="guild-lore-stat guild-lore-stat--pill" title="Unity Seal: +${UNITY_SEAL.crowns} Crown when at least ${unity.needed} of ${unity.members} members earn ${UNITY_SEAL.minGlory} Glory (3 stars) this month"><span aria-hidden="true">🤝</span> ${live.unity && live.counts !== false ? `<strong>Unity sealed</strong> · ${unity.ready} of ${unity.members}` : `Unity <strong>${unity.ready} of ${unity.members}</strong> ready · ${unity.missing ? `${unity.needed} needed` : 'enough to seal'}`}</span>
                     <span class="guild-lore-stat guild-lore-stat--pill"><span aria-hidden="true">${GLORY_EMOJI}</span> <strong>${_fmtGlory(gData?.yearGloryPerMember)}</strong> per member this year</span>
                     <span class="guild-lore-stat guild-lore-stat--pill"><span aria-hidden="true">👥</span> <strong>${members}</strong> member${members === 1 ? '' : 's'}</span>
                 </div>`;
@@ -1011,18 +1012,17 @@ function _patchBanner(el, row, model, { fresh }) {
 
     if (_setHtml(q('prize'), _prizeHtml(model, live, tied)) && !fresh) _flash(q('prize'), 'is-tick', 900);
 
-    const have = Number(live.unityCount) || 0;
-    const need = Math.max(1, Number(live.unityNeeded) || 0);
+    const up = unityProgress(live);
     const unity = q('unity');
     const sealed = Boolean(live.unity) && model.counts;
     if (unity) {
         const was = unity.classList.contains('is-sealed');
         unity.classList.toggle('is-sealed', sealed);
         if (sealed && !was && !fresh) _pulse(unity, 'is-stamped');
-        unity.title = `Unity Seal: +${UNITY_SEAL.crowns} Crown when at least ${need} of ${row.memberCount} members earn ${UNITY_SEAL.minGlory} Glory (3 stars) this month.`;
+        unity.title = `Unity Seal: +${UNITY_SEAL.crowns} Crown when at least ${up.needed} of ${up.members} members earn ${UNITY_SEAL.minGlory} Glory (3 stars) this month. ${up.ready} of ${up.members} have it now.`;
     }
-    q('unitySeal')?.style.setProperty('--p', String(Math.min(1, have / need)));
-    _setText(q('unityText'), sealed ? `Sealed! +${UNITY_SEAL.crowns} Crown` : `${Math.min(have, need)} of ${need} members ready`);
+    q('unitySeal')?.style.setProperty('--p', String(up.fill));
+    _setText(q('unityText'), sealed ? `Sealed! +${UNITY_SEAL.crowns} Crown · ${up.ready} of ${up.members}` : unityProgressLabel(up));
 
     const names = [...new Set((row.standards || []).map((s) => s?.name).filter(Boolean))];
     _setHtml(q('standards'), names.length

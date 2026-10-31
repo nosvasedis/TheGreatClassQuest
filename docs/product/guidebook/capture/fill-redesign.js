@@ -268,7 +268,7 @@ export async function showGuildBanner(guildId = 'dragon_flame') {
     yearGloryPerMember: 45.4,
     crowns: 9,
     chapterWins: ['m2025_10'],
-    live: { key: 'm2025_11', glory: 108, perMember: 15.4, unityCount: 6, unityNeeded: 6, unity: true, place: 1, crowns: 6 }
+    live: { key: 'm2025_11', glory: 108, perMember: 15.4, memberCount: 7, unityCount: 6, unityNeeded: 6, unity: true, place: 1, crowns: 6 }
   }, { seasonLive: true });
   const overlay = frame('guild-lore-overlay', 'capture-lore');
   fixAssetUrls(overlay);

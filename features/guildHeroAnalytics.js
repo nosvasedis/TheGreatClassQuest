@@ -59,6 +59,7 @@ function _toHeroRow(student, score, guildTotal, className, glory = {}) {
         monthlyStars,
         contributionPct,
         chapterGlory: Number(glory.chapter) || 0,
+        unityReady: Boolean(glory.unityReady),
         yearGlory: Number(glory.year) || 0
     };
 }
@@ -127,6 +128,7 @@ export function getGuildHeroAnalytics() {
             const className = classById.get(student.classId)?.name || 'Unassigned Class';
             return _toHeroRow(student, score, lb.totalStars, className, {
                 chapter: lb.liveMemberGlory?.[student.id],
+                unityReady: Boolean(lb.liveUnityReady?.[student.id]),
                 year: lb.yearMemberGlory?.[student.id] ?? (Number(score?.totalStars) || 0) * 2
             });
         });

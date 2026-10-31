@@ -444,6 +444,8 @@
     transform: scaleX(var(--w));
     animation: gsp-grow 1s var(--sp-ease) 0.2s both;
 }
+.gsp-unity .gsp-meter { position: relative; }
+.gsp-meter__line { position: absolute; top: -1px; bottom: -1px; left: calc(var(--at) * 100%); width: 2px; margin-left: -1px; background: #fde68a; box-shadow: 0 0 4px rgba(253, 230, 138, 0.8); }
 .gsp-unity.is-sealed .gsp-meter > span { background: linear-gradient(90deg, var(--sp-gold-2), #fde68a); }
 .gsp-dots { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0.75rem 0 0; padding: 0; list-style: none; }
 .gsp-dot {

@@ -611,22 +611,28 @@
     grid-area: 1 / 1;
 }
 
-/* Specific enough to beat the arrival animations at the end of this file,
-   so a line or tip that has not risen yet never rises under the Welcome. */
-#loading-screen.loading-text-ready.loading-final-moment .loading-tagline {
-    animation: none;
+/* At the Welcome the line and the tip step aside. Their arrival animations
+   stay on the outer boxes, untouched (removing one mid-rise made it blink
+   out); the fade runs on the inner text instead, from wherever it got to. */
+.loading-tagline__text {
+    display: inline-block;
+    transition: opacity 0.45s ease, transform 0.5s var(--gcq-ease-out);
+}
+
+#loading-screen.loading-final-moment .loading-tagline__text {
     opacity: 0;
-    visibility: hidden;
     transform: translateY(-8px);
-    transition: opacity 0.3s ease, transform 0.4s var(--gcq-ease-out), visibility 0s linear 0.3s;
+}
+
+#loading-screen.loading-final-moment .loading-tagline {
+    pointer-events: none;
 }
 
 /* The tip has done its job once the Welcome arrives. */
-#loading-screen.loading-text-ready.loading-final-moment .loading-tip-card {
-    animation: none;
+#loading-screen.loading-final-moment .loading-tip,
+#loading-screen.loading-final-moment .loading-tip.loading-tip-fade {
     opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.4s ease, visibility 0s linear 0.4s;
+    transition: opacity 0.45s ease;
 }
 
 /* A Welcome that arrives before the constellation has risen brings it in
@@ -1019,7 +1025,8 @@
     align-items: center;
     justify-content: center;
     width: min(34rem, 92%);
-    min-height: 3.4rem;
+    /* Room for two lines, so a longer tip never nudges the stage */
+    min-height: 4.3rem;
     margin-top: 0.7rem;
     padding: 0.45rem 1.2rem;
 }

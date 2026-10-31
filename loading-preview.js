@@ -2,7 +2,7 @@
 // without Firebase. Open /loading-preview.html under `npm run dev`. Query options:
 //   role=teacher|secretary|parent|signedout  part=morning|afternoon|evening|night
 //   speed=fast|slow  low=1 (weak-laptop scene)  gate=1 (arrive through the sign-in gate)
-//   film=full|short (force a cut)  shot=1 (hide the toolbar)
+//   film=full|short (force a cut)  shot=1 (hide the toolbar)  ready=<ms> (when the app is ready)
 // The hand-over is the app's own (templates/loading.js#playLoadingExit); window.__pvLog
 // records when each step happened, for headless timing checks.
 import { loadingHTML, initLoadingAtmosphere, initLoadingTips, markLoadingStage, stageLoadingPersonalization, playLoadingExit, reopenLoadingScreen, setLoadingFilmCut } from './templates/loading.js';
@@ -51,7 +51,8 @@ function exit() {
     setTimeout(() => log('reveal'), revealIn);
 }
 
-const times = TIMES[opts.speed] || TIMES.fast;
+const times = { ...(TIMES[opts.speed] || TIMES.fast) };
+if (Number(params.get('ready')) > 0) times.ready = Number(params.get('ready'));
 const lead = opts.gate ? 200 : 0;
 setTimeout(() => { markLoadingStage(1); log('stage1'); }, lead + times.auth);
 if (opts.role === 'signedout') {

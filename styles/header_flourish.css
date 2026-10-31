@@ -173,7 +173,6 @@
     position: absolute;
     inset: -3px;
     filter: drop-shadow(0 1px 1px rgba(30, 58, 138, 0.4));
-    animation: gcq-lumi-sway 1.6s ease-in-out infinite alternate;
 }
 .gcq-pixie__lumi svg {
     display: block;
@@ -199,10 +198,31 @@
 @keyframes gcq-pixie-fly {
     0% { offset-distance: 0%; opacity: 0; transform: scale(0.4); animation-timing-function: ease-out; }
     3% { opacity: 1; transform: scale(1); animation-timing-function: cubic-bezier(0.45, 0.05, 0.4, 1); }
-    40% { offset-distance: 100%; opacity: 1; transform: scale(1); animation-timing-function: ease-out; }
-    42.5% { offset-distance: 100%; opacity: 1; transform: scale(1.45); animation-timing-function: ease-in; }
-    47% { offset-distance: 100%; opacity: 0; transform: scale(0.2); }
-    100% { offset-distance: 100%; opacity: 0; transform: scale(0.2); }
+    40% { offset-distance: 100%; opacity: 1; transform: scale(1); animation-timing-function: ease-in-out; }
+    /* She settles onto the swash star, glows, and shrinks into it */
+    44% { offset-distance: 100%; opacity: 1; transform: scale(0.82); animation-timing-function: ease-in; }
+    49% { offset-distance: 100%; opacity: 0; transform: scale(0.45); }
+    100% { offset-distance: 100%; opacity: 0; transform: scale(0.45); }
+}
+/* Her glow brightens as she lands while her face fades, so she becomes the star */
+.gcq-pixie__glow {
+    opacity: 0.6;
+    animation: gcq-lumi-glow var(--pixie-cycle) var(--pixie-delay) infinite;
+}
+@keyframes gcq-lumi-glow {
+    0%, 39% { opacity: 0.6; }
+    44% { opacity: 1; }
+    100% { opacity: 1; }
+}
+.gcq-pixie__lumi {
+    animation:
+        gcq-lumi-sway 1.6s ease-in-out infinite alternate,
+        gcq-lumi-melt var(--pixie-cycle) var(--pixie-delay) infinite;
+}
+@keyframes gcq-lumi-melt {
+    0%, 40.5% { opacity: 1; }
+    46% { opacity: 0; }
+    100% { opacity: 0; }
 }
 @keyframes gcq-pixie-dust {
     0% { offset-distance: 0%; opacity: 0; transform: scale(0.3) rotate(0deg); animation-timing-function: ease-out; }
@@ -218,9 +238,9 @@
     animation: gcq-swash-star-flare 26s 2.5s infinite;
 }
 @keyframes gcq-swash-star-flare {
-    0%, 39.5% { transform: scale(1) rotate(0deg); filter: none; }
-    42.5% { transform: scale(2.1) rotate(45deg); filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px #fcd34d); }
-    52%, 100% { transform: scale(1) rotate(90deg); filter: none; }
+    0%, 42% { transform: scale(1); filter: none; animation-timing-function: ease-out; }
+    47% { transform: scale(1.18); filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 4px #fcd34d); animation-timing-function: ease-in-out; }
+    60%, 100% { transform: scale(1); filter: none; }
 }
 
 /* ---------- Header pills (quote + controls): gilded glass ----------

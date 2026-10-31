@@ -53,8 +53,10 @@ const LOADING_LOGO_URL = new URL('../assets/great-class-quest-logo.svg', import.
 //   hold          the Welcome arrives in ~2.3s, then stays still a moment
 //   tricksAt      Lumi's first trick, if the app is still loading
 const FILM_CUTS = {
-    full: { reveal: 3700, pathShown: 4800, signedOutMin: 4400, hold: 3600, tricksAt: 5600, letterWaveMs: 750 },
-    short: { reveal: 1750, pathShown: 2650, signedOutMin: 2400, hold: 2700, tricksAt: 3400, letterWaveMs: 550 },
+    // pathStart / pathShown: when the constellation starts and finishes rising
+    // (--t-path in styles/loading2.css, plus its 0.7s rise).
+    full: { reveal: 3700, pathStart: 4300, pathShown: 4800, signedOutMin: 4400, hold: 3600, tricksAt: 5600, letterWaveMs: 750 },
+    short: { reveal: 1750, pathStart: 2150, pathShown: 2650, signedOutMin: 2400, hold: 2700, tricksAt: 3400, letterWaveMs: 550 },
 };
 const WELCOME_HOLD_REDUCED_MS = 2600;
 const FILM_DAY_KEY = 'gcq-loading-film-day';
@@ -384,7 +386,7 @@ export const loadingHTML = `
                         <span class="loading-crest__line"></span>
                     </div>
                     <div class="loading-sub">
-                        <p class="loading-tagline">${LOADING_TAGLINE}</p>
+                        <p class="loading-tagline"><span class="loading-tagline__text">${LOADING_TAGLINE}</span></p>
                         <div id="loading-greeting" class="loading-welcome">
                             <div id="loading-greeting-text" class="loading-welcome__line"></div>
                             <div id="loading-greeting-school" class="loading-welcome__school"></div>
@@ -773,6 +775,30 @@ export function stageLoadingPersonalization(name, role) {
     markLoadingStage(2);
 }
 
+// The Welcome is taller than the line it replaces, so the stage grows and
+// everything around it shifts. Measure before, then glide each part from where
+// it was to where it now sits (an added translate, so it rides on top of any
+// arrival animation already running) instead of letting it jump.
+const GLIDE_PARTS = ['.loading-lumi', '.loading-words', '.loading-path', '.loading-tip-card'];
+
+function measureGlide(screen) {
+    if (!screen || prefersReducedMotion()) return () => {};
+    const parts = GLIDE_PARTS.map(sel => screen.querySelector(sel)).filter(Boolean);
+    const before = parts.map(el => el.getBoundingClientRect().top);
+    return () => {
+        parts.forEach((el, i) => {
+            const dy = before[i] - el.getBoundingClientRect().top;
+            if (Math.abs(dy) < 1 || typeof el.animate !== 'function') return;
+            try {
+                el.animate(
+                    [{ translate: `0 ${dy.toFixed(1)}px` }, { translate: '0 0' }],
+                    { duration: 820, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', composite: 'add' },
+                );
+            } catch { /* an old browser simply skips the glide */ }
+        });
+    };
+}
+
 /**
  * Show the staged Welcome. schoolName rides the ribbon (left out when unknown);
  * dayPart is morning / afternoon / evening / night from the real sky.
@@ -793,15 +819,23 @@ export function revealStagedLoadingPersonalization({ schoolName = '', dayPart = 
     }
     clearTimeout(_trickTimer);
 
-    // The constellation may not have risen yet: it comes in with the Welcome.
-    const early = performance.now() - _shownAt < cutTiming().pathShown;
+    // The constellation may not have started rising yet: it comes in with the
+    // Welcome. One already on its way keeps rising (restarting it would blink).
+    const early = performance.now() - _shownAt < cutTiming().pathStart;
+    // Where everything sits now, so the Welcome can make room smoothly.
+    const glide = measureGlide(loadingScreen);
     loadingScreen?.classList.toggle('loading-early-welcome', early);
     loadingScreen?.classList.add('loading-final-moment');
     // Every star still dark lights now, one quick beat after another.
     clearTimeout(_castTimer);
     _castTimer = 0;
     _loadingStep = 3;
-    for (let i = _litStep, k = 0; i < 3; i += 1, k += 1) {
+    // Counted from the first star still dark: one whose cast spark is still
+    // in flight lights in this same wave, so they always light left to right.
+    const pathStars = [...(loadingScreen?.querySelectorAll('.loading-path__star') || [])];
+    const dark = pathStars.findIndex(star => !star.classList.contains('is-on'));
+    const firstDark = !pathStars.length ? _litStep : (dark < 0 ? 3 : dark);
+    for (let i = firstDark, k = 0; i < 3; i += 1, k += 1) {
         _exitTimers.push(setTimeout(() => lightStar(i), (early ? 450 : 150) + k * 160));
     }
     _litStep = 3;
@@ -842,6 +876,7 @@ export function revealStagedLoadingPersonalization({ schoolName = '', dayPart = 
             : '';
     }
     greetingEl.classList.add('loading-greeting-visible');
+    glide();
 
     if (tipEl) {
         tipEl.classList.add('loading-tip-fade');

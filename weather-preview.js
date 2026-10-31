@@ -68,6 +68,38 @@ awardTab?.classList.remove('hidden');
 const list = document.getElementById('award-stars-student-list');
 if (list) list.innerHTML = ['Alex', 'Maria', 'Nikos', 'Eleni'].map((n, i) => card(n, 'abcd'[i], i)).join('');
 
+// Same markup as features/home.js#reminderPill and #ceremonyPillHtml (?pills=0 shows one plain badge).
+function pvPill({ tone, icon = '', emoji = '', avatarHtml = '', eyebrow, title, tag = '', trailingHtml = '', extraClass = '', attrs = '' }) {
+    const lead = avatarHtml || `<span class="home-pill__icon" aria-hidden="true">${emoji || `<i class="fas ${icon}"></i>`}</span>`;
+    return `<div class="date-pill home-pill home-pill--${tone} ${extraClass}" ${attrs}><span class="home-pill__shine" aria-hidden="true"></span>${lead}`
+        + `<span class="home-pill__body"><span class="home-pill__eyebrow">${eyebrow}</span><span class="home-pill__title">${title}</span></span>`
+        + `${tag ? `<span class="home-pill__tag">${tag}</span>` : ''}${trailingHtml}</div>`;
+}
+const PV_CEREMONY = `<button type="button" class="date-pill date-pill--ceremony"><span class="date-pill--ceremony__aurora"></span><span class="date-pill--ceremony__sheen"></span>`
+    + `<span class="date-pill--ceremony__spark date-pill--ceremony__spark--a">✦</span><span class="date-pill--ceremony__spark date-pill--ceremony__spark--b">✧</span>`
+    + `<span class="date-pill--ceremony__icon"><i class="fas fa-trophy"></i></span><span class="date-pill--ceremony__copy"><span class="date-pill--ceremony__kicker">Ceremony of the Month</span><span class="date-pill--ceremony__title">October</span></span></button>`;
+const PV_PILLS = {
+    ceremony: PV_CEREMONY,
+    holiday: pvPill({ tone: 'celebration', emoji: '🇬🇷', eyebrow: 'Coming up', title: 'Ohi Day', tag: 'in 3 days', attrs: 'style="--pill-bg: linear-gradient(135deg, #dbeafe, #fff); --pill-fg: #1e3a8a; --pill-icon-bg: #1e3a8a; --pill-border: #1e3a8a55; --pill-shadow: #1e3a8a33;"' }),
+    event: pvPill({ tone: 'event', icon: 'fa-magic', eyebrow: 'Quest Event', title: 'Vocabulary Vault', tag: 'Tomorrow!' }),
+    star: pvPill({ tone: 'star-day', icon: 'fa-bolt-lightning', eyebrow: 'Quest Event', title: '2x Star Day', tag: 'Today!', extraClass: 'star-day-glow' }),
+    nameday: pvPill({ tone: 'nameday', emoji: '🎈', eyebrow: 'Name day', title: "Dimitris's Nameday!" }),
+    birthday: pvPill({ tone: 'birthday', emoji: '🎂', eyebrow: 'Birthday', title: 'Happy Birthday, Eleni!', extraClass: 'home-pill--party' }),
+    raid: pvPill({ tone: 'raid', icon: 'fa-shield-halved', eyebrow: 'Realm Raid', title: 'Eldhorn stirs', tag: 'in 5 days' }),
+    hero: pvPill({ tone: 'hero', avatarHtml: '<span class="home-pill__avatar home-pill__avatar--initial">M</span>', eyebrow: 'Reigning Hero', title: 'Maria',
+        trailingHtml: '<span class="home-pill__perks"><i class="fas fa-shield-alt"></i><i class="fas fa-tags"></i></span>' }),
+};
+function previewPills() {
+    const want = params.get('pills');
+    if (want === '0') return '<span class="date-pill home-pill"><span class="home-pill__icon"><i class="fas fa-star"></i></span>Star Day</span>';
+    const keys = want ? want.split(',') : ['ceremony', 'holiday', 'event', 'star', 'hero'];
+    return keys.map((k) => PV_PILLS[k] || '').join('');
+}
+// A badge that turns up after the entrance (the Ceremony once its stars are checked, a live Quest Event).
+window.__pvArrive = (key = 'nameday') => {
+    document.querySelector('#pv-home-grid .greeting-top-row__reminders')?.insertAdjacentHTML('beforeend', PV_PILLS[key] || '');
+};
+
 function atTime(hhmm) {
     const [h, m] = hhmm.split(':').map(Number);
     const d = new Date();
@@ -114,7 +146,7 @@ function render() {
             <div class="relative z-10 flex flex-col justify-between h-full">
                 <div class="greeting-top-row">
                     <div class="greeting-top-row__reminders flex flex-wrap items-center gap-3 py-1">
-                        <span class="date-pill home-pill"><span class="home-pill__icon"><i class="fas fa-star"></i></span>Star Day</span>
+                        ${previewPills()}
                     </div>
                 </div>
                 <div class="greeting-main">

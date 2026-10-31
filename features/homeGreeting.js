@@ -85,7 +85,7 @@ export function classNudge(monthStars, goal) {
 }
 
 /** Classes the greeting adds for a while: a Home morph never strips them. */
-export const GREETING_SCRIPT_CLASSES = ['is-greeting-await', 'is-greeting-intro', 'is-sky-shift', 'is-shifting'];
+export const GREETING_SCRIPT_CLASSES = ['is-greeting-await', 'is-greeting-intro', 'is-sky-shift', 'is-shifting', 'is-pill-arrive'];
 
 /** For a Home morph: a greeting title or line already showing the same words is left alone. */
 export function keepGreetingPart(from, to) {
@@ -106,6 +106,7 @@ function loadingScreenShowing() {
  */
 export function playGreetingIntro(panel) {
     if (!panel || reducedMotion()) return;
+    watchReminderArrivals(panel);
     panel.classList.add('is-greeting-await');
     const start = () => {
         if (!panel.isConnected) return;
@@ -127,6 +128,35 @@ export function playGreetingIntro(panel) {
     });
     observer.observe(screen, { attributes: true, attributeFilter: ['class'] });
     setTimeout(() => { observer.disconnect(); if (panel.classList.contains('is-greeting-await')) start(); }, 12000);
+}
+
+const ARRIVE_MS = 1500;
+const watchedRows = new WeakSet();
+
+/**
+ * The top row's badges swing in with the greeting; one that turns up later (the Ceremony once
+ * its stars are checked, the Raid, the Campfire, a new Quest Event on a live refresh) swings in
+ * on its own, so the class notices it.
+ */
+function watchReminderArrivals(panel) {
+    const row = panel.querySelector('.greeting-top-row__reminders');
+    if (!row || watchedRows.has(row) || typeof MutationObserver === 'undefined') return;
+    watchedRows.add(row);
+    const observer = new MutationObserver((records) => {
+        if (!row.isConnected) { observer.disconnect(); return; }
+        if (panel.classList.contains('is-greeting-await') || panel.classList.contains('is-greeting-intro')) return;
+        records.forEach((record) => record.addedNodes.forEach((node) => {
+            if (node.nodeType !== 1) return;
+            const pills = node.matches('.date-pill') ? [node] : [...node.querySelectorAll('.date-pill')];
+            pills.forEach((pill) => {
+                // The Campfire's badge has its own ignite when it is lit.
+                if (pill.classList.contains('is-igniting')) return;
+                pill.classList.add('is-pill-arrive');
+                setTimeout(() => pill.classList.remove('is-pill-arrive'), ARRIVE_MS);
+            });
+        }));
+    });
+    observer.observe(row, { childList: true, subtree: true });
 }
 
 // ─── Following the sky ─────────────────────────────────────────────────────

@@ -1541,7 +1541,8 @@
 .greeting-chip__emoji { font-size: 0.95rem; line-height: 1; }
 
 /* ---------- 8. Reminder badges (greeting card) ---------- */
-.date-pill.home-pill {
+/* The default look sits in :where() so each tone below (.home-pill--hero, --birthday…) can set its colours. */
+:where(.date-pill.home-pill) {
     --pill-bg: linear-gradient(135deg, #f5f3ff, #ede9fe);
     --pill-fg: #5b21b6;
     --pill-icon-bg: linear-gradient(135deg, #a78bfa, #7c3aed);
@@ -1549,6 +1550,8 @@
     --pill-border: rgba(167, 139, 250, 0.45);
     --pill-shadow: rgba(124, 58, 237, 0.28);
     --pill-tag-bg: rgba(255, 255, 255, 0.85);
+}
+.date-pill.home-pill {
     position: relative;
     display: inline-flex;
     align-items: center;

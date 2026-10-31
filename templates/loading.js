@@ -43,12 +43,15 @@ const MOBILE_LOADING_QUERY = '(max-width: 1023px)';
 const LOADING_LOGO_URL = new URL('../assets/great-class-quest-logo.svg', import.meta.url).href;
 
 // ── Timing (ms) ──────────────────────────────────────────────────────
-// Lumi's shooting-star arrival ends here (styles/loading2.css: lumi-arrive-*).
-const LUMI_LANDED_MS = 1750;
-// Lumi has landed and written the title by here; the Welcome or the woosh never cut her off.
-const TITLE_WRITTEN_MS = 2900;
-// How long the Welcome stays fully legible before the woosh.
-const WELCOME_HOLD_MS = 2300;
+// The opening (styles/loading2.css) is fully composed by ~5.4s: Lumi has
+// landed (1.75s), written the title (to 3.7s), and the medallion, the line
+// under it, the constellation and the tip have risen in. The Welcome or the
+// woosh never come before STAGE_COMPOSED_MS, so the finished title is seen.
+const STAGE_COMPOSED_MS = 6300;
+// The Welcome takes ~2.9s to arrive in full (big line, then the ribbon, then
+// the name); it then stays still and legible for ~1.6s before the woosh.
+const WELCOME_HOLD_MS = 4500;
+const WELCOME_HOLD_REDUCED_MS = 2600;
 // The woosh: a short wind-up, then the flight over the screen.
 const WOOSH_WINDUP_MS = 280;
 const WOOSH_FLIGHT_MS = 1050;
@@ -604,8 +607,8 @@ function scheduleLumiTricks() {
         if (trick === 'is-sprinkle') lumiSprinkle(detectLowPowerTier() ? 4 : 7);
         _trickTimer = setTimeout(next, randomRange(3800, 5200));
     };
-    // The first trick waits for her landing and the title.
-    _trickTimer = setTimeout(next, 4200);
+    // The first trick waits until the opening is composed, so it never steals its moments.
+    _trickTimer = setTimeout(next, STAGE_COMPOSED_MS + 300);
 }
 
 // ── The constellation ────────────────────────────────────────────────
@@ -634,6 +637,40 @@ function castSpark(star) {
     return SPARK_MS - 60;
 }
 
+// The constellation rises in at 4.6s (styles/loading2.css); a star that is
+// ready earlier waits for it, so every cast can be seen. Casts are spaced so
+// each star gets its own moment.
+const PATH_SHOWN_MS = 5000;
+const CAST_SPACING_MS = 750;
+let _litStep = 0;
+let _castTimer = 0;
+
+function lightStar(i) {
+    const path = loadingPart('.loading-path');
+    if (!path) return;
+    path.querySelectorAll('.loading-path__star')[i]?.classList.add('is-on');
+    if (i > 0) path.querySelectorAll('.loading-path__line')[i - 1]?.classList.add('is-on');
+}
+
+function castNextStar() {
+    clearTimeout(_castTimer);
+    _castTimer = 0;
+    if (_litStep >= _loadingStep) return;
+    const wait = PATH_SHOWN_MS - (performance.now() - _shownAt);
+    if (wait > 0 && !prefersReducedMotion()) {
+        _castTimer = setTimeout(castNextStar, wait);
+        return;
+    }
+    const i = _litStep;
+    _litStep += 1;
+    const star = loadingPart('.loading-path')?.querySelectorAll('.loading-path__star')[i];
+    const screen = document.getElementById('loading-screen');
+    if (!screen?.classList.contains('loading-final-moment')) lumiReact('is-cast');
+    const travel = castSpark(star);
+    setTimeout(() => lightStar(i), travel);
+    if (_litStep < _loadingStep) _castTimer = setTimeout(castNextStar, CAST_SPACING_MS);
+}
+
 /**
  * Light the constellation up to `step` (1–3). Steps only ever go forward.
  * quiet: light it at once, without Lumi's cast (used when the screen reopens).
@@ -641,26 +678,14 @@ function castSpark(star) {
 export function markLoadingStage(step, { quiet = false } = {}) {
     const next = Math.min(3, Math.max(_loadingStep, step));
     if (next === _loadingStep) return;
-    const from = _loadingStep;
     _loadingStep = next;
-    const path = loadingPart('.loading-path');
-    if (!path) return;
-    const stars = path.querySelectorAll('.loading-path__star');
-    const lines = path.querySelectorAll('.loading-path__line');
-    for (let i = from; i < next; i += 1) {
-        const star = stars[i];
-        const light = () => {
-            star?.classList.add('is-on');
-            if (i > 0) lines[i - 1]?.classList.add('is-on');
-        };
-        const screen = document.getElementById('loading-screen');
-        const visible = screen && !screen.classList.contains('loading-fonts-pending')
-            && performance.now() - _shownAt > LUMI_LANDED_MS;
-        if (quiet || !visible) { light(); continue; }
-        if (i === next - 1 && next < 3) lumiReact('is-cast');
-        const travel = castSpark(star);
-        setTimeout(light, travel + (i - from) * 140);
+    if (quiet) {
+        clearTimeout(_castTimer);
+        while (_litStep < _loadingStep) lightStar(_litStep++);
+        return;
     }
+    // A cast already waiting picks up the new star in its turn.
+    if (!_castTimer) castNextStar();
 }
 
 // ── The Welcome ──────────────────────────────────────────────────────
@@ -745,7 +770,8 @@ export function revealStagedLoadingPersonalization({ schoolName = '', dayPart = 
     const count = Array.from(line).length;
     // The whole wave lands within ~0.75s, however long the line is.
     const step = Math.min(44, 750 / Math.max(1, count - 1));
-    const landed = Math.round(step * (count - 1) + 560);
+    // The title steps aside first (0.45s), so the letters start at 0.45s.
+    const landed = Math.round(step * (count - 1) + 450 + 700);
     greetingText.style.setProperty('--lg-step', `${step.toFixed(1)}ms`);
     greetingEl.style.setProperty('--lg-landed', `${landed}ms`);
 
@@ -934,7 +960,7 @@ export function loadingRevealEta() {
 /**
  * The hand-over, from start to finish: the Welcome (when there is one), the
  * woosh, the stardust, dawn, and the screen hidden at the end. A very early
- * call lets Lumi land and write the title first. Returns the milliseconds until the
+ * call lets the opening finish first. Returns the milliseconds until the
  * scene starts melting, so the screen underneath can time its entrance.
  * onHidden runs once the screen is gone.
  */
@@ -950,9 +976,9 @@ export function playLoadingExit(loadingScreen, { schoolName = '', dayPart = '', 
     clearTimeout(_trickTimer);
     const reduced = prefersReducedMotion();
     const sinceShown = performance.now() - _shownAt;
-    const landWait = reduced ? 0 : Math.max(0, TITLE_WRITTEN_MS - sinceShown);
+    const landWait = reduced ? 0 : Math.max(0, STAGE_COMPOSED_MS - sinceShown);
     const hasWelcome = Boolean(_stagedPersonalization);
-    const hold = hasWelcome ? (reduced ? 900 : WELCOME_HOLD_MS) : 0;
+    const hold = hasWelcome ? (reduced ? WELCOME_HOLD_REDUCED_MS : WELCOME_HOLD_MS) : 0;
     const wooshAt = landWait + hold;
     const revealIn = wooshAt + (reduced ? 0 : WOOSH_REVEAL_AT_MS);
     const goneIn = wooshAt + (reduced ? REDUCED_FADE_MS : WOOSH_GONE_AT_MS);
@@ -1022,7 +1048,10 @@ export function reopenLoadingScreen({ fromGate = false } = {}) {
     const dust = loadingPart('.loading-dust');
     if (dust) dust.innerHTML = '';
     loadingScreen.querySelectorAll('.loading-path .is-on').forEach((el) => el.classList.remove('is-on'));
+    clearTimeout(_castTimer);
+    _castTimer = 0;
     _loadingStep = 0;
+    _litStep = 0;
     markLoadingStage(1, { quiet: true });
     scheduleLumiTricks();
     void loadingScreen.offsetWidth; // flush the display change before animating opacity

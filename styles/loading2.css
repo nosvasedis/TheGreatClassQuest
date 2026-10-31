@@ -4,11 +4,13 @@
    screen appears; the words subtract --since (how late the font arrived),
    so a slow font never pushes the film back.
 
+     0       the page dims into twilight; stars, moon and hills arrive
      0.45s   Lumi streaks in from the moon's corner as a shooting star
-     1.55s   she unfolds in a ring of light, wobbles, starts to float
-     1.6s    a spark writes the title in starlight; her eyes follow it
-     2.7s    the GCQ medallion, then the line under the title
-     3.1s    the constellation and the tip
+     1.75s   she has unfolded in a ring of light and starts to float
+     1.9s    a spark writes the title in starlight (to ~3.7s); her eyes follow it
+     3.7s    the GCQ medallion, 3.9s its gold lines, 4.2s the line under the title
+     4.6s    the constellation (stars light from here on), 4.9s the tip
+     6.3s    earliest Welcome or woosh: the finished title gets its moment
      then    small tricks every few seconds (.is-twirl, .is-peek, .is-bounce,
              .is-sprinkle) and a cast (.is-cast) for each star that lights
      welcome .loading-final-moment: the title steps aside for the Welcome
@@ -204,7 +206,7 @@
 }
 
 #loading-screen.loading-text-ready .lumi__look {
-    animation: lumi-look-follow 1.5s ease-in-out max(0ms, calc(1550ms - var(--since))) both;
+    animation: lumi-look-follow 1.7s ease-in-out max(0ms, calc(1850ms - var(--since))) both;
 }
 
 @keyframes lumi-look-follow {
@@ -433,11 +435,11 @@
 /* The pen: a bright spark that runs along the title, letters rising behind it.
    Each letter waits for the pen: 1.6s + 50ms per character. */
 #loading-screen.loading-text-ready .loading-title__ink .lg-l {
-    animation: lg-letter-rise 0.7s cubic-bezier(0.33, 1, 0.68, 1) max(0ms, calc(1600ms + var(--i) * 50ms - var(--since))) both;
+    animation: lg-letter-rise 0.7s cubic-bezier(0.33, 1, 0.68, 1) max(0ms, calc(1900ms + var(--i) * 56ms - var(--since))) both;
 }
 
 #loading-screen.loading-text-ready .loading-title__glow .lg-l {
-    animation: lg-glow-letter 0.9s ease max(0ms, calc(1650ms + var(--i) * 50ms - var(--since))) both;
+    animation: lg-glow-letter 0.9s ease max(0ms, calc(1950ms + var(--i) * 56ms - var(--since))) both;
 }
 
 @keyframes lg-letter-rise {
@@ -474,11 +476,11 @@
 .loading-title__nib svg { display: block; width: 100%; height: 100%; overflow: visible; }
 
 #loading-screen.loading-text-ready .loading-title__pen {
-    animation: lg-pen-run 1.15s cubic-bezier(0.45, 0.05, 0.55, 0.95) max(0ms, calc(1600ms - var(--since))) both;
+    animation: lg-pen-run 1.3s cubic-bezier(0.45, 0.05, 0.55, 0.95) max(0ms, calc(1900ms - var(--since))) both;
 }
 
 #loading-screen.loading-text-ready .loading-title__nib {
-    animation: lg-nib 1.15s linear max(0ms, calc(1600ms - var(--since))) both;
+    animation: lg-nib 1.3s linear max(0ms, calc(1900ms - var(--since))) both;
 }
 
 @keyframes lg-pen-run {
@@ -571,7 +573,7 @@
 #loading-screen.loading-final-moment .loading-heading {
     opacity: 0;
     transform: translateY(-18px) scale(0.96);
-    transition: opacity 0.4s ease, transform 0.55s var(--gcq-ease-out);
+    transition: opacity 0.45s ease, transform 0.6s var(--gcq-ease-out);
 }
 
 /* The big line: three stacked copies of the same letters
@@ -600,7 +602,7 @@
 }
 
 .loading-greeting-visible .loading-greeting-ink .lg-l {
-    animation: lg-letter-rise 0.72s cubic-bezier(0.33, 1, 0.68, 1) calc(var(--i, 0) * var(--lg-step, 30ms) + 140ms) both;
+    animation: lg-letter-rise 0.72s cubic-bezier(0.33, 1, 0.68, 1) calc(var(--i, 0) * var(--lg-step, 30ms) + 450ms) both;
 }
 
 .loading-greeting-glow {
@@ -620,7 +622,7 @@
 }
 
 .loading-greeting-visible .loading-greeting-glow {
-    animation: lg-glow-in 0.9s ease 0.35s both;
+    animation: lg-glow-in 0.9s ease 0.6s both;
 }
 
 /* Under the big line: the school on a gold ribbon (the same ribbon that
@@ -733,7 +735,7 @@
 }
 
 .loading-greeting-visible .loading-welcome__person {
-    animation: loading-word-rise 0.6s var(--gcq-ease-out) calc(var(--lg-landed, 900ms) + 260ms) backwards;
+    animation: loading-word-rise 0.6s var(--gcq-ease-out) calc(var(--lg-landed, 900ms) + 550ms) backwards;
 }
 
 /* ── Sheen: a band of light sweeping across the Welcome ─────────
@@ -1035,23 +1037,23 @@
 }
 
 #loading-screen.loading-text-ready .loading-crest__medal {
-    animation: loading-crest-pop 0.8s var(--gcq-ease-spring) max(0ms, calc(2650ms - var(--since))) backwards;
+    animation: loading-crest-pop 0.9s var(--gcq-ease-spring) max(0ms, calc(3700ms - var(--since))) backwards;
 }
 
 #loading-screen.loading-text-ready .loading-crest__line {
-    animation: loading-crest-draw 0.9s var(--gcq-ease-out) max(0ms, calc(2800ms - var(--since))) backwards;
+    animation: loading-crest-draw 0.9s var(--gcq-ease-out) max(0ms, calc(3900ms - var(--since))) backwards;
 }
 
 #loading-screen.loading-text-ready .loading-tagline {
-    animation: loading-word-rise 0.8s var(--gcq-ease-out) max(0ms, calc(2950ms - var(--since))) backwards;
+    animation: loading-word-rise 0.8s var(--gcq-ease-out) max(0ms, calc(4200ms - var(--since))) backwards;
 }
 
 #loading-screen.loading-text-ready .loading-path {
-    animation: loading-word-rise 0.7s var(--gcq-ease-out) max(0ms, calc(3150ms - var(--since))) backwards;
+    animation: loading-word-rise 0.7s var(--gcq-ease-out) max(0ms, calc(4600ms - var(--since))) backwards;
 }
 
 #loading-screen.loading-text-ready .loading-tip-card {
-    animation: loading-word-rise 0.7s var(--gcq-ease-out) max(0ms, calc(3350ms - var(--since))) backwards;
+    animation: loading-word-rise 0.7s var(--gcq-ease-out) max(0ms, calc(4900ms - var(--since))) backwards;
 }
 
 /* ── The woosh ───────────────────────────────────────────────────

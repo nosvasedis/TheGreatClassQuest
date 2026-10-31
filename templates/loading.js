@@ -6,6 +6,9 @@ import { createTipDeck } from './loadingTips.mjs';
 let _tipIntervalId = null;
 let _stagedPersonalization = null;
 let _isLowPowerDevice = null;
+let _loadingStep = 0;
+// When the screen last appeared, so a very early woosh knows Lumi is still arriving.
+let _shownAt = 0;
 const TIP_ROTATE_MS = 4600;
 const TIP_FADE_MS = 420;
 // Longest we hold the words back waiting for the storybook font. Past this the
@@ -103,68 +106,40 @@ const LOADING_SUN_HTML = `
         </div>
     </div>`;
 
-/** A comet arc: a gold head that trails off into a fading tail. */
-function ringComet({ r, from, to, headAtEnd, color, width, headR, glowId }) {
-    const steps = 14;
-    const span = (to - from) / steps;
-    const segments = Array.from({ length: steps }, (_, k) => {
-        const a0 = from + span * k;
-        const a1 = from + span * (k + 1) + (headAtEnd ? 0.6 : -0.6) * Math.sign(span);
-        const t = headAtEnd ? (k + 1) / steps : 1 - k / steps;
-        const p0 = polar(50, 50, r, a0);
-        const p1 = polar(50, 50, r, a1);
-        const sweep = a1 > a0 ? 1 : 0;
-        return `<path d="M ${p0.x} ${p0.y} A ${r} ${r} 0 0 ${sweep} ${p1.x} ${p1.y}" stroke-opacity="${r1(t * t)}"/>`;
-    }).join('');
-    const head = polar(50, 50, r, headAtEnd ? to : from);
-    return `
-        <g class="loading-ring__comet" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round">${segments}</g>
-        <circle cx="${head.x}" cy="${head.y}" r="${r1(headR * 2.6)}" fill="url(#${glowId})"/>
-        <circle cx="${head.x}" cy="${head.y}" r="${headR}" fill="#fffbeb"/>`;
-}
+// ── Lumi, the guiding star ───────────────────────────────────────────
+// The app's mascot: a golden, rounded five-point star with a face, drawn from
+// the official artwork (roundedStarPath(.52, .3) on a 100-unit box). She is
+// one small SVG painted once; every move she makes is a transform or opacity
+// change on one of the wrappers around her (styles/loading2.css), so she stays
+// smooth while the app boots on the main thread.
+const LUMI_STAR_PATH = 'M45.4 8.7Q50 0 54.6 8.7L60.7 20.3Q65.3 29 75 30.6L87.9 32.9Q97.6 34.5 90.7 41.6L81.6 51Q74.7 58 76.1 67.8L78 80.7Q79.4 90.5 70.6 86.1L58.8 80.3Q50 76 41.2 80.3L29.4 86.1Q20.6 90.5 22 80.7L23.9 67.8Q25.3 58 18.4 51L9.3 41.6Q2.4 34.5 12.1 32.9L25 30.6Q34.7 29 39.3 20.3Z';
 
-const RING_OUTER_SVG = `
-    <svg viewBox="0 0 100 100" focusable="false">
-        <defs>
-            <radialGradient id="lr-glow-outer">
-                <stop offset="0" stop-color="#fde047" stop-opacity="0.9"/>
-                <stop offset="1" stop-color="#f59e0b" stop-opacity="0"/>
-            </radialGradient>
-        </defs>
-        <circle class="loading-ring__track" cx="50" cy="50" r="46.5" fill="none" stroke="rgba(14, 165, 233, 0.16)" stroke-width="3"/>
-        ${ringComet({ r: 46.5, from: -125, to: 0, headAtEnd: true, color: '#fbbf24', width: 3, headR: 2.1, glowId: 'lr-glow-outer' })}
+const LUMI_EYE = '<ellipse rx="4.4" ry="5.8" fill="#2b2250"/><circle cx="1.5" cy="-2.2" r="1.7" fill="#fff"/><circle cx="-1.4" cy="2" r="0.8" fill="#fff" opacity="0.8"/>';
+
+// Two mouths: her quiet smile, and the open "hooray" she wears for the Welcome and the woosh.
+const LUMI_SVG = `
+    <svg class="lumi" viewBox="0 0 100 100" focusable="false">
+        <use href="#lumi-star" fill="url(#lumi-body)" stroke="#f2a516" stroke-width="1.4" stroke-linejoin="round"/>
+        <ellipse cx="38" cy="30" rx="12" ry="7" fill="url(#lumi-shine)" transform="rotate(-32 38 30)"/>
+        <ellipse cx="36.5" cy="62" rx="5.2" ry="3.2" fill="#ff8fa3" opacity="0.55"/>
+        <ellipse cx="63.5" cy="62" rx="5.2" ry="3.2" fill="#ff8fa3" opacity="0.55"/>
+        <g class="lumi__eyes">
+            <g transform="translate(42 54)">${LUMI_EYE}</g>
+            <g transform="translate(58 54)">${LUMI_EYE}</g>
+        </g>
+        <path class="lumi__smile" d="M45.5 62.5Q50 66.5 54.5 62.5" stroke="#8a3a2a" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+        <g class="lumi__cheer">
+            <path d="M45 62Q50 63.2 55 62Q54 68 50 68.9Q46 68 45 62Z" fill="#7a2e2e"/>
+            <ellipse cx="50" cy="67" rx="2.6" ry="1.2" fill="#ff7b8a"/>
+        </g>
     </svg>`;
 
-const RING_INNER_SVG = `
-    <svg viewBox="0 0 100 100" focusable="false">
-        <defs>
-            <radialGradient id="lr-glow-inner">
-                <stop offset="0" stop-color="#fef9c3" stop-opacity="0.85"/>
-                <stop offset="1" stop-color="#fde047" stop-opacity="0"/>
-            </radialGradient>
-        </defs>
-        <circle class="loading-ring__track loading-ring__track--inner" cx="50" cy="50" r="38" fill="none" stroke="rgba(103, 232, 249, 0.16)" stroke-width="2.2"/>
-        ${ringComet({ r: 38, from: 180, to: 280, headAtEnd: false, color: '#fde047', width: 2.2, headR: 1.6, glowId: 'lr-glow-inner' })}
-    </svg>`;
-
-// Soft fan of light behind the phone greeting (styles/loading-mobile.css).
-const SUNBURST_SVG = `
-    <svg viewBox="-100 -100 200 200" focusable="false">
-        <defs>
-            <radialGradient id="ls-burst" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="100">
-                <stop offset="0.1" stop-color="#fffbeb" stop-opacity="0.9"/>
-                <stop offset="0.45" stop-color="#fef3c7" stop-opacity="0.45"/>
-                <stop offset="0.9" stop-color="#fde68a" stop-opacity="0"/>
-            </radialGradient>
-        </defs>
-        ${Array.from({ length: 16 }, (_, i) => {
-            const a = i * 22.5;
-            const half = i % 2 ? 3.2 : 5;
-            const p0 = polar(0, 0, 100, a - half);
-            const p1 = polar(0, 0, 100, a + half);
-            return `<path d="M 0 0 L ${p0.x} ${p0.y} A 100 100 0 0 1 ${p1.x} ${p1.y} Z" fill="url(#ls-burst)"/>`;
-        }).join('')}
-    </svg>`;
+/** A small star on the quest path: a pale outline, and a gold copy that lights up over it. */
+const PATH_STAR_HTML = `
+    <span class="loading-path__star">
+        <svg class="loading-path__dim" viewBox="0 0 100 100" focusable="false"><use href="#lumi-star"/></svg>
+        <svg class="loading-path__lit" viewBox="0 0 100 100" focusable="false"><use href="#lumi-star" fill="url(#lumi-body)" stroke="#f2a516" stroke-width="3"/></svg>
+    </span>`;
 
 // ── Sky travellers and finale glints ─────────────────────────────────
 // Shared gradients live in one always-rendered <defs> block: Chrome will not
@@ -192,6 +167,17 @@ const LOADING_DEFS_SVG = `
                 <stop offset="0.3" stop-color="#fef3c7" stop-opacity="0.3"/>
                 <stop offset="0.8" stop-color="#fef3c7" stop-opacity="0"/>
             </radialGradient>
+            <radialGradient id="lumi-body" cx="0.42" cy="0.35" r="0.75">
+                <stop offset="0" stop-color="#fffbe0"/>
+                <stop offset="0.45" stop-color="#ffe066"/>
+                <stop offset="0.85" stop-color="#ffb938"/>
+                <stop offset="1" stop-color="#f59e0b"/>
+            </radialGradient>
+            <radialGradient id="lumi-shine">
+                <stop offset="0" stop-color="#ffffff" stop-opacity="0.85"/>
+                <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+            </radialGradient>
+            <path id="lumi-star" d="${LUMI_STAR_PATH}"/>
         </defs>
     </svg>`;
 
@@ -213,6 +199,8 @@ function sheenHTML(innerHTML) {
 }
 
 const LOADING_TITLE_TEXT = 'The Great Class Quest';
+// The app's own promise, as on the plan screen (templates/subscribe.js).
+const LOADING_TAGLINE = 'Turn every lesson into an adventure';
 
 function escapeHTML(text) {
     return String(text).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -224,20 +212,11 @@ function escapeHTML(text) {
  * same markup is used for the ink, its glow and its sheen, so all three lay
  * out letter for letter on top of each other.
  */
-function greetingLettersHTML(text, highlight) {
-    const start = highlight ? text.lastIndexOf(highlight) : -1;
-    const end = start >= 0 ? start + highlight.length : -1;
-    let offset = 0;
+function greetingLettersHTML(text) {
     let index = 0;
     return text.split(' ').map((word) => {
-        const letters = Array.from(word).map((ch) => {
-            const isName = offset >= start && offset < end;
-            offset += ch.length;
-            const html = `<span class="lg-l${isName ? ' lg-l--name' : ''}" style="--i:${index}"><span class="lg-l__ink">${escapeHTML(ch)}</span></span>`;
-            index += 1;
-            return html;
-        }).join('');
-        offset += 1; // the space
+        const letters = Array.from(word).map((ch) =>
+            `<span class="lg-l" style="--i:${index++}"><span class="lg-l__ink">${escapeHTML(ch)}</span></span>`).join('');
         return `<span class="lg-w">${letters}</span>`;
     }).join(' ');
 }
@@ -374,49 +353,62 @@ export const loadingHTML = `
         <!-- Slow twinkles scattered across the sky -->
         <div class="loading-twinkles" aria-hidden="true">${glints('lt', 7)}</div>
 
-        <!-- Center content -->
+        <!-- Center content: Lumi, the words, the quest path and the tip -->
         <div class="loading-stage">
-            <div class="loading-title" data-text="${LOADING_TITLE_TEXT}">
-                <span class="loading-title__ink">${LOADING_TITLE_TEXT}</span>
-                <span class="loading-title__ink loading-title__ink--gold" aria-hidden="true">${LOADING_TITLE_TEXT}</span>
-                ${sheenHTML(LOADING_TITLE_TEXT)}
-            </div>
-
-            <div class="loading-title-flourish" aria-hidden="true">
-                <span class="loading-flourish-line"></span>
-                <span class="loading-flourish-gem"></span>
-                <span class="loading-flourish-line"></span>
-            </div>
-
-            <div class="loading-subtitle">Every Great Quest Starts With One Brave Step</div>
-
-            <div class="loading-spinner-wrap">
-                <div class="loading-center-logo" aria-hidden="true">
-                    <img src="${LOADING_LOGO_URL}" alt="" />
-                </div>
-                <div class="loading-simple-ring" aria-hidden="true">
-                    ${RING_OUTER_SVG}
-                    <div class="loading-simple-ring__inner">${RING_INNER_SVG}</div>
+            <!-- Lumi. Each wrapper owns one kind of move (styles/loading2.css):
+                 the woosh across the sky (x, then y), her arrival and spin,
+                 hops and cheers, and the idle float. -->
+            <div class="loading-lumi" aria-hidden="true">
+                <div class="loading-lumi__fly">
+                    <span class="loading-lumi__trail"></span>
+                    <div class="loading-lumi__pose">
+                        <div class="loading-lumi__hop">
+                            <div class="loading-lumi__float">
+                                <span class="loading-lumi__halo"></span>
+                                <span class="loading-lumi__burst"></span>
+                                <span class="loading-lumi__orbit">${glints('lo', 3)}</span>
+                                ${LUMI_SVG}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="loading-sunburst" aria-hidden="true">${SUNBURST_SVG}</div>
+            <!-- The title and the Welcome share one cell, so swapping them never moves the stage -->
+            <div class="loading-words">
+                <div class="loading-heading">
+                    <h1 class="loading-title" data-text="${LOADING_TITLE_TEXT}">
+                        <span class="loading-title__ink">${LOADING_TITLE_TEXT}</span>
+                        ${sheenHTML(LOADING_TITLE_TEXT)}
+                    </h1>
+                    <div class="loading-crest" aria-hidden="true">
+                        <span class="loading-crest__line"></span>
+                        <img class="loading-crest__logo" src="${LOADING_LOGO_URL}" alt="" />
+                        <span class="loading-crest__line"></span>
+                    </div>
+                    <p class="loading-tagline">${LOADING_TAGLINE}</p>
+                </div>
 
-            <!-- Welcome finale: a soft bloom of light the greeting rises out of -->
-            <div class="loading-welcome-bloom" aria-hidden="true"></div>
-
-            <div id="loading-greeting" class="loading-greeting">
-                <span id="loading-greeting-text"></span>
+                <div id="loading-greeting" class="loading-welcome">
+                    <div id="loading-greeting-text" class="loading-welcome__line"></div>
+                    <div id="loading-greeting-school" class="loading-welcome__school"></div>
+                    <div id="loading-greeting-person" class="loading-welcome__person"></div>
+                </div>
             </div>
 
-            <!-- Welcome finale: sparkles pop in a ring around the greeting -->
-            <div class="loading-cheer" aria-hidden="true">${glints('lc', 8)}</div>
+            <!-- Three stars that light up as the app gets ready -->
+            <div class="loading-path" aria-hidden="true">
+                ${PATH_STAR_HTML}<span class="loading-path__link"></span>${PATH_STAR_HTML}<span class="loading-path__link"></span>${PATH_STAR_HTML}
+            </div>
 
             <!-- Fixed-height card: tips of one or two lines never shift the stage -->
             <div class="loading-tip-card">
                 <div id="loading-tip" class="loading-tip" aria-live="polite">Preparing your quest&hellip;</div>
             </div>
         </div>
+
+        <!-- Sparkle dust Lumi leaves along her woosh (placed in launchLoadingWoosh) -->
+        <div class="loading-dust" aria-hidden="true"></div>
 
         <!-- Warm light that washes over the scene as it hands over to the app -->
         <div class="loading-daylight" aria-hidden="true"></div>
@@ -454,6 +446,7 @@ export function initLoadingAtmosphere() {
     // Phones get their own calm, compact loading scene (styles/loading-mobile.css).
     // Decided here, before the first paint, so there is no desktop-then-phone jump.
     const mobile = isMobileLoadingViewport();
+    _shownAt = performance.now();
     if (loadingScreen) {
         loadingScreen.classList.toggle('gcq-perf-low', lowPower);
         loadingScreen.classList.toggle('gcq-loading-mobile', mobile);
@@ -638,58 +631,93 @@ function partCloudsForWelcome() {
     });
 }
 
+// ── The quest path: Lumi's three stars ───────────────────────────────
+// Real readiness lights them, never a timer: 1 when sign-in has answered,
+// 2 when the account has loaded (stageLoadingPersonalization), 3 for the
+// Welcome. Lumi hops each time one lights.
+
+function loadingPart(selector) {
+    return document.querySelector(`#loading-screen ${selector}`);
+}
+
+/** Restart a one-shot animation class on Lumi's hop layer ('is-hop' or 'is-cheer'). */
+function lumiReact(kind) {
+    const hop = loadingPart('.loading-lumi__hop');
+    if (!hop) return;
+    hop.classList.remove('is-hop', 'is-cheer');
+    void hop.offsetWidth;
+    hop.classList.add(kind);
+}
+
+/**
+ * Light the quest path up to `step` (1–3). Steps only ever go forward.
+ * quiet: light it without Lumi's hop (used when the screen reopens).
+ */
+export function markLoadingStage(step, { quiet = false } = {}) {
+    const next = Math.min(3, Math.max(_loadingStep, step));
+    if (next === _loadingStep) return;
+    _loadingStep = next;
+    loadingPart('.loading-path')?.querySelectorAll('.loading-path__star, .loading-path__link').forEach((el, i) => {
+        // Star, link, star, link, star: the star at 2k lights at step k + 1.
+        el.classList.toggle('is-on', i < next * 2 - 1);
+    });
+    if (!quiet && next < 3) lumiReact('is-hop');
+}
+
+// ── The Welcome ──────────────────────────────────────────────────────
+// The big line is a warm hello for the moment, not a name. The school and
+// the person signing in sit underneath it, smaller.
+
+const TEACHER_LINES = {
+    morning: 'A bright new day of quests',
+    afternoon: 'Today’s quest begins',
+    evening: 'The adventure continues',
+    night: 'The stars are out for you',
+};
+
+function welcomeLine(role, dayPart) {
+    if (role === 'parent') return 'Your child’s adventure awaits';
+    if (role === 'secretary') return 'Your School Office is ready';
+    return TEACHER_LINES[dayPart] || TEACHER_LINES.afternoon;
+}
+
 function buildPersonalizedCopy(name, role) {
     const HONORIFICS = /^(mr|mrs|ms|miss|dr|prof|rev|sir|lord|lady)\.?$/i;
     const displayName = (name || '').trim().replace(/\s+/g, ' ');
-    const nameParts = displayName.split(/\s+/).filter(Boolean);
-    const firstName = nameParts.find(p => !HONORIFICS.test(p)) || '';
-    const formalLabel = displayName || firstName;
-
-    switch (role) {
-        case 'student':
-            return {
-                greeting: firstName ? `Welcome, Hero ${firstName}!` : 'Welcome, Hero!',
-                highlight: firstName,
-                tip: 'Your guild is counting on you - the adventure continues!'
-            };
-        case 'parent':
-            return {
-                greeting: formalLabel ? `Welcome back, ${formalLabel}!` : 'Welcome back!',
-                highlight: formalLabel,
-                tip: "Check in on your hero's progress and adventure log."
-            };
-        case 'secretary':
-            return {
-                greeting: formalLabel ? `Welcome, ${formalLabel}!` : 'Welcome!',
-                highlight: formalLabel,
-                tip: 'The school records and hero roster are ready.'
-            };
-        default:
-            return {
-                greeting: formalLabel ? `Welcome back, ${formalLabel}!` : 'Welcome back!',
-                highlight: formalLabel,
-                tip: "Your class is ready for today's quest. Let's go!"
-            };
-    }
+    const firstName = displayName.split(' ').find(p => !HONORIFICS.test(p)) || '';
+    const tips = {
+        parent: "Check in on your hero's progress and adventure log.",
+        secretary: 'The school records and hero roster are ready.',
+    };
+    return {
+        role,
+        name: displayName,
+        initial: Array.from(firstName || displayName)[0]?.toUpperCase() || '',
+        tip: tips[role] || "Your class is ready for today's quest. Let's go!",
+    };
 }
 
 /**
  * Stage the personalized loading copy so it can be shown at the last moment.
+ * The account has loaded by now, so the second star on the quest path lights.
  */
 export function stageLoadingPersonalization(name, role) {
     _stagedPersonalization = buildPersonalizedCopy(name, role);
+    markLoadingStage(2);
 }
 
 /**
  * Reveal staged personalized copy right before exit animation starts.
+ * schoolName: shown under the big line (left out when unknown).
+ * dayPart: morning / afternoon / evening / night from the real sky (utils/dayPart.mjs).
  * Returns true when personalized content was shown.
  */
-export function revealStagedLoadingPersonalization() {
+export function revealStagedLoadingPersonalization({ schoolName = '', dayPart = '' } = {}) {
     const greetingEl   = document.getElementById('loading-greeting');
     const greetingText = document.getElementById('loading-greeting-text');
+    const schoolEl     = document.getElementById('loading-greeting-school');
+    const personEl     = document.getElementById('loading-greeting-person');
     const tipEl        = document.getElementById('loading-tip');
-    const stageEl      = document.querySelector('.loading-stage');
-    const cheerEl      = document.querySelector('.loading-cheer');
     if (!greetingEl || !greetingText || !_stagedPersonalization) return false;
 
     if (_tipIntervalId) {
@@ -698,40 +726,43 @@ export function revealStagedLoadingPersonalization() {
     }
 
     partCloudsForWelcome();
+    markLoadingStage(3);
+    lumiReact('is-cheer');
 
     // Three stacked copies of the same letters: a soft white glow behind, the
     // coloured ink that rises in letter by letter, and a sheen of light that
     // sweeps across once they have landed. Every copy is painted once; after
-    // that only transform and opacity move (styles/loading2.css), so the words
-    // never repaint, and never blink, while they grow.
-    const { greeting, highlight } = _stagedPersonalization;
-    const letters = greetingLettersHTML(greeting, highlight);
+    // that only transform and opacity move (styles/loading2.css).
+    const { role, name, initial, tip } = _stagedPersonalization;
+    const line = welcomeLine(role, dayPart);
+    const letters = greetingLettersHTML(line);
     greetingText.innerHTML =
         `<span class="loading-greeting-glow" aria-hidden="true">${letters}</span>` +
         `<span class="loading-greeting-ink">${letters}</span>` +
         sheenHTML(letters);
-    greetingText.setAttribute('aria-label', greeting);
-    const count = Array.from(greeting.replace(/ /g, '')).length;
-    // The whole wave lands within ~0.7s, however long the name is.
+    greetingText.setAttribute('aria-label', line);
+    const count = Array.from(line.replace(/ /g, '')).length;
+    // The whole wave lands within ~0.7s, however long the line is.
     const step = Math.min(42, 700 / Math.max(1, count - 1));
+    const landed = Math.round(step * (count - 1) + 520);
     greetingText.style.setProperty('--lg-step', `${step.toFixed(1)}ms`);
-    greetingText.style.setProperty('--lg-landed', `${Math.round(step * (count - 1) + 520)}ms`);
-    greetingEl.classList.add('loading-greeting-visible');
-    if (stageEl) stageEl.classList.add('loading-stage-reveal');
+    greetingEl.style.setProperty('--lg-landed', `${landed}ms`);
 
-    if (cheerEl) {
-        // One-shot ring of sparkles; restart cleanly even if this ever fires
-        // more than once for the same screen instance.
-        cheerEl.classList.remove('loading-cheer-active');
-        void cheerEl.offsetWidth;
-        cheerEl.classList.add('loading-cheer-active');
+    const school = String(schoolName || '').trim();
+    if (schoolEl) {
+        schoolEl.hidden = !school;
+        schoolEl.innerHTML = school ? `<span class="loading-welcome__mark" aria-hidden="true">&#10022;</span>${escapeHTML(school)}<span class="loading-welcome__mark" aria-hidden="true">&#10022;</span>` : '';
     }
+    if (personEl) {
+        personEl.hidden = !name;
+        personEl.innerHTML = name ? `<span class="loading-welcome__crest" aria-hidden="true">${escapeHTML(initial)}</span><span>${escapeHTML(name)}</span>` : '';
+    }
+    greetingEl.classList.add('loading-greeting-visible');
 
     if (tipEl) {
-        const tipText = _stagedPersonalization.tip;
         tipEl.classList.add('loading-tip-fade');
         setTimeout(() => {
-            tipEl.textContent = tipText;
+            tipEl.textContent = tip;
             tipEl.classList.remove('loading-tip-fade');
         }, TIP_FADE_MS);
     }
@@ -740,12 +771,82 @@ export function revealStagedLoadingPersonalization() {
     return true;
 }
 
+// ── The woosh ────────────────────────────────────────────────────────
+// Lumi swoops off her spot and flies into the sun; the sun answers with the
+// daylight that hands over to the next screen (styles/loading2.css). Her path
+// is measured once, here: the x and y moves run on separate wrappers with
+// different easings, which bends the straight line into a swoop.
+
+const WOOSH_LEAD = 0.18;   // share of the flight spent crouching before take-off
+const WOOSH_FLIGHT_MS = 780;
+// Lumi's arrival (delay + spin-in) ends about here (styles/loading2.css).
+const LUMI_LANDED_MS = 1300;
+
+function prefersReducedMotion() {
+    try {
+        return Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+    } catch {
+        return false;
+    }
+}
+
+function aimWoosh(loadingScreen) {
+    const lumi = loadingScreen.querySelector('.loading-lumi');
+    const sun = loadingScreen.querySelector('.loading-sun');
+    const dust = loadingScreen.querySelector('.loading-dust');
+    if (!lumi || !sun) return;
+    const from = lumi.getBoundingClientRect();
+    const to = sun.getBoundingClientRect();
+    if (!from.width || !to.width) return;
+    const x0 = from.left + from.width / 2;
+    const y0 = from.top + from.height / 2;
+    const dx = to.left + to.width / 2 - x0;
+    const dy = to.top + to.height / 2 - y0;
+    loadingScreen.style.setProperty('--woosh-x', `${Math.round(dx)}px`);
+    loadingScreen.style.setProperty('--woosh-y', `${Math.round(dy)}px`);
+    loadingScreen.style.setProperty('--woosh-angle', `${Math.round(Math.atan2(dy, dx) * 180 / Math.PI)}deg`);
+    if (!dust) return;
+
+    // Sparkles left along the way: the same curves as the CSS (x speeds up,
+    // y eases in and out after a small dip), each one popping as she passes.
+    const count = detectLowPowerTier() || isMobileLoadingViewport() ? 5 : 9;
+    const dip = from.height * 0.08;
+    dust.innerHTML = glints('ld', count);
+    Array.from(dust.children).forEach((glint, i) => {
+        const u = (i + 1) / (count + 1);
+        const fx = u * u * u;
+        const fy = u < 0.5 ? 2 * u * u : 1 - ((2 - 2 * u) ** 2) / 2;
+        glint.style.left = `${Math.round(x0 + dx * fx + randomRange(-10, 10))}px`;
+        glint.style.top = `${Math.round(y0 + dip * (1 - fy) + dy * fy + randomRange(-10, 10))}px`;
+        glint.style.setProperty('--dust-delay', `${Math.round((WOOSH_LEAD + (1 - WOOSH_LEAD) * u) * WOOSH_FLIGHT_MS)}ms`);
+        const size = Math.round(randomRange(14, 26));
+        glint.style.width = `${size}px`;
+        glint.style.height = `${size}px`;
+    });
+}
+
+/**
+ * Start the hand-over: Lumi wooshes into the sun and the scene dissolves
+ * into its daylight. With reduced motion the scene just fades, and Lumi stays
+ * where she is. app.js listens for the screen's own animationend.
+ */
+export function launchLoadingWoosh(loadingScreen) {
+    if (!loadingScreen) return;
+    if (!prefersReducedMotion()) {
+        try { aimWoosh(loadingScreen); } catch { /* she just fades with the scene */ }
+    }
+    // A fast sign-in can answer before she has landed: she keeps twinkling in
+    // and flies anyway, instead of jumping into the spin.
+    loadingScreen.classList.toggle('loading-exit-early', performance.now() - _shownAt < LUMI_LANDED_MS);
+    loadingScreen.classList.add('loading-screen-exit');
+}
+
 /**
  * Smoothly bring the loading screen back for a real login/signup/activation
  * that just happened from the visible auth screen. The loading screen was
  * already dismissed once on cold boot (dataset.exiting = 'true', hidden
- * class applied); this resets that state so the personalized "Welcome"
- * moment can play and crossfade in over the filled-in auth form.
+ * class applied); this resets that state so Lumi and the Welcome can play
+ * again. The user is already signed in, so the first star is lit.
  * fromGate: the sign-in gate has just opened into daylight (ui/authGate.js).
  */
 let fromGateTimer = 0;
@@ -754,7 +855,9 @@ export function reopenLoadingScreen({ fromGate = false } = {}) {
     const loadingScreen = document.getElementById('loading-screen');
     if (!loadingScreen) return;
     loadingScreen.dataset.exiting = '';
-    loadingScreen.classList.remove('loading-screen-exit', 'loading-final-moment', 'loading-screen-from-gate', 'hidden');
+    loadingScreen.classList.remove('loading-screen-exit', 'loading-exit-early', 'loading-final-moment', 'loading-screen-from-gate', 'hidden');
+    _shownAt = performance.now();
+    ['--woosh-x', '--woosh-y', '--woosh-angle'].forEach((name) => loadingScreen.style.removeProperty(name));
     clearTimeout(fromGateTimer);
     if (fromGate) {
         // Arrives inside the gate's daylight, then the veil clears (styles/loading.css).
@@ -762,8 +865,11 @@ export function reopenLoadingScreen({ fromGate = false } = {}) {
         fromGateTimer = setTimeout(() => loadingScreen.classList.remove('loading-screen-from-gate'), 2000);
     }
     document.getElementById('loading-greeting')?.classList.remove('loading-greeting-visible');
-    document.querySelector('.loading-stage')?.classList.remove('loading-stage-reveal');
-    document.querySelector('.loading-cheer')?.classList.remove('loading-cheer-active');
+    loadingPart('.loading-lumi__hop')?.classList.remove('is-hop', 'is-cheer');
+    const dust = loadingPart('.loading-dust');
+    if (dust) dust.innerHTML = '';
+    _loadingStep = 0;
+    markLoadingStage(1, { quiet: true });
     void loadingScreen.offsetWidth; // flush the display change before animating opacity
     requestAnimationFrame(() => {
         loadingScreen.classList.remove('opacity-0', 'pointer-events-none');

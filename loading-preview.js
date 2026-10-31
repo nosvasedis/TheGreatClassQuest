@@ -1,0 +1,82 @@
+// Dev-only preview of the loading screen: Lumi, the quest path, the Welcome and the woosh,
+// without Firebase. Open /loading-preview.html under `npm run dev`. Query options:
+//   role=teacher|secretary|parent|signedout  part=morning|afternoon|evening|night
+//   speed=fast|slow  low=1 (weak-laptop scene)  gate=1 (arrive through the sign-in gate)
+//   shot=1 (hide the toolbar)
+// The hand-over below mirrors app.js#animateLoadingScreenOut; window.__pvLog records when
+// each step happened, for headless timing checks.
+import { loadingHTML, initLoadingAtmosphere, initLoadingTips, markLoadingStage, stageLoadingPersonalization, revealStagedLoadingPersonalization, launchLoadingWoosh, reopenLoadingScreen } from './templates/loading.js';
+
+const params = new URLSearchParams(location.search);
+const opts = {
+    role: params.get('role') || 'teacher',
+    part: params.get('part') || 'afternoon',
+    speed: params.get('speed') || 'fast',
+    low: params.get('low') === '1',
+    gate: params.get('gate') === '1',
+};
+if (params.get('shot') === '1') document.body.classList.add('pv-shot');
+
+const NAMES = { teacher: 'Ms Maria Papadopoulou', secretary: 'Eleni Georgiou', parent: 'Family of Nikos' };
+const TIMES = { fast: { auth: 350, profile: 800, ready: 1800 }, slow: { auth: 1400, profile: 3600, ready: 7000 } };
+const WELCOME_HOLD_MS = 2300;
+
+const t0 = performance.now();
+window.__pvLog = [];
+const log = (step) => window.__pvLog.push({ step, at: Math.round(performance.now() - t0) });
+
+document.getElementById('app-root').innerHTML = loadingHTML;
+initLoadingAtmosphere();
+initLoadingTips();
+const screen = document.getElementById('loading-screen');
+if (opts.low) screen.classList.add('gcq-perf-low');
+if (opts.gate) {
+    screen.classList.add('hidden');
+    setTimeout(() => { reopenLoadingScreen({ fromGate: true }); log('reopened'); }, 200);
+}
+
+function finish() {
+    screen.classList.add('opacity-0', 'pointer-events-none', 'hidden');
+    log('hidden');
+}
+
+function exit() {
+    screen.dataset.exiting = 'true';
+    const welcomed = revealStagedLoadingPersonalization({ schoolName: 'Rentis English School', dayPart: opts.part });
+    if (welcomed) { screen.classList.add('loading-final-moment'); log('welcome'); }
+    const begin = () => {
+        launchLoadingWoosh(screen);
+        log('woosh');
+        const onEnd = (event) => {
+            if (event.target !== screen) return;
+            screen.removeEventListener('animationend', onEnd);
+            finish();
+        };
+        screen.addEventListener('animationend', onEnd);
+    };
+    if (welcomed) setTimeout(begin, matchMedia('(prefers-reduced-motion: reduce)').matches ? 300 : WELCOME_HOLD_MS);
+    else begin();
+}
+
+const times = TIMES[opts.speed] || TIMES.fast;
+const lead = opts.gate ? 200 : 0;
+setTimeout(() => { markLoadingStage(1); log('stage1'); }, lead + times.auth);
+if (opts.role === 'signedout') {
+    setTimeout(exit, lead + times.auth + 60);
+} else {
+    setTimeout(() => { stageLoadingPersonalization(NAMES[opts.role], opts.role); log('stage2'); }, lead + times.profile);
+    setTimeout(exit, lead + times.ready);
+}
+
+// Toolbar: every change replays from a fresh page.
+const ids = { role: 'pv-role', part: 'pv-part', speed: 'pv-speed' };
+Object.entries(ids).forEach(([key, id]) => { document.getElementById(id).value = opts[key]; });
+document.getElementById('pv-low').checked = opts.low;
+document.getElementById('pv-gate').checked = opts.gate;
+document.getElementById('pv-play').addEventListener('click', () => {
+    const next = new URLSearchParams();
+    Object.entries(ids).forEach(([key, id]) => next.set(key, document.getElementById(id).value));
+    if (document.getElementById('pv-low').checked) next.set('low', '1');
+    if (document.getElementById('pv-gate').checked) next.set('gate', '1');
+    location.search = next.toString();
+});

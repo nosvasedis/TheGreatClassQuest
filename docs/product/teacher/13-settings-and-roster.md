@@ -79,28 +79,37 @@ Your **display name** — the Quest Master name on logs, ceremonies, and the Adv
 
 ## Manage Students (the roster)
 
-This is the class list you live in. The header has **Classes** (back), **New Student**, and the student count.
-
-The header also has **Greenhouse**, which opens the Class Greenhouse for this class (below).
+This is the class list you live in. It opens under a bright teal banner with the class name. On the banner: **Classes** takes you back to your class list, the white **Greenhouse** button opens the Class Greenhouse for this class (below), the student count shows how many heroes you have, and the yellow **New Student** button opens a small form. Type the name, press **Add to Roster** (or Enter), and the form folds away again.
 
 **New Student** on this roster adds a name to *your* class. The School Office can also **Add a new student** from Admin; that hero is still **yours** to teach.
 
 If returning heroes are still waiting for a class, a gold **Returning adventurers** panel (*Student setup*) sits above the roster with the number waiting. It starts collapsed. Open it to search, tick students (suggestions come first, by last year’s league; each card shows the old class and league), and **Place Selected** — a live count shows how many you ticked. This is the teacher’s seat for last year’s students — not the School Office **Student placement** wizard, and not **Add a new student**.
 
-Each row shows the avatar, name, Hero Class or title, and a guild chip, then **the same tools in the same places on every row**, in three captioned groups (on a phone they wrap onto two lines):
+**Not sure what a button does?** Rest the mouse on it for a moment and a small card tells you, in a sentence. On a phone or tablet, press and hold the button instead; letting go after the hold does not open it. With the keyboard, the card appears as you move onto each button.
+
+Under the roster’s title, a short key explains the signs you will see on the buttons:
+
+- **Glowing:** something is waiting for you, such as a new skill to choose.
+- **Dotted frame:** not chosen yet, such as a student with no guild or no Hero Class.
+- **Lock:** part of a bigger plan. Tap it to see what that plan adds.
+- **Coloured stripe** at the left of a row: the hero’s guild colour.
+
+Next to the key, a **Waiting for you** line counts what still needs you in this class, for example *2 new skills to choose* or *3 not in a guild yet*. When nothing is waiting, the line goes away.
+
+Each row shows the portrait, name, Hero Class or title, and a guild chip, then **the same tools in the same places on every row**. Each tool is a small coloured button with a word under it, and the tools sit in three coloured groups: purple **Hero path**, blue **Records** and warm **Manage**. On a big screen the group names sit once at the top of the roster; on a phone each row shows them, and the tools wrap onto two lines.
 
 | Group | Button | What it does |
 |-------|--------|----------------|
-| **Hero path** | **Sort** (wizard hat) | Only for a student with no guild yet: opens the **Sorting Ceremony**, the guild placement quiz (Pro; locked on Starter). Once sorted, the slot shows the guild emblem and is no longer a button — guilds are for life. |
-| | **Class** (shield) | Opens the **Hero Class** ceremony (Pro). With no class yet it says **Choose**. Once chosen, the slot shows the class emblem and is still a button: tap it to open the **Deck of Paths** and change the class. The same two-changes-a-year rule applies (see the Hero Path chapter); when the path is locked it opens as a read-only shrine. |
-| | **Skills** (sitemap) | Opens the Skill Tree (Pro). **Pulses** when a new branch is waiting. See the Hero Path chapter. |
+| **Hero path** | **Sort** (wizard hat) | Only for a student with no guild yet (dotted frame): opens the **Sorting Ceremony**, the guild placement quiz (Pro; locked on Starter). Once sorted, the slot shows the guild emblem and is no longer a button — guilds are for life. |
+| | **Class** (shield) | Opens the **Hero Class** ceremony (Pro). With no class yet it has a dotted frame. Once chosen, the slot shows the class emblem and is still a button: tap it to open the **Deck of Paths** and change the class. Its little card tells you how many changes are left this school year. The same two-changes-a-year rule applies (see the Hero Path chapter); when the path is locked it opens as a read-only shrine. |
+| | **Skills** (sitemap) | Opens the Skill Tree (Pro). It turns purple and **glows** when a new skill is waiting. See the Hero Path chapter. |
 | **Records** | **Chronicle** (book) | Hero’s Chronicle, your private notebook for this child (below). |
-| | **Parents** (shield) | Jumps to Family Access for this child (Pro). |
+| | **Parents** (shield) | Jumps to Family Access for this child, to make or share the family login (Pro). |
 | | **Avatar** (astronaut) | Opens the **Avatar Forge** (Elite). Shows a lock on other plans. |
-| | **Certificate** (award) | Praise PDF. |
-| **Manage** | **Move** | Send the child to another class you teach. |
+| | **Certificate** (award) | A certificate of praise to print or save. |
+| **Manage** | **Move** | Send the child to another class, or back to the waiting list. Stars, Gold, guild and notes go with them. |
 | | **Edit** | Opens the student’s **Adventurer’s Passport** (below). |
-| | **Delete** | Asks you to confirm, then removes the student for good. Use it rarely. |
+| | **Delete** | Stays pale until you point at it, so it never stands out. Asks you to confirm, then removes the student for good. Use it rarely. |
 
 **Students who leave the school:** the School Office records it, not you. The child drops off your roster and their parent login is paused; their records are kept. If the Office brings them back to your class, they return with their stars and the parent login wakes up again.
 

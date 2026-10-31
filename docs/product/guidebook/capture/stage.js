@@ -14,6 +14,7 @@ import '../../../../styles/secretary_office.css';
 import '../../../../styles/bounty_poster.css';
 import '../../../../styles/family_portal.css';
 import '../../../../styles/adventurers_guide.css';
+import '../../../../styles/student_roster.css';
 import { headerHTML, svgFiltersHTML } from '../../../../templates/app/header.js';
 import { navHTML } from '../../../../templates/app/nav.js';
 import { ceremonyHTML } from '../../../../templates/app/screens/ceremony.js';

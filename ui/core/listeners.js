@@ -163,6 +163,7 @@ export function setupUIListeners() {
     document.getElementById('add-student-toggle-btn').addEventListener('click', () => {
         const panel = document.getElementById('add-student-panel');
         const isNowVisible = panel.classList.toggle('hidden');
+        document.getElementById('add-student-toggle-btn').setAttribute('aria-expanded', String(!isNowVisible));
         if (!isNowVisible) document.getElementById('student-name').focus();
     });
 
@@ -172,6 +173,7 @@ export function setupUIListeners() {
         // Auto-collapse the panel on success (input will be empty after a successful add)
         if (!document.getElementById('student-name').value) {
             document.getElementById('add-student-panel').classList.add('hidden');
+            document.getElementById('add-student-toggle-btn').setAttribute('aria-expanded', 'false');
         }
     });
     document.getElementById('edit-class-form').addEventListener('submit', (e) => {

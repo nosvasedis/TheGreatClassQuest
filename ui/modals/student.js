@@ -488,7 +488,6 @@ export function openEditStudentModal(studentId, options = {}) {
     if (hubAvatarBtn) hubAvatarBtn.onclick = handleOpenAvatar;
 
     const quickMoveBtn = document.getElementById('edit-student-quick-move-btn');
-    const hubMoveBtn = document.getElementById('edit-student-hub-move-btn');
     const officeMoveBtn = document.getElementById('edit-student-office-move-btn');
     const isWaitingForClass = !classData;
     const handleMove = () => {
@@ -500,7 +499,6 @@ export function openEditStudentModal(studentId, options = {}) {
         openMoveStudentModal(studentId);
     };
     if (quickMoveBtn) quickMoveBtn.onclick = handleMove;
-    if (hubMoveBtn) hubMoveBtn.onclick = handleMove;
     if (officeMoveBtn) officeMoveBtn.onclick = handleMove;
     // A waiting student can be seated from here: by the Office in any class, by a teacher in one of theirs.
     if (quickMoveBtn) quickMoveBtn.classList.remove('hidden');

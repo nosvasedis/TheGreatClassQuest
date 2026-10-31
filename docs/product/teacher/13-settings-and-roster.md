@@ -87,16 +87,9 @@ If returning heroes are still waiting for a class, a gold **Returning adventurer
 
 **Not sure what a button does?** Rest the mouse on it for a moment and a small card tells you, in a sentence. On a phone or tablet, press and hold the button instead; letting go after the hold does not open it. With the keyboard, the card appears as you move onto each button.
 
-Under the roster’s title, a short key explains the signs you will see on the buttons:
+Above the rows, a **Waiting for you** line counts what still needs you in this class, for example *2 new skills to choose* or *3 not in a guild yet*. When nothing is waiting, the line goes away.
 
-- **Glowing:** something is waiting for you, such as a new skill to choose.
-- **Dotted frame:** not chosen yet, such as a student with no guild or no Hero Class.
-- **Lock:** part of a bigger plan. Tap it to see what that plan adds.
-- **Coloured stripe** at the left of a row: the hero’s guild colour.
-
-Next to the key, a **Waiting for you** line counts what still needs you in this class, for example *2 new skills to choose* or *3 not in a guild yet*. When nothing is waiting, the line goes away.
-
-Each row shows the portrait, name, Hero Class or title, and a guild chip, then **the same tools in the same places on every row**. Each tool is a small coloured button with a word under it, and the tools sit in three coloured groups: purple **Hero path**, blue **Records** and warm **Manage**. On a big screen the group names sit once at the top of the roster; on a phone each row shows them, and the tools wrap onto two lines.
+Each row shows the portrait, the name (with the hero’s rank title once they have one) and a coloured stripe in the guild’s colour at the left, then **the same tools in the same places on every row**. Each tool is a small coloured button with a word under it, and the tools sit in three coloured groups: purple **Hero path**, blue **Records** and warm **Manage**. On a big screen the group names sit once at the top of the roster; on a phone each row shows them, and the tools wrap onto two lines.
 
 | Group | Button | What it does |
 |-------|--------|----------------|
@@ -107,8 +100,7 @@ Each row shows the portrait, name, Hero Class or title, and a guild chip, then *
 | | **Parents** (shield) | Jumps to Family Access for this child, to make or share the family login (Pro). |
 | | **Avatar** (astronaut) | Opens the **Avatar Forge** (Elite). Shows a lock on other plans. |
 | | **Certificate** (award) | A certificate of praise to print or save. |
-| **Manage** | **Move** | Send the child to another class, or back to the waiting list. Stars, Gold, guild and notes go with them. |
-| | **Edit** | Opens the student’s **Adventurer’s Passport** (below). |
+| **Manage** | **Edit** | Opens the student’s **Adventurer’s Passport** (below), where you also **Move** the child to another class. |
 | | **Delete** | Stays pale until you point at it, so it never stands out. Asks you to confirm, then removes the student for good. Use it rarely. |
 
 **Students who leave the school:** the School Office records it, not you. The child drops off your roster and their parent login is paused; their records are kept. If the Office brings them back to your class, they return with their stars and the parent login wakes up again.
@@ -119,7 +111,9 @@ Whatever you change in a student’s Passport, such as their name, is what appea
 
 **Edit** on a roster row opens the student’s profile as one open passport. The cover carries the name and class and guild chips.
 
-**Left page — Identity:** the portrait (tap to view it; **New portrait** opens the Avatar Forge), **Name**, **Class** with **Move**, **Guild** (with **Sort** only while they have no guild), and the quest record: Total stars, This month, Gold, Hero rank. Under it, **Open for this student**: Chronicle, Folio, Certificate, Avatar Forge, Skill Tree, Move class.
+**Left page — Identity:** the portrait (tap to view it; **New portrait** opens the Avatar Forge), **Name**, **Class** with **Move**, **Guild** (with **Sort** only while they have no guild), and the quest record: Total stars, This month, Gold, Hero rank. Under it, **Open for this student**: Chronicle, Folio, Certificate, Avatar Forge, Skill Tree.
+
+**Move** (beside Class) sends the child to another class, or back to the waiting list. Stars, Gold, guild and notes go with them.
 
 **Right page — Special days:** **Birthday** and **Nameday** as postage stamps (pick day and month; **Clear** empties one). **Find from name** reads the Greek name-day calendar (εορτολόγιο) built into the app, on every plan. It knows Greek, Greeklish and English spellings, and moving feasts such as Saint George and Thomas Sunday follow Easter every year. A name the calendar does not hold is asked of the AI on Elite. A new student added with no name day gets it from the calendar. On their day the class sees a celebration banner and they get bonus stars.
 

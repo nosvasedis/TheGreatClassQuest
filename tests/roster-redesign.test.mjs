@@ -32,8 +32,19 @@ test('tooltips work by mouse, keyboard and touch, and a hold never opens the too
     assert.match(tips, /key === 'Escape'/);
 });
 
-test('the roster explains itself: key and "Waiting for you" line', () => {
-    assert.match(template, /class="roster-key"/);
+test('the roster stays lean: no key row, no Move tile, no class/guild chips under the name', () => {
+    assert.doesNotMatch(template, /roster-key/);
+    assert.doesNotMatch(classes, /move-student-btn/);
+    assert.doesNotMatch(classes, /roster-guild-chip|roster-chip--class|No Hero Class yet/);
+});
+
+test('the passport offers Move once, beside the Class field', () => {
+    const passport = read('templates/modals/student.js');
+    assert.match(passport, /id="edit-student-quick-move-btn"/);
+    assert.doesNotMatch(passport, /edit-student-hub-move-btn/);
+});
+
+test('the roster shows a "Waiting for you" line only when needed', () => {
     assert.match(template, /id="roster-todo" class="roster-todo hidden"/);
     assert.match(css, /\.roster-todo\.hidden \{ display: none; \}/);
     assert.match(classes, /function renderRosterTodo\(items\)/);

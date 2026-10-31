@@ -166,10 +166,6 @@ export const studentModalsHTML = `
                                 <span class="sp-tool__icon"><i class="fas fa-sitemap"></i></span>
                                 <span class="sp-tool__label">Skill Tree</span>
                             </button>
-                            <button type="button" id="edit-student-hub-move-btn" class="sp-tool sp-tool--move bubbly-button" title="Transfer to another class">
-                                <span class="sp-tool__icon"><i class="fas fa-people-arrows"></i></span>
-                                <span class="sp-tool__label">Move class</span>
-                            </button>
                         </div>
                     </section>
                 </div>

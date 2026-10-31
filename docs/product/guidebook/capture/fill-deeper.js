@@ -425,10 +425,9 @@ function rosterRow({ name, initial, hero, title, guildId, pending, unsorted }, i
   const tool = (tone, icon, label, extra = '') =>
     `<button type="button" class="roster-tool roster-tool--${tone}${extra}"><span class="roster-tool__icon">${icon}</span><span class="roster-tool__label">${label}</span></button>`;
   const fa = (n) => `<i class="fas ${n}"></i>`;
-  const heroMeta = unsorted
-    ? '<span class="roster-chip roster-chip--none">No Hero Class yet</span>'
-    : `<span class="hero-title-pill roster-chip roster-chip--title" style="--chip-color:#16a34a;">${title}</span>`;
-  const guildChip = guild ? `<span class="roster-guild-chip" style="--chip-color:${guild.primary};">${guild.name}</span>` : '';
+  const heroMeta = unsorted || !title
+    ? ''
+    : `<div class="roster-hero__meta"><span class="hero-title-pill roster-chip roster-chip--title" style="--chip-color:#16a34a;">${title}</span></div>`;
   const heroTool = unsorted
     ? tool('class', fa('fa-shield-halved'), 'Class', ' is-todo')
     : `<button type="button" class="roster-tool roster-tool--class is-set"><span class="roster-tool__icon"><span class="roster-tool__emoji">${hero.split(' ')[0]}</span></span><span class="roster-tool__label">${hero.split(' ').slice(1).join(' ')}</span></button>`;
@@ -438,7 +437,7 @@ function rosterRow({ name, initial, hero, title, guildId, pending, unsorted }, i
                 <div class="roster-hero__avatar"><div class="w-11 h-11 rounded-full bg-gradient-to-br from-teal-400 to-cyan-500 text-white font-title flex items-center justify-center">${initial}</div></div>
                 <div class="roster-hero__text">
                     <p class="roster-hero__name">${name}</p>
-                    <div class="roster-hero__meta">${heroMeta}${guildChip}</div>
+                    ${heroMeta}
                 </div>
             </div>
             <div class="roster-tools">
@@ -451,7 +450,7 @@ function rosterRow({ name, initial, hero, title, guildId, pending, unsorted }, i
                     ${tool('chronicle', fa('fa-book-reader'), 'Chronicle')}${tool('parents', fa('fa-user-shield'), 'Parents')}${tool('avatar', fa('fa-user-astronaut'), 'Avatar')}${tool('certificate', fa('fa-award'), 'Certificate')}
                 </div></div>
                 <div class="roster-group roster-group--admin"><span class="roster-group__caption"><i class="fas fa-sliders-h"></i> Manage</span><div class="roster-group__tools">
-                    ${tool('move', fa('fa-people-arrows'), 'Move')}${tool('edit', fa('fa-pencil-alt'), 'Edit')}${tool('delete', fa('fa-trash-alt'), 'Delete')}
+                    ${tool('edit', fa('fa-pencil-alt'), 'Edit')}${tool('delete', fa('fa-trash-alt'), 'Delete')}
                 </div></div>
             </div>
         </article>`;

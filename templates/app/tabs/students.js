@@ -72,15 +72,7 @@ export const studentsTabHTML = `
                         <span class="roster-column roster-column--admin"><i class="fas fa-sliders-h"></i> Manage</span>
                     </div>
                 </header>
-                <div class="roster-panel__key">
-                    <ul class="roster-key" aria-label="How to read the roster">
-                        <li class="roster-key__item roster-key__item--glow"><span class="roster-key__swatch" aria-hidden="true"></span>Glowing: waiting for you</li>
-                        <li class="roster-key__item roster-key__item--todo"><span class="roster-key__swatch" aria-hidden="true"></span>Dotted: not chosen yet</li>
-                        <li class="roster-key__item roster-key__item--lock"><span class="roster-key__swatch" aria-hidden="true"><i class="fas fa-lock"></i></span>Lock: on a bigger plan</li>
-                        <li class="roster-key__item roster-key__item--stripe"><span class="roster-key__swatch" aria-hidden="true"></span>Stripe: the hero's guild</li>
-                    </ul>
-                    <p id="roster-todo" class="roster-todo hidden" aria-live="polite"></p>
-                </div>
+                <p id="roster-todo" class="roster-todo hidden" aria-live="polite"></p>
                 <div id="student-list" class="roster-register"></div>
             </section>
 

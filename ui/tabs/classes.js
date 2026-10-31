@@ -425,7 +425,6 @@ const ROSTER_ACTIONS = {
         }
         avatar.openAvatarMaker(id);
     },
-    'move-student-btn': (id) => modals.openMoveStudentModal(id),
     'hero-chronicle-btn': (id) => modals.openHeroChronicleModal(id),
     'parent-access-student-btn': async (id) => {
         openAccessCenterForStudent(id);
@@ -549,16 +548,9 @@ export function renderManageStudentsTab() {
         const heroTitlePill = heroTitle
             ? `<span class="hero-title-pill roster-chip roster-chip--title" style="--chip-color:${auraColor};">${HERO_CLASSES[s.heroClass]?.icon || ''} ${heroTitle}</span>`
             : '';
-        const heroClassBadge = hc
-            ? `<span class="roster-chip roster-chip--class" style="--chip-color:${hc.ring};">${hc.icon} ${s.heroClass}</span>`
-            : (heroProgressionEnabled ? '<span class="roster-chip roster-chip--none">No Hero Class yet</span>' : '');
         const guild = s.guildId ? getGuildById(s.guildId) : null;
-        const guildChip = guild
-            ? `<span class="roster-guild-chip" style="--chip-color:${guild.primary};">${escapeHtml(guild.name)}</span>`
-            : '';
-        const heroMetaRow = (heroClassBadge || heroTitlePill || guildChip)
-            ? `<div class="roster-hero__meta">${heroTitlePill || heroClassBadge}${guildChip}</div>`
-            : '';
+        // Class and guild already show on their own tiles to the right; only the earned rank title sits under the name.
+        const heroMetaRow = heroTitlePill ? `<div class="roster-hero__meta">${heroTitlePill}</div>` : '';
 
         // Every row carries the same tools in the same slots, so the columns line up down the roster.
         // tipTitle + tip feed the custom tooltip (ui/tabs/rosterTips.js); the accessible name keeps the visible label.
@@ -647,8 +639,7 @@ export function renderManageStudentsTab() {
                 <div class="roster-group roster-group--admin" role="group" aria-label="Manage">
                     <span class="roster-group__caption" aria-hidden="true"><i class="fas fa-sliders-h"></i> Manage</span>
                     <div class="roster-group__tools">
-                        ${tool({ cls: 'move-student-btn', tone: 'move', icon: fa('fa-people-arrows'), label: 'Move', tipTitle: 'Move to another class', tip: 'Stars, Gold, guild and notes travel with the student.' })}
-                        ${tool({ cls: 'edit-student-btn', tone: 'edit', icon: fa('fa-pencil-alt'), label: 'Edit', tipTitle: 'Edit details', tip: 'Opens the Adventurer\'s Passport: name, birthday, name day and more.' })}
+                        ${tool({ cls: 'edit-student-btn', tone: 'edit', icon: fa('fa-pencil-alt'), label: 'Edit', tipTitle: 'Edit details', tip: 'Opens the Adventurer\'s Passport: name, birthday, name day, and Move to another class.' })}
                         ${tool({ cls: 'delete-student-btn', tone: 'delete', icon: fa('fa-trash-alt'), label: 'Delete', tipTitle: 'Delete student', tip: 'Removes the student for good. You will be asked first.' })}
                     </div>
                 </div>
@@ -665,7 +656,7 @@ export function renderManageStudentsTab() {
     bindRosterActions(list);
 }
 
-// "Waiting for you" line under the roster key: what still needs the teacher, as plain counts.
+// "Waiting for you" line above the roster: what still needs the teacher, as plain counts.
 function renderRosterTodo(items) {
     const line = document.getElementById('roster-todo');
     if (!line) return;

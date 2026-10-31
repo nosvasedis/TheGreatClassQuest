@@ -13,7 +13,7 @@ test('the roster is morphed, so its tools use one delegated listener', () => {
 });
 
 test('every roster tool still has an action', () => {
-    const tools = ['delete-student-btn', 'certificate-student-btn', 'edit-student-btn', 'avatar-maker-btn', 'move-student-btn',
+    const tools = ['delete-student-btn', 'certificate-student-btn', 'edit-student-btn', 'avatar-maker-btn',
         'hero-chronicle-btn', 'parent-access-student-btn', 'guild-quiz-btn', 'hero-class-select-btn', 'skill-tree-btn'];
     const block = classes.slice(classes.indexOf('const ROSTER_ACTIONS = {'), classes.indexOf('const ROSTER_ACTION_SELECTOR'));
     for (const cls of tools) assert.match(block, new RegExp(`'${cls}':`), cls);

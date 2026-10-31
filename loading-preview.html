@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Loading screen preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Fredoka+One&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    html, body { margin: 0; min-height: 100%; }
+    .pv-next { position: fixed; inset: 0; display: grid; place-items: center; background: linear-gradient(180deg, #e0f2fe, #d1fae5); font: 600 20px system-ui; color: #0f4c81; }
+    .pv-toolbar { position: fixed; right: 10px; bottom: 10px; z-index: 2000; display: flex; flex-wrap: wrap; gap: 6px; max-width: calc(100vw - 20px); padding: 8px; border-radius: 14px; background: rgba(15, 23, 42, 0.82); font: 600 12px system-ui; }
+    .pv-toolbar button, .pv-toolbar select { border: 0; border-radius: 999px; padding: 5px 10px; font: inherit; cursor: pointer; }
+    body.pv-shot .pv-toolbar { display: none; }
+  </style>
+</head>
+<body>
+  <div class="pv-next" id="pv-next">The next screen (home, sign-in, plans…)</div>
+  <div id="app-root"></div>
+  <div class="pv-toolbar">
+    <select id="pv-role">
+      <option value="teacher">Teacher</option><option value="secretary">School Office</option>
+      <option value="parent">Family</option><option value="signedout">Signed out</option>
+    </select>
+    <select id="pv-part">
+      <option value="morning">Morning</option><option value="afternoon">Afternoon</option>
+      <option value="evening">Evening</option><option value="night">Night</option>
+    </select>
+    <select id="pv-speed">
+      <option value="fast">Fast network</option><option value="slow">Slow network</option>
+    </select>
+    <label style="color:#fff;display:flex;align-items:center;gap:4px"><input type="checkbox" id="pv-low" /> Weak laptop</label>
+    <label style="color:#fff;display:flex;align-items:center;gap:4px"><input type="checkbox" id="pv-gate" /> From the gate</label>
+    <button id="pv-play">Play</button>
+  </div>
+  <script type="module" src="/loading-preview.js"></script>
+</body>
+</html>

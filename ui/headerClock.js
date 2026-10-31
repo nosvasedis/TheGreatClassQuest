@@ -123,8 +123,8 @@ export function playHeaderIntroWhenRevealed(header) {
     const observer = new MutationObserver(() => {
         if (covering()) return;
         observer.disconnect();
-        // The loading scene holds full colour for the first half of its exit.
-        window.setTimeout(() => playHeaderIntro(header), loading.classList.contains('hidden') ? 0 : 320);
+        // The loading scene holds full colour while Lumi wooshes into the sun (styles/loading2.css).
+        window.setTimeout(() => playHeaderIntro(header), loading.classList.contains('hidden') ? 0 : 760);
     });
     observer.observe(loading, { attributes: true, attributeFilter: ['class'] });
     window.setTimeout(() => observer.disconnect(), 30000);

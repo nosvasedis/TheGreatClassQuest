@@ -54,26 +54,13 @@
         radial-gradient(circle at 88% 14%, rgba(253, 224, 71, 0.26), rgba(253, 224, 71, 0) 36%);
 }
 
-/* Shared cloud layer behavior */
-.loading-clouds,
+/* Storybook cloud layer (clouds built in templates/loading.js#initLoadingAtmosphere) */
 .loading-cloud-art-layer {
     position: absolute;
     inset: 0;
+    z-index: 2;
     pointer-events: none;
     overflow: hidden;
-}
-
-.loading-clouds {
-    z-index: 1;
-    opacity: 1;
-    /* Only transition compositor-friendly props in the finale (opacity/transform). */
-    transition: opacity 480ms cubic-bezier(0.25, 0.88, 0.32, 1), transform 480ms cubic-bezier(0.25, 0.88, 0.32, 1);
-}
-
-.loading-cloud-art-layer {
-    z-index: 2;
-    opacity: 1;
-    transition: opacity 480ms cubic-bezier(0.25, 0.88, 0.32, 1), transform 480ms cubic-bezier(0.25, 0.88, 0.32, 1);
 }
 
 /* ── The sun ────────────────────────────────────────────────────
@@ -242,10 +229,21 @@
     }
 }
 
-/* On the way out the sun climbs and glows, then leaves with the sky. */
+/* On the way out Lumi flies into the sun (styles/loading2.css): it swells
+   and flares as she reaches it, then leaves with the sky. */
 #loading-screen.loading-screen-exit .loading-sun__body {
-    transform: translate3d(-4%, -10%, 0) scale(1.22);
-    transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+    transform: scale(1.3);
+    transition: transform 0.7s cubic-bezier(0.34, 1.4, 0.64, 1) 0.6s;
+}
+
+#loading-screen.loading-screen-exit .loading-sun__bloom {
+    opacity: 1;
+    transform: scale(1.15);
+    transition-delay: 0.55s;
+}
+
+#loading-screen.loading-screen-exit .loading-sun__flare {
+    animation: loading-sun-flare 1s cubic-bezier(0.16, 1, 0.3, 1) 0.68s both;
 }
 
 /* Welcome: the clouds part like curtains (templates/loading.js#partCloudsForWelcome
@@ -265,37 +263,10 @@
     transition: opacity 1.6s ease;
 }
 
-.loading-cloud,
 .loading-cloud-art {
     position: absolute;
     will-change: transform;
 }
-
-.loading-cloud {
-    color: rgba(255, 255, 255, 0.94);
-    text-shadow: 0 16px 30px rgba(14, 116, 144, 0.2);
-    filter: saturate(1.04);
-}
-
-.loading-cloud .fa-cloud-meatball {
-    transform: scale(1.12, 0.94);
-}
-
-.loading-cloud i {
-    display: block;
-}
-
-/* Subtle per-lane shaping so clouds do not all look identical */
-.lc-1 i { transform: scale(1.16, 0.86); }
-.lc-2 i { transform: scale(1.22, 0.9); }
-.lc-3 i { transform: scale(1.06, 0.82); }
-.lc-4 i { transform: scale(1.18, 0.88); }
-.lc-5 i { transform: scale(1.28, 0.92); }
-.lc-6 i { transform: scale(1.12, 0.84); }
-.lc-7 i { transform: scale(1.2, 0.9); }
-.lc-8 i { transform: scale(1.14, 0.86); }
-.lc-9 i { transform: scale(1.24, 0.94); }
-.lc-10 i { transform: scale(1.1, 0.82); }
 
 @keyframes loading-cloud-right {
     from {
@@ -314,38 +285,6 @@
         transform: translate3d(calc(-170vw + var(--offset, 0vw)), var(--toY, 6px), var(--depth, 0px)) scale(var(--scale, 1));
     }
 }
-
-/* Far and mid cloud lanes (header/wallpaper style: steady drift, no opacity popping) */
-.lc-1,
-.lc-3,
-.lc-5,
-.lc-7,
-.lc-9 {
-    animation-name: loading-cloud-right;
-    animation-timing-function: linear;
-    animation-iteration-count: infinite;
-}
-
-.lc-2,
-.lc-4,
-.lc-6,
-.lc-8,
-.lc-10 {
-    animation-name: loading-cloud-left;
-    animation-timing-function: linear;
-    animation-iteration-count: infinite;
-}
-
-.lc-1 { top: 4%;  font-size: clamp(3.9rem, 7.2vw, 6.8rem); --offset: -36vw; --scale: 0.82; --depth: -280px; --fromY: 0px;  --toY: -7px; animation-duration: 166s; animation-delay: -72s; }
-.lc-2 { top: 14%; font-size: clamp(4.4rem, 8.2vw, 7.4rem); --offset: 14vw;  --scale: 0.88; --depth: -230px; --fromY: -3px; --toY: 6px;  animation-duration: 148s; animation-delay: -43s; }
-.lc-3 { top: 24%; font-size: clamp(4.3rem, 7.9vw, 7.2rem); --offset: 42vw;  --scale: 0.94; --depth: -180px; --fromY: 1px;  --toY: -6px; animation-duration: 132s; animation-delay: -86s; }
-.lc-4 { top: 34%; font-size: clamp(5rem, 8.8vw, 8.1rem);   --offset: -18vw; --scale: 1;    --depth: -136px; --fromY: -2px; --toY: 6px;  animation-duration: 122s;  animation-delay: -56s; }
-.lc-5 { top: 46%; font-size: clamp(5.6rem, 9.8vw, 8.7rem); --offset: -44vw; --scale: 1.08; --depth: -96px;  --fromY: 2px;  --toY: -8px; animation-duration: 112s;  animation-delay: -64s; }
-.lc-6 { top: 57%; font-size: clamp(5.2rem, 9.4vw, 8.3rem); --offset: 29vw;  --scale: 1.06; --depth: -64px;  --fromY: -2px; --toY: 7px;  animation-duration: 104s;  animation-delay: -36s; }
-.lc-7 { top: 69%; font-size: clamp(5.9rem, 10.3vw, 9.1rem); --offset: -22vw; --scale: 1.12; --depth: -36px;  --fromY: 1px;  --toY: -8px; animation-duration: 96s;  animation-delay: -68s; }
-.lc-8 { top: 79%; font-size: clamp(6.2rem, 10.8vw, 9.7rem); --offset: 33vw;  --scale: 1.2;  --depth: -14px;  --fromY: -1px; --toY: 8px;  animation-duration: 88s;  animation-delay: -21s; }
-.lc-9 { top: 89%; font-size: clamp(6rem, 10.5vw, 9.8rem);  --offset: -12vw; --scale: 1.18; --depth: 4px;    --fromY: 1px;  --toY: -6px; animation-duration: 84s;  animation-delay: -50s; }
-.lc-10 { top: 95%; font-size: clamp(5.6rem, 9.9vw, 9.1rem); --offset: 45vw;  --scale: 1.08; --depth: 16px;   --fromY: -2px; --toY: 6px;  animation-duration: 78s;  animation-delay: -31s; }
 
 /* Storybook clouds: the same generated shapes as the app's sky (features/skyWeatherArt.js),
    in fair-day colours. Flat SVG fills, no filters. */
@@ -594,372 +533,24 @@
         rgba(244, 250, 255, 0.82) 100%);
 }
 
+/* Timed against the 1.2s exit: the sun's light swells as Lumi reaches it
+   (0.6s), then the veil settles while the scene fades. */
 #loading-screen.loading-screen-exit .loading-daylight::before {
-    animation: loading-sunlight-swell 950ms cubic-bezier(0.33, 0, 0.2, 1) forwards;
+    animation: loading-sunlight-swell 600ms cubic-bezier(0.33, 0, 0.2, 1) 560ms both;
 }
 
 #loading-screen.loading-screen-exit .loading-daylight::after {
-    animation: loading-daylight-veil 950ms cubic-bezier(0.45, 0, 0.55, 1) forwards;
+    animation: loading-daylight-veil 520ms cubic-bezier(0.45, 0, 0.55, 1) 680ms both;
 }
 
 @keyframes loading-sunlight-swell {
-    0% { opacity: 0; }
-    55% { opacity: 1; }
-    100% { opacity: 1; }
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 @keyframes loading-daylight-veil {
-    0%, 22% { opacity: 0; }
-    78% { opacity: 0.85; }
-    100% { opacity: 0.85; }
-}
-
-/* Open-sky content cluster (no card/panel shell) */
-.loading-stage {
-    position: relative;
-    z-index: 4;
-    width: min(92vw, 760px);
-    min-height: min(70vh, 560px);
-    padding: clamp(1rem, 2vw, 1.8rem) clamp(1rem, 3.8vw, 2.5rem);
-
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.56rem;
-
-    background: transparent;
-    border: 0;
-    box-shadow: none;
-    transform: translateY(-6px);
-}
-
-.loading-stage::before {
-    content: '';
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: min(84vw, 700px);
-    height: min(54vh, 420px);
-    transform: translate(-50%, -50%);
-    border-radius: 50%;
-    /* closest-side keeps the fade inside the box, so no edge shows. */
-    background: radial-gradient(closest-side, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.3) 45%, rgba(255, 255, 255, 0.08) 75%, rgba(255, 255, 255, 0) 100%);
-    pointer-events: none;
-    z-index: -1;
-}
-
-@keyframes loading-glow-pulse {
-    0% {
-        opacity: 0.32;
-        transform: scale(0.98);
-    }
-    100% {
-        opacity: 0.62;
-        transform: scale(1.03);
-    }
-}
-
-.loading-title {
-    position: relative;
-    z-index: 3;
-    font-family: var(--gcq-font-title) !important;
-    font-size: clamp(2.3rem, 6.4vw, 3.7rem) !important;
-    letter-spacing: 0.02em !important;
-    text-align: center !important;
-    margin: 0.5rem 0 0.1rem !important;
-    color: transparent !important;
-    /* Its own layer from the first frame, so the Welcome's move never has to
-       promote it (and re-raster the words) halfway through. */
-    will-change: transform;
-}
-
-/* Storybook gradient fill — deep sky blue into cyan into gold. It sits on an
-   inner span, not on .loading-title itself: background-clip:text on the
-   title would force its ::before glow to be repainted with the words on
-   every frame of the glow's breathing. */
-.loading-title__ink {
-    display: block;
-    background: linear-gradient(120deg, #0f4c81 0%, #0ea5e9 46%, #fbbf24 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    -webkit-text-stroke: 0.6px rgba(255, 255, 255, 0.55);
-    text-shadow: 0 3px 8px rgba(15, 23, 42, 0.16);
-    transition: opacity 0.6s ease;
-}
-
-/* The Welcome look (dark inner edge, warm halo) is a second copy painted up
-   front. The two crossfade, so nothing about the words is ever restyled, and
-   so repainted, while they move. */
-.loading-title__ink--gold {
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    -webkit-text-stroke: 1.5px rgba(0, 0, 0, 0.55);
-    text-shadow: 0 3px 10px rgba(15, 23, 42, 0.22), 0 0 26px rgba(253, 224, 71, 0.34);
-}
-
-/* The sky-blue copy stays fully opaque underneath, so the words never go
-   see-through halfway; the golden copy simply fades in over it. */
-#loading-screen.loading-final-moment .loading-title__ink--gold { opacity: 1; }
-
-/* Cheap "glow breathing" — a single blurred duplicate of the title text that
-   only ever animates opacity/transform (compositor-only), instead of the
-   previous per-frame animated multi-layer text-shadow. */
-.loading-title::before {
-    content: attr(data-text);
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    font: inherit;
-    letter-spacing: inherit;
-    text-align: inherit;
-    /* The glow is a text-shadow on see-through letters: painted once, so
-       breathing it is compositor-only (a blur filter was re-run per frame). */
-    color: transparent;
-    -webkit-text-stroke: 0;
-    text-shadow: 0 0 14px #7dd3fc, 0 0 30px rgba(125, 211, 252, 0.7);
-    opacity: 0.45;
-    pointer-events: none;
-    will-change: opacity, transform;
-    transition: opacity 0.6s ease;
-}
-
-/* The Welcome's golden glow: its own pre-painted layer that fades in while
-   the sky-blue one fades out. */
-.loading-title::after {
-    content: attr(data-text);
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    font: inherit;
-    letter-spacing: inherit;
-    text-align: inherit;
-    color: transparent;
-    -webkit-text-stroke: 0;
-    text-shadow: 0 0 18px #fde047, 0 0 36px rgba(253, 224, 71, 0.7);
-    opacity: 0;
-    pointer-events: none;
-    will-change: opacity;
-    transition: opacity 0.7s ease 0.1s;
-}
-
-#loading-screen.loading-final-moment .loading-title::after {
-    opacity: 0.9;
-}
-
-/* Start breathing only once the words are visible. Chrome decides once, at
-   an animation's start, whether it can run on the compositor; one started
-   while the title is still hidden counts as "no visible change" and stays
-   on the main thread, repainting the title on every frame. */
-#loading-screen.loading-text-ready .loading-title::before {
-    animation: loading-glow-pulse 2.8s ease-in-out infinite alternate;
-}
-
-.loading-title-flourish {
-    position: relative;
-    z-index: 3;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    width: min(58%, 220px);
-    margin: 0.05rem auto 0.4rem;
-}
-
-.loading-flourish-line {
-    flex: 1 1 auto;
-    height: 2px;
-    border-radius: 999px;
-    background: linear-gradient(90deg, rgba(251, 191, 36, 0) 0%, rgba(245, 158, 11, 0.8) 50%, rgba(251, 191, 36, 0) 100%);
-}
-
-.loading-flourish-gem {
-    flex: 0 0 auto;
-    width: 8px;
-    height: 8px;
-    border-radius: 2px;
-    background: linear-gradient(135deg, #fef9c3, #fbbf24);
-    box-shadow: 0 0 6px rgba(251, 191, 36, 0.55);
-    transform: rotate(45deg);
-}
-
-.loading-subtitle {
-    font-family: var(--gcq-font-title);
-    font-size: clamp(0.6rem, 1.45vw, 0.84rem);
-    letter-spacing: 0.09em;
-    color: #0891b2;
-    text-transform: uppercase;
-    opacity: 0.9;
-    margin-bottom: 0.15rem;
-    text-align: center;
-}
-
-.loading-subtitle::before,
-.loading-subtitle::after {
-    content: '\2726';
-    display: inline-block;
-    color: #fbbf24;
-    font-size: 0.7em;
-    opacity: 0.85;
-}
-
-.loading-subtitle::before {
-    margin-right: 0.5em;
-}
-
-.loading-subtitle::after {
-    margin-left: 0.5em;
-}
-
-/* Spinner */
-.loading-spinner-wrap {
-    position: relative;
-    width: 200px;
-    height: 200px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    z-index: 4;
-    margin: 0.2rem 0 0.2rem;
-}
-
-/* The logo breathes with transform only; its glow is a gradient behind it
-   that fades in step. (Animating a drop-shadow filter forced a repaint every
-   frame on the main thread, so the logo hitched while the app was booting.) */
-@keyframes load-logo-pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.08); }
-}
-
-@keyframes load-logo-glow {
-    0%, 100% { opacity: 0.5; transform: scale(0.9); }
-    50% { opacity: 1; transform: scale(1.12); }
-}
-
-.loading-center-logo {
-    position: relative;
-    width: 128px !important;
-    height: 128px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    animation: load-logo-pulse 2.4s ease-in-out infinite !important;
-    z-index: 10;
-    margin: 0 auto !important;
-}
-
-.loading-center-logo::before {
-    content: '';
-    position: absolute;
-    inset: -26%;
-    z-index: -1;
-    border-radius: 50%;
-    background: radial-gradient(circle,
-        rgba(253, 224, 71, 0.62) 0%,
-        rgba(251, 191, 36, 0.3) 38%,
-        rgba(245, 158, 11, 0) 68%);
-    animation: load-logo-glow 2.4s ease-in-out infinite;
-}
-
-.loading-center-logo img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    user-select: none;
-    pointer-events: none;
-    /* Static, so it is painted once into the logo's layer. */
-    filter: drop-shadow(0 4px 10px rgba(180, 83, 9, 0.22));
-}
-
-/* Two comet rings (SVG in templates/loading.js): gold heads trailing fading
-   tails, the inner one counter-turning. Plain rotations, no filters. */
-.loading-simple-ring {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 178px;
-    height: 178px;
-    z-index: 5;
-    animation: ring-spin-center 3s linear infinite;
-}
-
-.loading-simple-ring svg {
-    display: block;
-    width: 100%;
-    height: 100%;
-    overflow: visible;
-}
-
-.loading-simple-ring__inner {
-    position: absolute;
-    inset: 0;
-    animation: ring-spin-normal 1.8s linear infinite reverse;
-}
-
-@keyframes ring-spin-center {
-    from { transform: translate(-50%, -50%) rotate(0deg); }
-    to { transform: translate(-50%, -50%) rotate(360deg); }
-}
-
-@keyframes ring-spin-normal {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
-/* --- Auto-detected low-power devices (templates/loading.js: detectLowPowerTier) ---
-   The scene no longer uses filters anywhere, so constrained machines keep the
-   same look; they just get fewer clouds, balloons and birds (set in
-   initLoadingAtmosphere). */
-
-@media (max-width: 640px) {
-    .loading-stage {
-        width: min(95vw, 540px);
-        min-height: min(72vh, 520px);
-        padding: 1rem 0.9rem;
-        transform: translateY(-2px);
-    }
-
-    .loading-stage::before {
-        width: min(96vw, 560px);
-        height: min(46vh, 360px);
-    }
-
-    .loading-spinner-wrap {
-        width: 180px;
-        height: 180px;
-    }
-
-    .loading-simple-ring {
-        width: 160px;
-        height: 160px;
-    }
-
-    .loading-center-logo {
-        width: 108px !important;
-        height: 108px !important;
-    }
-
-    .loading-cloud {
-        text-shadow: 0 10px 22px rgba(14, 116, 144, 0.18);
-    }
-
-    .lc-1, .lc-2, .lc-3, .lc-4, .lc-5, .lc-6, .lc-7, .lc-8, .lc-9, .lc-10 {
-        animation-duration: calc(var(--mobileDuration, 0s) + 0s);
-    }
-
-    .lc-1 { --mobileDuration: 104s; }
-    .lc-2 { --mobileDuration: 98s; }
-    .lc-3 { --mobileDuration: 93s; }
-    .lc-4 { --mobileDuration: 86s; }
-    .lc-5 { --mobileDuration: 80s; }
-    .lc-6 { --mobileDuration: 76s; }
-    .lc-7 { --mobileDuration: 70s; }
-    .lc-8 { --mobileDuration: 64s; }
-    .lc-9 { --mobileDuration: 60s; }
-    .lc-10 { --mobileDuration: 56s; }
+    from { opacity: 0; }
+    to { opacity: 0.85; }
 }
 
 /* ── Arriving through the Quest Gate ─────────────────────────────────────────

@@ -118,13 +118,15 @@ export function playGreetingIntro(panel) {
         return;
     }
     const screen = document.getElementById('loading-screen');
+    // Wait for Lumi's woosh (not the Welcome before it), and start as the scene begins to fade.
     const observer = new MutationObserver(() => {
-        if (screen.dataset.exiting === 'true' || screen.classList.contains('hidden')) {
+        const hidden = screen.classList.contains('hidden');
+        if (hidden || screen.classList.contains('loading-screen-exit')) {
             observer.disconnect();
-            setTimeout(start, 380);
+            setTimeout(start, hidden ? 0 : 760);
         }
     });
-    observer.observe(screen, { attributes: true, attributeFilter: ['class', 'data-exiting'] });
+    observer.observe(screen, { attributes: true, attributeFilter: ['class'] });
     setTimeout(() => { observer.disconnect(); if (panel.classList.contains('is-greeting-await')) start(); }, 9000);
 }
 

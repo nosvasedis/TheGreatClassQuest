@@ -14,6 +14,7 @@ import { hideModal, showAnimatedModal } from '../modals/base.js';
 import { openFortunesWheel, advanceWheel, triggerSpin, closeFortunesWheel, canSpinThisWeek, getWheelState } from '../../features/fortunesWheel.js';
 import { GLORY_EMOJI } from '../../constants.js';
 import * as state from '../../state.js';
+import { showToast } from '../effects.js';
 import { isGameplaySeasonLiveFromAppState } from '../../utils/schoolYear.js';
 
 /** Guild scores stay frozen while the school year is sealed. */
@@ -1143,7 +1144,58 @@ function _patchChronicle(hall) {
     const chronicle = list[index];
     box.hidden = false;
     _setHtml(box, _chronicleView.chroniclePanelHtml(chronicle, { index, total: list.length, canSpeak: isTtsSupported() }));
+    _syncChronicleRead(hall);
     hall.querySelectorAll('.gh-stone[data-chronicle-key]').forEach((el) => el.classList.toggle('is-chronicled', el.dataset.chronicleKey === chronicle.key));
+}
+
+// Which chronicle is being read aloud: 'waiting' while a voice is found, then 'reading'.
+let _chronicleSpeech = null;
+
+/** The Read aloud button shows its state in place, so the scroll's ink never replays. */
+function _syncChronicleRead(hall) {
+    const button = hall?.querySelector('[data-chronicle-read]');
+    if (!button) return;
+    const shown = hall.querySelector('[data-chronicle-shown]')?.dataset.chronicleShown;
+    const phase = _chronicleSpeech && _chronicleSpeech.key === shown ? _chronicleSpeech.phase : '';
+    const label = phase === 'waiting' ? 'Finding a voice…' : phase === 'reading' ? 'Stop reading' : 'Read aloud';
+    const icon = phase === 'waiting' ? 'fa-circle-notch fa-spin' : phase === 'reading' ? 'fa-stop' : 'fa-volume-high';
+    if (button.dataset.phase === phase) return;
+    button.dataset.phase = phase;
+    button.setAttribute('aria-pressed', phase ? 'true' : 'false');
+    button.innerHTML = `<i class="fas ${icon}" aria-hidden="true"></i>${label}`;
+}
+
+function _readChronicle(hall, c) {
+    const same = _chronicleSpeech?.key === c.key;
+    if (_chronicleSpeech || isSpeaking()) {
+        stopSpeech();
+        _chronicleSpeech = null;
+        _syncChronicleRead(hall);
+        if (same) return;
+    }
+    const speech = { key: c.key, phase: 'waiting' };
+    const done = () => {
+        if (_chronicleSpeech !== speech) return;
+        _chronicleSpeech = null;
+        _syncChronicleRead(hall.isConnected ? hall : document);
+    };
+    _chronicleSpeech = speech;
+    const started = speakText(`The chronicle of ${c.month}. ${c.lines.join(' ')}`, {
+        voiceHint: 'en',
+        rate: 0.92,
+        onStart: () => {
+            if (_chronicleSpeech !== speech) return;
+            speech.phase = 'reading';
+            _syncChronicleRead(hall.isConnected ? hall : document);
+        },
+        onEnd: done,
+        onError: () => {
+            done();
+            showToast('Read aloud is not available on this laptop right now.', 'info');
+        },
+    });
+    if (!started) _chronicleSpeech = null;
+    _syncChronicleRead(hall);
 }
 
 function _chronicleAction(hall, t) {
@@ -1155,10 +1207,7 @@ function _chronicleAction(hall, t) {
     const shown = hall.querySelector('[data-chronicle-shown]')?.dataset.chronicleShown;
     if (read) {
         const c = list.find((x) => x.key === shown);
-        if (c && isTtsSupported()) {
-            if (isSpeaking()) stopSpeech();
-            else speakText(`The chronicle of ${c.month}. ${c.lines.join(' ')}`, { voiceHint: 'en', rate: 0.92 });
-        }
+        if (c && isTtsSupported()) _readChronicle(hall, c);
         return true;
     }
     if (nav && !nav.disabled) {

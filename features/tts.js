@@ -1,8 +1,15 @@
 // English narration uses MeloTTS, or a named cloud voice when the caller asks for one
 // (the quiz cast); device voices remain the free fallback.
+// Every cloud line is also kept on this laptop (Cache API), so a chronicle or quiz line heard
+// once replays without the network or the day's free allowance. When the cloud says the
+// allowance is spent (429), it rests for a while (remembered across reloads) and the best
+// voice this laptop has reads instead, so read aloud never just fails.
 let activeSpeech = null;
 let narrationAudio = null;
-let cloudUnavailableUntil = 0;
+const REST_KEY = 'gcq.cloudSpeechRestUntil';
+let cloudUnavailableUntil = readRest();
+const DISK_CACHE = 'gcq-speech-v1';
+const DISK_CACHE_MAX = 160;
 const audioCache = new Map();
 const pendingAudio = new Map();
 const MAX_CACHE_BYTES = 12 * 1024 * 1024;
@@ -63,6 +70,68 @@ export function splitSpeechText(text, maxLength = 650) {
     return chunks;
 }
 
+function readRest() {
+    try { return Math.max(0, Number(globalThis.localStorage?.getItem(REST_KEY)) || 0); } catch (_) { return 0; }
+}
+
+/** How long the cloud voice rests after a failure: a spent allowance rests far longer than a blip. */
+export function cloudRestMs(error) {
+    const status = Number(error?.status) || 0;
+    const source = String(error?.source || '');
+    if (status === 429 && source === 'speech-unavailable') return 30 * 60_000; // the day's free allowance is spent
+    if (status === 429) return Math.min(10 * 60_000, Math.max(60_000, (Number(error?.retryAfter) || 0) * 1000));
+    if (status === 403 && source.startsWith('school-ai')) return 6 * 3_600_000; // not in this school's plan
+    if (status === 503 && source === 'speech-free-plan') return 6 * 3_600_000;
+    return 60_000;
+}
+
+function restCloud(error) {
+    cloudUnavailableUntil = Math.max(cloudUnavailableUntil, Date.now() + cloudRestMs(error));
+    try { globalThis.localStorage?.setItem(REST_KEY, String(cloudUnavailableUntil)); } catch (_) { /* private window */ }
+}
+
+function cloudResting() {
+    return Date.now() < cloudUnavailableUntil;
+}
+
+async function diskUrl(key) {
+    const bytes = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(key)));
+    return `https://gcq-speech.invalid/${[...bytes].map((b) => b.toString(16).padStart(2, '0')).join('')}`;
+}
+
+function diskAvailable() {
+    return typeof caches !== 'undefined' && typeof crypto !== 'undefined' && !!crypto.subtle;
+}
+
+/** A cloud line kept on this laptop from an earlier play, or null. */
+async function readDisk(key) {
+    if (!diskAvailable()) return null;
+    try {
+        const cache = await caches.open(DISK_CACHE);
+        const hit = await cache.match(await diskUrl(key));
+        if (!hit) return null;
+        const blob = await hit.blob();
+        if (blob.size < 32) return null;
+        blob.speechProvider = hit.headers.get('X-GCQ-AI-Provider') || '';
+        return blob;
+    } catch (_) {
+        return null;
+    }
+}
+
+async function writeDisk(key, blob) {
+    if (!diskAvailable() || !blob?.size || blob.size > 4 * 1024 * 1024) return;
+    try {
+        const cache = await caches.open(DISK_CACHE);
+        await cache.put(await diskUrl(key), new Response(blob, { headers: {
+            'Content-Type': blob.type || 'audio/mpeg', 'X-GCQ-AI-Provider': blob.speechProvider || '',
+        } }));
+        const keys = await cache.keys();
+        // Oldest first: drop the lines heard longest ago.
+        for (const old of keys.slice(0, Math.max(0, keys.length - DISK_CACHE_MAX))) await cache.delete(old);
+    } catch (_) { /* storage full or blocked: the line simply is not kept */ }
+}
+
 function rememberAudio(key, blob) {
     if (blob.size > MAX_CACHE_BYTES) return;
     while (audioCache.size && (cacheBytes + blob.size > MAX_CACHE_BYTES || audioCache.size >= 48)) {
@@ -80,15 +149,22 @@ function rememberAudio(key, blob) {
  */
 export function prefetchSpeech(text, { voice = '' } = {}) {
     const cleanText = String(text || '').trim();
-    if (!cleanText || typeof Audio === 'undefined' || Date.now() < cloudUnavailableUntil) return;
+    if (!cleanText || typeof Audio === 'undefined') return;
     if (/[\u0370-\u03ff\u1f00-\u1fff]/u.test(cleanText)) return;
     for (const chunk of splitSpeechText(cleanText)) {
         const key = cacheKey(chunk, voice);
         if (audioCache.has(key) || pendingAudio.has(key)) continue;
-        const request = import('../api.js')
-            .then(({ callSpeechApi }) => callSpeechApi(chunk, voice ? { voice } : undefined))
-            .then((blob) => { rememberAudio(key, blob); return blob; })
-            .catch(() => { cloudUnavailableUntil = Date.now() + 60000; return null; })
+        const request = readDisk(key)
+            .then(async (kept) => {
+                if (kept) return kept;
+                if (cloudResting()) return null;
+                const { callSpeechApi } = await import('../api.js');
+                const blob = await callSpeechApi(chunk, voice ? { voice } : undefined);
+                void writeDisk(key, blob);
+                return blob;
+            })
+            .then((blob) => { if (blob) rememberAudio(key, blob); return blob; })
+            .catch((error) => { restCloud(error); return null; })
             .finally(() => pendingAudio.delete(key));
         pendingAudio.set(key, request);
     }
@@ -194,7 +270,37 @@ async function playAudio(job, blob) {
     });
 }
 
-async function pickDeviceVoice(job) {
+// Voices a browser ships for fun, never for reading to a class (macOS novelty voices).
+const NOVELTY_VOICES = /\b(albert|bad news|bahh|bells|boing|bubbles|cellos|good news|jester|organ|superstar|trinoids|whisper|wobble|zarvox|deranged|hysterical|ralph|fred|junior|kathy|princess)\b/i;
+
+/**
+ * Device voices for `hint` (a language like 'en' or 'el'), best first. Neural voices (Edge's
+ * "Online (Natural)", Safari's Premium/Enhanced) read far better than the old desktop ones, and
+ * a British English voice suits the classroom best. Pure, so it can be tested.
+ */
+export function rankDeviceVoices(voices = [], hint = 'en') {
+    const want = String(hint || 'en').toLowerCase();
+    const score = (v) => {
+        const lang = String(v.lang || '').toLowerCase().replace('_', '-');
+        const name = String(v.name || '');
+        let points = 0;
+        if (want === 'en') points += lang === 'en-gb' ? 4 : lang === 'en-us' ? 3 : /^en-(au|ie|nz|ca)/.test(lang) ? 2 : 1;
+        if (/natural|neural/i.test(name)) points += 10;
+        if (/premium|enhanced/i.test(name)) points += 6;
+        if (/^google\b/i.test(name)) points += 5;
+        if (/online/i.test(name)) points += 2;
+        if (NOVELTY_VOICES.test(name)) points -= 20;
+        if (v.default) points += 0.5;
+        return points;
+    };
+    return voices
+        .filter((v) => String(v.lang || '').toLowerCase().startsWith(want) || String(v.name || '').toLowerCase().includes(want))
+        .map((v, i) => ({ v, i, s: score(v) }))
+        .sort((a, b) => b.s - a.s || a.i - b.i)
+        .map((x) => x.v);
+}
+
+async function deviceVoices(job) {
     const synth = window.speechSynthesis;
     if (!synth.getVoices().length) {
         await new Promise(resolve => {
@@ -204,15 +310,11 @@ async function pickDeviceVoice(job) {
         });
     }
     const hint = String(job.opts.lang || job.opts.voiceHint || 'en').toLowerCase();
-    return synth.getVoices().find(v => v.lang.toLowerCase().startsWith(hint)
-        || v.name.toLowerCase().includes(hint)) || null;
+    return rankDeviceVoices(synth.getVoices(), hint.split('-')[0] === 'en' ? 'en' : hint);
 }
 
-async function playDevice(job, text) {
-    if (!deviceSupported()) throw new Error('Narration is unavailable on this device');
-    const voice = await pickDeviceVoice(job);
-    if (!alive(job)) return;
-    await new Promise((resolve, reject) => {
+function speakPiece(job, text, voice) {
+    return new Promise((resolve, reject) => {
         const utterance = new SpeechSynthesisUtterance(text);
         job.utterance = utterance;
         utterance.voice = voice;
@@ -226,7 +328,7 @@ async function playDevice(job, text) {
             job.cancelPlayback = null;
             error ? reject(error) : resolve();
         };
-        const timer = setTimeout(() => { finish(new Error('Device narration stalled')); synthCancel(); }, 180000);
+        const timer = setTimeout(() => { finish(new Error('Device narration stalled')); synthCancel(); }, 60000);
         job.cancelPlayback = () => finish(new DOMException('Stopped', 'AbortError'));
         utterance.onstart = () => start(job);
         utterance.onend = () => finish();
@@ -238,35 +340,65 @@ async function playDevice(job, text) {
     });
 }
 
+// Chrome's online voices fall silent after about 15 seconds of one utterance, so the device
+// reads a sentence or two at a time. A voice that fails (an online voice with no network)
+// hands its words to the next best voice.
+async function playDevice(job, text) {
+    if (!deviceSupported()) throw new Error('Narration is unavailable on this device');
+    job.deviceVoices ||= await deviceVoices(job);
+    if (!alive(job)) return;
+    for (const piece of splitSpeechText(text, 220)) {
+        for (;;) {
+            if (!alive(job)) return;
+            try {
+                await speakPiece(job, piece, job.deviceVoices[0] || null);
+                break;
+            } catch (error) {
+                if (!alive(job) || error?.name === 'AbortError') return;
+                if (job.deviceVoices.length < 2 || /interrupted|canceled/.test(String(error?.message))) throw error;
+                job.deviceVoices = job.deviceVoices.slice(1);
+            }
+        }
+    }
+}
+
 function synthCancel() { if (deviceSupported()) window.speechSynthesis.cancel(); }
+
+async function cloudAudio(job, chunk, voice, state) {
+    const key = cacheKey(chunk, voice);
+    let blob = audioCache.get(key) || null;
+    if (!blob && pendingAudio.has(key)) blob = await pendingAudio.get(key);
+    if (!blob) {
+        blob = await readDisk(key);
+        if (blob) rememberAudio(key, blob);
+    }
+    if (blob || !state.network || !alive(job)) return blob;
+    if (cloudResting()) { state.network = false; return null; }
+    try {
+        const { callSpeechApi } = await import('../api.js');
+        if (!alive(job)) return null;
+        blob = await callSpeechApi(chunk, voice ? { signal: job.controller.signal, voice } : { signal: job.controller.signal });
+        if (!alive(job)) return null;
+        rememberAudio(key, blob);
+        void writeDisk(key, blob);
+        return blob;
+    } catch (error) {
+        if (alive(job)) restCloud(error);
+        state.network = false;
+        return null;
+    }
+}
 
 async function narrate(job, text) {
     const hint = String(job.opts.lang || job.opts.voiceHint || 'en').toLowerCase();
-    let cloud = !!job.audio && hint.startsWith('en') && !/[\u0370-\u03ff\u1f00-\u1fff]/u.test(text);
+    let cloud = !!job.audio && hint.startsWith('en') && !/[Ͱ-Ͽἀ-῿]/u.test(text);
     const voice = String(job.opts.voice || '');
+    const state = { network: true };
     for (const chunk of splitSpeechText(text)) {
         if (!alive(job)) return;
         if (cloud) {
-            const key = cacheKey(chunk, voice);
-            let blob = audioCache.get(key);
-            if (!blob && pendingAudio.has(key)) {
-                blob = await pendingAudio.get(key);
-                if (!alive(job)) return;
-            }
-            try {
-                if (!blob) {
-                    if (Date.now() < cloudUnavailableUntil) throw new Error('Cloud speech cooling down');
-                    const { callSpeechApi } = await import('../api.js');
-                    if (!alive(job)) return;
-                    blob = await callSpeechApi(chunk, voice ? { signal: job.controller.signal, voice } : { signal: job.controller.signal });
-                    if (!alive(job)) return;
-                    rememberAudio(key, blob);
-                }
-            } catch (error) {
-                if (!alive(job)) return;
-                cloudUnavailableUntil = Date.now() + 60000;
-                cloud = false;
-            }
+            const blob = await cloudAudio(job, chunk, voice, state);
+            if (!alive(job)) return;
             if (blob) {
                 await job.unlock;
                 if (!alive(job)) return;

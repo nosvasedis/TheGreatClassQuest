@@ -1013,6 +1013,15 @@ async function handleSpeech(payload, env, ctx, corsHeaders) {
   }
   const voiced = await namedVoice(payload, text, env, ctx, corsHeaders);
   if (voiced) return voiced;
+  // MeloTTS lines are kept for a month like the named voices: a chronicle or story page read
+  // once replays free on every laptop, even after the day's free allowance is spent.
+  const cacheKey = env.QUOTE_CACHE ? `voice-audio:v1:melotts:${await sha256Hex(text)}` : '';
+  if (cacheKey) {
+    try {
+      const cached = await env.QUOTE_CACHE.get(cacheKey, { type: 'arrayBuffer' });
+      if (cached && cached.byteLength > 32) return speechAudioResponse(new Uint8Array(cached), SPEECH_MODEL, corsHeaders);
+    } catch (_) { /* a bad cache entry falls through to a fresh line */ }
+  }
   try {
     const bytes = await withDeadline((async () => {
       const result = await env.AI.run(SPEECH_MODEL, { prompt: text, lang: 'en' });
@@ -1026,11 +1035,17 @@ async function handleSpeech(payload, env, ctx, corsHeaders) {
       return new Uint8Array(await (result instanceof Response ? result : new Response(result)).arrayBuffer());
     })(), 25_000, SPEECH_MODEL);
     // The live model returns base64 WAV despite the catalog also advertising MP3.
-    return speechAudioResponse(bytes, SPEECH_MODEL, corsHeaders);
+    const response = speechAudioResponse(bytes, SPEECH_MODEL, corsHeaders);
+    if (cacheKey) {
+      const save = env.QUOTE_CACHE.put(cacheKey, bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), { expirationTtl: VOICE_CACHE_TTL }).catch(() => {});
+      if (ctx?.waitUntil) ctx.waitUntil(save);
+    }
+    return response;
   } catch (error) {
     const quota = isWorkersAiQuotaError(error);
+    // The free allowance refills at 00:00 UTC; the app rests its cloud voice meanwhile.
     return json({ error: quota ? 'Free speech allowance is temporarily unavailable.' : 'Speech generation is temporarily unavailable.' },
-      quota ? 429 : 503, corsHeaders, { 'X-GCQ-Error-Source': 'speech-unavailable' });
+      quota ? 429 : 503, corsHeaders, { 'X-GCQ-Error-Source': 'speech-unavailable', ...(quota ? { 'Retry-After': String(secondsUntilUtcMidnight()) } : {}) });
   }
 }
 

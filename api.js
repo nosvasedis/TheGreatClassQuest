@@ -52,7 +52,13 @@ export async function callSpeechApi(text, { signal, voice = '' } = {}) {
             }
             if (!response.ok || !response.headers.get('Content-Type')?.startsWith('audio/')) {
                 await response.body?.cancel();
-                throw new Error(`Speech unavailable (${response.status})`);
+                // tts.js reads these to decide how long the cloud voice rests (a spent free
+                // allowance rests far longer than a one-off hiccup).
+                const error = new Error(`Speech unavailable (${response.status})`);
+                error.status = response.status;
+                error.source = response.headers.get('X-GCQ-Error-Source') || '';
+                error.retryAfter = Number(response.headers.get('Retry-After')) || 0;
+                throw error;
             }
             const blob = await response.blob();
             if (!blob.size) throw new Error('Empty speech audio');

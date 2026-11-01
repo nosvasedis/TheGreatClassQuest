@@ -93,7 +93,7 @@ test('speech quota failures and malformed upstream output never use a paid fallb
 
 async function setupNarrator(t, generate, { autoEnd = true, denyAudio = false, voices = true } = {}) {
     let source = await readFile(new URL('features/tts.js', root), 'utf8');
-    source = source.replace("await import('../api.js')", '({ callSpeechApi: globalThis.__speechGenerate })');
+    source = source.replaceAll("await import('../api.js')", '({ callSpeechApi: globalThis.__speechGenerate })');
     const audios = [];
     const spoken = [];
     const released = [];
@@ -329,4 +329,113 @@ test('quiz voices cache apart, name the speaker, and MeloTTS plays slower than a
     assert.equal(narrator.audios[0].playbackRate, 0.88);
     await speak({ voice: 'luna', rate: 1 });
     assert.deepEqual(calls, ['luna', 'orion']);
+});
+
+function memoryCaches() {
+    const stores = new Map();
+    return { stores, async open(name) {
+        if (!stores.has(name)) {
+            const map = new Map();
+            stores.set(name, { map, async match(url) { const hit = map.get(url); return hit ? hit.clone() : undefined; },
+                async put(url, response) { map.set(url, response); }, async keys() { return [...map.keys()]; },
+                async delete(url) { return map.delete(url); } });
+        }
+        return stores.get(name);
+    } };
+}
+const settle = async () => { for (let i = 0; i < 20; i += 1) await tick(); };
+
+test('a spent free allowance rests the cloud voice across reloads and the device voice reads', async t => {
+    const store = new Map();
+    setGlobal(t, 'localStorage', { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)) });
+    let calls = 0;
+    const quota = () => { calls++; const e = new Error('Speech unavailable (429)'); e.status = 429; e.source = 'speech-unavailable'; throw e; };
+    const narrator = await setupNarrator(t, async () => quota());
+    let ends = 0, errors = 0;
+    narrator.speakText('The chronicle of October.', { voiceHint: 'en', onEnd() { ends++; }, onError() { errors++; } });
+    await settle();
+    assert.equal(calls, 1);
+    assert.equal(ends, 1); assert.equal(errors, 0);
+    assert.equal(narrator.spoken.length, 1);
+    const restUntil = Number(store.get('gcq.cloudSpeechRestUntil'));
+    assert.ok(restUntil - Date.now() > 29 * 60_000, 'rests about half an hour');
+    // A fresh page load reads the rest and goes straight to the device voice.
+    const reloaded = await setupNarrator(t, async () => quota());
+    reloaded.speakText('Another line.', { voiceHint: 'en', onEnd() { ends++; } });
+    await settle();
+    assert.equal(calls, 1);
+    assert.equal(ends, 2);
+});
+
+test('cloud rest lengths follow the reason', async t => {
+    const narrator = await setupNarrator(t, async () => new Blob([mp3]));
+    assert.equal(narrator.cloudRestMs({ status: 429, source: 'speech-unavailable' }), 30 * 60_000);
+    assert.equal(narrator.cloudRestMs({ status: 429, retryAfter: 5 }), 60_000);
+    assert.equal(narrator.cloudRestMs({ status: 429, retryAfter: 120 }), 120_000);
+    assert.equal(narrator.cloudRestMs({ status: 503, source: 'speech-free-plan' }), 6 * 3_600_000);
+    assert.equal(narrator.cloudRestMs(new Error('network')), 60_000);
+});
+
+test('cloud lines are kept on the laptop and replay without the network', async t => {
+    setGlobal(t, 'caches', memoryCaches());
+    let calls = 0;
+    const first = await setupNarrator(t, async () => { calls++; const b = new Blob([mp3], { type: 'audio/mpeg' }); b.speechProvider = '@cf/myshell-ai/melotts'; return b; });
+    await new Promise((resolve) => first.speakText('Kept for later.', { onEnd: resolve }));
+    await settle();
+    const fresh = await setupNarrator(t, async () => { calls++; throw new Error('offline'); });
+    let info = null;
+    await new Promise((resolve) => fresh.speakText('Kept for later.', { onStart(i) { info = i; }, onEnd: resolve }));
+    assert.equal(calls, 1);
+    assert.deepEqual(info, { speaker: '' });
+    assert.equal(fresh.spoken.length, 0, 'played the kept audio, not the device voice');
+    assert.equal(fresh.audios[0].playbackRate, 0.88, 'the kept line remembers MeloTTS pace');
+});
+
+test('device voices: natural British English first, novelty voices last', async t => {
+    const narrator = await setupNarrator(t, async () => new Blob([mp3]));
+    const voices = [
+        { name: 'Microsoft David - English (United States)', lang: 'en-US', default: true },
+        { name: 'Bad News', lang: 'en-US' },
+        { name: 'Google UK English Female', lang: 'en-GB' },
+        { name: 'Microsoft Sonia Online (Natural) - English (United Kingdom)', lang: 'en-GB' },
+        { name: 'Microsoft Stefanos - Greek', lang: 'el-GR' },
+    ];
+    assert.deepEqual(narrator.rankDeviceVoices(voices, 'en').map((v) => v.name), [
+        'Microsoft Sonia Online (Natural) - English (United Kingdom)', 'Google UK English Female',
+        'Microsoft David - English (United States)', 'Bad News']);
+    assert.deepEqual(narrator.rankDeviceVoices(voices, 'el').map((v) => v.name), ['Microsoft Stefanos - Greek']);
+});
+
+test('the device reads a sentence or two at a time and a failing voice hands over', async t => {
+    const narrator = await setupNarrator(t, async () => { throw new Error('offline'); });
+    globalThis.window.speechSynthesis.getVoices = () => [{ name: 'Google UK English Female', lang: 'en-GB' }, { name: 'Hazel', lang: 'en-GB' }];
+    const speak = globalThis.window.speechSynthesis.speak;
+    globalThis.window.speechSynthesis.speak = (u) => {
+        if (u.voice?.name.startsWith('Google')) { narrator.spoken.push(u); queueMicrotask(() => u.onerror?.({ error: 'network' })); return; }
+        speak(u);
+    };
+    const text = 'The Dragons climbed the Crown Road with steady hearts and brave songs. '.repeat(8).trim();
+    let ends = 0, errors = 0;
+    narrator.speakText(text, { voiceHint: 'en', onEnd() { ends++; }, onError() { errors++; } });
+    await settle();
+    assert.equal(errors, 0); assert.equal(ends, 1);
+    const read = narrator.spoken.filter((u) => u.voice?.name === 'Hazel');
+    assert.ok(read.length > 1 && read.every((u) => u.text.length <= 220));
+    assert.equal(read.map((u) => u.text).join(' '), text);
+});
+
+test('MeloTTS lines are cached in KV so a replay costs nothing', async () => {
+    const worker = await workerModule();
+    const kv = memoryKv();
+    let runs = 0;
+    const env = { ...environment(async () => { runs++; return mp3; }), QUOTE_CACHE: kv };
+    const waits = [];
+    const ctx = { waitUntil(p) { waits.push(p); } };
+    await worker.fetch(request({ text: 'The chronicle of October.' }), env, ctx);
+    await Promise.all(waits);
+    const again = await worker.fetch(request({ text: 'The chronicle of October.' }), env, ctx);
+    assert.equal(again.status, 200);
+    assert.equal(again.headers.get('X-GCQ-AI-Provider'), '@cf/myshell-ai/melotts');
+    assert.deepEqual(new Uint8Array(await again.arrayBuffer()), mp3);
+    assert.equal(runs, 1);
 });

@@ -23,17 +23,17 @@ const CLASSES = [
     ['c1', 'Little Owls', '🦉', 'Pre-Junior', ['1', '3'], 9],
     ['c2', 'Star Foxes', '🦊', 'A', ['2', '4'], 12],
     ['c3', 'Dragon Riders', '🐉', 'B', ['1', '4'], 14],
-    ['c4', 'Sea Turtles', '🐢', 'Pre-Junior', ['5'], 7],
+    ['c4', 'Sea Turtles', '🐢', 'Junior A', ['5'], 7],
     ['c5', 'Moon Wolves', '🐺', 'C', ['2'], 11],
     ['c6', 'Sun Lions', '🦁', 'D', ['3', '5'], 15],
-    ['c7', 'Bright Bees', '🐝', 'A', ['1'], 8],
+    ['c7', 'Bright Bees', '🐝', 'Junior B', ['1'], 8],
     ['c8', 'Thunder Hawks', '🦅', 'B', ['2', '5'], 13],
     ['c9', 'Crystal Cats', '🐱', 'C', ['4'], 10],
     ['c10', 'Ocean Whales', '🐋', 'D', ['3'], 9]
 ];
 if (params.has('many')) {
     const extra = [['Golden Eagles', '🦅'], ['Silver Seals', '🦭'], ['Ruby Robins', '🐦'], ['Jade Frogs', '🐸'], ['Amber Bears', '🐻'], ['Coral Crabs', '🦀'], ['Pearl Swans', '🦢'], ['Iron Rhinos', '🦏'], ['Misty Owls', '🦉'], ['Swift Deer', '🦌'], ['Brave Pandas', '🐼'], ['Lucky Koalas', '🐨']];
-    extra.forEach(([n, l], i) => CLASSES.push([`x${i}`, n, l, ['A', 'B', 'C', 'D'][i % 4], [String(1 + (i % 5))], 8 + (i % 7)]));
+    extra.forEach(([n, l], i) => CLASSES.push([`x${i}`, n, l, ['A', 'B', 'C', 'D', 'Junior A', 'Pre-Junior'][i % 6], [String(1 + (i % 5))], 8 + (i % 7)]));
 }
 const classes = CLASSES.map(([id, name, logo, questLevel, scheduleDays, heroes]) => ({ id, name, logo, questLevel, scheduleDays, heroes, createdBy: { uid: id === 'c3' || id === 'c7' ? 'me' : 'other' } }));
 const heroCounts = Object.fromEntries(classes.map((c) => [c.id, c.heroes]));
@@ -113,7 +113,7 @@ if (viewName === 'coats') {
 } else if (viewName === 'card') {
     root.innerHTML = `<div class="pv-card"><div class="sky-card"><h3>🛡️ ${live.season.name}</h3>${raidCardHtml(view, { focusId })}</div></div>`;
 } else {
-    root.innerHTML = `<div class="rr-host is-open">${hallHtml(view, { focusId, heroCard, canReveal: params.has('reveal'), lite, roster, year, now: day })}</div>`;
+    root.innerHTML = `<div class="rr-host is-open">${hallHtml(view, { focusId, heroCard, canReveal: params.has('reveal'), lite, roster, year, now: day, intro: params.has('intro') })}</div>`;
     if (viewName === 'help') root.querySelector('.rr-hall').insertAdjacentHTML('beforeend', howItWorksHtml(view));
 }
 
@@ -127,9 +127,13 @@ document.getElementById('pv-toolbar').innerHTML = links.join('');
 if (params.has('hit')) {
     const { openRaidHall, rerenderRaidHall } = await import('./ui/modals/realmRaid.js');
     root.innerHTML = '';
-    await openRaidHall({ view, focusId, roster: () => roster, year: () => year });
+    await openRaidHall({ view, focusId, roster: () => roster, year: () => year, now: () => day });
     setTimeout(() => {
-        const more = { ...view, rows: view.rows.map((r, i) => (i % 3 === 0 && r.share ? { ...r, stars: r.stars + 2 + i } : r)) };
+        const rowsMore = view.rows.map((r, i) => (i % 3 === 0 && r.share ? { ...r, stars: r.stars + 2 + i } : r));
+        const gained = rowsMore.reduce((sum, r, i) => sum + r.stars - view.rows[i].stars, 0);
+        const todayHits = { ...(byDayClass[today] || {}) };
+        rowsMore.forEach((r, i) => { if (r.stars > view.rows[i].stars) todayHits[r.classId] = (todayHits[r.classId] || 0) + r.stars - view.rows[i].stars; });
+        const more = { ...view, rows: rowsMore, status: { ...view.status, dealt: view.status.dealt + gained }, tally: { ...view.tally, byDayClass: { ...byDayClass, [today]: todayHits } } };
         rerenderRaidHall(more);
-    }, 1200);
+    }, Number(params.get('hitAt')) || 3600);
 }

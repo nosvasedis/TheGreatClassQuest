@@ -53,6 +53,7 @@ export const calendarTabHTML = `
                             <li><span class="qc-legend__swatch qc-legend__swatch--stars"><i class="fas fa-star"></i></span>Stars awarded</li>
                             <li><span class="qc-legend__swatch qc-legend__swatch--event"></span>Quest Event</li>
                             <li><span class="qc-legend__swatch qc-legend__swatch--test">📝</span>Test day</li>
+                            <li><span class="qc-legend__swatch qc-legend__swatch--raid"><i class="fas fa-shield-halved"></i></span>Realm Raid week</li>
                             <li><span class="qc-legend__swatch qc-legend__swatch--national"></span>Holiday or break</li>
                             <li><span class="qc-legend__swatch qc-legend__swatch--special">✦</span>Special day, lessons on</li>
                             <li><span class="qc-legend__swatch qc-legend__swatch--holiday"></span>Lessons cancelled</li>

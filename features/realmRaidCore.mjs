@@ -227,6 +227,59 @@ export function findRaid(now = new Date(), options = {}) {
     return null;
 }
 
+/**
+ * Any raid seen from `now`: { ...window, phase, dayNumber, daysToStart, daysLeft }.
+ * Unlike findRaid it never returns null: a raid weeks away is 'herald' (with its countdown) and one
+ * long past is 'over'. The Calendar opens raids this way.
+ */
+export function raidOn(raid, now = new Date()) {
+    if (!raid) return null;
+    const today = startOfDay(now);
+    let phase = 'over';
+    if (today < raid.start) phase = 'herald';
+    else if (today <= raid.end) phase = 'active';
+    else if (today <= raid.aftermathUntil) phase = 'aftermath';
+    return {
+        ...raid,
+        phase,
+        dayNumber: phase === 'active' ? daysBetween(raid.start, today) + 1 : 0,
+        daysToStart: Math.max(0, daysBetween(today, raid.start)),
+        daysLeft: phase === 'active' ? daysBetween(today, raid.end) : 0
+    };
+}
+
+/** The raid with this id ("winter_2026"), or null. */
+export function raidById(raidId, options = {}) {
+    const m = String(raidId || '').match(/^([a-z]+)_(\d{4})$/);
+    if (!m) return null;
+    return raidWindow(m[1], Number(m[2]), options);
+}
+
+/**
+ * The raid week a day falls in: { raid, dayNumber (1 to 7), first, last }, or null.
+ * The Calendar marks these days.
+ */
+export function raidDayOf(date, options = {}) {
+    const day = startOfDay(date);
+    const year = schoolStartYear(day);
+    for (const raid of [year - 1, year].flatMap((y) => RAID_SEASONS.map((s) => raidWindow(s.id, y, options)))) {
+        if (!raid || day < raid.start || day > raid.end) continue;
+        const dayNumber = daysBetween(raid.start, day) + 1;
+        return { raid, dayNumber, first: dayNumber === 1, last: dayNumber === RAID_LENGTH_DAYS };
+    }
+    return null;
+}
+
+/** Raids whose week touches the given month (month 0 to 11). */
+export function raidsInMonth(year, month, options = {}) {
+    const first = new Date(year, month, 1);
+    const last = new Date(year, month + 1, 0);
+    const start = schoolStartYear(first);
+    return [start - 1, start]
+        .flatMap((y) => RAID_SEASONS.map((s) => raidWindow(s.id, y, options)))
+        .filter((raid) => raid && raid.start <= last && raid.end >= first);
+}
+
 /** The next raid after `now` (for "the Guardian returns ..." lines). */
 export function nextRaid(now = new Date(), options = {}) {
     const today = startOfDay(now);
@@ -282,6 +335,7 @@ export function tallyRaidStars(logs = [], raid, { credit = (log) => Number(log?.
     const to = startOfDay(raid.end);
     const byClass = {};
     const byHero = {};
+    const byDay = {};
     const seen = new Set();
     for (const log of logs) {
         if (!log?.classId || (log.id && seen.has(log.id))) continue;
@@ -293,6 +347,8 @@ export function tallyRaidStars(logs = [], raid, { credit = (log) => Number(log?.
         const stars = Number(credit(log)) || 0;
         if (!(stars > 0)) continue;
         byClass[log.classId] = (byClass[log.classId] || 0) + stars;
+        const key = dayKey(day);
+        byDay[key] = (byDay[key] || 0) + stars;
         if (log.studentId) {
             const hero = byHero[log.studentId] || { studentId: log.studentId, classId: log.classId, stars: 0, days: new Set() };
             hero.stars += stars;
@@ -301,7 +357,8 @@ export function tallyRaidStars(logs = [], raid, { credit = (log) => Number(log?.
         }
     }
     Object.keys(byClass).forEach((id) => { byClass[id] = half(byClass[id]); });
-    return { byClass, byHero };
+    Object.keys(byDay).forEach((key) => { byDay[key] = half(byDay[key]); });
+    return { byClass, byHero, byDay };
 }
 
 /**
@@ -410,4 +467,11 @@ export function raidCountdown(raid) {
         return raid.daysLeft === 1 ? '1 day left' : `${raid.daysLeft} days left`;
     }
     return 'the raid is over';
+}
+
+/** The outcome words for a finished raid, from a class receipt map or a status. */
+export function raidOutcome({ status = null, receipts = [] } = {}) {
+    if (status?.legendary || receipts.some((r) => r?.legendaryAt)) return 'legendary';
+    if (status?.broken || receipts.some((r) => r?.victoryAt)) return 'won';
+    return 'held';
 }

@@ -149,3 +149,38 @@ test('the Raid Hero is the steadiest striker, then most stars, then fewest prize
     assert.equal(pickRaidHero([heroes[3]]), null);
     assert.deepEqual(countRaidHeroWins({ 'winter_2026': { hero: { studentId: 'x' } }, 'carnival_2026': { hero: { studentId: 'x' } } }), { x: 2 });
 });
+
+test('raidOn gives a phase for any raid, near or far', async () => {
+    const { raidOn, raidById, raidDayOf, raidsInMonth } = await import('../features/realmRaidCore.mjs');
+    const holidays = [{ start: '2026-12-23', end: '2027-01-07' }];
+    const raid = raidById('winter_2026', { holidays });
+    assert.equal(dayKey(raid.start), '2026-12-16');
+    assert.equal(raidOn(raid, new Date(2026, 10, 1)).phase, 'herald');
+    assert.equal(raidOn(raid, new Date(2026, 10, 1)).daysToStart, 45);
+    assert.equal(raidOn(raid, new Date(2026, 11, 18)).phase, 'active');
+    assert.equal(raidOn(raid, new Date(2026, 11, 18)).dayNumber, 3);
+    assert.equal(raidOn(raid, new Date(2026, 11, 28)).phase, 'aftermath');
+    assert.equal(raidOn(raid, new Date(2027, 1, 1)).phase, 'over');
+    assert.equal(raidById('nonsense'), null);
+    // The Calendar marks the raid week, with its first and last day.
+    assert.equal(raidDayOf(new Date(2026, 11, 15), { holidays }), null);
+    const first = raidDayOf(new Date(2026, 11, 16), { holidays });
+    assert.equal(first.raid.raidId, 'winter_2026');
+    assert.equal(first.first, true);
+    assert.equal(raidDayOf(new Date(2026, 11, 22), { holidays }).last, true);
+    assert.equal(raidDayOf(new Date(2026, 11, 23), { holidays }), null);
+    assert.deepEqual(raidsInMonth(2026, 11, { holidays }).map((r) => r.raidId), ['winter_2026']);
+    assert.deepEqual(raidsInMonth(2026, 10, { holidays }).map((r) => r.raidId), []);
+    assert.deepEqual(raidsInMonth(2027, 2).map((r) => r.raidId), ['carnival_2026']);
+});
+
+test('the tally keeps each raid day\'s stars for the battle log', () => {
+    const raid = raidWindow('winter', 2026, { holidays: [{ start: '2026-12-23', end: '2027-01-07' }] });
+    const tally = tallyRaidStars([
+        { id: 'a', classId: 'c1', studentId: 's1', stars: 2, date: '2026-12-16' },
+        { id: 'b', classId: 'c2', studentId: 's2', stars: 1.5, date: '16-12-2026' },
+        { id: 'c', classId: 'c2', studentId: 's2', stars: 1, date: '2026-12-18' },
+        { id: 'd', classId: 'c2', studentId: 's2', stars: 3, date: '2026-12-23' }
+    ], raid);
+    assert.deepEqual(tally.byDay, { '2026-12-16': 3.5, '2026-12-18': 1 });
+});

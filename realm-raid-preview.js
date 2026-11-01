@@ -4,7 +4,7 @@
 import './styles/tokens.css'; // shared fonts + tokens (this preview skips style.css)
 import './styles/realm_raid.css';
 import './styles/realm_raid_card.css';
-import { raidWindow, findRaid, computeShares, raidStatus, addDays, dayKey, getRaidSeason } from './features/realmRaidCore.mjs';
+import { raidWindow, findRaid, computeShares, raidStatus, addDays, dayKey, getRaidSeason, raidDays } from './features/realmRaidCore.mjs';
 import { hallHtml, howItWorksHtml, victoryHtml, raidCardHtml, skyHtml, stageHtml } from './ui/modals/realmRaidView.mjs';
 
 const params = new URLSearchParams(location.search);
@@ -31,6 +31,10 @@ const CLASSES = [
     ['c9', 'Crystal Cats', '🐱', 'C', ['4'], 10],
     ['c10', 'Ocean Whales', '🐋', 'D', ['3'], 9]
 ];
+if (params.has('many')) {
+    const extra = [['Golden Eagles', '🦅'], ['Silver Seals', '🦭'], ['Ruby Robins', '🐦'], ['Jade Frogs', '🐸'], ['Amber Bears', '🐻'], ['Coral Crabs', '🦀'], ['Pearl Swans', '🦢'], ['Iron Rhinos', '🦏'], ['Misty Owls', '🦉'], ['Swift Deer', '🦌'], ['Brave Pandas', '🐼'], ['Lucky Koalas', '🐨']];
+    extra.forEach(([n, l], i) => CLASSES.push([`x${i}`, n, l, ['A', 'B', 'C', 'D'][i % 4], [String(1 + (i % 5))], 8 + (i % 7)]));
+}
 const classes = CLASSES.map(([id, name, logo, questLevel, scheduleDays, heroes]) => ({ id, name, logo, questLevel, scheduleDays, heroes, createdBy: { uid: id === 'c3' || id === 'c7' ? 'me' : 'other' } }));
 const heroCounts = Object.fromEntries(classes.map((c) => [c.id, c.heroes]));
 const meets = (id, d) => classes.find((c) => c.id === id).scheduleDays.includes(String(d.getDay()));
@@ -42,11 +46,11 @@ const FILL = {
     active: [1.15, 0.8, 0.62, 1.02, 0.3, 0.55, 0.9, 0.4, 0.2, 0.45],
     broken: [1.3, 1.1, 1.02, 1.1, 0.85, 0.98, 1.2, 0.95, 0.9, 0.8],
     legendary: [1.5, 1.3, 1.2, 1.4, 1.0, 1.15, 1.35, 1.1, 1.05, 1.2],
-    won: [1.3, 1.05, 1.02, 1.1, 0.8, 0.95, 1.2, 0.9, 0.85, 0.9],
+    won: [1.3, 1.1, 1.02, 1.1, 0.85, 1.0, 1.2, 0.95, 0.9, 0.95],
     held: [1.1, 0.7, 0.6, 1.0, 0.3, 0.6, 0.8, 0.5, 0.4, 0.5]
 }[phase] || [];
 const byClass = {};
-shares.forEach((s, i) => { if (s.share) byClass[s.classId] = Math.round(s.share * (FILL[i] || 0) * 2) / 2; });
+shares.forEach((s, i) => { if (s.share) byClass[s.classId] = Math.round(s.share * (FILL[i] ?? FILL[i % 10] ?? 0) * 2) / 2; });
 const status = raidStatus({ shares, tally: { byClass } });
 const today = dayKey(day);
 const rows = status.classes.map((row) => {
@@ -63,7 +67,26 @@ const rows = status.classes.map((row) => {
     };
 });
 const next = raidWindow(seasonId === 'winter' ? 'carnival' : seasonId === 'carnival' ? 'summer' : 'winter', seasonId === 'summer' ? 2027 : 2026, { holidays });
-const view = { raid: live, status, rows, tally: { byClass, byHero: {} }, record: {}, loading: false, next };
+// Stars per raid day, spread over the days that have passed.
+const byDay = {};
+const passed = raidDays(raid).filter((d) => dayKey(d) <= today);
+const total = Object.values(byClass).reduce((a, b) => a + b, 0);
+const weightOf = (d) => [0, 1.2, 0.8, 1.5, 1.1, 1, 0][d.getDay()];
+const wsum = passed.reduce((sum, d) => sum + weightOf(d), 0) || 1;
+passed.forEach((d) => { byDay[dayKey(d)] = Math.round((total * weightOf(d) / wsum) * 2) / 2; });
+const view = { raid: live, status, rows, tally: { byClass, byHero: {}, byDay }, record: {}, loading: false, next };
+const HEROES = ['Maria Papadopoulou', 'Nikos Georgiou', 'Eleni Dimitriou', 'Giorgos Ioannou', 'Sofia Konstantinou', 'Dimitris Nikolaou', 'Katerina Pappa', 'Yannis Vlachos', 'Anna Michailidou', 'Kostas Karras', 'Maria Antoniou', 'Christina Lamprou', 'Petros Alexiou', 'Ioanna Zervou'];
+const struck = phase === 'herald' ? 0 : phase === 'active' ? 9 : 12;
+const roster = HEROES.map((full, i) => {
+    const first = full.split(' ')[0];
+    const dup = HEROES.filter((h) => h.split(' ')[0] === first).length > 1;
+    return { id: `s${i}`, name: dup ? `${first} ${full.split(' ')[1][0]}.` : first, fullName: full, stars: i < struck ? 1 + (i % 3) : 0 };
+}).sort((a, b) => a.name.localeCompare(b.name));
+const yearState = { winter: 'won', carnival: 'soon', summer: 'soon' };
+const year = ['winter', 'carnival', 'summer'].map((s) => {
+    const w = raidWindow(s, 2026, { holidays });
+    return { raidId: w.raidId, season: w.season, start: w.start, state: s === seasonId ? (phase === 'active' || phase === 'broken' || phase === 'legendary' ? 'live' : phase === 'won' ? 'won' : phase === 'held' ? 'held' : 'soon') : yearState[s] };
+});
 const focusId = params.get('focus') || 'c3';
 const heroCard = params.has('hero') ? {
     name: 'Maria Papadopoulou', days: 2, stars: 5.5,
@@ -84,7 +107,7 @@ if (viewName === 'coats') {
 } else if (viewName === 'card') {
     root.innerHTML = `<div class="pv-card"><div class="sky-card"><h3>🛡️ ${live.season.name}</h3>${raidCardHtml(view, { focusId })}</div></div>`;
 } else {
-    root.innerHTML = `<div class="rr-host is-open">${hallHtml(view, { focusId, heroCard, canReveal: params.has('reveal'), lite })}</div>`;
+    root.innerHTML = `<div class="rr-host is-open">${hallHtml(view, { focusId, heroCard, canReveal: params.has('reveal'), lite, roster, year, now: day })}</div>`;
     if (viewName === 'help') root.querySelector('.rr-hall').insertAdjacentHTML('beforeend', howItWorksHtml(view));
 }
 

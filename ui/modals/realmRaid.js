@@ -6,8 +6,8 @@ import '../../styles/realm_raid.css';
 import * as state from '../../state.js';
 import { playSound } from '../../audio.js';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
-import { getRaidView, subscribeRaid, revealRaidHero, currentRaid, buildRaidView, ensureRaidLogs } from '../../features/realmRaid.js';
-import { owedRaidRewards } from '../../features/realmRaidCore.mjs';
+import { getRaidView, subscribeRaid, revealRaidHero, currentRaid, buildRaidView, ensureRaidLogs, raidViewById, raidOptions } from '../../features/realmRaid.js';
+import { owedRaidRewards, raidsOfYear, raidOn, raidOutcome } from '../../features/realmRaidCore.mjs';
 import { hallHtml, howItWorksHtml, victoryHtml } from './realmRaidView.mjs';
 import { faceHtml } from './classTools.js';
 
@@ -29,7 +29,8 @@ function isLite() {
 function pickFocus(view) {
     const selected = state.get('globalSelectedClassId');
     if (selected && view.rows.some((r) => r.classId === selected)) return selected;
-    return view.rows.find((r) => r.own && r.share > 0)?.classId || '';
+    return view.rows.find((r) => r.own && r.share > 0)?.classId
+        || view.rows.find((r) => r.share > 0)?.classId || '';
 }
 
 function heroCardFor(view, classId) {
@@ -51,20 +52,55 @@ function canRevealFor(view, classId) {
     return owedRaidRewards({ status: view.status, classRow: row, receipt: row.receipt, raid: view.raid, today: new Date() }).heroReady;
 }
 
+/** Short names that stay unique inside one class: "Maria", or "Maria P." when two share it. */
+export function shortNames(students = []) {
+    const first = (s) => String(s?.name || '').trim().split(/\s+/)[0] || 'Hero';
+    const counts = {};
+    students.forEach((s) => { counts[first(s)] = (counts[first(s)] || 0) + 1; });
+    return students.map((s) => {
+        const parts = String(s?.name || '').trim().split(/\s+/);
+        const name = counts[first(s)] > 1 && parts[1] ? `${first(s)} ${parts[1][0]}.` : first(s);
+        return { id: s.id, name, fullName: s.name || name };
+    });
+}
+
+/** Every hero of a class, with the stars they sent at the shield this raid. */
+function rosterFor(view, classId) {
+    if (!classId) return [];
+    const students = (state.get('allStudents') || []).filter((s) => s.classId === classId)
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+    const byHero = view.tally?.byHero || {};
+    return shortNames(students).map((h) => ({ ...h, stars: Number(byHero[h.id]?.stars) || 0 }));
+}
+
+/** The year's three raids for the top bar: won, held, now, or still to come. */
+function yearFor(view) {
+    const classes = state.get('allSchoolClasses') || [];
+    const now = new Date();
+    return raidsOfYear(view.raid.start, raidOptions()).map((window) => {
+        const raid = raidOn(window, now);
+        let stateWord = 'soon';
+        if (window.raidId === view.raid.raidId && raid.phase !== 'herald') {
+            stateWord = raid.phase === 'active' ? 'live' : raidOutcome({ status: view.status });
+        } else if (raid.phase === 'active') stateWord = 'live';
+        else if (raid.phase !== 'herald') stateWord = raidOutcome({ receipts: classes.map((c) => c.realmRaids?.[window.raidId]) });
+        return { raidId: window.raidId, season: window.season, start: window.start, state: stateWord };
+    });
+}
+
 function render(view) {
     if (!hall || !view) return;
     const focusId = hall.focusId || pickFocus(view);
     hall.focusId = focusId;
     const heroCard = hall.heroCard || heroCardFor(view, focusId);
-    const scroll = hall.root.querySelector('.rr-alliance__list')?.scrollLeft || 0;
     hall.root.innerHTML = hallHtml(view, {
         focusId,
         heroCard,
         canReveal: !heroCard && !hall.revealing && canRevealFor(view, focusId),
-        lite: hall.lite
+        lite: hall.lite,
+        roster: hall.roster ? hall.roster(view, focusId) : rosterFor(view, focusId),
+        year: hall.year ? hall.year(view) : yearFor(view)
     });
-    const list = hall.root.querySelector('.rr-alliance__list');
-    if (list) list.scrollLeft = scroll;
     if (hall.last && !hall.lite) strike(hall.last, view);
     hall.last = view;
 }
@@ -114,6 +150,11 @@ function onClick(event) {
     if (target.closest('[data-rr-close]')) { closeRaidHall(); return; }
     if (target.closest('[data-rr-help]')) { openHelp(); return; }
     if (target.closest('[data-rr-help-close]') || target.classList.contains('rr-help')) { hall.root.querySelector('.rr-help')?.remove(); return; }
+    const other = target.closest('[data-rr-raid]');
+    if (other) {
+        if (other.dataset.rrRaid !== hall.view()?.raid?.raidId) openRaidHall({ raidId: other.dataset.rrRaid, focusId: hall.focusId, keepSound: true });
+        return;
+    }
     const banner = target.closest('[data-banner]');
     if (banner) {
         hall.focusId = banner.dataset.banner;
@@ -161,7 +202,12 @@ async function revealHero() {
  * Opens the Raid Hall on the live raid. `view` (and `focusId`) let the preview page open it on a
  * made-up raid. Returns false when no raid is near.
  */
-export async function openRaidHall({ view: given = null, focusId = '' } = {}) {
+export async function openRaidHall({ view: given = null, focusId = '', raidId = '', keepSound = false, roster = null, year = null } = {}) {
+    // A raid other than the live one (from the Calendar or the year's medallions): a still view.
+    if (!given && raidId && raidId !== (getRaidView()?.raid?.raidId || currentRaid()?.raidId)) {
+        given = await raidViewById(raidId);
+        if (!given) return false;
+    }
     let source = () => given || getRaidView();
     if (!source()) {
         const raid = currentRaid();
@@ -173,7 +219,7 @@ export async function openRaidHall({ view: given = null, focusId = '' } = {}) {
         const built = buildRaidView(raid);
         source = () => given || getRaidView() || built;
     }
-    closeRaidHall();
+    closeRaidHall({ instant: keepSound });
     const root = document.createElement('div');
     root.id = HALL_ID;
     root.className = 'rr-host';
@@ -181,7 +227,7 @@ export async function openRaidHall({ view: given = null, focusId = '' } = {}) {
     root.setAttribute('aria-modal', 'true');
     root.setAttribute('aria-labelledby', 'rr-hall-title');
     document.body.appendChild(root);
-    hall = { root, focusId, last: null, revealing: false, heroCard: null, lite: isLite(), view: source };
+    hall = { root, focusId, last: null, revealing: false, heroCard: null, lite: isLite(), view: source, roster, year };
     hall.onKey = (event) => {
         if (event.key !== 'Escape') return;
         if (root.querySelector('.rr-help')) root.querySelector('.rr-help').remove();
@@ -191,17 +237,19 @@ export async function openRaidHall({ view: given = null, focusId = '' } = {}) {
     root.addEventListener('click', onClick);
     hall.unsub = given ? () => {} : subscribeRaid((view) => { if (view) render(view); });
     render(source());
-    requestAnimationFrame(() => root.classList.add('is-open'));
-    playSound('magic_chime');
+    if (keepSound) root.classList.add('is-open', 'is-swap');
+    else requestAnimationFrame(() => root.classList.add('is-open'));
+    playSound(keepSound ? 'star1' : 'magic_chime');
     return true;
 }
 
-export function closeRaidHall() {
+export function closeRaidHall({ instant = false } = {}) {
     if (!hall) return;
     hall.unsub?.();
     document.removeEventListener('keydown', hall.onKey);
     const { root } = hall;
     hall = null;
+    if (instant) { root.remove(); return; }
     root.classList.remove('is-open');
     setTimeout(() => root.remove(), 260);
 }

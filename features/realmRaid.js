@@ -9,7 +9,7 @@ import { quietly } from '../utils/runtimeMetrics.js';
 import '../styles/realm_raid_card.css';
 import * as state from '../state.js';
 import * as utils from '../utils.js';
-import { db, doc, getDocs, collection, query, where, onSnapshot, runTransaction, serverTimestamp } from '../firebase.js';
+import { db, doc, getDoc, getDocs, collection, query, where, onSnapshot, runTransaction, serverTimestamp } from '../firebase.js';
 import { getAwardLogMonthlyStarCredit } from './awardLogReasonMeta.js';
 import { getLiveYearGold, getLiveYearGoldContextFromState } from '../utils/yearGold.js';
 import { quizPrizeCandidates } from './quizRewardsCore.mjs';
@@ -25,6 +25,8 @@ import {
     owedRaidRewards,
     pickRaidHero,
     questStepStars,
+    raidById,
+    raidOn,
     raidCountdown,
     raidStatus,
     raidsOfYear,
@@ -428,7 +430,8 @@ async function catchUp(now) {
         if (paying.has(key)) continue;
         paying.add(key);
         await ensureRaidLogs(raid, now);
-        if (fetched.get(raid.raidId)?.status !== 'ready') continue;
+        // A raid that started this month needs no older read: the live month listener holds it.
+        if (needsFetch(raid, now) && fetched.get(raid.raidId)?.status !== 'ready') continue;
         const ended = { ...raid, phase: 'over', dayNumber: 0, daysToStart: 0, daysLeft: 0 };
         const v = buildRaidView(ended, now);
         settleOwnClasses(v, now);
@@ -470,7 +473,32 @@ export function startRealmRaid() {
     schedule();
 }
 
-/** Opens the Raid Hall (Home pill, projector remote, guide). */
+/** Reads a raid's shared record once (a raid other than the live one, opened from the Calendar). */
+async function loadRecord(raid) {
+    if (records.has(raid.raidId)) return;
+    try {
+        const snap = await getDoc(doc(db, `${DATA}/${RECORDS}`, `realm_raid_${raid.raidId}`));
+        records.set(raid.raidId, snap.exists() ? snap.data() : {});
+    } catch (error) {
+        console.warn('Realm Raid record unavailable:', error?.code || error?.message);
+    }
+}
+
+/**
+ * The view of any raid of the year, seen from today: a raid weeks away is a forecast (herald),
+ * a finished one its result. Returns null for an unknown id.
+ */
+export async function raidViewById(raidId, now = new Date()) {
+    const window = raidById(raidId, raidOptions());
+    if (!window) return null;
+    const raid = raidOn(window, now);
+    if (raid.phase !== 'herald') {
+        await Promise.all([ensureRaidLogs(raid, now), loadRecord(raid)]);
+    }
+    return buildRaidView(raid, now);
+}
+
+/** Opens the Raid Hall (Home pill, projector remote, guide, Calendar). `raidId` opens a given raid. */
 export async function openRealmRaid(options = {}) {
     const { openRaidHall } = await import('../ui/modals/realmRaid.js');
     return openRaidHall(options);

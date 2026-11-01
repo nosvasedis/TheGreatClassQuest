@@ -1,5 +1,6 @@
 // /ui/modals/planner.js
 import { paintDayScene, dayCardHtml, specialDayFor, dayLook } from '../daySceneHeader.js';
+import { raidDayBannerHtml, wireRaidClicks } from '../tabs/raidCalendar.js';
 import * as constants from '../../constants.js';
 import '../../styles/planner_panes.css';
 import { treasureNameFor } from '../../features/dayTreasureCore.mjs';
@@ -155,8 +156,10 @@ function renderPlannerGlance(dateString) {
            </div>`
         : '';
 
+    wireRaidClicks();
     host.innerHTML = `
         ${holidayStory}
+        ${raidDayBannerHtml(agenda.day, { compact: true })}
         ${statsHtml ? `<div class="qc-glance__stats">${statsHtml}</div>` : ''}
         ${eventsHtml}`;
 

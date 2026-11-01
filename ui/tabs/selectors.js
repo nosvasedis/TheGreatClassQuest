@@ -12,6 +12,8 @@ import { escapeHtml } from '../../features/roles/shared.js';
 import { classUsesTests } from '../../features/assessmentConfig.js';
 // Holiday tiles, the month's holiday strip and the Planner's day story; loaded with this module.
 import '../../styles/calendar_holidays.css';
+import { raidDayOf } from '../../features/realmRaidCore.mjs';
+import { raidCalendarOptions, raidRibbonHtml, raidDayClasses, raidChipsHtml, raidDayBannerHtml, wireRaidClicks } from './raidCalendar.js';
 
 export function findAndSetCurrentClass(targetSelectId = null) {
     if (state.get('globalSelectedClassId')) return;
@@ -204,8 +206,11 @@ function renderMobileCalendarDay(customLogs = null) {
            </section>`
         : '';
 
+    wireRaidClicks();
+    const raidBanner = raidDayBannerHtml(calendarCurrentDate);
     dayRoot.innerHTML = `
         <div class="m-cal-day-card">
+            ${raidBanner}
             ${holidayHtml}
             ${emptyHtml}
             ${lessonsSection}
@@ -324,7 +329,7 @@ function holidayArtHtml(theme) {
 }
 
 /** The month's holidays and special days, as a strip of chips under the month title. */
-function renderMonthSpecials(items) {
+function renderMonthSpecials(items, raidMonth = null) {
     const host = document.getElementById('qc-month-specials');
     if (!host) return;
     // A break shows once (its first day in this month), single days each get a chip.
@@ -372,8 +377,9 @@ function renderMonthSpecials(items) {
             </span>
         </li>`;
     });
-    host.innerHTML = chips.join('');
-    host.hidden = chips.length === 0;
+    const raidChips = raidMonth ? raidChipsHtml(...raidMonth) : '';
+    host.innerHTML = raidChips + chips.join('');
+    host.hidden = chips.length === 0 && !raidChips;
     host.onclick = (e) => {
         const btn = e.target.closest('[data-special-day]');
         if (!btn || !btn.dataset.specialDay) return;
@@ -552,6 +558,9 @@ export function renderCalendarTab(customLogs = null) {
         today,
     };
 
+    const raidOptionsForMonth = raidCalendarOptions();
+    wireRaidClicks();
+
     const leadingBlanks = firstDayIndex;
     for (let i = 0; i < leadingBlanks; i++) {
         const emptyCell = document.createElement('div');
@@ -564,6 +573,7 @@ export function renderCalendarTab(customLogs = null) {
         const day = new Date(year, month, i);
         const dateString = utils.getDDMMYYYY(day);
         const agenda = getDayAgenda({ dateString, ...agendaSlices });
+        const raidDay = raidDayOf(day, raidOptionsForMonth);
         const weekdayIndex = (day.getDay() + 6) % 7;
         const isWeekend = weekdayIndex >= 5;
         const longDate = day.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -605,12 +615,14 @@ export function renderCalendarTab(customLogs = null) {
                 edge.first ? 'qc-day--run-first' : '',
                 edge.last ? 'qc-day--run-last' : '',
                 quiet ? 'qc-day--run-quiet' : '',
+                ...raidDayClasses(raidDay),
             ].filter(Boolean).join(' ');
             dayCell.setAttribute('aria-label', `${longDate}: ${agenda.holidayLabel}${special?.also ? ` and ${special.also.name}` : ''}${runNote ? ` (${runNote})` : ''}. No lessons. ${opensPlanner ? 'Open planner' : 'Open quest log'}`);
             if (special?.blurb) dayCell.title = `${agenda.holidayLabel}${subName ? ` · ${subName}` : ''}\n${special.blurb}${special.also ? `\n\n${special.also.icon} ${special.also.name}${special.also.blurb ? `: ${special.also.blurb}` : ''}` : ''}`;
             dayCell.innerHTML = `
                 <span class="qc-day__art qc-art--${themeKey}" aria-hidden="true">${holidayArtHtml(themeKey)}</span>
                 <div class="qc-day__head">${dayNumber}${starBadge}</div>
+                ${raidRibbonHtml(raidDay)}
                 <div class="qc-day__stamp">
                     <span class="qc-day__stamp-icon" aria-hidden="true">${escapeHtml(agenda.holidayIcon || '📅')}</span>
                     <span class="qc-day__stamp-label">${escapeHtml(agenda.holidayLabel || 'No School')}</span>
@@ -658,7 +670,7 @@ export function renderCalendarTab(customLogs = null) {
             tests ? `${tests} test${tests === 1 ? '' : 's'}` : '',
             agenda.starTotal > 0 ? `${formatStarCount(agenda.starTotal)} stars` : '',
         ].filter(Boolean).join(', ');
-        dayCell.setAttribute('aria-label', `${longDate}: ${summaryBits}. ${opensPlanner ? 'Open planner' : 'Open quest log'}`);
+        dayCell.setAttribute('aria-label', `${longDate}: ${summaryBits}.${raidDay ? ` ${raidDay.raid.season.name}, day ${raidDay.dayNumber}.` : ''} ${opensPlanner ? 'Open planner' : 'Open quest log'}`);
 
         const quiet = !agenda.classes.length && !events.length;
         dayCell.className = [
@@ -668,6 +680,7 @@ export function renderCalendarTab(customLogs = null) {
             isWeekend ? 'qc-day--weekend' : '',
             quiet ? 'qc-day--quiet' : '',
             agenda.starTotal > 0 ? 'qc-day--starred' : '',
+            ...raidDayClasses(raidDay),
         ].filter(Boolean).join(' ');
 
         const hint = opensPlanner
@@ -705,7 +718,7 @@ export function renderCalendarTab(customLogs = null) {
         dayCell.innerHTML = `
             ${celebrationArt}
             <div class="qc-day__head">${dayNumber}${starBadge}</div>
-            ${specialRibbon}${edgeTag}
+            ${raidRibbonHtml(raidDay)}${specialRibbon}${edgeTag}
             ${events.length ? `<div class="qc-day__events">${events.map(renderQuestEventRibbon).join('')}</div>` : ''}
             <div class="qc-day__lessons custom-scrollbar">${agenda.classes.map(renderLessonChip).join('')}</div>
             ${hint}`;
@@ -723,6 +736,6 @@ export function renderCalendarTab(customLogs = null) {
     if (loader && !isLoaderVisible) loader.classList.add('hidden');
     requestAnimationFrame(() => markOverflowingLessons(grid));
     renderMonthStats({ ...stats, detail }, new Date(year, month, 1).toLocaleDateString('en-GB', { month: 'long' }));
-    renderMonthSpecials(monthSpecials);
+    renderMonthSpecials(monthSpecials, [year, month]);
 
 }

@@ -1,0 +1,151 @@
+/* Realm Raid on the Quest Calendar: the raid week's tiles, the month chip, the phone / Planner
+   banner (ui/tabs/raidCalendar.js). Each season wears the Raid Hall's own night sky colours. */
+
+.qc-day--raid-winter, .qc-raid-chip--winter, .qc-raid-banner--winter { --raid-a: #0b1d4d; --raid-b: #1f5a86; --raid-glow: #7dd3fc; --raid-wash: rgba(125, 211, 252, .16); }
+.qc-day--raid-carnival, .qc-raid-chip--carnival, .qc-raid-banner--carnival { --raid-a: #2a0b4f; --raid-b: #7a2a6e; --raid-glow: #f0abfc; --raid-wash: rgba(240, 171, 252, .16); }
+.qc-day--raid-summer, .qc-raid-chip--summer, .qc-raid-banner--summer { --raid-a: #4a1c48; --raid-b: #d9733f; --raid-glow: #fde68a; --raid-wash: rgba(253, 186, 116, .2); }
+
+/* ─── Raid week tiles ─────────────────────────────────────────────────────── */
+
+.calendar-day-cell.qc-day--raid {
+    background-image:
+        linear-gradient(180deg, var(--raid-wash), rgba(255, 255, 255, 0) 55%),
+        radial-gradient(120% 60% at 100% 100%, var(--raid-wash), transparent 70%);
+    box-shadow: inset 0 4px 0 var(--raid-b), 0 1px 0 rgba(30, 58, 138, .06);
+}
+/* A faint shield behind the week, so the band reads at a glance. */
+.calendar-day-cell.qc-day--raid::before {
+    content: '\f3ed';
+    font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free';
+    font-weight: 900;
+    position: absolute;
+    right: .35rem;
+    bottom: .2rem;
+    font-size: 2.6rem;
+    line-height: 1;
+    color: var(--raid-b);
+    opacity: .07;
+    pointer-events: none;
+}
+.calendar-day-cell.qc-day--raid-first { box-shadow: inset 0 4px 0 var(--raid-b), inset 3px 0 0 var(--raid-b), 0 1px 0 rgba(30, 58, 138, .06); }
+.calendar-day-cell.qc-day--raid-last { box-shadow: inset 0 4px 0 var(--raid-b), inset -3px 0 0 var(--raid-b), 0 1px 0 rgba(30, 58, 138, .06); }
+
+.qc-day__raid {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: .25rem;
+    min-width: 0;
+    flex-shrink: 0;
+    width: 100%;
+    padding: .12rem .4rem;
+    border: 0;
+    border-radius: .45rem;
+    font: 800 .6rem/1.25 'Fredoka', 'Open Sans', sans-serif;
+    letter-spacing: .01em;
+    color: #fff;
+    background: linear-gradient(90deg, var(--raid-a), var(--raid-b));
+    box-shadow: 0 2px 6px rgba(15, 23, 42, .18), inset 0 1px 0 rgba(255, 255, 255, .2);
+    cursor: pointer;
+    text-align: left;
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+.qc-day__raid:hover, .qc-day__raid:focus-visible { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(15, 23, 42, .28), 0 0 0 2px var(--raid-glow); outline: none; }
+.qc-day__raid-icon { flex: none; }
+.qc-day__raid-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qc-day__raid i { flex: none; font-size: .55rem; color: var(--raid-glow); }
+.qc-day--raid-first .qc-day__raid, .qc-day--raid-last .qc-day__raid { box-shadow: 0 2px 6px rgba(15, 23, 42, .18), 0 0 0 1px var(--raid-glow) inset; }
+.qc-day--raid.qc-day--today .qc-day__raid::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: .55rem;
+    border: 2px solid var(--raid-glow);
+    animation: qc-raid-pulse 2s ease-in-out infinite;
+    pointer-events: none;
+}
+@keyframes qc-raid-pulse { 0%, 100% { opacity: .2; } 50% { opacity: 1; } }
+
+/* ─── Month strip chip ────────────────────────────────────────────────────── */
+
+.qc-raid-chip { position: relative; list-style: none; }
+.qc-raid-chip__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .22rem .35rem .22rem .25rem;
+    border: 1px solid rgba(255, 255, 255, .25);
+    border-radius: 999px;
+    font: 700 .75rem 'Fredoka', 'Open Sans', sans-serif;
+    color: #fff;
+    background: linear-gradient(100deg, var(--raid-a), var(--raid-b));
+    box-shadow: 0 4px 14px rgba(15, 23, 42, .22), inset 0 1px 0 rgba(255, 255, 255, .22);
+    cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+.qc-raid-chip__btn:hover, .qc-raid-chip__btn:focus-visible { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(15, 23, 42, .3), 0 0 0 2px var(--raid-glow); outline: none; }
+.qc-raid-chip__date { display: inline-flex; align-items: baseline; gap: .2rem; padding: .05rem .45rem; border-radius: 999px; background: rgba(255, 255, 255, .18); }
+.qc-raid-chip__date b { font-size: .72rem; }
+.qc-raid-chip__date small { font-size: .6rem; text-transform: uppercase; opacity: .85; }
+.qc-raid-chip__icon { font-size: .95rem; }
+.qc-raid-chip__tag {
+    display: inline-flex; align-items: center; gap: .25rem;
+    padding: .05rem .45rem;
+    border-radius: 999px;
+    font-size: .6rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--raid-a);
+    background: var(--raid-glow);
+}
+.qc-raid-chip.is-held .qc-raid-chip__tag { background: rgba(255, 255, 255, .2); color: #fff; }
+.qc-raid-chip.is-won .qc-raid-chip__tag, .qc-raid-chip.is-legendary .qc-raid-chip__tag { background: #fde68a; color: #78350f; }
+.qc-raid-chip__pulse { width: .45rem; height: .45rem; border-radius: 999px; background: #ef4444; animation: qc-raid-pulse 1.4s ease-in-out infinite; }
+.qc-raid-tip { --hol-ink: #1e1b4b; }
+
+/* ─── Phone day view and Planner banner ───────────────────────────────────── */
+
+.qc-raid-banner {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    width: 100%;
+    margin: 0 0 .7rem;
+    padding: .7rem .85rem;
+    border: 1px solid rgba(255, 255, 255, .22);
+    border-radius: 1rem;
+    color: #fff;
+    text-align: left;
+    background:
+        radial-gradient(1px 1px at 18% 30%, #fff, transparent 60%),
+        radial-gradient(1.5px 1.5px at 62% 22%, #fff, transparent 60%),
+        radial-gradient(1px 1px at 84% 60%, #fff, transparent 60%),
+        linear-gradient(110deg, var(--raid-a), var(--raid-b));
+    box-shadow: 0 8px 22px rgba(15, 23, 42, .22), inset 0 1px 0 rgba(255, 255, 255, .2);
+    cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+.qc-raid-banner:hover, .qc-raid-banner:focus-visible { transform: translateY(-1px); box-shadow: 0 10px 26px rgba(15, 23, 42, .3), 0 0 0 2px var(--raid-glow); outline: none; }
+.qc-raid-banner__icon { display: grid; place-items: center; flex: none; width: 2.6rem; height: 2.6rem; border-radius: .8rem; font-size: 1.5rem; background: rgba(255, 255, 255, .14); border: 1px solid rgba(255, 255, 255, .25); }
+.qc-raid-banner__body { display: flex; flex-direction: column; gap: .1rem; min-width: 0; flex: 1; }
+.qc-raid-banner__kicker { font: 700 .66rem 'Fredoka', sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--raid-glow); }
+.qc-raid-banner__line { font: 500 .88rem/1.3 'Fredoka', 'Open Sans', sans-serif; }
+.qc-raid-banner__go { flex: none; padding: .3rem .65rem; border-radius: 999px; font: 700 .72rem 'Fredoka', sans-serif; color: var(--raid-a); background: var(--raid-glow); white-space: nowrap; }
+.qc-raid-banner.is-herald { opacity: .95; }
+.qc-raid-banner.is-compact { margin: .1rem 0 .55rem; padding: .5rem .65rem; }
+.qc-raid-banner.is-compact .qc-raid-banner__icon { width: 2.1rem; height: 2.1rem; font-size: 1.2rem; }
+.qc-raid-banner.is-compact .qc-raid-banner__line { font-size: .8rem; }
+
+/* ─── Legend ──────────────────────────────────────────────────────────────── */
+
+.qc-legend__swatch--raid { color: #fff; font-size: .55rem; background: linear-gradient(90deg, #0b1d4d, #1f5a86); border: 1px solid rgba(125, 211, 252, .6); }
+
+@media (max-width: 640px) {
+    .qc-day__raid-name { display: none; }
+    .qc-day__raid { justify-content: center; padding: .1rem .2rem; }
+    .qc-raid-banner__go { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .qc-day--raid.qc-day--today .qc-day__raid::after, .qc-raid-chip__pulse { animation: none; }
+}

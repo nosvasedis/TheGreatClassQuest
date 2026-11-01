@@ -2,7 +2,7 @@
 // "How it works" page. Pure string builders from a raid view (features/realmRaid.js#buildRaidView);
 // no state, no Firebase, so the preview page can use them as they are.
 import { guardianSvg, shieldSvg, ringSvg, gateSvg, raysSvg, crackSvg, peaksSvg } from '../../features/realmRaidArt.mjs';
-import { RAID_REWARDS, LEGENDARY_AT, RAID_EFFORT, guardianMood, raidCountdown, readDate } from '../../features/realmRaidCore.mjs';
+import { RAID_REWARDS, LEGENDARY_AT, RAID_EFFORT, guardianMood, raidCountdown, readDate, raidDays, dayKey } from '../../features/realmRaidCore.mjs';
 
 export function esc(value) {
     return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -129,12 +129,70 @@ function spoilsHtml(view, focusRow) {
     return `<section class="rr-card rr-spoils" aria-label="Spoils">
         <h3 class="rr-card__title"><i class="fas fa-gift" aria-hidden="true"></i> The Guardian's spoils</h3>
         <ul>
-            ${rewardRow('victory', '🛡️', 'Victory: the shield breaks', [`+${r.victoryGold} Gold for every hero in every class`, 'A step on every Team Quest map (5%)', 'A festival treasure for each class\'s Raid Hero'], victoryState)}
-            ${rewardRow('legendary', '👑', `Legendary: ${Math.round(LEGENDARY_AT * 100)}% of the shield`, [`+${r.legendaryGold} Gold more for every hero`, 'Another half step on every map (2.5%)'], legendState)}
-            ${rewardRow('valor', '✨', 'Valor: your class breaks its own shard', [`+${r.valorGold} Gold for every hero, whatever happens`], focusRow ? valorState : (over ? 'missed' : 'open'))}
+            ${rewardRow('victory', '🛡️', 'Victory: the shield breaks', [`+${r.victoryGold} Gold each · 5% map step · a treasure for each Raid Hero`], victoryState)}
+            ${rewardRow('legendary', '👑', `Legendary: ${Math.round(LEGENDARY_AT * 100)}% of the shield`, [`+${r.legendaryGold} Gold more each · another 2.5% map step`], legendState)}
+            ${rewardRow('valor', '✨', 'Valor: your own shard breaks', [`+${r.valorGold} Gold each, whatever happens`], focusRow ? valorState : (over ? 'missed' : 'open'))}
         </ul>
         <p class="rr-spoils__foot"><i class="fas fa-heart" aria-hidden="true"></i> Nothing is ever taken away.</p>
     </section>`;
+}
+
+/**
+ * The raid week, day by day: the stars the whole school sent each day. Days without a lesson
+ * anywhere rest; today glows.
+ */
+export function battleLogHtml(view, now = new Date()) {
+    const { raid, tally } = view;
+    const byDay = tally?.byDay || {};
+    const lessonDays = new Set(view.rows.flatMap((r) => r.lessonDates || []));
+    const today = dayKey(now);
+    const days = raidDays(raid).map((d) => {
+        const key = dayKey(d);
+        return { key, d, stars: Number(byDay[key]) || 0, lessons: lessonDays.has(key), when: key < today ? 'past' : key === today ? 'today' : 'future' };
+    });
+    const max = Math.max(1, ...days.map((d) => d.stars));
+    const best = days.reduce((a, b) => (b.stars > (a?.stars || 0) ? b : a), null);
+    const lead = raid.phase === 'herald'
+        ? `${days.filter((d) => d.lessons).length} lesson days to strike`
+        : best?.stars ? `Strongest day: ${best.d.toLocaleDateString('en-GB', { weekday: 'long' })}, ${fmt(best.stars)} ★` : 'The first star is waiting';
+    return `<section class="rr-week" aria-label="Raid week, day by day">
+        <p class="rr-week__lead"><i class="fas fa-calendar-week" aria-hidden="true"></i> Raid week <span>${esc(lead)}</span></p>
+        <ol class="rr-week__days">${days.map((day) => `
+            <li class="rr-day is-${day.when}${day.lessons ? '' : ' is-rest'}${day.stars ? ' has-stars' : ''}${best && best.key === day.key && day.stars ? ' is-best' : ''}" title="${esc(`${day.d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}: ${day.lessons || day.stars ? `${fmt(day.stars)} stars` : 'no lessons'}`)}">
+                <span class="rr-day__name">${day.when === 'today' ? 'Today' : `${esc(day.d.toLocaleDateString('en-GB', { weekday: 'short' }))} <small>${day.d.getDate()}</small>`}</span>
+                <span class="rr-day__stars">${day.stars ? `${fmt(day.stars)} <i class="fas fa-star" aria-hidden="true"></i>` : day.lessons ? (day.when === 'future' ? '<i class="fas fa-hourglass-start" aria-hidden="true"></i>' : '0') : '<i class="fas fa-moon" aria-hidden="true"></i>'}</span>
+                <span class="rr-day__bar"><span style="--h:${(day.stars / max).toFixed(3)}"></span></span>
+            </li>`).join('')}
+        </ol>
+    </section>`;
+}
+
+/** The year's three raids, as medallions in the top bar. Each opens that raid. */
+function yearHtml(year = [], currentId = '') {
+    if (!year.length) return '';
+    const label = { won: 'won', legendary: 'Legendary', held: 'the shield held', live: 'now', soon: '' };
+    return `<nav class="rr-year" aria-label="This year's raids">${year.map((y) => {
+        const state = y.raidId === currentId ? 'current' : y.state;
+        const date = readDate(y.start)?.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) || '';
+        const words = `${y.season.name}${label[y.state] ? `: ${label[y.state]}` : `, ${date}`}`;
+        return `<button type="button" class="rr-year__dot is-${esc(y.state)}${state === 'current' ? ' is-current' : ''}" data-rr-raid="${esc(y.raidId)}" aria-label="${esc(words)}" title="${esc(words)}"${state === 'current' ? ' aria-current="true"' : ''}>
+            <span aria-hidden="true">${esc(y.season.emoji)}</span>
+            ${y.state === 'won' || y.state === 'legendary' ? `<i class="fas fa-${y.state === 'legendary' ? 'crown' : 'check'}" aria-hidden="true"></i>` : ''}
+        </button>`;
+    }).join('')}</nav>`;
+}
+
+/** Every hero of the focused class by name; the ones who struck the shield this week are lit. */
+export function rosterHtml(roster = [], phase = 'active') {
+    if (!roster.length) return '';
+    const struck = roster.filter((h) => h.stars > 0).length;
+    const lead = phase === 'herald'
+        ? `${roster.length} heroes ready to strike`
+        : `${struck} of ${roster.length} heroes struck the shield`;
+    return `<div class="rr-roster">
+        <p class="rr-roster__lead"><i class="fas fa-bolt" aria-hidden="true"></i> ${esc(lead)}</p>
+        <ul class="rr-roster__list">${roster.map((h) => `<li class="rr-roster__hero${h.stars > 0 ? ' is-lit' : ''}" title="${esc(h.fullName || h.name)}${h.stars > 0 ? `: ${fmt(h.stars)} ★` : ''}">${h.stars > 0 ? '<i class="fas fa-star" aria-hidden="true"></i>' : ''}${esc(h.name)}</li>`).join('')}</ul>
+    </div>`;
 }
 
 function lessonsLine(row, phase) {
@@ -185,12 +243,13 @@ function heroCardHtml(hero) {
     </div>`;
 }
 
-function focusHtml(view, row, { heroCard = null, canReveal = false } = {}) {
+function focusHtml(view, row, { heroCard = null, canReveal = false, roster = [] } = {}) {
     if (!row) return '';
     const fill = Math.min(1, row.pct || 0);
     const phase = view.raid.phase;
     let say;
     if (!row.share) say = 'No raid lessons this week. Any stars still help the school!';
+    else if ((phase === 'aftermath' || phase === 'over') && !row.valor) say = `Sent <b>${fmt(row.stars)}</b> of <b>${fmt(row.share)}</b> stars at the shard. Every one counted for the school.`;
     else if (row.valor) say = row.stars > row.share ? `Shard broken, and <b>${fmt(row.stars - row.share)}</b> extra ${row.stars - row.share === 1 ? 'star' : 'stars'} sent to help the others!` : 'Shard broken! Every star now helps the other classes.';
     else if (phase === 'herald') say = `Your shard: <b>${fmt(row.share)}</b> stars in ${row.lessonDates.length} ${row.lessonDates.length === 1 ? 'lesson' : 'lessons'}. A normal, good week breaks it.`;
     else {
@@ -205,6 +264,7 @@ function focusHtml(view, row, { heroCard = null, canReveal = false } = {}) {
         </div>
         <p class="rr-focus__say">${say}</p>
         ${heroCardHtml(heroCard)}
+        ${rosterHtml(roster, phase)}
         ${reveal}
     </section>`;
 }
@@ -213,7 +273,7 @@ function headline(view) {
     const { raid, status } = view;
     const season = raid.season;
     if (raid.phase === 'herald') return { kicker: `${season.name} · ${raidCountdown(raid)}`, title: `${season.guardian} ${season.arrives}` };
-    if (raid.phase === 'active') return { kicker: `${season.name} · day ${raid.dayNumber} of 7 · ${raidCountdown(raid)}`, title: status.broken ? 'The shield is broken!' : 'Every star breaks the shield' };
+    if (raid.phase === 'active') return { kicker: `${season.name} · day ${raid.dayNumber} of 7 · ${raidCountdown(raid)}`, title: status.broken ? (status.legendary ? 'A Legendary week!' : 'The shield is broken!') : 'Every star breaks the shield' };
     if (status.broken) return { kicker: `${season.name} · won`, title: status.legendary ? 'A Legendary victory!' : 'The school won the raid!' };
     return { kicker: `${season.name} · over`, title: `The shield held. ${season.guardian} bows to your courage` };
 }
@@ -222,14 +282,14 @@ function headline(view) {
  * The Raid Hall. `focusId` is the class to feature (the header's class, or the teacher's own).
  * `heroCard` is a resolved Raid Hero ({ name, faceHtml, days, stars, prize }) for that class.
  */
-export function hallHtml(view, { focusId = '', heroCard = null, canReveal = false, lite = false } = {}) {
+export function hallHtml(view, { focusId = '', heroCard = null, canReveal = false, lite = false, roster = [], year = [], now = new Date() } = {}) {
     const { raid, status } = view;
     const season = raid.season;
     const mood = raid.phase === 'herald' ? 'proud' : (raid.phase !== 'active' && !status.broken ? 'bow' : guardianMood(status));
     const focusRow = view.rows.find((r) => r.classId === focusId) || null;
     const head = headline(view);
     const shieldRows = view.rows.map((r) => ({ ...r }));
-    const ends = raid.phase === 'herald' ? `Raid week: ${shortDate(raid.start)} to ${shortDate(raid.end)}` : `Ends ${shortDate(raid.end)}`;
+    const ends = raid.phase === 'active' ? `Ends ${shortDate(raid.end)}` : `${shortDate(raid.start)} to ${shortDate(raid.end)}`;
     const nextLine = raid.phase !== 'active' && raid.phase !== 'herald' && view.next
         ? `<p class="rr-next">${esc(season.guardian)} returns ${esc(season.returns)}: ${shortDate(view.next.start)}.</p>` : '';
     return `<div class="rr-hall rr-hall--${season.id} rr-phase--${raid.phase} rr-mood--${mood}${status.broken ? ' is-broken' : ''}${status.legendary ? ' is-legendary' : ''}${lite ? ' rr-lite' : ''}">
@@ -240,7 +300,8 @@ export function hallHtml(view, { focusId = '', heroCard = null, canReveal = fals
                 <span class="rr-top__kicker">Realm Raid · ${esc(head.kicker)}</span>
                 <h2 class="rr-top__title" id="rr-hall-title">${esc(head.title)}</h2>
             </div>
-            <span class="rr-top__when"><i class="fas fa-hourglass-half" aria-hidden="true"></i> ${esc(ends)}</span>
+            ${yearHtml(year, raid.raidId)}
+            <span class="rr-top__when"><i class="fas fa-${raid.phase === 'active' ? 'hourglass-half' : 'calendar-days'}" aria-hidden="true"></i> ${esc(ends)}</span>
             <button type="button" class="rr-icon-btn" data-rr-help aria-label="How the Realm Raid works" title="How it works"><i class="fas fa-question" aria-hidden="true"></i></button>
             <button type="button" class="rr-icon-btn" data-rr-close aria-label="Close" title="Close (Esc)"><i class="fas fa-xmark" aria-hidden="true"></i></button>
         </header>
@@ -260,10 +321,11 @@ export function hallHtml(view, { focusId = '', heroCard = null, canReveal = fals
                 ${view.loading ? '<span class="rr-arena__loading"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i> Counting the stars…</span>' : ''}
             </div>
             ${meterHtml(view)}
+            ${battleLogHtml(view, now)}
             <p class="rr-name">${esc(season.title)} <span>· ${esc(season.coat)}</span></p>
         </main>
         <aside class="rr-side">
-            ${focusHtml(view, focusRow, { heroCard, canReveal })}
+            ${focusHtml(view, focusRow, { heroCard, canReveal, roster })}
             ${spoilsHtml(view, focusRow)}
             ${nextLine}
         </aside>

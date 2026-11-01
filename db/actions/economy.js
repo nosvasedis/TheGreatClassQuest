@@ -31,7 +31,7 @@ import { monthlyStarsChange } from './monthlyStars.js';
 import { planMonthlyRollover } from '../../features/monthlyStarsCore.mjs';
 import { parseTrialScore, trialRowValue, UNMARKABLE_VALUE } from '../../features/trialLogCore.mjs';
 import { showShopPurchasePopup } from '../../ui/core/marketParcel.js';
-import { hoardRankPayout, stallInventoryEntry, charmFor } from '../../features/treasureCharmsCore.mjs';
+import { hoardRankPayout, stallInventoryEntry, charmFor, buildCharmSets, charmSetLine } from '../../features/treasureCharmsCore.mjs';
 import { stallBuyCheckFor, childStallCheck } from './smartStock.js';
 // GUILD_IDS not needed at module level but kept for reference
 
@@ -531,6 +531,7 @@ export async function handleBuyItem(studentId, itemId) {
         let remainingAfterBuy = 0;
         let boughtEntry = null;
         let hoardPaid = null;
+        let boughtSetLine = '';
 
         await runTransaction(db, async (transaction) => {
             hoardPaid = null;
@@ -615,6 +616,7 @@ export async function handleBuyItem(studentId, itemId) {
                 }
                 : stallInventoryEntry(stallItem, { classId: student.classId || '' });
             const nextInventory = [...currentInventory, boughtEntry];
+            boughtSetLine = isLegendary ? '' : charmSetLine(buildCharmSets(nextInventory).tiers[charmFor(boughtEntry).tier]);
 
             const nextUpdate = {
                 // Exact balance from the doc read in this transaction: a score without a gold field
@@ -685,7 +687,7 @@ export async function handleBuyItem(studentId, itemId) {
             itemName: item.name,
             itemDescription: isLegendary
                 ? (item.description || 'A rare artifact for your collection!')
-                : `${item.description || ''} ${charmFor(boughtEntry).icon} Charm: ${charmFor(boughtEntry).title}. Use it once from the Trophy Room.`.trim(),
+                : `${item.description || ''} ${charmFor(boughtEntry).icon} Charm: ${charmFor(boughtEntry).title}.${boughtSetLine ? ` Charm set: ${boughtSetLine}.` : ''}`.trim(),
             itemVisualHtml: item.icon ? item.icon : (item.image ? `<img src="${item.image}" class="w-16 h-16 object-contain mx-auto">` : '🎁'),
             finalPrice: appliedFinalPrice,
             basePrice: item.price,

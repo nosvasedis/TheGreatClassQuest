@@ -218,6 +218,8 @@ export function openTrophyRoomModal(preselectedStudentId = null) {
 
     currentClassId = classId;
     currentStudentId = preselected?.id || '';
+    // Charm-set jars: their styles load with the Trophy Room, not with the first paint.
+    import('../../styles/charm_sets.css').catch(quietly('ui/modals/trophyRoom.js'));
     bindListeners();
     ensureHeroSealsForClass(classId).catch(quietly('ui/modals/trophyRoom.js'));
     renderRoster();

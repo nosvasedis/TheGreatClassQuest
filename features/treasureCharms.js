@@ -56,7 +56,7 @@ export function handleUseCharm(studentId, itemIndex) {
             `<div class="text-center text-gray-600 mt-1">
                 <div class="text-4xl mb-2" aria-hidden="true">${esc(charm.icon)}</div>
                 <p><b>${esc(owned.name)}</b> lets ${esc(firstName)}: ${esc(words)}</p>
-                <p class="text-sm mt-2">The treasure stays in the collection. Each charm works once.</p>
+                <p class="text-sm mt-2">This spends one woken ${esc(charm.tier)} charm. The treasure stays in the collection.</p>
             </div>`,
             async () => {
                 try {
@@ -72,7 +72,8 @@ export function handleUseCharm(studentId, itemIndex) {
                         }
                         const fresh = charmUseCheck(inventory, itemIndex, { today });
                         if (!fresh.ok) return { success: false, errorMessage: fresh.reason };
-                        inventory[itemIndex] = { ...entry, charm: charm.id, charmUsedAt: usedAt };
+                        // charmSet: this use spent a woken set (old one-off uses have no flag).
+                        inventory[itemIndex] = { ...entry, charm: charm.id, charmUsedAt: usedAt, charmSet: true };
                         transaction.update(scoreRef, { inventory });
                         return { success: true, inventory };
                     });

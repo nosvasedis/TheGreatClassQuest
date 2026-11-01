@@ -605,7 +605,7 @@ export function renderShopUI() {
                 id: 'seasonal', label: 'Seasonal', icon: 'fa-leaf', tone: 'amber',
                 title: 'Seasonal Treasures',
                 month: collectionName ? `${monthLabel} · ${collectionName}` : monthLabel,
-                desc: `Every treasure carries a Charm: a small classroom privilege to use once. Copies are shared fairly between the classes.${seasonalSoldOut ? ` ${seasonalSoldOut} already sold out.` : ''}`,
+                desc: `Every treasure carries a Charm, a small classroom privilege. Collect a set of one rarity to wake a charm. Copies are shared fairly between the classes.${seasonalSoldOut ? ` ${seasonalSoldOut} already sold out.` : ''}`,
                 action: '<button type="button" class="mm-guide-btn" data-market-guide><i class="fas fa-circle-question" aria-hidden="true"></i><span>How treasures work</span></button>',
                 body: seasonalItems.length === 0
                     ? noSeasonalHtml

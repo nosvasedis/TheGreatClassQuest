@@ -3,7 +3,7 @@
 import { shopItemStock } from '../../utils/shopRestock.js';
 import { FAMILIAR_STAGE_BOND } from '../../features/familiarProgression.mjs';
 import { buildFamiliarEggSvg, describeFamiliar, getFamiliarPresets } from '../../features/familiarForge.mjs';
-import { charmFor, charmText, treasureTierLabel } from '../../features/treasureCharmsCore.mjs';
+import { CHARM_SET_SIZE, charmFor, charmText, treasureTierLabel } from '../../features/treasureCharmsCore.mjs';
 
 const YOUNG_LEAGUES = ['Pre-Junior', 'Junior A', 'Junior B'];
 
@@ -23,11 +23,12 @@ export function shopCharmMarkup(item) {
     const charm = charmFor(item);
     const words = charmText(charm, { young: YOUNG_LEAGUES.includes(String(item?.league || '')) });
     const tierLabel = treasureTierLabel(charm.tier);
+    const setSize = CHARM_SET_SIZE[charm.tier];
     return `
-                <div class="mm-charm mm-charm--${charm.tier}" title="${escapeShopHtml(`${charm.title}: ${words} Use it once from the Trophy Room; the treasure stays.`)}">
+                <div class="mm-charm mm-charm--${charm.tier}" title="${escapeShopHtml(`${charm.title}: ${words} Collect ${setSize} ${tierLabel.toLowerCase()} treasures to wake one ${tierLabel.toLowerCase()} charm, then use it from the Trophy Room; the treasure stays.`)}">
                     <span class="mm-charm__seal" aria-hidden="true"><span class="mm-charm__icon">${escapeShopHtml(charm.icon)}</span></span>
                     <span class="mm-charm__body">
-                        <span class="mm-charm__kicker">Charm<span class="mm-charm__gems" role="img" aria-label="${tierLabel}">${charmGemsMarkup(charm.tier)}</span></span>
+                        <span class="mm-charm__kicker">Charm<span class="mm-charm__gems" role="img" aria-label="${tierLabel}">${charmGemsMarkup(charm.tier)}</span><span class="mm-charm__set">set of ${setSize}</span></span>
                         <b class="mm-charm__title">${escapeShopHtml(charm.title)}</b>
                         <span class="mm-charm__text">${escapeShopHtml(words)}</span>
                     </span>

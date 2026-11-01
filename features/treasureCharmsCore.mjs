@@ -1,8 +1,10 @@
 // features/treasureCharmsCore.mjs — what Mystic Market treasures do and count for, and the
 // fair-share rules that keep one class from emptying a league's stall. Pure: no DOM, no state.
 //
-// - Every seasonal or festival treasure carries one Charm: a small classroom privilege the
-//   child can call on once. The treasure stays in the collection; only the charm is spent.
+// - Every seasonal or festival treasure carries one Charm: a small classroom privilege. Charms
+//   are earned by collecting: a hero wakes one charm of a rarity for every full set of that
+//   rarity they own (CHARM_SET_SIZE), then calls on any one of those treasures' charms.
+//   The treasure stays in the collection; only that treasure's charm is spent.
 //   Charms are small lesson moments only: never stars, Glory, Gold, marks, homework or tests.
 // - Treasures fill the child's Collector's Hoard (points by rarity). Each new Hoard rank pays
 //   a little Gold once. Nothing here touches stars, Glory, goals or rankings.
@@ -131,12 +133,80 @@ function isoDay(iso) {
     return /^\d{4}-\d{2}-\d{2}/.test(text(iso)) ? text(iso).slice(0, 10) : '';
 }
 
-/** Can this treasure's charm be called on today? Returns { ok, reason }. */
+// ─── Charm sets: collect several treasures to wake one charm ─────────────────
+
+/** Treasures of one rarity a hero collects to wake one charm of that rarity. */
+export const CHARM_SET_SIZE = { common: 3, rare: 2, legendary: 2 };
+
+function treasureTier(item) {
+    return normalizeTier(item?.tier || (item?.price !== undefined ? tierForPrice(item.price) : 'common'));
+}
+
+/**
+ * A charm used before charm sets existed (one treasure, one charm). Its treasure already gave
+ * its charm, so it neither counts toward a set nor spends one.
+ */
+export function isLegacyCharmUse(item) {
+    return Boolean(item?.charmUsedAt) && !item?.charmSet;
+}
+
+/**
+ * The hero's charm sets, rarity by rarity: treasures collected toward sets, charms woken,
+ * charms used, charms ready now, and how many more treasures wake the next one.
+ */
+export function buildCharmSets(inventory = []) {
+    const list = (Array.isArray(inventory) ? inventory : []).filter(isStallTreasure);
+    const tiers = {};
+    TREASURE_TIERS.forEach((tier) => {
+        const need = CHARM_SET_SIZE[tier];
+        const mine = list.filter((item) => treasureTier(item) === tier);
+        const counted = mine.filter((item) => !isLegacyCharmUse(item)).length;
+        const woken = Math.floor(counted / need);
+        const used = mine.filter((item) => item.charmUsedAt && item.charmSet).length;
+        const unspent = mine.filter((item) => !item.charmUsedAt).length;
+        const ready = Math.max(0, Math.min(woken - used, unspent));
+        const inSet = counted % need;
+        tiers[tier] = {
+            tier,
+            need,
+            owned: mine.length,
+            counted,
+            woken,
+            used,
+            ready,
+            inSet,
+            toNext: need - inSet
+        };
+    });
+    return {
+        tiers,
+        ready: TREASURE_TIERS.reduce((sum, tier) => sum + tiers[tier].ready, 0)
+    };
+}
+
+/** One line on a rarity's set, e.g. "2 of 3 common treasures: 1 more wakes a charm". */
+export function charmSetLine(set) {
+    if (!set) return '';
+    const word = treasureTierLabel(set.tier).toLowerCase();
+    if (set.ready > 0) return `${set.ready} ${word} charm${set.ready === 1 ? '' : 's'} awake and ready`;
+    return `${set.inSet} of ${set.need} ${word} treasures: ${set.toNext} more wake${set.toNext === 1 ? 's' : ''} a charm`;
+}
+
+/** Can this treasure's charm be called on today? Returns { ok, reason, locked }. */
 export function charmUseCheck(inventory = [], index, { today = '', classCharmsToday = 0, classDailyLimit = 3 } = {}) {
     const list = Array.isArray(inventory) ? inventory : [];
     const item = list[index];
     if (!isStallTreasure(item)) return { ok: false, reason: 'This keepsake has no charm.' };
     if (item.charmUsedAt) return { ok: false, reason: 'This charm was already used. The treasure stays in the collection.' };
+    const set = buildCharmSets(list).tiers[treasureTier(item)];
+    if (set.ready <= 0) {
+        const word = treasureTierLabel(set.tier).toLowerCase();
+        return {
+            ok: false,
+            locked: true,
+            reason: `Charms wake in sets: ${set.need} ${word} treasures wake one ${word} charm. ${set.inSet} of ${set.need} so far, ${set.toNext} more to go.`
+        };
+    }
     if (today && list.some((entry) => entry && isoDay(entry.charmUsedAt) === today)) {
         return { ok: false, reason: 'One charm a day. This one can wait for the next lesson.' };
     }
@@ -185,7 +255,7 @@ export function buildHoard(inventory = []) {
     return {
         points,
         treasures: list.length,
-        charmsReady: list.filter((item) => !item.charmUsedAt).length,
+        charmsReady: buildCharmSets(list).ready,
         rank: current ? current.rank : 0,
         title: current ? current.title : '',
         icon: current ? current.icon : '',
@@ -243,9 +313,11 @@ export function smartStockMax({ tier, shelf = 'seasonal', children = 0 } = {}) {
     return Math.min(rules.max, Math.max(rules.min, copies));
 }
 
-/** The children who share a stall: the teacher's classes in that league. */
+/** The children in `league` across the given classes (archived classes left out). */
 export function leagueRoster(classes = [], students = [], league = '') {
-    const inLeague = (classes || []).filter((cls) => cls && text(cls.questLevel) === text(league));
+    const inLeague = (classes || []).filter((cls) => cls
+        && text(cls.questLevel) === text(league)
+        && text(cls.status).toLowerCase() !== 'archived');
     const ids = new Set(inLeague.map((cls) => cls.id));
     const sizes = {};
     (students || []).forEach((student) => {

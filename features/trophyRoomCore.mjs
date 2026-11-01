@@ -1,6 +1,6 @@
 // features/trophyRoomCore.mjs — pure view model for the Trophy Room (a student's satchel).
 // No DOM, no state: the modal passes in the inventory, score doc and an `isUsable(name)` check.
-import { charmFor, charmText, isStallTreasure, treasureTierLabel } from './treasureCharmsCore.mjs';
+import { buildCharmSets, charmFor, charmText, isStallTreasure, treasureTierLabel } from './treasureCharmsCore.mjs';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -79,10 +79,16 @@ export function buildTrophySatchel(inventory, { isUsable = () => false, present 
     const relics = [...relicsByName.values()];
     const sorted = [...dated, ...undated];
 
+    // Charms wake in sets: only treasures of a rarity with a woken charm can be called on.
+    const charmSets = buildCharmSets(list.filter(Boolean));
+    const unspent = sorted.filter((t) => t.charm && !t.charmUsed);
+
     return {
         relics,
         treasures: sorted,
-        charms: sorted.filter((t) => t.charm && !t.charmUsed),
+        charmSets,
+        charms: unspent.filter((t) => charmSets.tiers[t.tier]?.ready > 0),
+        lockedCharms: unspent.filter((t) => !(charmSets.tiers[t.tier]?.ready > 0)).length,
         relicCount: relics.reduce((sum, r) => sum + r.count, 0),
         treasureCount: treasures.length,
         total: relics.reduce((sum, r) => sum + r.count, 0) + treasures.length,
@@ -109,7 +115,7 @@ export function summarizeSatchel(inventory, { isUsable = () => false } = {}) {
     const list = Array.isArray(inventory) ? inventory.filter((item) => item && item.name) : [];
     return {
         total: list.length,
-        ready: list.filter((item) => isUsable(item.name) || (isStallTreasure(item) && !item.charmUsedAt)).length,
+        ready: list.filter((item) => isUsable(item.name)).length + buildCharmSets(list).ready,
     };
 }
 

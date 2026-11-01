@@ -15,6 +15,11 @@ export function stallRosterFor(league) {
     return leagueRoster(state.get('allTeachersClasses') || [], state.get('allStudents') || [], league);
 }
 
+/** Every class in `league` across the school, whoever teaches it. */
+export function schoolLeagueRosterFor(league) {
+    return leagueRoster(state.get('allSchoolClasses') || [], state.get('allStudents') || [], league);
+}
+
 /** Smart copy count for one rarity on one shelf of this league's stall (null when unknown). */
 export function smartStockFor(league, tier, shelf = 'seasonal') {
     return smartStockMax({ tier, shelf, children: stallRosterFor(league).children });

@@ -59,6 +59,15 @@
 
 .mm-charm__gems { display: inline-flex; gap: 0.18rem; }
 
+.mm-charm__set {
+    margin-left: auto;
+    padding: 0.05rem 0.35rem;
+    border-radius: 999px;
+    letter-spacing: 0.06em;
+    background: rgba(255, 255, 255, 0.12);
+    white-space: nowrap;
+}
+
 .mm-charm__gem {
     width: 0.38rem;
     height: 0.38rem;

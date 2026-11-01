@@ -110,6 +110,38 @@ function charmCardHtml(treasure, studentId) {
         </article>`;
 }
 
+const CHARM_SET_TIERS = [['common', 'Common', 1], ['rare', 'Rare', 2], ['legendary', 'Legendary', 3]];
+
+/**
+ * Charm sets: one jar per rarity. Each pip is a treasure collected toward the next charm;
+ * a full set wakes a charm the hero can call on from any treasure of that rarity.
+ */
+export function renderCharmSetsHtml(charmSets) {
+    if (!charmSets?.tiers) return '';
+    return `
+        <div class="tr-csets" role="list" aria-label="Charm sets">
+            ${CHARM_SET_TIERS.map(([tier, label, gems]) => {
+                const set = charmSets.tiers[tier];
+                if (!set) return '';
+                const pips = Array.from({ length: set.need }, (_, i) => `<i class="tr-cset-pip${i < set.inSet ? ' is-filled' : ''}"></i>`).join('');
+                const line = set.ready > 0
+                    ? `<b>${set.ready}</b> charm${set.ready === 1 ? '' : 's'} awake`
+                    : `${set.inSet} of ${set.need} · ${set.toNext} more to wake one`;
+                return `
+                    <div class="tr-cset is-${tier}${set.ready > 0 ? ' is-ready' : ''}" role="listitem"
+                        aria-label="${escTrophy(`${label}: ${set.ready > 0 ? `${set.ready} charm awake` : `${set.inSet} of ${set.need} treasures collected`}`)}">
+                        <span class="tr-cset-head">
+                            <span class="tr-cset-gems" aria-hidden="true">${Array.from({ length: 3 }, (_, i) => `<i${i < gems ? ' class="is-lit"' : ''}></i>`).join('')}</span>
+                            <b>${label}</b>
+                            <span class="tr-cset-need">Set of ${set.need}</span>
+                        </span>
+                        <span class="tr-cset-pips" aria-hidden="true">${pips}${set.ready > 0 ? '<span class="tr-cset-spark">✨</span>' : ''}</span>
+                        <span class="tr-cset-line">${line}</span>
+                    </div>`;
+            }).join('')}
+        </div>`;
+}
+
 /** The Collector's Hoard: points from every treasure, the rank reached and the next one. */
 export function renderTrophyHoardHtml(hoard) {
     if (!hoard) return '';
@@ -209,16 +241,22 @@ export function renderTrophySatchelHtml({ student, classLabel = '', gold = 0, sa
                 : '<p class="tr-section-empty">No relics right now. Legendary Artifacts from the Mystic Market wait here until used.</p>'}
         </section>`;
 
-    const charmsHtml = charms.length ? `
+    const charmSets = satchel.charmSets || null;
+    const hasStallTreasures = Boolean(charmSets && Object.values(charmSets.tiers).some((set) => set.owned > 0));
+    const charmsHtml = hasStallTreasures ? `
         <section class="tr-section tr-section--charms">
             <header class="tr-section-head">
                 <span class="tr-section-icon" aria-hidden="true"><i class="fas fa-hand-sparkles"></i></span>
                 <div>
-                    <h4 class="font-title">Charms <span class="tr-section-count">${charms.length}</span></h4>
-                    <p>Every treasure carries one classroom privilege. Use it once; the treasure stays. One charm a day.</p>
+                    <h4 class="font-title">Charms <span class="tr-section-count">${charmSets.ready}</span></h4>
+                    <p>Collect treasures of one rarity to wake a charm. Then pick whose charm to use; the treasure stays. One charm a day.</p>
                 </div>
             </header>
-            <div class="tr-relic-grid">${charms.map((t) => charmCardHtml(t, student.id)).join('')}</div>
+            ${renderCharmSetsHtml(charmSets)}
+            ${charms.length
+                ? `<p class="tr-charm-pick">Pick one treasure's charm for each awake charm:</p>
+                   <div class="tr-relic-grid">${charms.map((t) => charmCardHtml(t, student.id)).join('')}</div>`
+                : '<p class="tr-section-empty">No charm is awake yet. Fill a set above to wake one.</p>'}
         </section>` : '';
 
     const treasuresHtml = `

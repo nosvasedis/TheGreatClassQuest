@@ -1,0 +1,104 @@
+/* Charm sets in the Trophy Room (ui/modals/trophyRoomView.js renderCharmSetsHtml).
+   Loaded when the Trophy Room opens. One jar per rarity: pips fill as treasures are collected. */
+#trophy-room-modal .tr-csets {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.55rem;
+    margin: 0.2rem 0 0.8rem;
+}
+
+#trophy-room-modal .tr-cset {
+    --cs-ink: #57534e;
+    --cs-rim: #e7e5e4;
+    --cs-fill: #a8a29e;
+    --cs-glow: rgba(168, 162, 158, 0.25);
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.6rem 0.7rem 0.55rem;
+    border-radius: 1rem;
+    background: linear-gradient(160deg, #fff 0%, #fafaf9 100%);
+    border: 1.5px solid var(--cs-rim);
+    color: var(--cs-ink);
+}
+
+#trophy-room-modal .tr-cset.is-common { --cs-ink: #065f46; --cs-rim: #bbf7d0; --cs-fill: #10b981; --cs-glow: rgba(16, 185, 129, 0.28); }
+#trophy-room-modal .tr-cset.is-rare { --cs-ink: #1e3a8a; --cs-rim: #bfdbfe; --cs-fill: #3b82f6; --cs-glow: rgba(59, 130, 246, 0.28); }
+#trophy-room-modal .tr-cset.is-legendary { --cs-ink: #713f12; --cs-rim: #fde68a; --cs-fill: #f59e0b; --cs-glow: rgba(245, 158, 11, 0.3); }
+
+#trophy-room-modal .tr-cset.is-ready {
+    background: linear-gradient(160deg, #fff 0%, color-mix(in srgb, var(--cs-fill) 10%, #fff) 100%);
+    border-color: var(--cs-fill);
+    box-shadow: 0 0 0 3px var(--cs-glow);
+}
+
+#trophy-room-modal .tr-cset-head {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+}
+
+#trophy-room-modal .tr-cset-head b { font-family: var(--gcq-font-display); font-weight: 600; }
+
+#trophy-room-modal .tr-cset-need {
+    margin-left: auto;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.7;
+    white-space: nowrap;
+}
+
+#trophy-room-modal .tr-cset-gems { display: inline-flex; gap: 2px; }
+
+#trophy-room-modal .tr-cset-gems i {
+    width: 0.42rem;
+    height: 0.42rem;
+    transform: rotate(45deg);
+    border-radius: 1px;
+    background: #e7e5e4;
+}
+
+#trophy-room-modal .tr-cset-gems i.is-lit { background: var(--cs-fill); }
+
+#trophy-room-modal .tr-cset-pips {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    min-height: 1.1rem;
+}
+
+#trophy-room-modal .tr-cset-pip {
+    flex: 1 1 0;
+    max-width: 2.4rem;
+    height: 0.6rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--cs-fill) 14%, #fff);
+    border: 1px solid color-mix(in srgb, var(--cs-fill) 35%, #fff);
+}
+
+#trophy-room-modal .tr-cset-pip.is-filled {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--cs-fill) 70%, #fff), var(--cs-fill));
+    border-color: var(--cs-fill);
+}
+
+#trophy-room-modal .tr-cset-spark { margin-left: auto; font-size: 0.95rem; }
+
+#trophy-room-modal .tr-cset-line { font-size: 0.7rem; line-height: 1.25; opacity: 0.85; }
+#trophy-room-modal .tr-cset-line b { font-size: 0.85rem; }
+
+#trophy-room-modal .tr-charm-pick {
+    margin: 0 0 0.45rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #6d28d9;
+}
+
+@media (max-width: 560px) {
+    #trophy-room-modal .tr-csets { grid-template-columns: 1fr; gap: 0.4rem; }
+    #trophy-room-modal .tr-cset { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.6rem; }
+    #trophy-room-modal .tr-cset-head { flex: 1 1 100%; }
+    #trophy-room-modal .tr-cset-pips { flex: 0 0 auto; }
+}

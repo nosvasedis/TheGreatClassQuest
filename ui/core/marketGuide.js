@@ -2,8 +2,9 @@
 // league's live numbers and the chosen shopper's Hoard. Markup: marketGuideView.mjs.
 import * as state from '../../state.js';
 import { JUNIOR_LEAGUES } from '../../constants.js';
-import { buildHoard, smartStockMax } from '../../features/treasureCharmsCore.mjs';
-import { stallRosterFor } from '../../db/actions/smartStock.js';
+import { buildCharmSets, buildHoard, smartStockMax } from '../../features/treasureCharmsCore.mjs';
+import { stallRosterFor, schoolLeagueRosterFor } from '../../db/actions/smartStock.js';
+import { bindMarketGuideTabs } from './marketGuideTabs.js';
 import { renderMarketGuideHtml } from './marketGuideView.mjs';
 import '../../styles/market_guide.css';
 
@@ -17,6 +18,7 @@ export function openMarketGuide({ studentId = '', opener = null } = {}) {
     document.querySelector('.mg-overlay')?.remove();
     const league = currentLeague();
     const roster = stallRosterFor(league);
+    const wholeLeague = schoolLeagueRosterFor(league);
     const copies = Object.fromEntries(['common', 'rare', 'legendary']
         .map((tier) => [tier, smartStockMax({ tier, children: roster.children })]));
     const student = studentId ? (state.get('allStudents') || []).find((s) => s.id === studentId) : null;
@@ -29,10 +31,13 @@ export function openMarketGuide({ studentId = '', opener = null } = {}) {
         young: JUNIOR_LEAGUES.includes(league),
         children: roster.children,
         classCount: roster.classCount,
+        leagueChildren: wholeLeague.children,
+        leagueClassCount: wholeLeague.classCount,
         copies,
-        shopper: student ? { name: student.name, hoard: buildHoard(score?.inventory) } : null
+        shopper: student ? { name: student.name, hoard: buildHoard(score?.inventory), sets: buildCharmSets(score?.inventory) } : null
     });
     document.body.appendChild(overlay);
+    bindMarketGuideTabs(overlay);
     requestAnimationFrame(() => overlay.classList.add('is-open'));
 
     const close = () => {

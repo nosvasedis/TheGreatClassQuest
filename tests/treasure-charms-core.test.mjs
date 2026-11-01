@@ -4,6 +4,9 @@ import {
     TREASURE_CHARMS,
     charmFor,
     charmUseCheck,
+    buildCharmSets,
+    charmSetLine,
+    CHARM_SET_SIZE,
     buildHoard,
     hoardRankPayout,
     smartStockMax,
@@ -28,14 +31,45 @@ test('every treasure carries the same charm for every owner, chosen by rarity', 
     assert.equal(charmFor({ id: 'q', tier: 'rare', charm: 'hint' }).id, 'hint');
 });
 
-test('relics and Ember keepsakes are not treasures; charms are one use, one a day', () => {
+test('relics and Ember keepsakes are not treasures; charms wake in sets, one a day', () => {
     assert.equal(isStallTreasure({ id: 'leg_luck', name: 'Elixir' }), false);
     assert.equal(isStallTreasure({ id: 'k', name: 'Ember', source: 'ember_oath' }), false);
+    // b was used before charm sets (no charmSet flag): it neither counts toward a set nor spends one.
     const inv = [{ id: 'a', name: 'A' }, { id: 'b', name: 'B', charmUsedAt: '2026-11-03T09:00:00Z' }, { id: 'c', name: 'C' }];
     assert.equal(charmUseCheck(inv, 1, { today: '2026-11-04' }).ok, false);
-    assert.equal(charmUseCheck(inv, 0, { today: '2026-11-04' }).ok, true);
-    assert.equal(charmUseCheck(inv, 0, { today: '2026-11-03' }).ok, false);
-    assert.equal(charmUseCheck(inv, 0, { today: '2026-11-04', classCharmsToday: 3 }).ok, false);
+    const locked = charmUseCheck(inv, 0, { today: '2026-11-04' });
+    assert.equal(locked.ok, false);
+    assert.equal(locked.locked, true);
+    assert.match(locked.reason, /2 of 3/);
+    const full = [...inv, { id: 'd', name: 'D' }];
+    assert.equal(charmUseCheck(full, 0, { today: '2026-11-04' }).ok, true);
+    assert.equal(charmUseCheck(full, 0, { today: '2026-11-03' }).ok, false);
+    assert.equal(charmUseCheck(full, 0, { today: '2026-11-04', classCharmsToday: 3 }).ok, false);
+});
+
+test('charm sets: every full set of a rarity wakes one charm, spent by a charmSet use', () => {
+    const commons = (n, extra = {}) => Array.from({ length: n }, (_, i) => ({ id: `c${i}`, name: `C${i}`, tier: 'common', ...extra }));
+    let sets = buildCharmSets(commons(2));
+    assert.deepEqual([sets.tiers.common.ready, sets.tiers.common.inSet, sets.tiers.common.toNext], [0, 2, 1]);
+    sets = buildCharmSets(commons(3));
+    assert.equal(sets.tiers.common.ready, 1);
+    assert.equal(sets.ready, 1);
+    // Using the woken charm spends it; the next one needs three more commons.
+    const used = commons(3);
+    used[1] = { ...used[1], charmUsedAt: '2026-11-04T09:00:00Z', charmSet: true };
+    sets = buildCharmSets(used);
+    assert.deepEqual([sets.tiers.common.ready, sets.tiers.common.woken, sets.tiers.common.used], [0, 1, 1]);
+    assert.equal(charmUseCheck(used, 0, { today: '2026-11-05' }).ok, false);
+    assert.equal(buildCharmSets([...used, ...commons(3).map((t) => ({ ...t, id: `n${t.id}` }))]).tiers.common.ready, 1);
+    // Rarities fill their own sets: two rares wake a rare charm, commons do not help.
+    const mixed = [...commons(2), { id: 'r1', name: 'R1', tier: 'rare' }, { id: 'r2', name: 'R2', price: 40 }];
+    sets = buildCharmSets(mixed);
+    assert.equal(sets.tiers.rare.ready, 1);
+    assert.equal(sets.tiers.common.ready, 0);
+    assert.equal(sets.tiers.legendary.need, CHARM_SET_SIZE.legendary);
+    assert.match(charmSetLine(sets.tiers.common), /2 of 3 common treasures: 1 more wakes a charm/);
+    assert.match(charmSetLine(sets.tiers.rare), /1 rare charm awake/);
+    assert.equal(buildHoard(mixed).charmsReady, 1);
 });
 
 test('the Hoard counts treasures by rarity and pays each rank once', () => {

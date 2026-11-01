@@ -244,7 +244,7 @@ export const GUIDE_CHAPTERS = {
             entries: [
                 {
                     id: 'quest-assignment', icon: 'fa-thumbtack', name: 'Quest Assignment', tier: 'starter',
-                    where: 'Adventure Log, the left flying button', go: 'tab:adventure-log-tab',
+                    where: 'Adventure Log, Class tools: Quest Assignment', go: 'tab:adventure-log-tab',
                     text: `The Quest Board: write next lesson's homework (numbered lines become a checklist) and pin a test if one is coming. Families see it on the Family Portal. On Pro, the book it names also tells the Hero Campfire which words were practised.`,
                     keys: 'homework quest board test schedule assignment'
                 },
@@ -256,7 +256,7 @@ export const GUIDE_CHAPTERS = {
                 },
                 {
                     id: 'hero-of-the-day', icon: 'fa-crown', name: 'Hero of the Day', tier: 'pro',
-                    where: 'Crowned when you save today\'s page',
+                    where: 'Adventure Log, Crown Today\'s Hero', go: 'tab:adventure-log-tab',
                     text: `You never pick the name. A student holding the Mask of the Protagonist wins; otherwise a fair rotation of the students who are present. Perks: +1 on their first star today, 25% off the seasonal shelf, and a legend rank for this year's crowns. This is not the Prodigy of the Month.`,
                     keys: 'hero of the day crown daily spotlight mask rotation'
                 },
@@ -275,12 +275,12 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'ember-oaths', icon: 'fa-hand-sparkles', name: 'Ember Oaths', tier: 'pro',
                     where: 'Adventure Log, Ember Oaths button', go: 'tab:adventure-log-tab',
-                    text: `Small personal promises each child picks in a Choosing ceremony. Each lesson they keep it lights one ember: a 🔥 "I tried" at the Campfire or on the board, something you saw, or a matching star. All embers lit = keep the promise: a Star-Ember keepsake goes to the Trophy Room and a star joins the class sky.`,
+                    text: `Small personal promises each child picks in a Choosing ceremony. Each lesson they keep it lights one ember: a 🔥 "I tried" at the Campfire or on the board, something you saw, or a matching star. All embers lit = keep the promise: a Star-Ember keepsake goes to the Trophy Room, a star joins the class sky, and the child takes a step on their Star Path (a little Gold, ranks, and a rare bonus star at milestones).`,
                     keys: 'oaths promises goals star-ember choosing ceremony'
                 },
                 {
                     id: 'attendance', icon: 'fa-clipboard-user', name: 'Attendance Chronicle', tier: 'pro',
-                    where: 'Adventure Log, the right flying button', go: 'tab:adventure-log-tab',
+                    where: 'Adventure Log, Class tools: Attendance', go: 'tab:adventure-log-tab',
                     text: `A month register you can tap to change, with holidays, attendance %, lessons held and Perfect Attendees. Older months are read only. On Starter, mark absences on the Award Stars clouds.`,
                     keys: 'attendance register absences perfect attendees month'
                 }

@@ -59,6 +59,7 @@ function copyMedia() {
   fs.mkdirSync(MEDIA, { recursive: true });
   const files = [
     ['assets/guidebook-logo.png', 'guidebook-logo.png'],
+    ['assets/great-class-quest-logo.svg', 'logo.svg'],
     ['assets/dragonflame.webp', 'dragonflame.webp'],
     ['assets/grizzlymight.webp', 'grizzlymight.webp'],
     ['assets/owlwisdom.webp', 'owlwisdom.webp'],

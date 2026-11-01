@@ -1,6 +1,6 @@
 # Adventure Log
 
-Adventure Log is the **closing ritual** of the lesson. The tab is the class’s own **diary**: the class crowns **Hero of the Day** first, then you write (or let Elite write) today’s page, and two flying buttons handle **tomorrow’s work** and **who was here**.
+Adventure Log is the **closing ritual** of the lesson. The tab is the class’s own **diary**: the class crowns **Hero of the Day** first, then you write (or let Elite write) today’s page, and two **Class tools** cards under the diary handle **tomorrow’s work** and **who was here**.
 
 ## Purpose
 
@@ -132,9 +132,9 @@ Button on this tab. A portrait gallery of **this school year's** **Hero of the D
 
 **Hall of Prodigies** (Hero’s Challenge) is the monthly student crown. Keep the names separate when you speak to the class.
 
-## Quest Assignment (left flying button)
+## Quest Assignment (Class tools)
 
-Needs a class in the header.
+Under the diary, the **Class tools** row has two cards: **Quest Assignment** (homework and tests for the next lesson) and **Attendance** (who was there, lesson by lesson). Both need a class in the header.
 
 Opens the **Quest Board**, a cork noticeboard. **Pinned last time** shows the previous assignment (you can **Edit** it) and any test that was scheduled with it. **For next lesson** is the notepad where you write the new homework; numbered lines become a checklist. **Schedule Test** pins a test (date, title, topics) to the board when this class uses tests; it is shown to parents with the homework. **Save Quest Board** saves.
 
@@ -150,7 +150,7 @@ Saving can sync a homework line into the **Family Portal** so parents see the sa
 
 Use it every lesson if you can. Continuity is the hidden curriculum.
 
-## Attendance Chronicle (right flying button)
+## Attendance Chronicle (Class tools)
 
 **Pro.** Opens **Attendance Chronicle** — the class register, drawn as a friendly notebook, not a grim ledger. A tick marks present, a cross marks absent.
 

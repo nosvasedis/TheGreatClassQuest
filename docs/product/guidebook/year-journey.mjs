@@ -30,12 +30,6 @@ export const YEAR_STAGES = [
         go: { chapter: 'settings', en: 'Manage Students (the roster)', el: 'Manage Students (το μαθητολόγιο)' }
       },
       {
-        plan: 'elite', icon: 'fa-hammer',
-        name: { en: 'Avatar Forge portraits', el: 'Πορτρέτα από το Avatar Forge' },
-        what: { en: 'Each child picks a creature, a colour and a relic. Portraits make the clouds and boards personal from the start.', el: 'Κάθε παιδί διαλέγει πλάσμα, χρώμα και αντικείμενο. Τα πορτρέτα κάνουν τα σύννεφα και τους πίνακες προσωπικούς από την αρχή.' },
-        go: { chapter: 'settings', en: 'Avatar Forge', el: 'Avatar Forge' }
-      },
-      {
         plan: 'pro', icon: 'fa-house-user',
         name: { en: 'Family logins', el: 'Κωδικοί για τις οικογένειες' },
         what: { en: 'Print the family handouts with the QR codes and send them home in the first week.', el: 'Τύπωσε τα φυλλάδια με τα QR και στείλ’ τα στο σπίτι την πρώτη εβδομάδα.' },
@@ -92,6 +86,12 @@ export const YEAR_STAGES = [
         go: { chapter: 'adventure-log', en: 'Crown Today’s Hero, then write the page', el: 'Crown Today’s Hero και μετά η σελίδα' }
       },
       {
+        plan: 'elite', icon: 'fa-hammer',
+        name: { en: 'Avatar Forge, with the children', el: 'Avatar Forge, μαζί με τα παιδιά' },
+        what: { en: 'Forge the portraits in class: each child chooses a creature, a colour and a relic while the others watch. A few each lesson until everyone has one.', el: 'Φτιάξτε τα πορτρέτα μέσα στην τάξη: κάθε παιδί διαλέγει πλάσμα, χρώμα και αντικείμενο ενώ οι άλλοι παρακολουθούν. Λίγα σε κάθε μάθημα, ώσπου να έχουν όλοι.' },
+        go: { chapter: 'settings', en: 'Avatar Forge', el: 'Avatar Forge' }
+      },
+      {
         plan: 'starter', icon: 'fa-dice',
         name: { en: 'Fair Picker and Team Maker', el: 'Fair Picker και Team Maker' },
         what: { en: 'Fair turns and fair teams from day one: nobody gets a second turn until everyone has had one.', el: 'Δίκαιες σειρές και δίκαιες ομάδες από την πρώτη μέρα: κανείς δεν παίρνει δεύτερη σειρά πριν πάρουν όλοι.' },
@@ -107,15 +107,15 @@ export const YEAR_STAGES = [
     when: { en: 'Weeks 3–4', el: 'Εβδομάδες 3–4' },
     title: { en: 'Your lesson rhythm', el: 'Ο ρυθμός του μαθήματός σου' },
     lede: {
-      en: 'The tools you will use every week, added while the core settles.',
-      el: 'Τα εργαλεία που θα χρησιμοποιείς κάθε εβδομάδα, όσο ο κορμός κάθεται.'
+      en: 'The tools you will use every week, added while the core settles. The month ends with a sealed lesson.',
+      el: 'Τα εργαλεία που θα χρησιμοποιείς κάθε εβδομάδα, όσο ο κορμός κάθεται. Ο μήνας κλείνει με ένα σφραγισμένο μάθημα.'
     },
     steps: [
       {
         plan: 'starter', icon: 'fa-book-open',
         name: { en: 'Quest Assignment with the book chip', el: 'Quest Assignment με το chip του βιβλίου' },
         what: { en: 'Write the homework and confirm the book and unit. Later the Campfire and the Quiz of the Week build on it, so start early.', el: 'Γράψε την εργασία και επιβεβαίωσε βιβλίο και ενότητα. Αργότερα πάνω σε αυτό χτίζουν η Campfire και το Quiz of the Week, γι’ αυτό ξεκίνα νωρίς.' },
-        go: { chapter: 'adventure-log', en: 'Quest Assignment (left flying button)', el: 'Quest Assignment (αριστερό ιπτάμενο κουμπί)' }
+        go: { chapter: 'adventure-log', en: 'Quest Assignment (Class tools)', el: 'Quest Assignment (Class tools)' }
       },
       {
         plan: 'starter', icon: 'fa-pen-to-square',
@@ -140,6 +140,12 @@ export const YEAR_STAGES = [
         name: { en: 'Teacher Boon in the last week', el: 'Teacher Boon την τελευταία εβδομάδα' },
         what: { en: 'Two stars, once per class, for a child the month has not noticed yet.', el: 'Δύο αστέρια, μία φορά ανά τμήμα, για ένα παιδί που ο μήνας δεν έχει προσέξει ακόμα.' },
         go: { chapter: 'award-stars', en: 'Teacher Boon', el: 'Teacher Boon' }
+      },
+      {
+        plan: 'starter', icon: 'fa-lock',
+        name: { en: 'The sealed last lesson', el: 'Το σφραγισμένο τελευταίο μάθημα' },
+        what: { en: 'On the last lesson of the month the standings hide behind a seal, so the Ceremony keeps its surprise. Tell the class why.', el: 'Στο τελευταίο μάθημα του μήνα η κατάταξη κρύβεται πίσω από μια σφραγίδα, για να κρατήσει η Ceremony την έκπληξη. Πες στην τάξη γιατί.' },
+        go: { chapter: 'heros-challenge', en: 'What you see', el: 'Τι βλέπεις' }
       }
     ]
   },
@@ -160,12 +166,6 @@ export const YEAR_STAGES = [
         name: { en: 'Ceremony of the Month', el: 'Ceremony of the Month' },
         what: { en: 'The class’s place in its league, then the Prodigy of the Month. Younger classes get the Growth Festival garden, with no ranks.', el: 'Η θέση της τάξης στη league της και μετά το Prodigy of the Month. Τα μικρά τμήματα έχουν τον κήπο του Growth Festival, χωρίς κατατάξεις.' },
         go: { chapter: 'ceremony', en: 'What you do (teacher)', el: 'Τι κάνεις (δάσκαλος)' }
-      },
-      {
-        plan: 'starter', icon: 'fa-lock',
-        name: { en: 'The sealed last lesson', el: 'Το σφραγισμένο τελευταίο μάθημα' },
-        what: { en: 'On the last lesson of a month the standings hide behind a seal, so the Ceremony keeps its surprise.', el: 'Στο τελευταίο μάθημα του μήνα η κατάταξη κρύβεται πίσω από μια σφραγίδα, για να κρατήσει η Ceremony την έκπληξη.' },
-        go: { chapter: 'heros-challenge', en: 'What you see', el: 'Τι βλέπεις' }
       }
     ]
   },
@@ -175,10 +175,10 @@ export const YEAR_STAGES = [
     icon: 'fa-store',
     tone: 'lime',
     when: { en: 'Month 2', el: '2ος μήνας' },
-    title: { en: 'Gold to spend, a path to walk', el: 'Gold για ψώνια, ένας δρόμος για να περπατήσουν' },
+    title: { en: 'Gold to spend, a house to join', el: 'Gold για ψώνια, ένα σπίτι για να ανήκουν' },
     lede: {
-      en: 'The children have been saving Gold for a month. Now they learn to choose.',
-      el: 'Τα παιδιά μαζεύουν Gold εδώ και έναν μήνα. Τώρα μαθαίνουν να διαλέγουν.'
+      en: 'The children have been saving Gold for a month: now they learn to choose. The guild race runs all year, so sort the houses early and every month counts.',
+      el: 'Τα παιδιά μαζεύουν Gold εδώ και έναν μήνα: τώρα μαθαίνουν να διαλέγουν. Ο αγώνας των guilds κρατά όλη τη χρονιά, οπότε μοίρασε νωρίς τα σπίτια και κάθε μήνας μετράει.'
     },
     steps: [
       {
@@ -201,47 +201,41 @@ export const YEAR_STAGES = [
       },
       {
         plan: 'pro', icon: 'fa-hat-wizard',
-        name: { en: 'Hero Path and the Hero Class', el: 'Hero Path και Hero Class' },
-        what: { en: 'Each child swears a path that matches who they are. Levels open Skill Tree choices.', el: 'Κάθε παιδί ορκίζεται σε έναν δρόμο που του ταιριάζει. Τα επίπεδα ανοίγουν επιλογές στο Skill Tree.' },
-        go: { chapter: 'hero-path', en: 'How you assign a class', el: 'Πώς ορίζεις τάξη' }
+        name: { en: 'The Sorting Ceremony', el: 'Η Sorting Ceremony' },
+        what: { en: 'A short quiz places each child in one of the four guilds. Make it an event: one lesson, the whole class watching.', el: 'Ένα μικρό quiz βάζει κάθε παιδί σε ένα από τα τέσσερα guilds. Κάν’ το γεγονός: ένα μάθημα, όλη η τάξη να παρακολουθεί.' },
+        go: { chapter: 'guild-hall', en: 'Guild Placement Quiz', el: 'Τοποθέτηση — Guild Placement Quiz' }
       },
       {
-        plan: 'starter', icon: 'fa-khanda',
-        name: { en: 'Hero Duels, as a treat', el: 'Hero Duels, ως κέρασμα' },
-        what: { en: 'A short projector game for the end of a good lesson. You give the points.', el: 'Ένα σύντομο παιχνίδι στον projector για το τέλος ενός καλού μαθήματος. Εσύ δίνεις τους πόντους.' },
-        go: { chapter: 'home', en: 'Hero Duels', el: 'Hero Duels' }
+        plan: 'pro', icon: 'fa-shield-halved',
+        name: { en: 'Guild Hall and the Crown Race', el: 'Guild Hall και Crown Race' },
+        what: { en: 'From then on every star also feeds a house, with nothing extra for you to do. Each month is a Chapter that wins Crowns; the Crowns are counted in June.', el: 'Από εκεί και πέρα κάθε αστέρι τροφοδοτεί και ένα σπίτι, χωρίς να κάνεις τίποτα παραπάνω. Κάθε μήνας είναι ένα Chapter που κερδίζει Crowns· τα Crowns μετρούν τον Ιούνιο.' },
+        go: { chapter: 'guild-hall', en: 'Glory and the Crown Race', el: 'Glory και Crown Race' }
       }
     ]
   },
   {
     id: 'belong',
     at: 2,
-    icon: 'fa-shield-halved',
+    icon: 'fa-dharmachakra',
     tone: 'guild',
     when: { en: 'Month 3', el: '3ος μήνας' },
-    title: { en: 'Belonging: houses and promises', el: 'Το ανήκειν: σπίτια και υποσχέσεις' },
+    title: { en: 'Rituals, paths and promises', el: 'Τελετουργικά, δρόμοι και υποσχέσεις' },
     lede: {
-      en: 'The class knows the world now. Give each child a house, and a small promise of their own.',
-      el: 'Η τάξη ξέρει πια τον κόσμο. Δώσε σε κάθε παιδί ένα σπίτι και μια δική του μικρή υπόσχεση.'
+      en: 'The houses are settled. Now give them a weekly ritual, and give each child a path and a small promise of their own.',
+      el: 'Τα σπίτια έχουν στρώσει. Τώρα δώσ’ τους ένα εβδομαδιαίο τελετουργικό, και σε κάθε παιδί έναν δικό του δρόμο και μια μικρή υπόσχεση.'
     },
     steps: [
-      {
-        plan: 'pro', icon: 'fa-hat-wizard',
-        name: { en: 'The Sorting Ceremony', el: 'Η Sorting Ceremony' },
-        what: { en: 'A short quiz places each child in one of the four guilds. Make it an event.', el: 'Ένα μικρό quiz βάζει κάθε παιδί σε ένα από τα τέσσερα guilds. Κάν’ το γεγονός.' },
-        go: { chapter: 'guild-hall', en: 'Guild Placement Quiz', el: 'Τοποθέτηση — Guild Placement Quiz' }
-      },
-      {
-        plan: 'pro', icon: 'fa-shield-halved',
-        name: { en: 'Guild Hall and the Crown Race', el: 'Guild Hall και Crown Race' },
-        what: { en: 'Every star now also feeds a house. Crowns are won each month and counted in June.', el: 'Κάθε αστέρι τροφοδοτεί πλέον και ένα σπίτι. Τα Crowns κερδίζονται κάθε μήνα και μετρούν τον Ιούνιο.' },
-        go: { chapter: 'guild-hall', en: 'Glory and the Crown Race', el: 'Glory και Crown Race' }
-      },
       {
         plan: 'pro', icon: 'fa-dharmachakra',
         name: { en: 'Fortune’s Wheel, every week', el: 'Fortune’s Wheel, κάθε εβδομάδα' },
         what: { en: 'On the last lesson of the week each guild takes its turn on the wheel.', el: 'Στο τελευταίο μάθημα της εβδομάδας κάθε guild γυρίζει τη ρόδα με τη σειρά του.' },
         go: { chapter: 'guild-hall', en: 'Fortune’s Wheel', el: 'Fortune’s Wheel' }
+      },
+      {
+        plan: 'pro', icon: 'fa-hat-wizard',
+        name: { en: 'Hero Path and the Hero Class', el: 'Hero Path και Hero Class' },
+        what: { en: 'Each child swears a path that matches who they are. Levels open Skill Tree choices.', el: 'Κάθε παιδί ορκίζεται σε έναν δρόμο που του ταιριάζει. Τα επίπεδα ανοίγουν επιλογές στο Skill Tree.' },
+        go: { chapter: 'hero-path', en: 'How you assign a class', el: 'Πώς ορίζεις τάξη' }
       },
       {
         plan: 'pro', icon: 'fa-fire',
@@ -254,6 +248,12 @@ export const YEAR_STAGES = [
         name: { en: 'Quest Events and Day Treasures', el: 'Quest Events και Day Treasures' },
         what: { en: 'Plan a 2× Star Day, a Special Quest or a treasure chest for a special day in the Day Planner.', el: 'Σχεδίασε ένα 2× Star Day, ένα Special Quest ή ένα σεντούκι για μια ξεχωριστή μέρα στο Day Planner.' },
         go: { chapter: 'quest-calendar', en: 'Quest Event', el: 'Quest Event' }
+      },
+      {
+        plan: 'starter', icon: 'fa-khanda',
+        name: { en: 'Hero Duels, as a treat', el: 'Hero Duels, ως κέρασμα' },
+        what: { en: 'A short projector game for the end of a good lesson. You give the points.', el: 'Ένα σύντομο παιχνίδι στον projector για το τέλος ενός καλού μαθήματος. Εσύ δίνεις τους πόντους.' },
+        go: { chapter: 'home', en: 'Hero Duels', el: 'Hero Duels' }
       }
     ]
   },

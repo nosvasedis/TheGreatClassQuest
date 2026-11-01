@@ -16,7 +16,7 @@ Give every trial a calm home so you never lose a mark-book, and so excellence ca
 
 ## What you can do
 
-Flying buttons: **Log New Trial** and **View History**.
+On the class summary bar: **Log New Trial** (seal button) and **History** (every logged test and dictation).
 
 ### Log a trial
 

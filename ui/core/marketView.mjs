@@ -4,6 +4,7 @@ import { shopItemStock } from '../../utils/shopRestock.js';
 import { FAMILIAR_STAGE_BOND } from '../../features/familiarProgression.mjs';
 import { buildFamiliarEggSvg, describeFamiliar, getFamiliarPresets } from '../../features/familiarForge.mjs';
 import { CHARM_SET_SIZE, charmFor, charmText, treasureTierLabel } from '../../features/treasureCharmsCore.mjs';
+import { legendaryArtSvg } from '../../features/legendaryArt.mjs';
 
 const YOUNG_LEAGUES = ['Pre-Junior', 'Junior A', 'Junior B'];
 
@@ -143,6 +144,55 @@ export function renderShopItemCard(item, kind = 'seasonal') {
             </div>
         </article>
     `;
+}
+
+/**
+ * One Legendary relic on the shelf: its forms sit as little chips under the name, and the
+ * chosen form fills the display niche, the price tag, the blurb and the till button.
+ * family: { id, name, tagline }; variants: cheapest first; activeId: the chosen form.
+ */
+export function renderLegendaryRelicCard(family, variants, activeId = '') {
+    const active = variants.find((v) => v.id === activeId) || variants[0];
+    if (!active) return '';
+    const art = legendaryArtSvg(active.id) || `<span class="mm-ware__emoji" aria-hidden="true">${active.icon || '📦'}</span>`;
+    const forms = variants.length > 1 ? `
+                <div class="mm-relic-forms" style="--forms:${variants.length}" role="radiogroup" aria-label="${escapeShopHtml(family.name)}: choose a form">
+                    ${variants.map((v) => `
+                    <button type="button" class="mm-relic-form${v.id === active.id ? ' is-active' : ''}" role="radio" aria-checked="${v.id === active.id}"
+                        data-relic-form="${escapeShopHtml(v.id)}" title="${escapeShopHtml(`${v.name}: ${v.description}`)}">
+                        <span class="mm-relic-form__art" aria-hidden="true">${legendaryArtSvg(v.id, { className: 'lg-art lg-art--chip' }) || escapeShopHtml(v.icon || '')}</span>
+                        <span class="mm-relic-form__label">${escapeShopHtml(v.form || v.name)}</span>
+                        <span class="mm-relic-form__price">${Number(v.price) || 0}<span aria-hidden="true">🪙</span></span>
+                    </button>`).join('')}
+                </div>` : '';
+    return `
+        <article class="shop-item-card mm-ware mm-ware--legendary mm-relic mm-relic--${escapeShopHtml(family.id)}" data-kind="legendary" data-family="${escapeShopHtml(family.id)}"
+            data-item-id="${escapeShopHtml(active.id)}" data-name="${escapeShopHtml(active.name)}" data-price="${Number(active.price) || 0}" data-state="waiting">
+            <div class="shop-item-stage mm-ware__display">
+                <span class="mm-ware__spot" aria-hidden="true"></span>
+                <span class="mm-ware__ribbon">${WARE_RIBBONS.legendary}</span>
+                <span class="mm-ware__sale" aria-hidden="true"></span>
+                <div class="mm-ware__item"><span class="mm-relic__art">${art}</span></div>
+                <span class="mm-ware__ledge" aria-hidden="true"></span>
+                <div class="shop-price-display mm-tag" data-item-id="${escapeShopHtml(active.id)}" data-base-price="${Number(active.price) || 0}">
+                    ${shopPriceMarkupPlain(active.price)}
+                </div>
+                <span class="mm-ware__stamp" aria-hidden="true">Sold!</span>
+            </div>
+            <div class="shop-item-body mm-ware__body">
+                <p class="mm-relic__family">${escapeShopHtml(family.name)}</p>
+                <h3 class="font-title mm-ware__name">${escapeShopHtml(active.name)}</h3>
+                <p class="mm-ware__desc">${escapeShopHtml(active.description)}</p>
+                ${forms}
+                <div class="shop-item-footer mm-ware__footer">
+                    <button type="button" class="${shopBuyBtnClass(false, 'waiting')}"
+                            data-id="${escapeShopHtml(active.id)}" data-type="legendary" disabled
+                            title="Choose a student from the Shopper menu above">
+                        ${shopBuyBtnInner('waiting', 'Pick a shopper')}
+                    </button>
+                </div>
+            </div>
+        </article>`;
 }
 
 export function renderFamiliarEggCard(fType) {

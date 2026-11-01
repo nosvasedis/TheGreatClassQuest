@@ -1,0 +1,164 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Legendary Artifacts: drawn relic art (features/legendaryArt.mjs) and the
+   relic cards with form chips on the Mystic Market shelf.
+   Lazy: imported from ui/core/shop.js and features/powerUps.js.
+   Tokens (--mm-*) come from styles/mystic_market.css.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.lg-art {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+/* ── Shelf card ─────────────────────────────────────────────────────── */
+
+.mm-relic { --relic: 251, 191, 36; }
+.mm-relic--guild { --relic: 248, 113, 113; }
+.mm-relic--wayfinder { --relic: 45, 212, 191; }
+.mm-relic--story { --relic: 167, 139, 250; }
+.mm-relic--heart { --relic: 251, 113, 133; }
+
+.mm-relic .mm-ware__display {
+    background:
+        radial-gradient(ellipse 55% 60% at 50% 58%, rgba(var(--relic), 0.28) 0%, rgba(var(--relic), 0.06) 55%, transparent 75%),
+        radial-gradient(ellipse 60% 70% at 50% -5%, rgba(255, 220, 150, 0.3) 0%, rgba(255, 220, 150, 0.08) 45%, transparent 72%),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.35) 0%, transparent 14%, transparent 86%, rgba(0, 0, 0, 0.35) 100%),
+        linear-gradient(180deg, #16112f 0%, #251b48 100%) !important;
+}
+
+.mm-relic__art {
+    display: block;
+    width: 7.4rem;
+    height: 7.4rem;
+    margin-bottom: -0.35rem;
+    filter: drop-shadow(0 7px 10px rgba(0, 0, 0, 0.5));
+}
+
+.mm-relic.is-form-swap .mm-relic__art { animation: lg-form-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+@keyframes lg-form-in {
+    from { transform: scale(0.7) rotate(-6deg); opacity: 0.2; }
+    to { transform: none; opacity: 1; }
+}
+
+.mm-relic__family {
+    margin: 0 0 0.1rem;
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgb(var(--relic));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mm-relic__family span {
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    opacity: 0.75;
+}
+
+.mm-relic-forms {
+    display: grid;
+    grid-template-columns: repeat(var(--forms, 3), minmax(0, 1fr));
+    gap: 0.3rem;
+    margin: auto 0 0.15rem;
+    padding-top: 0.55rem;
+}
+
+.mm-relic-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.05rem;
+    min-width: 0;
+    padding: 0.3rem 0.2rem 0.25rem;
+    border-radius: 0.65rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 244, 222, 0.78);
+    font: inherit;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, color 0.2s ease;
+}
+
+.mm-relic-form:hover {
+    background: rgba(var(--relic), 0.12);
+    border-color: rgba(var(--relic), 0.45);
+    transform: translateY(-1px);
+}
+
+.mm-relic-form:focus-visible {
+    outline: 2px solid rgb(var(--relic));
+    outline-offset: 2px;
+}
+
+.mm-relic-form.is-active {
+    background: linear-gradient(180deg, rgba(var(--relic), 0.3), rgba(var(--relic), 0.1));
+    border-color: rgb(var(--relic));
+    color: #fff8e7;
+    box-shadow: 0 0 12px rgba(var(--relic), 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.mm-relic-form__art {
+    display: block;
+    width: 1.9rem;
+    height: 1.9rem;
+    font-size: 1.3rem;
+    line-height: 1.9rem;
+    text-align: center;
+}
+
+.mm-relic-form__label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.mm-relic-form__price {
+    font-size: 0.62rem;
+    font-weight: 700;
+    opacity: 0.8;
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 480px) {
+    .mm-relic__art { width: 6rem; height: 6rem; }
+    .mm-relic-form__art { width: 1.6rem; height: 1.6rem; }
+    .mm-relic-forms { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .mm-relic__family span { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mm-relic.is-form-swap .mm-relic__art { animation: none; }
+    .mm-relic-form { transition: none; }
+}
+
+/* ── Elsewhere: parcel, Trophy Room, Hero Stage, use dialog, detail ─── */
+
+.mmp-ware__art .lg-art--parcel { width: 6.5rem; height: 6.5rem; }
+
+#trophy-room-modal .tr-relic-art .lg-art { width: 86%; height: 86%; }
+#trophy-room-modal .tr-effect-icon .lg-art { width: 1.55rem; height: 1.55rem; }
+
+.lg-art--stage { width: 2.4rem; height: 2.4rem; }
+.hs-effects li > span > .lg-art,
+li > span > .lg-art:not(.lg-art--stage) { display: inline-block; width: 1.5rem; height: 1.5rem; vertical-align: middle; }
+
+.lg-use-art {
+    width: 6rem;
+    height: 6rem;
+    margin: 0.25rem auto 0.4rem;
+    filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.25));
+}
+
+.item-detail-visual .lg-art--detail { width: 82%; height: 82%; margin: auto; }
+
+.mm-shelves .mm-relic .mm-ware__footer { margin-top: 0.6rem; }

@@ -8,47 +8,45 @@ import { playSound } from '../audio.js';
 import * as utils from '../utils.js';
 import { PATHFINDER_CLASS_QUEST_BONUS_STARS, PATHFINDER_AWARD_REASON } from './awardLogReasonMeta.js';
 import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
+import { legendaryArtSvg } from './legendaryArt.mjs';
+import '../styles/legendary_relics.css';
 
-export const LEGENDARY_ARTIFACTS = [
-    { id: 'leg_clarity', name: 'Crystal of Clarity', price: 15, description: 'Pulsing gem for a hint pass. Used on your card.', icon: '💎' },
-    { id: 'leg_gilded', name: 'Scroll of the Gilded Star', price: 20, description: '3x Gold for the next star you earn.', icon: '✨' },
-    { id: 'leg_hourglass', name: 'Time Warp Hourglass', price: 25, description: 'Adds +5m to any active class Bounty Timers.', icon: '⏳' },
-    { id: 'leg_luck', name: 'Elixir of Luck', price: 30, description: '50% chance for +1 star during your NEXT lesson.', icon: '🍀' },
-    { id: 'leg_glory_banner', name: 'Banner of Glory', price: 35, description: 'Your next 3 stars each write +1 bonus Guild Glory into the ledger.', icon: '⚜️' },
-    { id: 'leg_banner', name: "The Herald's Banner", price: 40, description: 'Broadcasts a school-wide victory celebration!', icon: '📢' },
-    { id: 'leg_catalyst', name: 'The Starfall Catalyst', price: 50, description: 'Double the stars for your next high test score.', icon: '📜' },
-    { id: 'leg_glory_chalice', name: 'Chalice of Unity', price: 55, description: '+1 Glory right now for you and every guildmate in your class.', icon: '🏆' },
-    { id: 'leg_pathfinder', name: 'The Pathfinder’s Map', price: 60, description: `Instant +${PATHFINDER_CLASS_QUEST_BONUS_STARS} Stars for the Team Quest. (Class Limit: 1/month)`, icon: '🗺️' },
-    { id: 'leg_protagonist', name: 'The Mask of the Protagonist', price: 75, description: 'Guarantees you are the Hero in the next Story Log. (Limit: 1/month)', icon: '🎭' },
-    { id: 'leg_glory_crown', name: 'Guild Standard', price: 75, description: "Your name flies on your guild's banner in the Guild Hall for the rest of this month's Chapter, plus +2 Glory.", icon: '🚩' },
-    { id: 'leg_aurum', name: 'Aurum Satchel', price: 32, description: 'Grants 50% off your next Mystic Market purchase this month.', icon: '💰' },
-    { id: 'leg_bulwark', name: "Fortune's Favor", price: 48, description: "Your guild's next Fortune's Wheel in your class is gilded: no storms, no Trickster and no common wedges.", icon: '🍀' },
-    { id: 'leg_quill', name: "Archivist's Quill", price: 62, description: 'Your next Story Weaver class bonus awards you 1 star instead of 0.5.', icon: '✒️' },
-    { id: 'leg_compassion', name: 'Compassion Token', price: 55, description: "Hero's Boon costs 0 Gold for the rest of this month.", icon: '💝' }
-];
+import { LEGENDARY_FAMILIES, LEGENDARY_ARTIFACTS, RETIRED_ARTIFACTS, legendaryFamilyVariants } from './legendaryCatalog.mjs';
 
-// Items renamed by the Crown Race keep working when a child already owns them.
+export { LEGENDARY_FAMILIES, LEGENDARY_ARTIFACTS, RETIRED_ARTIFACTS, legendaryFamilyVariants };
+
+const ALL_ARTIFACTS = [...LEGENDARY_ARTIFACTS, ...RETIRED_ARTIFACTS];
+
+// Items renamed over time keep working when a child already owns them (old name -> id).
 const RENAMED_ITEMS = {
-    'Chalice of Radiance': 'Chalice of Unity',
-    'Crown of the Eternal': 'Guild Standard',
-    'Bulwark Crest': "Fortune's Favor",
+    'Chalice of Radiance': 'leg_glory_chalice',
+    'Crown of the Eternal': 'leg_glory_crown',
+    'Bulwark Crest': 'leg_bulwark',
+    'Banner of Glory': 'leg_glory_banner',
 };
+
+function artifactIdFor(itemOrName) {
+    if (!itemOrName) return '';
+    if (typeof itemOrName === 'object') {
+        if (itemOrName.id && ALL_ARTIFACTS.some((a) => a.id === itemOrName.id)) return itemOrName.id;
+        return artifactIdFor(itemOrName.name || '');
+    }
+    const name = String(itemOrName);
+    return ALL_ARTIFACTS.find((a) => a.name === name)?.id || RENAMED_ITEMS[name] || '';
+}
 
 /** The catalog entry for an owned item (by id), so renamed items show today's name and power. */
 export function currentArtifactFor(item = {}) {
-    const current = LEGENDARY_ARTIFACTS.find((a) => a.id === item.id);
-    if (current) return current;
-    const renamed = RENAMED_ITEMS[item.name];
-    return renamed ? LEGENDARY_ARTIFACTS.find((a) => a.name === renamed) || null : null;
+    const id = artifactIdFor(item);
+    return id ? ALL_ARTIFACTS.find((a) => a.id === id) || null : null;
 }
 
 function _effectFor(item = {}) {
-    const current = currentArtifactFor(item);
-    return (current && POWER_UP_EFFECTS[current.name]) || POWER_UP_EFFECTS[RENAMED_ITEMS[item.name]] || POWER_UP_EFFECTS[item.name] || null;
+    return POWER_UP_EFFECTS[artifactIdFor(item)] || null;
 }
 
-export function isItemUsable(itemName) {
-    return !!(POWER_UP_EFFECTS[itemName] || POWER_UP_EFFECTS[RENAMED_ITEMS[itemName]]);
+export function isItemUsable(itemOrName) {
+    return !!POWER_UP_EFFECTS[artifactIdFor(itemOrName)];
 }
 
 function updateLocalStudentScore(studentId, patch = {}, removeInventoryIndex = null) {
@@ -77,8 +75,33 @@ function updateLocalClassState(classId, patch = {}) {
     state.setAllTeachersClasses(applyPatch(state.get('allTeachersClasses') || []));
 }
 
+/** The Pathfinder's Map is one per class each month (other gifts also fill teamQuestBonuses). */
+export function pathfinderUsedThisMonth(classData, monthKey) {
+    if (!classData || !monthKey) return false;
+    return classData.lastPathfinderMonth === monthKey || String(classData.lastPathfinderDate || '').startsWith(monthKey);
+}
+
+function armVoucher(student, context, voucherPercent) {
+    const monthKey = utils.getMonthKey(new Date());
+    const data = context.scoreData || {};
+    const active = data.aurumVoucherMonth === monthKey ? Number(data.aurumVoucherPercent) || 0 : 0;
+    if (active >= voucherPercent) {
+        return { success: false, errorMessage: `${student.name} already has ${active}% off the next Market buy. Spend that first.` };
+    }
+    context.transaction.update(context.scoreRef, { aurumVoucherPercent: voucherPercent, aurumVoucherMonth: monthKey });
+    return {
+        success: true,
+        scorePatch: { aurumVoucherPercent: voucherPercent, aurumVoucherMonth: monthKey },
+        feedback: {
+            icon: voucherPercent >= 50 ? '💰' : '👝',
+            title: 'Voucher activated',
+            body: `${student.name} now has ${voucherPercent}% off their next Mystic Market purchase this month.`
+        }
+    };
+}
+
 const POWER_UP_EFFECTS = {
-    'Crystal of Clarity': async (student, classData, context) => ({
+    leg_clarity: async (student, classData, context) => ({
         success: true,
         scorePatch: {},
         feedback: {
@@ -90,7 +113,7 @@ const POWER_UP_EFFECTS = {
             document.dispatchEvent(new CustomEvent('clarity-glimmer', { detail: { studentId: student.id, itemIndex: context.itemIndex } }));
         }
     }),
-    'Scroll of the Gilded Star': async (student, classData, context) => {
+    leg_gilded: async (student, classData, context) => {
         context.transaction.update(context.scoreRef, { hasGildedEffect: true });
         return {
             success: true,
@@ -102,7 +125,7 @@ const POWER_UP_EFFECTS = {
             }
         };
     },
-    'Time Warp Hourglass': async (student, classData, context) => {
+    leg_hourglass: async (student, classData, context) => {
         const activeTimers = (state.get('allQuestBounties') || []).filter((bounty) => bounty.classId === classData?.id && bounty.type === 'timer' && bounty.status === 'active');
         if (activeTimers.length === 0) {
             return {
@@ -138,7 +161,7 @@ const POWER_UP_EFFECTS = {
             }
         };
     },
-    'Elixir of Luck': async (student, classData, context) => {
+    leg_luck: async (student, classData, context) => {
         const nextLessonDate = utils.getNextLessonDate(
             classData?.id,
             state.get('allSchoolClasses'),
@@ -164,7 +187,7 @@ const POWER_UP_EFFECTS = {
             }
         };
     },
-    "The Herald's Banner": async (student) => ({
+    leg_banner: async (student) => ({
         success: true,
         feedback: {
             icon: '📢',
@@ -175,7 +198,7 @@ const POWER_UP_EFFECTS = {
             showPraiseToast(`${student.name} raised the Herald's Banner! Celebration begins!`, '📢');
         }
     }),
-    'The Starfall Catalyst': async (student, classData, context) => {
+    leg_catalyst: async (student, classData, context) => {
         context.transaction.update(context.scoreRef, { starfallCatalystActive: true });
         return {
             success: true,
@@ -187,7 +210,7 @@ const POWER_UP_EFFECTS = {
             }
         };
     },
-    'The Pathfinder’s Map': async (student, classData, context) => {
+    leg_pathfinder: async (student, classData, context) => {
         if (!classData?.id) {
             return { success: false, errorMessage: 'This student is not attached to a valid class.' };
         }
@@ -201,7 +224,7 @@ const POWER_UP_EFFECTS = {
         const classFresh = classDoc.data();
         const monthKey = utils.getMonthKey(new Date());
         const existing = Number(classFresh.teamQuestBonuses?.[monthKey]) || 0;
-        if (existing >= PATHFINDER_CLASS_QUEST_BONUS_STARS) {
+        if (pathfinderUsedThisMonth(classFresh, monthKey)) {
             return { success: false, errorMessage: 'This class already used the Pathfinder’s Map this month.' };
         }
 
@@ -213,6 +236,7 @@ const POWER_UP_EFFECTS = {
         context.transaction.update(classRef, {
             [`teamQuestBonuses.${monthKey}`]: increment(PATHFINDER_CLASS_QUEST_BONUS_STARS),
             lastPathfinderDate: utils.getTodayDateString(),
+            lastPathfinderMonth: monthKey,
             lastPathfinderByStudentId: student.id,
             lastPathfinderByName: student.name
         });
@@ -234,6 +258,7 @@ const POWER_UP_EFFECTS = {
             classPatch: {
                 teamQuestBonuses: nextBonuses,
                 lastPathfinderDate: utils.getTodayDateString(),
+                lastPathfinderMonth: monthKey,
                 lastPathfinderByStudentId: student.id,
                 lastPathfinderByName: student.name
             },
@@ -244,31 +269,31 @@ const POWER_UP_EFFECTS = {
             }
         };
     },
-    'The Mask of the Protagonist': async (student, classData, context) => {
+    leg_protagonist: async (student, classData, context) => {
         context.transaction.update(context.scoreRef, { pendingHeroStatus: true });
         return {
             success: true,
             scorePatch: { pendingHeroStatus: true },
             feedback: {
                 icon: '🎭',
-                title: 'Next story hero locked in',
-                body: `${student.name} will be the guaranteed protagonist of the next story log.`
+                title: 'Next Hero of the Day locked in',
+                body: `${student.name} will be the next Hero of the Day in ${classData?.name || 'the class'}.`
             }
         };
     },
-    'Banner of Glory': async (student, classData, context) => {
+    leg_glory_banner: async (student, classData, context) => {
         context.transaction.update(context.scoreRef, { gloryBannerCharges: 3 });
         return {
             success: true,
             scorePatch: { gloryBannerCharges: 3 },
             feedback: {
                 icon: '⚜️',
-                title: 'Banner raised!',
+                title: 'Pennant raised!',
         body: `${student.name}'s next 3 stars will each write +1 bonus Glory to the guild ledger.`
             }
         };
     },
-    'Chalice of Unity': async (student, classData) => {
+    leg_glory_chalice: async (student, classData) => {
         if (!student.guildId) {
             return { success: false, errorMessage: 'This student is not in a guild.' };
         }
@@ -291,7 +316,7 @@ const POWER_UP_EFFECTS = {
             }
         };
     },
-    'Guild Standard': async (student, classData, context) => {
+    leg_glory_crown: async (student, classData, context) => {
         const guildId = student.guildId;
         if (!guildId) {
             return { success: false, errorMessage: 'This student is not in a guild.' };
@@ -316,27 +341,9 @@ const POWER_UP_EFFECTS = {
             }
         };
     },
-    'Aurum Satchel': async (student, classData, context) => {
-        const monthKey = utils.getMonthKey(new Date());
-        const voucherPercent = 50;
-        context.transaction.update(context.scoreRef, {
-            aurumVoucherPercent: voucherPercent,
-            aurumVoucherMonth: monthKey
-        });
-        return {
-            success: true,
-            scorePatch: {
-                aurumVoucherPercent: voucherPercent,
-                aurumVoucherMonth: monthKey
-            },
-            feedback: {
-                icon: '💰',
-                title: 'Voucher activated',
-                body: `${student.name} now has 50% off their next Mystic Market purchase this month.`
-            }
-        };
-    },
-    "Fortune's Favor": async (student, classData, context) => {
+    leg_aurum_silver: (student, classData, context) => armVoucher(student, context, 25),
+    leg_aurum: (student, classData, context) => armVoucher(student, context, 50),
+    leg_bulwark: async (student, classData, context) => {
         if (!student.guildId) {
             return { success: false, errorMessage: 'This student is not in a guild.' };
         }
@@ -351,7 +358,7 @@ const POWER_UP_EFFECTS = {
             }
         };
     },
-    "Archivist's Quill": async (student, classData, context) => {
+    leg_quill: async (student, classData, context) => {
         context.transaction.update(context.scoreRef, { storyWeaverDoubleNext: true });
         return {
             success: true,
@@ -363,7 +370,20 @@ const POWER_UP_EFFECTS = {
             }
         };
     },
-    'Compassion Token': async (student, classData, context) => {
+    leg_kindness: async (student, classData, context) => {
+        const uses = (Number(context.scoreData?.peerBoonFreeUses) || 0) + 3;
+        context.transaction.update(context.scoreRef, { peerBoonFreeUses: uses });
+        return {
+            success: true,
+            scorePatch: { peerBoonFreeUses: uses },
+            feedback: {
+                icon: '💗',
+                title: 'Kindness Locket opened',
+                body: `${student.name}'s next ${uses} Hero's Boons cost 0 Gold.`
+            }
+        };
+    },
+    leg_compassion: async (student, classData, context) => {
         const monthKey = utils.getLocalMonthKey();
         context.transaction.update(context.scoreRef, { peerBoonFreeMonthKey: monthKey });
         return {
@@ -385,7 +405,7 @@ export async function handleUseItem(studentId, itemIndex) {
 
     const ownedItem = scoreData.inventory[itemIndex];
     const current = currentArtifactFor(ownedItem);
-    const item = current ? { ...ownedItem, name: current.name, icon: current.icon, description: current.description } : ownedItem;
+    const item = current ? { ...ownedItem, id: current.id, name: current.name, icon: current.icon, description: current.description } : ownedItem;
     const runEffect = _effectFor(ownedItem);
     if (!runEffect) {
         // Market treasures carry a Charm instead of a power.
@@ -401,8 +421,7 @@ export async function handleUseItem(studentId, itemIndex) {
     if (item.id === 'leg_pathfinder') {
         const classData = state.get('allTeachersClasses').find((entry) => entry.id === student.classId);
         const monthKey = utils.getMonthKey(new Date());
-        const existing = Number(classData?.teamQuestBonuses?.[monthKey]) || 0;
-        if (existing >= 10) {
+        if (pathfinderUsedThisMonth(classData, monthKey)) {
             showToast("🗺️ The class already used the Pathfinder’s Map this month. No bonus available.", 'info');
             return { success: false, cancelled: true };
         }
@@ -410,8 +429,8 @@ export async function handleUseItem(studentId, itemIndex) {
 
     return new Promise((resolve) => {
         showModal(
-            `Use ${item.icon || '✨'} ${item.name}?`,
-            `<div class="text-center text-gray-600 mt-1">${item.description || 'Consume this item to activate its power.'}</div>`,
+            `Use ${item.name}?`,
+            `${legendaryArtSvg(item.id) ? `<div class="lg-use-art">${legendaryArtSvg(item.id)}</div>` : `<div class="text-center text-4xl">${item.icon || '✨'}</div>`}<div class="text-center text-gray-600 mt-1">${item.description || 'Consume this item to activate its power.'}</div>`,
             async () => {
                 try {
                     const classData = state.get('allTeachersClasses').find((entry) => entry.id === student.classId)
@@ -473,7 +492,7 @@ export async function handleUseItem(studentId, itemIndex) {
                     if (item.id === 'leg_gilded') {
                         showToast(`Next star for ${student.name} is worth triple Gold!`, 'success');
                     } else if (item.id === 'leg_pathfinder') {
-                        showToast(`🗺️ ${classData?.name || 'The class'} advances +10 Team Quest Stars.`, 'success');
+                        showToast(`🗺️ ${classData?.name || 'The class'} advances +${PATHFINDER_CLASS_QUEST_BONUS_STARS} Team Quest Stars.`, 'success');
                     } else if (item.id === 'leg_luck') {
                         showToast(`🍀 Luck stored for ${student.name}'s next lesson.`, 'success');
                     } else if (result.feedback?.title) {

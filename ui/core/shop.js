@@ -34,6 +34,7 @@ import {
     shopBuyBtnClass,
     shopBuyBtnInner,
     renderShopItemCard,
+    renderLegendaryRelicCard,
     renderFamiliarEggCard,
     renderShelf,
     renderMarketAisle
@@ -41,6 +42,7 @@ import {
 import { renderFestivalStall } from './festivalStall.mjs';
 import '../../styles/festival_stall.css';
 import '../../styles/market_charms.css';
+import '../../styles/legendary_relics.css';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 import { initMarketKeeperFloat, keeperFloatSay } from './marketKeeperFloat.js';
 import { closeMarketCurtains, openMarketCurtains, shopStageIsLive } from './marketCurtains.js';
@@ -262,6 +264,31 @@ function ensureShopStudentDropdownListeners() {
     bindShopStorefrontListeners();
 }
 
+/** The form each Legendary relic shows (kept across shelf redraws while the Market is open). */
+const relicFormChoice = {};
+
+/** Swap a relic card to another of its forms, then re-check prices and limits for the shopper. */
+function chooseRelicForm(card, variantId) {
+    if (!card || !variantId || card.dataset.itemId === variantId) return;
+    import('../../features/powerUps.js').then((m) => {
+        const familyId = card.dataset.family;
+        const family = m.LEGENDARY_FAMILIES.find((f) => f.id === familyId);
+        if (!family) return;
+        relicFormChoice[familyId] = variantId;
+        const holder = document.createElement('div');
+        holder.innerHTML = renderLegendaryRelicCard(family, m.legendaryFamilyVariants(familyId), variantId).trim();
+        const next = holder.firstElementChild;
+        if (!next) return;
+        next.classList.add('is-form-swap');
+        card.replaceWith(next);
+        next.querySelector(`[data-relic-form="${CSS.escape(variantId)}"]`)?.focus({ preventScroll: true });
+        updateShopStudentDisplay(document.getElementById('shop-student-select')?.value || '')
+            .catch((err) => console.warn('Shop: updateShopStudentDisplay failed', err));
+        const chosen = m.LEGENDARY_ARTIFACTS.find((a) => a.id === variantId);
+        if (chosen) keeperSay(`Ah, the ${chosen.name}. ${chosen.description}`);
+    }).catch((err) => console.warn('Relic form swap failed:', err));
+}
+
 function bindShopStorefrontListeners() {
     readShopSortPreference();
     initMarketKeeperFloat();
@@ -292,6 +319,11 @@ function bindShopStorefrontListeners() {
 
     const container = document.getElementById('shop-items-container');
     container?.addEventListener('click', (e) => {
+        const formBtn = e.target.closest('[data-relic-form]');
+        if (formBtn) {
+            chooseRelicForm(formBtn.closest('.mm-relic'), formBtn.dataset.relicForm);
+            return;
+        }
         const guideBtn = e.target.closest('[data-market-guide]');
         if (!guideBtn) return;
         import('./marketGuide.js')
@@ -556,7 +588,10 @@ export function renderShopUI() {
 
     // 2. Get Legendary Artifacts (from our new file)
     import('../../features/powerUps.js').then(m => {
-        const artifacts = [...m.LEGENDARY_ARTIFACTS].sort((a, b) => (a.price - b.price) || a.name.localeCompare(b.name));
+        const artifacts = m.LEGENDARY_ARTIFACTS;
+        const relicCards = m.LEGENDARY_FAMILIES
+            .map((family) => renderLegendaryRelicCard(family, m.legendaryFamilyVariants(family.id), relicFormChoice[family.id]))
+            .join('');
         
         if (seasonalItems.length === 0 && festivalItems.length === 0 && artifacts.length === 0) {
             container.innerHTML = '';
@@ -572,9 +607,9 @@ export function renderShopUI() {
             const legendarySection = renderMarketAisle({
                 id: 'legendary', label: 'Artifacts', icon: 'fa-scroll', tone: 'indigo',
                 title: 'Legendary Artifacts',
-                desc: 'Evergreen relics with battle-shaping perks. Stock is precious: two legendary buys per student each month.',
+                desc: 'Five relics that change something real in class. Each comes in a few forms: tap a form under the name to choose. Two artifacts per hero each month.',
                 badge: 'Limit 2 / month',
-                body: renderShelf(artifacts.map(item => renderShopItemCard(item, 'legendary')).join(''))
+                body: renderShelf(relicCards)
             });
 
             const noSeasonalHtml = shopRestockBusy
@@ -709,7 +744,7 @@ function resetShopWareCard(card) {
 export async function updateShopStudentDisplay(studentId) {
     // Load what the checks need before touching any card: resetting first and awaiting after
     // made every button flash "Pick a shopper" for a moment on each refresh.
-    const [{ LEGENDARY_ARTIFACTS, isItemUsable }, { stallBuyCheckFor }] = await Promise.all([
+    const [{ LEGENDARY_ARTIFACTS, isItemUsable, pathfinderUsedThisMonth }, { stallBuyCheckFor }] = await Promise.all([
         import('../../features/powerUps.js'),
         import('../../db/actions/smartStock.js')
     ]);
@@ -795,12 +830,11 @@ export async function updateShopStudentDisplay(studentId) {
 
     // LIMIT CHECK 2: Pathfinder Map (1 per class per month)
     const classData = state.get('allSchoolClasses').find(c => c.id === student.classId);
-    const pathfinderBonusThisMonth = Number(classData?.teamQuestBonuses?.[currentMonthKey]) || 0;
 
     const classStudents = state.get('allStudents').filter(s => s.classId === student.classId);
     const classScores = state.get('allStudentScores').filter(sc => classStudents.some(cs => cs.id === sc.id));
     const pathfinderHeldBySomeone = classScores.some(sc => sc.inventory?.some(i => i.id === 'leg_pathfinder' && i.acquiredAt && i.acquiredAt.startsWith(currentMonthKey)));
-    const pathfinderLockedForClass = pathfinderBonusThisMonth >= 10 || pathfinderHeldBySomeone;
+    const pathfinderLockedForClass = pathfinderUsedThisMonth(classData, currentMonthKey) || pathfinderHeldBySomeone;
 
     // LIMIT CHECK 3: Mask of the Protagonist (1 per student per month)
     const protagonistThisMonth = scoreData?.lastProtagonistPurchaseMonth === currentMonthKey || inventory.some(i => i.id === 'leg_protagonist' && i.acquiredAt && i.acquiredAt.startsWith(currentMonthKey));
@@ -887,7 +921,7 @@ export async function updateShopStudentDisplay(studentId) {
             card.dataset.classLeft = String(fairness.classLeft);
         }
         const legendaryArtifact = isLegendary ? LEGENDARY_ARTIFACTS.find(a => a.id === itemId) : null;
-        const isLegendaryUsable = !!(legendaryArtifact && isItemUsable(legendaryArtifact.name));
+        const isLegendaryUsable = !!(legendaryArtifact && isItemUsable(legendaryArtifact));
 
         if (alreadyOwned && isLegendary && !isLegendaryUsable) {
             setShopBuyBtn(btn, 'success', 'Owned');

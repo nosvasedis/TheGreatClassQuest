@@ -1,6 +1,7 @@
 // ui/modals/trophyRoomView.js — HTML for the Trophy Room (no state, no DOM access).
 // Kept pure so the guidebook capture can render the real markup from sample data.
 import { sealArtHtml } from '../../features/heroSealsCore.mjs';
+import { legendaryArtSvg } from '../../features/legendaryArt.mjs';
 
 export function escTrophy(value) {
     return String(value ?? '')
@@ -19,6 +20,8 @@ function portraitHtml(student, className) {
 }
 
 function itemArtHtml(item) {
+    const art = item.artId ? legendaryArtSvg(item.artId, { className: 'lg-art lg-art--trophy' }) : '';
+    if (art) return art;
     if (item.image) return `<img src="${escTrophy(item.image)}" alt="" loading="lazy">`;
     return `<span class="tr-emoji" aria-hidden="true">${escTrophy(item.icon || '📦')}</span>`;
 }
@@ -214,7 +217,7 @@ export function renderTrophySatchelHtml({ student, classLabel = '', gold = 0, sa
             <div class="tr-effect-list">
                 ${effects.map((e) => `
                     <div class="tr-effect">
-                        <span class="tr-effect-icon" aria-hidden="true">${escTrophy(e.icon)}</span>
+                        <span class="tr-effect-icon" aria-hidden="true">${(e.artId && legendaryArtSvg(e.artId)) || escTrophy(e.icon)}</span>
                         <span class="tr-effect-text"><b>${escTrophy(e.title)}</b><span>${escTrophy(e.body)}</span></span>
                     </div>`).join('')}
             </div>

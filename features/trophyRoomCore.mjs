@@ -30,7 +30,7 @@ export function buildTrophySatchel(inventory, { isUsable = () => false, present 
     // `present` maps an owned item to how it shows today (a renamed relic shows its new name).
     const list = (Array.isArray(inventory) ? inventory : []).map((item) => {
         const shown = item && typeof present === 'function' ? present(item) : null;
-        return shown ? { ...item, name: shown.name || item.name, icon: shown.icon || item.icon, description: shown.description || item.description } : item;
+        return shown ? { ...item, artId: shown.id || item.id, name: shown.name || item.name, icon: shown.icon || item.icon, description: shown.description || item.description } : item;
     });
     const relicsByName = new Map();
     const treasures = [];
@@ -45,6 +45,7 @@ export function buildTrophySatchel(inventory, { isUsable = () => false, present 
             } else {
                 relicsByName.set(item.name, {
                     name: item.name,
+                    artId: item.artId || item.id || '',
                     icon: item.icon || '',
                     image: item.image || '',
                     description: item.description || '',
@@ -123,17 +124,20 @@ export function summarizeSatchel(inventory, { isUsable = () => false } = {}) {
 export function buildActiveEffects(scoreData, monthKey) {
     const s = scoreData || {};
     const effects = [];
-    if (s.hasGildedEffect) effects.push({ icon: '✨', title: 'Gilded Star', body: 'Next star pays triple Gold.' });
+    if (s.hasGildedEffect) effects.push({ icon: '✨', artId: 'leg_gilded', title: 'Gilded Star', body: 'Next star pays triple Gold.' });
     if (s.luckDate) effects.push({ icon: '🍀', title: 'Elixir of Luck', body: `Luck waits for the lesson on ${s.luckDate}.` });
     if (s.starfallCatalystActive) effects.push({ icon: '📜', title: 'Starfall Catalyst', body: 'Next high test score earns double stars.' });
-    if (s.pendingHeroStatus) effects.push({ icon: '🎭', title: 'Mask of the Protagonist', body: 'Hero of the next Story Log.' });
-    if (s.peerBoonFreeMonthKey && s.peerBoonFreeMonthKey === monthKey) effects.push({ icon: '💝', title: 'Compassion Token', body: "Hero's Boon costs 0 Gold this month." });
+    if (s.pendingHeroStatus) effects.push({ icon: '🎭', artId: 'leg_protagonist', title: 'Mask of the Protagonist', body: 'Chosen as the next Hero of the Day.' });
+    if (s.peerBoonFreeMonthKey && s.peerBoonFreeMonthKey === monthKey) effects.push({ icon: '💝', artId: 'leg_compassion', title: 'Compassion Token', body: "Hero's Boon costs 0 Gold this month." });
+    const freeBoons = Number(s.peerBoonFreeUses) || 0;
+    if (freeBoons > 0) effects.push({ icon: '💗', artId: 'leg_kindness', title: 'Free Hero\'s Boons', body: `${freeBoons} Hero's Boon${freeBoons === 1 ? '' : 's'} left at 0 Gold.` });
     const charges = Number(s.gloryBannerCharges) || 0;
-    if (charges > 0) effects.push({ icon: '⚜️', title: 'Banner of Glory', body: `${charges} star${charges === 1 ? '' : 's'} left with +1 bonus Guild Glory.` });
-    if (s.fortuneFavorArmed) effects.push({ icon: '🍀', title: "Fortune's Favor", body: "Your guild's next Fortune's Wheel here is gilded." });
-    if (s.storyWeaverDoubleNext) effects.push({ icon: '✒️', title: "Archivist's Quill", body: 'Next Story Weaver bonus is a full star.' });
+    if (charges > 0) effects.push({ icon: '⚜️', artId: 'leg_glory_banner', title: 'Pennant of Glory', body: `${charges} star${charges === 1 ? '' : 's'} left with +1 bonus Guild Glory.` });
+    if (s.fortuneFavorArmed) effects.push({ icon: '🎡', artId: 'leg_bulwark', title: "Fortune's Favor", body: "Your guild's next Fortune's Wheel here is gilded." });
+    if (s.storyWeaverDoubleNext) effects.push({ icon: '✒️', artId: 'leg_quill', title: "Archivist's Quill", body: 'Next Story Weaver bonus is a full star.' });
     if ((Number(s.aurumVoucherPercent) || 0) > 0 && s.aurumVoucherMonth === monthKey) {
-        effects.push({ icon: '💰', title: 'Aurum Satchel', body: `${s.aurumVoucherPercent}% off the next Mystic Market buy this month.` });
+        const pct = Number(s.aurumVoucherPercent);
+        effects.push({ icon: pct >= 50 ? '💰' : '👝', artId: pct >= 50 ? 'leg_aurum' : 'leg_aurum_silver', title: pct >= 50 ? 'Aurum Satchel' : 'Silver Satchel', body: `${pct}% off the next Mystic Market buy this month.` });
     }
     return effects;
 }

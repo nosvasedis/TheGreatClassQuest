@@ -81,7 +81,7 @@ test('buildActiveEffects only shows effects that are still working', () => {
         aurumVoucherPercent: 50,
         aurumVoucherMonth: '2026-09',
     }, '2026-09');
-    assert.deepEqual(effects.map((e) => e.title), ['Gilded Star', 'Banner of Glory', 'Aurum Satchel']);
+    assert.deepEqual(effects.map((e) => e.title), ['Gilded Star', 'Pennant of Glory', 'Aurum Satchel']);
     assert.match(effects[1].body, /^1 star left/);
     assert.deepEqual(buildActiveEffects(null, '2026-09'), []);
 });

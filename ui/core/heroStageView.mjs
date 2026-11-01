@@ -1,5 +1,6 @@
 // ui/core/heroStageView.mjs — HTML for the Hero Stage (the card under an enlarged avatar).
 // Pure: no state, no DOM. `ui/core/avatar.js` gathers the data and wires the clicks.
+import { legendaryArtSvg } from '../../features/legendaryArt.mjs';
 
 export function escStage(value) {
     return String(value ?? '')
@@ -17,6 +18,8 @@ export function formatStageNumber(value) {
 }
 
 function artHtml(item) {
+    const art = item.artId ? legendaryArtSvg(item.artId, { className: 'lg-art lg-art--stage' }) : '';
+    if (art) return art;
     if (item.image) return `<img src="${escStage(item.image)}" alt="" loading="lazy" draggable="false">`;
     return `<span class="hs-emoji" aria-hidden="true">${escStage(item.icon || '📦')}</span>`;
 }
@@ -63,7 +66,7 @@ export function renderHeroStageBodyHtml({ stats, effects = [], preview, total = 
         <section class="hs-effects" aria-label="Working now">
             <p class="hs-label"><i class="fas fa-hat-wizard" aria-hidden="true"></i>Working now</p>
             <ul>${effects.map((e) => `
-                <li title="${escStage(e.body)}"><span aria-hidden="true">${escStage(e.icon)}</span><b>${escStage(e.title)}</b><small>${escStage(e.body)}</small></li>`).join('')}
+                <li title="${escStage(e.body)}"><span aria-hidden="true">${(e.artId && legendaryArtSvg(e.artId)) || escStage(e.icon)}</span><b>${escStage(e.title)}</b><small>${escStage(e.body)}</small></li>`).join('')}
             </ul>
         </section>` : '';
 

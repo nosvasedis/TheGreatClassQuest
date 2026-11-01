@@ -488,10 +488,17 @@ export async function handleBuyItem(studentId, itemId) {
     // 1. Determine if it's Legendary or Seasonal
     const isLegendary = itemId.startsWith('leg_');
     let item;
+    let pathfinderUsedThisMonth = () => false;
+    let legendaryArtSvg = () => '';
 
     if (isLegendary) {
-        const { LEGENDARY_ARTIFACTS } = await import('../../features/powerUps.js');
-        item = LEGENDARY_ARTIFACTS.find(i => i.id === itemId);
+        const [powerUps, art] = await Promise.all([
+            import('../../features/powerUps.js'),
+            import('../../features/legendaryArt.mjs')
+        ]);
+        item = powerUps.LEGENDARY_ARTIFACTS.find(i => i.id === itemId);
+        pathfinderUsedThisMonth = powerUps.pathfinderUsedThisMonth;
+        legendaryArtSvg = art.legendaryArtSvg;
     } else {
         item = state.get('currentShopItems').find(i => i.id === itemId);
     }
@@ -597,9 +604,8 @@ export async function handleBuyItem(studentId, itemId) {
             if (itemId === 'leg_pathfinder' && student.classId) {
                 const classDocRef = doc(db, `${publicDataPath}/classes`, student.classId);
                 const classDoc = await transaction.get(classDocRef);
-                if (classDoc.exists()) {
-                    const bonuses = classDoc.data().teamQuestBonuses || {};
-                    if ((bonuses[currentMonthKey] || 0) >= 10) throw "A Pathfinder Map was already used in your class this month!";
+                if (classDoc.exists() && pathfinderUsedThisMonth(classDoc.data(), currentMonthKey)) {
+                    throw "A Pathfinder Map was already used in your class this month!";
                 }
             }
 
@@ -688,7 +694,7 @@ export async function handleBuyItem(studentId, itemId) {
             itemDescription: isLegendary
                 ? (item.description || 'A rare artifact for your collection!')
                 : `${item.description || ''} ${charmFor(boughtEntry).icon} Charm: ${charmFor(boughtEntry).title}.${boughtSetLine ? ` Charm set: ${boughtSetLine}.` : ''}`.trim(),
-            itemVisualHtml: item.icon ? item.icon : (item.image ? `<img src="${item.image}" class="w-16 h-16 object-contain mx-auto">` : '🎁'),
+            itemVisualHtml: (isLegendary && legendaryArtSvg(item.id, { className: 'lg-art lg-art--parcel' })) || (item.icon ? item.icon : (item.image ? `<img src="${item.image}" class="w-16 h-16 object-contain mx-auto">` : '🎁')),
             finalPrice: appliedFinalPrice,
             basePrice: item.price,
             newGoldBalance,

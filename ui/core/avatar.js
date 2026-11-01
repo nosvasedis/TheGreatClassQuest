@@ -4,6 +4,7 @@
 import * as state from '../../state.js';
 import { getLocalMonthKey } from '../../utils.js';
 import { currentArtifactFor, handleUseItem, isItemUsable } from '../../features/powerUps.js';
+import { legendaryArtSvg } from '../../features/legendaryArt.mjs';
 import { renderFamiliarSprite, openFamiliarStatsOverlay } from '../../features/familiars.js';
 import { getGuildById } from '../../features/guilds.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
@@ -90,11 +91,13 @@ function buildStageView(studentId) {
 
 /** Show a beautiful enlarged detail view of an item (also used from Treasure Vault). */
 export function showInventoryItemDetail(itemData) {
+    const current = currentArtifactFor(itemData);
     showItemDetail({
-        name: itemData.name,
-        desc: itemData.desc || itemData.description || '',
-        icon: itemData.icon,
+        name: current?.name || itemData.name,
+        desc: current?.description || itemData.desc || itemData.description || '',
+        icon: current?.icon || itemData.icon,
         image: itemData.image,
+        art: current ? legendaryArtSvg(current.id, { className: 'lg-art lg-art--detail' }) : '',
     });
 }
 
@@ -103,7 +106,9 @@ function showItemDetail(itemData) {
     const overlay = document.createElement('div');
     overlay.className = 'item-detail-overlay';
 
-    const visual = itemData.image
+    const visual = itemData.art
+        ? `<div class="item-detail-visual">${itemData.art}</div>`
+        : itemData.image
         ? `<div class="item-detail-visual"><img src="${escHtml(itemData.image)}" alt=""></div>`
         : `<div class="item-detail-visual">${escHtml(itemData.icon || '📦')}</div>`;
 

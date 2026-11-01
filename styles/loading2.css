@@ -35,6 +35,8 @@
     --t-medal: 3700ms;
     --t-tagline: 4000ms;
     --t-path: 4300ms;
+    /* The tip comes early, as the title is being written, so it can be read */
+    --t-tip: 2600ms;
 }
 
 #loading-screen.loading-short {
@@ -74,7 +76,7 @@
     height: min(70vh, 560px);
     transform: translate(-50%, -50%);
     border-radius: 50%;
-    background: radial-gradient(closest-side, rgba(139, 112, 214, 0.34) 0%, rgba(99, 78, 178, 0.16) 50%, rgba(76, 58, 150, 0) 100%);
+    background: radial-gradient(closest-side, var(--ls-pool-a) 0%, var(--ls-pool-b) 50%, rgba(76, 58, 150, 0) 100%);
     pointer-events: none;
     z-index: -1;
     animation: ls-fade-in 1.6s ease var(--t-pool) backwards;
@@ -628,12 +630,8 @@
     pointer-events: none;
 }
 
-/* The tip has done its job once the Welcome arrives. */
-#loading-screen.loading-final-moment .loading-tip,
-#loading-screen.loading-final-moment .loading-tip.loading-tip-fade {
-    opacity: 0;
-    transition: opacity 0.45s ease;
-}
+/* The tip stays through the Welcome, so it can be read to the end; it leaves
+   with the words as Lumi sweeps off. */
 
 /* A Welcome that arrives before the constellation has risen brings it in
    with it (a new animation name, so it starts now). */
@@ -1124,7 +1122,14 @@
 }
 
 #loading-screen.loading-text-ready .loading-tip-card {
-    animation: loading-word-rise 0.7s var(--gcq-ease-out) max(0ms, calc(var(--t-path) + 300ms - var(--since))) backwards;
+    animation: loading-word-rise 0.7s var(--gcq-ease-out) max(0ms, calc(var(--t-tip) - var(--since))) backwards;
+}
+
+/* The quick load is only Lumi, the title, the medallion and the Welcome:
+   no constellation and no tip, which it would never have time to show. */
+#loading-screen.loading-short .loading-path,
+#loading-screen.loading-short .loading-tip-card {
+    display: none;
 }
 
 /* ── The woosh ───────────────────────────────────────────────────

@@ -115,6 +115,7 @@ export const titleFlourishHTML = `
                         <span class="gcq-pixie">
                             <span class="gcq-pixie__glow"></span>
                             <span class="gcq-pixie__lumi">${HEADER_LUMI_SVG}</span>
+                            <span class="gcq-pixie__spark"><svg viewBox="244 2 14 14" focusable="false" aria-hidden="true"><path d="M249 7 l2 -5 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 z" fill="#fff7d6"/></svg></span>
                         </span>
                     </span>`;
 

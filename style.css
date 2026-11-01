@@ -90,6 +90,7 @@
 
 /* 14. Loading screen star pulse, spinning rings */
 @import url('./styles/loading.css');
+@import url('./styles/loading-sky.css');
 
 /* 15. Scholar's Scroll: chart bars, trial history, bulk-log (Starfall loads styles/starfall.css with its module) */
 @import url('./styles/scholar.css');

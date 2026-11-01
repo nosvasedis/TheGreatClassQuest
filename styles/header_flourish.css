@@ -133,8 +133,8 @@
 /* ---------- Lumi over the title ----------
    Lumi, the app's guiding star (the same star as the loading screen), glides
    along one smooth motion path over the title with a trail of dust, and every
-   flight ends by landing on the star at the tip of the gold swash, which flares
-   as she arrives. The lane is the title's own box; the path is drawn for the
+   flight ends by landing on the star at the tip of the gold swash, where she
+   glows and becomes that star. The lane is the title's own box; the path is drawn for the
    sm+ title size. (The class names are still "pixie": she took its place.) */
 .gcq-pixie-lane {
     --pixie-cycle: 26s;
@@ -157,22 +157,28 @@
     will-change: offset-distance, opacity, transform;
 }
 .gcq-pixie {
-    width: 18px;
-    height: 18px;
+    width: 15px;
+    height: 15px;
     animation: gcq-pixie-fly var(--pixie-cycle) var(--pixie-delay) infinite;
 }
-/* A soft warm glow behind her, painted once */
+/* A soft warm glow behind her. When she lands it blooms bright, so she
+   melts into light, and fades as the star is left shining. */
 .gcq-pixie__glow {
     position: absolute;
-    inset: -9px;
+    inset: -8px;
     border-radius: 50%;
-    background: radial-gradient(closest-side, rgba(255, 251, 230, 0.95) 0%, rgba(253, 224, 120, 0.55) 40%, rgba(245, 158, 11, 0) 100%);
+    background: radial-gradient(closest-side, rgba(255, 253, 240, 1) 0%, rgba(253, 230, 138, 0.6) 40%, rgba(245, 158, 11, 0) 100%);
+    opacity: 0.55;
+    animation: gcq-lumi-glow var(--pixie-cycle) var(--pixie-delay) infinite;
 }
-/* Lumi herself, a touch larger than the old sprite, with a gentle sway as she flies */
+/* Lumi herself, with a gentle sway as she flies */
 .gcq-pixie__lumi {
     position: absolute;
-    inset: -3px;
+    inset: -2px;
     filter: drop-shadow(0 1px 1px rgba(30, 58, 138, 0.4));
+    animation:
+        gcq-lumi-sway 1.6s ease-in-out infinite alternate,
+        gcq-lumi-melt var(--pixie-cycle) var(--pixie-delay) infinite;
 }
 .gcq-pixie__lumi svg {
     display: block;
@@ -180,9 +186,51 @@
     height: 100%;
     overflow: visible;
 }
+/* The swash star's own shape and size, exactly over it: as Lumi melts into
+   the glow, this sparkle shines out of it, and then hands over to the real
+   star underneath without a seam. */
+.gcq-pixie__spark {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    /* The swash is 0.9rem tall for 18 units of its viewBox; the star spans 14 */
+    width: calc(0.9rem * 14 / 18);
+    height: calc(0.9rem * 14 / 18);
+    margin: calc(0.9rem * -7 / 18) 0 0 calc(0.9rem * -7 / 18);
+    opacity: 0;
+    animation: gcq-lumi-spark var(--pixie-cycle) var(--pixie-delay) infinite;
+}
+.gcq-pixie__spark svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 3px rgba(252, 211, 77, 0.9));
+}
 @keyframes gcq-lumi-sway {
     from { transform: rotate(-12deg) translateY(-1px); }
     to { transform: rotate(12deg) translateY(1px); }
+}
+/* The landing, in steps of the 26s cycle (1% = 0.26s):
+   40% she arrives · 41-44% the glow blooms and she melts into it, shrinking
+   to the star's size · 43-46% the sparkle shines out · 46-52% the glow fades,
+   leaving the sparkle · 52-55% the sparkle hands over to the swash star. */
+@keyframes gcq-lumi-glow {
+    0%, 40% { opacity: 0.55; transform: scale(1); animation-timing-function: ease-out; }
+    43.5% { opacity: 1; transform: scale(1.35); animation-timing-function: ease-in-out; }
+    52% { opacity: 0; transform: scale(0.7); }
+    100% { opacity: 0; transform: scale(0.7); }
+}
+@keyframes gcq-lumi-melt {
+    0%, 40.5% { opacity: 1; scale: 1; animation-timing-function: ease-in; }
+    45% { opacity: 0; scale: 0.6; }
+    100% { opacity: 0; scale: 0.6; }
+}
+@keyframes gcq-lumi-spark {
+    0%, 42% { opacity: 0; transform: scale(1.5) rotate(-60deg); animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
+    46% { opacity: 1; transform: scale(1) rotate(0deg); }
+    52% { opacity: 1; transform: scale(1) rotate(0deg); animation-timing-function: ease-in-out; }
+    55%, 100% { opacity: 0; transform: scale(1) rotate(0deg); }
 }
 
 .gcq-pixie-dust {
@@ -198,31 +246,10 @@
 @keyframes gcq-pixie-fly {
     0% { offset-distance: 0%; opacity: 0; transform: scale(0.4); animation-timing-function: ease-out; }
     3% { opacity: 1; transform: scale(1); animation-timing-function: cubic-bezier(0.45, 0.05, 0.4, 1); }
-    40% { offset-distance: 100%; opacity: 1; transform: scale(1); animation-timing-function: ease-in-out; }
-    /* She settles onto the swash star, glows, and shrinks into it */
-    44% { offset-distance: 100%; opacity: 1; transform: scale(0.82); animation-timing-function: ease-in; }
-    49% { offset-distance: 100%; opacity: 0; transform: scale(0.45); }
-    100% { offset-distance: 100%; opacity: 0; transform: scale(0.45); }
-}
-/* Her glow brightens as she lands while her face fades, so she becomes the star */
-.gcq-pixie__glow {
-    opacity: 0.6;
-    animation: gcq-lumi-glow var(--pixie-cycle) var(--pixie-delay) infinite;
-}
-@keyframes gcq-lumi-glow {
-    0%, 39% { opacity: 0.6; }
-    44% { opacity: 1; }
-    100% { opacity: 1; }
-}
-.gcq-pixie__lumi {
-    animation:
-        gcq-lumi-sway 1.6s ease-in-out infinite alternate,
-        gcq-lumi-melt var(--pixie-cycle) var(--pixie-delay) infinite;
-}
-@keyframes gcq-lumi-melt {
-    0%, 40.5% { opacity: 1; }
-    46% { opacity: 0; }
-    100% { opacity: 0; }
+    40% { offset-distance: 100%; opacity: 1; transform: scale(1); }
+    /* She stays put on the star while she turns into it (the layers inside do the change) */
+    55% { offset-distance: 100%; opacity: 1; transform: scale(1); }
+    55.1%, 100% { offset-distance: 100%; opacity: 0; transform: scale(1); }
 }
 @keyframes gcq-pixie-dust {
     0% { offset-distance: 0%; opacity: 0; transform: scale(0.3) rotate(0deg); animation-timing-function: ease-out; }
@@ -231,16 +258,16 @@
     42% { offset-distance: 100%; opacity: 0; transform: scale(0.1) rotate(440deg); }
     100% { offset-distance: 100%; opacity: 0; transform: scale(0.1); }
 }
-/* The swash star answers her landing with a flare */
+/* The swash star keeps her light for a moment after she becomes it */
 .gcq-swash__star {
     transform-box: fill-box;
     transform-origin: center;
     animation: gcq-swash-star-flare 26s 2.5s infinite;
 }
 @keyframes gcq-swash-star-flare {
-    0%, 42% { transform: scale(1); filter: none; animation-timing-function: ease-out; }
-    47% { transform: scale(1.18); filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 4px #fcd34d); animation-timing-function: ease-in-out; }
-    60%, 100% { transform: scale(1); filter: none; }
+    0%, 50% { filter: none; animation-timing-function: ease-in-out; }
+    55% { filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 3px rgba(252, 211, 77, 0.9)); animation-timing-function: ease-in-out; }
+    66%, 100% { filter: none; }
 }
 
 /* ---------- Header pills (quote + controls): gilded glass ----------

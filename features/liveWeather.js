@@ -10,6 +10,7 @@
 import * as utils from '../utils.js';
 import { HEADER_WEATHER_CLASSES, resolveWeatherTheme, headerClassesForTheme } from './weatherTheme.js';
 import { applySkyReading, getSkyScene, getLastSkyReading } from './skyWeatherStage.js';
+import { rememberSkyReading } from './skyMemory.mjs';
 import { isValidWeatherReading, readingFromOpenMeteo, readingFromMetNorway, openMeteoUrl, metNorwayUrl } from './weatherProviders.mjs';
 export { pickUpcomingHours, readingFromOpenMeteo } from './weatherProviders.mjs';
 
@@ -133,6 +134,8 @@ export function applyLiveSky(reading) {
     reading = reading || (isWeatherForActiveLocation(previous) ? previous : null);
     const sun = { now: Date.now(), ...utils.getSolarTimes() };
     const scene = applySkyReading(reading, sun, { reset: !reading });
+    // The loading screen opens with this sky next time (features/skyMemory.mjs).
+    if (reading) rememberSkyReading(reading);
     const header = document.querySelector('#award-header-atmosphere header') || document.querySelector('header');
     if (header) {
         header.classList.remove(...HEADER_WEATHER_CLASSES);

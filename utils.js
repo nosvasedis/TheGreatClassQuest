@@ -2,6 +2,7 @@ import { getLocalMonthKey, isTeacherBoonWindow } from './utils/teacherBoonWindow
 import { getQuestLeagueDefinition } from './constants.js';
 import { HEADER_WEATHER_CLASSES } from './features/weatherTheme.js';
 import { refreshSkyLight } from './features/skyWeatherStage.js';
+import { rememberSunTimes } from './features/skyMemory.mjs';
 import { paintHeaderDateTime } from './ui/headerClock.js';
 import {
     defaultSolarTimes,
@@ -192,6 +193,7 @@ export async function fetchSolarCycle() {
         if (data.status === 'OK') {
             solarData.sunrise = new Date(data.results.sunrise).getTime();
             solarData.sunset = new Date(data.results.sunset).getTime();
+            rememberSunTimes(solarData, { place: { latitude: lat, longitude: lng } });
         }
     } catch (e) { console.warn("Using default solar times."); }
 }

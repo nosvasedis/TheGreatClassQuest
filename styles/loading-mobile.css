@@ -117,8 +117,7 @@
     padding: 0.5rem 0.95rem;
 }
 
-/* The card's glass is its own layer, so it can fade with the tip text at
-   the Welcome without touching the card's arrival animation. */
+/* The card's glass is its own layer, under the tip. */
 #loading-screen.gcq-loading-mobile .loading-tip-card::before {
     content: '';
     position: absolute;
@@ -128,10 +127,6 @@
     background: rgba(18, 12, 52, 0.55);
     border: 1px solid rgba(221, 214, 254, 0.18);
     transition: opacity 0.45s ease;
-}
-
-#loading-screen.gcq-loading-mobile.loading-final-moment .loading-tip-card::before {
-    opacity: 0;
 }
 
 #loading-screen.gcq-loading-mobile .loading-tip {

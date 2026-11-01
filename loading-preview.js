@@ -3,6 +3,7 @@
 //   role=teacher|secretary|parent|signedout  part=morning|afternoon|evening|night
 //   speed=fast|slow  low=1 (weak-laptop scene)  gate=1 (arrive through the sign-in gate)
 //   film=full|short (force a cut)  shot=1 (hide the toolbar)  ready=<ms> (when the app is ready)
+//   sky=dawn|day|golden|twilight|night  wx=<WMO weather code, e.g. 0 clear, 3 grey, 45 fog, 63 rain, 73 snow, 95 storm>
 // The hand-over is the app's own (templates/loading.js#playLoadingExit); window.__pvLog
 // records when each step happened, for headless timing checks.
 import { loadingHTML, initLoadingAtmosphere, initLoadingTips, markLoadingStage, stageLoadingPersonalization, playLoadingExit, reopenLoadingScreen, setLoadingFilmCut } from './templates/loading.js';

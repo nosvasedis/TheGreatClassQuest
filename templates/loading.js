@@ -1,5 +1,5 @@
 import { detectLowPowerTier as sharedLowPowerTier } from '../utils/devicePerformance.mjs';
-import { cloudSvg, cloudVariantCount } from '../features/skyWeatherArt.js';
+import { paintLoadingSky } from './loadingSky.js';
 import { createTipDeck } from './loadingTips.mjs';
 // templates/loading.js
 //
@@ -34,7 +34,9 @@ let _shownAt = 0;
 // When the scene will start melting into the next screen (performance.now()).
 let _revealAt = 0;
 let _exitTimers = [];
-const TIP_ROTATE_MS = 4800;
+const TIP_ROTATE_MS = 6500;
+// When the first tip has risen in the full film (--t-tip + its rise, styles/loading2.css).
+const TIP_FIRST_SHOWN_MS = 3300;
 const TIP_FADE_MS = 420;
 // Longest we hold the words back waiting for the storybook font.
 const FONT_WAIT_MS = 1200;
@@ -334,6 +336,8 @@ export const loadingHTML = `
         <!-- The sky: twilight, stars, the moon, a few dusky clouds -->
         <div class="ls-sky" aria-hidden="true">
             <div class="ls-sky__band"></div>
+            <div class="ls-sky__veil"></div>
+            <div class="ls-sun"></div>
             <div class="ls-stars ls-stars--far"></div>
             <div class="ls-stars ls-stars--near"></div>
             <div class="ls-stars ls-stars--bright"></div>
@@ -352,6 +356,9 @@ export const loadingHTML = `
             ${HILLS_SVG(HILLS_NEAR, 'url(#ls-hill-near)', 'ls-hills--near')}
             <div class="ls-motes"></div>
         </div>
+
+        <!-- Rain, snow, fog or lightning, when the real sky has them (templates/loadingSky.js) -->
+        <div class="ls-weather" aria-hidden="true"></div>
 
         <div class="loading-stage">
             <!-- Lumi. Each wrapper owns one kind of move (styles/loading2.css):
@@ -483,24 +490,37 @@ function revealLoadingTextWhenFontsReady(loadingScreen) {
     }
 }
 
+function stopTipRotation() {
+    // The handle is the first tip's timeout, then the interval: clear both ways.
+    clearTimeout(_tipIntervalId);
+    clearInterval(_tipIntervalId);
+    _tipIntervalId = null;
+}
+
 /** Start cycling through tips in the loading screen. Call once after injectHTML(). */
 export function initLoadingTips() {
     const tipEl = document.getElementById('loading-tip');
     if (!tipEl) return;
-    if (_tipIntervalId) clearInterval(_tipIntervalId);
+    stopTipRotation();
     let storage = null;
     try { storage = window.localStorage; } catch { /* blocked storage: deal without memory */ }
     const deck = createTipDeck({ storage });
     tipEl.textContent = deck.next();
 
-    _tipIntervalId = setInterval(() => {
+    const nextTip = () => {
         const tip = deck.next();
         tipEl.classList.add('loading-tip-fade');
         setTimeout(() => {
             tipEl.textContent = tip;
             tipEl.classList.remove('loading-tip-fade');
         }, TIP_FADE_MS);
-    }, TIP_ROTATE_MS);
+    };
+    // Each tip gets a full read: the first changes only after it has been on
+    // screen for TIP_ROTATE_MS (it rises at --t-tip, styles/loading2.css).
+    _tipIntervalId = setTimeout(() => {
+        nextTip();
+        _tipIntervalId = setInterval(nextTip, TIP_ROTATE_MS);
+    }, TIP_FIRST_SHOWN_MS + TIP_ROTATE_MS);
 }
 
 // ── Building the sky ─────────────────────────────────────────────────
@@ -538,31 +558,6 @@ function buildStars({ mobile, lowPower }) {
     if (far) far.innerHTML = starLayerSvg(Math.round(110 * scale), { rMin: 0.9, rMax: 1.7 });
     if (near) near.innerHTML = starLayerSvg(Math.round(46 * scale), { rMin: 1.6, rMax: 2.6 });
     if (bright) bright.innerHTML = starLayerSvg(Math.round(12 * scale), { rMin: 2.2, rMax: 3.4, glow: true });
-}
-
-/** A few dusky clouds, lit rose from below, drifting slowly across the low sky. */
-function buildClouds({ mobile, lowPower }) {
-    const layer = loadingPart('.ls-clouds');
-    if (!layer) return;
-    layer.innerHTML = '';
-    // Only the long, thin shapes: at dusk big puffy clouds read as blobs.
-    const count = mobile ? 2 : (lowPower ? 3 : 4);
-    const families = ['long', 'wisp', 'long', 'wisp'];
-    for (let i = 0; i < count; i += 1) {
-        const family = families[i % families.length];
-        const cloud = document.createElement('span');
-        const depth = i / Math.max(1, count - 1);
-        const duration = 260 - depth * 90 + randomRange(-20, 20);
-        cloud.className = `ls-cloud ls-cloud--${family}`;
-        cloud.innerHTML = cloudSvg(family, randomInt(cloudVariantCount(family)));
-        cloud.style.top = `${(mobile ? randomRange(10, 24) : randomRange(14 + i * 9, 20 + i * 9)).toFixed(1)}%`;
-        cloud.style.width = `${Math.round((mobile ? 160 : 240) + depth * (mobile ? 60 : 200))}px`;
-        cloud.style.opacity = (0.4 + depth * 0.3).toFixed(2);
-        cloud.style.animationName = i % 2 ? 'ls-drift-left' : 'ls-drift-right';
-        cloud.style.animationDuration = `${duration.toFixed(1)}s`;
-        cloud.style.animationDelay = `-${(randomRange(0.1, 0.9) * duration).toFixed(1)}s`;
-        layer.appendChild(cloud);
-    }
 }
 
 /** Fireflies of light rising slowly out of the hills. */
@@ -604,8 +599,9 @@ export function initLoadingAtmosphere() {
         loadingScreen.style.setProperty('--arrive-angle', `${Math.round(angle)}deg`);
         revealLoadingTextWhenFontsReady(loadingScreen);
     }
+    // The real time of day and weather (templates/loadingSky.js).
+    paintLoadingSky(loadingScreen, { mobile, lowPower });
     buildStars({ mobile, lowPower });
-    buildClouds({ mobile, lowPower });
     buildMotes({ mobile, lowPower });
     scheduleLumiTricks();
 }
@@ -727,7 +723,8 @@ export function markLoadingStage(step, { quiet = false } = {}) {
     const next = Math.min(3, Math.max(_loadingStep, step));
     if (next === _loadingStep) return;
     _loadingStep = next;
-    if (quiet) {
+    // The quick load has no constellation on screen: nothing to cast at.
+    if (quiet || _cut === 'short') {
         clearTimeout(_castTimer);
         while (_litStep < _loadingStep) lightStar(_litStep++);
         return;
@@ -757,15 +754,10 @@ function buildPersonalizedCopy(name, role) {
     const HONORIFICS = /^(mr|mrs|ms|miss|dr|prof|rev|sir|lord|lady|κ)\.?$/i;
     const displayName = (name || '').trim().replace(/\s+/g, ' ');
     const firstName = displayName.split(' ').find(p => !HONORIFICS.test(p)) || '';
-    const tips = {
-        parent: 'Your hero’s stars, stories and quests are on their way.',
-        secretary: 'The school records and hero roster are ready.',
-    };
     return {
         role,
         name: displayName,
         initial: Array.from(firstName || displayName)[0]?.toUpperCase() || '',
-        tip: tips[role] || 'Your classes are gathering. Let the quest begin!',
     };
 }
 
@@ -813,13 +805,9 @@ export function revealStagedLoadingPersonalization({ schoolName = '', dayPart = 
     const greetingText = document.getElementById('loading-greeting-text');
     const schoolEl = document.getElementById('loading-greeting-school');
     const personEl = document.getElementById('loading-greeting-person');
-    const tipEl = document.getElementById('loading-tip');
     if (!greetingEl || !greetingText || !_stagedPersonalization) return false;
 
-    if (_tipIntervalId) {
-        clearInterval(_tipIntervalId);
-        _tipIntervalId = null;
-    }
+    stopTipRotation();
     clearTimeout(_trickTimer);
 
     // The constellation may not have started rising yet: it comes in with the
@@ -848,7 +836,7 @@ export function revealStagedLoadingPersonalization({ schoolName = '', dayPart = 
     // Three stacked copies of the same letters: a soft glow behind, the
     // starlit ink that rises in letter by letter, and a sheen that sweeps
     // across once they have landed.
-    const { role, name, initial, tip } = _stagedPersonalization;
+    const { role, name, initial } = _stagedPersonalization;
     const line = welcomeLine(role, dayPart);
     const letters = lettersHTML(line);
     greetingText.innerHTML =
@@ -880,14 +868,7 @@ export function revealStagedLoadingPersonalization({ schoolName = '', dayPart = 
     }
     greetingEl.classList.add('loading-greeting-visible');
     glide();
-
-    if (tipEl) {
-        tipEl.classList.add('loading-tip-fade');
-        setTimeout(() => {
-            tipEl.textContent = tip;
-            tipEl.classList.remove('loading-tip-fade');
-        }, TIP_FADE_MS);
-    }
+    // The tip on screen stays as it is, so whoever is reading it can finish.
 
     _stagedPersonalization = null;
     return true;
@@ -1129,6 +1110,8 @@ export function reopenLoadingScreen({ fromGate = false } = {}) {
     loadingScreen.dataset.exiting = '';
     loadingScreen.classList.remove('loading-screen-exit', 'loading-revealing', 'loading-final-moment', 'loading-early-welcome', 'loading-screen-from-gate', 'hidden');
     applyFilmCut(loadingFilmCut());
+    // Time has passed since the first paint: the sky catches up.
+    paintLoadingSky(loadingScreen, { mobile: isMobileLoadingViewport(), lowPower: detectLowPowerTier() });
     _shownAt = performance.now();
     loadingScreen.style.setProperty('--since', '0ms');
     loadingScreen.querySelectorAll('.loading-lumi__fly, .loading-lumi__pose, .loading-lumi__trail').forEach((el) => {

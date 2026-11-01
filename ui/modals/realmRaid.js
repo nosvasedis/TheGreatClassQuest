@@ -10,16 +10,16 @@ import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 import { getRaidView, subscribeRaid, revealRaidHero, currentRaid, buildRaidView, ensureRaidLogs, raidViewById, raidOptions } from '../../features/realmRaid.js';
 import { owedRaidRewards, raidsOfYear, raidOn, raidOutcome } from '../../features/realmRaidCore.mjs';
 import { hallHtml, howItWorksHtml, victoryHtml } from './realmRaidView.mjs';
-import { leagueJob, isBigHit } from '../../features/realmRaidBattle.mjs';
+import { leagueJob, isBigHit, caption } from '../../features/realmRaidBattle.mjs';
 import { startRaidMusic, stopRaidMusic, setRaidMusicMode, raidMusicOn, setRaidMusicOn, playRaidSfx } from '../../features/realmRaidAudio.js';
 import { faceHtml } from './classTools.js';
+import { partyFormation } from '../../features/realmRaidParty.mjs';
 
 const HALL_ID = 'realm-raid-hall';
 const VICTORY_ID = 'realm-raid-victory';
 const MAX_BOLTS = 8;
 
-let hall = null; // { root, unsub, focusId, last, revealing, heroCard, onKey, typed, typer, intro }
-const TYPE_MS = 16; // per letter in the message window
+let hall = null; // { root, unsub, focusId, last, revealing, heroCard, onKey, onResize, intro }
 
 function reducedMotion() {
     try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; }
@@ -114,7 +114,14 @@ function render(view) {
         animateHp(hall.last, view);
         strike(hall.last, view, { lite: hall.lite });
     }
-    typeMessages(intro ? (hall.lite ? 700 : 2300) : 0);
+    // The "Round N" banner plays once per round, not on every new star.
+    const banner = hall.root.querySelector('.rr-fieldbanner.is-round');
+    if (banner) {
+        const seen = `${view.raid.raidId}:${banner.textContent}`;
+        if (hall.roundSeen === seen) banner.remove();
+        hall.roundSeen = seen;
+    }
+    layoutParty();
     fitAlliance();
     if (intro) setTimeout(() => hall?.root.querySelector('.rr-intro')?.remove(), 2600);
     syncMusic(view);
@@ -139,42 +146,25 @@ function animateHp(before, after) {
 }
 
 /**
- * The message window types its new lines, one after another (old lines show at once). A click on
- * the window finishes them. The lite tier shows them straight away.
+ * The party fits its real box: the view lays the classes out for a wide field; here the formation
+ * is worked out again for the field's true shape (a phone's field is tall and narrow), and names
+ * hide when the heroes stand too small to read them.
  */
-function typeMessages(delay = 0) {
-    if (!hall) return;
-    clearTimeout(hall.typer);
-    const lines = [...hall.root.querySelectorAll('.rr-msg__line')];
-    const fresh = lines.filter((li) => !hall.typed.has(li.dataset.line));
-    lines.forEach((li) => hall.typed.add(li.dataset.line));
-    if (hall.lite || !fresh.length) return;
-    const texts = fresh.map((li) => li.textContent);
-    fresh.forEach((li) => { li.textContent = ''; });
-    let i = 0;
-    let at = 0;
-    const tick = () => {
-        if (!hall) return;
-        const li = fresh[i];
-        if (!li || !li.isConnected) return;
-        li.classList.add('is-typing');
-        at += 2;
-        li.textContent = texts[i].slice(0, at);
-        if (at >= texts[i].length) {
-            li.classList.remove('is-typing');
-            i += 1;
-            at = 0;
-            if (i >= fresh.length) return;
-            hall.typer = setTimeout(tick, 260);
-            return;
-        }
-        hall.typer = setTimeout(tick, TYPE_MS * 2);
-    };
-    hall.finishTyping = () => {
-        clearTimeout(hall.typer);
-        fresh.forEach((li, k) => { li.textContent = texts[k]; li.classList.remove('is-typing'); });
-    };
-    hall.typer = setTimeout(tick, delay);
+function layoutParty() {
+    const party = hall?.root.querySelector('.rr-party');
+    if (!party) return;
+    const box = party.getBoundingClientRect();
+    if (!box.width || !box.height) return;
+    const units = [...party.querySelectorAll('.rr-unit')];
+    const spots = partyFormation(units.length, { aspect: box.width / box.height });
+    units.forEach((unit, i) => {
+        const spot = spots[i];
+        unit.style.left = `${spot.x}%`;
+        unit.style.top = `${spot.y}%`;
+        unit.style.setProperty('--h', spot.h);
+        unit.style.zIndex = spot.z;
+    });
+    party.classList.toggle('is-tiny', (spots[0]?.h || 0) * box.height / 100 < 70);
 }
 
 /** When the alliance is longer than its window, it rolls slowly up and back (not on the lite tier). */
@@ -221,18 +211,34 @@ function strike(before, after, { lite = false } = {}) {
     const layer = root.querySelector('.rr-dmg-layer');
     const flash = root.querySelector('.rr-flash');
     const byId = new Map(after.rows.map((r) => [r.classId, r]));
-    const travel = lite ? 0 : 750;
+    const travel = lite ? 0 : 650;
+    const tier = ['young', 'senior'].find((t) => host.classList.contains(`rr-tier--${t}`)) || 'mid';
+    const cast = root.querySelector('.rr-cast');
+    const gap = lite ? 500 : 900;
     gains.forEach(({ id, gain }, i) => {
         const row = byId.get(id);
         const job = leagueJob(row?.league);
-        const from = root.querySelector(`.rr-ally__row[data-banner="${CSS.escape(id)}"]`);
+        const from = root.querySelector(`.rr-unit[data-banner="${CSS.escape(id)}"]`) || root.querySelector(`.rr-ally__row[data-banner="${CSS.escape(id)}"]`);
         const to = root.querySelector(`[data-shard="${CSS.escape(id)}"]`) || root.querySelector('.rr-stage__shield');
-        const start = i * (lite ? 420 : 520);
+        const big = isBigHit(gain, row?.share ? row.share / 2 : 0);
+        const start = i * gap;
         setTimeout(() => {
             if (!from?.isConnected) return;
             from.classList.remove('is-acting');
             void from.offsetWidth;
             from.classList.add('is-acting');
+            if (cast) {
+                cast.innerHTML = '';
+                const line = document.createElement('div');
+                line.className = 'rr-cast__line';
+                line.style.setProperty('--job', job.color);
+                const icon = document.createElement('span');
+                icon.textContent = job.icon;
+                const name = document.createElement('small');
+                name.textContent = row?.name || '';
+                line.append(icon, document.createTextNode(` ${job.skill}! `), name);
+                cast.appendChild(line);
+            }
             if (!lite && to) {
                 const a = from.getBoundingClientRect();
                 const b = to.getBoundingClientRect();
@@ -240,37 +246,43 @@ function strike(before, after, { lite = false } = {}) {
                 orb.className = 'rr-skill';
                 orb.textContent = job.icon;
                 orb.style.setProperty('--job', job.color);
-                orb.style.left = `${a.left + a.width / 2 - box.left - 20}px`;
-                orb.style.top = `${a.top + a.height / 2 - box.top - 20}px`;
+                const x0 = a.left + a.width * 0.85;
+                const y0 = a.top + a.height * 0.4;
+                orb.style.left = `${x0 - box.left - 20}px`;
+                orb.style.top = `${y0 - box.top - 20}px`;
                 host.appendChild(orb);
-                const dx = b.left + b.width / 2 - (a.left + a.width / 2);
-                const dy = b.top + b.height / 2 - (a.top + a.height / 2);
+                const dx = b.left + b.width / 2 - x0;
+                const dy = b.top + b.height / 2 - y0;
                 const anim = orb.animate([
-                    { transform: 'translate(0, 0) scale(.5)', opacity: 0 },
-                    { transform: 'translate(0, 0) scale(1.3)', opacity: 1, offset: 0.15 },
-                    { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 60}px) scale(1.1) rotate(180deg)`, opacity: 1, offset: 0.55 },
+                    { transform: 'translate(0, 0) scale(.4)', opacity: 0 },
+                    { transform: 'translate(0, 0) scale(1.3)', opacity: 1, offset: 0.12 },
+                    { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 70}px) scale(1.15) rotate(200deg)`, opacity: 1, offset: 0.55 },
                     { transform: `translate(${dx}px, ${dy}px) scale(.9) rotate(360deg)`, opacity: 1 }
-                ], { duration: travel, easing: 'cubic-bezier(.4,0,.6,1)', fill: 'forwards' });
+                ], { duration: travel, delay: 180, easing: 'cubic-bezier(.4,0,.6,1)', fill: 'both' });
                 anim.onfinish = () => orb.remove();
             }
         }, start);
         setTimeout(() => {
             if (!layer?.isConnected) return;
-            const big = isBigHit(gain, row?.share ? row.share / 2 : 0);
             const pop = document.createElement('span');
             pop.className = `rr-dmg${big ? ' is-big' : ''}`;
             pop.style.setProperty('--job-deep', job.deep);
-            // Spread the numbers round the boss (golden angle), so they never pile up.
-            pop.style.setProperty('--x', `${(50 + 32 * Math.cos(i * 2.4 + 0.6)).toFixed(1)}%`);
-            pop.style.setProperty('--y', `${(52 + 22 * Math.sin(i * 2.4 + 0.6)).toFixed(1)}%`);
+            const b = to?.getBoundingClientRect();
+            const lb = layer.getBoundingClientRect();
+            // Over the shard that was hit, a little apart each time so numbers never pile up.
+            const px = b ? ((b.left + b.width / 2 - lb.left) / lb.width) * 100 : 75;
+            const py = b ? ((b.top + b.height / 2 - lb.top) / lb.height) * 100 : 55;
+            pop.style.setProperty('--x', `${(px + 6 * Math.cos(i * 2.4)).toFixed(1)}%`);
+            pop.style.setProperty('--y', `${(py - 10 + 6 * Math.sin(i * 2.4)).toFixed(1)}%`);
             pop.textContent = `${Math.round(gain * 2) / 2}`;
-            const who = document.createElement('small');
-            who.textContent = `${job.icon} ${job.skill} · ${row?.name || ''}`;
-            pop.appendChild(who);
+            if (big) {
+                const word = document.createElement('small');
+                word.textContent = caption('big', tier);
+                pop.appendChild(word);
+            }
             layer.appendChild(pop);
             setTimeout(() => pop.remove(), 1700);
-            if (!lite && to) {
-                const b = to.getBoundingClientRect();
+            if (!lite && b) {
                 const burst = document.createElement('span');
                 burst.className = 'rr-burst';
                 burst.style.setProperty('--job', job.color);
@@ -290,10 +302,10 @@ function strike(before, after, { lite = false } = {}) {
                 flash.classList.add('is-on');
             }
             playRaidSfx('hit', { big });
-        }, start + travel);
+        }, start + travel + 180);
     });
     if (!before.status.broken && after.status.broken) {
-        setTimeout(() => playRaidSfx('shatter'), gains.length * 520 + travel);
+        setTimeout(() => playRaidSfx('shatter'), gains.length * gap + travel + 300);
     }
 }
 
@@ -301,7 +313,6 @@ function onClick(event) {
     const target = event.target;
     if (target.closest('[data-rr-close]')) { closeRaidHall(); return; }
     if (target.closest('[data-rr-music]')) { toggleMusic(); return; }
-    if (target.closest('.rr-msgwin')) { hall.finishTyping?.(); return; }
     if (target.closest('[data-rr-help]')) { openHelp(); return; }
     if (target.closest('[data-rr-help-close]') || target.classList.contains('rr-help')) { hall.root.querySelector('.rr-help')?.remove(); return; }
     const other = target.closest('[data-rr-raid]');
@@ -400,7 +411,7 @@ export async function openRaidHall({ view: given = null, focusId = '', raidId = 
     root.setAttribute('aria-modal', 'true');
     root.setAttribute('aria-labelledby', 'rr-hall-title');
     document.body.appendChild(root);
-    hall = { root, focusId, last: null, revealing: false, heroCard: null, lite: isLite(), view: source, roster, year, now, typed: new Set(), typer: 0, intro: !keepSound && !reducedMotion(), musicSeason: '' };
+    hall = { root, focusId, last: null, revealing: false, heroCard: null, lite: isLite(), view: source, roster, year, now, intro: !keepSound && !reducedMotion(), musicSeason: '' };
     hall.onKey = (event) => {
         if (event.key === 'Escape') {
             if (root.querySelector('.rr-help')) root.querySelector('.rr-help').remove();
@@ -419,6 +430,8 @@ export async function openRaidHall({ view: given = null, focusId = '', raidId = 
         }
     };
     document.addEventListener('keydown', hall.onKey);
+    hall.onResize = () => { cancelAnimationFrame(hall?.resizeFrame); if (hall) hall.resizeFrame = requestAnimationFrame(layoutParty); };
+    window.addEventListener('resize', hall.onResize);
     root.addEventListener('click', onClick);
     hall.unsub = given ? () => {} : subscribeRaid((view) => { if (view) render(view); });
     render(source());
@@ -433,8 +446,8 @@ export function closeRaidHall({ instant = false } = {}) {
     if (!hall) return;
     hall.unsub?.();
     document.removeEventListener('keydown', hall.onKey);
+    window.removeEventListener('resize', hall.onResize);
     const { root } = hall;
-    clearTimeout(hall.typer);
     hall = null;
     if (!instant) stopRaidMusic();
     if (instant) { root.remove(); return; }

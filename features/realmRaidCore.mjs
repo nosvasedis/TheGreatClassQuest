@@ -343,6 +343,34 @@ export function computeShares({ raid, classes = [], heroCounts = {}, meets = () 
     });
 }
 
+/**
+ * The raid's rounds: one per day of the week, each as big as the lessons held that day. A class's
+ * shard is split evenly over its own lesson days, so a day with one small class is a small round
+ * and a day with no lessons is a rest. The rounds always add up to the whole shield.
+ * `shares` are computeShares rows; `byDay` the stars dealt per day (tallyRaidStars). Returns
+ * [{ n, key, date, plan, dealt, weight, classes, heroes, rest, cleared }].
+ */
+export function raidDayPlan(raid, shares = [], byDay = {}) {
+    const days = raidDays(raid);
+    const total = shares.reduce((sum, s) => sum + (Number(s.share) || 0), 0);
+    return days.map((date, i) => {
+        const key = dayKey(date);
+        let plan = 0;
+        let heroes = 0;
+        const classes = [];
+        shares.forEach((s) => {
+            const dates = s.lessonDates || [];
+            if (!(s.share > 0) || !dates.includes(key)) return;
+            plan += s.share / dates.length;
+            heroes += Number(s.heroes) || 0;
+            classes.push(s.classId);
+        });
+        plan = half(plan);
+        const dealt = Number(byDay[key]) || 0;
+        return { n: i + 1, key, date, plan, dealt, weight: total > 0 ? plan / total : 0, classes, heroes, rest: plan <= 0, cleared: plan > 0 && dealt >= plan };
+    });
+}
+
 // ─── Damage ─────────────────────────────────────────────────────────────────
 
 /**

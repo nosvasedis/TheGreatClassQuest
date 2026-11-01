@@ -60,3 +60,38 @@ test('titles', () => {
     assert.equal(battleTitle({ raid: { phase: 'over' }, status: { broken: true, legendary: true } }), 'LEGENDARY VICTORY!');
     assert.equal(battleTitle({ raid: { phase: 'herald' }, status: {}, tier: 'young' }), 'A boss is coming!');
 });
+
+test('the party formation fits any number of classes inside its area', async () => {
+    const { partyFormation, heroSpriteSvg } = await import('../features/realmRaidParty.mjs');
+    assert.deepEqual(partyFormation(0), []);
+    for (const n of [1, 2, 3, 5, 8, 10, 16, 22, 30, 40]) {
+        const spots = partyFormation(n, { aspect: 1.3 });
+        assert.equal(spots.length, n);
+        for (const s of spots) {
+            assert.ok(s.x > 0 && s.x < 100 && s.y > 0 && s.y < 100, `n=${n} spot inside`);
+            assert.ok(s.h > 0 && s.h <= 54);
+        }
+        const keys = new Set(spots.map((s) => `${s.x}:${s.y}`));
+        assert.equal(keys.size, n, `n=${n} no two heroes on one spot`);
+    }
+    assert.ok(partyFormation(1)[0].h > partyFormation(20)[0].h, 'fewer classes, bigger heroes');
+    // A phone's tall, narrow field: every hero (and its flag) stays inside the box.
+    for (const aspect of [0.6, 0.8, 1.5, 2.4]) {
+        for (const n of [1, 4, 10, 22]) {
+            for (const s of partyFormation(n, { aspect })) {
+                const halfW = (s.h * (100 / 150)) / aspect / 2;
+                assert.ok(s.x - halfW >= -0.01 && s.x + halfW <= 100.01, `n=${n} aspect=${aspect} hero inside`);
+            }
+        }
+    }
+    for (const sprite of ['sprite', 'squire', 'ranger', 'knight', 'archer', 'mage', 'paladin', 'adventurer', 'nope']) {
+        assert.match(heroSpriteSvg({ sprite, color: '#f00', deep: '#900' }), /^<svg class="rr-u__svg"/);
+    }
+});
+
+test('captions are short and fit the class', async () => {
+    const { caption } = await import('../features/realmRaidBattle.mjs');
+    assert.equal(caption('round', 'young', { n: 2 }), 'Round 2!');
+    assert.equal(caption('round', 'senior', { n: 4 }), 'Round 4');
+    assert.equal(caption('big', 'young'), 'WOW!');
+});

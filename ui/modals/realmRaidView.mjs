@@ -2,8 +2,9 @@
 // moment, "How to play" and the projector card. Pure string builders from a raid view (features/realmRaid.js#buildRaidView);
 // no state, no Firebase, so the preview page can use them as they are.
 import { bossSvg, bossFrontSvg, arenaSvg, shieldSvg, raysSvg, crackSvg, peaksSvg } from '../../features/realmRaidArt.mjs';
-import { RAID_REWARDS, LEGENDARY_AT, RAID_EFFORT, RAID_LENGTH_DAYS, guardianMood, raidCountdown, readDate, raidDays, dayKey } from '../../features/realmRaidCore.mjs';
-import { LEAGUE_JOBS, leagueJob, wordTier, battleMessages, battleTitle } from '../../features/realmRaidBattle.mjs';
+import { RAID_REWARDS, LEGENDARY_AT, RAID_EFFORT, RAID_LENGTH_DAYS, guardianMood, raidCountdown, readDate, raidDays, dayKey, raidDayPlan } from '../../features/realmRaidCore.mjs';
+import { LEAGUE_JOBS, leagueJob, wordTier, battleMessages, battleTitle, bossLine, caption } from '../../features/realmRaidBattle.mjs';
+import { heroSpriteSvg, partyFormation } from '../../features/realmRaidParty.mjs';
 
 export function esc(value) {
     return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -13,11 +14,6 @@ const fmt = (n) => {
     const v = Math.round((Number(n) || 0) * 2) / 2;
     return v.toLocaleString('en-GB', { maximumFractionDigits: 1 });
 };
-
-function shortDate(date) {
-    const d = readDate(date);
-    return d ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }) : '';
-}
 
 const PARTICLES = { winter: 22, carnival: 26, summer: 18 };
 
@@ -127,8 +123,13 @@ export function moodFor(view) {
 
 const jobStyle = (job) => `--job:${job.color};--job-deep:${job.deep}`;
 
-/** The boss window: his name, his HP (the shield's stars still standing), then the crown bar. */
-function bossWinHtml(view) {
+/** The rounds of this raid (one per weekday, sized by that day's lessons). */
+export function roundsFor(view) {
+    return raidDayPlan(view.raid, view.rows.filter((r) => r.share > 0), view.tally?.byDay || {});
+}
+
+/** The boss bar: his name and HP (the shield's stars still standing), marked where each round ends. */
+function bossWinHtml(view, rounds) {
     const { raid, status } = view;
     const season = raid.season;
     const [name, ...rest] = String(season.title).split(', ');
@@ -136,6 +137,12 @@ function bossWinHtml(view) {
     const hpPct = status.hp ? left / status.hp : 1;
     const legendPct = status.hp ? Math.min(1, status.dealt / Math.max(1, status.legendaryAt)) : 0;
     const state = status.legendary ? 'is-legendary' : status.broken ? 'is-broken' : hpPct <= 0.25 ? 'is-low' : hpPct <= 0.5 ? 'is-mid' : '';
+    // Round marks, read right to left like the bar drains: Monday's damage comes off the right.
+    let acc = 0;
+    const marks = status.broken ? '' : rounds.filter((r) => !r.rest).slice(0, -1).map((r) => {
+        acc += r.weight;
+        return `<i class="rr-hp__mark" style="left:${((1 - acc) * 100).toFixed(2)}%"></i>`;
+    }).join('');
     return `<section class="rr-win rr-bosswin ${state}" aria-label="Boss">
         <div class="rr-bosswin__name">
             <span class="rr-tag">BOSS</span>
@@ -147,38 +154,64 @@ function bossWinHtml(view) {
             <span class="rr-hp__track">
                 <span class="rr-hp__ghost" style="--p:${hpPct.toFixed(4)}"></span>
                 <span class="rr-hp__fill" style="--p:${hpPct.toFixed(4)}"></span>
-                ${status.broken ? `<span class="rr-hp__broken">${status.legendary ? '👑 LEGENDARY!' : '💥 SHIELD BROKEN!'}</span>` : ''}
+                ${marks}
+                ${status.broken ? `<span class="rr-hp__broken">${status.legendary ? '👑 LEGENDARY!' : '💥 BROKEN!'}</span>` : ''}
             </span>
             <span class="rr-hp__num"><b>${fmt(left)}</b>/${fmt(status.hp)}</span>
         </div>
         ${status.broken ? `<div class="rr-crownbar${status.legendary ? ' is-full' : ''}" title="Legendary at ${fmt(status.legendaryAt)} stars">
             <span class="rr-crownbar__label">👑</span>
             <span class="rr-crownbar__track"><span style="--p:${legendPct.toFixed(4)}"></span></span>
-            <span class="rr-crownbar__num">${status.legendary ? `${fmt(status.dealt)} ★` : `${fmt(Math.max(0, status.legendaryAt - status.dealt))} ★ to go`}</span>
+            <span class="rr-crownbar__num">${status.legendary ? `${fmt(status.dealt)} ★` : `${fmt(Math.max(0, status.legendaryAt - status.dealt))} ★`}</span>
         </div>` : ''}
     </section>`;
 }
 
-/** The turn window: five gems, Monday to Friday, with the stars dealt on each. */
-function turnWinHtml(view, now, tier) {
+/**
+ * The rounds window: one block per weekday, as wide as that day's share of the shield. Each fills
+ * with the stars dealt that day; a block glows once its round is won. Rest days are small moons.
+ */
+function roundsWinHtml(view, rounds, now, tier) {
     const { raid } = view;
-    const turns = raidTurns(view, now);
-    const current = raid.phase === 'active' ? raid.dayNumber : raid.phase === 'herald' ? 0 : RAID_TURNS;
-    const count = raid.phase === 'herald'
-        ? `<small>STARTS IN</small><b>${raid.daysToStart}<i> ${raid.daysToStart === 1 ? 'day' : 'days'}</i></b>`
-        : `<small>${raid.phase === 'active' ? 'TURN' : (tier === 'young' ? 'DONE!' : 'DONE')}</small><b>${current}<i>/${RAID_TURNS}</i></b>`;
-    return `<section class="rr-win rr-turnwin" aria-label="Turns">
-        <div class="rr-turnwin__count">${count}</div>
-        <ol class="rr-gems">${turns.map((t) => {
-            const words = `Turn ${t.n}: ${t.d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}${t.lessons || t.stars ? `, ${fmt(t.stars)} stars` : ', no lessons'}`;
-            const value = t.stars ? fmt(t.stars) : !t.lessons ? '☾' : t.when === 'next' ? '' : '0';
-            return `<li class="rr-gem is-${t.when}${t.lessons ? '' : ' is-rest'}${t.stars ? ' has-hits' : ''}" title="${esc(words)}">
-                <span class="rr-gem__stone" aria-hidden="true"></span>
-                <span class="rr-gem__day">${esc(t.d.toLocaleDateString('en-GB', { weekday: 'short' }))}</span>
-                <span class="rr-gem__dmg">${esc(value)}</span>
+    const today = dayKey(now);
+    const current = raid.phase === 'active' ? raid.dayNumber : 0;
+    const playing = rounds.filter((r) => !r.rest);
+    const lastN = playing.length ? playing[playing.length - 1].n : RAID_TURNS;
+    const title = raid.phase === 'herald' ? `${raid.daysToStart} ${raid.daysToStart === 1 ? 'day' : 'days'}`
+        : raid.phase === 'active' ? (current === lastN ? caption('lastRound', tier) : caption('round', tier, { n: current }))
+            : `${playing.filter((r) => r.cleared).length}/${playing.length} ✓`;
+    return `<section class="rr-win rr-roundwin" aria-label="Rounds">
+        <h3 class="rr-win__title">${raid.phase === 'herald' ? 'STARTS IN' : 'ROUNDS'} <b>${esc(title)}</b></h3>
+        <ol class="rr-rounds">${rounds.map((r) => {
+            const when = r.key < today ? 'past' : r.key === today ? 'now' : 'next';
+            const fill = r.plan > 0 ? Math.min(1, r.dealt / r.plan) : 0;
+            const words = `${r.date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}: ${r.rest ? 'no lessons' : `${fmt(r.dealt)} of ${fmt(r.plan)} stars, ${r.classes.length} ${r.classes.length === 1 ? 'class' : 'classes'}, ${r.heroes} heroes`}`;
+            const grow = r.rest ? 0 : Math.max(0.6, r.weight * 10);
+            return `<li class="rr-round is-${when}${r.rest ? ' is-rest' : ''}${r.cleared ? ' is-cleared' : ''}" style="flex-grow:${grow.toFixed(2)}" title="${esc(words)}">
+                <span class="rr-round__bar"><span style="--p:${fill.toFixed(4)}"></span>${r.cleared ? '<i aria-hidden="true">✓</i>' : ''}</span>
+                <b>${esc(r.date.toLocaleDateString('en-GB', { weekday: 'short' }))}</b>
+                <small>${r.rest ? '☾' : `${fmt(r.dealt)}/${fmt(r.plan)}`}</small>
             </li>`;
         }).join('')}</ol>
     </section>`;
+}
+
+/** The three treasure chests, small, in the top bar. Words in the tooltips. */
+function lootMiniHtml(view, focusRow) {
+    const { status, raid } = view;
+    const over = raid.phase === 'aftermath' || raid.phase === 'over';
+    const r = RAID_REWARDS;
+    const chest = (kind, icon, earned, tip) => {
+        const st = earned ? 'open' : over ? 'missed' : 'locked';
+        return `<li class="rr-chest rr-chest--${kind} is-${st}" title="${esc(tip)}" aria-label="${esc(tip)}">
+            <span class="rr-chest__box" aria-hidden="true"><span class="rr-chest__lid"></span><span class="rr-chest__icon">${icon}</span>${st === 'locked' ? '<i class="fas fa-lock rr-chest__lock"></i>' : ''}</span>
+        </li>`;
+    };
+    return `<ul class="rr-win rr-lootwin" aria-label="Treasure">
+        ${chest('valor', '✨', Boolean(focusRow?.valor), `Valor: a class breaks its own shard. +${r.valorGold} Gold for each of its heroes. Never taken away.`)}
+        ${chest('victory', '🛡️', status.broken, `Victory: the school breaks the shield. +${r.victoryGold} Gold for every hero, a 5% map step, a treasure for each Raid Hero.`)}
+        ${chest('legendary', '👑', status.legendary, `Legendary: ${Math.round(LEGENDARY_AT * 100)}% of the shield. +${r.legendaryGold} Gold more for every hero and another map step.`)}
+    </ul>`;
 }
 
 /** The year's three raids, as medallions. Each opens that raid. */
@@ -217,62 +250,30 @@ function statusWinHtml(view, row, { heroCard = null, canReveal = false, roster =
     const phase = view.raid.phase;
     const over = phase === 'aftermath' || phase === 'over';
     let goal;
-    if (phase === 'herald') goal = { icon: '🛡️', text: row.share ? `Your shard: ${fmt(row.share)} ★` : 'No lessons in raid week' };
-    else if (!row.share) goal = { icon: '🌙', text: tier === 'young' ? 'No lessons. Stars still hit!' : 'No lessons this week, but every star still hits!' };
-    else if (row.valor) goal = { icon: '✨', text: row.stars > row.share ? `Shard broken! +${fmt(row.stars - row.share)} ★ more` : 'Shard broken!', done: true };
-    else if (over) goal = { icon: '⚔️', text: `${fmt(row.stars)} ★ dealt` };
-    else goal = { icon: '🎯', text: tier === 'young' ? `${fmt(Math.max(0, row.share - row.stars))} more ★ to break it!` : `${fmt(Math.max(0, row.share - row.stars))} ★ to break your shard` };
+    if (phase === 'herald') goal = { icon: '🛡️', text: row.share ? `${fmt(row.share)} ★` : caption('away', tier) };
+    else if (!row.share) goal = { icon: '🌙', text: caption('away', tier) };
+    else if (row.valor) goal = { icon: '✨', text: row.stars > row.share ? `${caption('valor', tier)} +${fmt(row.stars - row.share)} ★` : caption('valor', tier), done: true };
+    else if (over) goal = { icon: '⚔️', text: `${fmt(row.stars)} ★` };
+    else goal = { icon: '🎯', text: tier === 'young' ? `${fmt(Math.max(0, row.share - row.stars))} ★ to go!` : `${fmt(Math.max(0, row.share - row.stars))} ★ to break` };
     const reveal = canReveal ? '<button type="button" class="rr-cmd rr-cmd--gold" data-rr-reveal><span class="rr-cmd__cursor" aria-hidden="true">▶</span> Reveal our Raid Hero</button>' : '';
     return `<section class="rr-win rr-statwin${row.valor ? ' is-full' : ''}" style="${jobStyle(job)}" aria-label="${esc(row.name)}">
         <div class="rr-stat__head">
             <span class="rr-crest" aria-hidden="true"><span class="rr-crest__icon">${job.icon}</span><span class="rr-crest__logo">${esc(row.logo)}</span></span>
             <span class="rr-stat__who">
-                <small>${row.own ? 'Your class' : 'Class'} · ${esc(row.league || 'League')}</small>
                 <b>${esc(row.name)}</b>
-                <em>${esc(job.job)}</em>
+                <em>${esc(job.job)} · ${esc(row.league || '')}</em>
+                <span class="rr-stat__skill">${job.icon} ${esc(job.skill)}</span>
             </span>
         </div>
-        <p class="rr-stat__skill"><span>SKILL</span> ${job.icon} ${esc(job.skill)}</p>
         <div class="rr-gauge" title="${row.share ? `${fmt(row.stars)} of ${fmt(row.share)} stars` : ''}">
             <span class="rr-gauge__label">SHARD</span>
             <span class="rr-gauge__track"><span style="--p:${fill.toFixed(4)}"></span></span>
             <span class="rr-gauge__num"><b>${fmt(row.stars)}</b>${row.share ? `/${fmt(row.share)}` : ''}</span>
+            <span class="rr-stat__goal${goal.done ? ' is-done' : ''}"><span aria-hidden="true">${goal.icon}</span> ${esc(goal.text)}</span>
         </div>
-        <p class="rr-stat__goal${goal.done ? ' is-done' : ''}"><span aria-hidden="true">${goal.icon}</span> ${esc(goal.text)}</p>
         ${heroCardHtml(heroCard)}
         ${reveal}
         ${rosterHtml(roster, phase, tier)}
-    </section>`;
-}
-
-/** Three treasure chests: locked, open (earned) or missed. The prize words live under each. */
-function treasureWinHtml(view, focusRow) {
-    const { status, raid } = view;
-    const over = raid.phase === 'aftermath' || raid.phase === 'over';
-    const r = RAID_REWARDS;
-    const chest = (kind, icon, name, prize, earned, tip) => {
-        const st = earned ? 'open' : over ? 'missed' : 'locked';
-        return `<li class="rr-chest rr-chest--${kind} is-${st}" title="${esc(tip)}">
-            <span class="rr-chest__box" aria-hidden="true"><span class="rr-chest__lid"></span><span class="rr-chest__icon">${icon}</span>${st === 'locked' ? '<i class="fas fa-lock rr-chest__lock"></i>' : ''}</span>
-            <b>${esc(name)}</b>
-            <small>${esc(prize)}</small>
-        </li>`;
-    };
-    return `<section class="rr-win rr-treasurewin" aria-label="Treasure">
-        <h3 class="rr-win__title">TREASURE <small>never taken away</small></h3>
-        <ul class="rr-chests">
-            ${chest('valor', '✨', 'Valor', `+${r.valorGold} 🪙 each`, Boolean(focusRow?.valor), `Valor: a class breaks its own shard. +${r.valorGold} Gold for every hero of that class, whatever happens.`)}
-            ${chest('victory', '🛡️', 'Victory', `+${r.victoryGold} 🪙 🗺️ 🎁`, status.broken, `Victory: the school breaks the shield. +${r.victoryGold} Gold for every hero, a 5% step on every Team Quest map, and a festival treasure for each class's Raid Hero.`)}
-            ${chest('legendary', '👑', 'Legendary', `+${r.legendaryGold} 🪙 🗺️`, status.legendary, `Legendary: ${Math.round(LEGENDARY_AT * 100)}% of the shield. +${r.legendaryGold} Gold more for every hero and another 2.5% step on every map.`)}
-        </ul>
-    </section>`;
-}
-
-/** The message window: the fight told line by line (realmRaidBattle#battleMessages). */
-export function messageWinHtml(lines = []) {
-    return `<section class="rr-win rr-msgwin" aria-label="Battle messages">
-        <ol class="rr-msg" aria-live="polite">${lines.map((l) => `<li class="rr-msg__line is-${esc(l.kind)}"${l.color ? ` style="--job:${esc(l.color)}"` : ''} data-line="${esc(l.text)}">${esc(l.text)}</li>`).join('')}</ol>
-        <span class="rr-msg__more" aria-hidden="true">▼</span>
     </section>`;
 }
 
@@ -315,20 +316,54 @@ function allyWinHtml(view, focusId) {
         </li>`;
     }).join('');
     return `<section class="rr-win rr-allywin" aria-label="Alliance">
-        <h3 class="rr-win__title">ALLIANCE <small>${rows.length} ${rows.length === 1 ? 'class' : 'classes'}${full ? ` · ✨ ${full} broken` : ''}</small></h3>
+        <h3 class="rr-win__title">PARTY <small>${rows.length} ${rows.length === 1 ? 'class' : 'classes'}${full ? ` · ✨ ${full} broken` : ''}</small></h3>
         <div class="rr-ally__scroll"><ul class="rr-ally__track">${body}</ul></div>
     </section>`;
 }
 
-/** The banner across the battlefield: the boss appears, is coming, or the battle's end. */
-function fieldBannerHtml(view, tier) {
+/** The banner across the battlefield: the boss is coming, today's round, or the end. */
+function fieldBannerHtml(view, tier, rounds) {
     const { raid, status } = view;
-    if (raid.phase === 'active') return '';
+    if (raid.phase === 'active') {
+        const playing = rounds.filter((r) => !r.rest);
+        const last = playing.length && raid.dayNumber === playing[playing.length - 1].n;
+        const today = rounds[raid.dayNumber - 1];
+        const big = today?.rest ? caption('rest', tier) : last ? caption('lastRound', tier) : caption('round', tier, { n: raid.dayNumber });
+        return `<div class="rr-fieldbanner is-round"><b>${esc(big)}</b></div>`;
+    }
     const title = battleTitle({ raid, status, tier });
-    const sub = raid.phase === 'herald'
-        ? (raid.daysToStart === 1 ? 'The battle starts tomorrow!' : `The battle starts in ${raid.daysToStart} days`)
-        : `${shortDate(raid.start)} – ${shortDate(raid.end)}`;
-    return `<div class="rr-fieldbanner is-${raid.phase === 'herald' ? 'herald' : status.broken ? 'won' : 'held'}"><b>${esc(title)}</b><small>${esc(sub)}</small></div>`;
+    const sub = raid.phase === 'herald' ? `${raid.daysToStart} ${raid.daysToStart === 1 ? 'day' : 'days'}` : '';
+    return `<div class="rr-fieldbanner is-${raid.phase === 'herald' ? 'herald' : status.broken ? 'won' : 'held'}"><b>${esc(title)}</b>${sub ? `<small>⏳ ${esc(sub)}</small>` : ''}</div>`;
+}
+
+/** One class on the battlefield: its hero (its league's job), its banner, its name and gauge. */
+function unitHtml(row, spot, { focusId = '', phase = 'active', tier = 'mid', i = 0 } = {}) {
+    const job = leagueJob(row.league);
+    const fill = Math.min(1, row.pct || 0);
+    const away = !row.share;
+    const words = `${row.name}, ${job.job}: ${fmt(row.stars)}${row.share ? ` of ${fmt(row.share)}` : ''} stars${row.valor ? ', shard broken' : ''}`;
+    return `<button type="button" class="rr-unit${row.classId === focusId ? ' is-focus' : ''}${row.valor ? ' is-full' : ''}${away ? ' is-away' : ''}${row.own ? ' is-own' : ''}" data-banner="${esc(row.classId)}"
+        style="left:${spot.x}%;top:${spot.y}%;--h:${spot.h};z-index:${spot.z};--i:${i};${jobStyle(job)}" aria-label="${esc(words)}" title="${esc(words)}">
+        <span class="rr-unit__body">
+            <span class="rr-unit__sprite">${heroSpriteSvg(job)}</span>
+            <span class="rr-unit__flag" aria-hidden="true">${esc(row.logo)}</span>
+            ${row.valor ? `<span class="rr-unit__badge" aria-hidden="true">✨</span>` : ''}
+            ${away && phase === 'active' ? `<span class="rr-unit__zz" aria-hidden="true">${esc(caption('away', 'young'))}</span>` : ''}
+        </span>
+        <span class="rr-unit__name">${esc(row.name)}</span>
+        <span class="rr-unit__bar" aria-hidden="true"><span style="--p:${fill.toFixed(4)}"></span></span>
+        ${row.classId === focusId ? '<span class="rr-unit__cursor" aria-hidden="true">▼</span>' : ''}
+    </button>`;
+}
+
+/** The party: every class in the raid, in formation on the left (front column nearest the boss). */
+function partyHtml(view, focusId, tier) {
+    const rows = view.rows.filter((row) => row.share > 0 || row.stars > 0)
+        .sort((a, b) => (LEAGUE_ORDER.indexOf(a.league) + 1 || 99) - (LEAGUE_ORDER.indexOf(b.league) + 1 || 99) || String(a.name).localeCompare(String(b.name), undefined, { numeric: true }));
+    // Older leagues stand in front, nearest Eldhorn; the youngest are safe at the back.
+    rows.reverse();
+    const spots = partyFormation(rows.length, { aspect: 1.5 });
+    return `<div class="rr-party${rows.length > 15 ? ' is-many' : ''}${rows.length > 6 ? ' is-crowd' : ''}" aria-label="The party">${rows.map((row, i) => unitHtml(row, spots[i], { focusId, phase: view.raid.phase, tier, i })).join('')}</div>`;
 }
 
 /** The tools in the corner: the year's raids, music, how to play, close. */
@@ -342,9 +377,10 @@ function toolsHtml(view, { year = [], musicOn = true } = {}) {
 }
 
 /**
- * The Raid Hall: the boss battle. `focusId` is the class to feature (the header's class, or the
- * teacher's own); `heroCard` its resolved Raid Hero; `roster` every hero of it by name; `year` the
- * year's three raids; `intro` plays the "boss appears" opening.
+ * The Raid Hall: a classic side-view boss battle. The classes stand on the left, Eldhorn on the
+ * right; the windows below hold the rounds, the party list and the featured class. `focusId` is
+ * the class to feature (its league sets the words); `heroCard` its Raid Hero; `roster` every hero
+ * of it by name; `year` the year's three raids; `intro` plays the opening.
  */
 export function hallHtml(view, { focusId = '', heroCard = null, canReveal = false, lite = false, roster = [], year = [], now = new Date(), intro = false, musicOn = true } = {}) {
     const { raid, status } = view;
@@ -352,50 +388,47 @@ export function hallHtml(view, { focusId = '', heroCard = null, canReveal = fals
     const mood = moodFor(view);
     const focusRow = view.rows.find((r) => r.classId === focusId) || null;
     const tier = wordTier(focusRow?.league);
-    const lines = battleMessages({
-        raid,
-        status,
-        turns: raidTurns(view, now),
-        byDayClass: view.tally?.byDayClass || {},
-        rows: view.rows,
-        mood,
-        tier,
-        limit: 4
-    }).map((l) => ({ ...l, color: l.classId ? leagueJob(view.rows.find((r) => r.classId === l.classId)?.league).color : '' }));
-    if (view.loading) lines.push({ kind: 'system', text: 'Counting the hits…' });
+    const rounds = roundsFor(view);
+    const said = bossLine({ phase: raid.phase, mood, broken: status.broken, legendary: status.legendary, guardian: season.guardian, tier }).replace(/^[^:]+: /, '');
+    const story = battleMessages({ raid, status, turns: raidTurns(view, now), byDayClass: view.tally?.byDayClass || {}, rows: view.rows, mood, tier, limit: 3 });
     return `<div class="rr-hall rr-hall--${season.id} rr-phase--${raid.phase} rr-mood--${mood} rr-tier--${tier}${status.broken ? ' is-broken' : ''}${status.legendary ? ' is-legendary' : ''}${lite ? ' rr-lite' : ''}${intro ? ' is-intro' : ''}">
         ${skyHtml(season.id, { lite })}
         <header class="rr-top">
             <h2 class="rr-sr" id="rr-hall-title">Realm Raid: ${esc(season.name)}. ${esc(battleTitle({ raid, status, tier }))}</h2>
-            ${bossWinHtml(view)}
-            ${turnWinHtml(view, now, tier)}
+            ${bossWinHtml(view, rounds)}
+            ${lootMiniHtml(view, focusRow)}
             ${toolsHtml(view, { year, musicOn })}
         </header>
         <div class="rr-field">
-            <div class="rr-arena rr-stage">
-                ${stageHtml(season, {
-                    mood,
-                    crown: status.legendary,
-                    rows: view.rows.map((r) => ({ ...r })),
-                    pct: status.hp ? status.dealt / status.hp : 0,
-                    broken: status.broken,
-                    focusId,
-                    prefix: 'rrh',
-                    lite,
-                    ...(raid.phase === 'herald' ? { coreBig: String(raid.daysToStart), coreCap: raid.daysToStart === 1 ? 'day' : 'days' } : {})
-                })}
-                <div class="rr-dmg-layer" aria-hidden="true"></div>
+            <span class="rr-ground" aria-hidden="true"></span>
+            ${partyHtml(view, focusId, tier)}
+            <div class="rr-bossside">
+                <div class="rr-arena rr-stage">
+                    ${stageHtml(season, {
+                        mood,
+                        crown: status.legendary,
+                        rows: view.rows.map((r) => ({ ...r })),
+                        pct: status.hp ? status.dealt / status.hp : 0,
+                        broken: status.broken,
+                        focusId,
+                        prefix: 'rrh',
+                        lite,
+                        ...(raid.phase === 'herald' ? { coreBig: String(raid.daysToStart), coreCap: raid.daysToStart === 1 ? 'day' : 'days' } : {})
+                    })}
+                </div>
+                <p class="rr-bubble">${esc(said)}</p>
             </div>
-            ${fieldBannerHtml(view, tier)}
+            ${fieldBannerHtml(view, tier, rounds)}
+            <div class="rr-cast" aria-hidden="true"></div>
+            <div class="rr-dmg-layer" aria-hidden="true"></div>
             <span class="rr-flash" aria-hidden="true"></span>
+            ${view.loading ? '<span class="rr-field__loading"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i></span>' : ''}
         </div>
-        ${messageWinHtml(lines)}
-        <aside class="rr-side">
-            ${statusWinHtml(view, focusRow, { heroCard, canReveal, roster, tier })}
-            ${treasureWinHtml(view, focusRow)}
-        </aside>
+        ${roundsWinHtml(view, rounds, now, tier)}
         ${allyWinHtml(view, focusId)}
-        ${intro ? `<div class="rr-intro" aria-hidden="true">${Array.from({ length: 8 }, (_, i) => `<i style="--i:${i}"></i>`).join('')}<b>${esc(raid.phase === 'herald' ? battleTitle({ raid, status, tier }) : `${season.guardian} appears!`)}</b></div>` : ''}
+        ${statusWinHtml(view, focusRow, { heroCard, canReveal, roster, tier })}
+        <ol class="rr-sr" aria-live="polite">${story.map((l) => `<li>${esc(l.text)}</li>`).join('')}</ol>
+        ${intro ? `<div class="rr-intro" aria-hidden="true">${Array.from({ length: 8 }, (_, i) => `<i style="--i:${i}"></i>`).join('')}<b>${esc(raid.phase === 'herald' ? battleTitle({ raid, status, tier }) : `${season.guardian}!`)}</b></div>` : ''}
     </div>`;
 }
 
@@ -421,7 +454,7 @@ export function howItWorksHtml(view) {
             </ul>
             <h4 class="rr-win__title">JOBS <small>every league fights its own way</small></h4>
             <ul class="rr-help__jobs">${jobs}</ul>
-            <p class="rr-help__foot">3 raids a year · 5 turns, Monday to Friday · each class's shard fits its size (${Math.round(RAID_EFFORT * 100)}% of a normal week) · nothing is ever taken away</p>
+            <p class="rr-help__foot">3 raids a year · 5 rounds, Monday to Friday · each round fits that day's lessons · each shard fits its class (${Math.round(RAID_EFFORT * 100)}% of a normal week) · nothing is ever taken away</p>
         </div>
     </div>`;
 }
@@ -469,8 +502,20 @@ export function victoryHtml(view, { legendary = false, lite = false } = {}) {
                     <button type="button" class="rr-cmd" data-rr-victory-close><span class="rr-cmd__cursor" aria-hidden="true">▶</span> Close</button>
                 </div>
             </section>
+            ${victoryPartyHtml(view)}
         </div>
     </div>`;
+}
+
+/** The whole party cheering under the results: every class, by name. */
+function victoryPartyHtml(view) {
+    const rows = view.rows.filter((row) => row.share > 0 || row.stars > 0)
+        .sort((a, b) => (LEAGUE_ORDER.indexOf(a.league) + 1 || 99) - (LEAGUE_ORDER.indexOf(b.league) + 1 || 99) || String(a.name).localeCompare(String(b.name), undefined, { numeric: true }));
+    if (!rows.length) return '';
+    return `<ul class="rr-vparty${rows.length > 12 ? ' is-many' : ''}" aria-label="The party">${rows.map((row, i) => {
+        const job = leagueJob(row.league);
+        return `<li style="--i:${i};${jobStyle(job)}"><span class="rr-vparty__sprite" aria-hidden="true">${heroSpriteSvg(job)}<i>${esc(row.logo)}</i></span><b>${esc(row.name)}</b></li>`;
+    }).join('')}</ul>`;
 }
 
 /** The projector card body (The Director deck). */
@@ -483,7 +528,7 @@ export function raidCardHtml(view, { focusId = '' } = {}) {
     const tier = wordTier(row?.league);
     const big = raid.phase === 'herald' ? battleTitle({ raid, status, tier })
         : status.broken ? (status.legendary ? 'LEGENDARY!' : 'VICTORY!')
-            : raid.phase === 'active' ? `BOSS BATTLE · Turn ${raid.dayNumber}/${RAID_LENGTH_DAYS}` : 'The shield held';
+            : raid.phase === 'active' ? `BOSS BATTLE · Round ${raid.dayNumber}/${RAID_LENGTH_DAYS}` : 'The shield held';
     const sub = raid.phase === 'active'
         ? `${season.guardian} · ${raidCountdown(raid)}`
         : raid.phase === 'herald' ? `${season.guardian} ${raidCountdown(raid)} · the whole school is one party` : `${fmt(status.dealt)} ★ from ${view.rows.filter((r) => r.stars > 0).length} classes`;

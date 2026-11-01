@@ -9,16 +9,16 @@
 
 /** One job per league, from the youngest to the oldest. `tier` picks the words the class reads. */
 export const LEAGUE_JOBS = Object.freeze({
-    'Pre-Junior': { job: 'Star Sprites', skill: 'Twinkle Toss', icon: '✨', color: '#f472b6', deep: '#9d174d', tier: 'young' },
-    'Junior A': { job: 'Bubble Squires', skill: 'Bubble Burst', icon: '🫧', color: '#38bdf8', deep: '#075985', tier: 'young' },
-    'Junior B': { job: 'Leaf Rangers', skill: 'Leaf Whirl', icon: '🍃', color: '#4ade80', deep: '#166534', tier: 'young' },
-    A: { job: 'Comet Knights', skill: 'Comet Dash', icon: '☄️', color: '#fb923c', deep: '#9a3412', tier: 'mid' },
-    B: { job: 'Storm Archers', skill: 'Thunder Arrow', icon: '⚡', color: '#facc15', deep: '#854d0e', tier: 'mid' },
-    C: { job: 'Arcane Mages', skill: 'Arcane Nova', icon: '🔮', color: '#a78bfa', deep: '#5b21b6', tier: 'senior' },
-    D: { job: 'Dragon Paladins', skill: 'Dragon Flare', icon: '🐉', color: '#f87171', deep: '#991b1b', tier: 'senior' }
+    'Pre-Junior': { job: 'Star Sprites', skill: 'Twinkle Toss', icon: '✨', color: '#f472b6', deep: '#9d174d', sprite: 'sprite', tier: 'young' },
+    'Junior A': { job: 'Bubble Squires', skill: 'Bubble Burst', icon: '🫧', color: '#38bdf8', deep: '#075985', sprite: 'squire', tier: 'young' },
+    'Junior B': { job: 'Leaf Rangers', skill: 'Leaf Whirl', icon: '🍃', color: '#4ade80', deep: '#166534', sprite: 'ranger', tier: 'young' },
+    A: { job: 'Comet Knights', skill: 'Comet Dash', icon: '☄️', color: '#fb923c', deep: '#9a3412', sprite: 'knight', tier: 'mid' },
+    B: { job: 'Storm Archers', skill: 'Thunder Arrow', icon: '⚡', color: '#facc15', deep: '#854d0e', sprite: 'archer', tier: 'mid' },
+    C: { job: 'Arcane Mages', skill: 'Arcane Nova', icon: '🔮', color: '#a78bfa', deep: '#5b21b6', sprite: 'mage', tier: 'senior' },
+    D: { job: 'Dragon Paladins', skill: 'Dragon Flare', icon: '🐉', color: '#f87171', deep: '#991b1b', sprite: 'paladin', tier: 'senior' }
 });
 
-const FALLBACK_JOB = Object.freeze({ job: 'Adventurers', skill: 'Star Strike', icon: '⭐', color: '#fbbf24', deep: '#92400e', tier: 'mid' });
+const FALLBACK_JOB = Object.freeze({ job: 'Adventurers', skill: 'Star Strike', icon: '⭐', color: '#fbbf24', deep: '#92400e', sprite: 'adventurer', tier: 'mid' });
 
 /** The job of a league ("Junior A", "junior a", "JUNIOR-A" all match). */
 export function leagueJob(league) {
@@ -53,17 +53,33 @@ export function strikeLine(row, stars, tier = 'mid') {
     return `${name} use ${skill}!${big ? ' Super strike!' : ''} The shield loses ${fmt(stars)}.`;
 }
 
-/** Eldhorn's line, by the state of the fight and the class's tier. */
+/** Eldhorn's line: a few words, by the state of the fight and the class's tier. */
 export function bossLine({ phase = 'active', mood = 'proud', broken = false, legendary = false, guardian = 'Eldhorn', tier = 'mid' } = {}) {
     const say = (young, mid, senior) => `${guardian}: “${tier === 'young' ? young : tier === 'senior' ? senior : mid}”`;
-    if (phase === 'herald') return say('Hello, heroes! Bring your stars!', 'Soon I guard the realm. Bring your brightest stars!', 'Soon the realm is mine to guard. Prove your English, heroes.');
-    if (legendary) return say('WOW! You are LEGENDS!', 'Legendary! I have never seen a party like you!', 'Legendary. No party has ever shone this bright.');
-    if (broken && phase === 'active') return say('My shield broke! Keep shining!', 'You broke my shield! Every star now counts for Legendary!', 'The shield is broken. Can you reach Legendary?');
-    if (broken) return say('You won! Hooray!', 'You did it, heroes! I bow to you.', 'Well fought, heroes. I bow to the whole school.');
-    if (phase !== 'active') return say('Good try! See you soon!', 'A brave fight! I will come back next term.', 'A worthy fight. We meet again next term.');
-    if (mood === 'strain') return say('Oh no! My shield is cracking!', 'My shield is cracking! Just a little more!', 'My shield won’t hold much longer…');
-    if (mood === 'brace') return say('Ooh, your stars are bright!', 'Hmm! Your stars shine bright!', 'Your light is stronger than I thought.');
-    return say('My shield is BIG! Can you crack it?', 'My shield is strong! Show me your best English!', 'My shield has never fallen. Show me what you can do.');
+    if (phase === 'herald') return say('I am coming!', 'Bring your stars!', 'Prove your English.');
+    if (legendary) return say('WOW! Legends!', 'You are legends!', 'Truly legendary.');
+    if (broken && phase === 'active') return say('Keep shining!', 'Now go for Legendary!', 'Can you reach Legendary?');
+    if (broken) return say('You won! Yay!', 'I bow to you!', 'Well fought, heroes.');
+    if (phase !== 'active') return say('Good try!', 'See you next term!', 'We meet again.');
+    if (mood === 'strain') return say('Oh no! Cracks!', 'Just a little more!', 'It won’t hold long…');
+    if (mood === 'brace') return say('Ooh, so bright!', 'Your stars are strong!', 'Stronger than I thought.');
+    return say('Can you crack it?', 'Show me your best!', 'My shield never falls.');
+}
+
+/** Short captions for the battle screen, in the class's words. */
+const CAPTIONS = {
+    round: { young: 'Round {n}!', mid: 'Round {n}', senior: 'Round {n}' },
+    lastRound: { young: 'Last round!', mid: 'Final round!', senior: 'Final round' },
+    rest: { young: 'Rest day', mid: 'Rest day', senior: 'No lessons' },
+    cleared: { young: 'Yay!', mid: 'Round won!', senior: 'Round cleared' },
+    valor: { young: 'Broken!', mid: 'Shard broken!', senior: 'Shard broken' },
+    away: { young: 'Zzz', mid: 'Resting', senior: 'No lessons' },
+    big: { young: 'WOW!', mid: 'Super!', senior: 'Critical!' }
+};
+
+export function caption(key, tier = 'mid', vars = {}) {
+    const words = CAPTIONS[key]?.[tier] || CAPTIONS[key]?.mid || '';
+    return words.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
 }
 
 /** The opening line of a turn ("Turn 3 begins!"). */

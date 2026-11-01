@@ -35,6 +35,7 @@ if (params.has('many')) {
     const extra = [['Golden Eagles', '🦅'], ['Silver Seals', '🦭'], ['Ruby Robins', '🐦'], ['Jade Frogs', '🐸'], ['Amber Bears', '🐻'], ['Coral Crabs', '🦀'], ['Pearl Swans', '🦢'], ['Iron Rhinos', '🦏'], ['Misty Owls', '🦉'], ['Swift Deer', '🦌'], ['Brave Pandas', '🐼'], ['Lucky Koalas', '🐨']];
     extra.forEach(([n, l], i) => CLASSES.push([`x${i}`, n, l, ['A', 'B', 'C', 'D', 'Junior A', 'Pre-Junior'][i % 6], [String(1 + (i % 5))], 8 + (i % 7)]));
 }
+if (params.has('count')) CLASSES.splice(Math.max(1, Number(params.get('count')) || 1));
 const classes = CLASSES.map(([id, name, logo, questLevel, scheduleDays, heroes]) => ({ id, name, logo, questLevel, scheduleDays, heroes, createdBy: { uid: id === 'c3' || id === 'c7' ? 'me' : 'other' } }));
 const heroCounts = Object.fromEntries(classes.map((c) => [c.id, c.heroes]));
 const meets = (id, d) => classes.find((c) => c.id === id).scheduleDays.includes(String(d.getDay()));
@@ -124,11 +125,11 @@ for (const v of ['hall', 'victory', 'card', 'help', 'coats']) links.push(`<a hre
 document.getElementById('pv-toolbar').innerHTML = links.join('');
 
 // ?hit=1 opens the real hall, then sends a few more stars to show the bolts and damage numbers.
-if (params.has('hit')) {
+if (params.has('hit') || params.has('real')) {
     const { openRaidHall, rerenderRaidHall } = await import('./ui/modals/realmRaid.js');
     root.innerHTML = '';
     await openRaidHall({ view, focusId, roster: () => roster, year: () => year, now: () => day });
-    setTimeout(() => {
+    if (params.has('hit')) setTimeout(() => {
         const rowsMore = view.rows.map((r, i) => (i % 3 === 0 && r.share ? { ...r, stars: r.stars + 2 + i } : r));
         const gained = rowsMore.reduce((sum, r, i) => sum + r.stars - view.rows[i].stars, 0);
         const todayHits = { ...(byDayClass[today] || {}) };

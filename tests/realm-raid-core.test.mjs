@@ -205,3 +205,30 @@ test('the tally keeps each raid day\'s stars for the battle log', () => {
     assert.deepEqual(tally.byDay, { '2026-12-16': 3.5, '2026-12-18': 1 });
     assert.deepEqual(tally.byDayClass, { '2026-12-16': { c1: 2, c2: 1.5 }, '2026-12-18': { c2: 1 } });
 });
+
+test('raid rounds follow the lessons: a small day is a small round, the rounds make the whole shield', async () => {
+    const { raidWindow, computeShares, raidDayPlan, dayKey } = await import('../features/realmRaidCore.mjs');
+    const raid = raidWindow('winter', 2026, { holidays: [{ start: '2026-12-23', end: '2027-01-07' }] });
+    // Mon/Thu big classes, Wednesday one small class, Friday nobody.
+    const classes = [
+        { id: 'a', scheduleDays: ['1', '4'] },
+        { id: 'b', scheduleDays: ['1', '4'] },
+        { id: 'c', scheduleDays: ['2'] },
+        { id: 'w', scheduleDays: ['3'] }
+    ];
+    const heroCounts = { a: 14, b: 12, c: 10, w: 4 };
+    const meets = (id, d) => classes.find((c) => c.id === id).scheduleDays.includes(String(d.getDay()));
+    const shares = computeShares({ raid, classes, heroCounts, meets });
+    const hp = shares.reduce((s, r) => s + r.share, 0);
+    const plan = raidDayPlan(raid, shares, { [dayKey(raid.start)]: 999 });
+    assert.equal(plan.length, 5);
+    assert.ok(Math.abs(plan.reduce((s, d) => s + d.plan, 0) - hp) <= 1, 'rounds add up to the shield');
+    const [mon, tue, wed, thu, fri] = plan;
+    assert.ok(wed.plan > 0 && wed.plan < tue.plan && tue.plan < mon.plan, 'Wednesday is the small round');
+    assert.equal(wed.classes.join(), 'w');
+    assert.equal(fri.rest, true);
+    assert.equal(fri.plan, 0);
+    assert.equal(mon.cleared, true);
+    assert.equal(thu.cleared, false);
+    assert.ok(Math.abs(plan.reduce((s, d) => s + d.weight, 0) - 1) < 0.01);
+});

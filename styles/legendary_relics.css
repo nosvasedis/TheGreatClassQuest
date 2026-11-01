@@ -50,9 +50,7 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: rgb(var(--relic));
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    line-height: 1.25;
 }
 
 .mm-relic__family span {
@@ -162,3 +160,21 @@ li > span > .lg-art:not(.lg-art--stage) { display: inline-block; width: 1.5rem; 
 .item-detail-visual .lg-art--detail { width: 82%; height: 82%; margin: auto; }
 
 .mm-shelves .mm-relic .mm-ware__footer { margin-top: 0.6rem; }
+
+/* Relic blurbs are written short enough to show whole: never cut them with "…". */
+.mm-shelves .mm-relic .mm-relic__desc {
+    display: block;
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+    overflow: visible;
+    max-height: none;
+}
+
+/* A relic's full rule is short enough to read whole in the Trophy Room and on the Hero Stage. */
+#trophy-room-modal .tr-relic:not(.tr-charm) .tr-relic-text p,
+.hs-relic-text small {
+    display: block;
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+    overflow: visible;
+}

@@ -183,7 +183,7 @@ export function renderLegendaryRelicCard(family, variants, activeId = '') {
             <div class="shop-item-body mm-ware__body">
                 <p class="mm-relic__family">${escapeShopHtml(family.name)}</p>
                 <h3 class="font-title mm-ware__name">${escapeShopHtml(active.name)}</h3>
-                <p class="mm-ware__desc">${escapeShopHtml(active.description)}</p>
+                <p class="mm-ware__desc mm-relic__desc" title="${escapeShopHtml(active.description)}">${escapeShopHtml(active.blurb || active.description)}</p>
                 ${forms}
                 <div class="shop-item-footer mm-ware__footer">
                     <button type="button" class="${shopBuyBtnClass(false, 'waiting')}"

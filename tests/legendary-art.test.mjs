@@ -40,3 +40,8 @@ test('the catalog: five relics, each with forms, every form drawn and priced', a
     });
     assert.deepEqual(LEGENDARY_ARTIFACTS.map((a) => a.id).sort(), SOLD.slice().sort());
 });
+
+test('every shelf blurb is short enough to show whole on a phone card', async () => {
+    const { LEGENDARY_ARTIFACTS } = await import('../features/legendaryCatalog.mjs');
+    LEGENDARY_ARTIFACTS.forEach((a) => assert.ok(a.blurb && a.blurb.length <= 62, `${a.id}: ${a.blurb}`));
+});

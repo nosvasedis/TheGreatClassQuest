@@ -483,9 +483,11 @@ function initializeShopTabContent({ allowAutoEnsure = false } = {}) {
     sizeStallForLeague(league);
     const stallScope = { league, monthKey: shopMonthKey(), festivalId: getActiveFestival()?.festivalId };
     const currentLeagueItems = (state.get('currentShopItems') || []).filter((item) => isCurrentStallItem(item, stallScope));
+    // A stall from before shared stalls also asks the server once: it joins the league's
+    // classes into one shared stall (then every row carries sharedStall).
     const stockNeedsEnsure = shopInventoryNeedsEnsure(currentLeagueItems, {
         activeFestivalId: stallScope.festivalId
-    });
+    }) || (currentLeagueItems.length > 0 && !currentLeagueItems.some((item) => item.sharedStall));
     if (allowAutoEnsure && canUseFeature('eliteAI') && stockNeedsEnsure) {
         import('../../db/actions/index.js').then((actions) => actions.handleEnsureShopStock?.()).catch((error) => {
             console.warn('Shop auto-ensure failed', error);

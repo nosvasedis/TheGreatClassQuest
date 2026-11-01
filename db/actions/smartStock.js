@@ -1,6 +1,8 @@
-// db/actions/smartStock.js — sizes each treasure on a teacher's stall to the league that shares
-// it (the teacher's classes in that league). Copies already sold stay sold; a resize only
-// changes how many are left. Runs quietly when the Market or the Market Manager opens.
+// db/actions/smartStock.js — sizes each treasure on a stall to the heroes who share it. A shared
+// stall (sharedStall: true) belongs to every class in the league across the school; a stall
+// from before shared stalls belongs to the teacher's own classes in that league. Copies already
+// sold stay sold; a resize only changes how many are left. Runs quietly when the Market or the
+// Market Manager opens.
 import { db, doc, runTransaction } from '../../firebase.js';
 import * as state from '../../state.js';
 import { isCurrentStallItem, shopItemShelf, shopItemTier, shopItemStock, stockMaxForTier } from '../../utils/shopRestock.js';
@@ -10,14 +12,20 @@ import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 
 const running = new Set();
 
-/** The children sharing this teacher's stall for `league`. */
-export function stallRosterFor(league) {
-    return leagueRoster(state.get('allTeachersClasses') || [], state.get('allStudents') || [], league);
-}
-
 /** Every class in `league` across the school, whoever teaches it. */
 export function schoolLeagueRosterFor(league) {
     return leagueRoster(state.get('allSchoolClasses') || [], state.get('allStudents') || [], league);
+}
+
+/** True when `league`'s stall is the shared one for the whole league. */
+export function isSharedLeagueStall(league) {
+    return (state.get('currentShopItems') || []).some((item) => item?.league === league && item.sharedStall);
+}
+
+/** The children sharing the stall for `league`: the whole league, or (old stalls) the teacher's classes. */
+export function stallRosterFor(league) {
+    if (isSharedLeagueStall(league)) return schoolLeagueRosterFor(league);
+    return leagueRoster(state.get('allTeachersClasses') || [], state.get('allStudents') || [], league);
 }
 
 /** Smart copy count for one rarity on one shelf of this league's stall (null when unknown). */
@@ -53,7 +61,7 @@ export async function syncSmartStallStock(league) {
     if (roster.children <= 0) return 0;
     const scope = { league, monthKey: shopMonthKey(), festivalId: getActiveFestival()?.festivalId || '' };
     const items = (state.get('currentShopItems') || []).filter((item) => (
-        item?.id && item.teacherId === teacherId && isCurrentStallItem(item, scope)
+        item?.id && (item.teacherId === teacherId || item.sharedStall) && isCurrentStallItem(item, scope)
     ));
     // Each treasure also gets its charm written on it, so every buyer gets the one on the card.
     const charms = assignStallCharms(items);

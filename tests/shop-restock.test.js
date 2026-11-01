@@ -341,3 +341,27 @@ test('the nightly Market restock runs just after Athens midnight', () => {
   const functions = fs.readFileSync(path.join(root, 'functions/index.js'), 'utf8');
   assert.match(functions, /schedule\('10 0 \* \* \*'\)\s*\.timeZone\('Europe\/Athens'\)/);
 });
+
+test('one shared stall per league: shared rows win, old stalls stay with their teacher', async () => {
+  const app = await import('../utils/shopRestock.js');
+  const fn = await import('../functions/shop/restock.mjs');
+  const row = (id, teacherId, over = {}) => ({ id, teacherId, league: 'B', monthKey: '2026-11', shelf: 'seasonal', stock: 3, stockMax: 3, ...over });
+  const mine = [row('m1', 'nasos'), row('m2', 'nasos')];
+  const theirs = [row('t1', 'eva', { stock: 1 }), row('t2', 'eva')];
+  for (const lib of [app, fn]) {
+    // Before the server shares the stall, each teacher sees only their own.
+    assert.deepEqual(lib.visibleStallItems([...mine, ...theirs], 'nasos').map((r) => r.id), ['m1', 'm2']);
+    assert.deepEqual(lib.visibleStallItems([...mine, ...theirs], 'eva').map((r) => r.id), ['t1', 't2']);
+    assert.equal(lib.visibleStallItems([...mine, ...theirs], null).length, 4);
+    // The stall that sold most becomes the league's.
+    assert.equal(lib.pickStallOwner([...mine, ...theirs]), 'eva');
+    // Once shared, every teacher of the league sees the same shared rows.
+    const shared = theirs.map((r) => ({ ...r, sharedStall: true }));
+    assert.deepEqual(lib.visibleStallItems([...mine, ...shared], 'nasos').map((r) => r.id), ['t1', 't2']);
+    assert.deepEqual(lib.visibleStallItems([...mine, ...shared], 'eva').map((r) => r.id), ['t1', 't2']);
+    // Another league or month is its own stall.
+    const other = row('o1', 'nasos', { league: 'A' });
+    assert.deepEqual(lib.visibleStallItems([...shared, other], 'nasos').map((r) => r.id), ['t1', 't2', 'o1']);
+    assert.equal(lib.stallGroupKey(row('f', 'x', { shelf: 'festival', festivalId: 'xmas-2026' })), 'festival|B|xmas-2026');
+  }
+});

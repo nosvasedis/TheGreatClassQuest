@@ -296,3 +296,80 @@ export function shopRestockToast(options = {}) {
         message: `The stall now has ${completeCount} of ${targetCount} treasures for ${place}. The rest will appear as pictures arrive.`
     };
 }
+
+// ─── One shared stall per league ─────────────────────────────────────────────
+// Every class in a league, whoever teaches it, shops at the same stall. Items written by the
+// shared-stall server carry `sharedStall: true`. Older stalls were one per teacher; when a
+// league still has several, the one that sold most (then the oldest) becomes the league's.
+
+/** The stall an item sits on: one shelf of one league for one month or festival. */
+export function stallGroupKey(item) {
+    const shelf = shopItemShelf(item);
+    const league = text(item?.league);
+    const period = shelf === 'festival' ? text(item?.festivalId) : text(item?.monthKey);
+    return league && period ? `${shelf}|${league}|${period}` : '';
+}
+
+function soldCopies(item) {
+    const max = Math.floor(Number(item?.stockMax) || 0);
+    return max > 0 ? Math.max(0, max - shopItemStock(item)) : 0;
+}
+
+function createdMs(item) {
+    const created = item?.createdAt;
+    if (!created) return Number.POSITIVE_INFINITY;
+    if (typeof created.toMillis === 'function') return created.toMillis();
+    if (typeof created.seconds === 'number') return created.seconds * 1000;
+    const parsed = Date.parse(created);
+    return Number.isFinite(parsed) ? parsed : Number.POSITIVE_INFINITY;
+}
+
+/** Whose items make up a stall that several teachers stocked. '' when nobody's. */
+export function pickStallOwner(items = []) {
+    const byTeacher = new Map();
+    (Array.isArray(items) ? items : []).forEach((item) => {
+        const teacherId = text(item?.teacherId);
+        if (!teacherId) return;
+        const row = byTeacher.get(teacherId) || { teacherId, shared: 0, sold: 0, count: 0, first: Number.POSITIVE_INFINITY };
+        if (item.sharedStall) row.shared += 1;
+        row.sold += soldCopies(item);
+        row.count += 1;
+        row.first = Math.min(row.first, createdMs(item));
+        byTeacher.set(teacherId, row);
+    });
+    const [best] = [...byTeacher.values()].sort((a, b) => (
+        (b.shared > 0) - (a.shared > 0)
+        || b.sold - a.sold
+        || b.count - a.count
+        || a.first - b.first
+        || a.teacherId.localeCompare(b.teacherId)
+    ));
+    return best ? best.teacherId : '';
+}
+
+/**
+ * The items a teacher's Market shows. A shared stall shows to everyone teaching the league;
+ * a stall from before shared stalls shows only to its own teacher. `teacherId` null shows
+ * every stall that is not shared yet (the secretary).
+ */
+export function visibleStallItems(items = [], teacherId = null) {
+    const list = (Array.isArray(items) ? items : []).filter(Boolean);
+    const groups = new Map();
+    list.forEach((item) => {
+        const key = stallGroupKey(item);
+        if (!key) return;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(item);
+    });
+    const keep = new Set();
+    groups.forEach((rows) => {
+        const shared = rows.filter((row) => row.sharedStall);
+        if (shared.length) {
+            const owner = pickStallOwner(shared);
+            shared.filter((row) => text(row.teacherId) === owner).forEach((row) => keep.add(row));
+            return;
+        }
+        rows.filter((row) => !teacherId || text(row.teacherId) === text(teacherId)).forEach((row) => keep.add(row));
+    });
+    return list.filter((item) => keep.has(item) || (!stallGroupKey(item) && (!teacherId || text(item.teacherId) === text(teacherId))));
+}

@@ -96,7 +96,7 @@ function stallItems() {
     const teacherId = state.get('currentUserId');
     return (state.get('currentShopItems') || []).filter((item) => (
         isManagedShopShelf(item)
-        && item.teacherId === teacherId
+        && (item.teacherId === teacherId || item.sharedStall)
         && isCurrentStallItem(item, scope)
         && (shopItemShelf(item) !== 'festival' || item.festivalId === scope.festivalId)
     ));

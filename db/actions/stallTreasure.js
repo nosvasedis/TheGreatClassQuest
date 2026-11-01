@@ -2,7 +2,7 @@
 // stock exactly like a purchase for 0 Gold. Used by the Quiz Champion and the Realm Raid Hero.
 import { db, doc, getDocs, collection, runTransaction, where, query } from '../../firebase.js';
 import * as state from '../../state.js';
-import { isCompleteShopItem, isCurrentStallItem, shopItemInStock, shopItemShelf, shopItemStock } from '../../utils/shopRestock.js';
+import { isCompleteShopItem, isCurrentStallItem, shopItemInStock, shopItemShelf, shopItemStock, visibleStallItems } from '../../utils/shopRestock.js';
 import { shopMonthKey, getActiveFestival } from '../../utils/shopCalendar.js';
 import { getLiveYearGold, getLiveYearGoldContextFromState } from '../../utils/yearGold.js';
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
@@ -19,14 +19,16 @@ export async function loadLeagueStall(league, { festivalId = '' } = {}) {
     const activeFestival = getActiveFestival()?.festivalId || '';
     const scope = { league, monthKey: shopMonthKey(), festivalId: activeFestival };
     const byId = new Map();
+    // The league's stall is shared by every class in it: read every teacher's rows, then keep
+    // the shared stall (or, before it is shared, this teacher's own).
     const read = async (field, value) => {
         const snap = await getDocs(query(
             collection(db, `${PUBLIC_DATA_PATH}/shop_items`),
             where('league', '==', league),
-            where(field, '==', value),
-            where('teacherId', '==', teacherId)
+            where(field, '==', value)
         ));
-        snap.docs.forEach((d) => byId.set(d.id, { id: d.id, ...d.data() }));
+        visibleStallItems(snap.docs.map((d) => ({ id: d.id, ...d.data() })), teacherId)
+            .forEach((item) => byId.set(item.id, item));
     };
     try {
         await read('monthKey', scope.monthKey);

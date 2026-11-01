@@ -30,8 +30,8 @@ function ownedManagedItem(itemId) {
         showToast('Market Manager only edits Seasonal Treasures and the Festival Stall.', 'error');
         return null;
     }
-    if (item.teacherId && item.teacherId !== state.get('currentUserId')) {
-        showToast('You can only manage treasures on your own stall.', 'error');
+    if (item.teacherId && item.teacherId !== state.get('currentUserId') && !item.sharedStall) {
+        showToast('You can only manage treasures on a stall your classes share.', 'error');
         return null;
     }
     return item;

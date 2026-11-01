@@ -31,13 +31,13 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
   const briefP = import('./brief.mjs');
   const ai = require('./ai');
 
-  // This month's items plus the active festival's items. A festival window can start in the
+  // This month's items plus the active festival's items, for the whole league: one stall is
+  // shared by every class in it, whoever teaches it. A festival window can start in the
   // month before its feast, so its stall is found by festivalId rather than by month.
-  async function loadStock(teacherId, league, monthKey, festivalId = '') {
+  async function loadStock(league, monthKey, festivalId = '') {
     const monthQuery = db.collection(`${publicDataPath()}/shop_items`)
       .where('league', '==', league)
       .where('monthKey', '==', monthKey)
-      .where('teacherId', '==', teacherId)
       .get();
     const festivalQuery = festivalId
       ? db.collection(`${publicDataPath()}/shop_items`).where('festivalId', '==', festivalId).get()
@@ -47,7 +47,7 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
     monthSnap.docs.forEach((docSnap) => byId.set(docSnap.id, { id: docSnap.id, ...docSnap.data() }));
     (festivalSnap?.docs || []).forEach((docSnap) => {
       const data = docSnap.data() || {};
-      if (data.teacherId !== teacherId || data.league !== league) return;
+      if (data.league !== league) return;
       if (!byId.has(docSnap.id)) byId.set(docSnap.id, { id: docSnap.id, ...data });
     });
     return [...byId.values()];
@@ -116,6 +116,7 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
       league,
       monthKey,
       teacherId,
+      sharedStall: true,
       shelf,
       tier,
       stock,
@@ -258,7 +259,7 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
       : [...plan.retireIds, ...plan.removeIds];
     await deleteIds(idsToClear);
     let items = currentItems;
-    if (idsToClear.length) items = await loadStock(context.teacherId, context.league, context.monthKey, context.activeFestivalId);
+    if (idsToClear.length) items = await loadStock(context.league, context.monthKey, context.activeFestivalId);
     let nextPlan = idsToClear.length ? restock.planShopRestock(items, { shelf: context.shelf }) : plan;
 
     if (nextPlan.mode === 'swap') {
@@ -287,7 +288,7 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
     });
     savedThisRun += await produceItems(catalog, making);
 
-    const latest = await loadStock(context.teacherId, context.league, context.monthKey, context.activeFestivalId);
+    const latest = await loadStock(context.league, context.monthKey, context.activeFestivalId);
     const latestPlan = restock.planShopRestock(latest, { shelf: context.shelf });
     if (latestPlan.mode === 'swap') {
       const batch = db.batch();
@@ -354,21 +355,75 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
     }
   }
 
+  /**
+   * Makes the league's current stalls (this month's shelf and the active festival's) one shared
+   * stall. Where several teachers stocked the same stall before stalls were shared, the one that
+   * sold most is kept for everyone and the others are cleared (children keep what they bought:
+   * a satchel holds its own copy of each treasure). Returns the owner of each shelf.
+   */
+  async function unifyStall(items, { league, monthKey, activeFestivalId }) {
+    const restock = await restockP;
+    const keys = {
+      seasonal: `seasonal|${league}|${monthKey}`,
+      festival: activeFestivalId ? `festival|${league}|${activeFestivalId}` : ''
+    };
+    const owners = { seasonal: null, festival: null };
+    const drop = [];
+    const mark = [];
+    Object.entries(keys).forEach(([shelf, key]) => {
+      if (!key) return;
+      const rows = items.filter((item) => restock.stallGroupKey(item) === key);
+      if (!rows.length) return;
+      const ownerId = restock.pickStallOwner(rows);
+      const ownerRow = rows.find((row) => row.teacherId === ownerId);
+      owners[shelf] = { teacherId: ownerId, teacherName: ownerRow?.createdBy?.name || 'Teacher' };
+      rows.forEach((row) => {
+        if (row.teacherId !== ownerId) drop.push(row.id);
+        else if (!row.sharedStall) mark.push(row.id);
+      });
+    });
+    await deleteIds(drop);
+    for (const group of chunk(mark, 400)) {
+      const batch = db.batch();
+      group.forEach((id) => batch.update(db.doc(`${publicDataPath()}/shop_items/${id}`), { sharedStall: true }));
+      await batch.commit();
+    }
+    if (drop.length) {
+      console.log(JSON.stringify({ event: 'shopStallShared', league, cleared: drop.length, owner: owners.seasonal?.teacherId || owners.festival?.teacherId || '' }));
+    }
+    return { owners, changed: drop.length + mark.length };
+  }
+
+  /** True when the teacher has an active class in the league (they share its stall). */
+  async function teacherTeachesLeague(teacherId, league) {
+    if (!teacherId || !league) return false;
+    const snap = await db.collection(`${publicDataPath()}/classes`)
+      .where('createdBy.uid', '==', teacherId)
+      .where('questLevel', '==', league)
+      .get();
+    return snap.docs.some((docSnap) => String(docSnap.data()?.status || '').toLowerCase() !== 'archived');
+  }
+
+  // The stall belongs to the league. `teacherId` is whoever asked (or the nightly run's pick);
+  // new treasures on a stall that already has an owner are written under that owner.
   async function ensureStall({ teacherId, teacherName, league, yearKey, mode = 'ensure' }) {
     const calendar = await calendarP;
     const restock = await restockP;
     const monthKey = calendar.shopMonthKey();
     const festival = calendar.getActiveFestival();
-    const lockId = `${teacherId}_${league}_${monthKey}`.replace(/[^\w.-]+/g, '_');
+    const lockId = `league_${league}_${monthKey}`.replace(/[^\w.-]+/g, '_');
 
     const activeFestivalId = festival?.festivalId || '';
 
     return withLock(lockId, async () => {
-      let items = await loadStock(teacherId, league, monthKey, activeFestivalId);
+      let items = await loadStock(league, monthKey, activeFestivalId);
       const expired = await expireStaleFestivals(items, festival);
-      if (expired) items = await loadStock(teacherId, league, monthKey, activeFestivalId);
+      if (expired) items = await loadStock(league, monthKey, activeFestivalId);
+      const unified = await unifyStall(items, { league, monthKey, activeFestivalId });
+      if (unified.changed) items = await loadStock(league, monthKey, activeFestivalId);
+      const ownerFor = (shelf) => unified.owners[shelf] || { teacherId, teacherName };
 
-      const result = { expired, monthly: null, festival: null };
+      const result = { expired, shared: unified.changed, monthly: null, festival: null };
       const monthlyPlan = restock.planShopRestock(items, { shelf: 'seasonal' });
       const monthlyNeedsWork = restock.shopStallNeedsWork(monthlyPlan, {
         forceReplace: mode === 'replace-monthly'
@@ -376,15 +431,14 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
 
       if (monthlyNeedsWork) {
         result.monthly = await applyPlan(monthlyPlan, items, {
-          teacherId,
-          teacherName,
+          ...ownerFor('seasonal'),
           league,
           yearKey,
           monthKey,
           shelf: 'seasonal',
           activeFestivalId
         });
-        items = await loadStock(teacherId, league, monthKey, activeFestivalId);
+        items = await loadStock(league, monthKey, activeFestivalId);
       }
 
       if (festival) {
@@ -392,8 +446,7 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
         const festivalNeedsWork = restock.shopStallNeedsWork(festivalPlan);
         if (festivalNeedsWork) {
           result.festival = await applyPlan(festivalPlan, items, {
-            teacherId,
-            teacherName,
+            ...ownerFor('festival'),
             league,
             yearKey,
             monthKey,
@@ -420,8 +473,10 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
         throw error;
       }
       const item = { id: snap.id, ...snap.data() };
-      if (item.teacherId !== teacherId) {
-        const error = new Error('You can only manage treasures on your own stall.');
+      const ownStall = item.teacherId === teacherId;
+      const sharedStall = Boolean(item.sharedStall) && await teacherTeachesLeague(teacherId, String(item.league || '').trim());
+      if (!ownStall && !sharedStall) {
+        const error = new Error('You can only manage treasures on a stall your classes share.');
         error.code = 'permission-denied';
         throw error;
       }
@@ -432,7 +487,9 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
       }
       const league = String(item.league || '').trim();
       const monthKey = String(item.monthKey || calendar.shopMonthKey()).trim();
-      const lockId = `${teacherId}_${league}_${monthKey}`.replace(/[^\w.-]+/g, '_');
+      const lockId = `league_${league}_${monthKey}`.replace(/[^\w.-]+/g, '_');
+      // A replacement joins the stall under its owner, so the shared stall stays one stall.
+      const stallOwner = { teacherId: item.teacherId || teacherId, teacherName: item.createdBy?.name || teacherName };
       return withLock(lockId, async () => {
         const latestSnap = await ref.get();
         if (!latestSnap.exists) {
@@ -464,7 +521,7 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
         }
         if (action === 'replace') {
           const festival = activeFestival;
-          const stall = await loadStock(teacherId, league, monthKey, festival?.festivalId || '');
+          const stall = await loadStock(league, monthKey, festival?.festivalId || '');
           const avoidNames = stall
             .filter((row) => row.id !== latest.id && restock.shopItemShelf(row) === shelf)
             .map((row) => row.name)
@@ -496,8 +553,8 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
             incoming: Boolean(latest.incoming),
             league,
             monthKey,
-            teacherId,
-            teacherName,
+            teacherId: stallOwner.teacherId,
+            teacherName: stallOwner.teacherName,
             yearKey,
             shelf,
             festivalId: latest.festivalId || (festival && shelf === 'festival' ? festival.festivalId : undefined)
@@ -511,7 +568,7 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
       }, { waitMs: 8000 });
     }
 
-    return { ensureStall, loadStock, manageItem };
+    return { ensureStall, loadStock, manageItem, teacherTeachesLeague };
   }
 
 module.exports = { createShopEngine };

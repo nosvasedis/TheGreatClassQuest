@@ -246,12 +246,32 @@ function buildHeroChronicleNotesQuery(userId, isSecretary, yearContext) {
     );
 }
 
+// The leagues a teacher's classes are in: each league's stall is shared by all its classes.
+function teacherStallLeagues() {
+    return [...new Set((state.get("allTeachersClasses") || [])
+        .filter((c) => String(c?.status || "").toLowerCase() !== "archived")
+        .map((c) => String(c?.questLevel || "").trim())
+        .filter(Boolean))].sort();
+}
+
+let shopItemsLeagueKey = "";
+
 function buildShopItemsQuery(userId, isSecretary, yearContext) {
     const { activeYearKey, enforceActiveYearQueries } = yearContext;
     if (isSecretary) {
         return query(
             collection(db, `${PUBLIC_DATA_PATH}/shop_items`),
             ...yearScopeClauses(enforceActiveYearQueries, activeYearKey),
+        );
+    }
+    // Every stall of the teacher's leagues (other teachers' too); visibleStallItems then keeps
+    // the shared stall, or the teacher's own where a league is not shared yet.
+    const leagues = teacherStallLeagues();
+    if (leagues.length > 0 && leagues.length <= 30) {
+        return query(
+            collection(db, `${PUBLIC_DATA_PATH}/shop_items`),
+            ...yearScopeClauses(enforceActiveYearQueries, activeYearKey),
+            where("league", "in", leagues),
         );
     }
     return query(
@@ -341,7 +361,13 @@ export function ensureHeroChronicleNotesListener() {
 
 export function ensureShopItemsListener() {
     if (state.get("hasLoadedShopItems")) {
-        return shopItemsReadyPromise || Promise.resolve(true);
+        const isSecretaryNow = activeListenerIsSecretary || state.get("currentUserRole") === "secretary";
+        // A new class in another league: listen again so its stall comes in.
+        if (isSecretaryNow || teacherStallLeagues().join("|") === shopItemsLeagueKey) {
+            return shopItemsReadyPromise || Promise.resolve(true);
+        }
+        try { state.get("unsubscribeShopItems")?.(); } catch (_) { /* already closed */ }
+        state.setHasLoadedShopItems(false);
     }
     const userId = activeListenerUserId || state.get("currentUserId");
     if (!userId) return Promise.resolve(false);
@@ -356,18 +382,23 @@ export function ensureShopItemsListener() {
     });
     const initialLoad = shopItemsReadyPromise;
     state.setHasLoadedShopItems(true);
+    shopItemsLeagueKey = teacherStallLeagues().join("|");
     state.setUnsubscribeShopItems(
         onSnapshot(
             buildShopItemsQuery(userId, isSecretary, yearContext),
             async (snapshot) => {
+                const { visibleStallItems } = await import("../utils/shopRestock.js");
                 state.setCurrentShopItems(
-                    snapshot.docs
-                        .map((d) => ({ id: d.id, ...d.data() }))
-                        .filter((item) =>
-                            isActiveYearDoc(item, activeYearKey, {
-                                includeUntagged,
-                            }),
-                        ),
+                    visibleStallItems(
+                        snapshot.docs
+                            .map((d) => ({ id: d.id, ...d.data() }))
+                            .filter((item) =>
+                                isActiveYearDoc(item, activeYearKey, {
+                                    includeUntagged,
+                                }),
+                            ),
+                        isSecretary ? null : userId,
+                    ),
                 );
                 // The first Market render must use the listener's real stock, even
                 // when this snapshot lands while the tab transition is still hidden.

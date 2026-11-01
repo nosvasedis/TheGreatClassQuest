@@ -3135,7 +3135,9 @@ async function listShopStalls(yearKey) {
     const teacherId = data.createdBy?.uid;
     const league = String(data.questLevel || '').trim();
     if (!teacherId || !league) return;
-    stalls.set(`${teacherId}::${league}`, {
+    // One stall per league, shared by every class in it whoever teaches it.
+    if (stalls.has(league)) return;
+    stalls.set(league, {
       teacherId,
       teacherName: data.createdBy?.name || 'Teacher',
       league
@@ -3149,6 +3151,10 @@ exports.ensureShopStock = callable(async (request) => {
   const league = String(request.data?.league || '').trim();
   const mode = String(request.data?.mode || 'ensure') === 'replace-monthly' ? 'replace-monthly' : 'ensure';
   if (!league) throw new HttpsError('invalid-argument', 'Choose a class or league first.');
+  // The stall is shared by the whole league: only a teacher of the league may clear it for a new month.
+  if (mode === 'replace-monthly' && !(await shopEngine.teacherTeachesLeague(caller.uid, league))) {
+    throw new HttpsError('permission-denied', 'Only a teacher of this league can restock its stall.');
+  }
   const result = await shopEngine.ensureStall({
     teacherId: caller.uid,
     teacherName: caller.profile.displayName || 'Teacher',

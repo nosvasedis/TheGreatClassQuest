@@ -167,7 +167,8 @@ export function renderLegendaryRelicCard(family, variants, activeId = '') {
                 </div>` : '';
     return `
         <article class="shop-item-card mm-ware mm-ware--legendary mm-relic mm-relic--${escapeShopHtml(family.id)}" data-kind="legendary" data-family="${escapeShopHtml(family.id)}"
-            data-item-id="${escapeShopHtml(active.id)}" data-name="${escapeShopHtml(active.name)}" data-price="${Number(active.price) || 0}" data-state="waiting">
+            data-item-id="${escapeShopHtml(active.id)}" data-name="${escapeShopHtml(active.name)}" data-price="${Number(active.price) || 0}" data-state="waiting"
+            data-sort-name="${escapeShopHtml(family.name)}" data-sort-price="${Math.min(...variants.map((v) => Number(v.price) || 0))}">
             <div class="shop-item-stage mm-ware__display">
                 <span class="mm-ware__spot" aria-hidden="true"></span>
                 <span class="mm-ware__ribbon">${WARE_RIBBONS.legendary}</span>

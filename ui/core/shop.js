@@ -104,10 +104,15 @@ function applyShopSort() {
         if (cards.length < 2) return;
         const entries = cards.map(card => ({
             card,
-            name: card.dataset.name || '',
-            price: Number(card.dataset.finalPrice || card.dataset.price) || 0
+            // A relic keeps its place on the shelf whichever form is chosen.
+            name: card.dataset.sortName || card.dataset.name || '',
+            price: Number(card.dataset.sortPrice || card.dataset.finalPrice || card.dataset.price) || 0
         }));
-        sortWareEntries(entries, shopSortMode).forEach(entry => grid.appendChild(entry.card));
+        const sorted = sortWareEntries(entries, shopSortMode);
+        // Move cards only when the order really changed: re-appending every card restarted
+        // their animations and the whole shelf flashed.
+        if (sorted.every((entry, i) => entry.card === cards[i])) return;
+        sorted.forEach(entry => grid.appendChild(entry.card));
     });
 }
 
@@ -266,6 +271,8 @@ function ensureShopStudentDropdownListeners() {
 
 /** The form each Legendary relic shows (kept across shelf redraws while the Market is open). */
 const relicFormChoice = {};
+/** The card that just replaced the one under the pointer: no hover line for it (that was a second bubble). */
+let keeperHoverSkip = null;
 
 /** Swap a relic card to another of its forms, then re-check prices and limits for the shopper. */
 function chooseRelicForm(card, variantId) {
@@ -281,11 +288,12 @@ function chooseRelicForm(card, variantId) {
         if (!next) return;
         next.classList.add('is-form-swap');
         card.replaceWith(next);
+        keeperHoverSkip = next;
         next.querySelector(`[data-relic-form="${CSS.escape(variantId)}"]`)?.focus({ preventScroll: true });
-        updateShopStudentDisplay(document.getElementById('shop-student-select')?.value || '')
-            .catch((err) => console.warn('Shop: updateShopStudentDisplay failed', err));
         const chosen = m.LEGENDARY_ARTIFACTS.find((a) => a.id === variantId);
-        if (chosen) keeperSay(`Ah, the ${chosen.name}. ${chosen.description}`);
+        updateShopStudentDisplay(document.getElementById('shop-student-select')?.value || '', { quiet: true, only: next })
+            .catch((err) => console.warn('Shop: updateShopStudentDisplay failed', err))
+            .finally(() => { if (chosen) keeperSay(`Ah, the ${chosen.name}. ${chosen.description}`); });
     }).catch((err) => console.warn('Relic form swap failed:', err));
 }
 
@@ -337,6 +345,8 @@ function bindShopStorefrontListeners() {
         const card = e.target.closest('.mm-ware');
         if (!card || card === hoveredCard) return;
         hoveredCard = card;
+        if (card === keeperHoverSkip) return;
+        keeperHoverSkip = null;
         clearTimeout(hoverTimer);
         hoverTimer = setTimeout(() => {
             const gold = Number(document.getElementById('shop-items-container')?.dataset.shopperGold) || 0;
@@ -741,7 +751,13 @@ function resetShopWareCard(card) {
     if (sale) sale.textContent = '';
 }
 
-export async function updateShopStudentDisplay(studentId) {
+export async function updateShopStudentDisplay(studentId, { quiet = false, only = null } = {}) {
+    // `quiet`: refresh prices and buttons but leave the keeper's bubble alone (a relic form swap
+    // speaks its own line; a greeting on top made the bubble flash twice).
+    const greet = (text, opts) => {
+        if (!quiet) keeperSay(text, opts);
+        else if (opts?.sticky && text) keeperContextLine = text;
+    };
     // Load what the checks need before touching any card: resetting first and awaiting after
     // made every button flash "Pick a shopper" for a moment on each refresh.
     const [{ LEGENDARY_ARTIFACTS, isItemUsable, pathfinderUsedThisMonth }, { stallBuyCheckFor }] = await Promise.all([
@@ -749,7 +765,8 @@ export async function updateShopStudentDisplay(studentId) {
         import('../../db/actions/smartStock.js')
     ]);
     const goldDisplay = document.getElementById('shop-student-gold');
-    const buyBtns = document.querySelectorAll('.shop-buy-btn');
+    // `only`: refresh just this card (a relic form swap), so the other cards do not redraw.
+    const buyBtns = only ? only.querySelectorAll('.shop-buy-btn') : document.querySelectorAll('.shop-buy-btn');
     const till = document.getElementById('shop-till');
     const container = document.getElementById('shop-items-container');
 
@@ -762,11 +779,13 @@ export async function updateShopStudentDisplay(studentId) {
         none: 'from-slate-400 to-slate-500'
     };
 
-    if (till) delete till.dataset.standing;
-    document.getElementById('shop-hero-badge')?.remove();
-    document.getElementById('shop-legend-badge')?.remove();
+    if (till && !only) {
+        delete till.dataset.standing;
+        document.getElementById('shop-hero-badge')?.remove();
+        document.getElementById('shop-legend-badge')?.remove();
+    }
 
-    document.querySelectorAll('#shop-items-container .mm-ware').forEach(resetShopWareCard);
+    (only ? [only] : document.querySelectorAll('#shop-items-container .mm-ware')).forEach(resetShopWareCard);
 
     if (!studentId) {
         goldDisplay.innerText = "0 🪙";
@@ -783,7 +802,7 @@ export async function updateShopStudentDisplay(studentId) {
         applyShopAisleFilters();
         const festivalStall = document.getElementById('shop-aisle-festival');
         const festivalName = festivalStall?.querySelector('.mm-ware') ? getActiveFestival()?.name : '';
-        keeperSay(festivalName
+        greet(festivalName
             ? keeperFestivalWelcomeLine(festivalName, String(new Date().getDate()))
             : keeperWelcomeLine(String(new Date().getDate())), { sticky: true });
         return;
@@ -807,7 +826,7 @@ export async function updateShopStudentDisplay(studentId) {
     const isMythic = legendMeta.legendTier.key === 'mythic';
     const themeKey = isHero ? 'hero' : (gradientMap[legendMeta.legendTier.key] ? legendMeta.legendTier.key : 'none');
 
-    if (till) {
+    if (till && !only) {
         const badge = document.createElement('div');
         if (isHero) {
             till.dataset.standing = 'hero';
@@ -953,7 +972,7 @@ export async function updateShopStudentDisplay(studentId) {
     applyShopAisleFilters();
 
     const allWares = document.querySelectorAll('#shop-items-container .mm-ware');
-    keeperSay(keeperGreetingLine({
+    greet(keeperGreetingLine({
         studentName: student.name,
         gold,
         affordableCount: document.querySelectorAll('#shop-items-container .mm-ware[data-state="affordable"]').length,

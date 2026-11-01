@@ -21,33 +21,6 @@ export const HERO_CLASSES = [
   { name: 'Patron', icon: '💝', virtue: "Hero's Boon", color: '#e11d48' }
 ];
 
-export function headerToolsHtml() {
-  return `<div class="hdr-bar">
-    <div class="hdr-class">
-      <span class="hdr-logo">🏫</span>
-      <div>
-        <strong>Follow today’s schedule</strong>
-        <em>Junior B · in session</em>
-      </div>
-    </div>
-    <div class="hdr-tools" aria-label="Header buttons">
-      <button type="button" class="hdr-btn" data-term="adventurers-guide" title="Adventurer's Guide"><i class="fas fa-info"></i></button>
-      <button type="button" class="hdr-btn" title="Quiet Dragon"><i class="fas fa-dragon"></i></button>
-      <button type="button" class="hdr-btn" data-term="quest-remote" title="Quest Remote"><i class="fas fa-wand-magic-sparkles"></i></button>
-      <button type="button" class="hdr-btn hdr-btn--tv" data-term="projector" title="Projector Mode"><i class="fas fa-tv"></i></button>
-      <button type="button" class="hdr-btn" title="Teacher Settings"><i class="fas fa-cog"></i></button>
-      <button type="button" class="hdr-btn hdr-btn--out" title="Log out"><i class="fas fa-sign-out-alt"></i></button>
-    </div>
-  </div>`;
-}
-
-export function classPickerHtml() {
-  return `<div class="class-picker-demo">
-    <article class="class-opt is-on"><span>📅</span><div><strong>Follow today’s schedule</strong><em>Auto-switch to the class in session, or General when none is</em></div></article>
-    <article class="class-opt"><span>🏫</span><div><strong>General view</strong><em>The whole school</em></div></article>
-  </div>`;
-}
-
 export function projectorStageHtml() {
   return `<div class="proj-wrap">
     <p class="live-demo__label"><i class="fas fa-tv" aria-hidden="true"></i> Projector Mode · classroom wallpaper</p>

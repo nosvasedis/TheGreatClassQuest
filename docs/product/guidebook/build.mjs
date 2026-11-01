@@ -9,8 +9,6 @@ import { QUEST_RANKS } from '../../../features/questRanksCore.mjs';
 import { rankCrestSvg } from '../../../features/questRankCrest.mjs';
 import { yearRoadHtml, yearMomentsHtml, yearTriggersHtml, checkYearJourneyLinks } from './year-journey-view.mjs';
 import {
-  headerToolsHtml,
-  classPickerHtml,
   heroClassesHtml,
   officeHtml,
   familyPortalHtml,
@@ -690,7 +688,7 @@ function headingWidgets(id, lang = 'en', print = false) {
   }
   if (id === 'classroom-chrome') {
     return [
-      { match: ['What you see (desktop header)', 'Τι βλέπεις (κεφαλίδα'], html: `<div class="live-strip live-strip--header">${headerToolsHtml()}</div>${classPickerHtml()}${uiShot('header-day.png', 'The classroom header by day: title, daily quote, class picker, Adventurer’s Guide (i), Projector (TV), School Office, Settings, and log out.')}${uiShot('header-night.png', 'The same header after sunset — the sky turns to night for your school’s location.')}` },
+      { match: ['What you see (desktop header)', 'Τι βλέπεις (κεφαλίδα'], html: `${uiShot('header-day.png', 'The classroom header by day: title, daily quote, class picker, Adventurer’s Guide (i), Projector (TV), Settings and log out. On Pro the Quest Remote wand joins them, and the Quiet Dragon button appears when you turn it on in Profile.')}${uiShot('header-night.png', 'The same header after sunset — the sky turns to night for your school’s location.')}` },
       { match: ['The Adventurer’s Guide (i)'], html: uiShot('adventurers-guide.png', 'The Adventurer’s Guide on an Elite school: the green cloth cover with the brass compass and plan tag, Quest Master and For the class, the search box, the chapter tabs, and The three races open with a Take me there on every field note.') },
       { match: ['The cloud dock', 'Το cloud dock'], html: uiShot('nav-dock.png', 'The cloud dock awake: the active tab’s cloud glows and shows its name. On a mouse PC the dock sinks away when idle and floats back at the bottom edge.') },
       { match: ['Projector Mode'], html: uiShot('projector.png', 'Projector Mode on the classroom PC: living sky over the realm’s hills, the day arc and huge digital clock, the lesson ring on the analogue dial (“Lesson ends in 45 min”), the Junior B banner, a bounty countdown, two Sky Cards (Sky Watch “Tonight’s constellation” and a Mind & Heart “Would you rather…”), the wisdom ribbon, and the projector remote.') },

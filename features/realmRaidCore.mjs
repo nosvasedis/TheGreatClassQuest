@@ -4,8 +4,9 @@
  * Covered by tests/realm-raid-core.test.mjs.
  *
  * The rules, in words a class understands:
- * - Once a term the Guardian, Eldhorn, comes to the Realm in a festival coat: the week before the
- *   Christmas holiday, the week before Clean Monday, and the last school week of the year.
+ * - Once a term the Guardian, Eldhorn, comes to the Realm in a festival coat for one school week
+ *   (Monday to Friday, five turns): the week before the last school week before Christmas, the last
+ *   school week before Clean Monday, and the first school week of June.
  * - Its shield is made of one shard per class. A class's shard is as big as the stars its own
  *   Team Quest map expects from it in its raid lessons, a little gentler (80%). A class of 8 that
  *   meets once has a small shard, a class of 16 that meets twice a big one, so every class
@@ -20,7 +21,8 @@
  * - Nothing is ever taken away. If the shield holds, the Guardian bows and comes back next term.
  */
 
-export const RAID_LENGTH_DAYS = 7;
+/** A raid is one school week, Monday to Friday: five turns. No lessons are held at weekends. */
+export const RAID_LENGTH_DAYS = 5;
 export const RAID_HERALD_DAYS = 7;
 export const RAID_AFTERMATH_DAYS = 10;
 /** A shard asks for this much of a class's normal Team Quest pace. */
@@ -151,35 +153,53 @@ function holidayAround(ranges, date, aheadDays = 0) {
         || null;
 }
 
+/** Monday of the week that holds `date`. */
+export function mondayOf(date) {
+    const d = startOfDay(date);
+    return addDays(d, -((d.getDay() + 6) % 7));
+}
+
+/** The last weekday before `date` (weekends skipped). */
+function lastWeekdayBefore(date) {
+    let d = addDays(date, -1);
+    while (d.getDay() === 0 || d.getDay() === 6) d = addDays(d, -1);
+    return d;
+}
+
 /**
  * The raid window for one season of the school year that starts in `startYear` (September).
- * The raid is the 7 days that end on the last day before the festival's holiday.
+ * Always a Monday-to-Friday school week:
+ * - Winter: the week before the last school week before the Christmas holiday.
+ * - Carnival: the last school week before Clean Monday (or the holiday around it).
+ * - Summer: the week of the first Monday of June (earlier if the school year closes before its Friday).
  */
 export function raidWindow(seasonId, startYear, { holidays = [], closeDate = null } = {}) {
     const season = getRaidSeason(seasonId);
     if (!season || !Number.isFinite(startYear)) return null;
     const ranges = holidayRanges(holidays);
-    let end;
+    let start;
     if (season.id === 'winter') {
         // The Christmas holiday: one that covers 24 December, or starts within a week before it.
         const eve = new Date(startYear, 11, 24);
         const holiday = holidayAround(ranges, new Date(startYear, 11, 17), 7);
         const usable = holiday && holiday.start <= eve && daysBetween(new Date(startYear, 11, 1), holiday.start) >= 10;
-        end = usable ? addDays(holiday.start, -1) : new Date(startYear, 11, 22);
+        const lastWeek = mondayOf(lastWeekdayBefore(usable ? holiday.start : eve));
+        start = addDays(lastWeek, -7);
     } else if (season.id === 'carnival') {
         const cleanMonday = addDays(orthodoxEaster(startYear + 1), -48);
         const holiday = holidayAround(ranges, addDays(cleanMonday, -3), 3);
         const usable = holiday && holiday.start <= cleanMonday && holiday.end >= addDays(cleanMonday, -3);
-        end = usable ? addDays(holiday.start, -1) : addDays(cleanMonday, -1);
+        start = mondayOf(lastWeekdayBefore(usable ? holiday.start : cleanMonday));
     } else {
-        // The last school week: ends the day before the year closes, and never after 14 June.
-        const latest = new Date(startYear + 1, 5, 14);
+        const june = new Date(startYear + 1, 5, 1);
+        start = addDays(june, (8 - june.getDay()) % 7);
         const close = readDate(closeDate);
-        const closeDay = close ? addDays(close, -1) : null;
-        end = closeDay && closeDay < latest && closeDay > new Date(startYear + 1, 4, 20) ? closeDay : latest;
+        if (close && startOfDay(close) <= addDays(start, RAID_LENGTH_DAYS - 1) && close > new Date(startYear + 1, 4, 20)) {
+            start = mondayOf(lastWeekdayBefore(close));
+        }
     }
-    end = startOfDay(end);
-    const start = addDays(end, -(RAID_LENGTH_DAYS - 1));
+    start = startOfDay(start);
+    const end = addDays(start, RAID_LENGTH_DAYS - 1);
     return {
         raidId: `${season.id}_${startYear}`,
         season,
@@ -336,6 +356,7 @@ export function tallyRaidStars(logs = [], raid, { credit = (log) => Number(log?.
     const byClass = {};
     const byHero = {};
     const byDay = {};
+    const byDayClass = {};
     const seen = new Set();
     for (const log of logs) {
         if (!log?.classId || (log.id && seen.has(log.id))) continue;
@@ -349,6 +370,8 @@ export function tallyRaidStars(logs = [], raid, { credit = (log) => Number(log?.
         byClass[log.classId] = (byClass[log.classId] || 0) + stars;
         const key = dayKey(day);
         byDay[key] = (byDay[key] || 0) + stars;
+        byDayClass[key] = byDayClass[key] || {};
+        byDayClass[key][log.classId] = (byDayClass[key][log.classId] || 0) + stars;
         if (log.studentId) {
             const hero = byHero[log.studentId] || { studentId: log.studentId, classId: log.classId, stars: 0, days: new Set() };
             hero.stars += stars;
@@ -358,7 +381,8 @@ export function tallyRaidStars(logs = [], raid, { credit = (log) => Number(log?.
     }
     Object.keys(byClass).forEach((id) => { byClass[id] = half(byClass[id]); });
     Object.keys(byDay).forEach((key) => { byDay[key] = half(byDay[key]); });
-    return { byClass, byHero, byDay };
+    Object.values(byDayClass).forEach((day) => Object.keys(day).forEach((id) => { day[id] = half(day[id]); }));
+    return { byClass, byHero, byDay, byDayClass };
 }
 
 /**

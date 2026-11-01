@@ -28,9 +28,9 @@ function raidCalendarState(raid, now = new Date()) {
 export function raidRibbonHtml(raidDay) {
     if (!raidDay) return '';
     const { raid, dayNumber, first, last } = raidDay;
-    const label = first ? `${raid.season.name.replace(/^The /, '')} begins` : last ? 'Last raid day!' : `Raid day ${dayNumber}`;
-    return `<button type="button" class="qc-day__raid" data-raid-open="${escapeHtml(raid.raidId)}" title="${escapeHtml(`${raid.season.name}, day ${dayNumber} of ${RAID_LENGTH_DAYS}. Every star any class earns hits Eldhorn's shield. Click to open the Raid Hall.`)}" aria-label="${escapeHtml(`${raid.season.name}, day ${dayNumber} of ${RAID_LENGTH_DAYS}. Open the Raid Hall`)}">
-        <span class="qc-day__raid-icon" aria-hidden="true">${escapeHtml(raid.season.emoji)}</span><span class="qc-day__raid-name">${escapeHtml(label)}</span><i class="fas fa-shield-halved" aria-hidden="true"></i>
+    const label = first ? `${raid.season.name.replace(/^The /, '')} · turn 1` : last ? `Final turn!` : `Raid · turn ${dayNumber}`;
+    return `<button type="button" class="qc-day__raid" data-raid-open="${escapeHtml(raid.raidId)}" title="${escapeHtml(`${raid.season.name}: turn ${dayNumber} of ${RAID_LENGTH_DAYS}. Every star any class earns hits the boss. Click to open the battle.`)}" aria-label="${escapeHtml(`${raid.season.name}, turn ${dayNumber} of ${RAID_LENGTH_DAYS}. Open the Raid Hall`)}">
+        <span class="qc-day__raid-icon" aria-hidden="true">${escapeHtml(raid.season.emoji)}</span><span class="qc-day__raid-name">${escapeHtml(label)}</span><span class="qc-day__raid-sw" aria-hidden="true">⚔️</span>
     </button>`;
 }
 
@@ -45,9 +45,9 @@ export function raidChipsHtml(year, month) {
         const look = raidCalendarState(raid);
         const range = `${raid.start.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${raid.end.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
         const blurb = look.tone === 'soon'
-            ? `${raid.season.guardian} ${raid.season.arrives}. One shield for the whole school: every star any class earns that week chips at it.`
+            ? `A 5-turn boss battle, Monday to Friday. The whole school is one party: every star any class earns hits ${raid.season.guardian}.`
             : look.tone === 'live'
-                ? `The raid is on! Day ${look.seen.dayNumber} of ${RAID_LENGTH_DAYS}. Every star any class earns hits the shield.`
+                ? `The battle is on! Turn ${look.seen.dayNumber} of ${RAID_LENGTH_DAYS}. Every star any class earns hits the boss.`
                 : look.tone === 'held'
                     ? `The shield held this time. ${raid.season.guardian} bowed and comes back next term.`
                     : `The whole school broke the shield together.`;
@@ -78,9 +78,9 @@ export function raidDayBannerHtml(date, { compact = false } = {}) {
     let raid = raidDay?.raid || null;
     let line = '';
     if (raidDay) {
-        line = raidDay.first ? `${raid.season.guardian} ${raid.season.arrives}. Day 1 of ${RAID_LENGTH_DAYS}: every star hits the shield.`
-            : raidDay.last ? `Last raid day! Every star still hits the shield.`
-                : `Day ${raidDay.dayNumber} of ${RAID_LENGTH_DAYS}. Every star any class earns hits the shield.`;
+        line = raidDay.first ? `Turn 1 of ${RAID_LENGTH_DAYS}: the boss battle begins! Every star hits.`
+            : raidDay.last ? `Final turn! Every star still hits the boss.`
+                : `Turn ${raidDay.dayNumber} of ${RAID_LENGTH_DAYS}. Every star any class earns hits the boss.`;
     } else {
         // The herald week: the days just before a raid.
         const day = new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -97,7 +97,7 @@ export function raidDayBannerHtml(date, { compact = false } = {}) {
             <span class="qc-raid-banner__kicker">Realm Raid · ${escapeHtml(raid.season.name.replace(/^The /, ''))}</span>
             <span class="qc-raid-banner__line">${escapeHtml(line)}</span>
         </span>
-        <span class="qc-raid-banner__go">Raid Hall <i class="fas fa-chevron-right" aria-hidden="true"></i></span>
+        <span class="qc-raid-banner__go">⚔️ Battle <i class="fas fa-chevron-right" aria-hidden="true"></i></span>
     </button>`;
 }
 

@@ -23,45 +23,64 @@ test('Orthodox Easter matches the known dates', () => {
     assert.equal(dayKey(orthodoxEaster(2026)), '2026-04-12');
 });
 
-test('the Winter Raid is the 7 days before the Christmas holiday', () => {
+test('the Winter Raid is the school week before the last one before Christmas', () => {
     const raid = raidWindow('winter', 2026, { holidays: [{ start: '2026-12-23', end: '2027-01-07' }] });
     assert.equal(raid.raidId, 'winter_2026');
-    assert.equal(dayKey(raid.start), '2026-12-16');
-    assert.equal(dayKey(raid.end), '2026-12-22');
-    // DD-MM-YYYY holidays read the same way.
+    // Last school day Tue 22 Dec, so the last school week is 21-25 Dec; the raid is the week before.
+    assert.equal(dayKey(raid.start), '2026-12-14');
+    assert.equal(dayKey(raid.end), '2026-12-18');
+    assert.equal(raid.start.getDay(), 1);
+    assert.equal(raid.end.getDay(), 5);
+    // DD-MM-YYYY holidays read the same way. Holiday from Sat 19 Dec: last school week 14-18, raid 7-11.
     const greek = raidWindow('winter', 2026, { holidays: [{ start: '19-12-2026', end: '06-01-2027' }] });
-    assert.equal(dayKey(greek.end), '2026-12-18');
-    // No holiday saved: ends on 22 December.
-    assert.equal(dayKey(raidWindow('winter', 2026).end), '2026-12-22');
+    assert.equal(dayKey(greek.start), '2026-12-07');
+    assert.equal(dayKey(greek.end), '2026-12-11');
+    // No holiday saved: as if it starts on 24 December.
+    assert.equal(dayKey(raidWindow('winter', 2026).start), '2026-12-14');
 });
 
-test('the Carnival Raid ends the day before Clean Monday', () => {
+test('the Carnival Raid is the last school week before Clean Monday', () => {
     const raid = raidWindow('carnival', 2026);
     // Easter 2027 is 2 May, so Clean Monday is 15 March.
-    assert.equal(dayKey(raid.end), '2027-03-14');
     assert.equal(dayKey(raid.start), '2027-03-08');
+    assert.equal(dayKey(raid.end), '2027-03-12');
     const longWeekend = raidWindow('carnival', 2026, { holidays: [{ start: '2027-03-12', end: '2027-03-15' }] });
-    assert.equal(dayKey(longWeekend.end), '2027-03-11');
+    assert.equal(dayKey(longWeekend.start), '2027-03-08');
+    assert.equal(dayKey(longWeekend.end), '2027-03-12');
 });
 
-test('the Summer Raid is the last school week, never after 14 June', () => {
-    assert.equal(dayKey(raidWindow('summer', 2026).end), '2027-06-14');
-    assert.equal(dayKey(raidWindow('summer', 2026, { closeDate: '2027-06-05' }).end), '2027-06-04');
-    assert.equal(dayKey(raidWindow('summer', 2026, { closeDate: '2027-07-31' }).end), '2027-06-14');
+test('the Summer Raid is the week of the first Monday of June', () => {
+    assert.equal(dayKey(raidWindow('summer', 2026).start), '2027-06-07');
+    assert.equal(dayKey(raidWindow('summer', 2026).end), '2027-06-11');
+    // 1 June 2026 is a Monday.
+    assert.equal(dayKey(raidWindow('summer', 2025).start), '2026-06-01');
+    // A school year that closes before the Friday moves the raid to its last school week.
+    assert.equal(dayKey(raidWindow('summer', 2026, { closeDate: '2027-06-05' }).start), '2027-05-31');
+    assert.equal(dayKey(raidWindow('summer', 2026, { closeDate: '2027-07-31' }).start), '2027-06-07');
+});
+
+test('a raid never touches a weekend', () => {
+    for (const year of [2024, 2025, 2026, 2027, 2028]) {
+        for (const season of ['winter', 'carnival', 'summer']) {
+            const raid = raidWindow(season, year);
+            assert.equal(raid.start.getDay(), 1, `${season} ${year} starts on a Monday`);
+            assert.equal(raid.end.getDay(), 5, `${season} ${year} ends on a Friday`);
+        }
+    }
 });
 
 test('phases: herald, active, aftermath, then nothing', () => {
     const holidays = [{ start: '2026-12-23', end: '2027-01-07' }];
     assert.equal(findRaid(new Date(2026, 9, 4), { holidays }), null);
-    const herald = findRaid(new Date(2026, 11, 12), { holidays });
+    const herald = findRaid(new Date(2026, 11, 10), { holidays });
     assert.equal(herald.phase, 'herald');
     assert.equal(herald.daysToStart, 4);
-    const active = findRaid(new Date(2026, 11, 18, 10), { holidays });
+    const active = findRaid(new Date(2026, 11, 16, 10), { holidays });
     assert.equal(active.phase, 'active');
     assert.equal(active.dayNumber, 3);
-    assert.equal(active.daysLeft, 4);
-    assert.equal(findRaid(new Date(2027, 0, 1), { holidays }).phase, 'aftermath');
-    assert.equal(findRaid(new Date(2027, 0, 2), { holidays }), null);
+    assert.equal(active.daysLeft, 2);
+    assert.equal(findRaid(new Date(2026, 11, 28), { holidays }).phase, 'aftermath');
+    assert.equal(findRaid(new Date(2026, 11, 29), { holidays }), null);
     assert.equal(nextRaid(new Date(2026, 9, 4), { holidays }).raidId, 'winter_2026');
     assert.equal(nextRaid(new Date(2027, 0, 5), { holidays }).raidId, 'carnival_2026');
 });
@@ -77,7 +96,7 @@ test('a shard follows the class size and its lessons, not its league', () => {
     const meets = (id, d) => (classes.find((c) => c.id === id).scheduleDays || []).includes(String(d.getDay())) && id !== 'away';
     const shares = computeShares({ raid, classes, heroCounts: { big: 16, small: 8, away: 10, empty: 0 }, meets });
     const byId = Object.fromEntries(shares.map((s) => [s.classId, s]));
-    // 16-22 Dec: Mon 21, Wed 16 → 2 lessons; Tue 22 → 1 lesson.
+    // 14-18 Dec: Mon 14, Wed 16 → 2 lessons; Tue 15 → 1 lesson.
     assert.equal(byId.big.lessonDates.length, 2);
     assert.equal(byId.small.lessonDates.length, 1);
     assert.equal(byId.big.share, Math.round(16 * 2 * lessonPace(classes[0]) * RAID_EFFORT));
@@ -91,12 +110,12 @@ test('a shard follows the class size and its lessons, not its league', () => {
 test('stars of the raid week chip the shield; other days and negative logs do not', () => {
     const raid = raidWindow('winter', 2026);
     const logs = [
-        { id: '1', classId: 'a', studentId: 's1', stars: 2, date: '16-12-2026' },
-        { id: '2', classId: 'a', studentId: 's1', stars: 1, date: '18-12-2026' },
-        { id: '2', classId: 'a', studentId: 's1', stars: 1, date: '18-12-2026' },
-        { id: '3', classId: 'a', studentId: 's2', stars: 3, date: '15-12-2026' },
+        { id: '1', classId: 'a', studentId: 's1', stars: 2, date: '14-12-2026' },
+        { id: '2', classId: 'a', studentId: 's1', stars: 1, date: '16-12-2026' },
+        { id: '2', classId: 'a', studentId: 's1', stars: 1, date: '16-12-2026' },
+        { id: '3', classId: 'a', studentId: 's2', stars: 3, date: '11-12-2026' },
         { id: '4', classId: 'b', studentId: 's3', stars: -1, date: '17-12-2026' },
-        { id: '5', classId: 'b', studentId: 's3', stars: 0.5, createdAt: new Date(2026, 11, 22, 9) }
+        { id: '5', classId: 'b', studentId: 's3', stars: 0.5, createdAt: new Date(2026, 11, 18, 9) }
     ];
     const tally = tallyRaidStars(logs, raid);
     assert.deepEqual(tally.byClass, { a: 3, b: 0.5 });
@@ -119,13 +138,13 @@ test('the shield breaks on the school total, and stays broken once locked', () =
 
 test('rewards: valor any time in the week, the hero only after the class has had its lessons', () => {
     const raid = raidWindow('winter', 2026);
-    const classRow = { valor: true, lessonDates: ['2026-12-16', '2026-12-21'] };
+    const classRow = { valor: true, lessonDates: ['2026-12-14', '2026-12-17'] };
     const status = { broken: true, legendary: false };
-    const mid = owedRaidRewards({ status, classRow, raid, today: new Date(2026, 11, 18) });
+    const mid = owedRaidRewards({ status, classRow, raid, today: new Date(2026, 11, 15) });
     assert.deepEqual(mid, { valor: true, victory: true, legendary: false, heroReady: false });
-    const lastLesson = owedRaidRewards({ status, classRow, raid, today: new Date(2026, 11, 21) });
+    const lastLesson = owedRaidRewards({ status, classRow, raid, today: new Date(2026, 11, 17) });
     assert.equal(lastLesson.heroReady, true);
-    const paid = owedRaidRewards({ status, classRow, raid, today: new Date(2026, 11, 23), receipt: { valorAt: 1, victoryAt: 1, hero: { studentId: 's' } } });
+    const paid = owedRaidRewards({ status, classRow, raid, today: new Date(2026, 11, 19), receipt: { valorAt: 1, victoryAt: 1, hero: { studentId: 's' } } });
     assert.deepEqual(paid, { valor: false, victory: false, legendary: false, heroReady: false });
     const before = owedRaidRewards({ status, classRow, raid, today: new Date(2026, 11, 10) });
     assert.equal(before.victory, false);
@@ -154,24 +173,25 @@ test('raidOn gives a phase for any raid, near or far', async () => {
     const { raidOn, raidById, raidDayOf, raidsInMonth } = await import('../features/realmRaidCore.mjs');
     const holidays = [{ start: '2026-12-23', end: '2027-01-07' }];
     const raid = raidById('winter_2026', { holidays });
-    assert.equal(dayKey(raid.start), '2026-12-16');
+    assert.equal(dayKey(raid.start), '2026-12-14');
     assert.equal(raidOn(raid, new Date(2026, 10, 1)).phase, 'herald');
-    assert.equal(raidOn(raid, new Date(2026, 10, 1)).daysToStart, 45);
-    assert.equal(raidOn(raid, new Date(2026, 11, 18)).phase, 'active');
-    assert.equal(raidOn(raid, new Date(2026, 11, 18)).dayNumber, 3);
-    assert.equal(raidOn(raid, new Date(2026, 11, 28)).phase, 'aftermath');
+    assert.equal(raidOn(raid, new Date(2026, 10, 1)).daysToStart, 43);
+    assert.equal(raidOn(raid, new Date(2026, 11, 16)).phase, 'active');
+    assert.equal(raidOn(raid, new Date(2026, 11, 16)).dayNumber, 3);
+    assert.equal(raidOn(raid, new Date(2026, 11, 24)).phase, 'aftermath');
     assert.equal(raidOn(raid, new Date(2027, 1, 1)).phase, 'over');
     assert.equal(raidById('nonsense'), null);
     // The Calendar marks the raid week, with its first and last day.
-    assert.equal(raidDayOf(new Date(2026, 11, 15), { holidays }), null);
-    const first = raidDayOf(new Date(2026, 11, 16), { holidays });
+    assert.equal(raidDayOf(new Date(2026, 11, 13), { holidays }), null);
+    const first = raidDayOf(new Date(2026, 11, 14), { holidays });
     assert.equal(first.raid.raidId, 'winter_2026');
     assert.equal(first.first, true);
-    assert.equal(raidDayOf(new Date(2026, 11, 22), { holidays }).last, true);
-    assert.equal(raidDayOf(new Date(2026, 11, 23), { holidays }), null);
+    assert.equal(raidDayOf(new Date(2026, 11, 18), { holidays }).last, true);
+    assert.equal(raidDayOf(new Date(2026, 11, 19), { holidays }), null);
     assert.deepEqual(raidsInMonth(2026, 11, { holidays }).map((r) => r.raidId), ['winter_2026']);
     assert.deepEqual(raidsInMonth(2026, 10, { holidays }).map((r) => r.raidId), []);
     assert.deepEqual(raidsInMonth(2027, 2).map((r) => r.raidId), ['carnival_2026']);
+    assert.deepEqual(raidsInMonth(2027, 5).map((r) => r.raidId), ['summer_2026']);
 });
 
 test('the tally keeps each raid day\'s stars for the battle log', () => {
@@ -180,7 +200,8 @@ test('the tally keeps each raid day\'s stars for the battle log', () => {
         { id: 'a', classId: 'c1', studentId: 's1', stars: 2, date: '2026-12-16' },
         { id: 'b', classId: 'c2', studentId: 's2', stars: 1.5, date: '16-12-2026' },
         { id: 'c', classId: 'c2', studentId: 's2', stars: 1, date: '2026-12-18' },
-        { id: 'd', classId: 'c2', studentId: 's2', stars: 3, date: '2026-12-23' }
+        { id: 'd', classId: 'c2', studentId: 's2', stars: 3, date: '2026-12-19' }
     ], raid);
     assert.deepEqual(tally.byDay, { '2026-12-16': 3.5, '2026-12-18': 1 });
+    assert.deepEqual(tally.byDayClass, { '2026-12-16': { c1: 2, c2: 1.5 }, '2026-12-18': { c2: 1 } });
 });

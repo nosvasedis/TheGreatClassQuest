@@ -14,6 +14,7 @@ import { getAwardLogMonthlyStarCredit } from './awardLogReasonMeta.js';
 import { getLiveYearGold, getLiveYearGoldContextFromState } from '../utils/yearGold.js';
 import { quizPrizeCandidates } from './quizRewardsCore.mjs';
 import {
+    RAID_LENGTH_DAYS,
     RAID_REWARDS,
     addDays,
     computeShares,
@@ -204,13 +205,13 @@ export function getRaidView() {
 export function raidPill(v = view) {
     if (!v) return null;
     const { raid, status } = v;
-    const share = status.hp ? Math.floor((status.dealt / status.hp) * 100) : 0;
-    if (raid.phase === 'herald') return { eyebrow: 'Realm Raid', title: `${raid.season.guardian} ${raidCountdown(raid)}`, tag: raid.season.emoji, won: false };
+    const hpLeft = status.hp ? Math.max(0, Math.ceil(((status.hp - status.dealt) / status.hp) * 100)) : 100;
+    if (raid.phase === 'herald') return { eyebrow: 'Realm Raid · boss approaching', title: `${raid.season.guardian} ${raidCountdown(raid)}`, tag: raid.season.emoji, won: false };
     if (raid.phase === 'active') {
-        const title = status.legendary ? 'Legendary victory!' : status.broken ? 'Shield broken!' : `Shield ${share}% broken`;
-        return { eyebrow: `Realm Raid · ${raidCountdown(raid)}`, title, tag: raid.season.emoji, won: status.broken };
+        const title = status.legendary ? 'LEGENDARY victory!' : status.broken ? 'Boss defeated!' : `Boss HP ${hpLeft}%`;
+        return { eyebrow: `Realm Raid · turn ${raid.dayNumber}/${RAID_LENGTH_DAYS}`, title, tag: raid.season.emoji, won: status.broken };
     }
-    return { eyebrow: 'Realm Raid', title: status.broken ? 'The school won!' : 'The shield held', tag: raid.season.emoji, won: status.broken };
+    return { eyebrow: 'Realm Raid', title: status.broken ? 'Victory! Boss defeated' : 'The shield held', tag: raid.season.emoji, won: status.broken };
 }
 
 /** Calls back with the latest view whenever it changes. Returns an unsubscribe. */

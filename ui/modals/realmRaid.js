@@ -101,12 +101,12 @@ function render(view) {
         roster: hall.roster ? hall.roster(view, focusId) : rosterFor(view, focusId),
         year: hall.year ? hall.year(view) : yearFor(view)
     });
-    if (hall.last && !hall.lite) strike(hall.last, view);
+    if (hall.last) strike(hall.last, view, { lite: hall.lite });
     hall.last = view;
 }
 
 /** Stars that arrived since the last render fly from each class's banner into its shard. */
-function strike(before, after) {
+function strike(before, after, { lite = false } = {}) {
     const prev = new Map(before.rows.map((r) => [r.classId, r.stars]));
     const gains = after.rows
         .map((r) => ({ id: r.classId, gain: r.stars - (prev.get(r.classId) || 0) }))
@@ -117,6 +117,7 @@ function strike(before, after) {
     const host = root.querySelector('.rr-hall');
     const box = host.getBoundingClientRect();
     gains.forEach(({ id }, i) => {
+        if (lite) return;
         const from = root.querySelector(`[data-banner="${CSS.escape(id)}"]`);
         const to = root.querySelector(`[data-shard="${CSS.escape(id)}"]`) || root.querySelector('.rr-arena__shield');
         if (!from || !to) return;
@@ -142,6 +143,30 @@ function strike(before, after) {
             setTimeout(() => to.classList?.remove('is-hit'), 600);
         };
     });
+    // Damage numbers pop over the boss, one per class that struck, and Eldhorn recoils.
+    const arena = root.querySelector('.rr-arena');
+    const layer = root.querySelector('.rr-dmg-layer');
+    if (arena && layer) {
+        const byId = new Map(after.rows.map((r) => [r.classId, r]));
+        gains.forEach(({ id, gain }, i) => {
+            setTimeout(() => {
+                if (!layer.isConnected) return;
+                const row = byId.get(id);
+                const pop = document.createElement('span');
+                pop.className = 'rr-dmg';
+                // Spread the numbers round the boss (golden angle), so they never pile up.
+                pop.style.setProperty('--x', `${(50 + 30 * Math.cos(i * 2.4 + 0.6)).toFixed(1)}%`);
+                pop.style.setProperty('--y', `${(46 + 20 * Math.sin(i * 2.4 + 0.6)).toFixed(1)}%`);
+                pop.innerHTML = `-${Math.round(gain * 2) / 2}<small>${row ? `${row.logo} ${row.name}` : ''}</small>`;
+                pop.querySelector('small').textContent = row ? `${row.logo} ${row.name}` : '';
+                layer.appendChild(pop);
+                setTimeout(() => pop.remove(), 1700);
+                arena.classList.remove('is-struck');
+                void arena.offsetWidth;
+                arena.classList.add('is-struck');
+            }, (lite ? 100 : 900) + i * 260);
+        });
+    }
     playSound('star3');
 }
 
@@ -212,7 +237,7 @@ export async function openRaidHall({ view: given = null, focusId = '', raidId = 
     if (!source()) {
         const raid = currentRaid();
         if (!raid) {
-            import('../effects.js').then(({ showToast }) => showToast('No Realm Raid this week. The Guardian visits before Christmas, before Clean Monday and in the last school week.', 'info', 6000));
+            import('../effects.js').then(({ showToast }) => showToast('No Realm Raid this week. Eldhorn visits three school weeks a year: mid-December, the week before Clean Monday, and the first week of June.', 'info', 6000));
             return false;
         }
         await ensureRaidLogs(raid);
@@ -252,6 +277,13 @@ export function closeRaidHall({ instant = false } = {}) {
     if (instant) { root.remove(); return; }
     root.classList.remove('is-open');
     setTimeout(() => root.remove(), 260);
+}
+
+/** Re-renders the open hall on a new view (the preview page uses it to show live hits). */
+export function rerenderRaidHall(view) {
+    if (!hall || !view) return;
+    hall.view = () => view;
+    render(view);
 }
 
 export function isRaidHallOpen() {

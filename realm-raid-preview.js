@@ -16,7 +16,7 @@ if (params.has('shot')) document.body.classList.add('pv-shot');
 
 const holidays = [{ start: '2026-12-23', end: '2027-01-07' }];
 const raid = raidWindow(seasonId, 2026, { holidays });
-const day = phase === 'herald' ? addDays(raid.start, -3) : (phase === 'won' || phase === 'held') ? addDays(raid.end, 2) : addDays(raid.start, 4);
+const day = phase === 'herald' ? addDays(raid.start, -3) : (phase === 'won' || phase === 'held') ? addDays(raid.end, 2) : addDays(raid.start, 2);
 const live = findRaid(day, { holidays });
 
 const CLASSES = [
@@ -73,8 +73,14 @@ const passed = raidDays(raid).filter((d) => dayKey(d) <= today);
 const total = Object.values(byClass).reduce((a, b) => a + b, 0);
 const weightOf = (d) => [0, 1.2, 0.8, 1.5, 1.1, 1, 0][d.getDay()];
 const wsum = passed.reduce((sum, d) => sum + weightOf(d), 0) || 1;
-passed.forEach((d) => { byDay[dayKey(d)] = Math.round((total * weightOf(d) / wsum) * 2) / 2; });
-const view = { raid: live, status, rows, tally: { byClass, byHero: {}, byDay }, record: {}, loading: false, next };
+const byDayClass = {};
+passed.forEach((d) => {
+    const key = dayKey(d);
+    byDay[key] = Math.round((total * weightOf(d) / wsum) * 2) / 2;
+    byDayClass[key] = {};
+    shares.forEach((sh) => { if (byClass[sh.classId] && sh.lessonDates.includes(key)) byDayClass[key][sh.classId] = Math.round(byClass[sh.classId] / Math.max(1, sh.lessonDates.filter((k) => k <= today).length) * 2) / 2; });
+});
+const view = { raid: live, status, rows, tally: { byClass, byHero: {}, byDay, byDayClass }, record: {}, loading: false, next, brokenOn: ['broken', 'legendary', 'won'].includes(phase) ? addDays(raid.start, 3).getTime() : null };
 const HEROES = ['Maria Papadopoulou', 'Nikos Georgiou', 'Eleni Dimitriou', 'Giorgos Ioannou', 'Sofia Konstantinou', 'Dimitris Nikolaou', 'Katerina Pappa', 'Yannis Vlachos', 'Anna Michailidou', 'Kostas Karras', 'Maria Antoniou', 'Christina Lamprou', 'Petros Alexiou', 'Ioanna Zervou'];
 const struck = phase === 'herald' ? 0 : phase === 'active' ? 9 : 12;
 const roster = HEROES.map((full, i) => {
@@ -116,3 +122,14 @@ for (const s of ['winter', 'carnival', 'summer']) links.push(`<a href="?season=$
 for (const p of ['herald', 'active', 'broken', 'legendary', 'won', 'held']) links.push(`<a href="?season=${seasonId}&phase=${p}&view=${viewName}">${p}</a>`);
 for (const v of ['hall', 'victory', 'card', 'help', 'coats']) links.push(`<a href="?season=${seasonId}&phase=${phase}&view=${v}">${v}</a>`);
 document.getElementById('pv-toolbar').innerHTML = links.join('');
+
+// ?hit=1 opens the real hall, then sends a few more stars to show the bolts and damage numbers.
+if (params.has('hit')) {
+    const { openRaidHall, rerenderRaidHall } = await import('./ui/modals/realmRaid.js');
+    root.innerHTML = '';
+    await openRaidHall({ view, focusId, roster: () => roster, year: () => year });
+    setTimeout(() => {
+        const more = { ...view, rows: view.rows.map((r, i) => (i % 3 === 0 && r.share ? { ...r, stars: r.stars + 2 + i } : r)) };
+        rerenderRaidHall(more);
+    }, 1200);
+}

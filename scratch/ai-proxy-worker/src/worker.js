@@ -36,6 +36,11 @@ const VOICE_CACHE_TTL = 30 * 86_400;
 const IMAGE_MODEL = '@cf/black-forest-labs/flux-2-klein-4b';
 const IMAGE_FALLBACK_MODEL = '@cf/stabilityai/stable-diffusion-xl-base-1.0';
 const IMAGE_LAST_RESORT_MODEL = '@cf/bytedance/stable-diffusion-xl-lightning';
+// Mystic Market pictures (painter: 'market') never touch FLUX. A 512px FLUX picture is billed
+// 104.2 neurons (measured 2026-11-01), so the free 10,000 a day covers ~95; one monthly restock
+// asked for ~240 and spent the whole day. DreamShaper and SDXL Lightning are off the metered
+// price list (SDXL showed 0 neurons in the account analytics), so the Market costs nothing.
+const MARKET_IMAGE_MODEL = '@cf/lykon/dreamshaper-8-lcm';
 // SDXL rejects the whole request above 20 steps.
 const SDXL_MAX_STEPS = 20;
 // A live 512px FLUX call took 18s: the old 15s cutoff discarded a healthy
@@ -892,11 +897,14 @@ async function handleImage(payload, env, corsHeaders) {
   };
   if (Number.isFinite(payload.seed)) inputs.seed = Math.trunc(payload.seed);
 
-  const attempts = [
-    { model: IMAGE_MODEL, timeoutMs: IMAGE_MODEL_TIMEOUT_MS, run: (signal) => runFluxImage(env, inputs, signal) },
-    { model: IMAGE_FALLBACK_MODEL, timeoutMs: IMAGE_FALLBACK_TIMEOUT_MS, run: (signal) => runSdxlImage(env, IMAGE_FALLBACK_MODEL, inputs, signal) },
-    { model: IMAGE_LAST_RESORT_MODEL, timeoutMs: IMAGE_FALLBACK_TIMEOUT_MS, run: (signal) => runSdxlImage(env, IMAGE_LAST_RESORT_MODEL, inputs, signal) },
-  ];
+  const sdxlAttempt = (model) => ({ model, timeoutMs: IMAGE_FALLBACK_TIMEOUT_MS, run: (signal) => runSdxlImage(env, model, inputs, signal) });
+  const attempts = String(payload.painter || '').toLowerCase() === 'market'
+    ? [sdxlAttempt(MARKET_IMAGE_MODEL), sdxlAttempt(IMAGE_LAST_RESORT_MODEL)]
+    : [
+      { model: IMAGE_MODEL, timeoutMs: IMAGE_MODEL_TIMEOUT_MS, run: (signal) => runFluxImage(env, inputs, signal) },
+      sdxlAttempt(IMAGE_FALLBACK_MODEL),
+      sdxlAttempt(IMAGE_LAST_RESORT_MODEL),
+    ];
   const startedAt = Date.now();
   const failures = [];
   for (const attempt of attempts) {

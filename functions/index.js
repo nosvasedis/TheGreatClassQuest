@@ -3213,6 +3213,23 @@ exports.maintainShopStock = functionsV1.region(FUNCTIONS_REGION)
     };
     await Promise.all([runNext(), runNext()]);
     console.log(JSON.stringify({ event: 'maintainShopStock', schoolId: currentSchoolId(), stallCount: stalls.length, results }));
+
+    // From the 24th, next month's stall is painted a little each night (up to the daily
+    // picture cap in shop/prepare.mjs), so the 1st only has to show it.
+    const [calendar, prepare] = await Promise.all([import('./shop/calendar.mjs'), import('./shop/prepare.mjs')]);
+    const target = prepare.preparationTarget({ day: calendar.shopZonedParts().day, monthKey: calendar.shopMonthKey() });
+    if (!target) return null;
+    const prepared = [];
+    for (const stall of stalls) {
+      try {
+        const result = await shopEngine.ensureStall({ ...stall, yearKey, mode: 'ensure', prepare: target });
+        prepared.push({ league: stall.league, ok: true, saved: result?.monthly?.savedThisRun || 0 });
+      } catch (error) {
+        console.error(`maintainShopStock prepare failed for ${stall.league}:`, error);
+        prepared.push({ league: stall.league, ok: false, message: error?.message || String(error) });
+      }
+    }
+    console.log(JSON.stringify({ event: 'maintainShopStockPrepare', schoolId: currentSchoolId(), monthKey: target.monthKey, prepared }));
     return null;
   }));
 

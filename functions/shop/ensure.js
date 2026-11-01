@@ -29,7 +29,22 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
   const calendarP = import('./calendar.mjs');
   const restockP = import('./restock.mjs');
   const briefP = import('./brief.mjs');
+  const prepareP = import('./prepare.mjs');
   const ai = require('./ai');
+
+  // One count for every school: they all share the account's Workers AI allowance.
+  // Returns false when today's automatic restock pictures are used up.
+  async function takePictureSlot({ manual = false } = {}) {
+    const [calendar, prepare] = await Promise.all([calendarP, prepareP]);
+    const cap = prepare.dailyPictureCap(process.env.GCQ_SHOP_DAILY_PICTURES);
+    const ref = db.doc(`platform_usage/shop_pictures_${calendar.shopDateKey()}`);
+    return db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const decision = prepare.pictureSlotDecision({ used: snap.data()?.count, cap, manual });
+      if (decision.allowed) tx.set(ref, { count: decision.used, cap, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+      return decision.allowed;
+    });
+  }
 
   // This month's items plus the active festival's items, for the whole league: one stall is
   // shared by every class in it, whoever teaches it. A festival window can start in the
@@ -85,15 +100,20 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
     return `shop_items/${teacherId}/${yearKey}/${monthKey}_${leagueKey}_${ai.simpleHashCode(name)}_${Date.now()}.png`;
   }
 
-  async function generateImage(item, league, palette = '') {
+  async function generateImage(item, league, palette = '', { manual = false } = {}) {
+    if (!(await takePictureSlot({ manual }))) {
+      const error = new Error("Today's shop pictures are used up; the next nightly run carries on.");
+      error.code = 'shop-picture-cap';
+      throw error;
+    }
     const brief = await briefP;
     const prompt = brief.buildImagePrompt(item, { league, palette });
     const negativePrompt = brief.buildImageNegativePrompt(league);
     let lastError = null;
     for (let attempt = 0; attempt < 2; attempt += 1) {
       try {
-        // Shop icons are shown small; 512 is one FLUX tile instead of four.
-        return await ai.shopAiImage(prompt, negativePrompt, { width: 512, height: 512 });
+        // The Market never spends FLUX neurons: see MARKET_IMAGE_MODEL in the AI Worker.
+        return await ai.shopAiImage(prompt, negativePrompt, { width: 512, height: 512, painter: 'market' });
       } catch (error) {
         lastError = error;
         if (attempt === 1 || !ai.imageErrorIsRetryable(error)) break;
@@ -148,16 +168,20 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
 
   async function produceItems(items, context) {
     let savedThisRun = 0;
+    let capReached = false;
     for (const group of chunk(items, 2)) {
       await Promise.all(group.map(async (item) => {
         try {
+          if (capReached) throw Object.assign(new Error('shop picture cap'), { code: 'shop-picture-cap' });
           const bytes = await generateImage(item, context.league, context.theme?.palette);
           const path = shopImagePath({ ...context, name: item.name });
           const imageUrl = await uploadPng(bytes, path);
           await persistItem({ ...context, item, imageUrl });
           savedThisRun += 1;
         } catch (error) {
-          console.error('Item gen failed:', item.name, error);
+          // Over the cap the treasure is kept without a picture, so the next run paints it.
+          if (error?.code === 'shop-picture-cap') capReached = true;
+          else console.error('Item gen failed:', item.name, error);
           if (!item.id) {
             try {
               item.id = await persistItem({ ...context, item, imageUrl: '' });
@@ -186,7 +210,7 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
 
   // Invents treasures from the stall's brief, drops anything off-season or wrong for the
   // age group, and asks once more for whatever the checks threw out.
-  async function inventCatalog({ league, needed, tiers, theme, collection = null, existingNames }) {
+  async function inventCatalog({ league, needed, tiers, theme, collection = null, existingNames, date = new Date() }) {
     if (needed <= 0) return [];
     const brief = await briefP;
     const taken = new Set(existingNames.map((name) => String(name).toLowerCase()));
@@ -203,7 +227,8 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
         tiers: batch,
         theme,
         collection,
-        avoidNames: [...existingNames, ...accepted.map((item) => item.name)]
+        avoidNames: [...existingNames, ...accepted.map((item) => item.name)],
+        date
       });
       let raw = [];
       try {
@@ -284,7 +309,8 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
       tiers: nextPlan.tiers,
       theme,
       collection,
-      existingNames: nextPlan.existingNames
+      existingNames: nextPlan.existingNames,
+      date: context.briefDate || new Date()
     });
     savedThisRun += await produceItems(catalog, making);
 
@@ -406,18 +432,20 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
 
   // The stall belongs to the league. `teacherId` is whoever asked (or the nightly run's pick);
   // new treasures on a stall that already has an owner are written under that owner.
-  async function ensureStall({ teacherId, teacherName, league, yearKey, mode = 'ensure' }) {
+  // `prepare` = { monthKey, briefDate } paints next month's Seasonal Treasures ahead of time
+  // (hidden until that month: the Market shows only the current monthKey). No festival work.
+  async function ensureStall({ teacherId, teacherName, league, yearKey, mode = 'ensure', prepare = null }) {
     const calendar = await calendarP;
     const restock = await restockP;
-    const monthKey = calendar.shopMonthKey();
-    const festival = calendar.getActiveFestival();
+    const monthKey = prepare?.monthKey || calendar.shopMonthKey();
+    const festival = prepare ? null : calendar.getActiveFestival();
     const lockId = `league_${league}_${monthKey}`.replace(/[^\w.-]+/g, '_');
 
     const activeFestivalId = festival?.festivalId || '';
 
     return withLock(lockId, async () => {
       let items = await loadStock(league, monthKey, activeFestivalId);
-      const expired = await expireStaleFestivals(items, festival);
+      const expired = prepare ? 0 : await expireStaleFestivals(items, festival);
       if (expired) items = await loadStock(league, monthKey, activeFestivalId);
       const unified = await unifyStall(items, { league, monthKey, activeFestivalId });
       if (unified.changed) items = await loadStock(league, monthKey, activeFestivalId);
@@ -436,7 +464,8 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
           yearKey,
           monthKey,
           shelf: 'seasonal',
-          activeFestivalId
+          activeFestivalId,
+          briefDate: prepare?.briefDate || null
         });
         items = await loadStock(league, monthKey, activeFestivalId);
       }
@@ -513,7 +542,7 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
             desc: latest.description || latest.desc,
             look: latest.look,
             price: latest.price
-          }, league, theme.palette);
+          }, league, theme.palette, { manual: true });
           const path = shopImagePath({ teacherId, yearKey, monthKey, league, name: latest.name });
           const imageUrl = await uploadPng(bytes, path);
           await ref.update({ image: imageUrl });
@@ -544,7 +573,7 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
             throw new Error('The merchant could not invent a replacement.');
           }
           next.price = restock.clampPriceToTier(next.price, keepTier);
-          const bytes = await generateImage(next, league, theme.palette);
+          const bytes = await generateImage(next, league, theme.palette, { manual: true });
           const path = shopImagePath({ teacherId, yearKey, monthKey, league, name: next.name });
           const imageUrl = await uploadPng(bytes, path);
           await persistItem({

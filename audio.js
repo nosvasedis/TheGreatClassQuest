@@ -434,7 +434,11 @@ export async function activateAudioContext() {
         return false;
     }
     if (audioRunning()) return Promise.resolve(true);
-    if (audioStartPromise) return audioStartPromise;
+    if (audioStartPromise) {
+        // A start asked for outside a tap can wait forever in some browsers: ask again from this one.
+        Tone.start().catch(quietly('audio.js'));
+        return audioStartPromise;
+    }
 
     audioStartPromise = Tone.start()
         .then(() => {
@@ -448,6 +452,29 @@ export async function activateAudioContext() {
         });
 
     return audioStartPromise;
+}
+
+/**
+ * Builds the sound engine ahead of time, before anyone taps: loads Tone.js, opens its (still
+ * silent) audio context and prepares the shared reverb and fanfares. That work takes a long
+ * moment on a school laptop; done at idle, the first tap only has to switch the sound on, so it
+ * no longer freezes the tap's own animation (the first cloud tap after loading used to show no
+ * reaction). The context stays suspended until a tap calls ensureAudioReady().
+ */
+export async function prepareAudio() {
+    try {
+        Tone = Tone || await loadTone();
+    } catch (error) {
+        console.warn('Audio warm-up skipped:', error);
+        return false;
+    }
+    await setupSounds();
+    return soundsReady;
+}
+
+/** True once Tone.js is loaded and the sounds are built, so starting them is cheap. */
+export function isAudioPrepared() {
+    return Boolean(Tone) && soundsReady;
 }
 
 export async function ensureAudioReady() {

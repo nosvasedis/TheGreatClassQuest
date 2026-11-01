@@ -430,10 +430,65 @@ function dismissLoadingAfterHomeIsReady(loadingScreen) {
     }, INITIALIZATION_TIMEOUT_MS);
 }
 
-function onFirstUserGesture() {
+// Sound starts on the first tap, but building the sound engine (Tone.js, its audio context, the
+// reverb) blocks the page for a long moment on a school laptop. Done inside that first tap it froze
+// the tap's own reaction (the first cloud tap after loading showed nothing). So the engine is built
+// at idle once the app is up (warmAudioWhenIdle), and a tap only switches the sound on, which is
+// instant. A tap that comes before the warm-up lets its reaction play first, then builds it.
+const AUDIO_GESTURE_SCREENS = ['app-screen', 'parent-screen', 'secretary-screen'];
+let audioWarmupScheduled = false;
+let audioDeferredStart = null;
+
+function loadAudioModule() {
     audioModulePromise ??= import('./audio.js');
-    audioModulePromise
-        .then(({ ensureAudioReady }) => ensureAudioReady())
+    return audioModulePromise;
+}
+
+function whenPageIsQuiet(run, { delay = 0, timeout = 2000 } = {}) {
+    setTimeout(() => {
+        if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(run, { timeout });
+        else run();
+    }, delay);
+}
+
+function warmAudioWhenIdle() {
+    if (audioWarmupScheduled) return;
+    audioWarmupScheduled = true;
+    whenPageIsQuiet(() => {
+        loadAudioModule()
+            .then((audio) => audio.prepareAudio())
+            .catch((error) => console.warn('Audio warm-up was deferred:', error));
+    }, { delay: 900, timeout: 4000 });
+}
+
+function stopListeningForAudioGesture() {
+    AUDIO_GESTURE_SCREENS.forEach((screenId) => {
+        document.getElementById(screenId)?.removeEventListener('pointerdown', onFirstUserGesture);
+    });
+}
+
+function startAudio(audio) {
+    return audio.ensureAudioReady().then((ready) => {
+        if (ready) stopListeningForAudioGesture();
+        return ready;
+    });
+}
+
+// Stays on every tap until the sound is running (some browsers only allow it inside a tap).
+function onFirstUserGesture() {
+    loadAudioModule()
+        .then((audio) => {
+            if (audio.isAudioReady()) {
+                stopListeningForAudioGesture();
+                return undefined;
+            }
+            if (audio.isAudioPrepared()) return startAudio(audio);
+            // Not built yet: let this tap's animation run, then build the engine.
+            audioDeferredStart ??= new Promise((resolve) => {
+                whenPageIsQuiet(() => resolve(startAudio(audio)), { delay: 700, timeout: 1500 });
+            }).finally(() => { audioDeferredStart = null; });
+            return audioDeferredStart;
+        })
         .catch((error) => console.warn('Audio initialization was deferred:', error));
 }
 
@@ -1226,8 +1281,8 @@ function setupAuthListeners() {
                         .then(({ getAppCheckInstance }) => getAppCheckInstance())
                         .catch((error) => console.warn('App Check initialization is temporarily unavailable:', error?.message || error));
                 }
-                ['app-screen', 'parent-screen', 'secretary-screen'].forEach((screenId) => {
-                    document.getElementById(screenId)?.addEventListener('pointerdown', onFirstUserGesture, { once: true });
+                AUDIO_GESTURE_SCREENS.forEach((screenId) => {
+                    document.getElementById(screenId)?.addEventListener('pointerdown', onFirstUserGesture, { passive: true });
                 });
 
                 if (gateHandoff) {
@@ -1276,6 +1331,7 @@ function setupAuthListeners() {
                         }
                         await routeAuthenticatedParent({ loadingScreen, authScreen });
                         await waitForLoadingScreenSettled(loadingScreen);
+                        if (isCurrentSession()) warmAudioWhenIdle();
                         if (isCurrentSession()) offerDeviceCacheChoice(profile.role);
                     });
                 } else {

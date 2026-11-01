@@ -1,7 +1,7 @@
 /* styles/guild_chronicle.css — Chapter chronicles (Guild Hall scroll + Grand Ceremony story).
    Loaded lazily with features/guildChronicleView.js. Transform and opacity only. */
 
-.gh-chron { margin-top: 0.9rem; }
+.gh-chron { margin-top: 0.9rem; scroll-margin: 1.5rem; }
 .gh-chron[hidden] { display: none; }
 
 .gh-chron__scroll {
@@ -71,6 +71,11 @@
 
 .gh-stone[data-chronicle-key] { cursor: pointer; }
 .gh-stone.is-chronicled { outline: 2px solid rgba(246, 231, 193, 0.85); outline-offset: 1px; }
+.gh-stone[data-chronicle-key] { transition: transform 0.2s ease, filter 0.2s ease; }
+.gh-stone[data-chronicle-key]:hover { transform: translateY(-1px); filter: brightness(1.08); }
+.gh-stone[data-chronicle-key]:focus-visible { outline: 2px solid #fde68a; outline-offset: 2px; }
+.gh-stone.is-picked { animation: gh-stone-picked 0.45s var(--gh-ease, ease-out); }
+@keyframes gh-stone-picked { 40% { transform: scale(0.88); } 100% { transform: none; } }
 
 /* ── Grand Guild Ceremony: the Story of the Year ── */
 .grd-story { width: min(760px, 94vw); max-height: 62vh; display: flex; flex-direction: column; }
@@ -104,6 +109,6 @@
 .grd-story__stanza p { margin: 4px 0 0; font-family: Georgia, serif; font-style: italic; font-size: clamp(0.95rem, 2.2vh, 1.15rem); line-height: 1.45; }
 
 @media (prefers-reduced-motion: reduce) {
-    .gh-chron__paper, .gh-chron__lines li { animation: none; opacity: 1; }
+    .gh-chron__paper, .gh-chron__lines li, .gh-stone.is-picked { animation: none; opacity: 1; }
     .grd-story__stanza { transition: none; }
 }

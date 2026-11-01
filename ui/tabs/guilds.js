@@ -617,6 +617,7 @@ let _hallSig = '';
 let _chronicleView = null;
 let _chronicleViewLoading = false;
 let _chronicleKey = null;
+let _chronicleReveal = false; // a crown was tapped: show its scroll (waits for the view on first load)
 let _renderFrame = 0;
 const _htmlCache = new WeakMap(); // element → the HTML it last received
 const _shown = new Map(); // `${guildId}:${field}` → the number on screen
@@ -1040,7 +1041,7 @@ function _morph(el, html) {
     const first = !_htmlCache.has(el);
     _htmlCache.set(el, html);
     if (first) el.innerHTML = html;
-    else morphInto(el, html, { keepClasses: ['is-tick', 'is-chronicled'] });
+    else morphInto(el, html, { keepClasses: ['is-tick', 'is-chronicled', 'is-picked'] });
     return true;
 }
 
@@ -1053,7 +1054,7 @@ function _stonesHtml(row, model) {
             const tip = p
                 ? `${chapterName(k)}: ${_ordinal(p)} place${sealed.unity ? ' + Unity Seal' : ''}, ${sealed.crowns} Crown${sealed.crowns === 1 ? '' : 's'}`
                 : `${chapterName(k)}: no Glory, no Crowns`;
-            return `<span class="gh-stone is-${p ? PLACE_CLASS[p - 1] : 'empty'}${sealed.unity ? ' has-unity' : ''}" data-chronicle-key="${k}" title="${tip}. Tap for its chronicle.">${p === 1 ? '<i class="fas fa-crown gh-stone__crown" aria-hidden="true"></i>' : ''}<b>${sealed.crowns || '·'}</b></span>`;
+            return `<span class="gh-stone is-${p ? PLACE_CLASS[p - 1] : 'empty'}${sealed.unity ? ' has-unity' : ''}" data-chronicle-key="${k}" role="button" tabindex="0" aria-label="${tip}. Open its chronicle." title="${tip}. Tap for its chronicle.">${p === 1 ? '<i class="fas fa-crown gh-stone__crown" aria-hidden="true"></i>' : ''}<b>${sealed.crowns || '·'}</b></span>`;
         }
         if (k === model.liveKey) {
             const c = model.counts ? Number(row.live?.crowns) || 0 : 0;
@@ -1124,11 +1125,11 @@ function _patchRace(hall, model, { fresh }) {
 }
 
 /** The Chapter chronicle scroll under the Crown Race (its view and CSS load on first need). */
-function _patchChronicle(hall) {
+function _patchChronicle(hall, { replay = false } = {}) {
     const box = hall.querySelector('[data-gh="chronicle"]');
     if (!box) return;
     const list = yearChronicles();
-    if (!list.length) { box.hidden = true; return; }
+    if (!list.length) { box.hidden = true; _chronicleReveal = false; return; }
     if (!_chronicleView) {
         if (!_chronicleViewLoading) {
             _chronicleViewLoading = true;
@@ -1143,9 +1144,18 @@ function _patchChronicle(hall) {
     if (index < 0) index = list.length - 1;
     const chronicle = list[index];
     box.hidden = false;
+    // A tapped crown always unrolls the scroll again, even when it already shows that month.
+    if (replay) _htmlCache.delete(box);
     _setHtml(box, _chronicleView.chroniclePanelHtml(chronicle, { index, total: list.length, canSpeak: isTtsSupported() }));
     _syncChronicleRead(hall);
     hall.querySelectorAll('.gh-stone[data-chronicle-key]').forEach((el) => el.classList.toggle('is-chronicled', el.dataset.chronicleKey === chronicle.key));
+    if (_chronicleReveal) {
+        _chronicleReveal = false;
+        // The scroll sits under the race, often below the fold on a projector: bring it up.
+        requestAnimationFrame(() => {
+            if (box.isConnected) box.scrollIntoView({ behavior: _reduceMotion() ? 'auto' : 'smooth', block: 'nearest' });
+        });
+    }
 }
 
 // Which chronicle is being read aloud: 'waiting' while a voice is found, then 'reading'.
@@ -1215,6 +1225,10 @@ function _chronicleAction(hall, t) {
         _chronicleKey = list[Math.max(0, Math.min(list.length - 1, i + Number(nav.dataset.chronicleNav)))]?.key || null;
     } else if (stone) {
         _chronicleKey = stone.dataset.chronicleKey;
+        _chronicleReveal = true;
+        _pulse(stone, 'is-picked');
+        _patchChronicle(hall, { replay: true });
+        return true;
     }
     _patchChronicle(hall);
     return true;
@@ -1270,6 +1284,7 @@ function _heraldNext(stage) {
     _herald.showing = true;
     const g = getGuildById(line.guildId) || {};
     const style = `--g1:${g.primary || '#6b7280'};--g2:${g.secondary || '#9ca3af'};--gg:${g.glow || '#e5e7eb'};`;
+    stage.closest('[data-gh="herald"]')?.setAttribute('style', style);
     const kicker = line.since ? '<small class="gh-herald__since">Since you last looked</small>' : '';
     _heraldSwap(stage, `${kicker}<span class="gh-herald__icon" aria-hidden="true">${line.icon}</span><span class="gh-herald__text">${_escapeHtml(line.text)}</span>`, `is-${line.tone}`, style);
     _herald.timer = setTimeout(() => (stage.isConnected ? _heraldNext(stage) : (_herald.showing = false)), _herald.queue.length ? 3200 : 4200);
@@ -1363,7 +1378,7 @@ function _wireHall(hall) {
     };
     hall.addEventListener('click', activate);
     hall.addEventListener('keydown', (e) => {
-        if ((e.key === 'Enter' || e.key === ' ') && e.target instanceof Element && e.target.matches('.gh-banner__crest')) {
+        if ((e.key === 'Enter' || e.key === ' ') && e.target instanceof Element && e.target.matches('.gh-banner__crest, .gh-stone[data-chronicle-key]')) {
             e.preventDefault();
             activate(e);
         }

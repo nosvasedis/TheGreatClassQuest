@@ -25,7 +25,7 @@ export const LEGENDARY_ARTIFACTS = [
     { id: 'leg_glory_crown', family: 'guild', form: 'Standard', name: 'Guild Standard', price: 75, description: "Your name flies on your guild's banner in the Guild Hall for the rest of this month's Chapter, plus +2 Glory.", icon: '🚩' },
     { id: 'leg_hourglass', family: 'wayfinder', form: 'Timer', name: 'Time Warp Hourglass', price: 25, description: "Adds 5 minutes to your class's running Bounty timers.", icon: '⏳' },
     { id: 'leg_pathfinder', family: 'wayfinder', form: 'Map', name: 'The Pathfinder’s Map', price: 60, description: `+${PATHFINDER_CLASS_QUEST_BONUS_STARS} Stars for your class's Team Quest. One map per class each month.`, icon: '🗺️' },
-    { id: 'leg_quill', family: 'story', form: 'Quill', name: "Archivist's Quill", price: 40, description: 'Your next Story Weaver class bonus gives you 1 star instead of half a star.', icon: '✒️' },
+    { id: 'leg_quill', family: 'story', form: 'Quill', name: "Archivist's Quill", price: 40, description: 'Your next Training Grounds class bonus (Story Weavers, Vanishing Hoard, Torn Map or Round Table) gives you 1 star instead of half a star.', icon: '✒️' },
     { id: 'leg_protagonist', family: 'story', form: 'Mask', name: 'The Mask of the Protagonist', price: 75, description: 'You are chosen as the next Hero of the Day in your class. One mask a month.', icon: '🎭' },
     { id: 'leg_kindness', family: 'heart', form: 'Locket', name: 'Kindness Locket', price: 28, description: "Your next 3 Hero's Boons cost 0 Gold.", icon: '💗' },
     { id: 'leg_compassion', family: 'heart', form: 'Token', name: 'Compassion Token', price: 55, description: "Every Hero's Boon you give costs 0 Gold for the rest of this month.", icon: '💝' },

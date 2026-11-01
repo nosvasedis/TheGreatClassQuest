@@ -31,7 +31,7 @@ export function awardStoryWeaverBonusStarToClass(classId) {
 
 /**
  * Gives every student in the class the Training Grounds bonus for one game: +0.5 stars
- * (+1 for Story Weavers with an Archivist's Quill), logged under the game's own reason so it
+ * (+1 with an Archivist's Quill, in any of the four games), logged under the game's own reason so it
  * never touches the daily skill award. Vanguards also get their Gold, skills and Hero Path.
  */
 export async function awardTrainingBonusToClass(classId, gameKey = 'story') {
@@ -53,7 +53,7 @@ export async function awardTrainingBonusToClass(classId, gameKey = 'story') {
         let awards = [];
 
         // A transaction (not read-then-batch) so a concurrent award cannot make
-        // us consume storyWeaverDoubleNext twice or from a stale read.
+        // us consume the Archivist's Quill (storyWeaverDoubleNext, kept name) twice or from a stale read.
         await runTransaction(db, async (transaction) => {
             awards = [];
             const scoreRefs = studentsInClass.map((student) => doc(db, `${publicDataPath}/student_scores`, student.id));
@@ -63,7 +63,7 @@ export async function awardTrainingBonusToClass(classId, gameKey = 'story') {
             studentsInClass.forEach((student, index) => {
                 const scoreRef = scoreRefs[index];
                 const scoreData = scoreSnaps[index].exists() ? scoreSnaps[index].data() : null;
-                const doubleNext = gameKey === 'story' && scoreData?.storyWeaverDoubleNext === true;
+                const doubleNext = scoreData?.storyWeaverDoubleNext === true;
                 const starAmount = doubleNext ? TRAINING_BONUS_STARS * 2 : TRAINING_BONUS_STARS;
 
                 const { levelUpInfo, totalStarsDelta } = applyReasonAwardScoreTransaction(transaction, {
@@ -75,7 +75,7 @@ export async function awardTrainingBonusToClass(classId, gameKey = 'story') {
                     awardedStars: starAmount
                 });
                 if (doubleNext) transaction.update(scoreRef, { storyWeaverDoubleNext: deleteField() });
-                awards.push({ student, starAmount, totalStarsDelta, levelUpInfo });
+                awards.push({ student, starAmount, totalStarsDelta, levelUpInfo, quill: doubleNext });
 
                 const logRef = doc(collection(db, `${publicDataPath}/award_log`));
                 transaction.set(logRef, withSchoolYear({
@@ -97,6 +97,10 @@ export async function awardTrainingBonusToClass(classId, gameKey = 'story') {
             reconcileFamiliarLifecycle(student.id, { announce: true, source: 'training-grounds' }).catch((e) => console.warn('Training Grounds familiar reconciliation failed:', e));
         });
         showToast(`${game.skillLabel} bonus stars awarded!`, "success");
+        const quillNames = awards.filter((a) => a.quill).map((a) => a.student.name.split(' ')[0]);
+        if (quillNames.length) {
+            setTimeout(() => showPraiseToast(`Archivist's Quill: a full star for ${quillNames.join(', ')}!`, '✒️'), 900);
+        }
 
         // Vanguards spread their gifts one at a time, so two never race on a classmate's Gold.
         (async () => {

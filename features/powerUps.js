@@ -366,7 +366,7 @@ const POWER_UP_EFFECTS = {
             feedback: {
                 icon: '✒️',
                 title: 'Quill charged',
-                body: `${student.name}'s next Story Weaver bonus will be worth double stars.`
+                body: `${student.name}'s next Training Grounds bonus will be a full star.`
             }
         };
     },

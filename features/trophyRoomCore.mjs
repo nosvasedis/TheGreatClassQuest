@@ -134,7 +134,7 @@ export function buildActiveEffects(scoreData, monthKey) {
     const charges = Number(s.gloryBannerCharges) || 0;
     if (charges > 0) effects.push({ icon: '⚜️', artId: 'leg_glory_banner', title: 'Pennant of Glory', body: `${charges} star${charges === 1 ? '' : 's'} left with +1 bonus Guild Glory.` });
     if (s.fortuneFavorArmed) effects.push({ icon: '🎡', artId: 'leg_bulwark', title: "Fortune's Favor", body: "Your guild's next Fortune's Wheel here is gilded." });
-    if (s.storyWeaverDoubleNext) effects.push({ icon: '✒️', artId: 'leg_quill', title: "Archivist's Quill", body: 'Next Story Weaver bonus is a full star.' });
+    if (s.storyWeaverDoubleNext) effects.push({ icon: '✒️', artId: 'leg_quill', title: "Archivist's Quill", body: 'Next Training Grounds bonus is a full star.' });
     if ((Number(s.aurumVoucherPercent) || 0) > 0 && s.aurumVoucherMonth === monthKey) {
         const pct = Number(s.aurumVoucherPercent);
         effects.push({ icon: pct >= 50 ? '💰' : '👝', artId: pct >= 50 ? 'leg_aurum' : 'leg_aurum_silver', title: pct >= 50 ? 'Aurum Satchel' : 'Silver Satchel', body: `${pct}% off the next Mystic Market buy this month.` });

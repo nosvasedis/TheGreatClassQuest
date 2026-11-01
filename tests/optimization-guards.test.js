@@ -138,8 +138,9 @@ test('device cache choice uses role-appropriate wording and never forces a disru
   assert.doesNotMatch(app, /stageLoadingPersonalization\([\s\S]{0,160}offerDeviceCacheChoice\(/);
   // The prompt must wait for the loading screen to fully settle (so it never
   // overlaps the personalized "Welcome" moment) before it can appear, and it
-  // must be told which role is signed in so the wording matches.
-  assert.match(app, /await routeAuthenticatedParent\([\s\S]{0,200}waitForLoadingScreenSettled\(loadingScreen\)[\s\S]{0,120}offerDeviceCacheChoice\(profile\.role\)/);
+  // must be told which role is signed in so the wording matches. (Other idle work,
+  // such as warming the sound engine, may sit between the two lines.)
+  assert.match(app, /await routeAuthenticatedParent\([\s\S]{0,200}waitForLoadingScreenSettled\(loadingScreen\)[\s\S]{0,240}offerDeviceCacheChoice\(profile\.role\)/);
   assert.match(app, /await routeAuthenticatedTeacher\([\s\S]{0,300}waitForLoadingScreenSettled\(loadingScreen\)[\s\S]{0,120}offerDeviceCacheChoice\(profile\.role\)/);
 });
 

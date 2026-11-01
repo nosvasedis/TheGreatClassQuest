@@ -4,6 +4,7 @@
 import { bossSvg, bossFrontSvg, arenaSvg, shieldSvg, raysSvg, crackSvg, peaksSvg } from '../../features/realmRaidArt.mjs';
 import { RAID_REWARDS, LEGENDARY_AT, RAID_EFFORT, RAID_LENGTH_DAYS, guardianMood, raidCountdown, readDate, raidDays, dayKey, raidDayPlan } from '../../features/realmRaidCore.mjs';
 import { LEAGUE_JOBS, leagueJob, wordTier, battleMessages, battleTitle, bossLine, caption } from '../../features/realmRaidBattle.mjs';
+import { sceneHtml } from '../../features/realmRaidScene.mjs';
 import { heroSpriteSvg, partyFormation } from '../../features/realmRaidParty.mjs';
 
 export function esc(value) {
@@ -343,7 +344,7 @@ function unitHtml(row, spot, { focusId = '', phase = 'active', tier = 'mid', i =
     const away = !row.share;
     const words = `${row.name}, ${job.job}: ${fmt(row.stars)}${row.share ? ` of ${fmt(row.share)}` : ''} stars${row.valor ? ', shard broken' : ''}`;
     return `<button type="button" class="rr-unit${row.classId === focusId ? ' is-focus' : ''}${row.valor ? ' is-full' : ''}${away ? ' is-away' : ''}${row.own ? ' is-own' : ''}" data-banner="${esc(row.classId)}"
-        style="left:${spot.x}%;top:${spot.y}%;--h:${spot.h};z-index:${spot.z};--i:${i};${jobStyle(job)}" aria-label="${esc(words)}" title="${esc(words)}">
+        style="left:${spot.x}%;top:${spot.y}%;--h:${spot.h};--d:${(spot.y / 100).toFixed(3)};z-index:${spot.z};--i:${i};${jobStyle(job)}" aria-label="${esc(words)}" title="${esc(words)}">
         <span class="rr-unit__body">
             <span class="rr-unit__sprite">${heroSpriteSvg(job)}</span>
             <span class="rr-unit__flag" aria-hidden="true">${esc(row.logo)}</span>
@@ -400,7 +401,7 @@ export function hallHtml(view, { focusId = '', heroCard = null, canReveal = fals
             ${toolsHtml(view, { year, musicOn })}
         </header>
         <div class="rr-field">
-            <span class="rr-ground" aria-hidden="true"></span>
+            ${sceneHtml(season.id, { id: 'rrscene', lite })}
             ${partyHtml(view, focusId, tier)}
             <div class="rr-bossside">
                 <div class="rr-arena rr-stage">

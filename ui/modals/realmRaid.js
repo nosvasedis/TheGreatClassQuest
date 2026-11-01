@@ -122,6 +122,7 @@ function render(view) {
         hall.roundSeen = seen;
     }
     layoutParty();
+    followPointer();
     fitAlliance();
     if (intro) setTimeout(() => hall?.root.querySelector('.rr-intro')?.remove(), 2600);
     syncMusic(view);
@@ -162,9 +163,34 @@ function layoutParty() {
         unit.style.left = `${spot.x}%`;
         unit.style.top = `${spot.y}%`;
         unit.style.setProperty('--h', spot.h);
+        unit.style.setProperty('--d', (spot.y / 100).toFixed(3));
         unit.style.zIndex = spot.z;
     });
     party.classList.toggle('is-tiny', (spots[0]?.h || 0) * box.height / 100 < 70);
+}
+
+/**
+ * The camera follows the mouse a little: each layer of the place moves by a different amount, so
+ * the field has depth. Only with a mouse, and never on the lite tier.
+ */
+function followPointer() {
+    const field = hall?.root.querySelector('.rr-field');
+    if (!field || hall.lite || !window.matchMedia?.('(hover: hover) and (pointer: fine)').matches) return;
+    let frame = 0;
+    const host = hall.root;
+    host.onpointermove = (event) => {
+        if (frame) return;
+        frame = requestAnimationFrame(() => {
+            frame = 0;
+            const f = host.querySelector('.rr-field');
+            if (!f) return;
+            const r = f.getBoundingClientRect();
+            const x = Math.max(-1, Math.min(1, ((event.clientX - r.left) / r.width) * 2 - 1));
+            const y = Math.max(-1, Math.min(1, ((event.clientY - r.top) / r.height) * 2 - 1));
+            f.style.setProperty('--px', x.toFixed(3));
+            f.style.setProperty('--py', y.toFixed(3));
+        });
+    };
 }
 
 /** When the alliance is longer than its window, it rolls slowly up and back (not on the lite tier). */
@@ -197,6 +223,16 @@ function syncMusic(view) {
  * Stars that arrived since the last render: each class that struck casts its league's skill. The
  * skill flies from its row in the alliance to its shard, the boss flinches, the number pops.
  */
+/** Plays a one-off class on an element again from the start (the camera push, the shake). */
+function kick(el, cls, ms) {
+    if (!el) return;
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+    clearTimeout(el[`_${cls}`]);
+    el[`_${cls}`] = setTimeout(() => el.classList.remove(cls), ms);
+}
+
 function strike(before, after, { lite = false } = {}) {
     const prev = new Map(before.rows.map((r) => [r.classId, r.stars]));
     const gains = after.rows
@@ -227,6 +263,7 @@ function strike(before, after, { lite = false } = {}) {
             from.classList.remove('is-acting');
             void from.offsetWidth;
             from.classList.add('is-acting');
+            if (!lite) kick(root.querySelector('.rr-field'), 'is-cam', 1150);
             if (cast) {
                 cast.innerHTML = '';
                 const line = document.createElement('div');
@@ -293,6 +330,7 @@ function strike(before, after, { lite = false } = {}) {
                 to.classList?.add('is-hit');
                 setTimeout(() => to.classList?.remove('is-hit'), 600);
             }
+            if (big && !lite) kick(root.querySelector('.rr-field'), 'is-shake', 420);
             arena?.classList.remove('is-struck');
             void arena?.offsetWidth;
             arena?.classList.add('is-struck');

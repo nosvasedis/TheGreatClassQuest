@@ -448,6 +448,52 @@ function fieldTrim(seasonId, c) {
 }
 
 /**
+ * The gate Eldhorn guards, standing behind him (he is the Warden of the Winter Gate, the Keeper of
+ * the Masked Gate, the Guardian of the Sun Gate). Drawn darker than him so he stays the brightest
+ * thing on the field; its top rises above the stage box (the svg does not clip).
+ */
+function gateSvg(seasonId, c, id) {
+    const shade = `url(#${id}-gate)`;
+    const rim = c.stoneLight;
+    if (seasonId === 'carnival') {
+        const tower = (x) => `<rect x="${x - 46}" y="40" width="92" height="${FLOOR_Y - 40}" fill="${shade}"/>
+            <rect x="${x - 46}" y="40" width="10" height="${FLOOR_Y - 40}" fill="${rim}" opacity=".18"/>
+            <path d="M${x - 54},44 Q${x},-90 ${x + 54},44 Z" fill="${c.mantle}"/>
+            <path d="M${x - 54},44 Q${x},-90 ${x},-46 Z" fill="#ffffff" opacity=".12"/>
+            <path d="M${x},-48 l0,-34" stroke="${c.trim}" stroke-width="5"/><circle cx="${x}" cy="-88" r="8" fill="${c.trim}"/>
+            ${[150, 260, 370].map((y) => `<rect class="rr-scene__window" x="${x - 12}" y="${y}" width="24" height="40" rx="12" fill="#fcd34d" opacity=".85"/>`).join('')}`;
+        return `<g class="rr-arena__gate">${tower(150)}${tower(850)}
+            <path d="M196,${FLOOR_Y} L196,170 Q500,-40 804,170 L804,${FLOOR_Y} L760,${FLOOR_Y} L760,200 Q500,30 240,200 L240,${FLOOR_Y} Z" fill="${shade}"/>
+            <path d="M196,170 Q500,-40 804,170" fill="none" stroke="${c.trim}" stroke-width="6" opacity=".8"/>
+            <path d="M240,200 Q330,330 300,${FLOOR_Y} L240,${FLOOR_Y} Z M760,200 Q670,330 700,${FLOOR_Y} L760,${FLOOR_Y} Z" fill="${c.mantleLight}" opacity=".85"/>
+            <g transform="translate(500 58) scale(2.4)">${sigilShape(seasonId, c.trim, c)}</g></g>`;
+    }
+    if (seasonId === 'summer') {
+        const column = (x) => `<rect x="${x - 26}" y="150" width="52" height="${FLOOR_Y - 150}" fill="${shade}"/>
+            <rect x="${x - 26}" y="150" width="9" height="${FLOOR_Y - 150}" fill="${rim}" opacity=".3"/>
+            ${[-12, 0, 12].map((d) => `<path d="M${x + d},160 L${x + d},${FLOOR_Y - 10}" stroke="${c.stoneDeep}" stroke-width="2" opacity=".35"/>`).join('')}
+            <rect x="${x - 36}" y="132" width="72" height="20" rx="4" fill="${shade}"/>`;
+        return `<g class="rr-arena__gate">${[150, 270, 730, 850].map(column).join('')}
+            <rect x="100" y="104" width="800" height="32" fill="${shade}"/>
+            <path d="M90,106 L500,-34 L910,106 Z" fill="${shade}"/>
+            <path d="M90,106 L500,-34 L910,106" fill="none" stroke="${rim}" stroke-width="5" opacity=".45"/>
+            <g transform="translate(500 50)"><circle r="40" fill="${c.trim}" opacity=".9"/>${Array.from({ length: 12 }, (_, i) => `<rect x="-4" y="-62" width="8" height="16" rx="4" fill="${c.trim}" transform="rotate(${i * 30})"/>`).join('')}</g></g>`;
+    }
+    // Winter: two towers of ice and stone with an arch between them.
+    const tower = (x) => `<rect x="${x - 50}" y="70" width="100" height="${FLOOR_Y - 70}" fill="${shade}"/>
+        <rect x="${x - 50}" y="70" width="12" height="${FLOOR_Y - 70}" fill="${rim}" opacity=".2"/>
+        ${[-50, -16, 18].map((d) => `<rect x="${x + d}" y="48" width="32" height="26" fill="${shade}"/>`).join('')}
+        <path d="M${x - 40},50 L${x},-70 L${x + 40},50 Z" fill="${c.glass}" opacity=".8"/>
+        <path d="M${x},-70 L${x + 40},50 L${x + 8},50 Z" fill="#ffffff" opacity=".35"/>
+        ${[180, 320].map((y) => `<rect class="rr-scene__window" x="${x - 11}" y="${y}" width="22" height="34" rx="11" fill="#fcd34d" opacity=".85"/>`).join('')}`;
+    return `<g class="rr-arena__gate">${tower(150)}${tower(850)}
+        <path d="M200,${FLOOR_Y} L200,190 Q500,-10 800,190 L800,${FLOOR_Y} L752,${FLOOR_Y} L752,220 Q500,64 248,220 L248,${FLOOR_Y} Z" fill="${shade}"/>
+        <path d="M200,190 Q500,-10 800,190" fill="none" stroke="#eef8ff" stroke-width="10" opacity=".85"/>
+        ${Array.from({ length: 9 }, (_, i) => { const t = (i + 0.5) / 9; const x = 248 + t * 504; const y = 220 - Math.sin(t * Math.PI) * 156; return `<path d="M${n1(x - 7)},${n1(y)} L${n1(x)},${n1(y + 22 + (i % 3) * 10)} L${n1(x + 7)},${n1(y)} Z" fill="#eef8ff" opacity=".9"/>`; }).join('')}
+        <g transform="translate(500 70) scale(2)">${sigilShape(seasonId, '#eef8ff', c)}</g></g>`;
+}
+
+/**
  * The battlefield Eldhorn stands on (replaces the old Gate): a round stage with a turning magic
  * circle, a beam of light on the boss, two season standards and the season's trim. Same 1000 × 820
  * frame as before. `lit` turns the circle gold once the shield is broken.
@@ -469,10 +515,14 @@ export function arenaSvg(seasonId = 'winter', { id = 'rrarena', lit = false } = 
             <linearGradient id="${id}-lip" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0" stop-color="${c.stone}"/><stop offset="1" stop-color="${c.stoneDeep}"/>
             </linearGradient>
+            <linearGradient id="${id}-gate" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="${c.stoneDeep}"/><stop offset="1" stop-color="${c.peakNear}"/>
+            </linearGradient>
             <radialGradient id="${id}-pool" cx=".5" cy=".5" r=".5">
                 <stop offset="0" stop-color="${lit ? '#fde68a' : c.aura}" stop-opacity=".75"/><stop offset="1" stop-color="${c.aura}" stop-opacity="0"/>
             </radialGradient>
         </defs>
+        <g transform="translate(0 ${FLOOR_Y}) scale(1 .9) translate(0 -${FLOOR_Y})">${gateSvg(seasonId, c, id)}</g>
         <path class="rr-arena__beam" d="M400,0 L600,0 L760,${FLOOR_Y} L240,${FLOOR_Y} Z" fill="url(#${id}-beam)"/>
         ${standard(seasonId, c, 110, 0)}${standard(seasonId, c, 890, 1)}
         ${fieldTrim(seasonId, c)}

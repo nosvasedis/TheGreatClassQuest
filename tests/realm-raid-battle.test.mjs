@@ -95,3 +95,17 @@ test('captions are short and fit the class', async () => {
     assert.equal(caption('round', 'senior', { n: 4 }), 'Round 4');
     assert.equal(caption('big', 'young'), 'WOW!');
 });
+
+test('every season has a place to fight in, drawn the same each time', async () => {
+    const { sceneHtml } = await import('../features/realmRaidScene.mjs');
+    const { arenaSvg } = await import('../features/realmRaidArt.mjs');
+    for (const season of ['winter', 'carnival', 'summer']) {
+        const html = sceneHtml(season);
+        for (const layer of ['rr-scene__far', 'rr-scene__mid', 'rr-scene__floor', 'rr-scene__near']) assert.ok(html.includes(layer), `${season} ${layer}`);
+        assert.ok(!/NaN|undefined/.test(html), `${season} scene numbers`);
+        assert.equal(sceneHtml(season), html, `${season} scene is stable`);
+        const arena = arenaSvg(season);
+        assert.ok(arena.includes('rr-arena__gate') && !/NaN|undefined/.test(arena), `${season} gate`);
+    }
+    assert.ok(sceneHtml('winter', { lite: true }).includes('is-still'));
+});

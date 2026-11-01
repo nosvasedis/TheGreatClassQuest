@@ -231,7 +231,7 @@
     inset: 0;
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1.25fr);
-    grid-template-rows: auto minmax(0, 1fr) clamp(11rem, 31vh, 17rem);
+    grid-template-rows: auto minmax(0, 1fr) calc(clamp(11rem, 31vh, 17rem) * var(--rr-z, 1));
     grid-template-areas: "top top top" "field field field" "rounds ally stat";
     gap: clamp(.4rem, 1vh, .8rem) clamp(.5rem, 1vw, .9rem);
     padding: clamp(.5rem, 1.2vh, .9rem) clamp(.6rem, 1.3vw, 1.2rem);
@@ -313,18 +313,37 @@
 
 /* The battlefield: the classes on the left, Eldhorn on the right */
 .rr-field { grid-area: field; position: relative; min-height: 0; min-width: 0; container-type: size; }
-.rr-ground {
-    position: absolute; left: -1rem; right: -1rem; bottom: -.4rem; height: 64%;
-    border-radius: 50% 50% 0 0 / 12% 12% 0 0;
-    background:
-        repeating-linear-gradient(90deg, transparent 0 6%, rgba(255, 255, 255, .05) 6% 6.4%),
-        linear-gradient(180deg, var(--rr-floor1, rgba(255, 255, 255, .16)), var(--rr-floor2, rgba(0, 0, 0, .35)));
-    box-shadow: inset 0 3px 0 rgba(255, 255, 255, .22);
-    pointer-events: none;
-}
-.rr-hall--winter { --rr-floor1: rgba(207, 234, 255, .4); --rr-floor2: rgba(12, 30, 70, .7); }
-.rr-hall--carnival { --rr-floor1: rgba(240, 171, 252, .32); --rr-floor2: rgba(40, 8, 60, .75); }
-.rr-hall--summer { --rr-floor1: rgba(253, 224, 140, .38); --rr-floor2: rgba(80, 24, 40, .7); }
+/* The place: far, middle, floor and near layers that move apart when the camera moves (2.5D). */
+@property --rr-cam { syntax: '<number>'; inherits: true; initial-value: 0; }
+.rr-field { --px: 0; --py: 0; --rr-cam: 0; }
+.rr-scene { position: absolute; inset: 0 -1rem -.4rem; overflow: hidden; pointer-events: none; }
+.rr-scene__layer { position: absolute; will-change: transform; transition: translate .6s cubic-bezier(.2, .7, .3, 1); }
+.rr-scene__layer svg { display: block; width: 100%; height: 100%; }
+.rr-scene__far { left: -3%; right: -3%; bottom: 63.5%; height: 32%; opacity: .9; translate: calc(var(--px) * -6px - var(--rr-cam) * 6px) calc(var(--py) * -2px); }
+.rr-scene__mid { left: -4%; right: -4%; bottom: 63%; height: 28%; translate: calc(var(--px) * -12px - var(--rr-cam) * 14px) calc(var(--py) * -4px); }
+.rr-scene__floor { left: -5%; right: -5%; top: 36%; bottom: 0; translate: calc(var(--px) * -16px - var(--rr-cam) * 22px) calc(var(--py) * -5px); box-shadow: inset 0 3px 0 rgba(255, 255, 255, .25); }
+.rr-scene__near { left: -2%; right: -2%; bottom: 0; height: 22%; translate: calc(var(--px) * -28px - var(--rr-cam) * 40px) calc(var(--py) * -8px); }
+.rr-scene__near svg { position: absolute; bottom: 0; height: 100%; width: auto; aspect-ratio: 320 / 200; opacity: .95; filter: blur(1.2px) saturate(.9) brightness(.85); }
+.rr-scene__near-l { left: 0; }
+.rr-scene__near-r { right: 0; }
+.rr-scene__vignette { position: absolute; inset: 0; background: radial-gradient(120% 90% at 55% 60%, transparent 55%, rgba(2, 6, 23, .45) 100%); }
+.rr-scene--winter .rr-scene__mid { filter: drop-shadow(0 -2px 0 rgba(238, 248, 255, .25)); }
+.rr-scene__wheel { transform-box: view-box; transform-origin: 1180px 132px; animation: rr-rays-turn 60s linear infinite; }
+.rr-scene__window, .rr-scene__lamp, .rr-scene__bulb { animation: rr-scene-glow 3.2s ease-in-out infinite; animation-delay: calc(var(--i, 0) * -.7s); }
+.rr-scene__bulb { animation-duration: 1.6s; }
+.rr-scene__glint { animation: rr-scene-glint 2.8s ease-in-out infinite; animation-delay: calc(var(--i, 0) * -.45s); }
+.rr-scene__boat { animation: rr-scene-boat 40s linear infinite alternate; }
+.rr-scene__beacon { animation: rr-scene-glow 1.4s ease-in-out infinite; }
+@keyframes rr-scene-glow { 0%, 100% { opacity: .95; } 50% { opacity: .55; } }
+@keyframes rr-scene-glint { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+@keyframes rr-scene-boat { from { transform: translateX(-120px); } to { transform: translateX(260px); } }
+/* The camera: a short push toward Eldhorn on every cast, a shake on a big hit. */
+.rr-field.is-cam { animation: rr-cam 1.1s cubic-bezier(.3, .6, .3, 1); }
+@keyframes rr-cam { 0% { --rr-cam: 0; } 35% { --rr-cam: 1; } 100% { --rr-cam: 0; } }
+.rr-field.is-shake .rr-scene, .rr-field.is-shake .rr-bossside { animation: rr-shake .38s steps(6, end); }
+@keyframes rr-shake { 0%, 100% { transform: none; } 20% { transform: translate(-6px, 2px); } 40% { transform: translate(5px, -3px); } 60% { transform: translate(-4px, 1px); } 80% { transform: translate(3px, -1px); } }
+.rr-party { translate: calc(var(--px) * -18px - var(--rr-cam) * 26px) calc(var(--py) * -5px); transition: translate .6s cubic-bezier(.2, .7, .3, 1); }
+.rr-bossside { translate: calc(var(--px) * -14px + var(--rr-cam) * 8px) calc(var(--py) * -4px); transition: translate .6s cubic-bezier(.2, .7, .3, 1); }
 .rr-bossside { position: absolute; right: 0; bottom: 0; width: min(48%, 112cqh); }
 .rr-arena { width: 100%; }
 .rr-bubble {
@@ -334,22 +353,22 @@
     padding: .35rem .7rem;
     border-radius: .9rem .9rem .9rem .2rem;
     background: #fff; color: #1e293b;
-    font: 400 clamp(.85rem, 1.35vw, 1.15rem)/1.2 'Fredoka One', sans-serif;
+    font: 400 clamp(.85rem, 1.35vw, calc(1.15rem * var(--rr-z, 1)))/1.2 'Fredoka One', sans-serif;
     box-shadow: 0 4px 0 rgba(2, 6, 23, .35);
     animation: rr-pop .5s cubic-bezier(.2, 1.4, .4, 1) .3s both;
     z-index: 3;
 }
 .rr-bubble::after { content: ''; position: absolute; right: 18%; bottom: -10px; border: 8px solid transparent; border-top-color: #fff; border-bottom: 0; }
-.rr-tier--young .rr-bubble { font-size: clamp(1rem, 1.6vw, 1.35rem); }
+.rr-tier--young .rr-bubble { font-size: clamp(1rem, 1.6vw, calc(1.35rem * var(--rr-z, 1))); }
 .rr-party { position: absolute; left: 1%; top: 12%; bottom: 2%; right: calc(min(48%, 112cqh) + 3%); container-type: size; }
 .rr-unit {
     position: absolute;
     translate: -50% -50%;
-    height: calc(var(--h) * 1%);
+    height: calc(var(--h) * 1% * (.84 + .16 * var(--d, 1)));
     aspect-ratio: 100 / 150;
     display: flex; flex-direction: column; align-items: center;
     padding: 0; border: 0; background: none; color: #fff;
-    font-size: clamp(9px, calc(var(--h) * .085cqh), 16px);
+    font-size: clamp(9px, calc(var(--h) * .085cqh), calc(16px * var(--rr-z, 1)));
     cursor: pointer;
 }
 .rr-unit__body { position: relative; width: 100%; flex: 1 1 auto; min-height: 0; }
@@ -861,9 +880,13 @@
 .rr-lite .rr-unit__zz,
 .rr-lite .rr-u__svg *,
 .rr-lite .rr-round__bar,
+.rr-lite .rr-scene *,
 .rr-lite .rr-vparty__sprite { animation: none !important; }
 .rr-lite .rr-unit.is-acting .rr-unit__sprite { animation: rr-lunge .5s ease-out !important; }
 .rr-lite .rr-unit.is-full .rr-unit__sprite { filter: none; }
+.rr-lite .rr-scene__near svg { filter: brightness(.85); }
+.rr-lite .rr-field.is-cam, .rr-lite .rr-field.is-shake .rr-scene, .rr-lite .rr-field.is-shake .rr-bossside { animation: none; }
+.rr-lite .rr-scene__layer, .rr-lite .rr-party, .rr-lite .rr-bossside { translate: none; transition: none; will-change: auto; }
 .rr-lite .rr-g__lid { transform: scaleY(0); }
 .rr-lite .rr-crest { box-shadow: 0 0 0 2px rgba(2, 6, 23, .7); }
 .rr-lite .rr-win { box-shadow: 0 0 0 2px rgba(2, 6, 23, .8); }
@@ -882,3 +905,18 @@
     .rr-victory__flash, .rr-victory__wave, .rr-victory__burst, .rr-victory__coins, .rr-victory__cracks, .rr-sky__fw, .rr-stage__rays { display: none; }
     .rr-g__lid { transform: scaleY(0) !important; }
 }
+
+/* Big screens and projectors: the windows grow with the screen, so words stay readable from the back of the room. */
+@media (min-width: 1700px) and (min-height: 900px) { .rr-hall, .rr-victory { --rr-z: 1.2; } }
+@media (min-width: 2200px) and (min-height: 1200px) { .rr-hall, .rr-victory { --rr-z: 1.5; } }
+.rr-hall > .rr-top, .rr-hall > .rr-win, .rr-help__card, .rr-victory__copy { zoom: var(--rr-z, 1); }
+
+/* Buttons: one clear look for hover, press and keyboard focus everywhere in the raid. */
+.rr-icon-btn:focus-visible, .rr-year__dot:focus-visible, .rr-cmd:focus-visible { outline: 3px solid #fde68a; outline-offset: 2px; }
+.rr-icon-btn:active, .rr-year__dot:active, .rr-cmd:active { transform: translateY(1px) scale(.96); transition-duration: .05s; }
+.rr-icon-btn:hover { box-shadow: 0 0 0 2px rgba(2, 6, 23, .8), 0 0 14px rgba(253, 230, 138, .45); }
+.rr-unit:focus-visible .rr-unit__sprite { filter: drop-shadow(0 0 6px #fde68a); }
+.rr-unit:hover .rr-unit__body { translate: 0 -3%; transition: translate .15s ease; }
+.rr-ally__row:focus-visible { box-shadow: inset 0 0 0 2px #fde68a; }
+@media (max-width: 560px) { .rr-tools .rr-icon-btn { width: 2.35rem; height: 2.35rem; } }
+@media (hover: none) { .rr-unit:hover .rr-unit__body { translate: none; } }

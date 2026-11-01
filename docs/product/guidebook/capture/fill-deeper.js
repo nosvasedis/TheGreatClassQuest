@@ -776,13 +776,13 @@ export function showDayPlanner(tabName = 'schedule', eventKind = 'standard') {
                 </article>`;
   }
   const select = document.getElementById('add-onetime-lesson-select');
-  if (select) select.innerHTML = '<option value="senior-a" data-logo="🦉" selected>Senior A</option>';
+  if (select) select.innerHTML = '<option value="b-owls" data-logo="🦉" selected>B Owls</option>';
   const onetimeChips = document.getElementById('schedule-onetime-chips');
   if (onetimeChips) {
     onetimeChips.innerHTML = `
-        <button type="button" class="quest-event-class-chip quest-event-class-chip--selected" data-onetime-class="senior-a" aria-pressed="true">
+        <button type="button" class="quest-event-class-chip quest-event-class-chip--selected" data-onetime-class="b-owls" aria-pressed="true">
             <span class="quest-event-class-chip__logo" aria-hidden="true">🦉</span>
-            <span>Senior A</span>
+            <span>B Owls</span>
         </button>`;
   }
   document.getElementById('schedule-onetime-empty')?.classList.add('hidden');

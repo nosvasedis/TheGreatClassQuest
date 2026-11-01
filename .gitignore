@@ -73,6 +73,7 @@ docs/*
 docs/product/*
 !docs/product/00-why-we-quest.md
 !docs/product/00-the-quest.md
+!docs/product/00-year-journey.md
 !docs/product/teacher/
 docs/product/teacher/*
 !docs/product/teacher/*.md
@@ -99,6 +100,8 @@ docs/product/guidebook/*
 !docs/product/guidebook/stars.mjs
 !docs/product/guidebook/stage-site.mjs
 !docs/product/guidebook/terms.mjs
+!docs/product/guidebook/year-journey.mjs
+!docs/product/guidebook/year-journey-view.mjs
 !docs/product/guidebook/capture/
 docs/product/guidebook/capture/*
 !docs/product/guidebook/capture/*.html

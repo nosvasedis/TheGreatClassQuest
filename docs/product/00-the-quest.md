@@ -80,4 +80,4 @@ On a phone, the tabs sit in a bank of five clouds. The details are at the end of
 
 ## Where to go next
 
-Open **The classroom screen** for the header, the cloud dock and the Projector wallpaper, then **Award Stars** for the lesson itself. Keep **Why we Quest** beside you whenever a name or ritual feels like “just another score.”
+Open **The classroom screen** for the header, the cloud dock and the Projector wallpaper, then **Award Stars** for the lesson itself. Keep **Why we Quest** beside you whenever a name or ritual feels like “just another score.” To bring the Quest into your classes step by step over the year, follow [Your Year of Quest](00-year-journey.md).

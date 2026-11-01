@@ -73,8 +73,6 @@ You **confirm** the suggestions together in one window, a night window where a f
 
 **When you mark at home.** Starfall is meant to be seen by the class. If you log marks **outside the class's lesson** (at home, or between lessons), the stars are not given yet. A notice tells you who earned a Starfall and that the stars will **wait for the class's next lesson**. In that lesson the Scholar's Scroll shows **Stars are waiting in the sky!** with a **Call down the Starfall** button: press it in front of the class and the usual Starfall window opens. If you would rather not wait, **Bestow now instead** (on the notice) or **Bestow now** gives the stars straight away, and the **×** lets the waiting stars go. Marking during the lesson, or for a class with no timetable, opens the Starfall at once, as before.
 
-**Starfall Catalyst** (Market) doubles that student’s next high-test bonus, then clears.
-
 Scholar’s Bonus is what levels up the **Scholar** Hero Path (Pro). Birthday and nameday bonuses use the same label in the award log, but Starfall is the academic route.
 
 ## How this feeds the rest of the Quest

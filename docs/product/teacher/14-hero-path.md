@@ -12,7 +12,7 @@ Base perk for every class: **+10 Gold** when the award reason matches their voca
 
 A coloured **aura ring** appears on leaderboards from **level 3**.
 
-When a new level opens, the Skill Tree button **pulses** on the roster until they pick **one of two** permanent branches.
+When a new level opens, the **LEVEL UP!** moment plays on the projector in the class colour: the medallion rises, the rank ladder climbs, the new title unfurls on a ribbon, then the two skill paths of the new level. Tap to skip to the end. Several level-ups at once play one after another (**Next hero**). The Skill Tree button then **pulses** on the roster until they pick **one of two** permanent branches.
 
 ## How you assign a class
 
@@ -155,7 +155,7 @@ Levels from **giving** Hero's Boon, not from receiving it. Three tiers. The firs
 | 2 (20) | **Guild Alms** — +3 Gold to your guildmates when you give | **First Mercy** — first gift this month: guildmates +7 Gold |
 | 3 (30) | **Grand Patron's Purse** — +5 Gold to you (net cost **0** with the class +10) and +3 Gold to the receiver | **Overflowing Heart** — the gift is **+1 bonus star** to the receiver (1.5 instead of 0.5) |
 
-The skills on this path return at most +5 Gold to the giver, so a gift never makes a **profit**. Compassion Token free gifts still count for the path when they are the first gift that calendar week.
+The skills on this path return at most +5 Gold to the giver, so a gift never makes a **profit**. Free gifts (Kindness Locket, Compassion Token) still count for the path when they are the first gift that calendar week.
 
 ## 👑 The Legend Quest — the capstone
 

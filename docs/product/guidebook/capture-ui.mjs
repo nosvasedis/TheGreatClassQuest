@@ -106,7 +106,10 @@ try {
   await page.evaluate(() => document.getElementById('bottom-nav-bar')?.classList.remove('cloud-dock--asleep'));
   await shot(page.locator('#bottom-nav-bar'), 'nav-dock.png');
   await waitForCloudArt(page);
+  // The Hero of the Day stage is already up for its own shot; keep it off the cloud.
+  await page.evaluate(() => document.getElementById('hero-celebration-modal')?.style.setProperty('display', 'none', 'important'));
   await shot(page.locator('#capture-cloud-frame'), 'award-cloud.png');
+  await page.evaluate(() => document.getElementById('hero-celebration-modal')?.style.removeProperty('display'));
 
   await page.evaluate(() => {
     document.getElementById('app-screen')?.classList.add('hidden');
@@ -293,6 +296,23 @@ try {
   await captureExtra('Wand: lesson', () => window.__gcqCapture.showWand('lesson'), '#capture-quest-remote .qw', 'wand-lesson.png');
   await captureExtra('Wand: team forge', () => window.__gcqCapture.showWand('forge'), '#capture-quest-remote .qw', 'wand-forge.png');
   await page.evaluate(() => window.__gcqCapture.hideRemote());
+
+  // The living Team Quest map, from its own preview page (fake league, morning, partly cloudy).
+  try {
+    const mapPage = await browser.newPage({ viewport: { width: 1440, height: 980 }, deviceScaleFactor: 2 });
+    await mapPage.goto(`http://127.0.0.1:${port}/quest-world-preview.html`, { waitUntil: 'load', timeout: 90000 });
+    await mapPage.selectOption('#pv-time', 'morning');
+    await mapPage.waitForFunction(() => document.querySelector('[data-quest-world]')?.dataset.paint, null, { timeout: 30000 });
+    await mapPage.addStyleTag({ content: '.pv-toolbar, .pv-note { display: none !important; }' });
+    await mapPage.mouse.move(0, 0);
+    // The land paints in from an ink sketch; let it finish, and shoot without freezing animations.
+    await mapPage.waitForTimeout(7000);
+    await mapPage.locator('[data-quest-world]').first().screenshot({ path: path.join(OUT, 'quest-world.png'), type: 'png' });
+    await mapPage.close();
+  } catch (err) {
+    console.warn('Quest World capture skipped:', err.message);
+  }
+
 
   console.log('Captured UI chrome into', OUT);
 } finally {

@@ -21,7 +21,7 @@ Use these names exactly, in the classroom and when you talk to parents. Mixing t
 | **Hero’s Boon** (peer) | Classmate spends Gold for **+0.5** stars. Patron Hero Path: one path point per calendar week you give. | Teacher Boon; Hero of the Day +1; Patron (the vocation, not the gift) |
 | **Includes Hero’s Boon (+1)** | Automatic extra star on the reigning hero’s **first** award | Peer gift |
 | **Teacher Boon** | Your 2-star gift from the rose-gold gift seal on Award Stars, last week of the month, once per class | Peer boon |
-| **Patron** | Hero Path class that levels by giving Hero's Boon (one path point per calendar week) | The Herald's Banner (Market artifact); receiving a boon |
+| **Patron** | Hero Path class that levels by giving Hero's Boon (one path point per calendar week) | The Hero's Heart relics (Kindness Locket, Compassion Token: free boons); receiving a boon |
 | **Welcome Back** | Return bonus after absence | Nomad path (levels from it) |
 | **Scholar’s Bonus** | Usually Starfall after a high trial | Award Stars reason button (there isn’t one) |
 | **Growth Starfall** | Scholar’s Bonus (+0.5) for a jump of 15+ points above a student’s own recent average; once a month | Classic Starfall (≥ 95% tests) |
@@ -74,7 +74,7 @@ Use these names exactly, in the classroom and when you talk to parents. Mixing t
 | **Quest Remote / the Wand** | Pro: the teacher's phone commands the projector (stars, crown, wheel, timers, Showdown) | Projector Mode's on-screen remote (the pin/skip buttons on the wallpaper) |
 | **Showdown Arena** | Quest Remote team race on the projector; the teacher gives the points; optional Teamwork star for winners | Quiz of the Week (Elite, individual turns); Bounties (class star-vs-timer) |
 | **Ember Oath** | A small personal promise a child chooses; checked in with 🔥 / 🕯️ / 🌙 | Quest Assignment (homework); Hero’s Goal (Oracle text) |
-| **Star-Ember** | Keepsake in the Trophy Room for a kept oath; worth no stars or Gold | Stars; Starfall; Growth Starfall |
+| **Star-Ember** | Keepsake in the Trophy Room for a kept oath (the Star Path gifts of Gold and rare stars come separately) | Stars; Starfall; Growth Starfall |
 | **Realm Raid** | Three times a year (before Christmas, before Clean Monday, the last school week) every class fights Eldhorn the Realm Guardian together; one shield shard per class, sized to that class's own Team Quest pace | Team Quest (class vs class each month); Bounty |
 | **Raid Hero** | The child in each class who struck the Realm Raid shield in the most raid lessons; wins one festival treasure when the school wins | Quiz Champion; Prodigy |
 | **Hero Seal** | A wax-seal milestone in a child's Seal Book (Scholar's Folio → Seals, Trophy Room); worth no stars or Gold | Hero Path seals (the stages of a Hero Path); Map Journal stamps |

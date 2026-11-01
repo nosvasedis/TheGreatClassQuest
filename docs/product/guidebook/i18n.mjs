@@ -78,6 +78,7 @@ export const UI = {
 export const KICKERS = {
   'why-we-quest': { en: 'Philosophy', el: 'Φιλοσοφία' },
   'the-quest': { en: 'Orientation', el: 'Προσανατολισμός' },
+  'year-journey': { en: 'Your year', el: 'Η χρονιά σου' },
   'classroom-chrome': { en: 'Around the tabs', el: 'Γύρω από τις καρτέλες' },
   home: { en: 'Tab · Home', el: 'Καρτέλα · Home' },
   'team-quest': { en: 'Tab · Team Quest', el: 'Καρτέλα · Team Quest' },

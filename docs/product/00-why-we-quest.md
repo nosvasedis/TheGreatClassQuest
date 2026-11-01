@@ -84,7 +84,7 @@ The year has a rhythm because continuity helps a class build shared meaning:
 - **The school year** can build a Guild Hall identity, evolving paths, stories, and relationships.
 - **June** can close the journey with the Grand Guild Ceremony and a record of how the community grew.
 
-This is why the suggested staff-training timeline introduces one new layer at a time. A staged introduction reduces overload, gives teachers time to practise and revisit a routine, and leaves room for professional judgement. It is a suggested route, not an app requirement: once a teacher feels comfortable, they can adopt, combine, or experiment with features earlier or later. This approach reflects evidence-informed professional development guidance on manageable sequencing, planning, practice, and embedding new routines ([EEF Effective Professional Development](https://educationendowmentfoundation.org.uk/education-evidence/guidance-reports/effective-professional-development%20)).
+This is why the suggested timeline in [Your Year of Quest](00-year-journey.md) introduces one new layer at a time. A staged introduction reduces overload, gives teachers time to practise and revisit a routine, and leaves room for professional judgement. It is a suggested route, not an app requirement: once a teacher feels comfortable, they can adopt, combine, or experiment with features earlier or later. This approach reflects evidence-informed professional development guidance on manageable sequencing, planning, practice, and embedding new routines ([EEF Effective Professional Development](https://educationendowmentfoundation.org.uk/education-evidence/guidance-reports/effective-professional-development%20)).
 
 ## Guardrails that protect the purpose
 

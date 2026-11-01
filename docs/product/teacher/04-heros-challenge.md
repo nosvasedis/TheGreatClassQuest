@@ -14,7 +14,8 @@ The leaderboard is **not** a guild table. Guild competition lives in **Guild Hal
 
 The **Quest League** bar under the month banner holds the league picker, two switches and **History**:
 
-- **By Class** / **Global Rank** (everyone in that Quest League). By Class shows your own classes first.
+- **By Class** / **Global Rank** (everyone in that Quest League). By Class shows the class **in session now** first (with an **In session now** chip), then your other classes, then everyone else's.
+- **The final lesson of the month is sealed.** On a class's last lesson of the month the board hides its standings behind a curtain and a wax seal (**The standings are sealed**), so the Ceremony at the next lesson keeps its surprise. Cancellations, one-off lessons and school breaks are taken into account. The eye button lets you peek on your own; **Seal again** closes it.
 - **Monthly Stars** / **Total Stars**
 
 Each class opens on a **podium**: a velvet stage where the top three stand on gold, silver and bronze pedestals, with a crown over first place and how far they lead. Only heroes with stars stand on it; before anyone has a star, the class shows an open-race note instead. Everyone else follows in rows with a rank shield, a bar showing their stars against the leader, and how many stars they need to catch the hero above.
@@ -34,7 +35,7 @@ Floating action buttons typically include **Hall of Prodigies** (monthly archive
 
 Every hero’s satchel for the chosen class. The hero list on the left shows each student’s item count, with a ⚡ when a relic is ready; tap a name (or use the arrow keys) to open their satchel.
 
-- **Working now:** effects already switched on (the Gilded Star, Elixir of Luck, Banner of Glory charges, the Aurum Satchel discount, and so on).
+- **Working now:** effects already switched on (the Gilded Star, Pennant of Glory charges, a Satchel discount, free Hero’s Boons from a Kindness Locket, and so on).
 - **Hero Seals:** the seals this hero has pressed, newest first, with **Seal Book** to open the full book in their Scholar's Folio.
 - **Relics:** unused Legendary Artifacts, with copies stacked (×2). **Use** asks to confirm, then uses up one copy and applies the effect (see Mystic Market).
 - **Treasures:** kept for good, newest first: seasonal and Festival pieces, quiz prizes and Star-Embers from kept Ember Oaths. Each tile shows where it came from and when; tap one to look closer.
@@ -85,7 +86,7 @@ On **Elite**, **Ask the Oracle** writes a short citation from the child's month 
 
 - Project this tab so the class sees fair ranks.
 - Switch monthly vs total depending on the conversation (“this month” vs “your whole quest”).
-- Open Trophy Room when a child wants to use Elixir of Luck or Pathfinder’s Map.
+- Open Trophy Room when a child wants to use a relic (a Kindness Locket, the Pathfinder’s Map) or spend a treasure’s charm.
 - Print certificates as a celebration, not instead of the ceremony. **Monthly Quest** always counts the current calendar month, so print a month's certificate before that month ends.
 
 ## How this feeds the rest of the Quest

@@ -189,7 +189,7 @@ History of what the Wheel actually did **this school year**: who gained Glory, w
 | Hero’s Boon (+0.5) | Glory for the receiver’s house |
 | Quiz of the Week | Glory from the star of the top of the show |
 | Fortune’s Wheel | Small Glory for each guildmate in the class, plus perks; a storm or twist can take a little back |
-| Mystic Market | Banner of Glory, Chalice of Unity, Guild Standard, Fortune’s Favor |
+| Mystic Market | Pennant of Glory, Chalice of Unity, Guild Standard, Fortune’s Favor |
 | Pathfinder / Quest bonuses | Team Quest, not the Crown Race directly. Wheel perks can add both |
 
 Hero’s Challenge still sorts **students**, not guilds. Send the class to Guild Hall to *feel* the house race.

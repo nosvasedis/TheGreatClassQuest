@@ -145,7 +145,8 @@ Index cards, one job each:
 - School **name**
 - **Weather location** (Greek cities) — drives teacher Home and Projector skies
 - **Your account** — a staff badge showing who is signed in
-- **Holidays and breaks** (name, start, end, theme: Christmas/Winter, Easter/Spring, generic) — these shade every teacher calendar and **lower Team Quest goals**
+- **Greek school calendar** — the built-in days off for frontistiria (28 October, 17 November, Christmas 24 December to 8 January, Epiphany, Clean Monday, 25 March, two weeks of Easter, 1 May, Holy Spirit Monday, the town's patron saint). Set each day to **No lessons**, **Lessons on** or **Hide**, and use **Open the school on a holiday** for a single date
+- **Holidays and breaks** (name, start, end, theme: Christmas/Winter, Easter/Spring, generic) — your own breaks, added to the built-in calendar (a break replaces a built-in day it covers). They shade every teacher calendar and **lower Team Quest goals**
 - **Secretary credentials**
 - **Plan and billing** (**View plan and billing**; see the Plans chapter)
 - **Helpful shortcuts**: refresh family information, view all grades, answer families, Students & Classes

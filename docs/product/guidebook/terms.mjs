@@ -444,7 +444,7 @@ export const TERMS = [
       en: 'Hero Path class that levels by giving Hero\'s Boon (10 / 20 / 30 weeks). First successful gift each calendar week = one path point; extra gifts still help classmates. The giver gets +10 Gold and no rank stars; the receiver still gets +0.5.',
       el: 'Hero Path που ανεβαίνει όταν δίνεις Hero\'s Boon (10 / 20 / 30 εβδομάδες). Το πρώτο επιτυχές δώρο κάθε ημερολογιακής εβδομάδας = ένα path point· τα επιπλέον δώρα συνεχίζουν να βοηθούν συμμαθητές. Ο δωρητής παίρνει +10 Gold και όχι αστέρια κατάταξης· ο δέκτης παίρνει +0,5.'
     },
-    confuse: { en: "The Herald's Banner (Market artifact); receiving a Hero's Boon; Teacher Boon", el: "The Herald's Banner (αρχαίο Market)· το να λαμβάνεις Hero's Boon· Teacher Boon" }
+    confuse: { en: "The Hero's Heart relics (Kindness Locket, Compassion Token); receiving a Hero's Boon; Teacher Boon", el: "Τα relics The Hero's Heart (Kindness Locket, Compassion Token)· το να λαμβάνεις Hero's Boon· Teacher Boon" }
   },
   {
     id: 'bounties',
@@ -621,8 +621,8 @@ export const TERMS = [
     names: { en: 'Familiars', el: 'Familiars' },
     aliases: ['familiar egg', 'companion egg', 'familiars'],
     def: {
-      en: 'Elite companion eggs from the Market. One familiar hatches and evolves. Not an avatar from Avatar Forge.',
-      el: 'Elite αυγά συντροφιάς από το Market. Δεν είναι avatar του Avatar Forge.'
+      en: 'Elite companion eggs from the Market (ten kinds). One familiar per hero hatches after 20 stars together, grows through five forms and learns a Quiz of the Week trick. Not an avatar from Avatar Forge.',
+      el: 'Elite αυγά συντροφιάς από το Market (δέκα είδη). Ένα Familiar ανά ήρωα εκκολάπτεται μετά από 20 αστέρια μαζί, περνά από πέντε μορφές και μαθαίνει ένα κόλπο για το Quiz of the Week. Δεν είναι avatar του Avatar Forge.'
     },
     confuse: { en: 'Avatar Forge', el: 'Avatar Forge' }
   },
@@ -657,8 +657,8 @@ export const TERMS = [
     names: { en: 'Ember Oath', el: 'Ember Oath' },
     aliases: ['ember oath', 'ember oaths', 'oath board', 'class promise'],
     def: {
-      en: 'A small personal promise a child chooses. Check in with 🔥 / 🕯️ / 🌙 (that is today’s mood, not the keep). A promise is ready when there is enough evidence and at least one 🔥; then you Keep the promise or Let it rise. Kept oaths become a star in the class sky and a Star-Ember keepsake — never stars or Gold.',
-      el: 'Μικρή προσωπική υπόσχεση που διαλέγει το παιδί. Check-in με 🔥 / 🕯️ / 🌙. Οι τηρημένες γίνονται αστέρι στον ουρανό της τάξης και Star-Ember — ποτέ αστέρια ή Gold.'
+      en: 'A small personal promise a child chooses. Check in with 🔥 / 🕯️ / 🌙 (that is today’s mood, not the keep). A promise is ready when all its embers are lit (one per lesson with something to show); then you Keep the promise or Let it rise. Kept oaths become a star in the class sky, a Star-Ember keepsake and a step on the child’s Star Path (a little Gold, ranks, and a rare bonus star at milestones).',
+      el: 'Μικρή προσωπική υπόσχεση που διαλέγει το παιδί. Check-in με 🔥 / 🕯️ / 🌙. Οι τηρημένες γίνονται αστέρι στον ουρανό της τάξης, Star-Ember και ένα βήμα στο Star Path του παιδιού (λίγο Gold, τίτλοι και σπάνιο μπόνους αστέρι στα ορόσημα).'
     },
     confuse: { en: 'Quest Assignment (homework); Hero’s Goal (Oracle text)', el: 'Quest Assignment (εργασία)· Hero’s Goal (κείμενο Oracle)' }
   },
@@ -1026,6 +1026,7 @@ export const PLAN_EXPLORER = {
 export const CHAPTER_SEARCH = {
   'why-we-quest': ['philosophy', 'ethos', 'pedagogy', 'why', 'virtues', 'belonging', 'quest master'],
   'the-quest': ['orientation', 'daily loop', 'three interfaces', 'ten tabs'],
+  'year-journey': ['year plan', 'timeline', 'roadmap', 'introduce', 'first month', 'when to start', 'step by step', 'χρονοδιάγραμμα', 'πλάνο χρονιάς', 'σειρά εισαγωγής'],
   'classroom-chrome': ['header', 'cloud dock', 'bottom navigation', 'tab titles', 'projector', 'wallpaper', 'weather', 'sky theater', 'mobile', 'wisdom dock', 'the director', 'timekeeper'],
   'home': ['quiz of the week', 'bounties', 'dashboard', 'bounty poster', 'star hunt', 'race the clock'],
   'team-quest': ['map', 'league', 'difficulty', 'holidays', 'june', 'bronze', 'goal', 'pathfinder'],

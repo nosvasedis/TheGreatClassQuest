@@ -7,8 +7,8 @@ import { shopTabHTML } from '../../../../templates/app/tabs/shop.js';
 import { logTabHTML } from '../../../../templates/app/tabs/log.js';
 import { skillTreeModalHTML } from '../../../../templates/modals/skillTree.js';
 import { fortunesWheelModalHTML } from '../../../../templates/modals/fortunesWheel.js';
-import { PATHFINDER_CLASS_QUEST_BONUS_STARS } from '../../../../features/awardLogReasonMeta.js';
 import { FAMILIAR_LEVEL_THRESHOLDS } from '../../../../features/familiarProgression.mjs';
+import { FAMILIAR_TYPES } from '../../../../features/familiars.js';
 import { HERO_SKILL_TREE, getReasonDisplayName } from '../../../../features/heroSkillTree.js';
 import { buildSkillTreeModel } from '../../../../features/skillTreeCore.mjs';
 import { renderSkillTreeStage, skillTreeThemeStyle } from '../../../../ui/modals/skillTreeView.mjs';
@@ -23,36 +23,13 @@ import {
   renderShelf,
   renderMarketAisle,
   shopBuyBtnClass,
-  shopBuyBtnInner
+  shopBuyBtnInner,
+  renderLegendaryRelicCard
 } from '../../../../ui/core/marketView.mjs';
+import { LEGENDARY_FAMILIES, legendaryFamilyVariants } from '../../../../features/legendaryCatalog.mjs';
 
-/** Same catalog as features/powerUps.js LEGENDARY_ARTIFACTS (emoji icons — not PNG files). */
-const LEGENDARY_ARTIFACTS = [
-  { id: 'leg_clarity', name: 'Crystal of Clarity', price: 15, description: 'Pulsing gem for a hint pass. Used on your card.', icon: '💎' },
-  { id: 'leg_gilded', name: 'Scroll of the Gilded Star', price: 20, description: '3x Gold for the next star you earn.', icon: '✨' },
-  { id: 'leg_hourglass', name: 'Time Warp Hourglass', price: 25, description: 'Adds +5m to any active class Bounty Timers.', icon: '⏳' },
-  { id: 'leg_luck', name: 'Elixir of Luck', price: 30, description: '50% chance for +1 star during your NEXT lesson.', icon: '🍀' },
-  { id: 'leg_glory_banner', name: 'Banner of Glory', price: 35, description: 'Your next 3 stars each write +1 bonus Guild Glory into the ledger.', icon: '⚜️' },
-  { id: 'leg_banner', name: "The Herald's Banner", price: 40, description: 'Broadcasts a school-wide victory celebration!', icon: '📢' },
-  { id: 'leg_catalyst', name: 'The Starfall Catalyst', price: 50, description: 'Double the stars for your next high test score.', icon: '📜' },
-  { id: 'leg_glory_chalice', name: 'Chalice of Unity', price: 55, description: '+1 Glory right now for you and every guildmate in your class.', icon: '🏆' },
-  { id: 'leg_pathfinder', name: 'The Pathfinder’s Map', price: 60, description: `Instant +${PATHFINDER_CLASS_QUEST_BONUS_STARS} Stars for the Team Quest. (Class Limit: 1/month)`, icon: '🗺️' },
-  { id: 'leg_protagonist', name: 'The Mask of the Protagonist', price: 75, description: 'Guarantees you are the Hero in the next Story Log. (Limit: 1/month)', icon: '🎭' },
-  { id: 'leg_glory_crown', name: 'Guild Standard', price: 75, description: "Your name flies on your guild's banner in the Guild Hall for the rest of this month's Chapter, plus +2 Glory.", icon: '🚩' },
-  { id: 'leg_aurum', name: 'Aurum Satchel', price: 32, description: 'Grants 50% off your next Mystic Market purchase this month.', icon: '💰' },
-  { id: 'leg_bulwark', name: "Fortune's Favor", price: 48, description: "Your guild's next Fortune's Wheel in your class is gilded: no storms, no Trickster and no common wedges.", icon: '🍀' },
-  { id: 'leg_quill', name: "Archivist's Quill", price: 62, description: 'Your next Story Weaver class bonus awards you 1 star instead of 0.5.', icon: '✒️' },
-  { id: 'leg_compassion', name: 'Compassion Token', price: 55, description: "Hero's Boon costs 0 Gold for the rest of this month.", icon: '💝' }
-];
-
-/** Display fields from features/familiars.js FAMILIAR_TYPES (no Firebase import). */
-const FAMILIAR_EGGS = [
-  { id: 'thornback', name: 'Thornback', price: 30, eggColor: '#16a34a', eggAccent: '#86efac', desc: 'A mossy forest toad that evolves into a legendary ancient treant.', flavorHint: 'Strong • Loyal • Grounded', levelNames: ['Moss Toad', 'Bark Bear', 'Ancient Treant'] },
-  { id: 'frostpaw', name: 'Frostpaw', price: 35, eggColor: '#3b82f6', eggAccent: '#bfdbfe', desc: 'An arctic fox spirit that grows into a mystical frost guardian.', flavorHint: 'Serene • Wise • Graceful', levelNames: ['Ice Cub', 'Snow Fox', 'Frost Guardian'] },
-  { id: 'emberfang', name: 'Emberfang', price: 40, eggColor: '#ef4444', eggAccent: '#fca5a5', desc: 'A fire-breathing dragon hatchling that grows into a mighty flame drake.', flavorHint: 'Daring • Fierce • Unstoppable', levelNames: ['Hatchling', 'Flame Drake', 'Inferno Dragon'] },
-  { id: 'veilshade', name: 'Veilshade', price: 45, eggColor: '#7c3aed', eggAccent: '#c4b5fd', desc: 'A shadow sprite that grows into the legendary Void Stalker.', flavorHint: 'Mysterious • Swift • Ethereal', levelNames: ['Shadow Wisp', 'Phantom Cat', 'Void Stalker'] },
-  { id: 'sparkling', name: 'Sparkling', price: 50, eggColor: '#f59e0b', eggAccent: '#fde68a', desc: 'A radiant fairy-phoenix that blossoms into a legendary sun guardian.', flavorHint: 'Radiant • Joyful • Inspiring', levelNames: ['Sun Sprite', 'Dawn Fairy', 'Solar Phoenix'] }
-];
+/** The live egg catalogue, so the shelf never drifts from the app. */
+const FAMILIAR_EGGS = Object.values(FAMILIAR_TYPES);
 
 function seasonalArt(emoji, from, to) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
@@ -94,9 +71,9 @@ function catalogHtml(kind) {
     return renderMarketAisle({
       id: 'legendary', label: 'Artifacts', icon: 'fa-scroll', tone: 'indigo',
       title: 'Legendary Artifacts',
-      desc: 'Evergreen relics with battle-shaping perks. Stock is precious: two legendary buys per student each month.',
+      desc: 'Five relics that change something real in class. Each comes in a few forms: tap a form under the name to choose. Two artifacts per hero each month.',
       badge: 'Limit 2 / month',
-      body: renderShelf([...LEGENDARY_ARTIFACTS].sort((x, y) => x.price - y.price).map((item) => renderShopItemCard(item, 'legendary')).join(''))
+      body: renderShelf(LEGENDARY_FAMILIES.map((family) => renderLegendaryRelicCard(family, legendaryFamilyVariants(family.id))).join(''))
     });
   }
   if (kind === 'seasonal') {

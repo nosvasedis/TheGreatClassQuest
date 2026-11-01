@@ -2,24 +2,6 @@
 
 import { decorateStarCounts, starIco } from './stars.mjs';
 
-export const ARTIFACTS = [
-  { icon: '💎', name: 'Crystal of Clarity', gold: 15, perk: 'Hint-pass glow on the student’s card' },
-  { icon: '✨', name: 'Scroll of the Gilded Star', gold: 20, perk: 'Next star pays 3× Gold' },
-  { icon: '⏳', name: 'Time Warp Hourglass', gold: 25, perk: '+5 minutes on active bounty timers' },
-  { icon: '🍀', name: 'Elixir of Luck', gold: 30, perk: '50% chance of +1 star next lesson' },
-  { icon: '💰', name: 'Aurum Satchel', gold: 32, perk: '50% off the next Market buy this month' },
-  { icon: '⚜️', name: 'Banner of Glory', gold: 35, perk: 'Next 3 stars each write +1 Guild Glory' },
-  { icon: '📢', name: "The Herald's Banner", gold: 40, perk: 'School-wide victory celebration' },
-  { icon: '🍀', name: 'Fortune’s Favor', gold: 48, perk: 'The guild’s next Wheel is gilded: no storms, no Trickster, no commons' },
-  { icon: '📜', name: 'The Starfall Catalyst', gold: 50, perk: 'Double the next high-test Starfall' },
-  { icon: '🏆', name: 'Chalice of Unity', gold: 55, perk: '+1 Glory now for every guildmate in the class' },
-  { icon: '💝', name: 'Compassion Token', gold: 55, perk: "Hero's Boon costs 0 Gold this month" },
-  { icon: '🗺️', name: "Pathfinder's Map", gold: 60, perk: '+10 Team Quest stars for the class (1/month)' },
-  { icon: '✒️', name: "Archivist's Quill", gold: 62, perk: 'Next Story Weaver bonus is 1 star, not 0.5' },
-  { icon: '🎭', name: 'Mask of the Protagonist', gold: 75, perk: 'Guarantees Hero of the Day on the next log' },
-  { icon: '🚩', name: 'Guild Standard', gold: 75, perk: 'Name on the guild’s banner this Chapter, +2 Glory' }
-];
-
 export const FAMILIARS = [
   { name: 'Thornback', gold: 30, color: '#16a34a', forms: 'Moss Toad → Bark Bear → Ancient Treant', vibe: 'Strong · Loyal · Grounded' },
   { name: 'Frostpaw', gold: 35, color: '#3b82f6', forms: 'Ice Cub → Snow Fox → Frost Guardian', vibe: 'Serene · Wise · Graceful' },
@@ -101,21 +83,6 @@ export function projectorStageHtml() {
       <li><strong>The Director</strong> — story cards that change about once a minute</li>
       <li>Leave with <strong>Esc</strong> or the <strong>power</strong> button. Classroom PC only — not on the phone.</li>
     </ul>
-  </div>`;
-}
-
-export function artifactsShelfHtml() {
-  return `<div class="shelf">
-    <p class="live-demo__label"><i class="fas fa-gem" aria-hidden="true"></i> Legendary Artifacts · how perks look</p>
-    <ul class="artifact-grid">${ARTIFACTS.map(
-      (a) => `<li>
-        <span class="artifact-ico">${a.icon}</span>
-        <strong>${a.name}</strong>
-        <em><i class="fas fa-coins" aria-hidden="true"></i> ${a.gold}</em>
-        <small>${decorateStarCounts(a.perk)}</small>
-      </li>`
-    ).join('')}</ul>
-    <p class="shelf-note">Two legendary buys per student per month. Used from the Trophy Room / enlarged avatar.</p>
   </div>`;
 }
 
@@ -420,25 +387,9 @@ export function starAwardBtnsHtml() {
 export function mapStageHtml() {
   return `<figure class="map-stage">
     <div class="map-stage__art">
-      <img src="media/league-map.png" alt="Team Quest league map" />
-      <div class="map-zone-label map-zone-label--bronze" style="left:10%;top:75%">
-        <span class="map-zone-label__icon" aria-hidden="true">🌿</span>
-        <span class="map-zone-label__copy"><span class="map-zone-label__text">Bronze Meadows</span><span class="map-zone-label__pct">0%</span></span>
-      </div>
-      <div class="map-zone-label map-zone-label--silver" style="left:32%;top:15%">
-        <span class="map-zone-label__icon" aria-hidden="true">🏔️</span>
-        <span class="map-zone-label__copy"><span class="map-zone-label__text">Silver Peaks</span><span class="map-zone-label__pct">30%</span></span>
-      </div>
-      <div class="map-zone-label map-zone-label--gold" style="left:70%;top:65%">
-        <span class="map-zone-label__icon" aria-hidden="true">🏰</span>
-        <span class="map-zone-label__copy"><span class="map-zone-label__text">Golden Citadel</span><span class="map-zone-label__pct">60%</span></span>
-      </div>
-      <div class="map-zone-label map-zone-label--crystal" style="left:88%;top:8%">
-        <span class="map-zone-label__icon" aria-hidden="true">💎</span>
-        <span class="map-zone-label__copy"><span class="map-zone-label__text">Crystal Realm</span><span class="map-zone-label__pct">85%</span></span>
-      </div>
+      <img src="media/ui/quest-world.png" alt="The Team Quest map: the road through Bronze Meadows, Silver Peaks, the Golden Citadel and the Crystal Realm to the Portal" />
     </div>
-    <figcaption>The League Map. Zone names sit on the land, as they do in the classroom.</figcaption>
+    <figcaption>The Team Quest map on a spring morning. The road runs from the village of the Bronze Meadows, through the mountain gate of the Silver Peaks and the Golden Citadel, to the crystal isle and the Portal. Each class walks it as a token with its rank crest, under your real sky.</figcaption>
   </figure>`;
 }
 
@@ -463,7 +414,7 @@ export function namesDistinctHtml() {
     <article class="name-card name-card--wand"><i class="fas fa-wand-magic-sparkles"></i><h4>Teacher Boon</h4><p>Your 2 <span class="star-amt" aria-hidden="true"><i class="fas fa-star"></i></span><span class="star-amt" aria-hidden="true"><i class="fas fa-star"></i></span> gift, last week of the month, once per class.</p></article>
     <article class="name-card name-card--champ"><i class="fas fa-medal"></i><h4>Guild Champion</h4><p>Top earner inside one house this month. Not Prodigy.</p></article>
     <article class="name-card name-card--day"><i class="fas fa-fire"></i><h4>Hero Campfire</h4><p>Optional 2-minute closing on the projector after Hero of the Day. Not a monthly ceremony.</p></article>
-    <article class="name-card name-card--peer"><i class="fas fa-scroll"></i><h4>Ember Oath</h4><p>A small personal promise. Kept oaths become sky stars, never Stars or Gold.</p></article>
+    <article class="name-card name-card--peer"><i class="fas fa-scroll"></i><h4>Ember Oath</h4><p>A small personal promise. Kept oaths become sky stars and steps on the child’s Star Path.</p></article>
   </div>`;
 }
 

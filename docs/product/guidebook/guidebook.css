@@ -3334,3 +3334,270 @@ html[data-lang="el"] .plan-notes--office::before { color: #047857; }
   size: A4;
   margin: 16mm 14mm 18mm;
 }
+
+/* ── Your Year of Quest (chapter year-journey; markup year-journey-view.mjs, behaviour guidebook.js) ── */
+.yj { margin: 1.2rem 0 1.8rem; }
+.yj-tone--slate { --yj-tone: #64748b; --yj-wash: #f1f5f9; }
+.yj-tone--rose { --yj-tone: #f43f5e; --yj-wash: #fff1f2; }
+.yj-tone--teal { --yj-tone: #0d9488; --yj-wash: #f0fdfa; }
+.yj-tone--amber { --yj-tone: #d97706; --yj-wash: #fffbeb; }
+.yj-tone--lime { --yj-tone: #65a30d; --yj-wash: #f7fee7; }
+.yj-tone--guild { --yj-tone: #ea580c; --yj-wash: #fff7ed; }
+.yj-tone--blue { --yj-tone: #2563eb; --yj-wash: #eff6ff; }
+.yj-tone--violet { --yj-tone: #7c3aed; --yj-wash: #f5f3ff; }
+.yj-tone--indigo { --yj-tone: #4f46e5; --yj-wash: #eef2ff; }
+.yj-tone--purple { --yj-tone: #9333ea; --yj-wash: #faf5ff; }
+
+.yj-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.2rem;
+  background: #fff;
+  border: 1px solid #e0f2fe;
+  border-radius: 1.3rem;
+  box-shadow: 0 14px 32px -26px rgba(8,47,73,0.55);
+  font-family: var(--ui);
+}
+.yj-start { display: inline-flex; align-items: center; gap: 0.45rem; font-weight: 600; color: #0c4a6e; }
+.yj-start .fas, .yj-plans__label .fas { color: var(--star-deep); }
+.yj-start select {
+  font: inherit;
+  font-weight: 700;
+  color: #0c4a6e;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid #bae6fd;
+  background: #f0f9ff;
+  cursor: pointer;
+}
+.yj-plans { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; }
+.yj-plans__label { font-weight: 600; color: #0c4a6e; margin-right: 0.15rem; }
+.yj-plan {
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.28rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+}
+.yj-plan.is-on { background: #0c4a6e; border-color: #0c4a6e; color: #fff; }
+.yj-plan:focus-visible, .yj-start select:focus-visible, .yj-go:focus-visible { outline: 3px solid #fbbf24; outline-offset: 2px; }
+.yj-hint { flex-basis: 100%; margin: 0; font-size: 0.82rem; color: var(--muted); }
+
+.yj-road { list-style: none; margin: 0; padding: 0; position: relative; }
+.yj-road::before {
+  content: "";
+  position: absolute;
+  left: 1.35rem;
+  top: 1.2rem;
+  bottom: 1.2rem;
+  border-left: 4px dashed #fcd34d;
+}
+.yj-stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr);
+  gap: 0.9rem;
+  margin: 0 0 1.1rem;
+}
+.yj-stage__pin {
+  position: relative;
+  z-index: 1;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 1.1rem;
+  background: var(--yj-tone);
+  border: 4px solid #fff;
+  box-shadow: 0 8px 18px -10px rgba(15,23,42,0.6);
+}
+.yj-stage__card {
+  min-width: 0;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-top: 5px solid var(--yj-tone);
+  border-radius: 1.3rem;
+  padding: 0.95rem 1.1rem 0.8rem;
+  box-shadow: 0 16px 36px -30px rgba(8,47,73,0.6);
+}
+.yj-stage__head { position: relative; }
+.yj-stage__when {
+  margin: 0 0 0.25rem;
+  padding-right: 7.5rem;
+  font-family: var(--ui);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--yj-tone);
+}
+.yj-stage__n {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  margin-right: 0.2rem;
+  border-radius: 999px;
+  background: var(--yj-wash);
+  border: 1px solid var(--yj-tone);
+  font-size: 0.75rem;
+}
+.yj-month { color: #0c4a6e; }
+.yj-stage__title { margin: 0 0 0.2rem; font-family: var(--title); font-size: 1.22rem; color: #0f172a; }
+.yj-stage__lede { margin: 0 0 0.6rem; color: var(--muted); font-size: 0.92rem; }
+.yj-here {
+  display: none;
+  position: absolute;
+  top: -0.2rem;
+  right: 0;
+  font-family: var(--ui);
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 0.18rem 0.6rem;
+  border-radius: 999px;
+  color: #78350f;
+  background: linear-gradient(135deg, #fef3c7, #fcd34d);
+  border: 1px solid #f59e0b;
+}
+.yj-stage.is-here .yj-here { display: inline-flex; gap: 0.3rem; align-items: center; }
+.yj-stage.is-here .yj-stage__card { box-shadow: 0 0 0 3px #fcd34d, 0 18px 40px -26px rgba(146,64,14,0.55); }
+.yj-stage.is-here .yj-stage__pin { animation: yj-pulse 2.4s ease-in-out infinite; }
+@keyframes yj-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+.yj-stage.is-next-year .yj-stage__card { border-style: dashed; background: #f8fafc; }
+.yj-stage.is-next-year .yj-month { color: var(--muted); font-style: italic; }
+
+.yj-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.55rem; }
+.yj-step {
+  display: grid;
+  grid-template-columns: 2.2rem minmax(0, 1fr);
+  gap: 0.65rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: 1rem;
+  background: var(--yj-wash);
+}
+.yj-step__ico {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 0.8rem;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  color: var(--yj-tone);
+  box-shadow: inset 0 0 0 1px rgba(15,23,42,0.06);
+}
+.yj-step__body { min-width: 0; }
+.yj-step__name { margin: 0; font-family: var(--ui); font-weight: 700; color: #0f172a; }
+.yj-step__name .plan-badge { margin-left: 0.25rem; }
+.yj-step__what { margin: 0.15rem 0 0.35rem; font-size: 0.9rem; color: #334155; }
+.yj-step__lock {
+  display: none;
+  margin-left: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+}
+.yj-step.is-locked { opacity: 0.5; }
+.yj-step.is-locked .yj-step__lock { display: inline; }
+.yj-stage__rest { display: none; margin: 0.6rem 0 0; font-size: 0.88rem; font-style: italic; color: var(--muted); }
+.yj-stage.is-all-locked .yj-stage__rest { display: block; }
+
+.yj-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+  padding: 0.22rem 0.65rem;
+  border: 1px solid #bae6fd;
+  border-radius: 999px;
+  background: #fff;
+  color: #0e7490;
+  font-family: var(--ui);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.yj-go:hover { background: #ecfeff; border-color: #67e8f9; }
+.yj-go .fas { font-size: 0.75rem; }
+
+.yj-cal { margin: 1rem 0 1.6rem; }
+.yj-cal__strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: 0.5rem;
+}
+.yj-cal__month {
+  scroll-snap-align: start;
+  background: #fff;
+  border: 1px solid #e0f2fe;
+  border-radius: 1rem;
+  padding: 0.55rem 0.6rem;
+}
+.yj-cal__month.is-now { border-color: #f59e0b; box-shadow: 0 0 0 2px #fcd34d; }
+.yj-cal__name { margin: 0 0 0.35rem; font-family: var(--title); font-size: 0.95rem; color: #0c4a6e; }
+.yj-cal__month ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.35rem; }
+.yj-moment { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr); gap: 0.35rem; align-items: start; font-size: 0.8rem; font-family: var(--ui); color: #1e293b; }
+.yj-moment__ico { width: 1.5rem; height: 1.5rem; border-radius: 0.5rem; display: grid; place-items: center; background: #fef3c7; color: #b45309; font-size: 0.72rem; }
+.yj-moment .plan-badge { font-size: 0.55rem; }
+.yj-cal__notes { margin: 0.8rem 0 0; padding-left: 1.1rem; display: grid; gap: 0.35rem; font-size: 0.9rem; }
+.yj-cal__notes .yj-go { margin-left: 0.3rem; }
+.yj-moment.is-locked, .yj-cal__notes li.is-locked, .yj-trigger.is-locked { opacity: 0.45; }
+
+.yj-triggers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.7rem;
+  margin: 1rem 0 1.6rem;
+}
+.yj-trigger {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 1.2rem;
+  padding: 0.8rem 0.9rem;
+  box-shadow: 0 12px 28px -26px rgba(8,47,73,0.6);
+}
+.yj-trigger__ico { display: inline-grid; place-items: center; width: 2rem; height: 2rem; border-radius: 0.7rem; background: #ede9fe; color: #6d28d9; }
+.yj-trigger h5 { margin: 0.45rem 0 0.2rem; font-family: var(--ui); font-size: 0.95rem; color: #0f172a; }
+.yj-trigger p { margin: 0 0 0.45rem; font-size: 0.88rem; color: #334155; }
+
+.prose h3.yj-flash, .prose h4.yj-flash, .prose h5.yj-flash { animation: yj-flash 2.4s ease-out; border-radius: 0.6rem; }
+@keyframes yj-flash { 0%, 40% { background: #fef3c7; box-shadow: 0 0 0 0.4rem #fef3c7; } 100% { background: transparent; box-shadow: 0 0 0 0.4rem transparent; } }
+.prose > h3, .prose > h4 { scroll-margin-top: 1.5rem; }
+
+@media (max-width: 640px) {
+  .yj-road::before { left: 1rem; }
+  .yj-stage { grid-template-columns: 2.3rem minmax(0, 1fr); gap: 0.6rem; }
+  .yj-stage__pin { width: 2.3rem; height: 2.3rem; font-size: 0.9rem; border-width: 3px; }
+  .yj-stage__card { padding: 0.8rem 0.8rem 0.7rem; }
+  .yj-stage__when { padding-right: 0; }
+  .yj-here { position: static; margin-bottom: 0.3rem; }
+  .yj-step { grid-template-columns: minmax(0, 1fr); }
+  .yj-step__ico { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .yj-stage.is-here .yj-stage__pin, .prose .yj-flash { animation: none; }
+}
+
+/* Year of Quest: hold our own type against the chapter's h4 / p / li rules. */
+.chapter .yj-stage__title { margin: 0 0 0.2rem; font-family: var(--title); font-size: 1.25rem; color: #0f172a; }
+.chapter .yj-trigger h5 { margin: 0.45rem 0 0.2rem; font-family: var(--ui); font-size: 0.98rem; color: #0f172a; }
+.chapter .yj p, .chapter .yj li, .chapter .yj-cal p, .chapter .yj-cal li, .chapter .yj-triggers p { line-height: 1.5; }
+.chapter .yj li, .chapter .yj-cal__month li { margin: 0; }
+.chapter .yj-stage__when { margin: 0 0 0.25rem; font-size: 0.82rem; }
+.chapter .yj-stage__lede { margin: 0 0 0.65rem; font-size: 0.95rem; }
+.chapter .yj-step__name { margin: 0; font-size: 1rem; }
+.chapter .yj-step__what { margin: 0.15rem 0 0.4rem; font-size: 0.92rem; }
+.chapter .yj-stage__rest { margin: 0.6rem 0 0; font-size: 0.9rem; }
+.chapter .yj-hint { margin: 0; font-size: 0.82rem; }
+.chapter .yj-cal__name { margin: 0 0 0.35rem; }
+.chapter .yj-moment { font-size: 0.82rem; }
+.chapter .yj-cal__notes li { margin: 0; font-size: 0.92rem; }
+.chapter .yj-trigger p { margin: 0 0 0.45rem; font-size: 0.9rem; }

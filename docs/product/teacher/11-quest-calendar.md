@@ -28,9 +28,11 @@ Two tabs: **Schedule** and **Quest Event**.
 - **Add a one-time lesson** — pick a class chip, then **Add lesson**
 - **Mark as School Holiday** for a single unexpected closure
 
-School-wide **holiday ranges** (Christmas, Easter, generic) are created in the **School Office** (Secretary). Teachers do not edit the whole-school calendar in Settings; that is the School Office’s job. **My Planning** is only each class’s **final lesson day**.
+**The Greek school calendar is built in.** The Quest knows the days off for frontistiria by itself: 28 October, 17 November, Christmas (24 December to 8 January), Epiphany, Clean Monday, 25 March, two weeks of Easter (Holy Monday to Thomas Sunday), 1 May, Holy Spirit Monday and your town's patron saint (found from the school's location). A few school celebrations and fun days are marked on the calendar while lessons go on. Every class-day count follows it: the Home schedule, next lesson, Team Quest goals and the Realm Raid. On a holiday no lessons run, except a one-time lesson you add.
 
-The Day Planner still has **Mark School Holiday** for a **single date**: it cancels **all classes** that day and reshapes goals. Use it for an unexpected one-day closure; use the School Office for Winter Break and Easter.
+The **School Office** (Secretary) can change any built-in day (no lessons, lessons on, or hidden), open the school on a holiday, and add the school's own breaks (Christmas, Easter, generic). Teachers do not edit the whole-school calendar in Settings; that is the School Office’s job. **My Planning** is only each class’s **final lesson day**.
+
+The Day Planner still has **Mark School Holiday** for a **single date**: it cancels **all classes** that day and reshapes goals. Use it for an unexpected one-day closure; longer breaks belong to the School Office.
 
 ### Quest Event
 

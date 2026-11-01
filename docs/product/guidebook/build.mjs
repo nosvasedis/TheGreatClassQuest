@@ -7,6 +7,7 @@ import { UI, KICKERS } from './i18n.mjs';
 import { EL_CHAPTERS } from './el-chapters.mjs';
 import { QUEST_RANKS } from '../../../features/questRanksCore.mjs';
 import { rankCrestSvg } from '../../../features/questRankCrest.mjs';
+import { yearRoadHtml, yearMomentsHtml, yearTriggersHtml, checkYearJourneyLinks } from './year-journey-view.mjs';
 import {
   headerToolsHtml,
   classPickerHtml,
@@ -31,6 +32,7 @@ const MEDIA = path.join(__dirname, 'media');
 const CHAPTERS = [
   { id: 'why-we-quest', file: '00-why-we-quest.md', icon: 'fa-heart', color: 'rose', group: 'Start here', kicker: 'Philosophy' },
   { id: 'the-quest', file: '00-the-quest.md', icon: 'fa-compass', color: 'cyan', group: 'Start here', kicker: 'Orientation' },
+  { id: 'year-journey', file: '00-year-journey.md', icon: 'fa-signs-post', color: 'amber', group: 'Start here', kicker: 'Your year' },
   { id: 'classroom-chrome', file: 'teacher/01-classroom-chrome.md', icon: 'fa-tv', color: 'cyan', group: 'The classroom', kicker: 'Around the tabs' },
   { id: 'home', file: 'teacher/02-home.md', icon: 'fa-home', color: 'cyan', group: 'The classroom', kicker: 'Tab · Home' },
   { id: 'team-quest', file: 'teacher/03-team-quest.md', icon: 'fa-route', color: 'amber', group: 'The classroom', kicker: 'Tab · Team Quest' },
@@ -66,22 +68,6 @@ function copyMedia() {
   ];
   for (const [from, to] of files) {
     fs.copyFileSync(path.join(ROOT, from), path.join(MEDIA, to));
-  }
-}
-
-const LEAGUE_MAP_URL =
-  'https://firebasestorage.googleapis.com/v0/b/the-great-class-quest.firebasestorage.app/o/assets%2Fleague_map.png?alt=media&token=d7b28f16-9f88-4f5e-ad98-a9fdb3838f57';
-
-async function copyLeagueMap() {
-  const dest = path.join(MEDIA, 'league-map.png');
-  if (fs.existsSync(dest) && fs.statSync(dest).size > 8000) return;
-  try {
-    const res = await fetch(LEAGUE_MAP_URL);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    fs.writeFileSync(dest, Buffer.from(await res.arrayBuffer()));
-    console.log('Wrote', dest);
-  } catch (err) {
-    console.warn('League map download skipped:', err.message);
   }
 }
 
@@ -540,7 +526,7 @@ function widgets(id, print = false) {
     return '';
   }
   if (id === 'team-quest') {
-    const map = fs.existsSync(path.join(__dirname, 'media', 'league-map.png'))
+    const map = fs.existsSync(path.join(__dirname, 'media', 'ui', 'quest-world.png'))
       ? mapStageHtml()
       : '';
     return `
@@ -610,6 +596,20 @@ function widgets(id, print = false) {
   return '';
 }
 
+function chapterSource(ch, lang) {
+  if (lang === 'el' && EL_CHAPTERS[ch.file]) return EL_CHAPTERS[ch.file];
+  return fs.readFileSync(path.join(PRODUCT, ch.file), 'utf8');
+}
+
+/** Each chapter's own title in both languages (the Year of Quest links name the chapter they open). */
+function chapterTitles() {
+  return CHAPTERS.map((ch) => {
+    const en = (chapterSource(ch, 'en').match(/^# (.+)$/m) || [, ch.kicker])[1];
+    const el = (chapterSource(ch, 'el').match(/^# (.+)$/m) || [, en])[1];
+    return { id: ch.id, title: { en: en.trim(), el: el.trim() } };
+  });
+}
+
 function stripHeadingText(html) {
   return String(html || '')
     .replace(/<[^>]+>/g, ' ')
@@ -635,7 +635,14 @@ function injectAfterHeadings(html, injections) {
     const hit = headings.find((h) => !used.has(h.index) && needles.some((n) => n && h.text.includes(n)));
     if (!hit) continue;
     used.add(hit.index);
-    inserts.push({ at: hit.end, html: inj.html });
+    // `afterIntro`: after the paragraph that follows the heading, when one does.
+    let at = hit.end;
+    if (inj.afterIntro) {
+      const rest = html.slice(at);
+      const intro = rest.match(/^\s*<p>[\s\S]*?<\/p>/);
+      if (intro) at += intro[0].length;
+    }
+    inserts.push({ at, html: inj.html });
   }
   inserts.sort((a, b) => b.at - a.at);
   let result = html;
@@ -645,7 +652,7 @@ function injectAfterHeadings(html, injections) {
   return result;
 }
 
-function headingWidgets(id) {
+function headingWidgets(id, lang = 'en', print = false) {
   const ceremonyShots = `
       <div class="phase-row">
         <article class="phase-card phase-a"><span class="phase-n">1</span><h4><i class="fas fa-route" aria-hidden="true"></i> Team Quest</h4><p>League classes, lowest first, then a League Duel.</p></article>
@@ -667,6 +674,14 @@ function headingWidgets(id) {
         <article class="virtue v-focus"><i class="fas fa-brain"></i><h4>Focus</h4><p>Effort, attention, sticking with a hard task.</p></article>
       </div>`;
 
+  if (id === 'year-journey') {
+    const chapters = chapterTitles();
+    return [
+      { match: ['The road, step by step', 'Ο δρόμος, βήμα βήμα'], html: yearRoadHtml(lang, chapters, print), afterIntro: true },
+      { match: ['What arrives by itself', 'Τι έρχεται μόνο του'], html: yearMomentsHtml(lang, chapters, print), afterIntro: true },
+      { match: ['When it happens, read this', 'Όταν συμβεί, διάβασε αυτό'], html: yearTriggersHtml(lang, chapters, print), afterIntro: true }
+    ];
+  }
   if (id === 'the-quest') {
     return [
       { match: ['The ten classroom tabs', 'Οι δέκα καρτέλες'], html: uiShot('nav-dock.png', 'The cloud dock: the ten classroom tabs as a bank of clouds along the bottom edge. Home is the first cloud; Settings lives in the header cog, not here.') }
@@ -707,7 +722,7 @@ function headingWidgets(id) {
   if (id === 'heros-challenge') {
     return [
       { match: ['What you see', 'Τι βλέπεις'], html: uiShot('heros-challenge.png', "Hero's Challenge: the Quest League bar with By Class / Monthly Stars, a gold, silver and bronze podium for each class, ranked rows below with each hero's gap to the one above, Hall of Prodigies and Trophy Room.") },
-      { match: ['Trophy Room'], html: uiShot('trophy-room.png', 'Trophy Room: a student’s backpack. Use a relic such as Elixir of Luck, or keep a seasonal treasure vaulted.') },
+      { match: ['Trophy Room'], html: uiShot('trophy-room.png', 'Trophy Room: a student’s backpack. Use a relic such as the Kindness Locket, spend a treasure’s charm, or keep the treasure in the collection.') },
       { match: ['Hall of Prodigies'], html: uiShot('hall-of-prodigies.png', 'Hall of Prodigies: a marble hall under the rose window. Maria is Prodigy of the Month for July, crowned 3× this year. The coins along the bottom show every month’s Prodigy; August is still being earned, so it is not in the hall yet.') },
       { match: ['Certificates'], html: `${uiShot('certificate-forge.png', 'Hero Certificate: Monthly Quest or Legend’s Journey ribbons, a live preview, Honours on the page, and the Oracle’s citation (Elite). Open it from Certificate on Manage Students.')}${uiShot('certificate.png', 'The printed certificate: an illuminated A4 landscape page in guild colours, wax seal, hero portrait, guild shield, honours and the Oracle’s citation.')}` }
     ];
@@ -720,9 +735,9 @@ function headingWidgets(id) {
   }
   if (id === 'market') {
     return [
-      { match: ['Legendary Artifacts'], html: uiShot('market-legendaries.png', 'Mystic Market — Legendary Artifacts. Two legendary buys per student per month. Pick a shopper, then buy.') },
+      { match: ['Legendary Artifacts'], html: uiShot('market-legendaries.png', 'Mystic Market — Legendary Artifacts: five drawn relics, each with its forms as little chips under the name. Two legendary buys per student per month. Pick a shopper, choose a form, then buy.') },
       { match: ['Seasonal treasures', 'εποχιακοί θησαυροί'], html: uiShot('market-seasonal.png', 'Seasonal Treasures after an Elite Restock. Each month brings new treasures with AI-made pictures; this shows how the pictured cards look.') },
-      { match: ['Familiars'], html: uiShot('market-eggs.png', 'Familiar eggs on the Elite shelf. Buy with Gold, hatch after 20 stars, then evolve at +60 and +140 stars after hatch.') }
+      { match: ['Familiars'], html: uiShot('market-eggs.png', 'Familiar eggs on the Elite shelf: ten kinds, each with its five forms. Buy with Gold; the egg hatches after 20 stars together and grows through its forms at 80, 160, 300 and 500.') }
     ];
   }
   if (id === 'guild-hall') {
@@ -858,7 +873,7 @@ function chapterHtml(ch, print = false, lang = 'en', withId = false) {
         </div>
       </header>
       ${badgePlans(widgets(ch.id, print))}
-      <div class="prose">${injectAfterHeadings(body, headingWidgets(ch.id).map((inj) => ({ ...inj, html: badgePlans(inj.html) })))}</div>
+      <div class="prose">${injectAfterHeadings(body, headingWidgets(ch.id, lang, print).map((inj) => ({ ...inj, html: badgePlans(inj.html) })))}</div>
     </article>`;
 }
 
@@ -1013,7 +1028,10 @@ function buildPayload() {
 }
 
 copyMedia();
-await copyLeagueMap();
+const yearLinkProblems = checkYearJourneyLinks(CHAPTERS.map((ch) => ({ id: ch.id, en: chapterSource(ch, 'en'), el: EL_CHAPTERS[ch.file] || '' })));
+if (yearLinkProblems.length) {
+  throw new Error(`Your Year of Quest links point at missing headings:\n  ${yearLinkProblems.join('\n  ')}`);
+}
 const chaptersHtml = CHAPTERS.map(chapterPair).join('\n');
 const printChaptersHtml = CHAPTERS.map((ch) => chapterHtml(ch, true, 'en', true)).join('\n');
 fs.writeFileSync(path.join(__dirname, 'index.html'), page(chaptersHtml, buildPayload()), 'utf8');

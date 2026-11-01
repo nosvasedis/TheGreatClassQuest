@@ -181,6 +181,25 @@ function preview(className) {
     playSound('click');
 }
 
+/** Paints the Deck of Paths with one card read, without saving anything (the guidebook capture uses it). */
+export function paintHeroClassDeck(className, { held = null } = {}) {
+    heldClass = held;
+    previewClass = null;
+    setMode('pick');
+    renderCards();
+    document.getElementById('hcs-cards')?.classList.remove('is-dealing');
+    if (!HERO_CLASSES[className]) {
+        renderReading();
+        updateSwearButton();
+        return;
+    }
+    previewClass = className;
+    applyShellTheme(className);
+    syncSelection();
+    renderReading();
+    updateSwearButton();
+}
+
 function fillResult(className, { shrine = false, studentName = '' } = {}) {
     const info = HERO_CLASSES[className];
     if (!info) return;

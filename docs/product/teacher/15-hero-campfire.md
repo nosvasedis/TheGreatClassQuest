@@ -1,6 +1,6 @@
 # Hero Campfire and Ember Oaths
 
-The **Hero Campfire** is an optional, two-minute closing ritual on the projector. The class gathers around an animated campfire, remembers the words it practised, answers one reflection question, shows how brightly it learned, and checks in on a few **Ember Oaths**: small personal promises each child chose. There are no ranks, no scores and no Gold here.
+The **Hero Campfire** is an optional, two-minute closing ritual on the projector. The class gathers around an animated campfire, remembers the words it practised, answers one reflection question, shows how brightly it learned, and checks in on a few **Ember Oaths**: small personal promises each child chose. The Campfire itself has no ranks, scores or prices; a kept promise brings the child small gifts on their own Star Path (see Keeping below).
 
 ## Purpose
 
@@ -65,7 +65,7 @@ Open the **Oath Board** from **🔥 Ember Oaths** in the Adventure Log (it follo
   - something you saw (open the card and tap e.g. “Spoke up in English”, or write your own);
   - for a virtue promise, a star for that virtue in Award Stars; for a practice promise, a logged dictation/test; for a quiz promise, playing the Quiz of the Week.
   Several of these in the same lesson still make one ember, so a promise grows over lessons, not in one busy lesson. 🕯️ A little and 🌙 Not today never take an ember away. Changing a 🔥 to something else takes that lesson’s ember back. The card shows **The embers so far**: one line per lit lesson, with what happened.
-- **Keeping.** When **all embers are lit**, the card says **Ready to keep ✨**. Open it, tap how the child feels (🌱 ✨ 💪 😊), optionally note what helped, and **Keep the promise**. At the Campfire the same ready promise shows **✨ Let it rise**. The child receives a **Star-Ember** keepsake in the Trophy Room and a line in Hero’s Chronicle (Goals). No stars, no Gold. Then you can **Choose the next promise** straight away.
+- **Keeping.** When **all embers are lit**, the card says **Ready to keep ✨**. Open it, tap how the child feels (🌱 ✨ 💪 😊), optionally note what helped, and **Keep the promise**. At the Campfire the same ready promise shows **✨ Let it rise**. The child receives a **Star-Ember** keepsake in the Trophy Room and a line in Hero’s Chronicle (Goals). Each kept promise is also one more step on the child’s **Star Path**: one more star in their own constellation (its shape follows their Hero Path), a little Gold (5 for the first, growing to 20; more at milestones), and ranks: **First Light** (1 kept), **Twin Stars** (2), **Star-Weaver** (3), **Bright Constellation** (5), **Guiding Star** (8) and **Keeper of the Sky** (12). Bonus stars stay rare: **1 star** only at 3, 5, 8 and 12 promises kept (then every 4th), counted for the month and the year, never today, with its Glory like any star. Keepsakes arrive in the Trophy Room at 3, 8 and 12. Each kind of promise becomes its own drawn star in the class sky. Then you can **Choose the next promise** straight away.
 - **Letting go.** “Let this promise go” ends an oath with no penalty.
 - **Family Portal.** For a kept oath, **Review for Family Portal** lets you publish one short message you have read. Embers, check-ins and reflections never leave the teacher.
 

@@ -217,8 +217,8 @@
     }
     if (w === 'levels') {
       return `<div class="live-row live-row--levels">
-        <span class="lvl l1">🌱 Level 1</span><span class="lvl l2">💧 Level 2</span><span class="lvl l3">🛡️ Level 3</span>
-        <span class="lvl l4">🔮 Level 4</span><span class="lvl l5">🔥 Level 5</span><span class="lvl l6">🐉 Level 6</span>
+        <span class="lvl l1">🌱 Wayfinders · Lv 1</span><span class="lvl l2">🔥 Torchbearers · Lv 2</span><span class="lvl l3">🛡️ Shieldbearers · Lv 3</span>
+        <span class="lvl l4">⭐ Starseekers · Lv 4</span><span class="lvl l5">⚡ Stormriders · Lv 5</span><span class="lvl l6">🐉 Dragonhearts · Lv 6</span><span class="lvl l7">👑 Sovereigns · Lv 7+</span>
       </div>`;
     }
     if (w === 'houses') {
@@ -230,11 +230,7 @@
     if (w === 'map') {
       return `<figure class="map-stage">
         <div class="map-stage__art">
-          <img src="media/league-map.png" alt="League Map" />
-          <div class="map-zone-label map-zone-label--bronze" style="left:10%;top:75%"><span class="map-zone-label__icon" aria-hidden="true">🌿</span><span class="map-zone-label__copy"><span class="map-zone-label__text">Bronze Meadows</span><span class="map-zone-label__pct">0%</span></span></div>
-          <div class="map-zone-label map-zone-label--silver" style="left:32%;top:15%"><span class="map-zone-label__icon" aria-hidden="true">🏔️</span><span class="map-zone-label__copy"><span class="map-zone-label__text">Silver Peaks</span><span class="map-zone-label__pct">30%</span></span></div>
-          <div class="map-zone-label map-zone-label--gold" style="left:70%;top:65%"><span class="map-zone-label__icon" aria-hidden="true">🏰</span><span class="map-zone-label__copy"><span class="map-zone-label__text">Golden Citadel</span><span class="map-zone-label__pct">60%</span></span></div>
-          <div class="map-zone-label map-zone-label--crystal" style="left:88%;top:8%"><span class="map-zone-label__icon" aria-hidden="true">💎</span><span class="map-zone-label__copy"><span class="map-zone-label__text">Crystal Realm</span><span class="map-zone-label__pct">85%</span></span></div>
+          <img src="media/ui/quest-world.png" alt="The Team Quest map" />
         </div>
       </figure>${termShot('team-quest.png', 'Team Quest class rank cards')}`;
     }
@@ -475,7 +471,136 @@
     });
   }
 
+  // ─── Your Year of Quest: start month, plan filter, "You are here", links into a section ───
+  const YJ_SCHOOL_MONTHS = [9, 10, 11, 12, 1, 2, 3, 4, 5, 6];
+  const YJ_MONTHS = {
+    en: ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+    el: ['', 'Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος']
+  };
+  const YJ_NEXT_YEAR = { en: 'next school year', el: 'επόμενη χρονιά' };
+  const YJ_KEY = 'gcq-guidebook-year';
+  const YJ_TIERS = ['starter', 'pro', 'elite'];
+
+  /** Same loose form as year-journey-view.mjs#headingKey (plan badges drop the brackets). */
+  function headingKey(text) {
+    return String(text || '').normalize('NFC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  }
+
+  function yjLoad() {
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem(YJ_KEY) || '{}') || {}; } catch (_) {}
+    const start = YJ_SCHOOL_MONTHS.includes(Number(saved.start)) ? Number(saved.start) : 9;
+    const plan = ['all', ...YJ_TIERS].includes(saved.plan) ? saved.plan : 'all';
+    return { start, plan };
+  }
+
+  function yjSave(state) {
+    try { localStorage.setItem(YJ_KEY, JSON.stringify(state)); } catch (_) {}
+  }
+
+  /** Months since the class started, in school months (null in the summer). */
+  function yjMonthsIn(start, now = new Date()) {
+    const cur = YJ_SCHOOL_MONTHS.indexOf(now.getMonth() + 1);
+    if (cur < 0) return null;
+    return cur - YJ_SCHOOL_MONTHS.indexOf(start);
+  }
+
+  function yjMonthLabel(stage, at, start, code) {
+    const names = YJ_MONTHS[code];
+    if (at < 0) return names[start];
+    const idx = YJ_SCHOOL_MONTHS.indexOf(start) + at;
+    if (idx >= YJ_SCHOOL_MONTHS.length) return YJ_NEXT_YEAR[code];
+    const m = YJ_SCHOOL_MONTHS[idx];
+    return stage === 'finale' && m !== 6 ? `${names[m]} → ${names[6]}` : names[m];
+  }
+
+  function yjApply(state) {
+    const now = new Date();
+    const into = yjMonthsIn(state.start, now);
+    const rank = state.plan === 'all' ? 3 : YJ_TIERS.indexOf(state.plan) + 1;
+    $$('[data-yj]').forEach((root) => {
+      const code = root.getAttribute('data-yj-lang') === 'el' ? 'el' : 'en';
+      const select = $('[data-yj-start]', root);
+      if (select) select.value = String(state.start);
+      $$('[data-yj-plan]', root).forEach((btn) => {
+        const on = btn.getAttribute('data-yj-plan') === state.plan;
+        btn.classList.toggle('is-on', on);
+        btn.setAttribute('aria-pressed', String(on));
+      });
+      $$('[data-yj-stage]', root).forEach((li) => {
+        const at = Number(li.getAttribute('data-yj-at'));
+        const stage = li.getAttribute('data-yj-stage');
+        const month = $('[data-yj-month]', li);
+        if (month) month.textContent = yjMonthLabel(stage, at, state.start, code);
+        li.classList.toggle('is-next-year', at >= 0 && YJ_SCHOOL_MONTHS.indexOf(state.start) + at >= YJ_SCHOOL_MONTHS.length);
+        let here = false;
+        if (into !== null) {
+          if (into < 0) here = at < 0;
+          else if (into >= 7) here = stage === 'finale';
+          else if (at === into) here = at !== 0 || (stage === 'core') === (now.getDate() <= 14);
+        }
+        li.classList.toggle('is-here', here);
+        const steps = $$('.yj-step', li);
+        let open = 0;
+        steps.forEach((step) => {
+          const locked = YJ_TIERS.indexOf(step.getAttribute('data-yj-tier')) + 1 > rank;
+          step.classList.toggle('is-locked', locked);
+          if (!locked) open += 1;
+        });
+        li.classList.toggle('is-all-locked', steps.length > 0 && open === 0);
+      });
+    });
+    $$('#year-journey [data-yj-cal]').forEach((col) => {
+      col.classList.toggle('is-now', Number(col.getAttribute('data-yj-cal')) === now.getMonth() + 1);
+    });
+    $$('#year-journey .yj-moment, #year-journey .yj-cal__notes li, #year-journey .yj-trigger').forEach((el) => {
+      el.classList.toggle('is-locked', YJ_TIERS.indexOf(el.getAttribute('data-yj-tier')) + 1 > rank);
+    });
+  }
+
+  function bindYearJourney() {
+    if (!$('[data-yj]')) return;
+    const state = yjLoad();
+    $$('[data-yj-start]').forEach((select) => select.addEventListener('change', () => {
+      state.start = Number(select.value) || 9;
+      yjSave(state);
+      yjApply(state);
+    }));
+    $$('[data-yj-plan]').forEach((btn) => btn.addEventListener('click', () => {
+      state.plan = btn.getAttribute('data-yj-plan') || 'all';
+      yjSave(state);
+      yjApply(state);
+    }));
+    yjApply(state);
+  }
+
+  /** A Year of Quest link: open the chapter at the named section, in the language being read. */
+  function goToSection(btn) {
+    const wrap = document.getElementById(btn.getAttribute('data-yj-chapter') || '');
+    if (!wrap) return;
+    const box = $(`.chapter-lang[data-lang="${lang()}"]`, wrap) || wrap;
+    const want = btn.getAttribute('data-yj-head') || '';
+    const target = want
+      ? $$('.prose > h3, .prose > h4, .prose > h5', box).find((h) => headingKey(h.textContent) === want)
+      : null;
+    const el = target || wrap;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    try { history.replaceState(null, '', `#${wrap.id}`); } catch (_) {}
+    if (target) {
+      target.classList.remove('yj-flash');
+      void target.offsetWidth;
+      target.classList.add('yj-flash');
+      setTimeout(() => target.classList.remove('yj-flash'), 2400);
+    }
+  }
+
   document.addEventListener('click', (e) => {
+    const yjGo = e.target.closest('.yj-go[data-yj-chapter]');
+    if (yjGo) {
+      e.preventDefault();
+      goToSection(yjGo);
+      return;
+    }
     const termBtn = e.target.closest('[data-term]');
     if (termBtn) {
       e.preventDefault();
@@ -514,6 +639,7 @@
   currentChapter = (location.hash || '').replace('#', '') || 'why-we-quest';
 
   bindPlanExplorer();
+  bindYearJourney();
   let start = 'en';
   try { start = localStorage.getItem('gcq-guidebook-lang') || 'en'; } catch (_) {}
   applyLang(start);

@@ -28,29 +28,29 @@ Do not hand out Gold instead of stars. The star is the act of recognition; Gold 
 ## How Gold is spent
 
 - Market purchases (artifacts, seasonal items, eggs)
-- **Hero’s Boon** (15 Gold unless Compassion Token has made boons free this month)
+- **Hero’s Boon** (15 Gold, unless a Kindness Locket or a Compassion Token has made the next boons free)
 
 ## Legendary Artifacts (power-ups)
 
-Always in stock. **Two legendary buys per student per month.** Use them from the Trophy Room, or by tapping the hero’s portrait. Using an artifact uses it up.
+Always in stock. The shelf shows **five relics**, each with a drawn picture. Most relics come in a few **forms**: tap a form under the relic's name to see its picture, price and power, then buy that form. **Two legendary buys per student per month**, whatever the form. Use them from the Trophy Room, or by tapping the hero's portrait. Using an artifact uses it up.
 
-| Artifact | Gold | Effect | Extra limit |
-|----------|------|--------|-------------|
-| **Crystal of Clarity** | 15 | A glowing gem on the student’s card showing they hold a hint pass | — |
-| **Scroll of the Gilded Star** | 20 | Next star → **3× Gold**, then clears | — |
-| **Time Warp Hourglass** | 25 | **+5 minutes** on every live **Race the Clock** bounty in the class (it cannot be used when no bounty is running) | — |
-| **Elixir of Luck** | 30 | Next lesson: **50%** chance of **+1 star** on the first positive award (not used if the Hero of the Day’s +1 already applies to that award) | — |
-| **Aurum Satchel** | 32 | **50% off** the next Market purchase this month | — |
-| **Banner of Glory** | 35 | Next **3** stars each add **+1 bonus Guild Glory** | Needs a guild |
-| **The Herald’s Banner** | 40 | A school-wide celebration message | — |
-| **Fortune’s Favor** | 48 | The guild’s next **Fortune’s Wheel** in the student’s class is gilded: no storms, no Trickster and no common wedges | Needs a guild |
-| **The Starfall Catalyst** | 50 | Doubles the next high-test **Starfall** bonus | — |
-| **Chalice of Unity** | 55 | **+1 Glory** right away for the student and every guildmate in their class | Needs a guild |
-| **Compassion Token** | 55 | Hero’s Boon costs **0 Gold** for the rest of this month | — |
-| **The Pathfinder’s Map** | 60 | Instant **+10 Team Quest stars** for the class | **1 use per class per month** (and not while a classmate still holds an unused Pathfinder’s Map bought this month) |
-| **Archivist’s Quill** | 62 | Next Story Weaver class bonus is **1 star instead of 0.5** for that student | — |
-| **The Mask of the Protagonist** | 75 | Guarantees **Hero of the Day** on the next Adventure Log | **1 buy per student per month** |
-| **Guild Standard** | 75 | The student’s name flies on the guild’s banner in Guild Hall for the rest of this month’s Chapter, plus **+2 Glory** | Needs a guild |
+| Relic | Form | Gold | Effect | Extra limit |
+|-------|------|------|--------|-------------|
+| **Fortune's Purse** | **Silver Satchel** | 16 | **25% off** the next Market purchase this month | — |
+| | **Scroll of the Gilded Star** | 20 | Next star → **3× Gold**, then clears | — |
+| | **Aurum Satchel** | 32 | **50% off** the next Market purchase this month | — |
+| | **Fortune's Favor** | 48 | The guild's next **Fortune's Wheel** in the student's class is gilded: no storms, no Trickster and no common wedges | Needs a guild |
+| **The Guild Standard** | **Pennant of Glory** | 35 | Next **3** stars each add **+1 bonus Guild Glory** | Needs a guild |
+| | **Chalice of Unity** | 55 | **+1 Glory** right away for the student and every guildmate in their class | Needs a guild |
+| | **Guild Standard** | 75 | The student's name flies on the guild's banner in Guild Hall for the rest of this month's Chapter, plus **+2 Glory** | Needs a guild |
+| **The Wayfinder's Kit** | **Time Warp Hourglass** | 25 | **+5 minutes** on every live **Race the Clock** bounty in the class (it cannot be used when no bounty is running) | — |
+| | **The Pathfinder's Map** | 60 | Instant **+10 Team Quest stars** for the class | **1 use per class per month** (and not while a classmate still holds an unused Pathfinder's Map bought this month) |
+| **The Storyteller's Relics** | **Archivist's Quill** | 40 | The student's next **Training Grounds** class bonus is **1 star instead of 0.5**, in any of the four games | — |
+| | **The Mask of the Protagonist** | 75 | Guarantees **Hero of the Day** on the next crowning | **1 buy per student per month** |
+| **The Hero's Heart** | **Kindness Locket** | 28 | The student's next **3** Hero's Boons cost **0 Gold** | — |
+| | **Compassion Token** | 55 | Hero's Boon costs **0 Gold** for the rest of this month | — |
+
+**Retired relics.** Four older artifacts are no longer sold or won: the Crystal of Clarity, the Elixir of Luck, The Herald's Banner and The Starfall Catalyst. A child who already owns one can still use it from the Trophy Room.
 
 ## Seasonal treasures (Elite)
 
@@ -70,7 +70,7 @@ The monthly stall follows **this month’s classroom story** (September is harve
 
 Every seasonal and festival treasure carries a **Charm**: one small classroom privilege, shown on its card in the Market. Common charms are quick (Seat of Choice, Teacher's Helper, Game Chooser, Golden Pen, First Turn, Name Picker). Rare charms are stronger (Partner Pick, Wise Owl's Hint, Music Keeper, Team Captain, Spotlight Share). Legendary charms are the big ones (Teacher for Five, Royal Decree, Teacher's Desk, Wall of Fame). Charms are small lesson moments only: they never touch stars, Glory, Gold, marks, homework or tests. Younger leagues read simpler wording.
 
-Use a charm from the **Trophy Room** (Charms section). The class sees it in the app's normal notification, and you honour it in the lesson. The treasure stays in the collection; only the charm is spent. One charm per hero per day, and up to 3 per class per day. Treasures bought before charms existed carry a common charm.
+**Charms wake in sets.** A hero wakes one charm by collecting a set of treasures of the same rarity: **3 common**, **2 rare** or **2 legendary** treasures wake one charm of that rarity. The charm card in the Market says "set of N", and the Keeper's receipt says how far the set is. Use a charm from the **Trophy Room** (Charms section), where each rarity has a set jar showing its progress; choose any one of the set's treasures to call on its charm. The class sees it in the app's normal notification, and you honour it in the lesson. The treasures stay in the collection; only the charm is spent. One charm per hero per day, and up to 3 per class per day. Charms used before sets existed stay as they were.
 
 ## What treasures count for: the Collector's Hoard
 
@@ -101,23 +101,36 @@ Legendary Artifacts on the evergreen shelf follow their own two-per-month rule; 
 
 ## Familiars (Elite)
 
-Each student has **one** Familiar, a companion for the whole year.
+Each student has **one** Familiar, a companion for the whole year. There are **ten** kinds of egg, and every Familiar grows through **five forms**.
 
-| Egg | Gold | Personality | Forms (hatch → mid → late) |
-|-----|------|-------------|----------------------------|
-| **Thornback** | 30 | Sturdy, loyal | Moss Toad → Bark Bear → Ancient Treant |
-| **Frostpaw** | 35 | Calm, wise | Ice Cub → Snow Fox → Frost Guardian |
-| **Emberfang** | 40 | Bold, fierce | Hatchling → Flame Drake → Inferno Dragon |
-| **Veilshade** | 45 | Mysterious | Shadow Wisp → Phantom Cat → Void Stalker |
-| **Sparkling** | 50 | Bright, joyful | Sun Sprite → Dawn Fairy → Solar Phoenix |
+| Egg | Gold | Personality | Forms (first → fifth) |
+|-----|------|-------------|-----------------------|
+| **Thornback** | 30 | Strong, loyal | Moss Toad → Bark Bear → Ancient Treant → Grove Warden → World-Tree Elder |
+| **Cloverhop** | 30 | Lucky, bouncy | Clover Kit → Meadow Hare → Lucky Jackalope → Fortune Jackalope → Golden Luckbringer |
+| **Frostpaw** | 35 | Serene, wise | Ice Cub → Snow Fox → Frost Guardian → Aurora Kitsune → Starfrost Sovereign |
+| **Tidefin** | 35 | Playful, kind | Bubble Pup → River Otter → Tide Otter → Coral Selkie → Tidecaller |
+| **Emberfang** | 40 | Daring, fierce | Hatchling → Flame Drake → Inferno Dragon → Magma Wyrm → Sunfire Elder |
+| **Gemshell** | 40 | Patient, steady | Pebble Tortle → Crystal Tortoise → Geode Guardian → Mountain Tortoise → Prism Colossus |
+| **Veilshade** | 45 | Mysterious, swift | Shadow Wisp → Phantom Cat → Void Stalker → Eclipse Lynx → Moonveil Sphinx |
+| **Stormwing** | 45 | Clever, brave | Puffball Owlet → Storm Owl → Thunder Owl → Tempest Owl → Thunderbird |
+| **Sparkling** | 50 | Radiant, joyful | Sun Sprite → Dawn Fairy → Solar Phoenix → Radiant Phoenix → Eternal Sunbird |
+| **Starfoal** | 50 | Dreamy, gentle | Star Foal → Comet Pony → Nebula Steed → Astral Unicorn → Galaxy Alicorn |
 
-**Growth** (stars earned *after* the relevant moment):
+**Growth.** A Familiar grows with its **bond**: the stars its hero has earned since the egg was bought ("stars together").
 
-1. Egg: after **20** stars earned since you bought it, it hatches (Level 1) and gets a name and an animated picture
-2. **60** stars since hatch → Level 2
-3. **140** stars since hatch → Level 3
+1. **20** stars together: the egg hatches into the first form. Give the new friend a true name in its Den.
+2. **80** stars together: second form.
+3. **160** stars together: third form. The Familiar learns its **trick** (below).
+4. **300** stars together: fourth form, now wearing its regalia.
+5. **500** stars together: the fifth, **Mythic** form. From then on, every **150** more stars together adds a **Starbond** mark.
 
-A Familiar sits beside its student’s portrait on the boards, and larger when you open its stats (“stars together” and progress to the next form). Hatching and evolving have their own sounds. On Elite, AI draws each Familiar’s pictures.
+The bond survives the end of the school year: stars earned together are kept when the year's stars reset.
+
+**Tricks.** At its third form each Familiar learns a trick for the **Quiz of the Week**: once a month it takes away one wrong answer (Emberfang puffs it into smoke, Frostpaw freezes it in ice, Starfoal wishes it away on a falling star, and so on). In its Mythic form the trick works **twice a month**.
+
+**Evolution Moments.** When a Familiar is ready to hatch or change form, a small card rises from the corner with a **Watch it** button. The class then sees the Evolution Moment on the projector: the old form glows, flickers between the old and the new shape, and the new form bursts out with a ribbon naming it.
+
+Every Familiar is drawn by the app itself, so no two of the same kind look exactly alike, and a rare few wear a **Shiny** coat. A Familiar sits beside its student's portrait on the boards; open it for **the Familiar's Den**, its home, with the path of forms, how far it is to the next one, and its trick. Hatching and evolving have their own sounds.
 
 ## What you can do in the tab
 
@@ -130,7 +143,7 @@ A Familiar sits beside its student’s portrait on the boards, and larger when y
 
 ## How this feeds the rest of the Quest
 
-Artifacts change **lessons** (luck, bounties, logs, Starfall, Story Weavers), **Team Quest** (Pathfinder), and **Guild Hall** (small Glory gifts, a Guild Standard on the banner, a gilded Wheel). None of them multiplies Glory, so Gold can never buy a Chapter. Familiars make every future star visible. Compassion Token makes Hero’s Boons free for a month.
+Artifacts change **lessons** (Gold, bounties, Hero of the Day, Training Grounds bonuses, Hero’s Boons), **Team Quest** (Pathfinder), and **Guild Hall** (small Glory gifts, a Guild Standard on the banner, a gilded Wheel). None of them multiplies Glory, so Gold can never buy a Chapter. Familiars make every future star visible. The Kindness Locket and the Compassion Token make Hero’s Boons free.
 
 ## Plan notes
 

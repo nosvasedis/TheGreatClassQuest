@@ -34,6 +34,8 @@ Tap a gem first: it lights up, the cloud takes on that virtue's colour, and thre
 
 The cloud then **seals**: the star buttons give way to a stamp such as **+2 ★ for Teamwork**, and the awarded gem keeps its stars. To take it back, tap the round **Undo** button in the top-right corner. Sounds and particles should feel like a celebration, not a slap on a chart.
 
+**The last lesson of the month.** On a class's final lesson of the month, this month's stars are **sealed until the Ceremony**, as on the Hero's Challenge: each cloud's Month chip shows a wax seal instead of a number, the Total card drops its month figure, the Teacher Boon list goes alphabetical with no star counts, and the Hero's Boon shows "month sealed". You still award stars as usual.
+
 **Scholar’s Bonus** and **Story Weaver** are **not** buttons here. Scholar’s Bonus arrives from **Starfall** after a high test or dictation. Story Weaver stars arrive from the **Story Weavers** tab when the class hits a writing milestone.
 
 ## Welcome Back
@@ -60,7 +62,7 @@ On the **first star click** of that student’s special day (when it matches the
 - **Happy Birthday!** → **+2.5** stars  
 - **Happy Nameday!** → **+1.5** stars  
 
-These are recorded as a bonus named after the occasion. Set dates on the student profile (**Find from name** fills the name day from the Greek calendar on every plan; moving feasts follow Easter each year). Home reminder pills and Projector cards also announce the day.
+A celebration card opens first. A **birthday** is a dusk party with bunting, lights and a cake with the child's name on it: tap **Blow out the candles**, the flames go out, confetti bursts and the bells play the start of Happy Birthday. A **name day** is an Aegean card with sun, sea and an olive wreath around the child's portrait, and **Χρόνια πολλά!**. The stars are given when the card is gifted. These are recorded as a bonus named after the occasion. Set dates on the student profile (**Find from name** fills the name day from the Greek calendar on every plan; moving feasts follow Easter each year). Home reminder pills and Projector cards also announce the day.
 
 ## Hero’s Boon (peer gift)
 
@@ -72,15 +74,15 @@ This is **student → student generosity**, paid in Gold.
 |------|--------|
 | Gift | Receiver **+0.5** Total and Monthly stars (feeds Guild Glory) |
 | Cost | **15 Gold** from the giver |
-| Free | **Compassion Token** month, or stacked free uses |
+| Free | **Compassion Token** month, or free uses from a **Kindness Locket** (3 each) |
 | Daily cap | **4** peer boons **per class per day** |
-| Who may receive | Bottom **3** on this month’s stars, **or** anyone in a **tie group** (same monthly star total as someone else) |
+| Who may receive | The bottom **3** places on this month’s Hero’s Challenge board (a place shared at the cut-off counts whole), **or** anyone level on this month’s stars with a classmate |
 | Self | Never |
 | Repeat | Cannot gift the **same** classmate twice in a row |
 
 The heart sits in the cloud's top-left corner. When the student may receive a boon, it glows pink with a **+½** tag. When they may not (or the class has used its 4 boons today), it rests faded. Explain the rules once; children will police fairness better than a lecture.
 
-On **Pro**, giving boons levels up the **Patron** Hero Path (see the Hero Path chapter): the first gift each calendar week earns a path point, and the giver gets **+10 Gold** back, so a paid gift costs 5 Gold in the end (nothing, if Compassion Token made it free). The giver never gains rank stars.
+On **Pro**, giving boons levels up the **Patron** Hero Path (see the Hero Path chapter): the first gift each calendar week earns a path point, and the giver gets **+10 Gold** back, so a paid gift costs 5 Gold in the end (nothing, if a Kindness Locket or Compassion Token made it free). The giver never gains rank stars.
 
 Do not confuse this with:
 

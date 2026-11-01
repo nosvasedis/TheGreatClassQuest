@@ -6,7 +6,7 @@ import { reportsModalsHTML } from '../../../../templates/modals/reports.js';
 import { studentModalsHTML } from '../../../../templates/modals/student.js';
 import { heroClassModalsHTML } from '../../../../templates/modals/heroClass.js';
 import { HERO_CLASSES } from '../../../../features/heroClasses.js';
-import { HERO_SKILL_TREE, getReasonDisplayName } from '../../../../features/heroSkillTree.js';
+import { HERO_SKILL_TREE } from '../../../../features/heroSkillTree.js';
 import { GUILDS, getGuildEmblemUrl } from '../../../../features/guilds.js';
 import { buildCertificateModel, certificateStyleVars, renderCertificateInner, CERTIFICATE_WIDTH } from '../../../../features/certificateCore.mjs';
 import { hideAppScreen, hideExtras, captureWeatherCardHtml } from './fill-extras.js';
@@ -375,52 +375,19 @@ export function hideCertificatePrint() {
   tpl?.parentElement?.classList.remove('capture-cert-wrap');
 }
 
-export function showHeroClass() {
+export async function showHeroClass() {
   startShow();
   const modal = document.getElementById('hero-class-select-modal');
   const shell = document.getElementById('hcs-shell');
   if (!modal || !shell) return;
   modal.classList.remove('hidden');
   modal.classList.add('capture-hero-class');
-  shell.dataset.mode = 'pick';
-  shell.dataset.theme = 'Guardian';
-
-  const guardian = HERO_CLASSES.Guardian;
-  shell.style.setProperty('--hcs-accent', guardian.theme.accent);
-  shell.style.setProperty('--hcs-accent-rgb', guardian.theme.rgb);
-
   const nameEl = document.getElementById('hcs-student-name');
-  const subtitle = document.getElementById('hcs-subtitle');
-  const watermark = document.getElementById('hcs-watermark');
-  const emoji = document.getElementById('hcs-header-emoji');
-  const swear = document.getElementById('hcs-swear-btn');
-  const cards = document.getElementById('hcs-cards');
-  const banner = document.getElementById('hcs-lock-banner');
-
   if (nameEl) nameEl.textContent = 'Alex';
-  if (subtitle) subtitle.textContent = 'The path of the Guardian';
-  if (watermark) watermark.textContent = guardian.icon;
-  if (emoji) emoji.textContent = guardian.icon;
-  if (swear) swear.disabled = false;
-  if (banner) banner.classList.add('hidden');
-
-  if (cards) {
-    cards.innerHTML = Object.entries(HERO_CLASSES).map(([name, info]) => {
-      const selected = name === 'Guardian';
-      const virtue = getReasonDisplayName(info.reason);
-      return `<button type="button"
-            class="hcs-card${selected ? ' is-selected' : ''}"
-            style="--card-accent:${info.theme.accent};--card-accent-rgb:${info.theme.rgb};">
-            <div class="hcs-card-top">
-                <span class="hcs-card-icon">${info.icon}</span>
-                <span class="hcs-card-check" aria-hidden="true"><i class="fas fa-check"></i></span>
-            </div>
-            <span class="hcs-card-name">${name}</span>
-            <span class="hcs-card-virtue">${virtue}</span>
-            <span class="hcs-card-perk">${info.desc}</span>
-        </button>`;
-    }).join('');
-  }
+  document.getElementById('hcs-lock-banner')?.classList.add('hidden');
+  // The live ceremony's own painter, so the guidebook shows the real Deck of Paths.
+  const { paintHeroClassDeck } = await import('../../../../ui/modals/heroClass.js');
+  paintHeroClassDeck('Guardian');
 }
 
 export function hideHeroClass() {

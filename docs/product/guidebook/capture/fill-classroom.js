@@ -370,12 +370,12 @@ export function showTrophyRoom() {
       { id: 'nikos', name: 'Nikos', total: 1, ready: 0 },
     ], 'alex');
   }
-  const isUsable = (name) => ['Elixir of Luck', 'Scroll of the Gilded Star'].includes(name);
+  const isUsable = (name) => ['Kindness Locket', 'Scroll of the Gilded Star'].includes(name);
   const inventory = [
-    { id: 'leg_luck', name: 'Elixir of Luck', icon: '🍀', description: '50% chance for +1 star during your NEXT lesson.' },
+    { id: 'leg_kindness', name: 'Kindness Locket', icon: '💗', description: "Your next 3 Hero's Boons cost 0 Gold." },
     { id: 'aug_tide', name: 'August Tide Charm', icon: '🐚', description: 'A shell that still hums with summer.', acquiredAt: '2026-08-28T10:00:00Z' },
-    { id: 'leg_gilded', name: 'Scroll of the Gilded Star', icon: '✨', description: '3x Gold for the next star you earn.' },
-    { id: 'leg_luck', name: 'Elixir of Luck', icon: '🍀', description: '50% chance for +1 star during your NEXT lesson.' },
+    { id: 'leg_gilded', name: 'Scroll of the Gilded Star', icon: '✨', description: 'The next star you earn pays triple Gold.' },
+    { id: 'leg_kindness', name: 'Kindness Locket', icon: '💗', description: "Your next 3 Hero's Boons cost 0 Gold." },
     { id: 'ember_demo', name: 'Star-Ember', icon: '🌟', source: 'ember_oath', description: 'Kept a promise: read one page every evening.', acquiredAt: '2026-09-22T10:00:00Z' },
   ];
   const content = document.getElementById('trophy-room-content');
@@ -419,7 +419,7 @@ export function showHallOfProdigies() {
       monthName: 'July 2026',
       winners: [{ ...maria, monthlyStars: 48, stats: { count3: 6, uniqueReasons: 5, academicAvg: 92 } }],
       crownsById: { maria: 3 },
-      inventoryById: { maria: [{ name: 'Elixir of Luck', icon: '🧪' }, { name: 'Map of Stars', icon: '🗺️' }, { name: 'Owl Quill', icon: '🪶' }, { name: 'Crystal Orb', icon: '🔮' }] },
+      inventoryById: { maria: [{ name: 'Kindness Locket', icon: '💗' }, { name: 'Map of Stars', icon: '🗺️' }, { name: 'Owl Quill', icon: '🪶' }, { name: 'Crystal Orb', icon: '🔮' }] },
     });
   }
   const year = document.getElementById('prodigy-year-strip');

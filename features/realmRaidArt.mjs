@@ -380,7 +380,7 @@ export function bossFrontSvg(seasonId = 'winter', { id = 'rrbf', mood = 'proud' 
                 <stop offset="0" stop-color="#ffffff"/><stop offset=".45" stop-color="${c.gem}"/><stop offset="1" stop-color="${c.antlerDeep}"/>
             </radialGradient>
         </defs>
-        ${hand(62, -1)}${hand(338, 1)}
+        ${hand(76, -1)}${hand(324, 1)}
     </svg>`;
 }
 
@@ -647,7 +647,7 @@ export function shieldSvg(seasonId, classes = [], { pct = 0, broken = false, foc
     const total = rows.reduce((sum, row) => sum + row.share, 0) || 1;
     const R0 = 52;
     const R1 = 150;
-    const gap = rows.length > 1 ? Math.min(2.2, 120 / rows.length) : 0;
+    const gap = rows.length > 1 ? Math.min(2.6, 120 / rows.length) : 0;
     let angle = 0;
     const shards = rows.map((row, i) => {
         const span = (row.share / total) * 360;
@@ -664,36 +664,55 @@ export function shieldSvg(seasonId, classes = [], { pct = 0, broken = false, foc
         const lightShape = fill <= 0 ? '' : (fullCircle
             ? `<circle cx="200" cy="200" r="${((R0 + rFill) / 2).toFixed(1)}" fill="none" stroke="url(#${id}-light)" stroke-width="${(rFill - R0).toFixed(1)}"/>`
             : `<path d="${sector(200, 200, R0, rFill, a0, a1)}" fill="url(#${id}-light)"/>`);
-        const logoSize = Math.max(12, Math.min(30, (span / 360) * 150));
+        const logoSize = Math.max(14, Math.min(30, (span / 360) * 160));
         return `<g class="rr-shard${row.valor ? ' is-full' : ''}${row.classId === focusId ? ' is-focus' : ''}" data-shard="${esc(row.classId)}" style="--i:${i};--tx:${(tx - 200).toFixed(1)}px;--ty:${(ty - 200).toFixed(1)}px">
             <path class="rr-shard__glass" d="${shape}" fill="url(#${id}-glass)" fill-rule="evenodd"/>
             ${lightShape}
-            <path class="rr-shard__edge" d="${shape}" fill="none" stroke="${row.valor ? '#fde68a' : c.antlerTip}" stroke-width="${row.classId === focusId ? 3.4 : 1.6}" fill-rule="evenodd"/>
-            ${showLogos && span > 9 ? `<text class="rr-shard__logo" x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="${logoSize.toFixed(0)}" text-anchor="middle" dominant-baseline="central">${esc(row.logo || '📚')}</text>` : ''}
+            <path class="rr-shard__flash" d="${shape}" fill="#ffffff" fill-rule="evenodd" opacity="0"/>
+            <path class="rr-shard__edge" d="${shape}" fill="none" stroke="${row.valor ? '#fde68a' : c.antlerTip}" stroke-width="${row.classId === focusId ? 3.6 : 1.8}" fill-rule="evenodd" stroke-linejoin="round"/>
+            ${fill < 1 ? `<path class="rr-shard__facet" d="${fullCircle ? '' : sector(200, 200, R1 - 10, R1 - 4, a0 + 1.5, a1 - 1.5)}" fill="#ffffff" opacity=".28"/>` : ''}
+            ${showLogos && span > 9 ? `<g class="rr-shard__badge"><circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="${(logoSize * 0.78).toFixed(1)}" fill="${row.valor ? '#fff7d6' : '#ffffff'}" opacity="${row.valor ? '.95' : '.82'}" stroke="${INK}" stroke-width="1.6"/><text class="rr-shard__logo" x="${lx.toFixed(1)}" y="${(ly + 0.5).toFixed(1)}" font-size="${(logoSize * 0.9).toFixed(0)}" text-anchor="middle" dominant-baseline="central">${esc(row.logo || '📚')}</text></g>` : ''}
         </g>`;
     }).join('');
     const pctText = Math.min(999, Math.floor((pct || 0) * 100));
     return `<svg class="rr-shield${broken ? ' is-broken' : ''}" viewBox="0 0 400 400" role="img" aria-label="The Guardian's shield: ${pctText}% ${broken ? 'broken' : 'cracked'}">
         <defs>
             <radialGradient id="${id}-glass" cx=".5" cy=".5" r=".5">
-                <stop offset=".3" stop-color="${c.glass}" stop-opacity=".16"/><stop offset=".8" stop-color="${c.glassDeep}" stop-opacity=".34"/><stop offset="1" stop-color="${c.glass}" stop-opacity=".62"/>
+                <stop offset=".3" stop-color="${c.glass}" stop-opacity=".35"/><stop offset=".8" stop-color="${c.glassDeep}" stop-opacity=".55"/><stop offset="1" stop-color="${c.glass}" stop-opacity=".85"/>
             </radialGradient>
             <radialGradient id="${id}-light" cx=".5" cy=".5" r=".5">
                 <stop offset=".25" stop-color="#fffbea"/><stop offset=".6" stop-color="#fde68a"/><stop offset="1" stop-color="#f59e0b"/>
+            </radialGradient>
+            <linearGradient id="${id}-rim" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="${c.metalLight}"/><stop offset=".45" stop-color="${c.metal}"/><stop offset="1" stop-color="${c.metalDeep}"/>
+            </linearGradient>
+            <radialGradient id="${id}-back" cx=".5" cy=".45" r=".55">
+                <stop offset="0" stop-color="${c.mantleLight}"/><stop offset="1" stop-color="${c.mantle}"/>
             </radialGradient>
             <radialGradient id="${id}-core" cx=".5" cy=".4" r=".6">
                 <stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="${c.glow}"/><stop offset="1" stop-color="${c.antlerDeep}"/>
             </radialGradient>
         </defs>
-        <circle class="rr-shield__halo" cx="200" cy="200" r="182" fill="none" stroke="${c.glow}" stroke-width="10" opacity=".22"/>
-        <circle cx="200" cy="200" r="162" fill="none" stroke="${c.antlerTip}" stroke-width="3" opacity=".7"/>
-        <g class="rr-shield__runes" fill="${c.antlerTip}" opacity=".55">
-            ${Array.from({ length: 24 }, (_, i) => { const [x, y] = polar(200, 200, 171, i * 15); return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${i % 3 ? 1.8 : 3.4}"/>`; }).join('')}
+        <circle class="rr-shield__halo" cx="200" cy="200" r="180" fill="none" stroke="${c.glow}" stroke-width="7" opacity=".16"/>
+        <g class="rr-shield__plate">
+            <circle cx="200" cy="200" r="166" fill="url(#${id}-rim)" stroke="${INK}" stroke-width="4.5"/>
+            <circle cx="200" cy="200" r="153" fill="url(#${id}-back)" stroke="${INK}" stroke-width="3"/>
+            <path d="M80,130 A140,140 0 0 1 200,47" stroke="#ffffff" stroke-width="5" fill="none" opacity=".55" stroke-linecap="round"/>
+            <g class="rr-shield__rivets">${Array.from({ length: 16 }, (_, i) => { const [x, y] = polar(200, 200, 159.5, i * 22.5 + 11.25); return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6" fill="${c.metalLight}" stroke="${INK}" stroke-width="1.2"/>`; }).join('')}</g>
+            <g class="rr-shield__studs">${[0, 90, 180, 270].map((a) => { const [x, y] = polar(200, 200, 159.5, a); return `<path d="M${x.toFixed(1)},${(y - 9).toFixed(1)} L${(x + 7).toFixed(1)},${y.toFixed(1)} L${x.toFixed(1)},${(y + 9).toFixed(1)} L${(x - 7).toFixed(1)},${y.toFixed(1)} Z" fill="url(#${id}-core)" stroke="${INK}" stroke-width="1.8"/>`; }).join('')}</g>
         </g>
+        <g class="rr-shield__runes" fill="${c.antlerTip}" opacity=".55">
+            ${Array.from({ length: 24 }, (_, i) => { const [x, y] = polar(200, 200, 178, i * 15); return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${i % 3 ? 1.6 : 3}"/>`; }).join('')}
+        </g>
+        ${broken ? `<g class="rr-shield__cracks" fill="none" stroke="${INK}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" opacity=".75">
+            <path d="M200,48 L210,82 L196,104 L214,140"/><path d="M352,200 L318,212 L300,196 L262,214"/><path d="M200,352 L188,318 L204,296 L186,262"/><path d="M48,200 L82,188 L100,204 L138,186"/>
+            <path d="M92,92 L118,120 L112,136"/><path d="M308,308 L282,280 L288,264"/>
+        </g>` : ''}
         <g class="rr-shield__shards">${shards}</g>
         <g class="rr-shield__core">
-            <circle cx="200" cy="200" r="${R0 - 6}" fill="url(#${id}-core)" opacity=".95"/>
-            <circle cx="200" cy="200" r="${R0 - 6}" fill="none" stroke="${c.trim}" stroke-width="2.5"/>
+            <circle cx="200" cy="200" r="${R0 - 2}" fill="url(#${id}-rim)" stroke="${INK}" stroke-width="3"/>
+            <circle cx="200" cy="200" r="${R0 - 9}" fill="url(#${id}-core)" stroke="${INK}" stroke-width="2"/>
+            <path d="M172,186 A30,30 0 0 1 196,166" stroke="#ffffff" stroke-width="4" fill="none" opacity=".7" stroke-linecap="round"/>
             <text x="200" y="196" text-anchor="middle" class="rr-shield__pct">${esc(coreBig || `${pctText}%`)}</text>
             <text x="200" y="220" text-anchor="middle" class="rr-shield__cap">${esc(coreCap || (broken ? 'broken' : 'cracked'))}</text>
         </g>

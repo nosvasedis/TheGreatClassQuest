@@ -429,7 +429,7 @@ export function hallHtml(view, { focusId = '', heroCard = null, canReveal = fals
         ${classCardHtml(view, focusRow, { heroCard, canReveal, roster, tier, count })}
         ${menu ? menuSheetHtml(view, { year, musicOn }) : ''}
         <ol class="rr-sr" aria-live="polite">${story.map((l) => `<li>${esc(l.text)}</li>`).join('')}</ol>
-        ${intro ? `<div class="rr-intro" aria-hidden="true">${Array.from({ length: 8 }, (_, i) => `<i style="--i:${i}"></i>`).join('')}<b>${esc(raid.phase === 'herald' ? battleTitle({ raid, status, tier }) : `${season.guardian}!`)}</b></div>` : ''}
+        ${intro ? `<div class="rr-intro" aria-hidden="true">${Array.from({ length: 8 }, (_, i) => `<i style="--i:${i}"></i>`).join('')}<p class="rr-intro__title"><small>${esc(season.name)}</small><b>${esc(raid.phase === 'herald' ? battleTitle({ raid, status, tier }) : `${season.guardian}!`)}</b><span class="rr-intro__line"></span></p></div>` : ''}
     </div>`;
 }
 

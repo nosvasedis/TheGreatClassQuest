@@ -124,7 +124,7 @@ function render(view) {
     }
     layoutParty();
     followPointer();
-    if (intro) setTimeout(() => hall?.root.querySelector('.rr-intro')?.remove(), 2600);
+    if (intro) setTimeout(() => hall?.root.querySelector('.rr-intro')?.remove(), 2400);
     syncMusic(view);
     hall.last = view;
 }
@@ -307,11 +307,24 @@ function strike(before, after, { lite = false } = {}) {
             pop.style.setProperty('--art-deep', job.deep);
             const b = to?.getBoundingClientRect();
             const lb = layer.getBoundingClientRect();
-            // Over the shard that was hit, a little apart each time so numbers never pile up.
-            const px = b ? ((b.left + b.width / 2 - lb.left) / lb.width) * 100 : 75;
-            const py = b ? ((b.top + b.height / 2 - lb.top) / lb.height) * 100 : 55;
-            pop.style.setProperty('--x', `${(px + 6 * Math.cos(i * 2.4)).toFixed(1)}%`);
-            pop.style.setProperty('--y', `${(py - 10 + 6 * Math.sin(i * 2.4)).toFixed(1)}%`);
+            // Just outside the shield's rim, in line with the shard that was hit: each class's number
+            // pops on its own side of the shield, so numbers never pile up or cover the core.
+            const shieldBox = root.querySelector('.rr-stage__shield')?.getBoundingClientRect();
+            let px = 75;
+            let py = 55;
+            if (b && shieldBox?.width) {
+                const cx = shieldBox.left + shieldBox.width / 2;
+                const cy = shieldBox.top + shieldBox.height / 2;
+                const ang = Math.atan2(b.top + b.height / 2 - cy, b.left + b.width / 2 - cx) || -Math.PI / 2;
+                const r = shieldBox.width * 0.5 + 18 + (i % 2) * 22;
+                px = ((cx + Math.cos(ang) * r - lb.left) / lb.width) * 100;
+                py = ((cy + Math.sin(ang) * r - lb.top) / lb.height) * 100;
+            } else if (b) {
+                px = ((b.left + b.width / 2 - lb.left) / lb.width) * 100;
+                py = ((b.top + b.height / 2 - lb.top) / lb.height) * 100;
+            }
+            pop.style.setProperty('--x', `${Math.min(96, Math.max(4, px)).toFixed(1)}%`);
+            pop.style.setProperty('--y', `${Math.min(94, Math.max(6, py)).toFixed(1)}%`);
             pop.textContent = `${Math.round(gain * 2) / 2}`;
             if (big) {
                 const word = document.createElement('small');
@@ -319,7 +332,7 @@ function strike(before, after, { lite = false } = {}) {
                 pop.appendChild(word);
             }
             layer.appendChild(pop);
-            setTimeout(() => pop.remove(), 1700);
+            setTimeout(() => pop.remove(), 1400);
             if (!lite && b) {
                 const burst = document.createElement('span');
                 burst.className = 'rr-burst';
@@ -328,6 +341,21 @@ function strike(before, after, { lite = false } = {}) {
                 burst.style.top = `${b.top + b.height / 2 - box.top}px`;
                 host.appendChild(burst);
                 setTimeout(() => burst.remove(), 520);
+                // Stars burst off the shard in the art's colour.
+                const sparks = document.createElement('span');
+                sparks.className = 'rr-sparks';
+                sparks.style.setProperty('--art', job.color);
+                sparks.style.left = burst.style.left;
+                sparks.style.top = burst.style.top;
+                for (let k = 0; k < (big ? 10 : 7); k++) {
+                    const star = document.createElement('i');
+                    star.textContent = '✦';
+                    star.style.setProperty('--a', `${Math.round((360 / (big ? 10 : 7)) * k + i * 17)}deg`);
+                    star.style.setProperty('--r', `${(big ? 5.5 : 4) + (k % 3) * 0.8}rem`);
+                    sparks.appendChild(star);
+                }
+                host.appendChild(sparks);
+                setTimeout(() => sparks.remove(), 900);
                 to.classList?.add('is-hit');
                 setTimeout(() => to.classList?.remove('is-hit'), 600);
             }

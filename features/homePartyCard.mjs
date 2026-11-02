@@ -3,30 +3,17 @@
 // (docs/product/guidebook/capture/fill-surfaces.js). Styles: styles/home_party.css.
 import { escapeHtml as esc } from '../utils/html.mjs';
 import { AWARD_LOG_REASON_ICONS, getAwardReasonLabel } from './awardLogReasonMeta.js';
+import { VIRTUES as SOFT_SKILLS } from './questRanksCore.mjs';
 
-/** The four class virtues and the other everyday reasons, with the crest icon and colour family each shows. */
+/** Only the soft-skill reasons can be the class virtue; game and bonus stars never compete. */
+const SOFT_SKILL_IDS = new Set(SOFT_SKILLS.map((v) => v.id));
+
+/** Crest icon and colour family for each soft skill. */
 const VIRTUES = {
     teamwork: { icon: 'fa-users', tone: 'violet' },
     creativity: { icon: 'fa-lightbulb', tone: 'rose' },
     respect: { icon: 'fa-hands-helping', tone: 'emerald' },
-    focus: { icon: 'fa-brain', tone: 'amber' },
-    welcome_back: { icon: 'fa-hand-sparkles', tone: 'sky' },
-    story_weaver: { icon: 'fa-feather-alt', tone: 'cyan' },
-    scholar_s_bonus: { icon: 'fa-graduation-cap', tone: 'orange' },
-    quiz_of_the_week: { tone: 'sky' },
-    showdown: { tone: 'rose' },
-    quiet_dragon: { tone: 'cyan' },
-    ember_oath: { tone: 'orange' },
-    teacher_boon: { tone: 'rose' },
-    peer_boon: { tone: 'rose' },
-    pathfinder_map: { tone: 'sky' },
-    special_quest: { tone: 'violet' },
-    excellence: { tone: 'amber' },
-    vanishing_hoard: { tone: 'amber' },
-    torn_map: { tone: 'sky' },
-    round_table: { tone: 'emerald' },
-    wheel_fortune: { tone: 'amber' },
-    marked_present: { tone: 'emerald' }
+    focus: { icon: 'fa-brain', tone: 'amber' }
 };
 
 function virtueInfo(key) {
@@ -101,7 +88,7 @@ export function buildHomePartyCardHtml({ students = [], virtueStars = {}, absent
     const absent = absentIds instanceof Set ? absentIds : new Set(absentIds);
     const heroes = [...students].sort((a, b) => String(a.name).localeCompare(String(b.name)));
     const ranked = Object.entries(virtueStars || {})
-        .filter(([key, n]) => key && Number(n) > 0)
+        .filter(([key, n]) => SOFT_SKILL_IDS.has(key) && Number(n) > 0)
         .sort((a, b) => b[1] - a[1]);
     const total = ranked.reduce((sum, [, n]) => sum + Number(n), 0);
     const [topKey, topStars] = ranked[0] || [];

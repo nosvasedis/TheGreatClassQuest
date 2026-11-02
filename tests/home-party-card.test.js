@@ -62,13 +62,14 @@ test('with everyone present the card shows no away markings', async () => {
   assert.ok(!html.includes('is-absent'));
 });
 
-test('party card names every reason the way the app does, never as a raw key', async () => {
+test('only the soft-skill reasons can be the class virtue', async () => {
   const { buildHomePartyCardHtml } = await load();
-  const html = buildHomePartyCardHtml({ students: [hero('a', 'Anna')], virtueStars: { quiz_of_the_week: 6, peer_boon: 2, scholar_s_bonus: 1 } });
-  assert.match(html, />Quiz of the Week</);
-  assert.match(html, /Hero’s Boon 2 stars/);
-  assert.match(html, /Scholar’s Bonus 1 star/);
-  assert.doesNotMatch(html, /quiz of the week|peer boon/);
+  const html = buildHomePartyCardHtml({ students: [hero('a', 'Anna')], virtueStars: { quiz_of_the_week: 20, showdown: 9, peer_boon: 5, respect: 3, focus: 1 } });
+  assert.match(html, />Respect</);
+  assert.match(html, /4 stars</);
+  assert.doesNotMatch(html, /Quiz of the Week|Showdown|Boon|data-tone="slate"/);
+  const games = buildHomePartyCardHtml({ students: [hero('a', 'Anna')], virtueStars: { quiz_of_the_week: 20 } });
+  assert.match(games, /Ready to Quest!/);
 });
 
 test('unknown reasons fall back to title case', async () => {

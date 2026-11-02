@@ -24,7 +24,6 @@
     background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 50%, #d6f9e3 100%);
     color: #f5f3ff;
     --land-h: clamp(170px, 30vh, 300px);
-    --arrive-angle: 210deg;
     /* Seconds since the screen appeared when the words became ready
        (templates/loading.js), so their entrances keep to the film's clock. */
     --since: 0ms;

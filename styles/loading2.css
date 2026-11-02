@@ -6,11 +6,11 @@
 
    Two cuts of the same film (templates/loading.js#loadingFilmCut):
                          full (first of the day)   short (.loading-short)
-     Lumi streaks in       0.45s                     0.1s
-     she has unfolded      1.75s                     0.95s
-     the spark writes      1.9s → ~3.7s              0.85s → ~1.9s
+     the logo drifts down  0.3s → 1.3s               0.05s → 0.6s
+     Lumi wakes from it    1.35s → 2.3s              0.6s → 1.2s
+     the spark writes      2.15s → ~3.45s            1.05s → ~1.75s
      THE REVEAL            3.7s                      1.75s
-       The GCQ medallion pops and, in the same moment, the Welcome
+       The crest sparkle pops and, in the same moment, the Welcome
        (greeting, school ribbon, name) takes the place of the line under
        the title and all three stars light together (.loading-final-moment).
      if still loading      the line under the title, the constellation (lit
@@ -20,16 +20,18 @@
                            flies (a Web Animation, templates/loading.js)
 
    Only transform and opacity ever animate. Weak machines (.gcq-perf-low)
-   drop the orbiting sparkles; reduced motion keeps Lumi still. */
+   drop the orbiting sparkles; reduced motion skips the logo and keeps Lumi
+   still. */
 
 #loading-screen {
-    --t-arrive: 0.45s;
-    --arrive-dur: 1.15s;
-    --unfold-dur: 1.3s;
-    --t-burst: 1.5s;
-    --t-landed: 1.75s;
+    --t-arrive: 0.3s;
+    --arrive-dur: 1s;
+    --t-wake: 1.35s;
+    --wake-dur: 0.95s;
+    --t-burst: 1.95s;
+    --t-landed: 2.3s;
     --t-pool: 1.2s;
-    --t-pen: 1900ms;
+    --t-pen: 2150ms;
     --pen-dur: 1.3s;
     --t-step: 56ms;
     --t-medal: 3700ms;
@@ -40,13 +42,14 @@
 }
 
 #loading-screen.loading-short {
-    --t-arrive: 0.1s;
-    --arrive-dur: 0.75s;
-    --unfold-dur: 0.85s;
-    --t-burst: 0.8s;
-    --t-landed: 0.95s;
+    --t-arrive: 0.05s;
+    --arrive-dur: 0.55s;
+    --t-wake: 0.6s;
+    --wake-dur: 0.6s;
+    --t-burst: 0.98s;
+    --t-landed: 1.2s;
     --t-pool: 0.5s;
-    --t-pen: 850ms;
+    --t-pen: 1050ms;
     --pen-dur: 0.7s;
     --t-step: 28ms;
     --t-medal: 1750ms;
@@ -127,42 +130,89 @@
     to { opacity: 1; transform: scale(1.06); }
 }
 
-/* Arrival: a shooting star from the top-left corner. The x and y moves sit on
-   different wrappers with different easings, so the straight line bends into
-   a falling arc. */
-.loading-lumi {
-    animation: lumi-arrive-x var(--arrive-dur) cubic-bezier(0.25, 0.6, 0.35, 1) var(--t-arrive) both;
+/* Arrival: the Great Class Quest logo drifts down out of the sky and lands
+   with a soft bounce. Its star is about Lumi's size and sits where she
+   will be, so she can wake right out of it. */
+.loading-lumi__logo {
+    position: absolute;
+    inset: -16%;
+    z-index: 0;
+    opacity: 0;
+    animation:
+        lumi-logo-drop var(--arrive-dur) linear var(--t-arrive) both,
+        lumi-logo-fade calc(var(--wake-dur) * 0.55) ease-in calc(var(--t-wake) + var(--wake-dur) * 0.12) forwards;
 }
 
-.loading-lumi__fly {
-    animation: lumi-arrive-y var(--arrive-dur) cubic-bezier(0.55, 0.1, 0.35, 1) var(--t-arrive) both;
+.loading-lumi__logo img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    user-select: none;
 }
 
-@keyframes lumi-arrive-x {
-    from { transform: translate3d(-50vw, 0, 0); }
-    to { transform: none; }
+/* A soft light under the logo as it lands */
+.loading-lumi__logo::before {
+    content: '';
+    position: absolute;
+    inset: -30%;
+    z-index: -1;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(255, 236, 170, 0.45) 0%, rgba(255, 224, 140, 0) 100%);
 }
 
-@keyframes lumi-arrive-y {
-    from { transform: translate3d(0, -52vh, 0); }
-    to { transform: none; }
-}
-
-/* While she flies in she is a bright point of light; then she unfolds. */
-.loading-lumi__pose {
-    animation: lumi-unfold var(--unfold-dur) linear var(--t-arrive) both;
-}
-
-@keyframes lumi-unfold {
-    0% { opacity: 0; transform: scale(0.18) rotate(-320deg); }
-    10% { opacity: 1; }
-    80% { transform: scale(0.26) rotate(-30deg); animation-timing-function: cubic-bezier(0.3, 1.6, 0.5, 1); }
-    90% { transform: scale(1.18) rotate(6deg); }
-    95% { transform: scale(0.95, 1.04) rotate(-2deg); }
+@keyframes lumi-logo-drop {
+    0% { opacity: 0; transform: translate3d(0, -58vh, 0) rotate(-12deg) scale(0.86); animation-timing-function: cubic-bezier(0.32, 0, 0.5, 1); }
+    18% { opacity: 1; }
+    72% { transform: translate3d(0, 5%, 0) rotate(3deg) scale(1.03, 0.96); animation-timing-function: ease-out; }
+    87% { transform: translate3d(0, -2%, 0) rotate(-1deg) scale(0.99, 1.01); animation-timing-function: ease-in-out; }
     100% { opacity: 1; transform: none; }
 }
 
-/* The shooting star's tail (and, later, her woosh tail) */
+/* As she wakes, the logo opens out and fades, leaving only her */
+@keyframes lumi-logo-fade {
+    from { opacity: 1; transform: none; }
+    to { opacity: 0; transform: scale(1.14); visibility: hidden; }
+}
+
+/* The logo's star fills with light just before she wakes */
+.loading-lumi__wake {
+    position: absolute;
+    inset: -22%;
+    z-index: 1;
+    border-radius: 50%;
+    background: radial-gradient(closest-side,
+        rgba(255, 253, 240, 1) 0%,
+        rgba(255, 240, 170, 0.75) 32%,
+        rgba(253, 214, 90, 0.28) 62%,
+        rgba(253, 214, 90, 0) 100%);
+    opacity: 0;
+    animation: lumi-wake-glow calc(var(--wake-dur) * 1.1) ease-out var(--t-wake) both;
+}
+
+@keyframes lumi-wake-glow {
+    0% { opacity: 0; transform: scale(0.45); }
+    38% { opacity: 1; transform: scale(0.85); }
+    100% { opacity: 0; transform: scale(1.35); }
+}
+
+.loading-lumi__fly { z-index: 2; }
+
+/* Lumi wakes: a glowing star the size of the logo's, a breath in, then she
+   springs out to her full size. */
+.loading-lumi__pose {
+    animation: lumi-wake var(--wake-dur) linear var(--t-wake) both;
+}
+
+@keyframes lumi-wake {
+    0% { opacity: 0; transform: scale(0.66); }
+    28% { opacity: 1; transform: scale(0.68); animation-timing-function: ease-in-out; }
+    50% { transform: scale(0.62, 0.7); animation-timing-function: cubic-bezier(0.3, 1.5, 0.5, 1); }
+    74% { transform: scale(1.14) rotate(-5deg); animation-timing-function: ease-in-out; }
+    88% { transform: scale(0.96, 1.04) rotate(2deg); }
+    100% { opacity: 1; transform: none; }
+}
+
+/* Her tail, used by the woosh (templates/loading.js#animateWoosh) */
 .loading-lumi__trail {
     position: absolute;
     left: 50%;
@@ -177,17 +227,9 @@
     transform-origin: 0 50%;
     opacity: 0;
     pointer-events: none;
-    animation: lumi-arrive-trail var(--unfold-dur) ease-out var(--t-arrive) both;
 }
 
-@keyframes lumi-arrive-trail {
-    0% { opacity: 0; transform: rotate(var(--arrive-angle)) scaleX(0.3); }
-    12% { opacity: 1; transform: rotate(var(--arrive-angle)) scaleX(1); }
-    70% { opacity: 0.9; transform: rotate(var(--arrive-angle)) scaleX(0.8); }
-    86%, 100% { opacity: 0; transform: rotate(var(--arrive-angle)) scaleX(0.1); }
-}
-
-/* A ring of light rolls out as she unfolds, and again when she cheers. */
+/* A ring of light rolls out as she wakes, and again when she cheers. */
 .loading-lumi__burst {
     position: absolute;
     inset: -50%;
@@ -230,7 +272,15 @@
 }
 
 .lumi__eyes {
-    animation: lumi-blink 4.6s ease-in-out calc(var(--t-landed) + 1s) infinite;
+    animation:
+        lumi-eyes-open 0.32s ease-out calc(var(--t-wake) + var(--wake-dur) * 0.62) backwards,
+        lumi-blink 4.6s ease-in-out calc(var(--t-landed) + 1s) infinite;
+}
+
+/* She opens her eyes as she springs out of the logo */
+@keyframes lumi-eyes-open {
+    0%, 40% { transform: scaleY(0.08); }
+    100% { transform: none; }
 }
 
 @keyframes lumi-blink {
@@ -526,7 +576,8 @@
     100% { opacity: 0; transform: scale(2) rotate(360deg); }
 }
 
-/* The crest: the GCQ medallion between two lines of gold */
+/* The crest: a gold sparkle between two lines of gold (the logo itself is
+   what Lumi wakes out of, so it does not appear twice) */
 .loading-crest {
     display: flex;
     align-items: center;
@@ -552,30 +603,24 @@
 .loading-crest__medal {
     position: relative;
     flex: 0 0 auto;
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
-    padding: 3px;
-    background: linear-gradient(145deg, #fff6d1 0%, #fbbf24 55%, #d97706 100%);
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12), 0 6px 18px rgba(10, 8, 40, 0.45);
+    width: 30px;
+    height: 30px;
 }
 
 .loading-crest__medal::before {
     content: '';
     position: absolute;
-    inset: -70%;
+    inset: -60%;
     border-radius: 50%;
     background: radial-gradient(closest-side, rgba(255, 224, 140, 0.4) 0%, rgba(255, 224, 140, 0) 100%);
     z-index: -1;
 }
 
-.loading-crest__logo {
+.loading-crest__medal svg {
     display: block;
     width: 100%;
     height: 100%;
-    border-radius: 50%;
-    object-fit: contain;
-    user-select: none;
+    overflow: visible;
 }
 
 .loading-tagline {
@@ -1125,7 +1170,7 @@
     animation: loading-word-rise 0.7s var(--gcq-ease-out) max(0ms, calc(var(--t-tip) - var(--since))) backwards;
 }
 
-/* The quick load is only Lumi, the title, the medallion and the Welcome:
+/* The quick load is only Lumi, the title, the crest and the Welcome:
    no constellation and no tip, which it would never have time to show. */
 #loading-screen.loading-short .loading-path,
 #loading-screen.loading-short .loading-tip-card {
@@ -1167,8 +1212,6 @@
 /* ── Reduced motion: Lumi stays put, the words simply appear ────── */
 
 @media (prefers-reduced-motion: reduce) {
-    .loading-lumi,
-    .loading-lumi__fly,
     .loading-lumi__pose,
     .loading-lumi__float,
     .loading-lumi__halo,
@@ -1204,6 +1247,8 @@
         opacity: 1;
     }
 
+    .loading-lumi__logo,
+    .loading-lumi__wake,
     .loading-lumi__orbit,
     .loading-lumi__trail,
     .loading-lumi__sprinkle,

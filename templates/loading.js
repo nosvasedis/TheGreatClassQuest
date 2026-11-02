@@ -6,11 +6,13 @@ import { createTipDeck } from './loadingTips.mjs';
 // The loading screen is a short film starring Lumi, the app's guiding star.
 // The house lights dim into a twilight sky over the Quest hills, and then:
 //
-//   arrive    Lumi streaks in from the top corner as a shooting star and
-//             unfolds in a ring of light (styles/loading2.css).
+//   arrive    The Great Class Quest logo drifts down from the sky and lands;
+//             its star glows, and Lumi wakes out of it (she grows from the
+//             star, opens her eyes, a ring of light) as the logo fades away
+//             (styles/loading2.css).
 //   title     A spark writes "The Great Class Quest" in starlight while
-//             Lumi's eyes follow it; the GCQ medallion and the line under
-//             it rise in.
+//             Lumi's eyes follow it; a gold sparkle between two lines and
+//             the line under it rise in.
 //   wait      Lumi floats and plays (a twirl, a peek, a happy bounce, a
 //             shower of sparkles). Each real step of the start-up lights a
 //             star in the constellation: she casts a spark to it.
@@ -48,10 +50,10 @@ const LOADING_LOGO_URL = new URL('../assets/great-class-quest-logo.svg', import.
 // Two cuts of the same film (styles/loading2.css has the matching clock).
 // The first load of the day on this device plays the full film; later loads
 // the same day play the short cut. In both, the Welcome arrives at THE
-// REVEAL, together with the GCQ medallion and all three stars.
-//   reveal        the medallion pops; the earliest the Welcome can arrive
+// REVEAL, together with the crest sparkle and all three stars.
+//   reveal        the crest sparkle pops; the earliest the Welcome can arrive
 //   pathShown     when the constellation has risen in (if still loading)
-//   signedOutMin  the earliest woosh with no Welcome (title and medallion seen)
+//   signedOutMin  the earliest woosh with no Welcome (title and crest seen)
 //   hold          the Welcome arrives in ~2.3s, then stays still a moment
 //   tricksAt      Lumi's first trick, if the app is still loading
 const FILM_CUTS = {
@@ -362,9 +364,11 @@ export const loadingHTML = `
 
         <div class="loading-stage">
             <!-- Lumi. Each wrapper owns one kind of move (styles/loading2.css):
-                 the flight (arrival and woosh), the pose (unfolding, spin),
-                 hops and tricks, and the idle float. -->
+                 the logo she wakes out of, the flight (the woosh), the pose
+                 (waking, spin), hops and tricks, and the idle float. -->
             <div class="loading-lumi" aria-hidden="true">
+                <span class="loading-lumi__logo"><img src="${LOADING_LOGO_URL}" alt="" decoding="async" /></span>
+                <span class="loading-lumi__wake"></span>
                 <div class="loading-lumi__fly">
                     <span class="loading-lumi__trail"></span>
                     <div class="loading-lumi__pose">
@@ -381,7 +385,7 @@ export const loadingHTML = `
                 <div class="loading-lumi__sprinkle"></div>
             </div>
 
-            <!-- The title, the GCQ medallion, and under them one cell that holds
+            <!-- The title, the gold sparkle crest, and under them one cell that holds
                  the line under the title and, from the reveal, the Welcome -->
             <div class="loading-words">
                 <div class="loading-heading">
@@ -392,7 +396,7 @@ export const loadingHTML = `
                     </h1>
                     <div class="loading-crest" aria-hidden="true">
                         <span class="loading-crest__line"></span>
-                        <span class="loading-crest__medal"><img class="loading-crest__logo" src="${LOADING_LOGO_URL}" alt="" /></span>
+                        <span class="loading-crest__medal">${GLINT_SVG}</span>
                         <span class="loading-crest__line"></span>
                     </div>
                     <div class="loading-sub">
@@ -594,9 +598,6 @@ export function initLoadingAtmosphere() {
         loadingScreen.classList.toggle('gcq-perf-low', lowPower);
         loadingScreen.classList.toggle('gcq-loading-mobile', mobile);
         applyFilmCut(loadingFilmCut());
-        // Her shooting-star tail points back to where she came from (styles/loading2.css).
-        const angle = Math.atan2(window.innerHeight * 0.52, window.innerWidth * 0.5) * 180 / Math.PI + 180;
-        loadingScreen.style.setProperty('--arrive-angle', `${Math.round(angle)}deg`);
         revealLoadingTextWhenFontsReady(loadingScreen);
     }
     // The real time of day and weather (templates/loadingSky.js).
@@ -1051,7 +1052,7 @@ export function playLoadingExit(loadingScreen, { schoolName = '', dayPart = '', 
     const hasWelcome = Boolean(_stagedPersonalization);
     const timing = cutTiming();
     // The Welcome arrives at the reveal, never before; with no Welcome the
-    // woosh waits until the title and the medallion have been seen.
+    // woosh waits until the title and the crest have been seen.
     let landAt = hasWelcome ? timing.reveal : timing.signedOutMin;
     // A line under the title that has begun rising gets its moment, read in
     // full, before the Welcome takes its place (never a flash).

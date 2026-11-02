@@ -104,6 +104,56 @@ export function buildAwardCloudSvg(cloudKey, uid) {
         + `</svg>`;
 }
 
+/*
+ * Prodigy laurel: one drawn sprig that grows from under the portrait round its left side,
+ * ending before the level-up badge. The guild badge keeps the lower right and the purse the
+ * upper right, so the sprig never crosses either. It sits behind the portrait ring.
+ * Board: 128 x 128, portrait centre at 64,64 (1 unit = 1px at the 5.2rem portrait).
+ */
+const PRODIGY_LAUREL_SVG = (() => {
+    const cx = 64; const cy = 64; const R = 50;
+    const from = 96; const to = 198; // degrees, clockwise from 3 o'clock: 6 o'clock round to 9:30
+    const rad = (d) => (d * Math.PI) / 180;
+    const pt = (deg, r = R) => [cx + r * Math.cos(rad(deg)), cy + r * Math.sin(rad(deg))];
+    const f = (n) => n.toFixed(1);
+    const [sx, sy] = pt(from); const [ex, ey] = pt(to);
+    const stem = `<path class="aw-laurel__stem" d="M${f(sx)} ${f(sy)}A${R} ${R} 0 0 1 ${f(ex)} ${f(ey)}"/>`;
+    const leaf = (deg, tilt, len, cls) => {
+        const [x, y] = pt(deg);
+        const rot = deg + 90 + tilt;
+        const w = len * 0.46;
+        return `<g transform="translate(${f(x)} ${f(y)}) rotate(${f(rot)})">`
+            + `<path class="aw-laurel__leaf ${cls}" d="M0 0Q${f(len * 0.45)} ${f(-w)} ${f(len)} 0Z"/>`
+            + `<path class="aw-laurel__leaf ${cls} aw-laurel__leaf--shade" d="M0 0Q${f(len * 0.45)} ${f(w)} ${f(len)} 0Z"/></g>`;
+    };
+    const leaves = [];
+    const steps = 8;
+    for (let i = 0; i < steps; i += 1) {
+        const deg = from + 6 + i * ((to - from - 14) / (steps - 1));
+        const len = 11 + i * 0.5;
+        leaves.push(leaf(deg, -42, len, 'aw-laurel__leaf--out'));
+        leaves.push(leaf(deg + 4, 38, len - 2, 'aw-laurel__leaf--in'));
+    }
+    leaves.push(leaf(to - 2, 0, 12, 'aw-laurel__leaf--tip'));
+    const berries = [0.22, 0.5, 0.78].map((t) => {
+        const [x, y] = pt(from + t * (to - from), R + 4.5);
+        return `<circle class="aw-laurel__berry" cx="${f(x)}" cy="${f(y)}" r="2.3"/>`;
+    }).join('');
+    const [kx, ky] = pt(from - 4, R - 4);
+    const knot = `<g class="aw-laurel__knot" transform="translate(${f(kx)} ${f(ky)})"><path d="M0 0l-5 6 3 0 1 3zM0 0l4 6-3 0-1 3z"/><circle r="3.4"/></g>`;
+    return `<svg class="aw-portrait__laurel" viewBox="0 0 128 128" aria-hidden="true" focusable="false">${stem}${leaves.join('')}${berries}${knot}</svg>`;
+})();
+
+/* Hero of the Day crown: a small drawn gold crown resting on the portrait ring. */
+const HERO_CROWN_SVG = '<svg class="aw-portrait__crown" viewBox="0 0 40 30" aria-hidden="true" focusable="false">'
+    + '<path class="aw-crown__body" d="M5 23L3 7l9 7 8-11 8 11 9-7-2 16z"/>'
+    + '<path class="aw-crown__band" d="M5 22h30v5.5H5z"/>'
+    + '<circle class="aw-crown__tip" cx="3" cy="7" r="2.6"/><circle class="aw-crown__tip" cx="20" cy="3" r="2.8"/><circle class="aw-crown__tip" cx="37" cy="7" r="2.6"/>'
+    + '<circle class="aw-crown__gem aw-crown__gem--ruby" cx="20" cy="24.8" r="2.2"/>'
+    + '<circle class="aw-crown__gem aw-crown__gem--sky" cx="11.5" cy="24.8" r="1.6"/><circle class="aw-crown__gem aw-crown__gem--sky" cx="28.5" cy="24.8" r="1.6"/>'
+    + '<path class="aw-crown__shine" d="M9 19l1.5-6M20 16v-7"/>'
+    + '</svg>';
+
 function portraitHtml(view) {
     const initial = esc((view.initial || view.name || '?').charAt(0));
     const face = view.avatar
@@ -118,11 +168,9 @@ function portraitHtml(view) {
         ? `<span class="aw-portrait__levelup" title="Level up! Choose a skill in the Skill Tree" aria-label="Level up ready"><i class="fas fa-arrow-up" aria-hidden="true"></i></span>`
         : '';
     const crown = view.honours?.heroOfDay
-        ? `<span class="aw-portrait__crown" aria-hidden="true"><i class="fas fa-crown"></i></span>`
+        ? HERO_CROWN_SVG
         : '';
-    const laurel = view.honours?.prodigy
-        ? `<span class="aw-portrait__laurel" aria-hidden="true"><i class="fas fa-leaf aw-portrait__leaf aw-portrait__leaf--l"></i><i class="fas fa-leaf aw-portrait__leaf aw-portrait__leaf--r"></i></span>`
-        : '';
+    const laurel = view.honours?.prodigy ? PRODIGY_LAUREL_SVG : '';
     const aura = view.heroClass?.aura ? ` style="--aura:${esc(view.heroClass.aura)}"` : '';
     return `<div class="aw-portrait"${aura}>${laurel}<span class="aw-portrait__ring" aria-hidden="true"></span>${face}${guild}${levelUp}${crown}</div>`;
 }
@@ -326,7 +374,8 @@ export function buildAwardCloudCardHtml(view) {
         locked ? 'is-locked' : '',
         honours.heroOfDay ? 'aw-card--hero' : '',
         honours.prodigy ? 'aw-card--prodigy' : '',
-        honours.occasion ? 'aw-card--party' : ''
+        honours.occasion ? 'aw-card--party' : '',
+        honours.occasion ? `aw-card--${honours.occasion === 'nameday' ? 'nameday' : 'birthday'}` : ''
     ].filter(Boolean).join(' ');
     const deskOpen = isAbsent && mode !== 'none';
     const cornerAttendance = mode === 'absent-offer' ? buildAwardAttendanceHtml(mode, view.firstName) : '';

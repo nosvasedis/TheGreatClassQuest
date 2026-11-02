@@ -747,7 +747,29 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
 .aw-card--hero .aw-cloud__halo,
 .aw-card--prodigy .aw-cloud__halo { opacity: 1; }
 
-.aw-card--party .aw-cloud__glints path { fill: #f472b6; }
+/* Birthday: a rose-pink cloud with pink glints. Name day: an Aegean olive-gold cloud.
+   Hero of the Day and Prodigy colours win when a hero holds both. */
+.aw-card--birthday:not(.aw-card--hero):not(.aw-card--prodigy) {
+    --awc-top: #fffafc;
+    --awc-mid: #fff0f7;
+    --awc-bot: #fbd3e7;
+    --awc-rim: rgba(236, 72, 153, 0.5);
+    --awc-shelf: rgba(157, 23, 77, 0.14);
+    --awc-halo: rgba(249, 168, 212, 0.5);
+}
+
+.aw-card--nameday:not(.aw-card--hero):not(.aw-card--prodigy) {
+    --awc-top: #fdfdf6;
+    --awc-mid: #f6f8e8;
+    --awc-bot: #dfe8bf;
+    --awc-rim: rgba(132, 154, 60, 0.58);
+    --awc-shelf: rgba(77, 92, 25, 0.15);
+    --awc-halo: rgba(196, 214, 128, 0.5);
+}
+
+.aw-card--party .aw-cloud__halo { opacity: 1; }
+.aw-card--birthday .aw-cloud__glints path { fill: #f472b6; }
+.aw-card--nameday .aw-cloud__glints path { fill: #d4a017; }
 
 /* The picked virtue tints the whole cloud. */
 .aw-card[data-aura="teamwork"] { --awc-tint: #a78bfa; --awc-tint-o: 0.2; }
@@ -769,6 +791,24 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
     --awc-top: #fffbeb;
     --awc-mid: #fdf1cf;
     --awc-bot: #e8cc88;
+}
+
+#app-screen.header-night .aw-card--prodigy:not(.aw-card--hero) {
+    --awc-top: #f3fdf8;
+    --awc-mid: #ddf5ea;
+    --awc-bot: #a9dcc4;
+}
+
+#app-screen.header-night .aw-card--birthday:not(.aw-card--hero):not(.aw-card--prodigy) {
+    --awc-top: #fff6fb;
+    --awc-mid: #fbe3ef;
+    --awc-bot: #e9b3cf;
+}
+
+#app-screen.header-night .aw-card--nameday:not(.aw-card--hero):not(.aw-card--prodigy) {
+    --awc-top: #fbfcf1;
+    --awc-mid: #eef2d8;
+    --awc-bot: #cdd8a2;
 }
 
 /* A grey rain cloud while a hero is away */
@@ -1015,33 +1055,68 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
 
 .aw-card.is-afloat .aw-portrait__levelup { animation: aw-bob 1.6s ease-in-out infinite; }
 
+.aw-portrait__guild,
+.aw-portrait__levelup { z-index: 3; }
+
+/* Hero of the Day: a drawn gold crown resting on the ring, tipped a little. */
 .aw-portrait__crown {
     position: absolute;
-    top: -1.4rem;
+    z-index: 3;
+    top: -1.35rem;
     left: 50%;
-    transform: translateX(-50%) rotate(-10deg);
-    color: #f59e0b;
-    font-size: 1.45rem;
-    text-shadow: 0 2px 0 #b45309, 0 0 10px rgba(253, 224, 71, 0.9);
+    width: 2.3rem;
+    height: 1.72rem;
+    transform: translateX(-50%) rotate(-8deg);
+    overflow: visible;
     pointer-events: none;
 }
 
+.aw-crown__body { fill: #fbbf24; stroke: #b45309; stroke-width: 1.6; stroke-linejoin: round; }
+.aw-crown__band { fill: #f59e0b; stroke: #b45309; stroke-width: 1.6; stroke-linejoin: round; }
+.aw-crown__tip { fill: #fde68a; stroke: #b45309; stroke-width: 1.3; }
+.aw-crown__gem { stroke: #fff; stroke-width: 0.8; }
+.aw-crown__gem--ruby { fill: #e11d48; }
+.aw-crown__gem--sky { fill: #38bdf8; }
+.aw-crown__shine { fill: none; stroke: #fffbeb; stroke-width: 1.8; stroke-linecap: round; opacity: 0.85; }
+
+/*
+ * Prodigy of the Month: one laurel sprig curling from under the portrait round its left side.
+ * It sits behind the ring and stops short of the level-up badge; the guild badge (lower right)
+ * and the purse (upper right) keep their own side, so the sprig never lies across them.
+ */
 .aw-portrait__laurel {
     position: absolute;
-    inset: 0;
+    z-index: 0;
+    left: 50%;
+    top: 50%;
+    width: 8rem;
+    height: 8rem;
+    margin: -4rem 0 0 -4rem;
+    overflow: visible;
     pointer-events: none;
 }
 
-.aw-portrait__leaf {
-    position: absolute;
-    bottom: -0.3rem;
-    color: #10b981;
-    font-size: 1.25rem;
-    text-shadow: 0 1px 0 #047857;
+.aw-portrait > .aw-portrait__ring { z-index: 1; }
+.aw-portrait > .aw-portrait__img { z-index: 2; }
+
+.aw-laurel__stem { fill: none; stroke: #047857; stroke-width: 2.2; stroke-linecap: round; }
+.aw-laurel__leaf { fill: #34d399; stroke: #047857; stroke-width: 0.9; stroke-linejoin: round; }
+.aw-laurel__leaf--shade { fill: #10b981; }
+.aw-laurel__leaf--in { fill: #6ee7b7; }
+.aw-laurel__leaf--in.aw-laurel__leaf--shade { fill: #34d399; }
+.aw-laurel__leaf--tip { fill: #fcd34d; stroke: #b45309; }
+.aw-laurel__leaf--tip.aw-laurel__leaf--shade { fill: #f59e0b; }
+.aw-laurel__berry { fill: #fbbf24; stroke: #b45309; stroke-width: 0.9; }
+.aw-laurel__knot path { fill: #f59e0b; stroke: #b45309; stroke-width: 0.9; stroke-linejoin: round; }
+.aw-laurel__knot circle { fill: #fde68a; stroke: #b45309; stroke-width: 1.1; }
+
+/* The sprig unfurls once when the cloud arrives (transform/opacity only). */
+@keyframes aw-laurel-grow {
+    from { opacity: 0; transform: rotate(-28deg) scale(0.9); }
+    to { opacity: 1; transform: none; }
 }
 
-.aw-portrait__leaf--l { left: -0.95rem; transform: rotate(-35deg) scaleX(-1); }
-.aw-portrait__leaf--r { right: -0.95rem; transform: rotate(35deg); }
+.aw-portrait__laurel { animation: aw-laurel-grow 0.7s cubic-bezier(0.34, 1.4, 0.64, 1) both; transform-origin: 50% 50%; }
 
 /* Gold purse: a minted coin on a little tag. */
 .aw-purse {
@@ -1089,6 +1164,9 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
     bottom: 0;
     transform-origin: 50% 100%;
 }
+
+/* A Prodigy's laurel curls round the portrait's left side, so the familiar steps a little aside. */
+.aw-card--prodigy .aw-familiar { right: calc(50% + 3.7rem); }
 
 /* Familiars rest on the tab and walk only when pointed at, to keep the page calm and cheap. */
 .aw-familiar .familiar-sprite { animation-play-state: paused !important; }
@@ -2204,6 +2282,7 @@ body.projector-mode .aw-desk__arrive {
     .aw-card.is-afloat,
     .aw-card .aw-boon__heart,
     .aw-card .aw-portrait__levelup,
+    .aw-card .aw-portrait__laurel,
     .aw-card .aw-desk__sun,
     .aw-card .aw-desk__welcome::after,
     .aw-card .aw-desk__moon,

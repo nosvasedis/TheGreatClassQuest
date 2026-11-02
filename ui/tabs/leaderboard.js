@@ -489,7 +489,8 @@ export async function renderClassLeaderboardTab({ freshVisit = false } = {}) {
     const mapSlot = board.querySelector('[data-tq-map-slot]');
     if (mode === 'map') {
         renderLeagueMapInto(mapSlot, classScores, { activeClassId });
-        initializeLivingQuestMap(mapSlot, { leagueKey: league, replay: freshVisit || wasIdle || leagueChanged });
+        // Peeking at another league: only the parties answer a hover (no realm cards, no road pin).
+        initializeLivingQuestMap(mapSlot, { leagueKey: league, replay: freshVisit || wasIdle || leagueChanged, peeking: Boolean(state.get('leaderboardLeagueOverride')) });
     } else {
         initializeLivingQuestMap(null);
         mapSlot.innerHTML = generateTeacherMobileRaceHtml(classScores, activeClassId);

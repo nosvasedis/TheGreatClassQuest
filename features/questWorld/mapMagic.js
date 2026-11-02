@@ -396,7 +396,7 @@ export function mountMapMagic({ root, scene, parties, tier }) {
     const checkRoad = (event) => {
         if (destroyed) return;
         lastRoadCheck = performance.now();
-        if (blocked(event.target) || focusedKey || dragging) { hideRoadPin(); return; }
+        if (root.dataset.peek === 'true' || blocked(event.target) || focusedKey || dragging) { hideRoadPin(); return; }
         const point = clientToWorld(event.clientX, event.clientY);
         const near = nearestOnRoad(point.x, point.y);
         const limit = pinProgress === null ? ROAD_NEAR : ROAD_FAR;

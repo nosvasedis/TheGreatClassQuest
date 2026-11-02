@@ -823,7 +823,7 @@ export function getActiveLivingQuestMap() {
     return activeLivingMapController;
 }
 
-export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false } = {}) {
+export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false, peeking = false } = {}) {
     activeLivingMapController?.destroy?.();
     activeLivingMapController = null;
 
@@ -833,6 +833,9 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
         setIdleNote(root, '');
         // A map that was rolling up when this one took over leaves no pose behind.
         root.classList.remove('is-idle', 'is-furling', 'is-resealing');
+        // Peeking at another league: only the parties answer (no realm cards, no road pin).
+        if (peeking) root.dataset.peek = 'true';
+        else delete root.dataset.peek;
     }
     const toSegments = (selector) => [...(root?.querySelectorAll?.(selector) || [])].map((path) => ({
         path,
@@ -1667,7 +1670,7 @@ export function initializeLivingQuestMap(scope, { leagueKey = '', replay = false
     };
 
     const showTip = (el) => {
-        if (!tip || !tipBody) return;
+        if (!tip || !tipBody || peeking) return;
         clearTimeout(tipHideTimer);
         const id = el.dataset.place;
         const info = describePlace(id, partiesNow());

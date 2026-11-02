@@ -303,6 +303,21 @@ export function playCeremonySfx(name) {
                 NOTE_SETS.gold.forEach((note, i) => fx.bells.triggerAttackRelease(note, '4n', now + i * 0.06));
                 fx.brass.triggerAttackRelease(['C4', 'G4', 'C5', 'E5'], 1.4, now);
                 break;
+            // ---- Medals: a clink as the medal lands, then its own little chord ----
+            case 'medal_bronze':
+                fx.tick.triggerAttackRelease('D4', '64n', now);
+                ['A5', 'C#6', 'E6'].forEach((note, i) => fx.bells.triggerAttackRelease(note, '8n', now + 0.04 + i * 0.08, 0.7));
+                fx.brass.triggerAttackRelease(['A3', 'E4'], 0.6, now + 0.05);
+                break;
+            case 'medal_silver':
+                fx.tick.triggerAttackRelease('F4', '64n', now);
+                ['D6', 'F#6', 'A6', 'D7'].forEach((note, i) => fx.bells.triggerAttackRelease(note, '8n', now + 0.04 + i * 0.07, 0.75));
+                fx.brass.triggerAttackRelease(['D4', 'A4', 'D5'], 0.9, now + 0.05);
+                break;
+            case 'medal_gold':
+                fx.tick.triggerAttackRelease('A4', '64n', now);
+                ['C7', 'G6', 'E7', 'C7', 'G7'].forEach((note, i) => fx.bells.triggerAttackRelease(note, '16n', now + 0.03 + i * 0.06, 0.7));
+                break;
             case 'tick':
                 fx.tick.triggerAttackRelease('G4', '32n', now);
                 break;

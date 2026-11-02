@@ -36,6 +36,26 @@ export function arenaMetalForRank(rank) {
 
 const METAL_LABEL = { gold: 'Gold', silver: 'Silver', bronze: 'Bronze', steel: 'Honour', mystery: 'Finalist' };
 
+const MEDAL_METALS = ['gold', 'silver', 'bronze'];
+
+/**
+ * A hanging medal on its ribbon: drops in, spins on its edge and settles with a glint.
+ * Only gold, silver and bronze get one; the rest of the field wears its honour plate.
+ */
+export function arenaMedalHtml(metal, rank) {
+    if (!MEDAL_METALS.includes(metal)) return '';
+    return `<span class="cer-medal cer-medal--${metal}" aria-hidden="true">
+        <span class="cer-medal__ribbon"><span></span><span></span></span>
+        <span class="cer-medal__coin"><span class="cer-medal__face"><svg viewBox="0 0 40 40" class="cer-medal__wreath">${'<path d="M20 34c-8-1-13-7-13-15" /><path d="M20 34c8-1 13-7 13-15" />'}</svg><b>${Number(rank) || ''}</b></span><span class="cer-medal__glint"></span></span>
+    </span>`;
+}
+
+/** Slow light rays behind a medal card (gold, silver, bronze). */
+export function arenaRaysHtml(metal) {
+    if (!MEDAL_METALS.includes(metal)) return '';
+    return `<span class="cer-rays cer-rays--${metal}" aria-hidden="true"></span>`;
+}
+
 // ---------------------------------------------------------------- SVG parts
 
 const METAL_STOPS = {
@@ -350,6 +370,7 @@ export function arenaCardFaceHtml(entry, type, { isMyClass = false, compact = fa
         <div class="cer-card__frame">
             ${isMyClass ? '<span class="cer-card__you">Your class</span>' : ''}
             <div class="cer-card__plate"><span>${METAL_LABEL[metal]}</span><b>#${Number(entry.rank) || '?'}</b></div>
+            ${compact ? '' : arenaMedalHtml(metal, entry.rank)}
             ${classStrip}
             ${emblem}
             <h3 class="cer-card__name">${esc(entry.name)}</h3>
@@ -374,6 +395,7 @@ export function arenaRevealHtml(entry, type, options = {}) {
             <span class="cer-herald-banner__label">${metal === 'steel' ? 'Place' : `${METAL_LABEL[metal]} place`}</span>
         </div>
         <div class="cer-flip">
+            ${arenaRaysHtml(metal)}
             <div class="cer-flip__inner">
                 <div class="cer-flip__back cer-metal--${metal}">
                     <div class="cer-flip__pattern" aria-hidden="true"></div>
@@ -462,7 +484,7 @@ export function arenaCollectiveHtml() {
     </div>`;
 }
 
-export function arenaOutroHtml({ className = '', classLogo = '📚', monthName = '', champions = [] } = {}) {
+export function arenaOutroHtml({ className = '', classLogo = '📚', monthName = '', champions = [], medallists = [] } = {}) {
     return `<div class="cer-outro">
         <div class="cer-intro__crest">
             <div class="cer-intro__halo" aria-hidden="true"></div>
@@ -471,6 +493,7 @@ export function arenaOutroHtml({ className = '', classLogo = '📚', monthName =
         </div>
         <h2 class="cer-outro__title">Well fought, ${esc(className)}!</h2>
         <p class="cer-outro__text">${esc(monthName)} is written into the Hall. A new moon, a new quest.</p>
-        ${champions.length ? `<p class="cer-outro__crowns"><i class="fas fa-crown" aria-hidden="true"></i>${champions.map(esc).join(' &amp; ')}</p>` : ''}
+        ${medallists.length ? `<ul class="cer-outro__medals" aria-label="This month's medals">${medallists.map((m) => `<li class="cer-outro__medal cer-outro__medal--${m.metal}"><span class="cer-outro__coin" aria-hidden="true">${Number(m.rank)}</span><span>${esc(m.name)}</span></li>`).join('')}</ul>`
+            : (champions.length ? `<p class="cer-outro__crowns"><i class="fas fa-crown" aria-hidden="true"></i>${champions.map(esc).join(' &amp; ')}</p>` : '')}
     </div>`;
 }

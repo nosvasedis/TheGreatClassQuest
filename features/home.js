@@ -1331,9 +1331,9 @@ function ceremonyPillHtml(cls, pending, { seen = false } = {}) {
     const kicker = isGrowth ? 'Growth Festival' : 'Ceremony of the Month';
     const id = seen ? 'ceremony-seen-pill' : 'trigger-ceremony-btn';
     const seenClass = seen ? 'date-pill--ceremony-seen' : '';
-    const label = seen ? `The ${pending.monthName} ${kicker} was watched today` : `Start the ${pending.monthName} ${kicker}`;
+    const label = seen ? `Watch the ${pending.monthName} ${kicker} again (watched today)` : `Start the ${pending.monthName} ${kicker}`;
     return `
-        <button type="button" id="${id}" class="date-pill date-pill--ceremony ${ceremonyClass} ${seenClass}" data-class-id="${cls.id}" aria-label="${label}"${seen ? ' aria-disabled="true" title="Watched today"' : ''}>
+        <button type="button" id="${id}" class="date-pill date-pill--ceremony ${ceremonyClass} ${seenClass}" data-class-id="${cls.id}" aria-label="${label}"${seen ? ' title="Watched today. Tap to watch it again."' : ''}>
             <span class="date-pill--ceremony__aurora" aria-hidden="true"></span>
             <span class="date-pill--ceremony__sheen" aria-hidden="true"></span>
             <span class="date-pill--ceremony__spark date-pill--ceremony__spark--a" aria-hidden="true">✦</span>
@@ -1341,7 +1341,7 @@ function ceremonyPillHtml(cls, pending, { seen = false } = {}) {
             <span class="date-pill--ceremony__icon" aria-hidden="true"><i class="fas ${pillIcon}"></i></span>
             <span class="date-pill--ceremony__copy">
                 <span class="date-pill--ceremony__kicker">${kicker}</span>
-                <span class="date-pill--ceremony__title">${pending.monthName}${seen ? ' <span class="date-pill--ceremony__done">· Watched</span>' : ''}</span>
+                <span class="date-pill--ceremony__title">${pending.monthName}${seen ? ' <span class="date-pill--ceremony__done">· Watched <i class="fas fa-rotate-left" aria-hidden="true"></i> Replay</span>' : ''}</span>
             </span>
         </button>
     `;
@@ -1370,13 +1370,20 @@ function wireCeremonyPill(classId) {
 
 let ceremonySeenMidnight = null;
 
-/** A watched ceremony's greyed badge: a gentle note on tap, and it leaves at midnight. */
-function wireCeremonySeenPill() {
+/** A watched ceremony's greyed badge: tap to watch it again today; it leaves at midnight. */
+function wireCeremonySeenPill(classId) {
     const btn = document.getElementById('ceremony-seen-pill');
     if (!btn) return;
     btn.onclick = (e) => {
         e.stopPropagation();
-        toast('This class has already watched its ceremony today. The badge leaves at midnight.', 'info');
+        if (btn.dataset.opening) return;
+        btn.dataset.opening = '1';
+        import('./ceremony.js')
+            .then((m) => m.replayCeremony(classId).then((params) => {
+                if (!params) toast('This ceremony cannot be replayed right now.', 'info');
+            }))
+            .catch(() => toast('The ceremony could not load. Check the connection and try again.', 'error'))
+            .finally(() => { delete btn.dataset.opening; });
     };
     if (ceremonySeenMidnight) clearTimeout(ceremonySeenMidnight);
     const now = new Date();
@@ -1485,7 +1492,7 @@ export function getReminderPills(classId) {
         if (cls && pending && isDone && ceremonyWatchedOnDay(record, new Date())) {
             // Watched today: the badge stays, greyed and quiet, until midnight.
             pills.push(ceremonyPillHtml(cls, pending, { seen: true }));
-            setTimeout(() => wireCeremonySeenPill(), 100);
+            setTimeout(() => wireCeremonySeenPill(classId), 100);
         } else if (cls && pending && !isDone) {
             const verdict = getCeremonyStarVerdict(classId, pending.monthKey);
             if (verdict === true) {

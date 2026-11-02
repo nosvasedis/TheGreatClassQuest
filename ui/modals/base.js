@@ -391,7 +391,7 @@ function leaguePickerFollowHtml(scope, currentLeague) {
         ? `${escapeLeaguePickerText(activeClass.questLevel)} League`
         : 'Your selected class sets the league';
     const note = peeking && currentLeague
-        ? `<span class="lp-follow__peek"><i class="fas fa-eye" aria-hidden="true"></i>Peeking at ${escapeLeaguePickerText(currentLeague)}</span>`
+        ? `<span class="lp-follow__peek"><span class="lp-follow__peek-lens" aria-hidden="true"><i class="fas fa-eye"></i></span>Peeking at ${escapeLeaguePickerText(currentLeague)}</span>`
         : '';
     return `
         <div class="lp-follow${peeking ? ' is-peeking' : ''}">

@@ -628,7 +628,7 @@ export function updateAllLeagueSelectors() {
         if (btn) {
             const label = effective || 'Select a League';
             const peekTag = peeking
-                ? '<span class="league-bar__peek" title="Peeking at another league">peek</span>'
+                ? '<span class="league-bar__peek" title="Peeking at another league"><span class="league-bar__peek-lens" aria-hidden="true"><i class="fas fa-eye"></i></span><span class="league-bar__peek-word">Peeking</span></span>'
                 : '';
             btn.innerHTML = `<span class="league-bar__pick-name">${label}</span>${peekTag}<i class="fas fa-chevron-down league-bar__pick-caret" aria-hidden="true"></i>`;
             btn.classList.toggle('is-unset', !effective);

@@ -85,9 +85,7 @@ async function shopAiImage(prompt, negativePrompt = '', options = {}) {
     num_steps: Number(options.num_steps) || 20,
     guidance: Number(options.guidance) || 7.5,
     width,
-    height,
-    // 'market' = the Worker's unmetered painters only (DreamShaper, then SDXL Lightning).
-    ...(options.painter ? { painter: String(options.painter) } : {})
+    height
   }, { expect: 'bytes', timeoutMs: Number(options.timeoutMs) || 65000 });
 }
 

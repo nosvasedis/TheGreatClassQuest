@@ -3165,6 +3165,29 @@ exports.ensureShopStock = callable(async (request) => {
   return { ok: true, ...result };
 }, { timeoutSeconds: 540, memory: '1GB', secrets: ['GCQ_AI_SERVICE_KEY'] });
 
+// The open year and its Market stalls for this school, or null (logged under `event`) when
+// the nightly shop work should skip it.
+async function shopStallsForNightlyRun(event) {
+  const yearSnap = await db.doc(`${dataRoot()}/school_year_state/current`).get();
+  const yearData = yearSnap.data() || {};
+  if (String(yearData.rolloverStatus || '').toLowerCase() !== 'active') {
+    console.log(JSON.stringify({ event, skipped: 'season-sealed' }));
+    return null;
+  }
+  try {
+    await requireFeatureEnabled('eliteAI');
+  } catch (_) {
+    console.log(JSON.stringify({ event, skipped: 'not-elite' }));
+    return null;
+  }
+  const yearKey = String(yearData.activeYearKey || '').trim();
+  if (!/^\d{4}-\d{4}$/.test(yearKey)) {
+    console.log(JSON.stringify({ event, skipped: 'no-year' }));
+    return null;
+  }
+  return { yearKey, stalls: await listShopStalls(yearKey) };
+}
+
 exports.maintainShopStock = functionsV1.region(FUNCTIONS_REGION)
   .runWith({ timeoutSeconds: 540, memory: '1GB', secrets: ['GCQ_AI_SERVICE_KEY'] })
   // Just after midnight, Athens time, so a new month's stall and a festival's opening day are
@@ -3172,24 +3195,9 @@ exports.maintainShopStock = functionsV1.region(FUNCTIONS_REGION)
   .pubsub.schedule('10 0 * * *')
   .timeZone('Europe/Athens')
   .onRun(() => forEachSchool(async () => {
-    const yearSnap = await db.doc(`${dataRoot()}/school_year_state/current`).get();
-    const yearData = yearSnap.data() || {};
-    if (String(yearData.rolloverStatus || '').toLowerCase() !== 'active') {
-      console.log(JSON.stringify({ event: 'maintainShopStock', skipped: 'season-sealed' }));
-      return null;
-    }
-    try {
-      await requireFeatureEnabled('eliteAI');
-    } catch (_) {
-      console.log(JSON.stringify({ event: 'maintainShopStock', skipped: 'not-elite' }));
-      return null;
-    }
-    const yearKey = String(yearData.activeYearKey || '').trim();
-    if (!/^\d{4}-\d{4}$/.test(yearKey)) {
-      console.log(JSON.stringify({ event: 'maintainShopStock', skipped: 'no-year' }));
-      return null;
-    }
-    const stalls = await listShopStalls(yearKey);
+    const run = await shopStallsForNightlyRun('maintainShopStock');
+    if (!run) return null;
+    const { yearKey, stalls } = run;
     const results = [];
     // On the 1st every stall needs a whole new month of pictures, which does not fit in one
     // run if stalls go one by one. Two at a time halves the wait; anything unfinished is
@@ -3213,12 +3221,24 @@ exports.maintainShopStock = functionsV1.region(FUNCTIONS_REGION)
     };
     await Promise.all([runNext(), runNext()]);
     console.log(JSON.stringify({ event: 'maintainShopStock', schoolId: currentSchoolId(), stallCount: stalls.length, results }));
+    return null;
+  }));
 
-    // From the 24th, next month's stall is painted a little each night (up to the daily
-    // picture cap in shop/prepare.mjs), so the 1st only has to show it.
+// From the 24th, next month's stall is painted a little each night (up to its share of the
+// daily picture cap in shop/prepare.mjs), so the 1st only has to show it. It runs just after
+// Workers AI's allowance resets (00:00 UTC), so it spends a fresh day's neurons first and the
+// classroom keeps the rest. This month's stalls (00:10 Athens) keep their own, larger room in the cap.
+exports.prepareShopStock = functionsV1.region(FUNCTIONS_REGION)
+  .runWith({ timeoutSeconds: 540, memory: '1GB', secrets: ['GCQ_AI_SERVICE_KEY'] })
+  .pubsub.schedule('30 0 * * *')
+  .timeZone('UTC')
+  .onRun(() => forEachSchool(async () => {
     const [calendar, prepare] = await Promise.all([import('./shop/calendar.mjs'), import('./shop/prepare.mjs')]);
     const target = prepare.preparationTarget({ day: calendar.shopZonedParts().day, monthKey: calendar.shopMonthKey() });
     if (!target) return null;
+    const run = await shopStallsForNightlyRun('maintainShopStockPrepare');
+    if (!run) return null;
+    const { yearKey, stalls } = run;
     const prepared = [];
     for (const stall of stalls) {
       try {

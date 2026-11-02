@@ -32,12 +32,17 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
   const prepareP = import('./prepare.mjs');
   const ai = require('./ai');
 
-  // One count for every school: they all share the account's Workers AI allowance.
-  // Returns false when today's automatic restock pictures are used up.
-  async function takePictureSlot({ manual = false } = {}) {
-    const [calendar, prepare] = await Promise.all([calendarP, prepareP]);
-    const cap = prepare.dailyPictureCap(process.env.GCQ_SHOP_DAILY_PICTURES);
-    const ref = db.doc(`platform_usage/shop_pictures_${calendar.shopDateKey()}`);
+  // One count for every school: they all share the account's Workers AI allowance, so the
+  // count follows its UTC day. Returns false when today's automatic pictures are used up;
+  // next month's early painting (`preparing`) stops at its smaller share of the day.
+  async function takePictureSlot({ manual = false, preparing = false } = {}) {
+    const prepare = await prepareP;
+    const cap = prepare.pictureCapFor({
+      preparing,
+      dailyValue: process.env.GCQ_SHOP_DAILY_PICTURES,
+      prepareValue: process.env.GCQ_SHOP_PREPARE_PICTURES
+    });
+    const ref = db.doc(`platform_usage/shop_pictures_${prepare.allowanceDayKey()}`);
     return db.runTransaction(async (tx) => {
       const snap = await tx.get(ref);
       const decision = prepare.pictureSlotDecision({ used: snap.data()?.count, cap, manual });
@@ -100,8 +105,8 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
     return `shop_items/${teacherId}/${yearKey}/${monthKey}_${leagueKey}_${ai.simpleHashCode(name)}_${Date.now()}.png`;
   }
 
-  async function generateImage(item, league, palette = '', { manual = false } = {}) {
-    if (!(await takePictureSlot({ manual }))) {
+  async function generateImage(item, league, palette = '', { manual = false, preparing = false } = {}) {
+    if (!(await takePictureSlot({ manual, preparing }))) {
       const error = new Error("Today's shop pictures are used up; the next nightly run carries on.");
       error.code = 'shop-picture-cap';
       throw error;
@@ -112,8 +117,7 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
     let lastError = null;
     for (let attempt = 0; attempt < 2; attempt += 1) {
       try {
-        // The Market never spends FLUX neurons: see MARKET_IMAGE_MODEL in the AI Worker.
-        return await ai.shopAiImage(prompt, negativePrompt, { width: 512, height: 512, painter: 'market' });
+        return await ai.shopAiImage(prompt, negativePrompt, { width: 512, height: 512 });
       } catch (error) {
         lastError = error;
         if (attempt === 1 || !ai.imageErrorIsRetryable(error)) break;
@@ -173,7 +177,7 @@ function createShopEngine({ db, storage, FieldValue, publicDataPath }) {
       await Promise.all(group.map(async (item) => {
         try {
           if (capReached) throw Object.assign(new Error('shop picture cap'), { code: 'shop-picture-cap' });
-          const bytes = await generateImage(item, context.league, context.theme?.palette);
+          const bytes = await generateImage(item, context.league, context.theme?.palette, { preparing: Boolean(context.briefDate) });
           const path = shopImagePath({ ...context, name: item.name });
           const imageUrl = await uploadPng(bytes, path);
           await persistItem({ ...context, item, imageUrl });

@@ -1,14 +1,23 @@
 // When next month's stall is painted, and how many shop pictures a day may be painted.
-// The whole account shares Workers AI's 10,000 free neurons a day; on 1 Nov 2026 a full
-// restock asked for ~240 pictures in 17 minutes and spent the day's allowance. So next
+// The whole account shares Workers AI's 10,000 free neurons a day (reset 00:00 UTC), and a
+// 512px FLUX.2 klein shop picture is billed 104.2 neurons (measured 2026-11-02). On 1 Nov 2026
+// a full restock asked for ~240 pictures in 17 minutes and spent the day's allowance. So next
 // month's Seasonal Treasures are painted over the last nights of the month (they stay
-// hidden: the Market shows only the current monthKey), a little each night.
+// hidden: the Market shows only the current monthKey), a little each night, and the stalls
+// teachers see now (this month's shelf, a festival) always come first.
 
 /** First day of the month (Athens) on which next month's stall starts being painted. */
 export const PREPARE_FROM_DAY = 24;
 
 /** Shop pictures a day across every school, unless GCQ_SHOP_DAILY_PICTURES says otherwise. */
-export const DEFAULT_DAILY_PICTURES = 80;
+export const DEFAULT_DAILY_PICTURES = 40;
+
+/**
+ * Of those, how many next month's early painting may use (GCQ_SHOP_PREPARE_PICTURES), so
+ * this month's shelf and a festival opening the same day still find room. 25 a night over
+ * the last 5-8 nights covers 7 leagues x 15 treasures with retries to spare.
+ */
+export const DEFAULT_PREPARE_PICTURES = 25;
 
 // July and August have no lessons, and September opens a new school year (its stall is
 // painted on 1 September, under the new year).
@@ -36,10 +45,22 @@ export function preparationTarget({ day, monthKey, fromDay = PREPARE_FROM_DAY } 
     return { monthKey: next, briefDate: new Date(`${next}-01T10:00:00Z`) };
 }
 
-export function dailyPictureCap(value) {
-    if (value === undefined || value === null || String(value).trim() === '') return DEFAULT_DAILY_PICTURES;
+export function dailyPictureCap(value, fallback = DEFAULT_DAILY_PICTURES) {
+    if (value === undefined || value === null || String(value).trim() === '') return fallback;
     const cap = Math.floor(Number(value));
-    return Number.isFinite(cap) && cap >= 0 ? cap : DEFAULT_DAILY_PICTURES;
+    return Number.isFinite(cap) && cap >= 0 ? cap : fallback;
+}
+
+/** The cap for one picture: early painting stops at its own share, never above the day's. */
+export function pictureCapFor({ preparing = false, dailyValue, prepareValue } = {}) {
+    const daily = dailyPictureCap(dailyValue);
+    if (!preparing) return daily;
+    return Math.min(daily, dailyPictureCap(prepareValue, DEFAULT_PREPARE_PICTURES));
+}
+
+/** The day the counter belongs to: Workers AI's allowance day, which turns at 00:00 UTC. */
+export function allowanceDayKey(date = new Date()) {
+    return new Date(date).toISOString().slice(0, 10);
 }
 
 /**

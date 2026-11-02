@@ -495,27 +495,6 @@ test('AI Worker falls back to SDXL when FLUX fails', async () => {
   assert.deepEqual(Buffer.from(await response.arrayBuffer()), png);
 });
 
-test('AI Worker paints Market pictures without FLUX (DreamShaper, then SDXL Lightning)', async () => {
-  const { worker } = await importWorker('scratch/ai-proxy-worker/src/worker.js');
-  const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47]), Buffer.alloc(64, 1)]);
-  const calls = [];
-  const response = await worker.fetch(new Request('https://worker.example/', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-GCQ-Service-Key': 'shop-secret' },
-    body: JSON.stringify({ prompt: 'a glowing potion', negative_prompt: 'text', width: 512, height: 512, painter: 'market' }),
-  }), { GCQ_AI_SERVICE_KEY: 'shop-secret', FIREBASE_PROJECT_ID: 'the-great-class-quest', AI: {
-    async run(model, inputs) {
-      calls.push(model);
-      if (model.includes('dreamshaper')) throw new Error('3040: Capacity temporarily exceeded');
-      assert.equal(inputs.negative_prompt, 'text');
-      return png;
-    },
-  } }, { waitUntil() {} });
-  assert.equal(response.status, 200);
-  assert.deepEqual(calls, ['@cf/lykon/dreamshaper-8-lcm', '@cf/bytedance/stable-diffusion-xl-lightning']);
-  assert.equal(response.headers.get('X-GCQ-AI-Provider'), '@cf/bytedance/stable-diffusion-xl-lightning');
-});
-
 test('AI Worker caps SDXL fallback steps at the model maximum of 20', async () => {
   const worker = await importIsolatedAiWorker();
   const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47]), Buffer.alloc(64, 1)]);

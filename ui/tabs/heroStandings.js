@@ -165,21 +165,58 @@ export function heroEmblemHtml(hc) {
         </span>`;
 }
 
-function nameHtml(e, { emblem: withEmblem = true } = {}) {
-    if (!withEmblem) return `<span class="hcs-name__text">${escapeStandingsHtml(e.name)}</span>`;
+function nameHtml(e) {
+    return `<span class="hcs-name__text">${escapeStandingsHtml(e.name)}</span>`;
+}
+
+/**
+ * The hero's portrait with everything that belongs to the hero pinned to its
+ * rim: the hero class emblem (top left, with its level), the guild crest
+ * (bottom left) and the familiar (bottom right). Rows and the podium share it,
+ * so a hero looks the same wherever they stand.
+ */
+function portraitHtml(e, { large = false } = {}) {
     const emblem = e.heroClass
         ? heroEmblemHtml(e.heroClass)
-        : (e.heroIcon ? `<span class="hcs-name__icon" aria-hidden="true">${e.heroIcon}</span>` : '');
-    return `${emblem}<span class="hcs-name__text">${escapeStandingsHtml(e.name)}</span>`;
+        : (e.heroIcon ? `<span class="hcs-emblem hcs-emblem--plain" aria-hidden="true"><span class="hcs-emblem__icon">${e.heroIcon}</span></span>` : '');
+    const crest = e.guildBadgeHtml
+        ? `<span class="hcs-crest" title="${escapeStandingsHtml(e.guildName ? `Guild: ${e.guildName}` : 'Guild')}">${e.guildBadgeHtml}</span>`
+        : '';
+    const familiar = e.familiarHtml ? `<span class="hcs-pet">${e.familiarHtml}</span>` : '';
+    const ring = large
+        ? '<span class="hcs-figure__ring" aria-hidden="true"></span>'
+        : '<span class="hcs-halo" aria-hidden="true"></span>';
+    return `${ring}${large ? e.avatarLargeHtml : e.avatarHtml}${emblem}${crest}${familiar}`;
 }
 
-function classChipHtml(e) {
-    if (!e.showClass) return '';
-    return `<span class="hcs-chip hcs-chip--class" title="${escapeStandingsHtml(e.className)}"><span aria-hidden="true">${e.classLogo || ''}</span><span class="hcs-chip__text">${escapeStandingsHtml(e.className)}</span></span>`;
+/**
+ * The line under a name: the hero's rank title (gold for a Legend), the class
+ * on the league board, and their Gold. The emblem's card tells the rest.
+ */
+function heroLineHtml(e, { gold = true, title = true } = {}) {
+    const bits = [];
+    const hc = title ? e.heroClass : null;
+    if (hc?.legend) {
+        bits.push(`<span class="hcs-line__title hcs-line__title--legend" title="${escapeStandingsHtml(hc.legend)}"><i class="fas fa-crown" aria-hidden="true"></i>${escapeStandingsHtml(hc.title || hc.cls)}</span>`);
+    } else if (hc && (hc.title || hc.cls)) {
+        const tip = hc.title && hc.title !== hc.cls ? `${hc.title}, a ${hc.cls}` : hc.cls;
+        bits.push(`<span class="hcs-line__title" style="--aura:${escapeStandingsHtml(hc.aura || '#7c3aed')}" title="${escapeStandingsHtml(tip)}">${escapeStandingsHtml(hc.title || hc.cls)}</span>`);
+    }
+    if (e.showClass) {
+        bits.push(`<span class="hcs-line__class" title="Class: ${escapeStandingsHtml(e.className)}"><span class="hcs-line__class-logo" aria-hidden="true">${e.classLogo || ''}</span><span class="hcs-line__class-name">${escapeStandingsHtml(e.className)}</span></span>`);
+    }
+    if (gold && e.gold !== undefined && e.gold !== null && e.gold !== '') {
+        bits.push(`<span class="hcs-line__gold" title="${escapeStandingsHtml(e.gold)} Gold"><i class="fas fa-coins" aria-hidden="true"></i>${escapeStandingsHtml(e.gold)}</span>`);
+    }
+    return bits.length ? `<div class="hcs-line">${bits.join('')}</div>` : '';
 }
 
-function goldChipHtml(e) {
-    return `<span class="hcs-chip hcs-chip--gold" title="Gold"><i class="fas fa-coins" aria-hidden="true"></i>${escapeStandingsHtml(e.gold)}</span>`;
+/** Honours and traits in one strip: guild roles first, then this month's story. */
+function honoursHtml(e, cls) {
+    // A Legend's title already shines on the hero line.
+    const title = e.heroClass?.legend ? '' : (e.titleBadgeHtml || '');
+    const html = `${e.roleBadgesHtml || ''}${title}${e.pillsHtml || ''}`;
+    return html.trim() ? `<div class="${cls}">${html}</div>` : '';
 }
 
 const PLACE_NAMES = { 1: 'gold', 2: 'silver', 3: 'bronze' };
@@ -252,27 +289,21 @@ function podiumFigureHtml(e, group, entries, k, packed) {
     const crown = e.rank === 1
         ? '<span class="hcs-figure__crown" aria-hidden="true"><i class="fas fa-crown"></i></span>'
         : '';
-    const lead = podiumNoteHtml(e, group, entries);
-    // A packed hero keeps the guild badge; titles and pills wait for the rows' room.
-    const badges = packed ? (e.guildBadgeHtml || '') : `${e.guildBadgeHtml || ''}${e.titleBadgeHtml || ''}${e.roleBadgesHtml || ''}`;
+    const chips = `${moveChipHtml(e)}${podiumNoteHtml(e, group, entries)}`;
+    const accent = e.accent ? `;--hcs-accent:${escapeStandingsHtml(e.accent)}` : '';
     return `
-        <div class="hcs-figure${packed ? ' hcs-figure--packed' : ''}" data-hcs-mover data-hcs-id="${escapeStandingsHtml(e.id)}" data-hcs-slot="${e.slot}" data-hcs-from="${e.fromSlot}" style="--k:${k};--lw:${Math.max(4, longestWord(e.name))}">
+        <div class="hcs-figure${packed ? ' hcs-figure--packed' : ''}" data-hcs-mover data-hcs-id="${escapeStandingsHtml(e.id)}" data-hcs-slot="${e.slot}" data-hcs-from="${e.fromSlot}" style="--k:${k};--lw:${Math.max(4, longestWord(e.name))}${accent}">
             ${crown}
-            <div class="hcs-figure__portrait hero-challenge-avatar-wrap">
-                <span class="hcs-figure__ring" aria-hidden="true"></span>
-                ${e.avatarLargeHtml}
-                ${e.familiarHtml || ''}
-                ${e.heroClass ? heroEmblemHtml(e.heroClass) : ''}
-            </div>
-            <h3 class="hcs-figure__name font-title">${nameHtml(e, { emblem: !e.heroClass })}</h3>
-            <div class="hcs-figure__badges">${badges}</div>
+            <div class="hcs-figure__portrait hero-challenge-avatar-wrap">${portraitHtml(e, { large: true })}</div>
+            <h3 class="hcs-figure__name font-title">${nameHtml(e)}</h3>
+            ${heroLineHtml(e, { gold: false, title: !packed })}
             <div class="hcs-figure__stars">
                 <i class="fas fa-star hcs-figure__star" aria-hidden="true"></i>
                 ${countHtml(e)}
                 ${gainChipHtml(e)}
             </div>
-            <div class="hcs-figure__chips">${moveChipHtml(e)}${lead}${classChipHtml(e)}</div>
-            ${packed ? '' : `<div class="hcs-figure__pills">${e.pillsHtml || ''}</div>`}
+            ${chips ? `<div class="hcs-figure__chips">${chips}</div>` : ''}
+            ${packed ? '' : honoursHtml(e, 'hcs-figure__pills')}
         </div>`;
 }
 
@@ -390,15 +421,16 @@ function roadHtml(e, { leaderScore, podiumFloor }) {
     const flag = podiumFloor > 0 && podiumFloor < leaderScore
         ? `<span class="hcs-road__flag" style="--at:${(podiumFloor / leaderScore).toFixed(3)}" title="The podium starts at ${formatStandingsStars(podiumFloor)} ${starWord(podiumFloor)}"></span>`
         : '';
-    const label = e.score > 0 ? `${pct}% of the way to 1st` : 'No stars yet';
+    const tip = e.score > 0
+        ? `${pct}% of the way to 1st: ${formatStandingsStars(e.score)} of the leader's ${formatStandingsStars(leaderScore)} stars`
+        : 'No stars yet';
     return `
-        <div class="hcs-road" title="${formatStandingsStars(e.score)} of the leader's ${formatStandingsStars(leaderScore)} stars">
+        <div class="hcs-road" title="${escapeStandingsHtml(tip)}">
             <span class="hcs-road__track" aria-hidden="true">
                 <span class="hcs-road__fill"></span>
                 ${flag}
-                <i class="fas fa-crown hcs-road__goal"></i>
             </span>
-            <span class="hcs-road__label">${label}</span>
+            <i class="fas fa-crown hcs-road__goal" aria-hidden="true"></i>
         </div>`;
 }
 
@@ -417,23 +449,19 @@ function rowHtml(e, above, { firstBelowPodium = false, leaderScore = 0, podiumFl
         }
     }
     const accent = e.accent ? `--hcs-accent:${escapeStandingsHtml(e.accent)};` : '';
-    const crest = e.guildBadgeHtml ? `<span class="hcs-row__crest">${e.guildBadgeHtml}</span>` : '';
     return `
         <li class="hcs-row${firstBelowPodium ? ' hcs-row--next' : ''}" data-hcs-mover data-hcs-id="${escapeStandingsHtml(e.id)}" data-hcs-slot="${e.slot}" data-hcs-from="${e.fromSlot}" style="${accent}--hcs-power:${e.power.toFixed(3)};--hcs-power-from:${(e.powerFrom ?? e.power).toFixed(3)};--hcs-i:${e.slot}">
             <div class="hcs-row__rank" aria-label="Rank ${e.rank}">
                 <span class="hcs-shield"><span class="hcs-shield__num font-title" data-hcs-rank data-from="${e.fromRank ?? e.rank}" data-to="${e.rank}">${e.rank}</span></span>
             </div>
-            <div class="hcs-row__portrait hero-challenge-avatar-wrap">
-                ${e.avatarHtml}
-                ${e.familiarHtml || ''}
-                ${crest}
-            </div>
+            <div class="hcs-row__portrait hero-challenge-avatar-wrap">${portraitHtml(e)}</div>
             <div class="hcs-row__body">
                 <div class="hcs-row__head">
                     <h3 class="hcs-row__name font-title">${nameHtml(e)}</h3>
-                    ${e.titleBadgeHtml || ''}${e.roleBadgesHtml || ''}${moveChipHtml(e)}
+                    ${moveChipHtml(e)}
                 </div>
-                <div class="hcs-row__meta">${goldChipHtml(e)}${classChipHtml(e)}${e.pillsHtml || ''}</div>
+                ${heroLineHtml(e)}
+                ${honoursHtml(e, 'hcs-row__meta')}
                 ${roadHtml(e, { leaderScore, podiumFloor })}
             </div>
             <div class="hcs-row__score">
@@ -633,11 +661,110 @@ function burst(host) {
     setTimeout(() => wrap.remove(), 1400);
 }
 
+/** How long the entrance runs before every piece has landed. */
+const ENTRANCE_MS = 2600;
+
 /** Plain entrance: rows and podium figures rise in, staggered. */
 export function playStandingsEntrance(list) {
+    list.style.removeProperty('--hcs-skip');
     list.classList.remove('hcs-list--enter');
     void list.offsetWidth;
     list.classList.add('hcs-list--enter');
+    list.__hcsEnterAt = performance.now();
+}
+
+/**
+ * A live refresh landed while the entrance is still playing: the fresh markup
+ * picks the entrance up where it was instead of snapping into place (each
+ * animation starts that far in, through a negative delay).
+ * Returns true when an entrance was resumed.
+ */
+export function resumeStandingsEntrance(list) {
+    const at = list.__hcsEnterAt;
+    if (!at) return false;
+    const elapsed = performance.now() - at;
+    if (elapsed >= ENTRANCE_MS) {
+        list.classList.remove('hcs-list--enter');
+        list.__hcsEnterAt = 0;
+        return false;
+    }
+    list.style.setProperty('--hcs-skip', `${Math.round(elapsed)}ms`);
+    list.classList.add('hcs-list--enter');
+    return true;
+}
+
+// --- Switching boards (another league, class/league view, month/all-time) -----
+//
+// The old board fades away the moment the teacher taps, while the new one is
+// worked out and its portraits load; then the new board rises in. The list
+// keeps its height through the swap and eases to the new one, so the page
+// never jumps.
+
+const LEAVE_MS = 190;
+const PRELOAD_MAX_MS = 420;
+
+/** Starts the old board's exit. Safe to call again while it runs. */
+export function beginStandingsLeave(list) {
+    if (!list || list.classList.contains('hcs-list--leaving')) return;
+    if (!list.firstElementChild || reducedMotion()) return;
+    list.__hcsToken = null;
+    list.style.minHeight = `${list.offsetHeight}px`;
+    list.style.removeProperty('transition');
+    list.classList.add('hcs-list--leaving');
+    list.__hcsLeaveAt = performance.now();
+}
+
+function preloadPortraits(html) {
+    const urls = new Set();
+    const re = /<img\b[^>]*?\ssrc="([^"]+)"/g;
+    let m;
+    while ((m = re.exec(html)) && urls.size < 40) urls.add(m[1].replace(/&amp;/g, '&'));
+    if (!urls.size || typeof Image === 'undefined') return Promise.resolve();
+    const loads = [...urls].map((src) => new Promise((resolve) => {
+        const img = new Image();
+        img.decoding = 'async';
+        img.onload = () => (img.decode ? img.decode().catch(() => {}).then(resolve) : resolve());
+        img.onerror = resolve;
+        img.src = src;
+    }));
+    return Promise.race([
+        Promise.all(loads),
+        new Promise((resolve) => setTimeout(resolve, PRELOAD_MAX_MS))
+    ]);
+}
+
+/**
+ * Waits until the old board has faded out and the new board's portraits are
+ * ready (capped, so a slow connection never holds the board back).
+ */
+export async function awaitStandingsLeave(list, html) {
+    const leaving = list?.classList.contains('hcs-list--leaving');
+    const fade = leaving
+        ? new Promise((resolve) => setTimeout(resolve, Math.max(0, LEAVE_MS - (performance.now() - (list.__hcsLeaveAt || 0)))))
+        : Promise.resolve();
+    await Promise.all([fade, leaving ? preloadPortraits(html) : Promise.resolve()]);
+}
+
+/** After the new board is in: drop the exit and ease the held height away. */
+export function finishStandingsLeave(list) {
+    if (!list) return;
+    const wasLeaving = list.classList.contains('hcs-list--leaving');
+    list.classList.remove('hcs-list--leaving');
+    if (!wasLeaving || !list.style.minHeight) return;
+    const held = parseFloat(list.style.minHeight) || 0;
+    list.style.minHeight = '';
+    const now = list.offsetHeight;
+    if (now >= held) return;
+    list.style.minHeight = `${held}px`;
+    void list.offsetHeight;
+    list.style.transition = 'min-height 0.5s cubic-bezier(0.22, 1, 0.36, 1)';
+    requestAnimationFrame(() => {
+        list.style.minHeight = `${now}px`;
+        setTimeout(() => {
+            list.style.minHeight = '';
+            list.style.removeProperty('transition');
+        }, 560);
+    });
 }
 
 /**

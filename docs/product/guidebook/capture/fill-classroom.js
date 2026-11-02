@@ -14,6 +14,7 @@ import { buildTrophySatchel, buildActiveEffects } from '../../../../features/tro
 import { getGuildBadgeHtml, getGuildById, getGuildEmblemUrl } from '../../../../features/guilds.js';
 import { buildAwardCloudCardHtml, buildAwardSkySummaryHtml } from '../../../../features/awardCloudCard.mjs';
 import { hideAppScreen, hideExtras } from './fill-extras.js';
+import { renderFamiliarSprite } from '../../../../features/familiars.js';
 import {
   annotateStandingsChanges,
   buildStandingsSnapshot,
@@ -141,8 +142,9 @@ function hcEntry(h, rank, showClass) {
     heroIcon: h.icon,
     avatarHtml: hcAvatar(h, 'w-14 h-14 sm:w-16 sm:h-16'),
     avatarLargeHtml: hcAvatar(h, rank === 1 ? 'w-20 h-20 sm:w-24 sm:h-24' : 'w-16 h-16 sm:w-20 sm:h-20'),
-    familiarHtml: '',
+    familiarHtml: h.familiar ? `<div class="familiar-chip hero-challenge-familiar-chip">${renderFamiliarSprite(h.familiar, 'small', h.id)}</div>` : '',
     guildBadgeHtml: `<span class="hcs-guild">${badge(h.guildId, 'w-6 h-6')}</span>`,
+    guildName: getGuildById(h.guildId)?.name || '',
     heroClass: { cls: h.cls || 'Hero', icon: h.icon, aura: h.titleColor, title: h.title, level: h.level || 2, maxLevel: 5 },
     roleBadgesHtml: renderHeroRoleBadgesHtml({ champion: h.champion, color: getGuildById(h.guildId)?.primary }),
     pillsHtml: renderHeroTraitsHtml({ prodigy: h.prodigy, weekStars: h.week || 0, streak: h.streak || 0, skill: HC_SKILLS[h.skill] }),
@@ -157,11 +159,11 @@ const HC_CLASSES = [
   {
     id: 'junior-b', title: 'Junior B', logo: '🐉', mine: true,
     heroes: [
-      { id: 'maria', name: 'Maria', icon: '🧙', stars: 22, gold: 55, guildId: 'owl_wisdom', title: 'Spellweaver', titleColor: '#7c3aed', aura: '#a855f7', week: 6, streak: 3, skill: 'Teamwork', champion: true, prodigy: true },
+      { id: 'maria', name: 'Maria', icon: '🧙', stars: 22, gold: 55, guildId: 'owl_wisdom', title: 'Spellweaver', titleColor: '#7c3aed', aura: '#a855f7', week: 6, streak: 3, skill: 'Teamwork', champion: true, prodigy: true, familiar: { typeId: 'emberfang', name: 'Cinder', state: 'alive', level: 3 } },
       { id: 'alex', name: 'Alex', icon: '🛡️', stars: 18, gold: 42, guildId: 'dragon_flame', title: 'Sentinel', titleColor: '#16a34a', week: 5, skill: 'Focus' },
-      { id: 'nikos', name: 'Nikos', icon: '⚔️', stars: 14, gold: 31, guildId: 'grizzly_might', title: 'Scout', titleColor: '#b45309', week: 3, skill: 'Respect' },
+      { id: 'nikos', name: 'Nikos', icon: '⚔️', stars: 14, gold: 31, guildId: 'grizzly_might', title: 'Scout', titleColor: '#b45309', week: 3, skill: 'Respect', familiar: { typeId: 'emberfang', name: 'Ash', state: 'alive', level: 2 } },
       { id: 'eleni', name: 'Eleni', icon: '🧵', stars: 11, gold: 19, guildId: 'phoenix_rising', title: 'Novice', titleColor: '#db2777', week: 2, skill: 'Creativity' },
-      { id: 'sofia', name: 'Sofia', icon: '🎵', stars: 9, gold: 27, guildId: 'owl_wisdom', title: 'Minstrel', titleColor: '#0891b2', week: 4, skill: 'Creativity' },
+      { id: 'sofia', name: 'Sofia', icon: '🎵', stars: 9, gold: 27, guildId: 'owl_wisdom', title: 'Minstrel', titleColor: '#0891b2', week: 4, skill: 'Creativity', familiar: { typeId: 'emberfang', name: 'Spark', state: 'alive', level: 1 } },
       { id: 'yannis', name: 'Yannis', icon: '🏹', stars: 9, gold: 12, guildId: 'dragon_flame', title: 'Ranger', titleColor: '#15803d', week: 1, skill: 'Focus' },
       { id: 'dimitra', name: 'Dimitra', icon: '📜', stars: 6, gold: 8, guildId: 'phoenix_rising', title: 'Novice', titleColor: '#db2777', skill: 'Respect' }
     ]

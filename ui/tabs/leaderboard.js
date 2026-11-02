@@ -33,6 +33,10 @@ import {
     playReseal,
     playStandingsChanges,
     playStandingsEntrance,
+    resumeStandingsEntrance,
+    beginStandingsLeave,
+    awaitStandingsLeave,
+    finishStandingsLeave,
     playUnseal,
     readStandingsSnapshot,
     renderHeroRoleBadgesHtml,
@@ -712,6 +716,7 @@ function bindHeroSealControls(list) {
         if (!sectionEl || !list.contains(sectionEl)) return;
         // The DOM now differs from the last render: let the next one redraw.
         list.__hcsHtml = '';
+        list.__hcsParts = null;
         if (unseal) {
             _heroPeeked.add(heroPeekKey(sectionEl.dataset.hcsSection));
             playSound('star3');
@@ -740,17 +745,41 @@ function syncHeroStandingsSwitches() {
     setGroup(['metric-monthly', 'metric-total'], metric === 'total' ? 1 : 0);
 }
 
-function clearHeroStandingsList(list, html) {
+let _heroRenderSeq = 0;
+
+async function clearHeroStandingsList(list, html, seq) {
+    if (list.dataset.hcsBoard === '' && list.__hcsHtml === html && !list.classList.contains('hcs-list--leaving')) return;
+    beginStandingsLeave(list);
+    await awaitStandingsLeave(list, html);
+    if (seq !== _heroRenderSeq) return;
     list.dataset.hcsBoard = '';
-    list.__hcsHtml = '';
+    list.__hcsHtml = html;
+    list.__hcsParts = null;
     list.__hcsToken = null;
-    list.className = _heroLite ? 'hcs-list hcs-list--lite' : 'hcs-list';
+    list.className = _heroLite ? 'hcs-list hcs-list--lite hcs-list--leaving' : 'hcs-list hcs-list--leaving';
     list.innerHTML = html;
+    finishStandingsLeave(list);
+    playStandingsEntrance(list);
+}
+
+/** The board this render will draw: school year, league, view, metric and month. */
+function heroBoardKey(league, now = new Date()) {
+    const view = state.get('studentLeaderboardView') === 'league' ? 'league' : 'class';
+    const starMetric = state.get('studentStarMetric') === 'monthly' ? 'monthly' : 'total';
+    return [
+        state.getActiveSchoolYearKey() || 'legacy',
+        league,
+        view,
+        starMetric,
+        starMetric === 'monthly' ? `${now.getFullYear()}-${now.getMonth() + 1}` : 'all'
+    ].join('|');
 }
 
 export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
     const list = document.getElementById('student-leaderboard-list');
     if (!list) return;
+    // Renders can overlap (a tap, then live data): only the newest one draws.
+    const seq = ++_heroRenderSeq;
     bindHeroSealControls(list);
     if (freshVisit) _heroPeeked.clear();
 
@@ -769,15 +798,20 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
 
     const league = getLeaderboardEffectiveLeague();
     if (!league) {
-        clearHeroStandingsList(list, `<div class="hcs-empty"><i class="fas fa-shield-halved" aria-hidden="true"></i><p>Choose a Quest League to see its heroes.</p></div>`);
+        await clearHeroStandingsList(list, `<div class="hcs-empty"><i class="fas fa-shield-halved" aria-hidden="true"></i><p>Choose a Quest League to see its heroes.</p></div>`, seq);
         return;
     }
 
     const classesInLeague = state.get('allSchoolClasses').filter(c => c.questLevel === league);
     if (classesInLeague.length === 0) {
-        clearHeroStandingsList(list, `<div class="hcs-empty"><i class="fas fa-flag" aria-hidden="true"></i><p>No classes in this Quest League yet.</p></div>`);
+        await clearHeroStandingsList(list, `<div class="hcs-empty"><i class="fas fa-flag" aria-hidden="true"></i><p>No classes in this Quest League yet.</p></div>`, seq);
         return;
     }
+
+    // Another board (league, view or metric) was picked: the old one starts
+    // fading away right now, while the new one is worked out below.
+    const boardKey = heroBoardKey(league);
+    if (!freshVisit && list.dataset.hcsBoard !== boardKey) beginStandingsLeave(list);
 
     // --- DATA PREPARATION ---
     const allLogs = state.get('allAwardLogs');
@@ -879,6 +913,7 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
         });
     // --- REIGNING PRODIGY (previous month's winners, with co-prodigy/tie support) ---
     const prodigyByClass = await getReigningProdigies();
+    if (seq !== _heroRenderSeq) return;
 
     // --- RENDER HELPERS ---
     const reasonInfo = {
@@ -978,6 +1013,7 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
             ? `<div class="familiar-chip hero-challenge-familiar-chip">${renderFamiliarSprite(s.familiar, 'small', s.id)}</div>`
             : '',
         guildBadgeHtml: s.guildId ? `<span class="hcs-guild">${getGuildBadgeHtml(s.guildId, 'w-6 h-6')}</span>` : '',
+        guildName: s.guildId ? getGuildById(s.guildId)?.name || '' : '',
         roleBadgesHtml: getGuildRoleBadgesHtml(s),
         titleBadgeHtml: getLegendTitleHtml(s),
         pillsHtml: getPillsHtml(s),
@@ -1062,13 +1098,6 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
     }
 
     // --- Rank changes since this device last looked ---
-    const boardKey = [
-        state.getActiveSchoolYearKey() || 'legacy',
-        league,
-        view,
-        starMetric,
-        starMetric === 'monthly' ? `${now.getFullYear()}-${now.getMonth() + 1}` : 'all'
-    ].join('|');
     const dataReady = allStudentScores.length > 0;
     if (freshVisit) _heroVisitBaselines.clear();
     if (dataReady && !_heroVisitBaselines.has(boardKey)) {
@@ -1078,8 +1107,11 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
     const previous = _heroLastShown.get(boardKey) || baseline;
     const moved = annotateStandingsChanges(sections, baseline, previous);
 
-    const outputHtml = renderStandingsHeraldHtml(sections, { byClass: view === 'class' })
-        + sections.map((section, i) => renderStandingsSectionHtml(section, { monthName, metric: starMetric, delayIndex: i })).join('');
+    const heraldHtml = renderStandingsHeraldHtml(sections, { byClass: view === 'class' });
+    const parts = [heraldHtml, ...sections.map((section, i) => renderStandingsSectionHtml(section, { monthName, metric: starMetric, delayIndex: i }))]
+        .map((html) => html.trim())
+        .filter(Boolean);
+    const outputHtml = parts.join('');
 
     if (dataReady) {
         const snap = buildStandingsSnapshot(sections);
@@ -1093,15 +1125,53 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
     // Live data re-renders often; leave the board alone (and any show in
     // progress) when nothing on it changed. Where heroes came from is motion
     // only, so it is left out of the comparison.
-    const boardSignature = outputHtml.replace(/ data-(?:hcs-)?from="[^"]*"|--hcs-power-from:[^;"]*;?/g, '');
+    const signatureOf = (html) => html.replace(/ data-(?:hcs-)?from="[^"]*"|--hcs-power-from:[^;"]*;?/g, '');
+    const partSignatures = parts.map(signatureOf);
+    const boardSignature = partSignatures.join('');
     const sameBoard = list.dataset.hcsBoard === boardKey;
-    if (!freshVisit && sameBoard && list.__hcsHtml === boardSignature) return;
+    const leaving = list.classList.contains('hcs-list--leaving');
+    if (!freshVisit && sameBoard && !leaving && list.__hcsHtml === boardSignature) return;
+
+    // A new board: wait for the old one to fade and the new portraits to load.
+    if (!sameBoard || leaving) {
+        await awaitStandingsLeave(list, outputHtml);
+        if (seq !== _heroRenderSeq) return;
+    }
+
+    const lite = _heroLite ? ' hcs-list--lite' : '';
+    const previousParts = list.__hcsParts;
     list.dataset.hcsBoard = boardKey;
     list.__hcsHtml = boardSignature;
+    list.__hcsParts = partSignatures;
     list.__hcsToken = null;
-    list.className = _heroLite ? 'hcs-list hcs-list--lite' : 'hcs-list';
+
+    // Same board, something changed (a star, a chip): swap only the sections
+    // that differ, and let an entrance still playing carry on where it was.
+    // (A star landing mid-entrance just updates; the board is still rising.)
+    const entering = Boolean(list.__hcsEnterAt) && performance.now() - list.__hcsEnterAt < 2600;
+    if (sameBoard && !freshVisit && !leaving && (!moved || entering)) {
+        const resumed = resumeStandingsEntrance(list);
+        list.className = `hcs-list${lite}${resumed ? ' hcs-list--enter' : ''}`;
+        const patchable = previousParts && previousParts.length === parts.length && list.children.length === parts.length;
+        if (!patchable) {
+            list.innerHTML = outputHtml;
+            return;
+        }
+        parts.forEach((html, i) => {
+            if (previousParts[i] === partSignatures[i]) return;
+            const tpl = document.createElement('template');
+            tpl.innerHTML = html;
+            const fresh = tpl.content.firstElementChild;
+            if (fresh) list.children[i].replaceWith(fresh);
+        });
+        return;
+    }
+
+    list.className = `hcs-list${lite}${leaving ? ' hcs-list--leaving' : ''}`;
     list.innerHTML = outputHtml;
+    finishStandingsLeave(list);
 
     if (moved) playStandingsChanges(list, sections);
-    else if (freshVisit || !sameBoard) playStandingsEntrance(list);
+    else if (freshVisit || !sameBoard || leaving) playStandingsEntrance(list);
+    else if (!resumeStandingsEntrance(list)) list.classList.add('hcs-list--settled');
 }

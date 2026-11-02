@@ -1006,7 +1006,7 @@
     border-radius: 999px;
 }
 
-.hcs-figure__portrait > *:not(.hcs-figure__ring):not(.familiar-chip):not(.hcs-emblem) {
+.hcs-figure__portrait > *:not(.hcs-figure__ring):not(.hcs-pet):not(.hcs-crest):not(.hcs-emblem) {
     position: relative;
     z-index: 1;
 }
@@ -1046,10 +1046,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-.hcs-name__icon {
-    flex: 0 0 auto;
 }
 
 /* Podium names are never cut short: they wrap onto a second line instead. */
@@ -1235,25 +1231,7 @@
     margin: 0;
 }
 
-/* Familiars stand on the rim's lower right, clear of the face and the name */
-.hcs-figure__portrait .hero-challenge-familiar-chip {
-    left: auto;
-    right: -0.7rem;
-    bottom: -0.3rem;
-    transform: scale(0.66);
-    transform-origin: bottom right;
-}
 
-.hcs-figure__badges {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 0.25rem;
-    max-width: 100%;
-}
-
-.hcs-figure__badges:empty,
 .hcs-figure__chips:empty,
 .hcs-figure__pills:empty {
     display: none;
@@ -1453,9 +1431,9 @@
     font-size: 0.82rem;
 }
 
-.hcs-figure--packed .hcs-figure__badges .guild-badge {
-    width: 1.3rem;
-    height: 1.3rem;
+.hcs-figure--packed .hcs-crest .guild-badge {
+    width: 1.2rem;
+    height: 1.2rem;
 }
 
 /* ─── Podium tiers: a crowd on the podium stands on stacked steps ─────────── */
@@ -1639,36 +1617,6 @@
     margin-right: 0.35rem;
 }
 
-/* The crest and familiar sit on the portrait's rim, clear of the face */
-.hcs-row__portrait .hero-challenge-familiar-chip {
-    left: auto;
-    right: -0.95rem;
-    bottom: -0.55rem;
-    transform: scale(0.6);
-    transform-origin: bottom right;
-}
-
-/* Guild crest pinned to the portrait */
-.hcs-row__crest {
-    position: absolute;
-    top: -0.35rem;
-    right: -0.45rem;
-    z-index: 6;
-    display: grid;
-    place-items: center;
-    padding: 2px;
-    border-radius: 999px;
-    background: #fff;
-    box-shadow: 0 0 0 1.5px var(--hcs-accent), 0 2px 4px rgba(46, 16, 101, 0.25);
-    pointer-events: none;
-}
-
-.hcs-row__crest .hcs-guild .guild-badge {
-    width: 1.35rem;
-    height: 1.35rem;
-    box-shadow: none;
-}
-
 .hcs-row__body {
     min-width: 0;
 }
@@ -1704,42 +1652,6 @@
     align-items: center;
     gap: 0.3rem;
     margin-top: 0.35rem;
-}
-
-.hcs-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    max-width: 100%;
-    height: 1.4rem;
-    padding: 0 0.55rem;
-    border-radius: 999px;
-    font-size: 0.74rem;
-    font-family: var(--gcq-font-display);
-    font-weight: 600;
-    line-height: 1;
-    white-space: nowrap;
-}
-
-.hcs-chip--gold {
-    color: #92400e;
-    background: linear-gradient(180deg, #fffbeb, #fde68a);
-    box-shadow: inset 0 0 0 1px #fcd34d;
-}
-
-.hcs-chip--gold i {
-    color: #d97706;
-}
-
-.hcs-chip--class {
-    color: #6d28d9;
-    background: #f5f3ff;
-    box-shadow: inset 0 0 0 1px #ddd6fe;
-}
-
-.hcs-chip__text {
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 /* Guild role badges */
@@ -1825,7 +1737,6 @@
     flex: 1 1 auto;
     min-width: 0;
     height: 8px;
-    margin-right: 0.9rem;
     border-radius: 999px;
     background: #ede9fe;
     box-shadow: inset 0 1px 2px rgba(76, 29, 149, 0.18);
@@ -1855,22 +1766,10 @@
 }
 
 .hcs-road__goal {
-    position: absolute;
-    top: 50%;
-    right: -1.05rem;
+    flex: 0 0 auto;
     font-size: 0.72rem;
     color: #f59e0b;
-    transform: translateY(-50%);
-}
-
-.hcs-road__label {
-    flex: 0 0 auto;
-    font-size: 0.66rem;
-    font-family: var(--gcq-font-display);
-    font-weight: 600;
-    color: #7c3aed;
-    opacity: 0.75;
-    white-space: nowrap;
+    filter: drop-shadow(0 1px 0 #b45309);
 }
 
 .hcs-row__score {
@@ -1979,40 +1878,40 @@
 
 .hcs-list--enter .hcs-section__head {
     animation: hcs-rise-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
-    animation-delay: calc(var(--hcs-d, 0) * 110ms);
+    animation-delay: calc(0ms - var(--hcs-skip, 0ms) + var(--hcs-d, 0) * 110ms);
 }
 
 .hcs-list--enter .hcs-podium {
     animation: hcs-fade-in 0.6s ease-out both;
-    animation-delay: calc(var(--hcs-d, 0) * 110ms + 60ms);
+    animation-delay: calc(0ms - var(--hcs-skip, 0ms) + var(--hcs-d, 0) * 110ms + 60ms);
 }
 
 .hcs-list--enter .hcs-pedestal {
     animation: hcs-ped-grow 0.7s cubic-bezier(0.22, 1.2, 0.36, 1) both;
-    animation-delay: calc(var(--hcs-d, 0) * 110ms + 140ms);
+    animation-delay: calc(0ms - var(--hcs-skip, 0ms) + var(--hcs-d, 0) * 110ms + 140ms);
 }
 
 .hcs-list--enter .hcs-figure {
     animation: hcs-figure-rise 0.8s cubic-bezier(0.22, 1.25, 0.36, 1) both;
-    animation-delay: calc(var(--hcs-d, 0) * 110ms + 380ms + min(var(--k, 0), 10) * 70ms);
+    animation-delay: calc(0ms - var(--hcs-skip, 0ms) + var(--hcs-d, 0) * 110ms + 380ms + min(var(--k, 0), 10) * 70ms);
 }
 
-.hcs-list--enter .hcs-spot--gold .hcs-figure { animation-delay: calc(var(--hcs-d, 0) * 110ms + 560ms + min(var(--k, 0), 10) * 70ms); }
-.hcs-list--enter .hcs-spot--bronze .hcs-figure { animation-delay: calc(var(--hcs-d, 0) * 110ms + 250ms + min(var(--k, 0), 10) * 70ms); }
+.hcs-list--enter .hcs-spot--gold .hcs-figure { animation-delay: calc(0ms - var(--hcs-skip, 0ms) + var(--hcs-d, 0) * 110ms + 560ms + min(var(--k, 0), 10) * 70ms); }
+.hcs-list--enter .hcs-spot--bronze .hcs-figure { animation-delay: calc(0ms - var(--hcs-skip, 0ms) + var(--hcs-d, 0) * 110ms + 250ms + min(var(--k, 0), 10) * 70ms); }
 
 .hcs-list--enter .hcs-podium__banner {
     animation: hcs-rise-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
-    animation-delay: calc(var(--hcs-d, 0) * 110ms + 700ms);
+    animation-delay: calc(0ms - var(--hcs-skip, 0ms) + var(--hcs-d, 0) * 110ms + 700ms);
 }
 
 .hcs-list--enter .hcs-row {
     animation: hcs-rise-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
-    animation-delay: calc(var(--hcs-d, 0) * 110ms + 300ms + min(var(--hcs-i, 0), 16) * 45ms);
+    animation-delay: calc(0ms - var(--hcs-skip, 0ms) + var(--hcs-d, 0) * 110ms + 300ms + min(var(--hcs-i, 0), 16) * 45ms);
 }
 
 .hcs-list--enter .hcs-road__fill {
     animation: hcs-power-grow 1.2s cubic-bezier(0.22, 1, 0.36, 1) both;
-    animation-delay: calc(var(--hcs-d, 0) * 110ms + 600ms + min(var(--hcs-i, 0), 16) * 45ms);
+    animation-delay: calc(0ms - var(--hcs-skip, 0ms) + var(--hcs-d, 0) * 110ms + 600ms + min(var(--hcs-i, 0), 16) * 45ms);
 }
 
 /* ─── The show: rank changes ─────────────────────────────────────────────── */
@@ -2212,6 +2111,400 @@
     100% { opacity: 0; transform: rotate(var(--a)) translateY(calc(-1 * var(--d))) scale(1) rotate(90deg); }
 }
 
+/* ─── Switching boards: the old board fades, the new one rises in ────────── */
+
+.hcs-list > * {
+    transition: opacity 0.22s ease, translate 0.22s ease;
+}
+
+.hcs-list--leaving > * {
+    opacity: 0;
+    translate: 0 -10px;
+    pointer-events: none;
+}
+
+/* ─── The hero's portrait: emblem, guild crest and familiar on the rim ──────
+   Rows and podium share one arrangement: the hero class emblem top left, the
+   guild crest bottom left, the familiar bottom right. */
+
+.hcs-row__portrait,
+.hcs-figure__portrait {
+    position: relative;
+    isolation: isolate;
+}
+
+.hcs-row__portrait > .enlargeable-avatar,
+.hcs-row__portrait > .avatar-levelup-wrap,
+.hcs-row__portrait > :not(.hcs-halo):not(.hcs-emblem):not(.hcs-crest):not(.hcs-pet) {
+    position: relative;
+    z-index: 1;
+}
+
+/* A ring in the hero's guild colours behind a row portrait */
+.hcs-halo {
+    position: absolute;
+    inset: -4px;
+    z-index: 0;
+    border-radius: 999px;
+    background: conic-gradient(from 210deg, var(--hcs-accent), color-mix(in srgb, var(--hcs-accent) 35%, #fff), var(--hcs-accent), color-mix(in srgb, var(--hcs-accent) 55%, #fde68a), var(--hcs-accent));
+    box-shadow: 0 4px 10px -4px color-mix(in srgb, var(--hcs-accent) 70%, transparent);
+    transition: rotate 1.2s cubic-bezier(0.22, 1, 0.36, 1), scale 0.3s ease;
+}
+
+.hcs-row:hover .hcs-halo,
+.hcs-row:focus-within .hcs-halo {
+    rotate: 180deg;
+    scale: 1.06;
+}
+
+.hcs-row__portrait > .hcs-emblem,
+.hcs-figure__portrait > .hcs-emblem {
+    position: absolute;
+    top: -0.2rem;
+    left: -0.5rem;
+    z-index: 7;
+    margin: 0;
+}
+
+.hcs-row__portrait > .hcs-emblem {
+    width: 1.6rem;
+    height: 1.6rem;
+}
+
+.hcs-row__portrait > .hcs-emblem .hcs-emblem__icon {
+    font-size: 0.85rem;
+}
+
+.hcs-emblem--plain {
+    cursor: default;
+}
+
+/* Guild crest: a little shield on the lower left of the portrait */
+.hcs-crest {
+    position: absolute;
+    left: -0.45rem;
+    bottom: -0.3rem;
+    z-index: 6;
+    display: grid;
+    place-items: center;
+    padding: 2px;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 0 0 2px var(--hcs-accent, #8b5cf6), 0 3px 6px -1px rgba(46, 16, 101, 0.35);
+}
+
+.hcs-crest .hcs-guild .guild-badge {
+    width: 1.35rem;
+    height: 1.35rem;
+    border-width: 0;
+    box-shadow: none;
+}
+
+.hcs-figure__portrait > .hcs-crest {
+    left: -0.2rem;
+    bottom: 0.1rem;
+}
+
+.hcs-figure__portrait > .hcs-crest .guild-badge {
+    width: 1.6rem;
+    height: 1.6rem;
+}
+
+/* The familiar rides in a little nest on the lower right, bobbing gently */
+.hcs-pet {
+    position: absolute;
+    right: -0.75rem;
+    bottom: -0.45rem;
+    z-index: 5;
+    display: grid;
+    place-items: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 999px;
+    background: radial-gradient(circle at 50% 35%, #fff 0, #fff 45%, color-mix(in srgb, var(--hcs-accent, #8b5cf6) 22%, #fff) 100%);
+    box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px color-mix(in srgb, var(--hcs-accent, #8b5cf6) 45%, #fff), 0 3px 8px -2px rgba(46, 16, 101, 0.4);
+    pointer-events: none;
+    animation: hcs-pet-bob 3.4s ease-in-out infinite;
+    animation-delay: calc(var(--hcs-i, var(--k, 0)) * -0.45s);
+}
+
+.hcs-pet .hero-challenge-familiar-chip {
+    position: absolute;
+    inset: auto;
+    top: 50%;
+    left: 50%;
+    transform: none;
+    translate: -50% -50%;
+    scale: 0.74;
+}
+
+.hcs-figure__portrait > .hcs-pet {
+    right: -0.55rem;
+    bottom: -0.1rem;
+    width: 2.6rem;
+    height: 2.6rem;
+}
+
+.hcs-figure__portrait > .hcs-pet .hero-challenge-familiar-chip {
+    scale: 1;
+}
+
+.hcs-figure--packed .hcs-figure__portrait > .hcs-pet {
+    width: 2rem;
+    height: 2rem;
+}
+
+.hcs-figure--packed .hcs-figure__portrait > .hcs-pet .hero-challenge-familiar-chip {
+    scale: 0.78;
+}
+
+@keyframes hcs-pet-bob {
+    0%, 100% { translate: 0 0; rotate: -4deg; }
+    50% { translate: 0 -3px; rotate: 4deg; }
+}
+
+/* ─── The hero line: rank title · class · Gold ───────────────────────────── */
+
+.hcs-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.55rem;
+    margin-top: 0.12rem;
+    font-family: var(--gcq-font-display);
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.hcs-line > * {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    min-width: 0;
+    white-space: nowrap;
+}
+
+.hcs-line > * + *::before {
+    content: '';
+    width: 4px;
+    height: 4px;
+    margin-right: 0.27rem;
+    border-radius: 1px;
+    rotate: 45deg;
+    background: currentColor;
+    opacity: 0.35;
+}
+
+.hcs-line__title {
+    --aura: #7c3aed;
+    color: color-mix(in srgb, var(--aura) 82%, #1e1b4b);
+    font-style: italic;
+    letter-spacing: 0.01em;
+}
+
+.hcs-line__title--legend {
+    color: #b45309;
+    font-style: normal;
+    font-weight: 700;
+}
+
+.hcs-line__title--legend i {
+    font-size: 0.72rem;
+    color: #f59e0b;
+}
+
+.hcs-line__class {
+    color: #6d28d9;
+}
+
+.hcs-line__class-logo {
+    font-size: 0.95em;
+}
+
+.hcs-line__class-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.hcs-line__gold {
+    color: #92400e;
+}
+
+.hcs-line__gold i {
+    font-size: 0.72rem;
+    color: #d97706;
+}
+
+/* On the velvet stage the line glows on a glass pill */
+.hcs-figure .hcs-line {
+    justify-content: center;
+    gap: 0.2rem 0.45rem;
+    margin: -0.1rem 0 0.1rem;
+    padding: 0.14rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    color: #ede9fe;
+    background: rgba(15, 5, 40, 0.28);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.hcs-figure .hcs-line:empty {
+    display: none;
+}
+
+.hcs-figure .hcs-line__title {
+    color: color-mix(in srgb, var(--aura) 30%, #fff);
+}
+
+.hcs-figure .hcs-line__title--legend {
+    color: #fde68a;
+}
+
+.hcs-figure .hcs-line__class {
+    color: #ddd6fe;
+}
+
+/* Rows: name and title read as one block */
+.hcs-row__head + .hcs-line {
+    margin-top: 0.1rem;
+}
+
+/* ─── Shields, stars and the road come alive ────────────────────────────── */
+
+.hcs-shield::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.65) 48%, transparent 62%) no-repeat;
+    background-size: 260% 100%;
+    background-position: 140% 0;
+    -webkit-mask: var(--hcs-shield) center / contain no-repeat;
+    mask: var(--hcs-shield) center / contain no-repeat;
+    transition: background-position 0.9s ease;
+}
+
+.hcs-row:hover .hcs-shield::after {
+    background-position: -40% 0;
+}
+
+.hcs-row:hover .hcs-row__stars > i {
+    animation: hcs-star-spin 0.8s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+@keyframes hcs-star-spin {
+    from { rotate: 0deg; scale: 1; }
+    50% { scale: 1.25; }
+    to { rotate: 144deg; scale: 1; }
+}
+
+/* A glint that runs along the road now and then */
+.hcs-road__fill {
+    overflow: hidden;
+}
+
+.hcs-road__fill::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    width: 30%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.75), transparent);
+    translate: -120% 0;
+    animation: hcs-road-glint 6.5s ease-in-out infinite;
+    animation-delay: calc(2.2s + var(--hcs-i, 0) * 0.35s);
+}
+
+@keyframes hcs-road-glint {
+    0% { translate: -120% 0; }
+    22%, 100% { translate: 420% 0; }
+}
+
+/* ─── Entrance: crests stamp, emblems and familiars pop, honours follow ─── */
+
+.hcs-list--enter .hcs-row .hcs-crest,
+.hcs-list--enter .hcs-row .hcs-emblem,
+.hcs-list--enter .hcs-row .hcs-pet {
+    animation: hcs-pin-pop 0.5s cubic-bezier(0.34, 1.6, 0.64, 1) both;
+    animation-delay: calc(0ms - var(--hcs-skip, 0ms) + var(--hcs-d, 0) * 110ms + 560ms + min(var(--hcs-i, 0), 16) * 45ms);
+}
+
+.hcs-list--enter .hcs-row .hcs-emblem { animation-delay: calc(0ms - var(--hcs-skip, 0ms) + var(--hcs-d, 0) * 110ms + 640ms + min(var(--hcs-i, 0), 16) * 45ms); }
+.hcs-list--enter .hcs-row .hcs-pet {
+    animation: hcs-pin-pop 0.5s cubic-bezier(0.34, 1.6, 0.64, 1) both, hcs-pet-bob 3.4s ease-in-out infinite;
+    animation-delay: calc(0ms - var(--hcs-skip, 0ms) + var(--hcs-d, 0) * 110ms + 720ms + min(var(--hcs-i, 0), 16) * 45ms), calc(1.3s - var(--hcs-skip, 0ms));
+}
+
+.hcs-list--enter .hcs-figure .hcs-crest,
+.hcs-list--enter .hcs-figure .hcs-emblem,
+.hcs-list--enter .hcs-figure .hcs-pet {
+    animation: hcs-pin-pop 0.55s cubic-bezier(0.34, 1.6, 0.64, 1) both;
+    animation-delay: calc(0ms - var(--hcs-skip, 0ms) + var(--hcs-d, 0) * 110ms + 1050ms + min(var(--k, 0), 10) * 70ms);
+}
+
+.hcs-list--enter .hcs-figure .hcs-pet {
+    animation: hcs-pin-pop 0.55s cubic-bezier(0.34, 1.6, 0.64, 1) both, hcs-pet-bob 3.4s ease-in-out infinite;
+    animation-delay: calc(0ms - var(--hcs-skip, 0ms) + var(--hcs-d, 0) * 110ms + 1180ms + min(var(--k, 0), 10) * 70ms), calc(1.8s - var(--hcs-skip, 0ms));
+}
+
+.hcs-list--enter .hcs-row__meta > *,
+.hcs-list--enter .hcs-figure__pills > * {
+    animation: hcs-chip-in 0.4s cubic-bezier(0.34, 1.5, 0.64, 1) both;
+    animation-delay: calc(0ms - var(--hcs-skip, 0ms) + var(--hcs-d, 0) * 110ms + 620ms + min(var(--hcs-i, var(--k, 0)), 16) * 45ms);
+}
+
+.hcs-list--enter .hcs-figure__pills > * {
+    animation-delay: calc(0ms - var(--hcs-skip, 0ms) + var(--hcs-d, 0) * 110ms + 1150ms + min(var(--k, 0), 10) * 70ms);
+}
+
+.hcs-list--enter .hcs-row__meta > :nth-child(2),
+.hcs-list--enter .hcs-figure__pills > :nth-child(2) { translate: 0 0; animation-duration: 0.46s; }
+.hcs-list--enter .hcs-row__meta > :nth-child(3),
+.hcs-list--enter .hcs-figure__pills > :nth-child(3) { animation-duration: 0.52s; }
+.hcs-list--enter .hcs-row__meta > :nth-child(n+4),
+.hcs-list--enter .hcs-figure__pills > :nth-child(n+4) { animation-duration: 0.6s; }
+
+.hcs-list--enter .hcs-shield::after {
+    animation: hcs-shield-gleam 0.9s ease-out both;
+    animation-delay: calc(0ms - var(--hcs-skip, 0ms) + var(--hcs-d, 0) * 110ms + 700ms + min(var(--hcs-i, 0), 16) * 45ms);
+}
+
+@keyframes hcs-pin-pop {
+    0% { opacity: 0; scale: 0.2; }
+    100% { opacity: 1; }
+}
+
+@keyframes hcs-chip-in {
+    0% { opacity: 0; translate: -6px 0; scale: 0.8; }
+    100% { opacity: 1; translate: 0 0; scale: 1; }
+}
+
+@keyframes hcs-shield-gleam {
+    from { background-position: 140% 0; }
+    to { background-position: -40% 0; }
+}
+
+.hcs-list--lite .hcs-pet,
+.hcs-list--lite .hcs-road__fill::after {
+    animation: none;
+}
+
+.hcs-list--lite .hcs-halo {
+    transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hcs-pet,
+    .hcs-road__fill::after,
+    .hcs-row:hover .hcs-row__stars > i {
+        animation: none !important;
+    }
+    .hcs-list > *,
+    .hcs-halo,
+    .hcs-shield::after {
+        transition: none !important;
+    }
+}
+
 /* ─── Phones ──────────────────────────────────────────────────────────────── */
 
 @media (max-width: 639px) {
@@ -2287,15 +2580,6 @@
         font-size: 1rem;
     }
 
-    .hcs-figure__badges .hero-title-pill {
-        font-size: 0.6rem !important;
-        padding: 0.05rem 0.4rem !important;
-    }
-
-    .hcs-figure__badges .guild-badge {
-        width: 1.25rem;
-        height: 1.25rem;
-    }
 
     .hcs-figure__stars {
         font-size: 1.05rem;
@@ -2308,7 +2592,7 @@
 
     .hcs-figure__pills,
     .hcs-figure__lead,
-    .hcs-figure .hcs-chip--class {
+    .hcs-figure .hcs-line__class-name {
         display: none;
     }
 
@@ -2463,12 +2747,96 @@
         gap: 0.25rem 0.3rem;
     }
 
+    /* Phones: name, title and stars share the top; honours and the road
+       run the full width under them, so nothing is squeezed into a column. */
+    .hcs-row {
+        grid-template-columns: auto auto minmax(0, 1fr) auto;
+        grid-template-areas:
+            "rank portrait head score"
+            "rank portrait line score"
+            "meta meta meta meta"
+            "road road road road";
+        row-gap: 0.15rem;
+        column-gap: 0.6rem;
+        align-items: center;
+    }
+
+    .hcs-row__body {
+        display: contents;
+    }
+
+    .hcs-row__rank { grid-area: rank; }
+    .hcs-row__portrait { grid-area: portrait; margin-right: 0.15rem; }
+    .hcs-row__head { grid-area: head; align-self: end; }
+    .hcs-row .hcs-line { grid-area: line; align-self: start; margin-top: 0; font-size: 0.68rem; }
+    .hcs-row .hcs-line { gap: 0.1rem 0.5rem; }
+    .hcs-row .hcs-line > * + *::before { display: none; }
+    .hcs-row__score { grid-area: score; }
+    .hcs-row__meta { grid-area: meta; margin-top: 0.45rem; padding-left: 0.2rem; }
+    .hcs-road { grid-area: road; max-width: none; margin-top: 0.4rem; padding-left: 0.2rem; }
+
+    .hcs-row__portrait .enlargeable-avatar {
+        width: 3.25rem !important;
+        height: 3.25rem !important;
+        border-width: 3px !important;
+    }
+
+    .hcs-row__portrait > .hcs-emblem {
+        width: 1.35rem;
+        height: 1.35rem;
+        left: -0.4rem;
+    }
+
+    .hcs-row__portrait > .hcs-emblem .hcs-emblem__icon {
+        font-size: 0.72rem;
+    }
+
+    .hcs-row__portrait > .hcs-emblem .hcs-emblem__lvl {
+        min-width: 0.85rem;
+        height: 0.85rem;
+        font-size: 0.5rem;
+    }
+
+    .hcs-crest .hcs-guild .guild-badge {
+        width: 1.1rem;
+        height: 1.1rem;
+    }
+
+    .hcs-row__portrait > .hcs-pet {
+        width: 1.75rem;
+        height: 1.75rem;
+        right: -0.6rem;
+    }
+
+    .hcs-row__portrait > .hcs-pet .hero-challenge-familiar-chip {
+        scale: 0.62;
+    }
+
+    .hcs-figure__portrait > .hcs-pet {
+        width: 2rem;
+        height: 2rem;
+        right: -0.5rem;
+    }
+
+    .hcs-figure__portrait > .hcs-pet .hero-challenge-familiar-chip {
+        scale: 0.76;
+    }
+
+    .hcs-figure__portrait > .hcs-crest .guild-badge {
+        width: 1.2rem;
+        height: 1.2rem;
+    }
+
+    .hcs-figure .hcs-line {
+        font-size: 0.6rem;
+        padding: 0.1rem 0.45rem;
+    }
+
     .hcs-row__meta {
         gap: 0.25rem;
         margin-top: 0.3rem;
     }
 
-    .hcs-chip,
     .hcs-badge,
     .hcs-trait {
         height: 1.2rem;
@@ -2476,10 +2844,6 @@
         font-size: 0.6rem;
     }
 
-    .hcs-row__crest .hcs-guild .guild-badge {
-        width: 1.1rem;
-        height: 1.1rem;
-    }
 
     .hcs-emblem {
         width: 1.55rem;
@@ -2502,10 +2866,6 @@
 
     .hcs-road__track {
         height: 6px;
-    }
-
-    .hcs-road__label {
-        display: none;
     }
 
     .hcs-shield {

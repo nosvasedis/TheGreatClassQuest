@@ -659,3 +659,23 @@ rulesTest('school-wide quest events stay limited to their kinds and their owner'
   await assertFails(deleteDoc(doc(teacherDb, `${DATA}/quest_events/theirs`)));
   await assertFails(setDoc(doc(env.authenticatedContext('parent').firestore(), `${DATA}/quest_events/parent`), schoolWideEvent({ createdBy: { uid: 'parent' } })));
 });
+rulesTest('a class teacher can lock, play and complete a Ceremony of the Month snapshot, and mark the class watched', async () => {
+  await env.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), DATA + '/classes/cer-class'), { createdBy: { uid: 'teacher' }, schoolYearKey: '2026-2027' });
+  });
+  const db = env.authenticatedContext('teacher').firestore();
+  const ref = doc(db, DATA + '/ceremony_snapshots/cer-class__2026-10');
+  await assertSucceeds(setDoc(ref, { schemaVersion: 1, schoolYearKey: '2026-2027', classId: 'cer-class', monthKey: '2026-10', status: 'draft', snapshotVersion: 1, classResults: [], createdAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true }));
+  await assertSucceeds(updateDoc(ref, { status: 'locked', lockedBy: 'teacher', lockedAt: serverTimestamp(), updatedAt: serverTimestamp() }));
+  await assertSucceeds(updateDoc(ref, { playback: { phase: 'class_reveal', index: 2, updatedAt: serverTimestamp() } }));
+  await assertSucceeds(updateDoc(ref, { status: 'completed', playback: { phase: 'end', index: 0 }, completedAt: new Date(), completedBy: 'teacher' }));
+  await assertFails(updateDoc(ref, { status: 'draft' }));
+  await assertFails(updateDoc(ref, { classResults: [{ id: 'x' }] }));
+  // A draft that never got its lock may still be finished straight from the ceremony.
+  const ref2 = doc(db, DATA + '/ceremony_snapshots/cer-class__2026-09');
+  await assertSucceeds(setDoc(ref2, { schemaVersion: 1, schoolYearKey: '2026-2027', classId: 'cer-class', monthKey: '2026-09', status: 'draft', snapshotVersion: 1 }));
+  await assertSucceeds(updateDoc(ref2, { status: 'completed', completedAt: new Date(), completedBy: 'teacher' }));
+  await assertSucceeds(updateDoc(doc(db, DATA + '/classes/cer-class'), { 'ceremonyHistory.2026-10.complete': true, 'ceremonyHistory.2026-10.watchedAt': new Date() }));
+  const other = env.authenticatedContext('secretary').firestore();
+  await assertFails(updateDoc(doc(other, DATA + '/ceremony_snapshots/cer-class__2026-10'), { status: 'completed' }));
+});

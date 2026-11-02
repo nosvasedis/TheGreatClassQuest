@@ -971,6 +971,8 @@ export function startCeremony(params) {
 }
 
 function closeCeremony() {
+    // Closing once the class has seen its results (final standings / Golden Bloom) counts as watched.
+    if (ceremonyData.reachedFinale && !ceremonyData.replay) saveCeremonyComplete();
     ceremonyData.active = false;
     import('./familiarParade.js').then((m) => m.stopFamiliarParade()).catch(quietly('features/ceremony.js'));
     if (screenEl()) delete screenEl().dataset.parade;
@@ -1694,6 +1696,7 @@ function advanceCeremony() {
 
     if (ceremonyData.phase === 'final_leaderboard') {
         renderStandings();
+        ceremonyData.reachedFinale = true;
         ceremonyData.phase = 'end';
         setAction('Finish Ceremony', advanceCeremony);
         return;
@@ -1987,6 +1990,7 @@ function advanceGrowthCeremony() {
     }
     if (ceremonyData.phase === 'growth_final') {
         renderGardenFinale();
+        ceremonyData.reachedFinale = true;
         if (ceremonyData.ascent) {
             setAction(ceremonyData.ascent.crossed ? 'Our Garden Grows 🌱' : 'Our Next Adventure 🌱', advanceCeremony);
             ceremonyData.phase = 'growth_ascent';
@@ -2020,58 +2024,74 @@ function advanceGrowthCeremony() {
 
 // ============================================================== SAVE
 
+/**
+ * Marks the class's ceremony as watched, then closes its snapshot.
+ * The class mark comes first and on its own: it is what the Home badge reads, and a
+ * snapshot write that fails (an old rules file, a draft that never got its lock) must
+ * never leave the badge lit. Safe to call more than once per ceremony.
+ */
 async function saveCeremonyComplete() {
+    if (ceremonyData.savedComplete) return;
+    ceremonyData.savedComplete = true;
     const classId = ceremonyData.classId;
     const monthKey = ceremonyData.monthKey;
+    if (!classId || !monthKey) return;
+    const snapshotId = `${classId}__${monthKey}`;
+    const watchedAt = new Date();
+
+    // 1. The class remembers it watched this month's ceremony (and when, for the greyed badge).
+    const c = (state.get('allSchoolClasses') || []).find(x => x.id === classId);
+    if (c) {
+        if (!c.ceremonyHistory) c.ceremonyHistory = {};
+        c.ceremonyHistory[monthKey] = { ...(c.ceremonyHistory[monthKey] || {}), complete: true, watchedAt };
+    }
+    updateCeremonyStatus();
     try {
-        const classRef = doc(db, `${PUBLIC_DATA_PATH}/classes`, classId);
-        const snapshotId = `${classId}__${monthKey}`;
-        const snapshotRef = doc(db, `${PUBLIC_DATA_PATH}/ceremony_snapshots`, snapshotId);
-        const snapshotPayload = {
-            schemaVersion: 1,
-            schoolYearKey: state.getActiveSchoolYearKey(),
-            classId,
-            className: state.get('allSchoolClasses').find((item) => item.id === classId)?.name || '',
-            questLeague: ceremonyData.league,
-            monthKey,
-            mode: ceremonyData.mode || 'classic_arena',
-            status: 'completed',
-            classResults: ceremonyData.classQueue || [],
-            studentResultsPrivate: ceremonyData.studentQueue || [],
-            classWinner: ceremonyData.classQueue?.[ceremonyData.classQueue.length - 1] || null,
-            prodigyWinners: ceremonyData.mode === 'growth_festival' ? (ceremonyData.growthWinners || []) : (ceremonyData.studentQueue?.filter((item) => item.rank === 1) || []),
-            publicSequence: ceremonyData.mode === 'growth_festival' ? { parade: ceremonyData.growthSpotlights || [] } : { classes: ceremonyData.classQueue || [], students: ceremonyData.studentQueue || [], risingStar: ceremonyData.risingStar || null },
-            spotlights: ceremonyData.growthSpotlights || [],
-            sourceGeneratedAt: new Date(),
-            snapshotVersion: 1,
-            playback: { phase: ceremonyData.phase, index: 0, updatedAt: new Date() },
-            completedAt: new Date(),
-            completedBy: state.get('currentUserId')
-        };
-        const existingSnapshot = await getDoc(snapshotRef);
-        if (existingSnapshot.exists() && ['locked', 'completed'].includes(existingSnapshot.data().status)) {
-            await updateDoc(snapshotRef, { status: 'completed', playback: snapshotPayload.playback, completedAt: new Date(), completedBy: state.get('currentUserId') });
-        } else {
-            await setDoc(snapshotRef, stripUndefinedDeep(snapshotPayload), { merge: true });
-        }
-        await updateDoc(classRef, {
+        await updateDoc(doc(db, `${PUBLIC_DATA_PATH}/classes`, classId), {
             [`ceremonyHistory.${monthKey}.complete`]: true,
-            [`ceremonyHistory.${monthKey}.watchedAt`]: new Date(),
+            [`ceremonyHistory.${monthKey}.watchedAt`]: watchedAt,
             [`ceremonyHistory.${monthKey}.snapshotId`]: snapshotId,
             [`ceremonyHistory.${monthKey}.mode`]: ceremonyData.mode || 'classic_arena',
             [`ceremonyHistory.${monthKey}.snapshotVersion`]: 1
         });
-        
-        const classes = state.get('allSchoolClasses');
-        const c = classes.find(x => x.id === classId);
-        if(c) {
-            if(!c.ceremonyHistory) c.ceremonyHistory = {};
-            if(!c.ceremonyHistory[monthKey]) c.ceremonyHistory[monthKey] = {};
-            c.ceremonyHistory[monthKey].complete = true;
-            c.ceremonyHistory[monthKey].watchedAt = new Date();
+    } catch (e) {
+        ceremonyData.savedComplete = false;
+        console.error('Ceremony watched mark failed', e);
+        showToast('The ceremony could not be marked as watched. Check the connection, then close it again.', 'error');
+        return;
+    }
+
+    // 2. The snapshot is closed: only its status changes once it exists, so the results stay as shown.
+    try {
+        const snapshotRef = doc(db, `${PUBLIC_DATA_PATH}/ceremony_snapshots`, snapshotId);
+        const playback = { phase: ceremonyData.phase, index: 0, updatedAt: watchedAt };
+        const existingSnapshot = await getDoc(snapshotRef);
+        if (existingSnapshot.exists()) {
+            await updateDoc(snapshotRef, { status: 'completed', playback, completedAt: watchedAt, completedBy: state.get('currentUserId') });
+        } else {
+            await setDoc(snapshotRef, stripUndefinedDeep({
+                schemaVersion: 1,
+                schoolYearKey: state.getActiveSchoolYearKey(),
+                classId,
+                className: c?.name || '',
+                questLeague: ceremonyData.league,
+                monthKey,
+                mode: ceremonyData.mode || 'classic_arena',
+                status: 'completed',
+                classResults: ceremonyData.classQueue || [],
+                studentResultsPrivate: ceremonyData.studentQueue || [],
+                classWinner: ceremonyData.classQueue?.[ceremonyData.classQueue.length - 1] || null,
+                prodigyWinners: ceremonyData.mode === 'growth_festival' ? (ceremonyData.growthWinners || []) : (ceremonyData.studentQueue?.filter((item) => item.rank === 1) || []),
+                publicSequence: ceremonyData.mode === 'growth_festival' ? { parade: ceremonyData.growthSpotlights || [] } : { classes: ceremonyData.classQueue || [], students: ceremonyData.studentQueue || [], risingStar: ceremonyData.risingStar || null },
+                spotlights: ceremonyData.growthSpotlights || [],
+                sourceGeneratedAt: watchedAt,
+                snapshotVersion: 1,
+                playback,
+                completedAt: watchedAt,
+                completedBy: state.get('currentUserId')
+            }));
         }
-        updateCeremonyStatus();
-    } catch(e) { console.error("Save failed", e); }
+    } catch (e) { console.warn('Ceremony snapshot could not be closed (the class is still marked watched).', e); }
 }
 
 // --- AI COMMENTARY ---

@@ -386,7 +386,12 @@ service cloud.firestore {
     match /artifacts/{schoolId}/public/data/ceremony_snapshots/{snapshotId} {
       allow read: if inSchool(schoolId) && (isStaff());
       allow create: if inSchool(schoolId) && (canRunClass(request.resource.data.classId) && isActiveSchoolYearCreate());
-      allow update: if inSchool(schoolId) && (canRunClass(resource.data.classId) && resource.data.snapshotVersion == request.resource.data.snapshotVersion && ((resource.data.status == 'draft' && request.resource.data.status == 'draft' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['schemaVersion', 'schoolYearKey', 'classId', 'className', 'classLogo', 'questLeague', 'monthKey', 'mode', 'status', 'classResults', 'studentResultsPrivate', 'classWinner', 'prodigyWinners', 'publicSequence', 'spotlights', 'sourceFingerprint', 'sourceGeneratedAt', 'snapshotVersion', 'playback', 'createdBy', 'updatedAt', 'createdAt'])) || (resource.data.status in ['locked', 'completed'] && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'playback', 'completedAt', 'completedBy']))));
+      // draft → draft (results refreshed), draft → locked/completed (the ceremony starts or
+      // ends), locked → locked/completed (playback, finish). Results never change once locked,
+      // and a locked or finished ceremony never goes back to draft.
+      allow update: if inSchool(schoolId) && (canRunClass(resource.data.classId) && resource.data.snapshotVersion == request.resource.data.snapshotVersion && (
+        (resource.data.status == 'draft' && request.resource.data.status == 'draft' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['schemaVersion', 'schoolYearKey', 'classId', 'className', 'classLogo', 'questLeague', 'monthKey', 'mode', 'status', 'classResults', 'studentResultsPrivate', 'classWinner', 'prodigyWinners', 'publicSequence', 'spotlights', 'sourceFingerprint', 'sourceGeneratedAt', 'snapshotVersion', 'playback', 'createdBy', 'updatedAt', 'createdAt'])) ||
+        (resource.data.status in ['draft', 'locked', 'completed'] && request.resource.data.status in ['locked', 'completed'] && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'playback', 'lockedBy', 'lockedAt', 'completedAt', 'completedBy', 'updatedAt']))));
       allow delete: if false;
     }
 

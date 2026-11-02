@@ -98,17 +98,6 @@ const HEADER_LUMI_SVG = `<svg viewBox="0 0 100 100" focusable="false" aria-hidde
                                 <path d="M45 62.5Q50 67 55 62.5" stroke="#8a3a2a" stroke-width="2.4" fill="none" stroke-linecap="round"/>
                             </svg>`;
 
-// The stardust she sheds as she flies: tiny motes, a few of them little
-// sparkles. Each rides her path a beat behind her and keeps falling away and
-// twinkling out (styles/header_flourish.css), so it reads as dust shaken
-// loose rather than a train of shapes following her.
-const PIXIE_DUST_HTML = Array.from({ length: 16 }, (_, i) => {
-    const k = 16 - i;
-    const kind = k % 4 === 0 ? ' gcq-pixie-dust--spark' : '';
-    const drift = [-4, 3, -2, 5, -5, 2, 4, -3, 1, -1, 3, -4, 5, -2, 2, -5][k - 1];
-    return `                        <span class="gcq-pixie-dust${kind}" style="--k: ${k}; --dx: ${drift}px"><i></i></span>`;
-}).join('\n');
-
 /** Gold swash under the title, with the star Lumi lands on, and Lumi herself. */
 export const titleFlourishHTML = `
                     <svg class="gcq-swash gcq-swash--title" viewBox="0 0 260 18" aria-hidden="true" focusable="false">
@@ -116,8 +105,8 @@ export const titleFlourishHTML = `
                         <path d="M60 13.2 C 92 15.5, 118 10.5, 150 12.4" fill="none" stroke="url(#gcq-swash-gold)" stroke-width="1" stroke-linecap="round" opacity="0.7"/>
                         <path class="gcq-swash__star" d="M249 7 l2 -5 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 z" fill="#fff7d6"/>
                     </svg>
+                    <!-- Her stardust is dropped into the lane as she flies (ui/headerClock.js#startPixieDust) -->
                     <span class="gcq-pixie-lane" aria-hidden="true">
-${PIXIE_DUST_HTML}
                         <span class="gcq-pixie">
                             <span class="gcq-pixie__glow"></span>
                             <span class="gcq-pixie__lumi">${HEADER_LUMI_SVG}</span>

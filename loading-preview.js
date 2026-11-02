@@ -8,6 +8,7 @@
 // The hand-over is the app's own (templates/loading.js#playLoadingExit); window.__pvLog
 // records when each step happened, for headless timing checks.
 import { headerHTML } from './templates/app/header.js';
+import { startPixieDust } from './ui/headerClock.js';
 import { loadingHTML, initLoadingAtmosphere, initLoadingTips, markLoadingStage, stageLoadingPersonalization, playLoadingExit, reopenLoadingScreen, setLoadingFilmCut } from './templates/loading.js';
 
 const params = new URLSearchParams(location.search);
@@ -32,6 +33,7 @@ if (params.get('header') !== '0') {
     const next = document.getElementById('pv-next');
     next.style.placeItems = 'start stretch';
     next.innerHTML = `<div class="gcq-sky-atmosphere relative">${headerHTML}</div>`;
+    startPixieDust();
 }
 document.getElementById('app-root').innerHTML = loadingHTML;
 initLoadingAtmosphere();

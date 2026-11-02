@@ -1069,9 +1069,8 @@ function catchHeaderLumi() {
         const pixie = lane.querySelector('.gcq-pixie');
         if (!body || !pixie) continue;
         const swashStar = lane.parentElement?.querySelector('.gcq-swash__star');
-        // Her cycle (flight, glow, melt, spark, the dust riding her path), the
-        // swash star's flare, and her sway. The motes' own little falls keep
-        // their staggered rhythm and are left alone.
+        // Her cycle (flight, glow, melt, spark), the swash star's flare, and
+        // her sway. Specks of stardust already falling are left alone.
         const anims = [...lane.getAnimations({ subtree: true }), ...(swashStar?.getAnimations() || [])]
             .filter(a => Number(a.effect?.getTiming?.().duration) === PIXIE_CYCLE_MS || a.animationName === 'gcq-lumi-sway');
         const flyAnim = pixie.getAnimations().find(a => a.animationName === 'gcq-pixie-fly');

@@ -112,6 +112,7 @@ export function playHeaderIntro(header) {
  */
 export function playHeaderIntroWhenRevealed(header) {
     if (!header) return;
+    startPixieDust();
     const loading = document.getElementById('loading-screen');
     const covering = () => loading
         && !loading.classList.contains('hidden')
@@ -128,4 +129,44 @@ export function playHeaderIntroWhenRevealed(header) {
     });
     observer.observe(loading, { attributes: true, attributeFilter: ['class'] });
     window.setTimeout(() => observer.disconnect(), 30000);
+}
+
+// ── Stardust from the header Lumi ───────────────────────────────────
+// While she flies over the title (.gcq-pixie, styles/header_flourish.css),
+// a speck of stardust is left every so often exactly where she is, and it
+// falls and fades from that spot on its own, so it truly drops from her
+// instead of following her. Small and faint on purpose. One reading of her
+// position per speck; nothing runs while the tab is hidden or she is not
+// in the air.
+const DUST_EVERY_MS = 170;
+let dustTimer = 0;
+
+function dropPixieDust() {
+    if (document.hidden) return;
+    document.querySelectorAll('.gcq-pixie-lane').forEach((lane) => {
+        if (lane.style.opacity === '0' || lane.childElementCount > 24) return;
+        const pixie = lane.querySelector('.gcq-pixie');
+        if (!pixie) return;
+        const box = lane.getBoundingClientRect();
+        if (!box.width) return;
+        if (Number(getComputedStyle(pixie).opacity) < 0.6) return;
+        const at = pixie.getBoundingClientRect();
+        const speck = document.createElement('i');
+        const spark = Math.random() < 0.14;
+        speck.className = spark ? 'gcq-pixie-speck gcq-pixie-speck--spark' : 'gcq-pixie-speck';
+        speck.style.left = `${(at.left + at.width / 2 - box.left + (Math.random() * 6 - 3)).toFixed(1)}px`;
+        speck.style.top = `${(at.top + at.height * 0.62 - box.top + (Math.random() * 3)).toFixed(1)}px`;
+        speck.style.setProperty('--dx', `${(Math.random() * 8 - 4).toFixed(1)}px`);
+        speck.style.setProperty('--fall', `${(9 + Math.random() * 8).toFixed(1)}px`);
+        speck.style.animationDuration = `${Math.round(850 + Math.random() * 450)}ms`;
+        speck.addEventListener('animationend', () => speck.remove(), { once: true });
+        lane.prepend(speck); // under her, never over her face
+        window.setTimeout(() => speck.remove(), 2000);
+    });
+}
+
+/** Starts the header Lumi's stardust (once; safe to call again). */
+export function startPixieDust() {
+    if (dustTimer || reduceMotion()) return;
+    dustTimer = window.setInterval(dropPixieDust, DUST_EVERY_MS);
 }

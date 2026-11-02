@@ -39,6 +39,7 @@ Use these names exactly, in the classroom and when you talk to parents. Mixing t
 | **Crown Race** | The year-long guild race: each month (a **Chapter**) pays **Crowns** (5/3/2/1 by Glory per member, +1 for the **Unity Seal**); most Crowns in June wins | Raw Total Stars |
 | **Chapter** | One school month of the Crown Race. Every guild starts it at 0; it is sealed when the month ends | Ceremony of the Month |
 | **Unity Seal** | +1 Crown for a guild where at least 4 in 5 members earned 6 Glory (3 stars) in the Chapter | Hero’s Boon |
+| **Tailwind** | Catch-up for guilds behind in stars per member this year: up to +30% on every Glory they earn (Breeze, Strong wind, Gale). Closes about two thirds of the gap, never all of it | Bonus stars |
 | **Guild Glory** | Ledger from stars (2 Glory per star) plus Wheel / Quiz / artifacts | Gold |
 | **Fortune’s Wheel** | Weekly ritual, last lesson of the week: each guild spins its own celestial wheel in turn. Treasure, drama twists, quick English trials and small storms: Glory for (or from) each guildmate in the class, plus perks. A storm never takes stars or artifacts | Quiz of the Week |
 | **Guild banner** | The guild’s hanging banner that unfurls when you tap its emblem in Guild Hall; the anthem plays in a torch-lit alcove | Crown Race explainer |

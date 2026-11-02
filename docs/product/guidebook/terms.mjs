@@ -195,6 +195,18 @@ export const TERMS = [
     confuse: { en: 'Guild Glory (ledger from stars), Gold', el: 'Guild Glory (κατάστιχο από αστέρια), Gold' }
   },
   {
+    id: 'tailwind',
+    chapter: 'guild-hall',
+    widget: 'none',
+    names: { en: 'Tailwind', el: 'Tailwind' },
+    aliases: ['tailwind', 'comeback wind', 'catch-up', 'breeze', 'gale', 'strong wind'],
+    def: {
+      en: 'The Crown Race’s catch-up. A guild behind in stars per member this school year earns a share more on every Glory its members gain (stars, Quiz, Wheel, Market): two thirds of the gap, in 5% steps, up to +30%. Breeze, Strong wind and Gale are its three levels. It never grows a loss and never closes the whole gap, so effort still decides the race.',
+      el: 'Η βοήθεια του Crown Race για όσους είναι πίσω. Ένα guild που είναι πίσω σε αστέρια ανά μέλος αυτή τη σχολική χρονιά κερδίζει ένα ποσοστό περισσότερο σε κάθε Glory που κερδίζουν τα μέλη του (αστέρια, Quiz, Wheel, Market): τα δύο τρίτα της διαφοράς, σε βήματα του 5%, έως +30%. Breeze, Strong wind και Gale είναι τα τρία επίπεδά του. Δεν μεγαλώνει ποτέ μια απώλεια και δεν κλείνει ποτέ όλη τη διαφορά, οπότε η προσπάθεια κρίνει ακόμα τον αγώνα.'
+    },
+    confuse: { en: 'Whirlwind (a Wheel twist that spins again)', el: 'Whirlwind (twist του τροχού που ξαναγυρίζει)' }
+  },
+  {
     id: 'guild-glory',
     chapter: 'guild-hall',
     widget: 'none',
@@ -1034,7 +1046,7 @@ export const CHAPTER_SEARCH = {
   'ceremony': ['monthly ritual', 'dual', 'teacher boon ribbon', 'co-prodigy', 'league duel', 'hero duel', 'growth festival', 'classic arena', 'golden bloom'],
   'quest-calendar': ['holidays', 'day planner', 'quest event', 'special quest', 'vocabulary vault'],
   'market': ['gold', 'artifacts', 'familiars', 'eggs', 'mask', 'keeper’s parcel', 'receipt'],
-  'guild-hall': ['guild banner', 'anthem', 'guild ceremony', 'great guild ceremony', 'grand guild ceremony', 'wheel', 'glory', 'crown race', 'crowns', 'unity seal', 'guild power', 'fortune ledger'],
+  'guild-hall': ['tailwind', 'guild banner', 'anthem', 'guild ceremony', 'great guild ceremony', 'grand guild ceremony', 'wheel', 'glory', 'crown race', 'crowns', 'unity seal', 'guild power', 'fortune ledger'],
   'award-stars': ['boon', 'teacher boon', 'hero boon', 'welcome back', 'virtues', 'heart'],
   'adventure-log': ['hero of the day', 'hall of heroes', 'diary', 'quest board', 'attendance chronicle', 'campfire', 'ember oaths'],
   'hero-campfire': ['campfire', 'ember oath', 'oath board', 'star-ember', 'word embers', 'gather at the campfire', 'telescope', 'oath fire', 'oath forge', 'moon phase', 'choosing ceremony'],

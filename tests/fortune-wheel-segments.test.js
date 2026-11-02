@@ -344,6 +344,6 @@ test('the wheel shows the Tailwind each Glory write brought, apart from the fate
   assert.doesNotMatch(wheelSrc, /wheel_comeback_wind/);
   assert.match(wheelSrc, /windOut: ctx\.windOut/);
   assert.match(wheelSrc, /_wheelState\.wind = _wheelState\.envoy \? null : wheelIo\.wind\(guildId\)/);
-  assert.match(wheelSrc, /fw-wheel-legend__wind/);
+  assert.match(wheelSrc, /fw-wind-card/);
   assert.match(wheelSrc, /fw-result-wind/);
 });

@@ -20,6 +20,7 @@ import { ensureAudioReady, playSound, playHeroFanfare, playWheelSfx, warmWheelAu
 import { evaluateWheelAvailability } from '../utils/fortuneWheelEligibility.mjs';
 import { showAnimatedModal, hideModal } from '../ui/modals/base.js';
 import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
+import { tailwindGlyphSvg, tailwindPipsHtml } from './tailwindArt.js';
 
 /**
  * Every write the Wheel makes, in one place: the effects below call these, so the preview page
@@ -1162,7 +1163,7 @@ export async function applyWheelResult(guildId, segment, classId, { favored = fa
             const own = new Set(guildStudents.map((s) => s.id));
             const mine = windRows.filter(([id]) => own.has(id));
             const total = _round2((mine.length ? mine : envoy ? windRows : []).reduce((sum, [, w]) => sum + w, 0));
-            if (total > 0) result.wind = { pct: mine.length ? Number(wind?.pct) || 0 : 0, name: wind?.name || 'Tailwind', total };
+            if (total > 0) result.wind = { pct: mine.length ? Number(wind?.pct) || 0 : 0, name: wind?.name || 'Tailwind', key: mine.length ? wind?.key || 'breeze' : 'breeze', total };
         }
         if (favored) await _spendFortuneFavor(guildId, classId);
         // What the Mirror of Fates copies: the wedge itself, unless the effect named its own echo.
@@ -1206,7 +1207,13 @@ const _pctText = (pct) => `+${Math.round((Number(pct) || 0) * 100)}%`;
 function _windNoteHtml() {
     const wind = _wheelState.wind;
     if (_wheelState.envoy || !(wind?.pct > 0)) return '';
-    return `<div class="fw-wheel-legend__wind"><span aria-hidden="true">${wind.icon || '🌬️'}</span> <span><b>Tailwind ${_pctText(wind.pct)}</b> · ${wind.name || 'Breeze'} at this guild's back: any Glory the wheel brings grows by ${_pctText(wind.pct)}, like every Glory it earns this year.</span></div>`;
+    return `<div class="fw-wind-card fw-wind--${wind.key || 'breeze'}">`
+        + '<span class="fw-wind-card__streaks" aria-hidden="true"><i></i><i></i><i></i></span>'
+        + `<span class="fw-wind-card__orb">${tailwindGlyphSvg()}</span>`
+        + '<span class="fw-wind-card__body">'
+        + `<span class="fw-wind-card__head"><b class="fw-wind-card__pct">${_pctText(wind.pct)}</b><span class="fw-wind-card__name">Tailwind · ${wind.name || 'Breeze'}</span>${tailwindPipsHtml(wind.key, 'fw-wind-pips')}</span>`
+        + `<span class="fw-wind-card__copy">The wind is at this guild's back: any Glory the wheel brings grows by ${_pctText(wind.pct)}, like every Glory it earns this year.</span>`
+        + '</span></div>';
 }
 
 /** How a wedge is painted: an Envoy's toll wears the storm's colours, so the class sees the risk. */
@@ -2754,7 +2761,7 @@ function _heroLedgerHtml(result) {
                 row.stars ? `<span class="fw-hero__b fw-hero__b--star${row.stars < 0 ? ' is-neg' : ''}">${_fmtDelta(row.stars)}<i aria-hidden="true">⭐</i></span>` : '',
                 row.gold ? `<span class="fw-hero__b fw-hero__b--gold${row.gold < 0 ? ' is-neg' : ''}">${_fmtDelta(row.gold)}<i aria-hidden="true">🪙</i></span>` : '',
                 ...(row.artifacts || []).map((a) => `<span class="fw-hero__b fw-hero__b--artifact" title="${_esc(a.name)}"><i aria-hidden="true">${_esc(a.icon)}</i>${_esc(a.name)}</span>`),
-                row.wind ? `<span class="fw-hero__b fw-hero__b--wind" title="Tailwind">${_fmtDelta(row.wind)}<i aria-hidden="true">🌬️</i></span>` : '',
+                row.wind ? `<span class="fw-hero__b fw-hero__b--wind" title="Tailwind">${tailwindGlyphSvg('fw-hero__wind-glyph')}${_fmtDelta(row.wind)}</span>` : '',
             ].join('');
             const spared = !badges && row.spared;
             const neg = (row.glory || 0) < 0 || (row.gold || 0) < 0;
@@ -2847,7 +2854,7 @@ function _renderWheelResult(segment, result, guildDef) {
             ? { icon: '⚜️', label: result.envoy ? 'Glory' : 'Guild Glory', displayStr: `${result.gloryDelta >= 0 ? '+' : ''}${result.gloryDelta}`, isNeg: result.gloryDelta < 0 }
             : null,
         result.wind
-            ? { icon: '🌬️', label: 'Tailwind', displayStr: `+${result.wind.total}`, isNeg: false }
+            ? { icon: tailwindGlyphSvg(), label: 'Tailwind', displayStr: `+${result.wind.total}`, isNeg: false, cls: `fw-result-stat--wind fw-wind--${result.wind.key || 'breeze'}` }
             : null,
         ...Object.entries(result.gloryByGuild || {})
             .filter(([gid, n]) => n && (result.envoy || gid !== result.guildId))
@@ -2869,7 +2876,7 @@ function _renderWheelResult(segment, result, guildDef) {
     ].filter(Boolean);
 
     const statsHtml = statDefs.map((s, i) => `
-        <div class="fw-result-stat" style="animation-delay:${(0.05 + i * 0.07).toFixed(2)}s">
+        <div class="fw-result-stat${s.cls ? ` ${s.cls}` : ''}" style="animation-delay:${(0.05 + i * 0.07).toFixed(2)}s">
             <div class="fw-result-stat__icon">${s.icon}</div>
             <div class="fw-result-stat__value ${s.isNeg ? 'fw-result-stat__value--negative' : ''}">${s.displayStr}</div>
             <div class="fw-result-stat__label">${s.label}</div>
@@ -2928,7 +2935,7 @@ function _renderWheelResult(segment, result, guildDef) {
             <div class="fw-result-title">${segment.label}</div>
             ${decisionHtml}
             <div class="fw-result-description">${result.description || segment.description}</div>
-            ${result.wind ? `<div class="fw-result-wind"><span aria-hidden="true">🌬️</span> And the Tailwind: +${result.wind.total} Glory more${result.wind.pct > 0 ? `, because ${guildDef?.name || 'the guild'} is behind this year and earns ${_pctText(result.wind.pct)} on every Glory` : ' for guilds that are behind this year'}.</div>` : ''}
+            ${result.wind ? `<div class="fw-result-wind fw-wind--${result.wind.key || 'breeze'}"><span class="fw-result-wind__orb">${tailwindGlyphSvg()}</span><span>And the Tailwind: +${result.wind.total} Glory more${result.wind.pct > 0 ? `, because ${guildDef?.name || 'the guild'} is behind this year and earns ${_pctText(result.wind.pct)} on every Glory` : ' for guilds that are behind this year'}.</span></div>` : ''}
             ${statsBlockHtml}
             ${artifactShowcaseHtml}
             ${heroLedgerHtml}
@@ -3087,7 +3094,7 @@ function _renderWheelSummary() {
             const signed = (n) => `${n >= 0 ? '+' : ''}${n}`;
             const deltas = [
                 r.gloryDelta ? deltaChip(signed(r.gloryDelta), '⚜️', 'Glory', r.gloryDelta < 0) : '',
-                r.wind?.total ? deltaChip(signed(r.wind.total), '🌬️', 'Tailwind', false) : '',
+                r.wind?.total ? deltaChip(signed(r.wind.total), tailwindGlyphSvg('fw-summary-delta__glyph'), 'Tailwind', false).replace('fw-summary-delta"', 'fw-summary-delta fw-summary-delta--wind"') : '',
                 ...Object.entries(r.gloryByGuild || {}).filter(([gid, n]) => n && (r.envoy || gid !== r.guildId))
                     .map(([gid, n]) => deltaChip(signed(n), _crestIcon(gid), `${getGuildById(gid)?.name || 'Guild'} Glory`, n < 0)),
                 r.goldDelta ? deltaChip(signed(r.goldDelta), '🪙', 'Gold', r.goldDelta < 0) : '',

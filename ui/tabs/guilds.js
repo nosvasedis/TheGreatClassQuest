@@ -13,6 +13,7 @@ import { openGuildHeroesModal } from '../modals/guildHeroes.js';
 import { hideModal, showAnimatedModal } from '../modals/base.js';
 import { openFortunesWheel, advanceWheel, triggerSpin, closeFortunesWheel, canSpinThisWeek, getWheelState } from '../../features/fortunesWheel.js';
 import { GLORY_EMOJI } from '../../constants.js';
+import { tailwindGlyphSvg, tailwindPipsHtml } from '../../features/tailwindArt.js';
 import * as state from '../../state.js';
 import { showToast } from '../effects.js';
 import { isGameplaySeasonLiveFromAppState } from '../../utils/schoolYear.js';
@@ -1047,7 +1048,13 @@ function _windChipHtml(wind) {
     const pct = Math.round((Number(wind?.pct) || 0) * 100);
     if (!pct) return '';
     const tip = `Tailwind: this guild is behind in stars per member this year (${formatGlory(wind.starsPerMember)} against ${formatGlory(wind.leaderStarsPerMember)}), so every Glory its members earn grows by ${pct}%. It closes about two thirds of the gap, never all of it.`;
-    return `<span class="gh-wind gh-wind--${wind.key || 'breeze'}" title="${_escapeHtml(tip)}"><span class="gh-wind__icon" aria-hidden="true">${wind.icon || '🌬️'}</span><b>+${pct}%</b> ${_escapeHtml(wind.name || 'Tailwind')}</span>`;
+    const key = wind.key || 'breeze';
+    return `<span class="gh-wind gh-wind--${key}" title="${_escapeHtml(tip)}" role="img" aria-label="Tailwind +${pct}%, ${_escapeHtml(wind.name || 'Breeze')}">`
+        + '<span class="gh-wind__streaks" aria-hidden="true"><i></i><i></i><i></i></span>'
+        + `<span class="gh-wind__orb">${tailwindGlyphSvg('gh-wind__glyph')}</span>`
+        + `<span class="gh-wind__text"><b>+${pct}%</b><small>${_escapeHtml(wind.name || 'Tailwind')}</small></span>`
+        + tailwindPipsHtml(key, 'gh-wind__pips')
+        + '</span>';
 }
 
 /** Like _setHtml, but keeps every node that can stay (pictures don't blink, bars glide). */

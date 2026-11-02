@@ -683,35 +683,104 @@
     100% { transform: none; }
 }
 
-/* The Tailwind: a pale-sky chip while a guild is behind in the year; its icon sways. */
+/* The Tailwind: a little piece of open sky on the banner while a guild is behind in the year.
+   A glass pill with gusts streaming through it, a glowing orb with the drawn wind, the share, the
+   level's name and three pips. Breeze is dawn mint, Strong wind is clear sky, Gale is storm violet. */
 .gh-banner__wind:empty { display: none; }
-.gh-banner__wind { margin-top: 0.45rem; max-width: 100%; }
+.gh-banner__wind { margin-top: 0.55rem; max-width: 100%; display: flex; justify-content: center; }
 .gh-wind {
+    --tw-a: #5eead4; --tw-b: #0ea5e9; --tw-ink: #ecfeff; --tw-glow: rgba(94, 234, 212, 0.45);
+    position: relative;
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
+    gap: 0.45rem;
     max-width: 100%;
-    padding: 0.15rem 0.6rem 0.15rem 0.45rem;
+    padding: 0.22rem 0.6rem 0.22rem 0.24rem;
     border-radius: 999px;
-    border: 1px solid rgba(186, 230, 253, 0.35);
-    background: linear-gradient(90deg, rgba(14, 116, 144, 0.45), rgba(12, 74, 110, 0.35));
-    font-size: 0.62rem;
-    font-weight: 700;
-    color: #e0f2fe;
-    white-space: nowrap;
+    overflow: hidden;
+    isolation: isolate;
+    cursor: help;
+    color: var(--tw-ink);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 55%),
+        linear-gradient(100deg, color-mix(in srgb, var(--tw-a) 55%, #0b1020), color-mix(in srgb, var(--tw-b) 45%, #0b1020));
+    border: 1px solid color-mix(in srgb, var(--tw-a) 70%, white);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25), 0 4px 14px -4px var(--tw-glow), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.gh-wind--wind { --tw-a: #7dd3fc; --tw-b: #2563eb; --tw-ink: #f0f9ff; --tw-glow: rgba(56, 189, 248, 0.55); }
+.gh-wind--gale { --tw-a: #c4b5fd; --tw-b: #4f46e5; --tw-ink: #f5f3ff; --tw-glow: rgba(139, 92, 246, 0.7); }
+.gh-wind--gale { animation: gh-wind-pulse 2.4s ease-in-out infinite; }
+
+/* Gusts streaming through the glass */
+.gh-wind__streaks { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+.gh-wind__streaks i {
+    position: absolute;
+    left: -40%;
+    height: 1.5px;
+    width: 38%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.75), transparent);
+    animation: gh-wind-streak 2.6s linear infinite;
+}
+.gh-wind__streaks i:nth-child(1) { top: 28%; animation-delay: 0s; }
+.gh-wind__streaks i:nth-child(2) { top: 55%; width: 26%; animation-delay: 0.9s; animation-duration: 2.1s; }
+.gh-wind__streaks i:nth-child(3) { top: 76%; width: 32%; animation-delay: 1.6s; animation-duration: 3s; opacity: 0.7; }
+.gh-wind--gale .gh-wind__streaks i { animation-duration: 1.5s; }
+.gh-wind--wind .gh-wind__streaks i { animation-duration: 2s; }
+
+/* The orb: a little moon of sky with the wind drawn on it */
+.gh-wind__orb {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 1.45rem;
+    height: 1.45rem;
+    border-radius: 50%;
+    color: #fff;
+    background: radial-gradient(circle at 35% 30%, #fff 0, color-mix(in srgb, var(--tw-a) 80%, white) 18%, var(--tw-b) 78%);
+    box-shadow: 0 0 10px var(--tw-glow), inset 0 -2px 4px rgba(0, 0, 0, 0.25);
+}
+.gh-wind__glyph { width: 0.95rem; height: 0.95rem; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35)); }
+.gh-wind__text { display: inline-flex; align-items: baseline; gap: 0.3rem; min-width: 0; white-space: nowrap; }
+.gh-wind__text b {
+    font-size: 0.8rem;
+    font-weight: 900;
+    letter-spacing: 0.01em;
+    color: #fff;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35), 0 0 8px var(--tw-glow);
+}
+.gh-wind__text small {
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--tw-a) 35%, white);
     overflow: hidden;
     text-overflow: ellipsis;
-    cursor: help;
 }
-.gh-wind b { color: #bae6fd; }
-.gh-wind--gale { border-color: rgba(125, 211, 252, 0.6); box-shadow: 0 0 10px rgba(56, 189, 248, 0.25); }
-.gh-wind__icon { display: inline-block; transform-origin: 50% 80%; animation: gh-wind-sway 2.8s ease-in-out infinite; }
-@keyframes gh-wind-sway {
-    0%, 100% { transform: rotate(-6deg) translateX(-1px); }
-    50% { transform: rotate(6deg) translateX(1px); }
+.gh-wind__pips { display: inline-flex; gap: 2px; align-items: flex-end; }
+.gh-wind__pips i { width: 3px; border-radius: 2px; background: rgba(255, 255, 255, 0.22); }
+.gh-wind__pips i:nth-child(1) { height: 5px; }
+.gh-wind__pips i:nth-child(2) { height: 8px; }
+.gh-wind__pips i:nth-child(3) { height: 11px; }
+.gh-wind__pips i.is-on { background: #fff; box-shadow: 0 0 5px var(--tw-glow); }
+
+/* The drawn gusts flow (shared .tw-glyph art) */
+.tw-glyph path { stroke-dasharray: 26 6; animation: tw-gust 1.8s linear infinite; }
+.tw-glyph .tw-glyph__g2 { animation-duration: 2.2s; }
+.tw-glyph .tw-glyph__g3 { stroke-dasharray: 5 4; animation-duration: 1.2s; }
+@keyframes tw-gust { to { stroke-dashoffset: -32; } }
+@keyframes gh-wind-streak { 0% { transform: translateX(0); } 100% { transform: translateX(420%); } }
+@keyframes gh-wind-pulse {
+    0%, 100% { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25), 0 4px 14px -4px var(--tw-glow), inset 0 1px 0 rgba(255, 255, 255, 0.35); }
+    50% { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25), 0 4px 20px -2px var(--tw-glow), inset 0 1px 0 rgba(255, 255, 255, 0.35); }
 }
-@media (prefers-reduced-motion: reduce) { .gh-wind__icon { animation: none; } }
-.gh--lite .gh-wind__icon { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+    .gh-wind, .gh-wind__streaks i, .gh-wind .tw-glyph path { animation: none; }
+    .gh-wind__streaks { display: none; }
+}
+.gh--lite .gh-wind, .gh--lite .gh-wind__streaks i, .gh--lite .gh-wind .tw-glyph path { animation: none; }
+.gh--lite .gh-wind__streaks { display: none; }
 
 .gh-banner__standards:empty { display: none; }
 .gh-banner__standards { margin-top: 0.5rem; max-width: 100%; }

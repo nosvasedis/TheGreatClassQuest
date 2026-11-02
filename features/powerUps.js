@@ -2,8 +2,6 @@ import { db, doc, runTransaction, increment, collection, serverTimestamp, arrayU
 import { awardGloryToStudents } from './guildScoring.js';
 import { chapterKeyFor } from './guildScoringCore.js';
 import * as state from '../state.js';
-import { showToast, showPraiseToast } from '../ui/effects.js';
-import { showModal } from '../ui/modals/base.js';
 import { playSound } from '../audio.js';
 import * as utils from '../utils.js';
 import { PATHFINDER_CLASS_QUEST_BONUS_STARS, PATHFINDER_AWARD_REASON } from './awardLogReasonMeta.js';
@@ -194,9 +192,7 @@ const POWER_UP_EFFECTS = {
             title: 'The banner was raised',
             body: `${student.name} triggered a school-wide celebration.`
         },
-        localAfterCommit: () => {
-            showPraiseToast(`${student.name} raised the Herald's Banner! Celebration begins!`, '📢');
-        }
+        // the use card's reveal is the celebration now
     }),
     leg_catalyst: async (student, classData, context) => {
         context.transaction.update(context.scoreRef, { starfallCatalystActive: true });
@@ -306,13 +302,12 @@ const POWER_UP_EFFECTS = {
             feedback: {
                 icon: '🏆',
                 title: 'Chalice of Unity raised!',
-                body: `+1 Glory for ${student.name} and every guildmate in ${classData?.name || 'the class'}.`
+                body: `+1 Glory for ${student.name} and ${guildmates.length > 1 ? `${guildmates.length - 1} guildmate${guildmates.length === 2 ? '' : 's'}` : 'the guild'} in ${classData?.name || 'the class'}.`
             },
             localAfterCommit: () => {
                 awardGloryToStudents(guildmates, 1, 'market_chalice_of_unity', {
                     classId: student.classId, note: `Chalice of Unity raised by ${student.name}`, idempotencyPrefix: useKey,
                 }).catch((e) => console.warn('Chalice of Unity Glory failed:', e));
-                showPraiseToast(`${student.name} raised the Chalice of Unity! 🏆 +1 Glory for ${guildmates.length} guildmate${guildmates.length === 1 ? '' : 's'}!`, '🏆');
             }
         };
     },
@@ -337,7 +332,6 @@ const POWER_UP_EFFECTS = {
                 awardGloryToStudents([student.id], 2, 'market_guild_standard', {
                     classId: student.classId, note: 'Guild Standard', idempotencyPrefix: `standard_${chapterKey}_${Date.now()}`,
                 }).catch((e) => console.warn('Guild Standard Glory failed:', e));
-                showPraiseToast(`${student.name} raised the Guild Standard! 🚩`, '🚩');
             }
         };
     },
@@ -407,6 +401,11 @@ export async function handleUseItem(studentId, itemIndex) {
     const current = currentArtifactFor(ownedItem);
     const item = current ? { ...ownedItem, id: current.id, name: current.name, icon: current.icon, description: current.description } : ownedItem;
     const runEffect = _effectFor(ownedItem);
+    const { openItemUseRite } = await import('../ui/core/itemUseRite.js');
+    const riteItem = {
+        id: item.id, name: item.name, icon: item.icon, image: item.image,
+        artId: legendaryArtSvg(item.id) ? item.id : '',
+    };
     if (!runEffect) {
         // Market treasures carry a Charm instead of a power.
         const { isStallTreasure } = await import('./treasureCharmsCore.mjs');
@@ -414,7 +413,11 @@ export async function handleUseItem(studentId, itemIndex) {
             const { handleUseCharm } = await import('./treasureCharms.js');
             return handleUseCharm(studentId, itemIndex);
         }
-        showToast('This item is a collectible and has no active power.', 'info');
+        openItemUseRite({
+            kind: 'keepsake', student, item: riteItem,
+            blockedTitle: `${item.name} is a keepsake`,
+            blocked: 'It has no power to use. It stays in the Satchel for good, a memory of the quest.',
+        });
         return { success: false, cancelled: true };
     }
 
@@ -422,16 +425,27 @@ export async function handleUseItem(studentId, itemIndex) {
         const classData = state.get('allTeachersClasses').find((entry) => entry.id === student.classId);
         const monthKey = utils.getMonthKey(new Date());
         if (pathfinderUsedThisMonth(classData, monthKey)) {
-            showToast("🗺️ The class already used the Pathfinder’s Map this month. No bonus available.", 'info');
+            openItemUseRite({
+                kind: 'relic', student, item: riteItem,
+                blockedTitle: 'The map is resting',
+                blocked: 'The class already used the Pathfinder’s Map this month. Keep it for next month’s quest.',
+            });
             return { success: false, cancelled: true };
         }
     }
 
     return new Promise((resolve) => {
-        showModal(
-            `Use ${item.name}?`,
-            `${legendaryArtSvg(item.id) ? `<div class="lg-use-art">${legendaryArtSvg(item.id)}</div>` : `<div class="text-center text-4xl">${item.icon || '✨'}</div>`}<div class="text-center text-gray-600 mt-1">${item.description || 'Consume this item to activate its power.'}</div>`,
-            async () => {
+        openItemUseRite({
+            kind: 'relic',
+            student,
+            item: riteItem,
+            question: `Use the ${item.name.replace(/^The\s+/i, '')}?`,
+            effect: item.description || 'Use this relic to wake its power.',
+            note: 'A relic is spent when it is used.',
+            confirmLabel: 'Use it',
+            cancelLabel: 'Keep it',
+            onCancel: () => resolve({ success: false, cancelled: true }),
+            onConfirm: async () => {
                 try {
                     const classData = state.get('allTeachersClasses').find((entry) => entry.id === student.classId)
                         || state.get('allSchoolClasses').find((entry) => entry.id === student.classId);
@@ -471,9 +485,8 @@ export async function handleUseItem(studentId, itemIndex) {
                     });
 
                     if (!result?.success) {
-                        if (result?.errorMessage) showToast(result.errorMessage, 'error');
                         resolve(result || { success: false });
-                        return;
+                        return { ok: false, message: result?.errorMessage || 'The magic fizzled out.' };
                     }
 
                     updateLocalStudentScore(studentId, {
@@ -489,26 +502,14 @@ export async function handleUseItem(studentId, itemIndex) {
                     }
 
                     playSound('magic_chime');
-                    if (item.id === 'leg_gilded') {
-                        showToast(`Next star for ${student.name} is worth triple Gold!`, 'success');
-                    } else if (item.id === 'leg_pathfinder') {
-                        showToast(`🗺️ ${classData?.name || 'The class'} advances +${PATHFINDER_CLASS_QUEST_BONUS_STARS} Team Quest Stars.`, 'success');
-                    } else if (item.id === 'leg_luck') {
-                        showToast(`🍀 Luck stored for ${student.name}'s next lesson.`, 'success');
-                    } else if (result.feedback?.title) {
-                        showToast(result.feedback.title, 'success');
-                    }
-
                     resolve(result);
+                    return { ok: true, feedback: result.feedback || { icon: item.icon, title: `${item.name} is working!` } };
                 } catch (error) {
                     console.error(error);
-                    showToast('The magic fizzled out!', 'error');
                     resolve({ success: false, error });
+                    return { ok: false, message: 'The magic fizzled out! Try again in a moment.' };
                 }
-            },
-            'Use Item',
-            'Keep It',
-            () => resolve({ success: false, cancelled: true })
-        );
+            }
+        });
     });
 }

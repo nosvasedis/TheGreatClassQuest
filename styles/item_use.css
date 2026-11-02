@@ -1,0 +1,397 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Using a relic or charm: the rite card (ui/core/itemUseRite.js).
+   A night-violet card with a rune circle. The relic floats in the circle while
+   the teacher decides; the runes spin up while the use is saved; then the relic
+   bursts into light and its result rises in a glowing medal.
+   --iur-tone / --iur-deep come from the relic's family or the charm's rarity.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.iur-overlay {
+    --iur-tone: #a78bfa;
+    --iur-deep: #43207e;
+    position: fixed;
+    inset: 0;
+    z-index: 130;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background:
+        radial-gradient(60% 50% at 50% 45%, color-mix(in srgb, var(--iur-tone) 22%, transparent), transparent 70%),
+        rgba(9, 6, 24, 0.72);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    font-family: 'Fredoka', 'Open Sans', sans-serif;
+}
+.iur-overlay.is-open { opacity: 1; }
+.iur-overlay.is-leaving { opacity: 0; }
+
+.iur-card {
+    position: relative;
+    width: min(26.5rem, 100%);
+    max-height: calc(100dvh - 2rem);
+    overflow: hidden auto;
+    padding: 1.15rem 1.4rem 1.35rem;
+    border-radius: 1.9rem;
+    text-align: center;
+    color: #f4efff;
+    background:
+        radial-gradient(120% 70% at 50% 0%, color-mix(in srgb, var(--iur-tone) 30%, transparent), transparent 62%),
+        radial-gradient(90% 60% at 50% 100%, color-mix(in srgb, var(--iur-deep) 70%, transparent), transparent 70%),
+        linear-gradient(180deg, #221a4a 0%, #15102f 100%);
+    box-shadow:
+        0 0 0 1.5px color-mix(in srgb, var(--iur-tone) 55%, transparent),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        0 30px 80px rgba(0, 0, 0, 0.6),
+        0 0 60px color-mix(in srgb, var(--iur-tone) 25%, transparent);
+    transform: translateY(18px) scale(0.94);
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+    isolation: isolate;
+}
+.iur-overlay.is-open .iur-card { transform: none; }
+.iur-overlay.is-leaving .iur-card { transform: translateY(10px) scale(0.97); transition-duration: 0.22s; }
+
+/* starry dust behind everything */
+.iur-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+        radial-gradient(1.5px 1.5px at 12% 18%, rgba(255, 255, 255, 0.7), transparent),
+        radial-gradient(1px 1px at 82% 12%, rgba(255, 255, 255, 0.6), transparent),
+        radial-gradient(1.5px 1.5px at 90% 62%, rgba(255, 255, 255, 0.5), transparent),
+        radial-gradient(1px 1px at 8% 70%, rgba(255, 255, 255, 0.55), transparent),
+        radial-gradient(1px 1px at 30% 92%, rgba(255, 255, 255, 0.45), transparent),
+        radial-gradient(1.5px 1.5px at 70% 88%, rgba(255, 255, 255, 0.4), transparent);
+    animation: iur-twinkle 4s ease-in-out infinite;
+    pointer-events: none;
+}
+
+.iur-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.28rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--iur-tone);
+    background: color-mix(in srgb, var(--iur-tone) 14%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--iur-tone) 40%, transparent);
+}
+
+/* ── The rune circle ──────────────────────────────────────────────────── */
+
+.iur-stage {
+    position: relative;
+    width: 12.5rem;
+    height: 12.5rem;
+    margin: 0.6rem auto 0.4rem;
+    display: grid;
+    place-items: center;
+}
+.iur-runes {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    animation: iur-spin 26s linear infinite;
+}
+.iur-ring { fill: none; stroke: color-mix(in srgb, var(--iur-tone) 70%, white); }
+.iur-ring--outer { stroke-width: 1.2; opacity: 0.45; }
+.iur-ring--dash { stroke-width: 2; stroke-dasharray: 3 9; opacity: 0.85; stroke-linecap: round; }
+.iur-ring--inner { stroke-width: 1; opacity: 0.35; stroke-dasharray: 18 6; }
+.iur-rune-marks path { fill: var(--iur-tone); opacity: 0.9; filter: drop-shadow(0 0 3px var(--iur-tone)); }
+
+.iur-rays {
+    position: absolute;
+    inset: -22%;
+    border-radius: 50%;
+    background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--iur-tone) 26%, transparent) 0 8deg, transparent 8deg 24deg);
+    -webkit-mask: radial-gradient(circle, #000 18%, transparent 68%);
+    mask: radial-gradient(circle, #000 18%, transparent 68%);
+    opacity: 0.35;
+    animation: iur-spin 40s linear infinite reverse;
+}
+
+.iur-item {
+    position: relative;
+    z-index: 2;
+    width: 7.2rem;
+    height: 7.2rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--iur-tone) 35%, #fff) 0%, color-mix(in srgb, var(--iur-tone) 20%, transparent) 45%, transparent 70%);
+    animation: iur-float 3.6s ease-in-out infinite;
+    transition: transform 0.4s ease, opacity 0.4s ease, filter 0.4s ease;
+}
+.iur-item .iur-art-svg { width: 84%; height: 84%; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45)); }
+.iur-item img { width: 78%; height: 78%; object-fit: cover; border-radius: 1.2rem; box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45); }
+.iur-emoji { font-size: 3.8rem; line-height: 1; filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.45)); }
+
+/* a charm's own sign circling its treasure */
+.iur-charm-orb {
+    position: absolute;
+    z-index: 3;
+    top: 50%;
+    left: 50%;
+    width: 2.6rem;
+    height: 2.6rem;
+    margin: -1.3rem 0 0 -1.3rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 1.3rem;
+    background: radial-gradient(circle at 35% 30%, #fff, color-mix(in srgb, var(--iur-tone) 60%, #fff));
+    box-shadow: 0 0 0 2px var(--iur-tone), 0 0 16px var(--iur-tone);
+    animation: iur-orbit 6s linear infinite;
+}
+
+.iur-shock {
+    position: absolute;
+    z-index: 1;
+    inset: 22%;
+    border-radius: 50%;
+    border: 3px solid var(--iur-tone);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.iur-result-medal {
+    position: absolute;
+    z-index: 4;
+    width: 6.6rem;
+    height: 6.6rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 3.2rem;
+    line-height: 1;
+    background: radial-gradient(circle at 40% 32%, #fff 0%, color-mix(in srgb, var(--iur-tone) 45%, #fff) 45%, var(--iur-tone) 100%);
+    box-shadow:
+        0 0 0 4px color-mix(in srgb, var(--iur-tone) 50%, #fff),
+        0 0 0 7px color-mix(in srgb, var(--iur-deep) 80%, transparent),
+        0 0 40px var(--iur-tone);
+    opacity: 0;
+    transform: scale(0.3);
+    pointer-events: none;
+}
+
+.iur-sparks { position: absolute; inset: 50%; z-index: 5; pointer-events: none; }
+.iur-sparks i {
+    position: absolute;
+    left: -4px;
+    top: -4px;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--iur-tone) 50%, #fff);
+    box-shadow: 0 0 8px var(--iur-tone);
+    opacity: 0;
+    transform: rotate(var(--a)) translateY(0) rotate(45deg);
+}
+
+/* ── Words and buttons ────────────────────────────────────────────────── */
+
+.iur-title {
+    margin: 0.35rem 0 0.4rem;
+    font-family: var(--gcq-font-title);
+    font-weight: 400;
+    font-size: 1.55rem;
+    line-height: 1.15;
+    color: #fff;
+    text-shadow: 0 2px 12px color-mix(in srgb, var(--iur-tone) 45%, transparent);
+}
+
+.iur-who {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.22rem 0.75rem 0.22rem 0.25rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    color: rgba(244, 239, 255, 0.85);
+    background: rgba(255, 255, 255, 0.07);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+.iur-who b { color: #fff; font-weight: 600; }
+.iur-who__face {
+    width: 1.6rem;
+    height: 1.6rem;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border-radius: 50%;
+    font-family: var(--gcq-font-title);
+    font-size: 0.8rem;
+    color: var(--iur-deep);
+    background: color-mix(in srgb, var(--iur-tone) 55%, #fff);
+}
+.iur-who__face img { width: 100%; height: 100%; object-fit: cover; }
+
+.iur-effect {
+    margin: 0.85rem auto 0;
+    max-width: 22rem;
+    padding: 0.7rem 0.95rem;
+    border-radius: 1rem;
+    font-size: 0.95rem;
+    line-height: 1.45;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--iur-tone) 30%, transparent);
+}
+.iur-note { margin: 0.6rem auto 0; max-width: 21rem; font-size: 0.78rem; color: rgba(244, 239, 255, 0.62); }
+.iur-error {
+    margin: 0.7rem auto 0;
+    max-width: 22rem;
+    padding: 0.6rem 0.85rem;
+    border-radius: 0.9rem;
+    font-size: 0.88rem;
+    color: #ffe4e6;
+    background: rgba(244, 63, 94, 0.16);
+    box-shadow: inset 0 0 0 1px rgba(251, 113, 133, 0.45);
+}
+
+.iur-actions { display: flex; justify-content: center; gap: 0.6rem; margin-top: 1.1rem; }
+.iur-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    min-height: 2.85rem;
+    padding: 0.6rem 1.3rem;
+    border-radius: 1rem;
+    font-family: var(--gcq-font-title);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.2s ease;
+}
+.iur-btn--soft { color: rgba(244, 239, 255, 0.9); background: rgba(255, 255, 255, 0.08); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18); }
+.iur-btn--soft:hover { background: rgba(255, 255, 255, 0.14); }
+.iur-btn--main {
+    flex: 0 1 auto;
+    min-width: 9.5rem;
+    color: var(--iur-deep);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--iur-tone) 30%, #fff) 0%, var(--iur-tone) 100%);
+    box-shadow: 0 3px 0 color-mix(in srgb, var(--iur-deep) 85%, black), 0 8px 20px color-mix(in srgb, var(--iur-tone) 40%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.iur-btn--main:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.06); }
+.iur-btn--main:active:not(:disabled) { transform: translateY(2px); }
+.iur-btn:disabled { cursor: progress; opacity: 0.85; }
+.iur-btn:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+
+/* the auto-close wick under the card after the reveal */
+.iur-wick {
+    position: absolute;
+    left: 1.5rem;
+    right: 1.5rem;
+    bottom: 0.55rem;
+    height: 3px;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--iur-tone) 70%, white);
+    transform-origin: left center;
+    transform: scaleX(0);
+    opacity: 0;
+}
+.iur-card.has-wick .iur-wick { opacity: 0.6; animation: iur-wick var(--iur-wick, 9s) linear forwards; }
+.iur-card.is-paused .iur-wick { animation-play-state: paused; opacity: 0.3; }
+
+/* ── Beats ────────────────────────────────────────────────────────────── */
+
+/* channelling: the runes race, the relic hums */
+.iur-overlay.is-working .iur-runes { animation-duration: 1.6s; }
+.iur-overlay.is-working .iur-rays { animation-duration: 5s; opacity: 0.65; }
+.iur-overlay.is-working .iur-item { animation: iur-hum 0.5s ease-in-out infinite; filter: drop-shadow(0 0 18px var(--iur-tone)); }
+
+/* the reveal */
+.iur-overlay.is-done .iur-item { animation: iur-burst 0.6s ease-in forwards; }
+.iur--charm.is-done .iur-item { animation: iur-settle 0.6s ease forwards; } /* a treasure stays */
+.iur-overlay.is-done .iur-charm-orb { animation: iur-orb-rise 0.7s ease forwards; }
+.iur-overlay.is-done .iur-shock { animation: iur-shock 0.8s 0.25s ease-out both; }
+.iur-overlay.is-done .iur-result-medal { animation: iur-medal 0.7s 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+.iur-overlay.is-done .iur-sparks i { animation: iur-spark 0.95s calc(0.3s + var(--d)) ease-out both; }
+.iur-overlay.is-done .iur-rays { opacity: 0.8; animation-duration: 16s; }
+.iur-overlay.is-done .iur-title,
+.iur-overlay.is-done .iur-effect { animation: iur-rise 0.45s 0.5s ease both; }
+
+/* blocked or fizzled: dim circle, a soft shake */
+.iur-overlay.is-blocked .iur-runes,
+.iur-overlay.is-error .iur-runes { animation-play-state: paused; opacity: 0.45; }
+.iur-overlay.is-blocked .iur-item,
+.iur-overlay.is-error .iur-item { animation: none; filter: grayscale(0.35) brightness(0.9); }
+.iur-overlay.is-error .iur-card { animation: iur-shake 0.45s ease; }
+
+@keyframes iur-spin { to { transform: rotate(360deg); } }
+@keyframes iur-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+@keyframes iur-hum { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@keyframes iur-orbit {
+    from { transform: rotate(0deg) translateX(4.6rem) rotate(0deg); }
+    to { transform: rotate(360deg) translateX(4.6rem) rotate(-360deg); }
+}
+@keyframes iur-burst {
+    0% { transform: scale(1); opacity: 1; filter: brightness(1); }
+    60% { transform: scale(1.25); opacity: 1; filter: brightness(2.4) drop-shadow(0 0 24px var(--iur-tone)); }
+    100% { transform: scale(0.2); opacity: 0; filter: brightness(3); }
+}
+@keyframes iur-settle {
+    0% { transform: none; opacity: 1; }
+    100% { transform: translate(-3.4rem, 2.6rem) scale(0.42); opacity: 0.95; }
+}
+@keyframes iur-orb-rise {
+    0% { transform: none; opacity: 1; }
+    100% { transform: scale(0.4); opacity: 0; }
+}
+@keyframes iur-shock {
+    0% { opacity: 0.9; transform: scale(0.6); }
+    100% { opacity: 0; transform: scale(2.1); }
+}
+@keyframes iur-medal {
+    0% { opacity: 0; transform: scale(0.3) rotate(-20deg); }
+    100% { opacity: 1; transform: none; }
+}
+@keyframes iur-spark {
+    0% { opacity: 0; transform: rotate(var(--a)) translateY(0) rotate(45deg) scale(0.6); }
+    20% { opacity: 1; }
+    100% { opacity: 0; transform: rotate(var(--a)) translateY(calc(var(--r) * -1)) rotate(45deg) scale(1); }
+}
+@keyframes iur-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes iur-shake {
+    0%, 100% { transform: none; }
+    20% { transform: translateX(-7px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(2px); }
+}
+@keyframes iur-wick { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+@keyframes iur-twinkle { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+
+@media (max-width: 480px) {
+    .iur-card { padding: 1rem 1rem 1.2rem; border-radius: 1.6rem; }
+    .iur-stage { width: 10.5rem; height: 10.5rem; }
+    .iur-item { width: 6.2rem; height: 6.2rem; }
+    .iur-result-medal { width: 5.8rem; height: 5.8rem; font-size: 2.8rem; }
+    .iur-title { font-size: 1.35rem; }
+    .iur-actions { flex-direction: column-reverse; }
+    .iur-btn { width: 100%; }
+    @keyframes iur-orbit {
+        from { transform: rotate(0deg) translateX(3.9rem) rotate(0deg); }
+        to { transform: rotate(360deg) translateX(3.9rem) rotate(-360deg); }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .iur-overlay *,
+    .iur-overlay *::before,
+    .iur-overlay *::after,
+    .iur-card { animation: none !important; transition-duration: 0.01s !important; }
+    .iur-overlay.is-done .iur-item { opacity: 0; }
+    .iur--charm.is-done .iur-item { opacity: 1; transform: translate(-3.4rem, 2.6rem) scale(0.42); }
+    .iur-overlay.is-done .iur-charm-orb { opacity: 0; }
+    .iur-overlay.is-done .iur-result-medal { opacity: 1; transform: none; }
+}

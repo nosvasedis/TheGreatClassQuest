@@ -2,17 +2,11 @@
 // The treasure stays in the satchel; only its charm is marked spent. Rules: treasureCharmsCore.mjs.
 import { db, doc, runTransaction } from '../firebase.js';
 import * as state from '../state.js';
-import { showToast, showPraiseToast } from '../ui/effects.js';
-import { showModal } from '../ui/modals/base.js';
 import { playSound } from '../audio.js';
 import { getLocalIsoDateString } from '../utils.js';
 import { JUNIOR_LEAGUES } from '../constants.js';
 import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 import { charmFor, charmText, charmUseCheck, countCharmsUsedOn } from './treasureCharmsCore.mjs';
-
-function esc(value) {
-    return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
 
 function classOf(classId) {
     return (state.get('allTeachersClasses') || []).find((c) => c.id === classId)
@@ -31,34 +25,44 @@ function classCharmsToday(classId, today) {
     return countCharmsUsedOn(inventories, today);
 }
 
-export function handleUseCharm(studentId, itemIndex) {
+export async function handleUseCharm(studentId, itemIndex) {
     const student = (state.get('allStudents') || []).find((s) => s.id === studentId);
     const scoreData = (state.get('allStudentScores') || []).find((s) => s.id === studentId);
     const owned = scoreData?.inventory?.[itemIndex];
-    if (!student || !owned) return Promise.resolve({ success: false, cancelled: true });
+    if (!student || !owned) return { success: false, cancelled: true };
 
+    const { openItemUseRite } = await import('../ui/core/itemUseRite.js');
     const today = getLocalIsoDateString();
+    const charm = charmFor(owned);
+    const riteItem = { id: owned.id, name: owned.name, icon: owned.icon, image: owned.image, tier: charm.tier };
     const check = charmUseCheck(scoreData.inventory, itemIndex, {
         today,
         classCharmsToday: classCharmsToday(student.classId, today)
     });
     if (!check.ok) {
-        showToast(check.reason, 'info');
-        return Promise.resolve({ success: false, cancelled: true });
+        openItemUseRite({
+            kind: 'charm', student, item: riteItem, charmIcon: charm.icon,
+            blockedTitle: `${charm.title} is sleeping`,
+            blocked: check.reason,
+        });
+        return { success: false, cancelled: true };
     }
-    const charm = charmFor(owned);
     const words = charmText(charm, { young: isYoungClass(student.classId) });
     const firstName = String(student.name || 'Hero').trim().split(/\s+/)[0];
 
     return new Promise((resolve) => {
-        showModal(
-            `Use the ${charm.title} charm?`,
-            `<div class="text-center text-gray-600 mt-1">
-                <div class="text-4xl mb-2" aria-hidden="true">${esc(charm.icon)}</div>
-                <p><b>${esc(owned.name)}</b> lets ${esc(firstName)}: ${esc(words)}</p>
-                <p class="text-sm mt-2">This spends one woken ${esc(charm.tier)} charm. The treasure stays in the collection.</p>
-            </div>`,
-            async () => {
+        openItemUseRite({
+            kind: 'charm',
+            student,
+            item: riteItem,
+            charmIcon: charm.icon,
+            question: `Call on the ${charm.title} charm?`,
+            effect: `${owned.name} lets ${firstName}: ${words}`,
+            note: `This spends one woken ${charm.tier} charm. The treasure stays in the Satchel.`,
+            confirmLabel: 'Use the charm',
+            cancelLabel: 'Keep it for later',
+            onCancel: () => resolve({ success: false, cancelled: true }),
+            onConfirm: async () => {
                 try {
                     const usedAt = new Date().toISOString();
                     const result = await runTransaction(db, async (transaction) => {
@@ -68,7 +72,7 @@ export function handleUseCharm(studentId, itemIndex) {
                         const inventory = Array.isArray(snap.data().inventory) ? [...snap.data().inventory] : [];
                         const entry = inventory[itemIndex];
                         if (!entry || entry.id !== owned.id || entry.name !== owned.name) {
-                            return { success: false, errorMessage: 'That treasure is no longer in the satchel.' };
+                            return { success: false, errorMessage: 'That treasure is no longer in the Satchel.' };
                         }
                         const fresh = charmUseCheck(inventory, itemIndex, { today });
                         if (!fresh.ok) return { success: false, errorMessage: fresh.reason };
@@ -78,9 +82,8 @@ export function handleUseCharm(studentId, itemIndex) {
                         return { success: true, inventory };
                     });
                     if (!result.success) {
-                        if (result.errorMessage) showToast(result.errorMessage, 'error');
                         resolve(result);
-                        return;
+                        return { ok: false, message: result.errorMessage || 'The charm fizzled out. Try again.' };
                     }
                     const scores = [...(state.get('allStudentScores') || [])];
                     const at = scores.findIndex((s) => s.id === studentId);
@@ -89,18 +92,15 @@ export function handleUseCharm(studentId, itemIndex) {
                         state.setAllStudentScores(scores);
                     }
                     playSound('magic_chime');
-                    // The class sees it on the projector: the teacher honours it in the lesson.
-                    showPraiseToast(`${firstName}'s ${owned.name}: ${charm.title}! ${words}`, charm.icon);
                     resolve({ success: true, charm });
+                    // The class sees it on the projector: the teacher honours it in the lesson.
+                    return { ok: true, feedback: { icon: charm.icon, title: `${firstName}'s ${charm.title}!`, body: words } };
                 } catch (error) {
                     console.error(error);
-                    showToast('The charm fizzled out. Try again.', 'error');
                     resolve({ success: false, error });
+                    return { ok: false, message: 'The charm fizzled out. Try again.' };
                 }
-            },
-            'Use the charm',
-            'Keep it for later',
-            () => resolve({ success: false, cancelled: true })
-        );
+            }
+        });
     });
 }

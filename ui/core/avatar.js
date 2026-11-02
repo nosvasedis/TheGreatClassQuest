@@ -3,23 +3,24 @@
 // (markup: ui/core/heroStageView.mjs, satchel model: features/trophyRoomCore.mjs).
 import * as state from '../../state.js';
 import { getLocalMonthKey } from '../../utils.js';
-import { currentArtifactFor, handleUseItem, isItemUsable } from '../../features/powerUps.js';
-import { legendaryArtSvg } from '../../features/legendaryArt.mjs';
+import { currentArtifactFor, isItemUsable } from '../../features/powerUps.js';
 import { renderFamiliarSprite, openFamiliarStatsOverlay } from '../../features/familiars.js';
 import { getGuildById } from '../../features/guilds.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
-import { getHeroTitle } from '../../features/heroSkillTree.js';
-import { buildTrophySatchel, buildActiveEffects, previewTrophySatchel } from '../../features/trophyRoomCore.mjs';
+import { HERO_SKILL_TREE, getHeroTitle, getReasonDisplayName } from '../../features/heroSkillTree.js';
+import { buildTrophySatchel, buildActiveEffects } from '../../features/trophyRoomCore.mjs';
 import { canUseFeature } from '../../utils/subscription.js';
 import { openSkillTreeModal } from '../modals/skillTree.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 
-const TREASURE_PREVIEW = 8;
-const loadStageView = () => import('./heroStageView.mjs');
-
-function escHtml(value) {
-    return String(value ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
+// The card's markup and look load on the first tap, not with the first paint.
+let stageModules = null;
+const loadStageView = () => {
+    stageModules ||= Promise.all([import('./heroStageView.mjs'), import('../../styles/hero_stage.css')])
+        .then(([view]) => view)
+        .catch((err) => { stageModules = null; throw err; });
+    return stageModules;
+};
 const FLIGHT_MS = 460;
 
 /**
@@ -53,97 +54,86 @@ function findClass(classId) {
         || null;
 }
 
-/** Everything that changes when a relic is used (stats, effects, satchel). */
-function buildStageBody(studentId) {
+/** Hero Path: level, title and the road to the next level (null when the school has no Hero Paths). */
+function buildPath(student, scoreData) {
+    if (!canUseFeature('heroProgression') || !student.heroClass || !HERO_CLASSES[student.heroClass]) return null;
+    const heroClass = HERO_CLASSES[student.heroClass];
+    const tree = HERO_SKILL_TREE[student.heroClass];
+    const level = Number(scoreData.heroLevel) || 0;
+    const path = {
+        icon: heroClass.icon,
+        name: student.heroClass,
+        title: level > 0 ? getHeroTitle(student.heroClass, level) : '',
+        level,
+        color: tree?.auraColor || heroClass.theme?.accent || '',
+        progress: null,
+    };
+    const levels = tree?.levels || [];
+    if (!levels.length) return path;
+    if (level >= levels.length) {
+        path.progress = { mastered: true };
+        return path;
+    }
+    const stars = Number((scoreData.starsByReason || {})[tree.reason]) || 0;
+    const from = level > 0 ? Number(levels[level - 1]?.threshold) || 0 : 0;
+    const to = Number(levels[level]?.threshold) || 0;
+    if (!to) return path;
+    path.progress = {
+        pct: to > from ? (stars - from) / (to - from) : 0,
+        toNext: Math.max(0, to - stars),
+        nextLevel: level + 1,
+        nextTitle: getHeroTitle(student.heroClass, level + 1),
+        reasonLabel: tree.reason ? getReasonDisplayName(tree.reason) : '',
+    };
+    return path;
+}
+
+/** Everything that changes when an item is used (stats, path, effects, satchel). */
+async function buildStageBody(studentId) {
+    const { stageSatchelTiles } = await loadStageView();
     const scoreData = (state.get('allStudentScores') || []).find((s) => s.id === studentId) || {};
     const student = (state.get('allStudents') || []).find((s) => s.id === studentId) || {};
     const satchel = buildTrophySatchel(scoreData.inventory, { isUsable: isItemUsable, present: currentArtifactFor });
+    const today = (state.get('todaysStars') || {})[studentId];
     return {
         firstName: String(student.name || 'Hero').trim().split(/\s+/)[0] || 'Hero',
         stats: {
             monthlyStars: scoreData.monthlyStars,
             totalStars: scoreData.totalStars,
             gold: getLiveYearGoldFromAppState(scoreData, state),
+            todayStars: Number(today?.stars) || 0,
         },
+        path: buildPath(student, scoreData),
         effects: buildActiveEffects(scoreData, getLocalMonthKey()),
-        preview: previewTrophySatchel(satchel, { treasureLimit: TREASURE_PREVIEW }),
+        satchel: stageSatchelTiles(satchel, { readyCharms: satchel.charms.map((c) => c.index) }),
         total: satchel.total,
+        ready: satchel.relicCount + satchel.charms.length,
     };
 }
 
-function buildStageView(studentId) {
+async function buildStageView(studentId) {
     const student = (state.get('allStudents') || []).find((s) => s.id === studentId) || { id: studentId, name: 'Hero' };
     const scoreData = (state.get('allStudentScores') || []).find((s) => s.id === studentId) || {};
     const cls = findClass(student.classId);
-    const heroClass = canUseFeature('heroProgression') && student.heroClass ? HERO_CLASSES[student.heroClass] : null;
-    const level = Number(scoreData.heroLevel) || 0;
     const guildDef = canUseFeature('guilds') && student.guildId ? getGuildById(student.guildId) : null;
     return {
         student: { id: studentId, name: student.name || 'Hero' },
         classLabel: [cls?.logo, cls?.name].filter(Boolean).join(' '),
-        path: heroClass ? { icon: heroClass.icon, title: level > 0 ? getHeroTitle(student.heroClass, level) : student.heroClass, level } : null,
         guild: guildDef ? { name: guildDef.name, emoji: guildDef.emoji, primary: guildDef.primary } : null,
         pendingSkillChoice: !!scoreData.pendingSkillChoice,
         hasFamiliar: !!scoreData.familiar,
-        ...buildStageBody(studentId),
+        ...(await buildStageBody(studentId)),
     };
 }
 
-/** Show a beautiful enlarged detail view of an item (also used from the Satchel modal). */
-export function showInventoryItemDetail(itemData) {
-    const current = currentArtifactFor(itemData);
-    showItemDetail({
-        name: current?.name || itemData.name,
-        desc: current?.description || itemData.desc || itemData.description || '',
-        icon: current?.icon || itemData.icon,
-        image: itemData.image,
-        art: current ? legendaryArtSvg(current.id, { className: 'lg-art lg-art--detail' }) : '',
-    });
-}
-
-/** @internal */
-function showItemDetail(itemData) {
-    const overlay = document.createElement('div');
-    overlay.className = 'item-detail-overlay';
-
-    const visual = itemData.art
-        ? `<div class="item-detail-visual">${itemData.art}</div>`
-        : itemData.image
-        ? `<div class="item-detail-visual"><img src="${escHtml(itemData.image)}" alt=""></div>`
-        : `<div class="item-detail-visual">${escHtml(itemData.icon || '📦')}</div>`;
-
-    overlay.innerHTML = `
-        <div class="item-detail-card">
-            ${visual}
-            <h2 class="item-detail-name">${escHtml(itemData.name)}</h2>
-            <p class="item-detail-description">${escHtml(itemData.desc)}</p>
-            <p class="item-detail-close-hint">Tap anywhere to close</p>
-        </div>
-    `;
-
-    document.body.appendChild(overlay);
-
-    // Animate in
-    requestAnimationFrame(() => {
-        overlay.classList.add('active');
-    });
-
-    const closeDetail = () => {
-        overlay.classList.remove('active');
-        window.removeEventListener('keydown', onKey, true);
-        setTimeout(() => overlay.remove(), 300);
-    };
-    const onKey = (e) => {
-        if (e.key !== 'Escape') return;
-        e.stopPropagation();
-        closeDetail();
-    };
-    window.addEventListener('keydown', onKey, true);
-
-    overlay.addEventListener('click', (e) => {
-        e.stopPropagation();
-        closeDetail();
-    });
+/**
+ * The item close-up (also used from the Satchel modal). Pass the student and the item's
+ * inventory index so the card can flip through the Satchel and use relics and charms.
+ */
+export function showInventoryItemDetail(itemData, options = {}) {
+    return import('./itemCloseUp.js')
+        .then((m) => m.openItemCloseUp({ item: itemData, ...options }))
+        .catch((err) => console.error('Item close-up failed to open:', err));
 }
 
 /** Hero stats = the class roster's hero view (virtues, latest stars, boons, Scholar's Scroll). */
@@ -164,7 +154,8 @@ function placeFixed(el, rect) {
 
 // --- AVATAR ENLARGEMENT (Hero Stage) ---
 export function handleAvatarClick(e) {
-    if (e.target.closest('.familiar-stats-overlay')) return;
+    // Cards opened over the stage (item close-up, use rite) keep it open.
+    if (e.target.closest('.familiar-stats-overlay, .icu-overlay, .iur-overlay')) return;
     // Familiar tap — show stats overlay
     const familiarEl = e.target.closest('.enlargeable-familiar');
     if (familiarEl) {
@@ -195,8 +186,30 @@ export function handleAvatarClick(e) {
     openHeroStage(avatar, studentId).catch((err) => console.error('Hero Stage failed to open:', err));
 }
 
+/** Numbers on the medallions count up as the card lands. */
+function countUp(root) {
+    const els = [...root.querySelectorAll('[data-hs-count]')];
+    if (!els.length) return;
+    const start = performance.now();
+    const DURATION = 900;
+    const targets = els.map((el) => Number(el.dataset.hsCount) || 0);
+    const step = (now) => {
+        const t = Math.min(1, (now - start) / DURATION);
+        const eased = 1 - Math.pow(1 - t, 3);
+        els.forEach((el, i) => {
+            if (!el.isConnected) return;
+            const target = targets[i];
+            const value = target * eased;
+            el.textContent = t >= 1 ? el.dataset.hsCount : String(Number.isInteger(target) ? Math.round(value) : Math.round(value * 10) / 10);
+        });
+        if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+}
+
 async function openHeroStage(avatar, studentId) {
     const { renderHeroStageHtml, renderHeroStageBodyHtml } = await loadStageView();
+    const view = studentId ? await buildStageView(studentId) : null;
     // A quick double tap could land here twice while the markup module loads.
     if (document.querySelector('.enlarged-avatar-container:not(.is-closing)') || !avatar.isConnected) return;
     const rect = avatar.getBoundingClientRect();
@@ -209,7 +222,7 @@ async function openHeroStage(avatar, studentId) {
     const container = document.createElement('div');
     container.className = `enlarged-avatar-container hero-stage${studentId ? '' : ' hero-stage--portrait-only'}`;
     container.innerHTML = studentId
-        ? renderHeroStageHtml(buildStageView(studentId))
+        ? renderHeroStageHtml(view)
         : '<div class="hs-card hs-card--bare" role="dialog" aria-modal="true" aria-label="Portrait"><div class="hs-portrait-slot" data-hs-portrait><span class="hs-aura" aria-hidden="true"></span></div></div>';
 
     const stageCard = container.querySelector('.hs-card');
@@ -293,7 +306,8 @@ async function openHeroStage(avatar, studentId) {
         placeFixed(flyer, target);
         setGlyphSize(target.width);
         setTimeout(dock, reduceMotion ? 20 : FLIGHT_MS);
-        (container.querySelector('.hs-close') || stageCard)?.focus?.({ preventScroll: true });
+        if (!reduceMotion) countUp(container);
+        (container.querySelector('.hs-close') || stageCard)?.focus?.({ preventScroll: true, focusVisible: false });
     });
 
     const close = () => {
@@ -327,7 +341,7 @@ async function openHeroStage(avatar, studentId) {
     const closeThen = (fn) => { close(); fn(); };
 
     const onKey = (e) => {
-        if (e.key !== 'Escape' || document.querySelector('.item-detail-overlay')) return;
+        if (e.key !== 'Escape' || document.querySelector('.icu-overlay, .iur-overlay')) return;
         e.stopPropagation();
         close();
     };
@@ -352,30 +366,24 @@ async function openHeroStage(avatar, studentId) {
             return;
         }
 
-        const useBtn = e.target.closest('[data-hs-use]');
-        if (useBtn && !useBtn.disabled && studentId) {
-            const itemIndex = parseInt(useBtn.dataset.hsUse, 10);
-            if (Number.isNaN(itemIndex)) return;
-            useBtn.disabled = true;
-            useBtn.classList.add('is-busy');
-            useBtn.querySelector('span').textContent = 'Using…';
-            try {
-                await handleUseItem(studentId, itemIndex);
-                const body = container.querySelector('[data-hs-body]');
-                if (body && !closed) body.innerHTML = renderHeroStageBodyHtml(buildStageBody(studentId));
-            } catch (_) {
-                useBtn.disabled = false;
-                useBtn.classList.remove('is-busy');
-                useBtn.querySelector('span').textContent = 'Use';
-            }
-            return;
-        }
-
         const zoomEl = e.target.closest('[data-hs-zoom]');
         if (zoomEl && studentId) {
+            const index = parseInt(zoomEl.dataset.hsZoom, 10);
             const score = (state.get('allStudentScores') || []).find((s) => s.id === studentId);
-            const item = score?.inventory?.[parseInt(zoomEl.dataset.hsZoom, 10)];
-            if (item) showInventoryItemDetail(item);
+            const item = score?.inventory?.[index];
+            if (!item) return;
+            showInventoryItemDetail(item, {
+                studentId,
+                index,
+                from: zoomEl,
+                // After a relic or charm is used, the card's stars, spells and satchel catch up.
+                onUsed: async () => {
+                    const body = container.querySelector('[data-hs-body]');
+                    if (!body || closed) return;
+                    body.innerHTML = renderHeroStageBodyHtml(await buildStageBody(studentId));
+                    body.classList.add('is-refreshed');
+                },
+            });
         }
     });
 }

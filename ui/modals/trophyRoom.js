@@ -255,8 +255,9 @@ function bindListeners() {
         }
         const zoom = e.target.closest('.tr-zoom');
         if (zoom) {
-            const item = findScore(currentStudentId)?.inventory?.[Number(zoom.dataset.itemIndex)];
-            if (item) showInventoryItemDetail(item);
+            const index = Number(zoom.dataset.itemIndex);
+            const item = findScore(currentStudentId)?.inventory?.[index];
+            if (item) showInventoryItemDetail(item, { studentId: currentStudentId, index, from: zoom });
         }
     });
 

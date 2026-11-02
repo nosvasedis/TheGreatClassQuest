@@ -211,7 +211,6 @@
 /* styles/hero_class_ceremony.css loads with the module that draws it (lazy, not first paint) */
 
 /* 42. Inventory Refresh: Beautiful expanded inventory view */
-@import url('./styles/inventory_refresh.css');
 
 /* 43. Refreshed Team Quest Analysis Cards */
 @import url('./styles/team_quest_cards.css');
@@ -252,7 +251,6 @@
 /* styles/prodigy_hall.css loads with the module that draws it (lazy, not first paint) */
 @import url('./styles/attendance_register.css');
 @import url('./styles/quest_board.css');
-@import url('./styles/hero_stage.css');
 /* styles/certificate.css loads with the module that draws it (lazy, not first paint) */
 /* Weekly Report: The Week's Scroll (ui/modals/weeklyReportView.mjs) */
 /* styles/weekly_report.css loads with the module that draws it (lazy, not first paint) */

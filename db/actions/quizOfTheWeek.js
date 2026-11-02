@@ -226,9 +226,56 @@ async function writeFreshQuestions({ curriculum, questLevel, freshCount, avoid =
     });
 }
 
+// ─── Quiz pictures ───────────────────────────────────────────────────────────
+// Every picture is kept school-wide (daily_cache/quizpic_<hash of its prompt>): the same picture in
+// the same league style is drawn once for the whole school and then reused by every class and
+// every week, so the free image allowance goes much further and fewer pictures can fail.
+
+async function quizPictureCacheRef(prompt) {
+    const bytes = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`v1|${prompt}`)));
+    const hash = [...bytes.slice(0, 16)].map((b) => b.toString(16).padStart(2, '0')).join('');
+    return doc(db, `${PUBLIC_DATA_PATH}/daily_cache`, `quizpic_${hash}`);
+}
+
+async function cachedQuizPicture(prompt) {
+    try {
+        const snap = await getDoc(await quizPictureCacheRef(prompt));
+        const url = snap.exists() ? snap.data()?.url : '';
+        return typeof url === 'string' && /^https:\/\//.test(url) ? url : '';
+    } catch (_) {
+        return '';
+    }
+}
+
+async function rememberQuizPicture(prompt, url) {
+    try {
+        await setDoc(await quizPictureCacheRef(prompt), {
+            kind: 'quiz_picture',
+            prompt: prompt.slice(0, 500),
+            url,
+            createdAt: serverTimestamp(),
+            createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+        });
+    } catch (error) {
+        // The picture is still used this week; it is only not shared.
+        console.warn('Quiz: picture not shared school-wide', error?.code || error?.message || error);
+    }
+}
+
+/** A painter failure worth one more try (busy, rate limited, a network blip), not a spent allowance. */
+export function isRetryablePictureError(error) {
+    const source = String(error?.errorSource || '');
+    if (source === 'workers-ai-quota' || source.startsWith('school-ai')) return false;
+    if (error?.name === 'TimeoutError') return false; // the painter may still have charged for it
+    const status = Number(error?.status) || 0;
+    if (status === 400 || status === 401 || status === 403) return false;
+    return true;
+}
+
 /**
  * Draw the four small pictures of every picture question, once, when the quiz is made.
- * A question whose pictures cannot all be drawn becomes Listen and choose instead.
+ * Pictures the school already has are reused; a picture that fails gets one more try after a
+ * pause. A question whose pictures cannot all be drawn becomes Listen and choose instead.
  */
 async function drawQuizPictures(classId, questions, { questLevel, onProgress } = {}) {
     const pictureQuestions = questions.filter((question) => questionKind(question) === 'picture');
@@ -238,19 +285,45 @@ async function drawQuizPictures(classId, questions, { questLevel, onProgress } =
     const stamp = Date.now().toString(36);
     const total = pictureQuestions.length * 4;
     let done = 0;
+    let reused = 0;
+    let allowanceSpent = false;
     onProgress?.({ stage: 'pictures', done, total });
+
+    const paint = async (prompt) => {
+        const draw = () => callCloudflareAiImageApi(prompt, QUIZ_PICTURE_NEGATIVE_PROMPT, { width: 512, height: 512 });
+        let raw = await draw();
+        // The image model sometimes returns a blank black square: one more try, then give up.
+        if (await isLikelyBlackImageBase64(raw).catch(() => false)) raw = await draw();
+        if (await isLikelyBlackImageBase64(raw).catch(() => false)) throw new Error('Blank picture');
+        return raw;
+    };
 
     const drawOne = async (question, index) => {
         const prompt = quizPicturePrompt(question.picturePrompts?.[index] || question.options[index], style);
         try {
-            const draw = () => callCloudflareAiImageApi(prompt, QUIZ_PICTURE_NEGATIVE_PROMPT, { width: 512, height: 512 });
-            let raw = await draw();
-            // The image model sometimes returns a blank black square: one more try, then give up.
-            if (await isLikelyBlackImageBase64(raw).catch(() => false)) raw = await draw();
-            if (await isLikelyBlackImageBase64(raw).catch(() => false)) throw new Error('Blank picture');
+            const kept = await cachedQuizPicture(prompt);
+            if (kept) {
+                reused += 1;
+                return kept;
+            }
+            if (allowanceSpent) throw new Error('The free image allowance is used up for today.');
+            let raw;
+            try {
+                raw = await paint(prompt);
+            } catch (error) {
+                if (!isRetryablePictureError(error)) {
+                    if (String(error?.errorSource || '') === 'workers-ai-quota') allowanceSpent = true;
+                    throw error;
+                }
+                // A busy painter usually has room again a few seconds later.
+                await new Promise((resolve) => setTimeout(resolve, 6000));
+                raw = await paint(prompt);
+            }
             const base64 = await compressImageBase64(raw, 320, 320, 0.8);
             const path = `quiz_images/${state.get('currentUserId')}/${quizDocId(classId)}_${stamp}_${question.id}_${index + 1}.jpg`;
-            return await uploadImageToStorage(base64, path, { cacheControl: 'public, max-age=31536000' });
+            const url = await uploadImageToStorage(base64, path, { cacheControl: 'public, max-age=31536000' });
+            await rememberQuizPicture(prompt, url);
+            return url;
         } finally {
             done += 1;
             onProgress?.({ stage: 'pictures', done, total });
@@ -259,6 +332,9 @@ async function drawQuizPictures(classId, questions, { questLevel, onProgress } =
 
     const drawn = await Promise.all(pictureQuestions.map(async (question) => {
         const results = await Promise.allSettled(question.options.map((_, index) => drawOne(question, index)));
+        results.forEach((result) => {
+            if (result.status === 'rejected') console.warn('Quiz: a picture could not be drawn:', result.reason?.message || result.reason);
+        });
         const urls = results.map((result) => (result.status === 'fulfilled' ? result.value : null));
         return { id: question.id, urls };
     }));
@@ -274,7 +350,7 @@ async function drawQuizPictures(classId, questions, { questLevel, onProgress } =
         console.warn('Quiz: pictures missing for a picture question, it becomes Listen and choose:', question.question);
         return pictureToListenQuestion(question);
     });
-    return { questions: out, drawn: complete };
+    return { questions: out, drawn: complete, reused, missed: pictureQuestions.length - complete };
 }
 
 /**
@@ -324,7 +400,7 @@ export async function generateQuizQuestions(classId, { onProgress } = {}) {
             throw new Error(`Only ${written.length} usable question${written.length === 1 ? '' : 's'} came back from the AI (need at least ${minimumFresh}). Please try again.`);
         }
 
-        const { questions: pictured, drawn } = await drawQuizPictures(classId, written, { questLevel: quiz.questLevel, onProgress });
+        const { questions: pictured, drawn, missed: pictureMisses = 0 } = await drawQuizPictures(classId, written, { questLevel: quiz.questLevel, onProgress });
         const processed = pictured
             .map((question, index) => sanitizeQuizQuestion(question, `q${index + 1}`))
             .filter(Boolean);
@@ -338,6 +414,7 @@ export async function generateQuizQuestions(classId, { onProgress } = {}) {
             questionCount: finalQuestions.length,
             expectedQuestionCount: questionCount,
             imageCount: drawn * 4,
+            pictureMisses,
             carriedCount: carried.length,
             status: finalStatus,
             kinds: countKinds(finalQuestions)

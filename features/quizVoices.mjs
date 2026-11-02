@@ -38,9 +38,11 @@ export function quizVoiceFor(key, band = '') {
 }
 
 /**
- * Speaking pace for the projector: a little slower than conversation for every class, and
- * slower still for the younger leagues (pitch is kept). tts.js slows MeloTTS further on its own.
+ * Speaking pace for the projector: a touch slower than conversation for the younger leagues.
+ * Kept close to 1, because the browser slows a recorded voice by stretching it, and a voice
+ * stretched much further (it used to be 0.82, and 0.72 for the backup voice) sounds warbly and
+ * robotic. tts.js never stretches below 0.86.
  */
 export function quizSpeechRate(band = '') {
-    return band === 'early' ? 0.82 : band === 'junior' ? 0.86 : 0.9;
+    return band === 'early' ? 0.9 : band === 'junior' ? 0.94 : 0.97;
 }

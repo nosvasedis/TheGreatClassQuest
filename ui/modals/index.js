@@ -18,7 +18,7 @@ export * from './trophyRoom.js';
 export * from './sortingQuiz.js';
 export * from './guildHeroes.js';
 export * from './teacherBoon.js';
-export * from './quizOfTheWeek.js';
+// Quiz of the Week loads with its stage (features/home.js, ui/tabs/quizSetup.js): import it directly.
 export * from './studentAnalytics.js';
 export * from './specialQuest.js';
 export * from './heroClass.js';

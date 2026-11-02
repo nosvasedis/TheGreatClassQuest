@@ -1115,6 +1115,11 @@ async function generate() {
     renderHistory(classId);
     if (result?.status === 'review') openReview(classId);
     else if (result) showToast(`Quiz ready: ${result.questionCount} questions.`, 'success');
+    // Say so when the painter could not finish a picture question (it plays as Listen and choose).
+    if (result?.pictureMisses > 0) {
+        const n = result.pictureMisses;
+        showToast(`${n} picture question${n === 1 ? '' : 's'} could not get all four pictures, so ${n === 1 ? 'it plays' : 'they play'} as Listen and choose.`, 'info');
+    }
 }
 
 const GEN_STEP_LABELS = { 1: 'Writing questions', 2: 'Drawing pictures', 3: 'Saving to the class' };

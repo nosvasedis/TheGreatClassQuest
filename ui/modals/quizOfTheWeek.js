@@ -1,7 +1,8 @@
 import { quietly } from '../../utils/runtimeMetrics.js';
+import '../../styles/quiz_show_stage.css';
 import { showAnimatedModal, hideModal } from './base.js';
 import * as state from '../../state.js';
-import { playSound, playQuizShowSfx, stopQuizShowSound, warmQuizShowAudio, ensureAudioReady } from '../../audio.js';
+import { playQuizShowSfx, stopQuizShowSound, warmQuizShowAudio, ensureAudioReady } from '../../audio.js';
 import {
     loadQuizForClass,
     getCurrentQuestion,
@@ -19,6 +20,7 @@ import { getAgeCategoryForLeague } from '../../utils.js';
 import { prefetchSpeech, speakText, stopSpeech } from '../../features/tts.js';
 import { countKinds, questionKind } from '../../features/quizKindsCore.mjs';
 import { quizSpeechRate, quizVoiceFor } from '../../features/quizVoices.mjs';
+import { QUIZ_SPIN_GAPS, QUIZ_SPIN_LAST_GAP } from '../../features/quizShowSounds.js';
 import {
     computeQuizTier,
     computeQuizTrail,
@@ -27,6 +29,7 @@ import {
     quizLoadingHtml,
     quizPauseCardHtml,
     quizResultsHtml,
+    quizSaveErrorHtml,
     quizStageShellHtml,
     quizTallyHtml,
     quizTurnHtml,
@@ -59,6 +62,7 @@ function later(fn, ms) {
 function clearTimers() {
     timers.forEach(clearTimeout);
     timers = [];
+    document.getElementById('quiz-modal-inner')?.classList.remove('is-spinning', 'is-cheer');
 }
 
 function ensureModalInDOM() {
@@ -77,6 +81,17 @@ function ensureModalInDOM() {
 
 function contentEl() {
     return document.getElementById('quiz-modal-content');
+}
+
+/** Stage lighting cues: 'is-spinning' while the roulette runs, 'is-cheer' for a moment after a right answer. */
+function stageCue(name, on, ms = 0) {
+    const stage = document.getElementById('quiz-modal-inner');
+    if (!stage) return;
+    stage.classList.remove(name);
+    if (!on) return;
+    void stage.offsetWidth;
+    stage.classList.add(name);
+    if (ms) later(() => stage.classList.remove(name), ms);
 }
 
 function setScreen(html, name) {
@@ -207,7 +222,7 @@ function renderIntroScreen(quiz, qs, { resume = false } = {}) {
     const begin = document.getElementById('quiz-begin-btn');
     begin?.addEventListener('click', () => {
         stopSpeech();
-        playSound('quiz_open');
+        playQuizShowSfx('open');
         showNextQuestion({ resume });
     }, { once: true });
     // Listen and choose needs the projector's speakers: one press checks them before the show.
@@ -301,18 +316,41 @@ function revealQuestionAnswers(question) {
 /** A picture that will not load shows its name instead, so the question can still be played. */
 function guardPictures() {
     document.querySelectorAll('.qs-answer--picture img').forEach((img) => {
-        const fail = () => img.closest('.qs-answer')?.classList.add('is-broken');
-        if (img.complete && img.naturalWidth === 0 && img.getAttribute('src')) fail();
-        else img.addEventListener('error', fail, { once: true });
+        const frame = img.closest('.qs-answer__pic');
+        const fail = () => {
+            frame?.classList.remove('is-loading');
+            img.closest('.qs-answer')?.classList.add('is-broken');
+        };
+        if (img.complete) {
+            if (img.naturalWidth === 0 && img.getAttribute('src')) fail();
+            return;
+        }
+        // Still on its way (a slow school connection): a soft shimmer instead of a blank card.
+        frame?.classList.add('is-loading');
+        img.addEventListener('load', () => frame?.classList.remove('is-loading'), { once: true });
+        img.addEventListener('error', fail, { once: true });
     });
+}
+
+/** "Brilliant!" stamped over the question card for a moment. */
+function stampCorrect(firstTry) {
+    const cue = document.querySelector('.qs-cue');
+    if (!cue || reducedMotion()) return;
+    cue.querySelector('.qs-stamp')?.remove();
+    const stamp = document.createElement('span');
+    stamp.className = `qs-stamp${firstTry ? '' : ' qs-stamp--rescue'}`;
+    stamp.setAttribute('aria-hidden', 'true');
+    stamp.innerHTML = firstTry ? '<i class="fas fa-star"></i>Brilliant!' : '<i class="fas fa-hands-holding-circle"></i>Rescued!';
+    cue.appendChild(stamp);
+    stamp.addEventListener('animationend', () => stamp.remove(), { once: true });
 }
 
 /** The spotlight has landed (or there was nothing to spin): the turn can begin. */
 function beginTurn(turn) {
     playQuizShowSfx('land', { passed: (turn.attemptNumber || 1) > 1 });
     offerFamiliarTrick(turn);
-    // Let the "ta-daa" finish before the question is spoken.
-    if (questionKind(turn.question) === 'listen') later(() => speakListen(turn.question), reducedMotion() ? 300 : 1000);
+    // Let the "ta-daa" ring out before the question is spoken, so the words are heard clearly.
+    if (questionKind(turn.question) === 'listen') later(() => speakListen(turn.question), reducedMotion() ? 300 : 1250);
 }
 
 function renderTurn(turn) {
@@ -341,7 +379,7 @@ function renderTurn(turn) {
     if (!setScreen(html, 'turn')) return;
     busy = false;
 
-    playSound('quiz_question_in');
+    playQuizShowSfx('question');
     const stage = contentEl();
     stage.querySelectorAll('.qs-answer').forEach((btn) => btn.addEventListener('click', () => handleMcqAnswer(btn, q)));
     document.getElementById('quiz-skip-btn')?.addEventListener('click', handleSkip);
@@ -408,13 +446,14 @@ function spinSpotlight(pool, turn) {
     const nameEl = podium?.querySelector('[data-quiz-contestant]');
     if (!podium || !nameEl) return;
     const others = pool.filter((s) => s.id !== turn.student.id);
-    const steps = [55, 60, 65, 75, 90, 110, 135, 165, 205];
+    const steps = QUIZ_SPIN_GAPS;
     let index = Math.floor(Math.random() * others.length);
+    stageCue('is-spinning', true);
     let elapsed = 0;
     steps.forEach((gap, i) => {
         elapsed += gap;
         // Each name gets a tick, and a snare roll fills the wait for the next one.
-        const untilNext = (steps[i + 1] ?? 240) / 1000;
+        const untilNext = (steps[i + 1] ?? QUIZ_SPIN_LAST_GAP) / 1000;
         later(() => {
             if (!document.contains(nameEl)) return;
             playQuizShowSfx('flick', { step: i, steps: steps.length, gap: untilNext });
@@ -425,12 +464,13 @@ function spinSpotlight(pool, turn) {
             nameEl.classList.add('is-flick');
         }, elapsed);
         if (i === steps.length - 1) {
-            later(() => landSpotlight(podium, turn), elapsed + 240);
+            later(() => landSpotlight(podium, turn), elapsed + QUIZ_SPIN_LAST_GAP);
         }
     });
 }
 
 function landSpotlight(podium, turn) {
+    stageCue('is-spinning', false);
     if (!document.contains(podium)) return;
     const passed = (turn.attemptNumber || 1) > 1;
     podium.querySelector('[data-quiz-contestant]').textContent = turn.student?.name || 'Hero';
@@ -464,14 +504,13 @@ function renderResultsScreen(results, { replay = false } = {}) {
     stage?.addEventListener('pointerdown', () => stage.classList.add('is-instant'), { once: true });
 
     const tier = results.rewards?.tier || results.tier || computeQuizTier(results.firstTryCorrectPct);
-    if (replay) playSound('quiz_tier_reveal');
-    else playQuizShowSfx('fanfare', { tier });
+    playQuizShowSfx(replay ? 'replay' : 'fanfare', { tier });
     const counters = el.querySelectorAll('[data-count-to]');
     counters.forEach((node, i) => later(() => animateCount(node, node.dataset.countTo, 900 + i * 120), 420));
     if (counters.length && !reducedMotion()) later(() => playQuizShowSfx('count', { seconds: (900 + (counters.length - 1) * 120) / 1000 }), 420);
     if (!replay && ['legendary', 'epic', 'rare'].includes(tier)) {
-        later(() => { spawnConfetti(tier); playSound('quiz_confetti_pop'); }, 650);
-        if (tier === 'legendary') later(() => { spawnConfetti(tier); playSound('quiz_confetti_pop'); }, 1400);
+        later(() => { spawnConfetti(tier); playQuizShowSfx('confetti'); }, 650);
+        if (tier === 'legendary') later(() => { spawnConfetti(tier); playQuizShowSfx('confetti'); }, 1400);
     }
 }
 
@@ -498,9 +537,10 @@ async function handleMcqAnswer(btn, question) {
     btn.classList.add('is-picked');
     if (isCorrect) {
         btn.classList.add('is-correct');
-        playSound('quiz_correct');
         playQuizShowSfx('cheer', { firstTry: turnAttempt === 1 });
         spawnParticleBurst(btn);
+        stageCue('is-cheer', true, 1600);
+        stampCorrect(turnAttempt === 1);
     } else {
         btn.classList.add('is-wrong');
         playQuizShowSfx('buzz');
@@ -604,10 +644,26 @@ async function finishQuiz() {
     if (!reducedMotion()) playQuizShowSfx('tally', { seconds: 1.4 });
     const classId = currentClassId;
     const [results] = await Promise.all([
-        finalizeQuiz(classId),
+        finalizeQuiz(classId).catch((error) => {
+            console.error('Quiz: the curtain call could not be prepared', error);
+            return null;
+        }),
         new Promise((r) => setTimeout(r, reducedMotion() ? 200 : 1500))
     ]);
-    if (results && currentClassId === classId) renderResultsScreen(results);
+    if (currentClassId !== classId) return;
+    if (results?.saveFailed) {
+        renderSaveError();
+        return;
+    }
+    if (results) renderResultsScreen(results);
+}
+
+/** The rewards could not be saved (usually no connection): nothing was paid, so the show can simply try again. */
+function renderSaveError() {
+    stopQuizShowSound();
+    if (!setScreen(quizSaveErrorHtml(), 'save-error')) return;
+    document.getElementById('quiz-save-retry-btn')?.addEventListener('click', () => finishQuiz(), { once: true });
+    document.getElementById('quiz-save-later-btn')?.addEventListener('click', () => closeQuizModal(false), { once: true });
 }
 
 // =============================================================================
@@ -682,7 +738,7 @@ function onKeydown(e) {
     if (e.key === 'Enter' || e.key === 'ArrowRight') {
         // Enter on a focused button already clicks it.
         if (e.key === 'Enter' && e.target?.closest?.('button')) return;
-        const primary = ['quiz-next-btn', 'quiz-begin-btn', 'quiz-finish-btn']
+        const primary = ['quiz-next-btn', 'quiz-begin-btn', 'quiz-finish-btn', 'quiz-save-retry-btn']
             .map((id) => document.getElementById(id))
             .find((btn) => btn && !btn.classList.contains('hidden'));
         if (primary) { e.preventDefault(); primary.click(); }
@@ -731,13 +787,19 @@ export async function openQuizModal(classId) {
     clearTimers();
     closePauseCard();
     ensureModalInDOM();
-    // Opened by a tap, so the browser lets the show's sounds start now.
-    ensureAudioReady().then((ok) => { if (ok) warmQuizShowAudio(); }).catch(quietly('ui/modals/quizOfTheWeek.js'));
-
     // The stage opens at once with a curtain that says what is happening; the fetching follows.
     const triggerBtn = document.getElementById('quiz-week-trigger-btn');
     const resumable = hasResumableQuiz(classId);
-    if (document.getElementById(MODAL_ID)?.classList.contains('hidden')) showStage(triggerBtn);
+    const opening = Boolean(document.getElementById(MODAL_ID)?.classList.contains('hidden'));
+    if (opening) showStage(triggerBtn);
+    // Opened by a tap, so the browser lets the show's sounds start now (on the very first open the
+    // sound engine is still starting: the curtain waits for it instead of staying silent). Then the
+    // show's sounds are recorded while the curtain is up.
+    ensureAudioReady().then((ok) => {
+        if (!ok) return;
+        if (opening && token === openToken) playQuizShowSfx('curtain');
+        warmQuizShowAudio();
+    }).catch(quietly('ui/modals/quizOfTheWeek.js'));
     setScreen(quizLoadingHtml({ done: resumable ? 2 : 0 }), 'loading');
 
     // Everything the stage needs is asked for together.
@@ -792,7 +854,6 @@ function showStage(triggerBtn) {
     document.removeEventListener('keydown', onKeydown);
     document.addEventListener('keydown', onKeydown);
     spawnSparkleBurst(triggerBtn);
-    playQuizShowSfx('curtain');
     const inner = document.getElementById('quiz-modal-inner');
     if (inner && !reducedMotion()) {
         inner.classList.remove('qs-stage--entering');

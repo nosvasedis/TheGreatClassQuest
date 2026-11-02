@@ -591,7 +591,19 @@ export async function finalizeQuiz(classId) {
             .sort((a, b) => b.glory - a.glory);
 
         const finalResults = { ...results, tier: rewardResult?.tier, rewards: { ...rewardResult, correctStudentDetails, guildDetails } };
-        await markQuizCompleted(classId, finalResults);
+        // The rewards are paid by now: saving the curtain call gets a few tries on a shaky connection.
+        for (let attempt = 0; ; attempt += 1) {
+            try {
+                await markQuizCompleted(classId, finalResults);
+                break;
+            } catch (error) {
+                if (attempt >= 2) {
+                    console.error('Quiz results could not be saved (rewards were paid):', error);
+                    break;
+                }
+                await new Promise((resolve) => setTimeout(resolve, 1500 * (attempt + 1)));
+            }
+        }
         // The Quiz Champion presses a Hero Seal (read from the quiz history just saved).
         if (rewardResult?.prize?.studentId) {
             import('./heroSeals.js').then((m) => m.noteQuizChampion(classId)).catch(quietly('features/quizOfTheWeek.js'));
@@ -599,7 +611,10 @@ export async function finalizeQuiz(classId) {
         return finalResults;
     } catch (e) {
         console.error('Failed to distribute rewards:', e);
-        return results;
+        // Nothing was paid (the payout is one transaction): the show can try again, now or after a reopen.
+        qs.finalizing = false;
+        qs.inProgress = true;
+        return { ...results, saveFailed: true };
     }
 }
 

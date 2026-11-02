@@ -2,7 +2,8 @@
 // The four pictures here are hand-drawn stand-ins; in the app they are drawn by the Elite image AI
 // once, when the quiz is generated.
 // /quiz-kinds-preview.html?view=loading|loading-error|intro|listen|listen-speaking|listen-heard|picture|picture-wrong|picture-solved|fix|fix-solved|choice|results|curtain-call[&shot=1]
-import { quizIntroHtml, quizLoadErrorHtml, quizLoadingHtml, quizResultsHtml, quizStageShellHtml, quizTurnHtml, quizVerdictHtml } from './ui/modals/quizStageMarkup.js';
+import './styles/quiz_show_stage.css';
+import { quizIntroHtml, quizLoadErrorHtml, quizLoadingHtml, quizResultsHtml, quizSaveErrorHtml, quizStageShellHtml, quizTurnHtml, quizVerdictHtml } from './ui/modals/quizStageMarkup.js';
 import { computeQuestionStats } from './features/quizReviewCore.mjs';
 import { computeHeroRewards } from './features/quizRewardsCore.mjs';
 
@@ -56,7 +57,7 @@ modal.classList.remove('hidden');
 document.body.appendChild(modal);
 const content = document.getElementById('quiz-modal-content');
 
-const links = ['loading', 'loading-error', 'intro', 'listen', 'listen-speaking', 'listen-heard', 'picture', 'picture-wrong', 'picture-solved', 'fix', 'fix-solved', 'choice', 'results', 'curtain-call'];
+const links = ['loading', 'loading-error', 'intro', 'listen', 'listen-speaking', 'listen-heard', 'picture', 'picture-wrong', 'picture-solved', 'fix', 'fix-solved', 'choice', 'cheer', 'spin', 'picture-loading', 'save-error', 'results', 'curtain-call'];
 document.getElementById('pv-toolbar').innerHTML = links.map((v) => `<a href="?view=${v}">${v}</a>`).join('');
 
 function turn(kind, opts = {}) {
@@ -149,6 +150,35 @@ if (view === 'loading') {
     verdict(quizVerdictHtml({ kind: 'correct', attemptNumber: 2, explanation: questions.fix.explanation }), 'correct');
 } else if (view === 'choice') {
     turn('choice');
+} else if (view === 'cheer') {
+    // The right-answer moment, frozen mid-stamp.
+    turn('choice');
+    pick(1, 'is-correct');
+    verdict(quizVerdictHtml({ kind: 'correct', attemptNumber: 1, explanation: questions.choice.explanation }), 'correct');
+    const inner = document.getElementById('quiz-modal-inner');
+    inner.classList.add('is-cheer');
+    const stamp = document.createElement('span');
+    stamp.className = 'qs-stamp';
+    stamp.innerHTML = '<i class="fas fa-star"></i>Brilliant!';
+    stamp.style.animation = 'none';
+    stamp.style.opacity = '1';
+    stamp.style.transform = 'translate(-50%, -50%) rotate(-6deg)';
+    content.querySelector('.qs-cue').appendChild(stamp);
+    inner.querySelector('.qs-stage__flash').style.cssText = 'animation:none;opacity:1';
+} else if (view === 'spin') {
+    content.dataset.screen = 'turn';
+    content.innerHTML = quizTurnHtml({
+        question: questions.choice, questionNumber: 4, total: 9, attemptNumber: 1, student,
+        stars: 14, trail: ['first', 'late', 'first'], firstTryCount: 2, triedIndexes: [], rolling: true
+    });
+    document.getElementById('quiz-modal-inner').classList.add('is-spinning');
+} else if (view === 'picture-loading') {
+    turn('picture');
+    content.querySelectorAll('.qs-answer__pic').forEach((pic, i) => { if (i % 2) pic.classList.add('is-loading'); });
+    content.querySelector('.qs-answer--picture:last-child')?.classList.add('is-broken');
+} else if (view === 'save-error') {
+    content.dataset.screen = 'save-error';
+    content.innerHTML = quizSaveErrorHtml();
 } else if (view === 'results') {
     content.dataset.screen = 'results';
     const list = [questions.listen, questions.picture, questions.fix, questions.choice];

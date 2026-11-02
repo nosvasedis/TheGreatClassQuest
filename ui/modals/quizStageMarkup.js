@@ -102,6 +102,9 @@ export function quizStageShellHtml(modalId = 'quiz-of-week-modal') {
         <div class="qs-stage__drape qs-stage__drape--l" aria-hidden="true"></div>
         <div class="qs-stage__drape qs-stage__drape--r" aria-hidden="true"></div>
         <div class="qs-stage__beam" aria-hidden="true"></div>
+        <div class="qs-stage__lights" aria-hidden="true"><span></span><span></span></div>
+        <div class="qs-stage__floor" aria-hidden="true"></div>
+        <div class="qs-stage__flash" aria-hidden="true"></div>
         <div id="quiz-modal-content" class="qs-stage__content"></div>
     </div>
 </div>`;
@@ -395,6 +398,23 @@ export function quizTallyHtml() {
         </div>`;
 }
 
+/** The rewards could not be written: nothing was paid, the answers are kept, and the show can try again. */
+export function quizSaveErrorHtml() {
+    return `
+        ${topBarHtml({ sub: 'Curtain call' })}
+        <div class="qs-body qs-body--tally">
+            <div class="qs-tally qs-tally--error" role="alert">
+                <span class="qs-tally__drum" aria-hidden="true"><i class="fas fa-wifi"></i></span>
+                <p>The scores could not be saved just now.</p>
+                <small>Nothing was lost: every answer is kept on this laptop. Check the connection and try again, or close the stage and finish the show later today from the quiz button.</small>
+            </div>
+        </div>
+        <footer class="qs-foot">
+            <button type="button" class="qs-btn qs-btn--quiet" id="quiz-save-later-btn"><i class="fas fa-door-open"></i><span>Finish later</span></button>
+            <button type="button" class="qs-btn qs-btn--go" id="quiz-save-retry-btn"><i class="fas fa-rotate-right"></i><span>Try again</span></button>
+        </footer>`;
+}
+
 function accuracyRingHtml(pct) {
     const r = 34;
     const c = 2 * Math.PI * r;
@@ -561,7 +581,10 @@ export function quizResultsHtml(results = {}, { replay = false } = {}) {
             ${stats.some((stat) => !stat.firstTryCorrect) ? '<p class="qs-recap__hint"><i class="fas fa-rotate"></i> Questions the class missed can come back next week: turn on "Bring back questions they missed" in Settings › Quiz.</p>' : ''}
         </section>` : '';
 
-    const emptyHtml = !heroes.length && !guilds.length ? `
+    // Only when truly nobody landed an answer (not just when the hero list could not be rebuilt).
+    const nobodyLanded = !heroes.length && !guilds.length && !firstTry && !starsGranted && !goldGranted
+        && !stats.some((stat) => stat.solved || stat.firstTryCorrect);
+    const emptyHtml = nobodyLanded ? `
         <p class="qs-section qs-empty" style="--i:${next()}">Nobody landed an answer this time. Every try still counts, and next week brings a new show.</p>` : '';
 
     return `

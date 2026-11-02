@@ -172,8 +172,10 @@ export function prefetchSpeech(text, { voice = '' } = {}) {
 
 function alive(job) { return activeSpeech === job && !job.controller.signal.aborted; }
 
-// Loud and even: a narrator asked to `boost` (the quiz) plays through a gain and a limiter, so a
-// projector's small speakers carry every word to the back of the room without crackling.
+// Loud and even: a narrator asked to `boost` (the quiz) plays through a little gain and a gentle
+// compressor, so a projector's small speakers carry every word to the back of the room. It used to
+// squeeze hard (ratio 12 after +7 dB, plus the compressor's own make-up gain), which pumped the
+// breaths up and made the voices sound strange; now it only evens the words out.
 // The narration element can be captured by Web Audio only once; when the audio context cannot
 // run (no tap yet), the line plays plainly instead of silently.
 let boostChain = null;
@@ -197,12 +199,12 @@ function boostContext() {
 
 function setBoost(chain, on) {
     const t = chain.ctx.currentTime;
-    chain.gain.gain.setValueAtTime(on ? 2.2 : 1, t);
-    chain.limiter.threshold.setValueAtTime(on ? -10 : 0, t);
-    chain.limiter.knee.setValueAtTime(on ? 6 : 0, t);
-    chain.limiter.ratio.setValueAtTime(on ? 12 : 1, t);
-    chain.limiter.attack.setValueAtTime(0.002, t);
-    chain.limiter.release.setValueAtTime(0.2, t);
+    chain.gain.gain.setValueAtTime(on ? 1.4 : 1, t);
+    chain.limiter.threshold.setValueAtTime(on ? -18 : 0, t);
+    chain.limiter.knee.setValueAtTime(on ? 12 : 0, t);
+    chain.limiter.ratio.setValueAtTime(on ? 3 : 1, t);
+    chain.limiter.attack.setValueAtTime(0.006, t);
+    chain.limiter.release.setValueAtTime(0.3, t);
 }
 
 async function contextRunning(chain) {
@@ -260,7 +262,8 @@ async function playAudio(job, blob) {
         audio.onerror = () => finish(new Error('Audio playback failed'));
         audio.src = job.url;
         const pace = speakerName(blob.speechProvider) ? 1 : MELO_PACE;
-        const rate = Math.max(0.7, Math.min(1.3, (Number(job.opts.rate) || 1) * pace));
+        // Slowing a recorded voice stretches it; much below 0.86 it sounds warbly and robotic.
+        const rate = Math.max(0.86, Math.min(1.3, (Number(job.opts.rate) || 1) * pace));
         // Set after src: loading a new source resets playbackRate to defaultPlaybackRate.
         audio.preservesPitch = true;
         audio.defaultPlaybackRate = rate;

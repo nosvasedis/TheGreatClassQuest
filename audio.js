@@ -1403,22 +1403,125 @@ export function playPortalSfx(name, opts = {}) {
     }
 }
 
-/** Builds the quiz voices ahead of time (the reverb takes a moment), so the first sound doesn't stall a frame. */
-export function warmQuizShowAudio() {
-    if (!isAudioReady()) return;
-    getQuizVoices();
+// The show's sounds are recorded once per page (features/quizShowSounds.js) and then only played
+// back: a buffer costs the audio thread almost nothing, so a weak laptop no longer crackles, plays
+// notes late or cuts out mid-show. A sound not recorded yet plays live once (the old band below)
+// and is recorded for next time.
+const quizShowBuffers = new Map();
+const quizShowRenders = new Map();
+const quizShowSources = new Set();
+let quizShowModule = null;
+let quizShowBus = null;
+let quizWarmRun = 0;
+
+function quizShowSounds() {
+    quizShowModule ||= import('./features/quizShowSounds.js').catch((error) => {
+        quizShowModule = null;
+        throw error;
+    });
+    return quizShowModule;
+}
+
+function quizBufferBus() {
+    if (!quizShowBus || quizShowBus.context !== Tone.getContext()) quizShowBus = new Tone.Gain(1).toDestination();
+    return quizShowBus;
+}
+
+function recordQuizShowSound(key, name, opts) {
+    if (quizShowBuffers.has(key)) return Promise.resolve(quizShowBuffers.get(key));
+    if (quizShowRenders.has(key)) return quizShowRenders.get(key);
+    const job = quizShowSounds()
+        .then((m) => m.renderQuizShowSound(Tone, name, opts, Tone.getContext().sampleRate))
+        .then((buffer) => {
+            quizShowBuffers.set(key, buffer);
+            return buffer;
+        })
+        .catch((error) => {
+            console.warn('Quiz sound could not be recorded; it plays live:', name, error);
+            return null;
+        })
+        .finally(() => quizShowRenders.delete(key));
+    quizShowRenders.set(key, job);
+    return job;
 }
 
 /**
+ * Records the show's sounds while the curtain is up, one at a time and in the order the stage
+ * needs them, so the recording never competes with what is playing.
+ */
+export function warmQuizShowAudio() {
+    if (!Tone) return;
+    const run = ++quizWarmRun;
+    quizShowSounds().then(async (m) => {
+        for (const { name, opts, key } of m.quizShowWarmList()) {
+            if (run !== quizWarmRun) return;
+            await recordQuizShowSound(key, name, opts);
+            // A breath between recordings keeps the page smooth on a slow laptop.
+            await new Promise((resolve) => setTimeout(resolve, 120));
+        }
+    }).catch(quietly('audio.js'));
+}
+
+/** A context Chrome paused (a new projector or headphones, a sleeping laptop) is woken by the next sound. */
+function wakeQuizAudio() {
+    if (!Tone) return false;
+    const ctx = Tone.getContext();
+    if (ctx.state === 'running') return true;
+    try { ctx.resume?.().catch(() => {}); } catch (_) { /* stays paused until the next tap */ }
+    return false;
+}
+
+function playQuizShowBuffer(buffer) {
+    const bus = quizBufferBus();
+    const now = Tone.now();
+    bus.gain.cancelScheduledValues(now);
+    bus.gain.setValueAtTime(1, now);
+    const source = new Tone.ToneBufferSource(buffer).connect(bus);
+    quizShowSources.add(source);
+    source.onended = () => {
+        quizShowSources.delete(source);
+        try { source.dispose(); } catch (_) { /* gone */ }
+    };
+    source.start(now + 0.01);
+}
+
+// The sounds the stage used to take from the everyday set: recorded with the show now.
+const QUIZ_EVERYDAY_FALLBACK = { open: 'quiz_open', question: 'quiz_question_in', confetti: 'quiz_confetti_pop', replay: 'quiz_tier_reveal' };
+
+/**
  * Quiz of the Week sound effects.
- * 'curtain' the stage opens · 'flick' one name under the roulette ({ step, steps, gap } with gap in seconds
- * until the next name) · 'land' the spotlight lands ({ passed }) · 'buzz' a wrong answer · 'pass' the question
- * moves on · 'missed' nobody got it · 'cheer' a right answer ({ firstTry }) · 'skip' · 'trick' a Familiar's
- * trick · 'pause' / 'resume' · 'tally' drum roll ({ seconds }) · 'count' the curtain-call numbers ({ seconds })
- * · 'fanfare' the medal ({ tier }).
+ * 'curtain' the stage opens · 'open' the show begins · 'question' a question card arrives · 'flick' one
+ * name under the roulette ({ step, steps, gap } with gap in seconds until the next name) · 'land' the
+ * spotlight lands ({ passed }) · 'buzz' a wrong answer · 'pass' the question moves on · 'missed' nobody got
+ * it · 'cheer' a right answer ({ firstTry }) · 'skip' · 'trick' a Familiar's trick · 'pause' / 'resume' ·
+ * 'tally' drum roll ({ seconds }) · 'count' the curtain-call numbers ({ seconds }) · 'fanfare' the medal
+ * ({ tier }) · 'confetti' · 'replay' a finished show reopens.
  */
 export function playQuizShowSfx(name, opts = {}) {
+    if (!soundsReady || !wakeQuizAudio()) return;
+    if (quizShowModule) {
+        // The module is loaded once warmQuizShowAudio ran; until then every sound plays live.
+        quizShowModule.then((m) => {
+            const key = m.quizShowKey(name, opts);
+            const buffer = quizShowBuffers.get(key);
+            if (buffer) {
+                try { playQuizShowBuffer(buffer); return; } catch (error) { console.warn('Quiz sound playback failed, playing live:', error); }
+            }
+            playQuizShowLive(name, opts);
+            if (m.hasQuizShowPiece(name)) recordQuizShowSound(key, name, opts);
+        }).catch(() => playQuizShowLive(name, opts));
+        return;
+    }
+    playQuizShowLive(name, opts);
+}
+
+function playQuizShowLive(name, opts = {}) {
     if (!isAudioReady()) return;
+    if (QUIZ_EVERYDAY_FALLBACK[name]) {
+        playSound(QUIZ_EVERYDAY_FALLBACK[name]);
+        return;
+    }
+    if (name === 'cheer') playSound('quiz_correct');
     const v = getQuizVoices();
     if (!v) return;
     const now = Tone.now();
@@ -1530,12 +1633,18 @@ export function playQuizShowSfx(name, opts = {}) {
 
 /** Fade out whatever the quiz still has scheduled (the stage closed). */
 export function stopQuizShowSound() {
-    const gain = quizChassis?.bus?.gain;
-    if (!gain || !Tone) return;
+    if (!Tone) return;
+    quizWarmRun += 1;
     const now = Tone.now();
-    gain.cancelScheduledValues(now);
-    gain.setValueAtTime(gain.value, now);
-    gain.linearRampToValueAtTime(0, now + 0.25);
+    [quizChassis?.bus?.gain, quizShowBus?.gain].forEach((gain) => {
+        if (!gain) return;
+        gain.cancelScheduledValues(now);
+        gain.setValueAtTime(gain.value, now);
+        gain.linearRampToValueAtTime(0, now + 0.25);
+    });
+    quizShowSources.forEach((source) => {
+        try { source.stop(now + 0.3); } catch (_) { /* already ended */ }
+    });
 }
 
 // ─── Sorting Ceremony (guild placement reveal) ──────────────────────────────

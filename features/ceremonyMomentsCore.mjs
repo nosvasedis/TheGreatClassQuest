@@ -243,7 +243,7 @@ export function buildMonthHonours({ monthKey, students = [], scores = [], quizze
         .sort((a, b) => b[1] - a[1] || String(byId.get(a[0])?.name).localeCompare(String(byId.get(b[0])?.name)))
         .map(([id, n]) => person(id, n > 1 ? `Top of ${n} quizzes` : 'Top of the quiz'))
         .filter(Boolean);
-    if (champions.length) sections.push({ id: 'quiz', title: 'Quiz Champions', icon: 'fa-trophy', heroes: champions.slice(0, 6), more: Math.max(0, champions.length - 6) });
+    if (champions.length) sections.push({ id: 'quiz', title: 'Quiz Champions', icon: 'fa-trophy', heroes: champions, more: 0 });
 
     // Seal Bearers: heroes who pressed a celebrated seal that month, with the seals.
     const bearers = students.map((s) => {
@@ -255,14 +255,14 @@ export function buildMonthHonours({ monthKey, students = [], scores = [], quizze
         return sealIds.length ? person(s.id, sealIds.length === 1 ? SEALS[sealIds[0]].name : `${sealIds.length} seals`, { sealIds }) : null;
     }).filter(Boolean)
         .sort((a, b) => b.sealIds.length - a.sealIds.length || a.name.localeCompare(b.name));
-    if (bearers.length) sections.push({ id: 'seals', title: 'Seal Bearers', icon: 'fa-stamp', heroes: bearers.slice(0, 8), more: Math.max(0, bearers.length - 8) });
+    if (bearers.length) sections.push({ id: 'seals', title: 'Seal Bearers', icon: 'fa-stamp', heroes: bearers, more: 0 });
 
     // Legends: a Legend Quest completed that month.
     const legends = students
         .filter((s) => inMonth(scoreById.get(s.id)?.legendQuest?.completedAt, monthKey))
         .map((s) => person(s.id, 'Became a Legend'))
         .filter(Boolean);
-    if (legends.length) sections.push({ id: 'legends', title: 'New Legends', icon: 'fa-crown', heroes: legends.slice(0, 4), more: Math.max(0, legends.length - 4) });
+    if (legends.length) sections.push({ id: 'legends', title: 'New Legends', icon: 'fa-crown', heroes: legends, more: 0 });
 
     return { sections };
 }

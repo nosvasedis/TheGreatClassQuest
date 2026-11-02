@@ -601,7 +601,7 @@
     font-size: clamp(1.15rem, 2.1vw, 1.55rem);
     line-height: 1.15;
     color: #fff;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
 }
 .cer-card__score { display: flex; flex-direction: column; align-items: center; line-height: 1; }
 .cer-card__stars {
@@ -617,30 +617,74 @@
 .cer-card__meta { font-size: 0.8rem; color: var(--cer-muted); display: inline-flex; gap: 6px; align-items: center; }
 .cer-card__details { width: 100%; display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
 
-.cer-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
+/* ---------------------------------------------------------------- chips: enamel badges
+   A round gem (icon or crest) set into a dark enamel pill with a metal rim; the value
+   is bold, the label small. Each tone sets --t1 (light), --t2 (mid) and --t3 (deep). */
+.cer-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
 .cer-chip {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 3px 9px;
+    --t1: #e9d5ff; --t2: #8b5cf6; --t3: #3b1d74;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 11px 2px 2px;
     border-radius: 999px;
-    font-size: 0.72rem;
-    font-weight: 700;
+    border: 1.5px solid transparent;
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--t3) 72%, #0b0618), color-mix(in srgb, var(--t3) 40%, #07030f)) padding-box,
+        linear-gradient(135deg, var(--t1), var(--t2) 45%, var(--t3) 80%, var(--t1)) border-box;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 3px 8px rgba(0, 0, 0, 0.35);
     white-space: nowrap;
-    color: #f5f3ff;
-    background: rgba(255, 255, 255, 0.09);
-    border: 1px solid rgba(255, 255, 255, 0.16);
+    line-height: 1;
 }
-.cer-chip i { font-size: 0.7rem; }
-.cer-chip--epic { background: rgba(234, 179, 8, 0.2); border-color: rgba(234, 179, 8, 0.5); color: #fef08a; }
-.cer-chip--strong { background: rgba(251, 146, 60, 0.18); border-color: rgba(251, 146, 60, 0.45); color: #fed7aa; }
-.cer-chip--teamwork { background: rgba(16, 185, 129, 0.18); border-color: rgba(16, 185, 129, 0.45); color: #a7f3d0; }
-.cer-chip--creativity { background: rgba(236, 72, 153, 0.18); border-color: rgba(236, 72, 153, 0.45); color: #fbcfe8; }
-.cer-chip--respect { background: rgba(59, 130, 246, 0.18); border-color: rgba(59, 130, 246, 0.45); color: #bfdbfe; }
-.cer-chip--focus { background: rgba(139, 92, 246, 0.2); border-color: rgba(139, 92, 246, 0.5); color: #ddd6fe; }
-.cer-chip--scholar { background: rgba(14, 165, 233, 0.18); border-color: rgba(14, 165, 233, 0.45); color: #bae6fd; }
-.cer-chip--boon, .cer-chip--pathfinder, .cer-chip--bonus { background: rgba(245, 197, 66, 0.2); border-color: rgba(245, 197, 66, 0.5); color: #fde68a; }
-.cer-chip--variety { background: rgba(20, 184, 166, 0.18); border-color: rgba(20, 184, 166, 0.45); color: #99f6e4; }
-.cer-chip--lvl-1, .cer-chip--lvl-2 { color: #bbf7d0; }
-.cer-chip--lvl-5, .cer-chip--lvl-6 { color: #fecaca; }
+.cer-chip__gem {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 0.68rem;
+    color: #fff;
+    background: radial-gradient(circle at 34% 28%, color-mix(in srgb, var(--t1) 85%, #fff), var(--t2) 55%, var(--t3));
+    box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.55), 0 0 8px color-mix(in srgb, var(--t2) 55%, transparent);
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45);
+}
+.cer-chip__gem .cer-chip__crest { width: 17px; height: 17px; }
+.cer-chip__val {
+    font-family: var(--cer-caps-font);
+    font-weight: 700;
+    font-size: 0.78rem;
+    letter-spacing: 0.03em;
+    color: var(--t1);
+}
+.cer-chip__lbl {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--t1) 70%, #94a3b8);
+}
+.cer-chip:has(.cer-chip__gem:only-child) { padding-right: 2px; }
+
+.cer-chip--epic { --t1: #fef08a; --t2: #eab308; --t3: #713f12; }
+.cer-chip--strong { --t1: #fed7aa; --t2: #f97316; --t3: #7c2d12; }
+.cer-chip--teamwork { --t1: #a7f3d0; --t2: #10b981; --t3: #064e3b; }
+.cer-chip--creativity { --t1: #fbcfe8; --t2: #ec4899; --t3: #831843; }
+.cer-chip--respect { --t1: #bfdbfe; --t2: #3b82f6; --t3: #1e3a8a; }
+.cer-chip--focus { --t1: #ddd6fe; --t2: #8b5cf6; --t3: #3b0764; }
+.cer-chip--scholar { --t1: #bae6fd; --t2: #0ea5e9; --t3: #0c4a6e; }
+.cer-chip--welcome { --t1: #fde68a; --t2: #f59e0b; --t3: #78350f; }
+.cer-chip--story { --t1: #e9d5ff; --t2: #a855f7; --t3: #4c1d95; }
+.cer-chip--variety { --t1: #99f6e4; --t2: #14b8a6; --t3: #134e4a; }
+.cer-chip--boon, .cer-chip--pathfinder, .cer-chip--bonus { --t1: #fef3c7; --t2: #f5c542; --t3: #78350f; }
+.cer-chip--avg { --t1: #e0e7ff; --t2: #818cf8; --t3: #312e81; }
+.cer-chip--neutral { --t1: #fef3c7; --t2: #d4a017; --t3: #422006; }
+.cer-chip--lvl-1, .cer-chip--lvl-2 { --t1: #bbf7d0; --t2: #22c55e; --t3: #14532d; }
+.cer-chip--lvl-3, .cer-chip--lvl-4 { --t1: #bae6fd; --t2: #38bdf8; --t3: #0c4a6e; }
+.cer-chip--lvl-5, .cer-chip--lvl-6 { --t1: #fecaca; --t2: #ef4444; --t3: #7f1d1d; }
+.cer-chip[class*="cer-chip--zone-"] { --t1: #e2e8f0; --t2: #94a3b8; --t3: #1e293b; }
+.cer-chip[class*="cer-chip--zone-"] .cer-chip__gem { font-size: 0.8rem; background: radial-gradient(circle at 34% 28%, #f8fafc, #cbd5e1 55%, #475569); }
 
 .cer-trail { width: 100%; text-align: left; }
 .cer-trail__row { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 700; color: var(--cer-muted); }
@@ -886,7 +930,9 @@
     position: absolute;
     z-index: 25;
     top: 70px; left: 16px;
-    width: 210px;
+    width: max-content;
+    min-width: 190px;
+    max-width: min(300px, 24vw);
     max-height: calc(100% - 180px);
     margin: 0; padding: 0;
     list-style: none;
@@ -900,8 +946,8 @@
 .cer-screen[data-ladder="on"] .cer-ladder { opacity: 1; transform: none; }
 .cer-token {
     display: flex; align-items: center; gap: 8px;
-    padding: 5px 10px 5px 6px;
-    border-radius: 999px;
+    padding: 5px 12px 5px 6px;
+    border-radius: 18px;
     background: rgba(12, 6, 24, 0.7);
     border: 1px solid var(--m2);
     font-size: 0.8rem;
@@ -910,7 +956,8 @@
 .cer-token b { font-family: var(--cer-caps-font); color: var(--mink); min-width: 26px; text-align: center; }
 .cer-token__face { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex: none; display: grid; place-items: center; background: #2a1b4d; font-size: 0.8rem; font-weight: 700; }
 .cer-token__face--emoji { background: transparent; font-size: 1.05rem; }
-.cer-token__name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Every name in full: a long name wraps onto a second line, never cut. */
+.cer-token__name { white-space: normal; overflow-wrap: break-word; line-height: 1.15; min-width: 0; }
 
 /* ---------------------------------------------------------------- standings */
 
@@ -953,7 +1000,7 @@
 .cer-roll__rank { font-family: var(--cer-caps-font); font-weight: 700; color: var(--mink); display: inline-flex; gap: 5px; align-items: center; }
 .cer-roll__face { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; display: grid; place-items: center; background: #2a1b4d; font-weight: 700; box-shadow: 0 0 0 2px var(--m2); }
 .cer-roll__who { display: flex; flex-direction: column; min-width: 0; }
-.cer-roll__who b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cer-roll__who b { overflow-wrap: break-word; line-height: 1.2; }
 .cer-roll__who small { font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: #fde68a; font-weight: 700; }
 .cer-roll__chips .cer-chips { justify-content: flex-end; flex-wrap: nowrap; }
 .cer-roll__stars { font-family: var(--cer-caps-font); font-weight: 700; font-size: 1.1rem; color: var(--mink); display: inline-flex; gap: 6px; align-items: center; }
@@ -1032,7 +1079,7 @@
 /* ---------------------------------------------------------------- small screens */
 
 @media (max-width: 1100px) {
-    .cer-ladder { width: 170px; }
+    .cer-ladder { min-width: 170px; max-width: 220px; }
 }
 @media (max-width: 900px) {
     .cer-ladder { display: none; }
@@ -1053,7 +1100,8 @@
     .cer-duel { grid-template-columns: 1fr 1fr; grid-template-areas: "left right"; gap: 8px; }
     .cer-duel .cer-card { --card-w: 44vw; --emblem: 68px; }
     .cer-duel .cer-card__frame { padding: 24px 8px 12px; }
-    .cer-duel .cer-card__name { font-size: 0.95rem; }
+    .cer-duel .cer-card__name { font-size: clamp(0.7rem, 3.4vw, 0.95rem); letter-spacing: 0.01em; }
+    .cer-duel.is-podium .cer-card__name { font-size: clamp(0.58rem, 2.7vw, 0.85rem); letter-spacing: 0; }
     .cer-duel .cer-card__score small { display: none; }
     .cer-duel .cer-card__plate { font-size: 0.62rem; padding: 4px 10px; }
     .cer-duel .cer-card__you, .cer-duel .cer-card__class, .cer-duel .cer-card__meta { display: none; }

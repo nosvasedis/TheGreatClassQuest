@@ -304,12 +304,11 @@
 .cer-hon__who b {
     font-size: clamp(0.82rem, 1.9vh, 1rem);
     color: var(--cer-ink);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow-wrap: break-word;
+    line-height: 1.2;
 }
 .cer-hon__who small { font-size: clamp(0.66rem, 1.45vh, 0.78rem); color: var(--cer-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cer-hon__seals { display: flex; flex: none; margin-left: auto; }
+.cer-hon__seals { display: flex; flex-wrap: wrap; justify-content: flex-end; flex: none; max-width: 46%; margin-left: auto; row-gap: 2px; }
 .cer-hon__seals .hs-seal + .hs-seal { margin-left: -10px; }
 .cer-hon__more { margin: 2px 0 0; text-align: center; font-size: 0.78rem; color: var(--cer-muted); }
 .cer-hon__cols.is-dense .cer-hon__hero { padding: 3px 6px; }

@@ -74,7 +74,7 @@ export function monthHonoursHtml(honours = { sections: [] }, { monthName = '' } 
                     ${section.heroes.map((hero) => `<li class="cer-hon__hero is-pending" style="--k:${k++}">
                         <span class="cer-hon__face-wrap">${faceHtml(hero, 'cer-hon__face')}</span>
                         <span class="cer-hon__who"><b>${esc(hero.name)}</b><small>${esc(hero.note || '')}</small></span>
-                        ${hero.sealIds?.length ? `<span class="cer-hon__seals">${hero.sealIds.slice(0, 3).map((id) => sealArtHtml(id, { size: 34 })).join('')}</span>` : ''}
+                        ${hero.sealIds?.length ? `<span class="cer-hon__seals">${hero.sealIds.map((id) => sealArtHtml(id, { size: 34 })).join('')}</span>` : ''}
                     </li>`).join('')}
                 </ul>
                 ${section.more ? `<p class="cer-hon__more">and ${section.more} more</p>` : ''}

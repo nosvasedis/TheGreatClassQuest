@@ -1502,12 +1502,15 @@ async function renderHonours(nextLabel) {
         } });
         t += 380;
         const heroes = [...col.querySelectorAll('.cer-hon__hero')];
-        const each = heroes.length > 5 ? 170 : 260;
+        const each = heroes.length > 10 ? 110 : (heroes.length > 5 ? 170 : 260);
         heroes.forEach((hero, i) => {
             steps.push({ at: t + i * each, run: (fast) => {
                 hero.classList.remove('is-pending');
                 hero.classList.add('is-in');
                 if (fast) return;
+                // A long list keeps the newest name in view on a short screen.
+                const below = hero.getBoundingClientRect().bottom - stage.getBoundingClientRect().bottom;
+                if (below > 0) stage.scrollBy({ top: below + 12, behavior: reduced ? 'auto' : 'smooth' });
                 if (i < 6) playCeremonySfx('pling');
                 if (!reduced && i < 4) {
                     const p = fxPoint(hero.querySelector('.cer-hon__face-wrap'));

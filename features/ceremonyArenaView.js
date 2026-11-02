@@ -270,31 +270,41 @@ export function arenaSummonHtml() {
     </div>`;
 }
 
-function chip(tone, content, title = '') {
+/**
+ * An enamel badge: a round gem with its icon, a bold value and a small label.
+ * `gem` is ready markup (an icon or a crest); value and label are plain text.
+ */
+function chip(tone, { gem = '', value = '', label = '', title = '' } = {}) {
     const titleAttr = title ? ` title="${esc(title)}"` : '';
-    return `<span class="cer-chip cer-chip--${tone}"${titleAttr}>${content}</span>`;
+    return `<span class="cer-chip cer-chip--${tone}"${titleAttr}>`
+        + `<span class="cer-chip__gem" aria-hidden="true">${gem}</span>`
+        + (value !== '' ? `<span class="cer-chip__val">${esc(value)}</span>` : '')
+        + (label ? `<span class="cer-chip__lbl">${esc(label)}</span>` : '')
+        + '</span>';
 }
+const icon = (name) => `<i class="fas ${name}"></i>`;
 
 export function arenaClassChipsHtml(entry, { compact = false } = {}) {
     const chips = [];
     const level = Math.max(1, Number(entry.level) || 1);
     const lvl = Math.min(6, level);
     const rank = rankForLevel(level);
-    chips.push(chip(`lvl-${lvl}`, `${rankCrestSvg(level, { className: 'cer-chip__crest' })} ${compact ? `Lv ${level}` : `${esc(rank.title)} · Lv ${level}`}`, `Quest Level ${level}: ${rank.title}`));
+    chips.push(chip(`lvl-${lvl}`, { gem: rankCrestSvg(level, { className: 'cer-chip__crest' }), value: compact ? `Lv ${level}` : rank.title, label: compact ? '' : `Lv ${level}`, title: `Quest Level ${level}: ${rank.title}` }));
     // Stepped through the Crystal Portal that month (the ceremony sets it when it loads).
     if (Number(entry.rankUp) > level) {
         const up = rankForLevel(entry.rankUp);
-        chips.push(chip('rankup', `<i class="fas fa-angles-up" aria-hidden="true"></i>${rankCrestSvg(entry.rankUp, { className: 'cer-chip__crest' })} ${compact ? `Lv ${up.displayLevel}` : `Rose to ${esc(up.title)}`}`, `Stepped through the Crystal Portal: now Quest Level ${up.displayLevel}, ${up.title}`));
+        chips.push(chip('rankup', { gem: rankCrestSvg(entry.rankUp, { className: 'cer-chip__crest' }), value: compact ? `Lv ${up.displayLevel}` : `Rose to ${up.title}`, label: compact ? '' : 'Portal', title: `Stepped through the Crystal Portal: now Quest Level ${up.displayLevel}, ${up.title}` }));
     }
-    if (entry.zone) chips.push(chip(`zone-${esc(entry.zone.id || 'bronze')}`, compact ? esc(entry.zone.icon || '') : `${esc(entry.zone.icon || '')} ${esc(entry.zone.label || '')}`, entry.zone.desc || ''));
-    if (!compact && Number(entry.avgPerHero) > 0) chips.push(chip('avg', `<i class="fas fa-user-group" aria-hidden="true"></i>${Number(entry.avgPerHero).toFixed(1)} per hero`, 'Average stars per hero'));
+    // The quest trail above the chips already names the zone; only the compact card needs it here.
+    if (entry.zone && compact) chips.push(chip(`zone-${esc(entry.zone.id || 'bronze')}`, { gem: esc(entry.zone.icon || '⛰️'), value: compact ? '' : (entry.zone.label || ''), title: entry.zone.desc || entry.zone.label || '' }));
+    if (!compact && Number(entry.avgPerHero) > 0) chips.push(chip('avg', { gem: icon('fa-user-group'), value: Number(entry.avgPerHero).toFixed(1), label: 'per hero', title: 'Average stars per hero' }));
     if (Number(entry.teamBonus) > 0) {
         const pathfinder = Number(entry.teamBonus) >= 10;
-        chips.push(chip(pathfinder ? 'pathfinder' : 'bonus', `<i class="fas ${pathfinder ? 'fa-map' : 'fa-people-group'}" aria-hidden="true"></i>${pathfinder && !compact ? 'Pathfinder ' : ''}+${Number(entry.teamBonus)}`, 'Team Quest bonus stars'));
+        chips.push(chip(pathfinder ? 'pathfinder' : 'bonus', { gem: icon(pathfinder ? 'fa-map' : 'fa-people-group'), value: `+${Number(entry.teamBonus)}★`, label: compact ? '' : (pathfinder ? 'Pathfinder' : 'team bonus'), title: 'Team Quest bonus stars' }));
     }
     if (entry.topSkill) {
         const info = ARENA_REASON_INFO[entry.topSkill] || { icon: 'fa-star', tone: 'neutral', name: 'Strength' };
-        chips.push(chip(info.tone, `<i class="fas ${info.icon}" aria-hidden="true"></i>${compact ? '' : 'Top: '}${info.name}`, 'Top class strength this month'));
+        chips.push(chip(info.tone, { gem: icon(info.icon), value: info.name, label: compact ? '' : 'top strength', title: 'Top class strength this month' }));
     }
     return `<div class="cer-chips">${chips.join('')}</div>`;
 }
@@ -302,15 +312,15 @@ export function arenaClassChipsHtml(entry, { compact = false } = {}) {
 export function arenaHeroChipsHtml(entry, { compact = false } = {}) {
     const stats = entry.stats || {};
     const chips = [];
-    if (stats.count3 > 0) chips.push(chip('epic', `<i class="fas fa-bolt" aria-hidden="true"></i>${stats.count3}${compact ? '' : ' × 3★'}`, 'Epic lessons (3-star)'));
-    if (stats.count2 > 0 && !compact) chips.push(chip('strong', `<i class="fas fa-star-half-alt" aria-hidden="true"></i>${stats.count2} × 2★`, 'Strong lessons (2-star)'));
+    if (stats.count3 > 0) chips.push(chip('epic', { gem: icon('fa-bolt'), value: stats.count3, label: compact ? '' : '3★ lessons', title: 'Epic lessons (3-star)' }));
+    if (stats.count2 > 0 && !compact) chips.push(chip('strong', { gem: icon('fa-star-half-alt'), value: stats.count2, label: '2★ lessons', title: 'Strong lessons (2-star)' }));
     if (stats.topSkill) {
         const info = ARENA_REASON_INFO[stats.topSkill] || { icon: 'fa-star', tone: 'neutral', name: 'Star' };
-        chips.push(chip(info.tone, `<i class="fas ${info.icon}" aria-hidden="true"></i>${info.name}`, 'Top strength this month'));
+        chips.push(chip(info.tone, { gem: icon(info.icon), value: info.name, label: compact ? '' : 'top strength', title: 'Top strength this month' }));
     }
-    if (stats.uniqueReasons > 0 && !compact) chips.push(chip('variety', `<i class="fas fa-shapes" aria-hidden="true"></i>${stats.uniqueReasons} ${stats.uniqueReasons === 1 ? 'strength' : 'strengths'}`, 'Different award reasons (tie-breaker)'));
-    if (stats.academicAvg > 0) chips.push(chip('scholar', `<i class="fas fa-graduation-cap" aria-hidden="true"></i>${Math.round(stats.academicAvg)}%`, 'Average written score this month'));
-    if (!chips.length) chips.push(chip('neutral', `<i class="fas fa-star" aria-hidden="true"></i>${Number(entry.score) || 0} this month`, 'Monthly stars'));
+    if (stats.uniqueReasons > 0 && !compact) chips.push(chip('variety', { gem: icon('fa-shapes'), value: stats.uniqueReasons, label: stats.uniqueReasons === 1 ? 'strength' : 'strengths', title: 'Different award reasons (tie-breaker)' }));
+    if (stats.academicAvg > 0) chips.push(chip('scholar', { gem: icon('fa-graduation-cap'), value: `${Math.round(stats.academicAvg)}%`, label: compact ? '' : 'tests', title: 'Average written score this month' }));
+    if (!chips.length) chips.push(chip('neutral', { gem: icon('fa-star'), value: Number(entry.score) || 0, label: 'this month', title: 'Monthly stars' }));
     return `<div class="cer-chips">${chips.join('')}</div>`;
 }
 

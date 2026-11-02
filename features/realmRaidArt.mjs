@@ -704,11 +704,11 @@ export function shieldSvg(seasonId, classes = [], { pct = 0, broken = false, foc
         <g class="rr-shield__runes" fill="${c.antlerTip}" opacity=".55">
             ${Array.from({ length: 24 }, (_, i) => { const [x, y] = polar(200, 200, 178, i * 15); return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${i % 3 ? 1.6 : 3}"/>`; }).join('')}
         </g>
-        ${broken ? `<g class="rr-shield__cracks" fill="none" stroke="${INK}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" opacity=".75">
+        <g class="rr-shield__shards">${shards}</g>
+        ${broken ? `<g class="rr-shield__cracks" fill="none" stroke="${INK}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" opacity=".6">
             <path d="M200,48 L210,82 L196,104 L214,140"/><path d="M352,200 L318,212 L300,196 L262,214"/><path d="M200,352 L188,318 L204,296 L186,262"/><path d="M48,200 L82,188 L100,204 L138,186"/>
             <path d="M92,92 L118,120 L112,136"/><path d="M308,308 L282,280 L288,264"/>
         </g>` : ''}
-        <g class="rr-shield__shards">${shards}</g>
         <g class="rr-shield__core">
             <circle cx="200" cy="200" r="${R0 - 2}" fill="url(#${id}-rim)" stroke="${INK}" stroke-width="3"/>
             <circle cx="200" cy="200" r="${R0 - 9}" fill="url(#${id}-core)" stroke="${INK}" stroke-width="2"/>

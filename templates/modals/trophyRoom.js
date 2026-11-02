@@ -2,12 +2,24 @@
 // Trophy room, shop, avatar maker
 
 export const trophyRoomModalsHTML = `
-    <!-- Satchels (code name: trophy room): a class's satchels. Hero list on the left, the chosen hero's Relics + Treasures on the right. -->
+    <!-- The Satchel (code name: trophy room): a leather satchel for the class. The flap holds the title,
+         name tags down the side pick the hero, and four pocket tabs inside hold Relics, Charms, Treasures
+         and Seals. Markup inside: ui/modals/trophyRoomView.js. Styles: styles/satchel.css (lazy). -->
     <div id="trophy-room-modal"
-        class="fixed inset-0 bg-indigo-950/60 z-[80] flex items-center justify-center p-4 hidden backdrop-blur-xl">
-        <div class="trophy-room-shell pop-in" role="dialog" aria-modal="true" aria-labelledby="trophy-room-title">
-            <header class="trophy-room-head">
-                <span class="trophy-room-emblem" aria-hidden="true">🎒</span>
+        class="sat-overlay fixed inset-0 z-[80] flex items-center justify-center p-4 hidden">
+        <div class="trophy-room-shell sat-shell pop-in" role="dialog" aria-modal="true" aria-labelledby="trophy-room-title">
+            <header class="trophy-room-head sat-flap">
+                <span class="sat-flap__ring sat-flap__ring--l" aria-hidden="true"></span>
+                <span class="sat-flap__ring sat-flap__ring--r" aria-hidden="true"></span>
+                <span class="trophy-room-emblem sat-emblem" aria-hidden="true">
+                    <svg viewBox="0 0 120 110" focusable="false">
+                        <path class="sat-art-strap" d="M30 44 C30 6 90 6 90 44" />
+                        <rect class="sat-art-body" x="12" y="38" width="96" height="64" rx="16" />
+                        <path class="sat-art-flap-leather" d="M12 54 Q12 38 28 38 H92 Q108 38 108 54 V70 Q60 90 12 70 Z" />
+                        <path class="sat-art-stitch" d="M20 53 Q20 45 29 45 H91 Q100 45 100 53 V66 Q60 82 20 66 Z" />
+                        <rect class="sat-art-buckle" x="50" y="64" width="20" height="18" rx="4" />
+                    </svg>
+                </span>
                 <div class="trophy-room-heading">
                     <h2 id="trophy-room-title" class="font-title">Satchels</h2>
                     <p id="trophy-room-subtitle">Every hero's satchel</p>
@@ -15,13 +27,14 @@ export const trophyRoomModalsHTML = `
                 <button id="trophy-room-close-btn" type="button" class="trophy-room-close" aria-label="Close the Satchel">
                     <i class="fas fa-times" aria-hidden="true"></i>
                 </button>
+                <span class="sat-buckle" aria-hidden="true"><span class="sat-buckle__frame"></span><span class="sat-buckle__tongue"></span></span>
             </header>
             <div class="trophy-room-body">
-                <nav class="trophy-room-roster" aria-label="Heroes">
-                    <p class="trophy-room-roster-label">Heroes</p>
+                <nav class="trophy-room-roster sat-tags" aria-label="Heroes">
+                    <p class="trophy-room-roster-label">Name tags</p>
                     <div id="trophy-room-roster" class="trophy-room-roster-list custom-scrollbar"></div>
                 </nav>
-                <section id="trophy-room-content" class="trophy-room-content custom-scrollbar" aria-live="polite"></section>
+                <section id="trophy-room-content" class="trophy-room-content sat-lining custom-scrollbar" aria-live="polite"></section>
             </div>
         </div>
     </div>

@@ -6,6 +6,8 @@ import * as state from '../../../../state.js';
 import { leaderboardTabHTML } from '../../../../templates/app/tabs/leaderboard.js';
 import { renderQuestChroniclesHtml } from '../../../../ui/tabs/teamQuestChronicles.js';
 import { trophyRoomModalsHTML } from '../../../../templates/modals/trophyRoom.js';
+import '../../../../styles/satchel.css';
+import '../../../../styles/charm_sets.css';
 import { renderTrophyRosterHtml, renderTrophySatchelHtml } from '../../../../ui/modals/trophyRoomView.js';
 import { buildProdigyNavHtml, buildProdigyShrinesHtml, buildProdigyYearHtml } from '../../../../ui/modals/prodigyHallView.js';
 import { buildTrophySatchel, buildActiveEffects } from '../../../../features/trophyRoomCore.mjs';

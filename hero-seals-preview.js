@@ -2,6 +2,7 @@
 // /hero-seals-preview.html?view=catalogue|folio|trophy|summary|notice|opens[&lite=1][&shot=1]
 import './styles/notifications.css';
 import './styles/hero_seals.css';
+import './styles/satchel.css';
 import { notify } from './ui/effects.js';
 import { SEALS, buildSealBook, buildSealBookView, collectNewSeals, sealArtHtml } from './features/heroSealsCore.mjs';
 import { heroSealsNoticeCopy, escSeal, heroSealsSummaryHtml, sealBookPanelHtml } from './features/heroSealsView.mjs';

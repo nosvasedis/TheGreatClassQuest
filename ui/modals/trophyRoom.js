@@ -13,7 +13,7 @@ import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 import { buildTrophySatchel, summarizeSatchel, buildActiveEffects } from '../../features/trophyRoomCore.mjs';
 import { buildHoard } from '../../features/treasureCharmsCore.mjs';
 import { isYoungClass } from '../../features/treasureCharms.js';
-import { renderTrophyRosterHtml, renderTrophyIdleHtml, renderTrophySatchelHtml } from './trophyRoomView.js';
+import { renderTrophyRosterHtml, renderTrophyIdleHtml, renderTrophySatchelHtml, SATCHEL_TABS } from './trophyRoomView.js';
 import '../../styles/hero_seals.css';
 import { buildSealBookView } from '../../features/heroSealsCore.mjs';
 import { ensureHeroSealsForClass } from '../../features/heroSeals.js';
@@ -25,7 +25,19 @@ const SWITCH_CLASS = 'tr-satchel--enter';
 
 let currentClassId = '';
 let currentStudentId = '';
+let currentTab = '';      // the pocket showing ('' = let the satchel choose)
+let tabPicked = false;    // once the teacher picks a pocket, it stays open across heroes
 let listenersBound = false;
+let stylesReady = null;
+
+/** The satchel's own look loads with it, not with the first paint. */
+function loadSatchelStyles() {
+    stylesReady ||= Promise.all([
+        import('../../styles/satchel.css'),
+        import('../../styles/charm_sets.css'),
+    ]).catch(quietly('ui/modals/trophyRoom.js'));
+    return stylesReady;
+}
 
 const usable = { isUsable: isItemUsable, present: currentArtifactFor };
 
@@ -122,7 +134,9 @@ function renderSatchel({ animate = false, keepScroll = false } = {}) {
         effects: buildActiveEffects(scoreData, utils.getLocalMonthKey()),
         hoard: buildHoard(scoreData?.inventory),
         seals: buildSealBookView({ student, heroSeals: scoreData?.heroSeals || null }),
+        tab: tabPicked ? currentTab : '',
     });
+    currentTab = contentEl.querySelector('.tr-satchel')?.dataset.tab || currentTab;
     contentEl.scrollTop = keepScroll ? scrollTop : 0;
 
     if (animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -130,6 +144,38 @@ function renderSatchel({ animate = false, keepScroll = false } = {}) {
         satchel?.classList.add(SWITCH_CLASS);
         satchel?.addEventListener('animationend', () => satchel.classList.remove(SWITCH_CLASS), { once: true });
     }
+}
+
+/** Open one pocket: the tab lifts, the pocket slides in from the side it was tapped on. */
+function selectTab(tabId, { focus = false } = {}) {
+    const satchel = document.querySelector(`#${CONTENT_ID} .tr-satchel`);
+    if (!satchel || !SATCHEL_TABS.some((t) => t.id === tabId)) return;
+    const before = SATCHEL_TABS.findIndex((t) => t.id === satchel.dataset.tab);
+    const after = SATCHEL_TABS.findIndex((t) => t.id === tabId);
+    currentTab = tabId;
+    tabPicked = true;
+    if (before === after) return;
+    satchel.dataset.tab = tabId;
+    satchel.querySelectorAll('[data-tr-tab]').forEach((tab) => {
+        const on = tab.dataset.trTab === tabId;
+        tab.classList.toggle('is-active', on);
+        tab.setAttribute('aria-selected', on ? 'true' : 'false');
+        tab.tabIndex = on ? 0 : -1;
+        if (on && focus) tab.focus();
+    });
+    satchel.querySelectorAll('[data-tr-pocket]').forEach((pocket) => {
+        const on = pocket.dataset.trPocket === tabId;
+        pocket.hidden = !on;
+        pocket.classList.toggle('is-active', on);
+        pocket.classList.remove('is-from-left', 'is-from-right');
+        if (on && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            void pocket.offsetWidth;
+            pocket.classList.add(after > before ? 'is-from-right' : 'is-from-left');
+        }
+    });
+    const contentEl = document.getElementById(CONTENT_ID);
+    const tabs = satchel.querySelector('.sat-tabs');
+    if (contentEl && tabs && contentEl.scrollTop > tabs.offsetTop) contentEl.scrollTop = tabs.offsetTop - 8;
 }
 
 function selectStudent(studentId, { focus = false } = {}) {
@@ -192,6 +238,11 @@ function bindListeners() {
     });
 
     contentEl.addEventListener('click', (e) => {
+        const tabBtn = e.target.closest('[data-tr-tab]');
+        if (tabBtn) {
+            selectTab(tabBtn.dataset.trTab);
+            return;
+        }
         const bookBtn = e.target.closest('.tr-seal-book-btn');
         if (bookBtn) {
             import('./studentAnalytics.js').then((m) => m.openStudentAnalyticsModal(bookBtn.dataset.studentId, bookBtn, { tab: 'seals' })).catch(quietly('ui/modals/trophyRoom.js'));
@@ -207,6 +258,22 @@ function bindListeners() {
             const item = findScore(currentStudentId)?.inventory?.[Number(zoom.dataset.itemIndex)];
             if (item) showInventoryItemDetail(item);
         }
+    });
+
+    // Arrow keys walk the pocket tabs.
+    contentEl.addEventListener('keydown', (e) => {
+        const tab = e.target.closest?.('[data-tr-tab]');
+        if (!tab) return;
+        const ids = SATCHEL_TABS.map((t) => t.id);
+        const at = ids.indexOf(tab.dataset.trTab);
+        const step = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+        let next = null;
+        if (step) next = ids[(at + step + ids.length) % ids.length];
+        if (e.key === 'Home') next = ids[0];
+        if (e.key === 'End') next = ids[ids.length - 1];
+        if (!next) return;
+        e.preventDefault();
+        selectTab(next, { focus: true });
     });
 
     // Keep the open satchel honest if a purchase or a use elsewhere changes the scores.
@@ -228,15 +295,25 @@ export function openTrophyRoomModal(preselectedStudentId = null) {
 
     currentClassId = classId;
     currentStudentId = preselected?.id || '';
-    // Charm-set jars: their styles load with the Satchel, not with the first paint.
-    import('../../styles/charm_sets.css').catch(quietly('ui/modals/trophyRoom.js'));
+    currentTab = '';
+    tabPicked = false;
     bindListeners();
     ensureHeroSealsForClass(classId).catch(quietly('ui/modals/trophyRoom.js'));
     renderRoster();
     renderSatchel();
-    showAnimatedModal(MODAL_ID);
-    requestAnimationFrame(() => {
-        document.querySelector(`#${ROSTER_ID} .tr-roster-item.is-selected`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    // Show once the satchel's styles are in (instant after the first open), then swing the flap open.
+    loadSatchelStyles().then(() => {
+        const shell = document.querySelector(`#${MODAL_ID} .sat-shell`);
+        showAnimatedModal(MODAL_ID);
+        if (shell && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            shell.classList.remove('is-opening');
+            void shell.offsetWidth;
+            shell.classList.add('is-opening');
+            setTimeout(() => shell.classList.remove('is-opening'), 1300);
+        }
+        requestAnimationFrame(() => {
+            document.querySelector(`#${ROSTER_ID} .tr-roster-item.is-selected`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        });
     });
 }
 

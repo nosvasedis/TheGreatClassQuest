@@ -253,7 +253,6 @@
 @import url('./styles/attendance_register.css');
 @import url('./styles/quest_board.css');
 @import url('./styles/hero_stage.css');
-@import url('./styles/trophy_room.css');
 /* styles/certificate.css loads with the module that draws it (lazy, not first paint) */
 /* Weekly Report: The Week's Scroll (ui/modals/weeklyReportView.mjs) */
 /* styles/weekly_report.css loads with the module that draws it (lazy, not first paint) */

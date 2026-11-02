@@ -1,0 +1,1119 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   The Satchel: a class's satchels as one tooled-leather bag.
+   Flap (title, buckle) on top, luggage name tags down the side to pick a hero,
+   and a linen lining inside where four leather pocket tabs open Relics, Charms,
+   Treasures and Seals. Markup: ui/modals/trophyRoomView.js + templates/modals/trophyRoom.js.
+   Loaded with the modal (ui/modals/trophyRoom.js), never with the first paint.
+   Seal pieces: styles/hero_seals.css. Charm-set jars: styles/charm_sets.css.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#trophy-room-modal {
+    --sat-leather: #7b3f1c;
+    --sat-leather-dark: #4b230d;
+    --sat-leather-deep: #331606;
+    --sat-leather-light: #a35e2d;
+    --sat-tan: #c48a52;
+    --sat-tan-light: #dcae78;
+    --sat-brass: #e0b25a;
+    --sat-brass-light: #f8dc95;
+    --sat-brass-dark: #8f5f1d;
+    --sat-lining: #f9efd9;
+    --sat-pocket: #fffaf0;
+    --sat-pocket-rim: #e6cfa3;
+    --sat-ink: #3a2414;
+    --sat-ink-soft: #7a6048;
+    --sat-stitch: rgba(248, 220, 149, 0.6);
+    --sat-grain:
+        radial-gradient(circle at 25% 35%, rgba(255, 230, 190, 0.05) 0 1px, transparent 1.6px) 0 0 / 7px 7px,
+        radial-gradient(circle at 70% 75%, rgba(0, 0, 0, 0.07) 0 1px, transparent 1.6px) 0 0 / 9px 9px;
+    background: rgba(26, 14, 6, 0.62);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+#trophy-room-modal .font-title {
+    font-family: var(--gcq-font-title);
+    font-weight: 400;
+}
+
+/* ── The bag ──────────────────────────────────────────────────────────── */
+
+#trophy-room-modal .sat-shell {
+    position: relative;
+    width: 100%;
+    max-width: 68rem;
+    height: min(88vh, calc(100dvh - 1.5rem));
+    display: flex;
+    flex-direction: column;
+    padding: 0 0.6rem 0.6rem;
+    border-radius: 2rem;
+    background:
+        var(--sat-grain),
+        radial-gradient(120% 70% at 50% 0%, rgba(255, 200, 140, 0.16), transparent 60%),
+        linear-gradient(180deg, var(--sat-leather-light) 0%, var(--sat-leather) 40%, var(--sat-leather-dark) 100%);
+    box-shadow:
+        inset 0 0 0 2px rgba(51, 22, 6, 0.6),
+        inset 0 2px 0 rgba(255, 220, 170, 0.25),
+        0 2px 0 var(--sat-leather-deep),
+        0 30px 80px rgba(0, 0, 0, 0.55);
+    color: var(--sat-ink);
+    font-family: 'Fredoka', 'Open Sans', sans-serif;
+    isolation: isolate;
+}
+
+/* saddle stitching all the way round */
+#trophy-room-modal .sat-shell::before {
+    content: '';
+    position: absolute;
+    inset: 7px;
+    border-radius: 1.65rem;
+    border: 2px dashed var(--sat-stitch);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* ── The flap ─────────────────────────────────────────────────────────── */
+
+#trophy-room-modal .sat-flap {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    flex-shrink: 0;
+    margin: 0 -0.6rem;
+    padding: 1rem 1.2rem 1.35rem 1.4rem;
+    border-radius: 2rem 2rem 50% 50% / 2rem 2rem 1.5rem 1.5rem;
+    background:
+        var(--sat-grain),
+        radial-gradient(90% 140% at 50% 0%, rgba(255, 210, 150, 0.22), transparent 60%),
+        linear-gradient(180deg, #8d4a22 0%, var(--sat-leather) 55%, #5e2c10 100%);
+    box-shadow:
+        inset 0 2px 0 rgba(255, 220, 170, 0.3),
+        inset 0 -2px 0 rgba(51, 22, 6, 0.5),
+        0 6px 12px rgba(26, 12, 4, 0.45);
+    color: var(--sat-lining);
+    transform-origin: 50% 0;
+}
+
+/* the flap's own stitched edge */
+#trophy-room-modal .sat-flap::after {
+    content: '';
+    position: absolute;
+    inset: 8px 10px 9px;
+    border-radius: 1.7rem 1.7rem 50% 50% / 1.7rem 1.7rem 1.2rem 1.2rem;
+    border: 2px dashed var(--sat-stitch);
+    pointer-events: none;
+}
+
+/* brass D-rings where the strap would clip on */
+#trophy-room-modal .sat-flap__ring {
+    position: absolute;
+    top: -0.35rem;
+    width: 1.5rem;
+    height: 0.9rem;
+    border: 3px solid var(--sat-brass);
+    border-bottom: 0;
+    border-radius: 0.9rem 0.9rem 0 0;
+    box-shadow: 0 -1px 0 var(--sat-brass-light) inset, 0 2px 3px rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+}
+#trophy-room-modal .sat-flap__ring--l { left: 3.2rem; }
+#trophy-room-modal .sat-flap__ring--r { right: 3.2rem; }
+
+#trophy-room-modal .sat-emblem {
+    position: relative;
+    z-index: 1;
+    width: 2.9rem;
+    height: 2.9rem;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    font-size: 1.35rem;
+    background: radial-gradient(circle at 50% 40%, #fff4cf, var(--sat-brass-light) 55%, var(--sat-brass) 100%);
+    box-shadow:
+        0 0 0 3px var(--sat-brass),
+        0 0 0 4px var(--sat-brass-dark),
+        inset 0 3px 6px rgba(0, 0, 0, 0.55),
+        0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+#trophy-room-modal .sat-emblem svg { width: 74%; height: 74%; overflow: visible; filter: drop-shadow(0 1px 1px rgba(74, 35, 13, 0.4)); }
+
+#trophy-room-modal .trophy-room-heading {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+    flex: 1;
+    line-height: 1.1;
+}
+
+/* gold-foil title pressed into the leather */
+#trophy-room-modal .trophy-room-heading h2 {
+    margin: 0;
+    font-size: 1.6rem;
+    letter-spacing: 0.01em;
+    color: var(--sat-brass-light);
+    background: linear-gradient(180deg, #fff4cf 0%, var(--sat-brass-light) 40%, var(--sat-brass) 75%, #c48a2e 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 1.5px 0 rgba(40, 16, 4, 0.85));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#trophy-room-modal .trophy-room-heading p {
+    margin: 0.2rem 0 0;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: rgba(249, 239, 217, 0.82);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* a brass rivet for closing */
+#trophy-room-modal .trophy-room-close {
+    position: relative;
+    z-index: 1;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    color: var(--sat-leather-deep);
+    background: radial-gradient(circle at 35% 30%, var(--sat-brass-light), var(--sat-brass) 55%, var(--sat-brass-dark) 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 3px 0 var(--sat-leather-deep), 0 5px 10px rgba(0, 0, 0, 0.4);
+    transition: transform 0.25s ease, filter 0.2s ease;
+}
+#trophy-room-modal .trophy-room-close:hover { transform: rotate(90deg); filter: brightness(1.08); }
+#trophy-room-modal .trophy-room-close:focus-visible { outline: 3px solid var(--sat-brass-light); outline-offset: 2px; }
+
+/* the buckle hanging from the flap's tip */
+#trophy-room-modal .sat-buckle {
+    position: absolute;
+    left: 50%;
+    bottom: -1.05rem;
+    z-index: 2;
+    width: 3.1rem;
+    height: 2.3rem;
+    margin-left: -1.55rem;
+    pointer-events: none;
+}
+#trophy-room-modal .sat-buckle::before {
+    /* the strap running under the buckle */
+    content: '';
+    position: absolute;
+    left: 0.85rem;
+    right: 0.85rem;
+    top: -0.8rem;
+    bottom: -0.2rem;
+    border-radius: 0 0 0.45rem 0.45rem;
+    background: linear-gradient(90deg, #5a2a0f, #7e4019 50%, #5a2a0f);
+    box-shadow: inset 0 0 0 1px rgba(26, 12, 4, 0.5);
+}
+#trophy-room-modal .sat-buckle__frame {
+    position: absolute;
+    inset: 0.15rem 0;
+    border-radius: 0.55rem;
+    border: 4px solid var(--sat-brass);
+    box-shadow:
+        inset 0 0 0 1px var(--sat-brass-dark),
+        0 0 0 1px var(--sat-brass-dark),
+        inset 0 1px 0 var(--sat-brass-light),
+        0 4px 6px rgba(0, 0, 0, 0.45);
+}
+#trophy-room-modal .sat-buckle__tongue {
+    position: absolute;
+    left: 50%;
+    top: 0.35rem;
+    width: 4px;
+    height: 1.35rem;
+    margin-left: -2px;
+    border-radius: 2px;
+    background: linear-gradient(180deg, var(--sat-brass-light), var(--sat-brass-dark));
+}
+
+/* ── Inside: name tags + lining ───────────────────────────────────────── */
+
+#trophy-room-modal .trophy-room-body {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 16.5rem minmax(0, 1fr);
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+/* the side pocket the name tags hang from */
+#trophy-room-modal .sat-tags {
+    position: relative;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    border-radius: 1.2rem 0.6rem 0.6rem 1.5rem;
+    background:
+        var(--sat-grain),
+        linear-gradient(180deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.28)),
+        var(--sat-leather);
+    box-shadow: inset 0 3px 8px rgba(26, 12, 4, 0.55), inset 0 -1px 0 rgba(255, 220, 170, 0.12);
+}
+
+#trophy-room-modal .trophy-room-roster-label {
+    margin: 0;
+    padding: 1.3rem 1rem 0.45rem;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--sat-brass-light);
+    opacity: 0.85;
+}
+
+#trophy-room-modal .trophy-room-roster-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.2rem 0.65rem 1rem 0.9rem;
+}
+
+/* a luggage tag: parchment card with a punched, ringed hole and its string */
+#trophy-room-modal .tr-roster-item {
+    --tag: linear-gradient(180deg, #fff8e6, #f3e2bd);
+    position: relative;
+    display: grid;
+    grid-template-columns: 2.2rem minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.42rem 0.55rem 0.42rem 1.55rem;
+    border-radius: 0.5rem;
+    text-align: left;
+    background: var(--tag);
+    clip-path: polygon(0.75rem 0, 100% 0, 100% 100%, 0.75rem 100%, 0 calc(50% + 0.75rem), 0 calc(50% - 0.75rem));
+    filter: drop-shadow(0 2px 2px rgba(26, 12, 4, 0.45));
+    transform-origin: 0 50%;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease;
+}
+#trophy-room-modal .tr-roster-item::before {
+    content: '';
+    position: absolute;
+    left: 0.5rem;
+    top: 50%;
+    width: 0.55rem;
+    height: 0.55rem;
+    margin-top: -0.275rem;
+    border-radius: 50%;
+    background: var(--sat-leather-dark);
+    box-shadow: 0 0 0 2px var(--sat-brass);
+}
+#trophy-room-modal .tr-roster-item:hover { transform: rotate(-1.5deg) translateX(2px); }
+#trophy-room-modal .tr-roster-item.is-selected {
+    --tag: linear-gradient(180deg, #fff4cf 0%, var(--sat-brass-light) 55%, var(--sat-brass) 100%);
+    transform: translateX(6px);
+    filter: drop-shadow(0 3px 4px rgba(26, 12, 4, 0.55)) drop-shadow(0 0 8px rgba(248, 220, 149, 0.45));
+}
+#trophy-room-modal .tr-roster-item:focus-visible {
+    outline: none;
+    filter: drop-shadow(0 0 0 2px var(--sat-brass-light)) drop-shadow(0 0 6px rgba(248, 220, 149, 0.9));
+}
+#trophy-room-modal .tr-roster-item.is-empty:not(.is-selected) { --tag: linear-gradient(180deg, #efe4cc, #e2d2b0); }
+
+#trophy-room-modal .tr-roster-portrait,
+#trophy-room-modal .tr-hero-portrait {
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #f6d9a8, #d79a56);
+    color: var(--sat-leather-dark);
+    font-family: var(--gcq-font-title);
+    flex-shrink: 0;
+}
+#trophy-room-modal .tr-roster-portrait {
+    width: 2.2rem;
+    height: 2.2rem;
+    font-size: 0.95rem;
+    box-shadow: 0 0 0 2px var(--sat-brass), 0 1px 3px rgba(26, 12, 4, 0.3);
+}
+#trophy-room-modal .tr-roster-portrait img,
+#trophy-room-modal .tr-hero-portrait img { width: 100%; height: 100%; object-fit: cover; }
+
+#trophy-room-modal .tr-roster-name {
+    min-width: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--sat-ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#trophy-room-modal .tr-roster-item.is-empty .tr-roster-name { color: #8a7259; }
+
+#trophy-room-modal .tr-roster-ready {
+    width: 1.2rem;
+    height: 1.2rem;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 0.55rem;
+    color: #fff;
+    background: linear-gradient(135deg, #fbbf24, #ea580c);
+    box-shadow: 0 0 0 2px #fff8e6, 0 0 10px rgba(251, 146, 60, 0.7);
+    animation: sat-glow 2.4s ease-in-out infinite;
+}
+
+#trophy-room-modal .tr-roster-count {
+    grid-column: 4;
+    min-width: 1.6rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+    text-align: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--sat-lining);
+    background: rgba(75, 35, 13, 0.75);
+}
+#trophy-room-modal .tr-roster-empty { margin: 0.5rem; font-size: 0.82rem; color: var(--sat-brass-light); }
+
+/* the lining: soft linen, darker toward the seams like the inside of a bag */
+#trophy-room-modal .sat-lining {
+    position: relative;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 1.5rem 1.3rem 1.6rem;
+    border-radius: 0.6rem 1.5rem 1.5rem 0.6rem;
+    background:
+        repeating-linear-gradient(0deg, rgba(122, 82, 40, 0.035) 0 1px, transparent 1px 4px),
+        repeating-linear-gradient(90deg, rgba(122, 82, 40, 0.03) 0 1px, transparent 1px 4px),
+        radial-gradient(120% 90% at 50% 0%, #fffaf0 0%, var(--sat-lining) 60%, #f0e0bf 100%);
+    box-shadow: inset 0 6px 14px rgba(74, 35, 13, 0.28), inset 0 0 0 1px rgba(74, 35, 13, 0.25);
+    scroll-behavior: smooth;
+}
+
+#trophy-room-modal .tr-satchel { max-width: 58rem; margin: 0 auto; }
+#trophy-room-modal .tr-satchel--enter { animation: sat-rise 0.32s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+
+/* ── The hero's leather patch ─────────────────────────────────────────── */
+
+#trophy-room-modal .tr-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.85rem 1.1rem;
+    border-radius: 1.2rem;
+    background:
+        var(--sat-grain),
+        radial-gradient(100% 140% at 0% 0%, rgba(255, 230, 190, 0.35), transparent 55%),
+        linear-gradient(135deg, var(--sat-tan-light) 0%, var(--sat-tan) 60%, #a86e3a 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 240, 210, 0.6), 0 3px 0 rgba(122, 63, 28, 0.55), 0 8px 18px rgba(74, 35, 13, 0.22);
+    color: var(--sat-ink);
+}
+#trophy-room-modal .tr-hero::before {
+    content: '';
+    position: absolute;
+    inset: 5px;
+    border-radius: 0.9rem;
+    border: 1.5px dashed rgba(75, 35, 13, 0.45);
+    pointer-events: none;
+}
+#trophy-room-modal .tr-hero-tagstring { display: none; }
+
+#trophy-room-modal .tr-hero-portrait {
+    position: relative;
+    width: 3.8rem;
+    height: 3.8rem;
+    font-size: 1.5rem;
+    box-shadow: 0 0 0 3px var(--sat-brass), 0 0 0 5px var(--sat-brass-dark), 0 6px 12px rgba(74, 35, 13, 0.35);
+}
+#trophy-room-modal .tr-hero-id { position: relative; min-width: 0; flex: 1; }
+#trophy-room-modal .tr-hero-id h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    line-height: 1.1;
+    color: #2a1608;
+    text-shadow: 0 1px 0 rgba(255, 240, 210, 0.55);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#trophy-room-modal .tr-hero-id p { margin: 0.2rem 0 0; font-size: 0.82rem; font-weight: 700; color: #5e3a1c; }
+
+#trophy-room-modal .tr-hero-pills { position: relative; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.4rem; }
+#trophy-room-modal .tr-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.38rem 0.85rem;
+    border-radius: 999px;
+    font-size: 0.84rem;
+    font-weight: 700;
+    white-space: nowrap;
+    color: var(--sat-lining);
+    background: linear-gradient(180deg, #6b3415, var(--sat-leather-dark));
+    box-shadow: inset 0 1px 0 rgba(255, 220, 170, 0.25), 0 2px 0 rgba(26, 12, 4, 0.4);
+}
+#trophy-room-modal .tr-pill i { font-size: 0.75rem; opacity: 0.85; }
+#trophy-room-modal .tr-pill--gold {
+    color: #4a2a06;
+    background: radial-gradient(circle at 35% 30%, #fff4cf, var(--sat-brass-light) 40%, var(--sat-brass) 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 2px 0 var(--sat-brass-dark);
+}
+
+/* ── Pocket tabs ──────────────────────────────────────────────────────── */
+
+#trophy-room-modal .sat-tabs {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    gap: 0.35rem;
+    margin: 1.2rem 0 -2px;
+    padding: 0 0.6rem;
+}
+
+#trophy-room-modal .sat-tab {
+    --tone: #d97706;
+    --tone-soft: #fef3c7;
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.6rem 0.7rem 0.65rem;
+    border-radius: 1rem 1rem 0 0;
+    border: 2px solid rgba(75, 35, 13, 0.55);
+    border-bottom: 0;
+    background:
+        var(--sat-grain),
+        linear-gradient(180deg, var(--sat-tan) 0%, #a86e3a 100%);
+    color: #2a1608;
+    font-family: var(--gcq-font-display, 'Fredoka', sans-serif);
+    font-size: 0.95rem;
+    font-weight: 600;
+    box-shadow: inset 0 1px 0 rgba(255, 240, 210, 0.45);
+    transform: translateY(4px);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease, color 0.2s ease, filter 0.2s ease;
+}
+#trophy-room-modal .sat-tab::before {
+    /* stitching along the tab's edge */
+    content: '';
+    position: absolute;
+    inset: 4px 5px 0;
+    border-radius: 0.75rem 0.75rem 0 0;
+    border: 1.5px dashed rgba(75, 35, 13, 0.4);
+    border-bottom: 0;
+    pointer-events: none;
+}
+#trophy-room-modal .sat-tab:hover:not(.is-active) { transform: translateY(1px); filter: brightness(1.06); }
+#trophy-room-modal .sat-tab:focus-visible { outline: 3px solid var(--sat-brass); outline-offset: 1px; }
+
+#trophy-room-modal .sat-tab.is-active {
+    z-index: 2;
+    transform: translateY(0);
+    background: var(--sat-pocket);
+    border-color: var(--sat-pocket-rim);
+    color: var(--sat-ink);
+    box-shadow: 0 -4px 10px rgba(74, 35, 13, 0.12);
+}
+#trophy-room-modal .sat-tab.is-active::before { border-color: var(--sat-pocket-rim); }
+
+#trophy-room-modal .sat-tab--relics { --tone: #ea580c; --tone-soft: #ffedd5; }
+#trophy-room-modal .sat-tab--charms { --tone: #7c3aed; --tone-soft: #ede9fe; }
+#trophy-room-modal .sat-tab--treasures { --tone: #0d9488; --tone-soft: #ccfbf1; }
+#trophy-room-modal .sat-tab--seals { --tone: #be123c; --tone-soft: #ffe4e6; }
+
+#trophy-room-modal .sat-tab__icon {
+    position: relative;
+    width: 1.7rem;
+    height: 1.7rem;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    border-radius: 50%;
+    font-size: 0.72rem;
+    color: #fff;
+    background: var(--tone);
+    box-shadow: 0 0 0 2px rgba(255, 248, 230, 0.85), 0 2px 4px rgba(74, 35, 13, 0.3);
+}
+#trophy-room-modal .sat-tab.is-glowing .sat-tab__icon { animation: sat-tab-glow 2.4s ease-in-out infinite; }
+
+#trophy-room-modal .sat-tab__label { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#trophy-room-modal .sat-tab__count {
+    min-width: 1.45rem;
+    padding: 0.05rem 0.4rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    color: var(--sat-lining);
+    background: rgba(75, 35, 13, 0.7);
+}
+#trophy-room-modal .sat-tab.is-active .sat-tab__count { color: var(--tone); background: var(--tone-soft); }
+
+/* ── The open pocket ──────────────────────────────────────────────────── */
+
+#trophy-room-modal .sat-pocket {
+    position: relative;
+    padding: 1.1rem 1.15rem 1.3rem;
+    border-radius: 1.2rem;
+    border: 2px solid var(--sat-pocket-rim);
+    background:
+        radial-gradient(90% 60% at 100% 100%, rgba(240, 224, 191, 0.55), transparent 60%),
+        var(--sat-pocket);
+    box-shadow: 0 10px 24px rgba(74, 35, 13, 0.14), inset 0 1px 0 #fff;
+}
+#trophy-room-modal .sat-pocket::before {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border-radius: 0.9rem;
+    border: 1.5px dashed rgba(196, 138, 82, 0.4);
+    pointer-events: none;
+}
+#trophy-room-modal .sat-pocket[hidden] { display: none; }
+#trophy-room-modal .sat-pocket.is-from-right { animation: sat-pocket-right 0.34s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+#trophy-room-modal .sat-pocket.is-from-left { animation: sat-pocket-left 0.34s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+
+#trophy-room-modal .sat-pocket-intro {
+    position: relative;
+    margin: 0 0 0.8rem;
+    font-size: 0.84rem;
+    line-height: 1.4;
+    color: var(--sat-ink-soft);
+}
+#trophy-room-modal .sat-pocket > * { position: relative; }
+
+/* the contents tumble in when a pocket opens, a hero is picked, or the satchel unbuckles */
+#trophy-room-modal .sat-pocket.is-from-right :is(.tr-relic, .tr-treasure, .tr-effect),
+#trophy-room-modal .sat-pocket.is-from-left :is(.tr-relic, .tr-treasure, .tr-effect),
+#trophy-room-modal .tr-satchel--enter :is(.tr-relic, .tr-treasure, .tr-effect),
+#trophy-room-modal .sat-shell.is-opening :is(.tr-relic, .tr-treasure, .tr-effect) {
+    animation: sat-item-in 0.42s calc(0.08s + var(--i, 0) * 38ms) cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+
+/* ── Working now ──────────────────────────────────────────────────────── */
+
+#trophy-room-modal .tr-effects {
+    margin: 0 0 1rem;
+    padding: 0.7rem 0.8rem 0.75rem;
+    border-radius: 1rem;
+    background: linear-gradient(135deg, #ecfdf5 0%, #f7fffb 100%);
+    border: 1.5px solid #a7f3d0;
+}
+#trophy-room-modal .tr-effects-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0 0 0.5rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #047857;
+}
+#trophy-room-modal .tr-effect-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+#trophy-room-modal .tr-effect {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    max-width: 100%;
+    padding: 0.4rem 0.85rem 0.4rem 0.4rem;
+    border-radius: 1rem;
+    background: #fff;
+    border: 1px solid #bbf7d0;
+    box-shadow: 0 2px 6px rgba(4, 120, 87, 0.08);
+}
+#trophy-room-modal .tr-effect-icon {
+    width: 1.9rem;
+    height: 1.9rem;
+    border-radius: 0.7rem;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    font-size: 1.05rem;
+    background: #ecfdf5;
+}
+#trophy-room-modal .tr-effect-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+#trophy-room-modal .tr-effect-text b { font-size: 0.82rem; font-weight: 700; color: #064e3b; }
+#trophy-room-modal .tr-effect-text span { font-size: 0.74rem; color: #047857; }
+
+/* ── Relic and charm cards ────────────────────────────────────────────── */
+
+#trophy-room-modal .tr-section-empty {
+    margin: 0;
+    padding: 0.85rem 1rem;
+    border-radius: 1rem;
+    border: 1.5px dashed var(--sat-pocket-rim);
+    background: rgba(255, 255, 255, 0.55);
+    font-size: 0.84rem;
+    color: var(--sat-ink-soft);
+}
+
+#trophy-room-modal .tr-relic-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
+    gap: 0.75rem;
+}
+#trophy-room-modal .tr-relic {
+    display: grid;
+    grid-template-columns: 3.9rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.8rem 0.85rem;
+    border-radius: 1.15rem;
+    background: linear-gradient(135deg, #fff7e6 0%, #fff 70%);
+    border: 1.5px solid #f3d6a0;
+    box-shadow: 0 4px 12px rgba(146, 64, 14, 0.08);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+#trophy-room-modal .tr-relic:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(146, 64, 14, 0.16); }
+
+#trophy-room-modal .tr-relic-art {
+    position: relative;
+    width: 3.9rem;
+    height: 3.9rem;
+    border-radius: 1rem;
+    display: grid;
+    place-items: center;
+    font-size: 1.9rem;
+    cursor: zoom-in;
+    background: radial-gradient(circle at 35% 30%, #fff 0%, #fef3c7 45%, #fcd77e 100%);
+    border: 2px solid #fff;
+    box-shadow: inset 0 -3px 6px rgba(217, 119, 6, 0.2), 0 0 0 2px var(--sat-brass), 0 4px 9px rgba(146, 64, 14, 0.25);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+#trophy-room-modal .tr-relic:hover .tr-relic-art { transform: rotate(-4deg) scale(1.05); }
+#trophy-room-modal .tr-relic-art img { width: 100%; height: 100%; object-fit: cover; border-radius: 0.85rem; }
+
+#trophy-room-modal .tr-stack {
+    position: absolute;
+    top: -0.45rem;
+    right: -0.5rem;
+    padding: 0.05rem 0.4rem;
+    border-radius: 999px;
+    border: 2px solid #fff;
+    font-family: var(--gcq-font-display);
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #fff;
+    background: var(--sat-leather);
+}
+#trophy-room-modal .tr-relic-text h5 { margin: 0 0 0.15rem; font-size: 1.02rem; line-height: 1.2; color: var(--sat-ink); }
+#trophy-room-modal .tr-relic-text p {
+    margin: 0;
+    font-size: 0.8rem;
+    line-height: 1.38;
+    color: var(--sat-ink-soft);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+#trophy-room-modal .tr-use-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.6rem 1.05rem;
+    border-radius: 0.9rem;
+    font-family: var(--gcq-font-title);
+    font-size: 0.94rem;
+    color: #fff;
+    background: linear-gradient(180deg, #fbbf24 0%, #f97316 60%, #ea580c 100%);
+    box-shadow: 0 3px 0 #b4410a, 0 6px 12px rgba(234, 88, 12, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    text-shadow: 0 1px 1px rgba(124, 45, 18, 0.45);
+    transition: filter 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+#trophy-room-modal .tr-use-btn i { font-size: 0.78rem; }
+#trophy-room-modal .tr-use-btn:hover { filter: brightness(1.07); transform: translateY(-1px); }
+#trophy-room-modal .tr-use-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #b4410a, 0 3px 6px rgba(234, 88, 12, 0.3); }
+#trophy-room-modal .tr-use-btn:disabled { opacity: 0.7; cursor: progress; transform: none; }
+#trophy-room-modal .tr-use-btn:focus-visible,
+#trophy-room-modal .tr-zoom:focus-visible { outline: 3px solid var(--sat-brass); outline-offset: 2px; }
+
+#trophy-room-modal .tr-charm { background: linear-gradient(135deg, #f5f3ff 0%, #fff 70%); border-color: #ddd6fe; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.08); }
+#trophy-room-modal .tr-charm:hover { box-shadow: 0 12px 24px rgba(124, 58, 237, 0.16); }
+#trophy-room-modal .tr-charm .tr-relic-art {
+    background: radial-gradient(circle at 35% 30%, #fff 0%, #ede9fe 50%, #c4b5fd 100%);
+    box-shadow: inset 0 -3px 6px rgba(124, 58, 237, 0.18), 0 0 0 2px #a78bfa, 0 4px 9px rgba(124, 58, 237, 0.22);
+}
+#trophy-room-modal .tr-charm-icon { background: #fff; color: inherit; border-color: #ddd6fe; font-size: 0.85rem; }
+#trophy-room-modal .tr-charm .tr-relic-text p.tr-charm-from { margin-top: 0.2rem; font-size: 0.7rem; font-weight: 600; color: #9a86b8; }
+#trophy-room-modal .tr-charm-btn {
+    background: linear-gradient(180deg, #a78bfa 0%, #7c3aed 65%, #6d28d9 100%);
+    box-shadow: 0 3px 0 #4c1d95, 0 6px 12px rgba(124, 58, 237, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    text-shadow: 0 1px 1px rgba(46, 16, 101, 0.45);
+}
+#trophy-room-modal .tr-charm-btn:active { box-shadow: 0 1px 0 #4c1d95, 0 3px 6px rgba(124, 58, 237, 0.3); }
+#trophy-room-modal .tr-charm-pick { margin: 0.9rem 0 0.55rem; font-size: 0.84rem; font-weight: 600; color: #5b3d8f; }
+
+/* ── Treasures ────────────────────────────────────────────────────────── */
+
+#trophy-room-modal .tr-treasure-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(8.25rem, 1fr));
+    gap: 0.8rem;
+}
+#trophy-room-modal .tr-treasure {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+    padding: 0.5rem 0.5rem 0.65rem;
+    border-radius: 1.1rem;
+    text-align: center;
+    cursor: zoom-in;
+    background: #fff;
+    border: 1.5px solid #eadcc0;
+    box-shadow: 0 3px 10px rgba(146, 64, 14, 0.07);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+}
+#trophy-room-modal .tr-treasure:hover { transform: translateY(-3px) rotate(-1deg); box-shadow: 0 12px 24px rgba(146, 64, 14, 0.16); }
+#trophy-room-modal .tr-treasure-art {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1 / 1;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 0.8rem;
+    font-size: 2.6rem;
+    background: radial-gradient(circle at 50% 40%, #fffdf6 0%, #fbefd5 60%, #f3dfb8 100%);
+}
+#trophy-room-modal .tr-treasure-art img { width: 100%; height: 100%; object-fit: cover; }
+#trophy-room-modal .tr-treasure.is-keepsake .tr-treasure-art { background: radial-gradient(circle at 50% 45%, #4a3a64 0%, #241b38 100%); }
+#trophy-room-modal .tr-treasure.is-keepsake .tr-treasure-art img { object-fit: contain; padding: 0.35rem; }
+#trophy-room-modal .tr-treasure.is-rare .tr-treasure-art { box-shadow: inset 0 0 0 2px #93c5fd; }
+#trophy-room-modal .tr-treasure.is-legendary .tr-treasure-art { box-shadow: inset 0 0 0 2px #f5b84a, 0 0 12px rgba(245, 158, 11, 0.3); }
+#trophy-room-modal .tr-treasure-name {
+    margin-top: 0.1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--sat-ink);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+#trophy-room-modal .tr-treasure-meta { font-size: 0.68rem; font-weight: 600; color: #a08a6e; }
+#trophy-room-modal .tr-emoji { line-height: 1; }
+#trophy-room-modal .tr-treasure-charm {
+    display: inline-flex;
+    align-items: center;
+    align-self: center;
+    gap: 0.25rem;
+    max-width: 100%;
+    margin-top: 0.1rem;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.66rem;
+    font-weight: 700;
+    color: #6d28d9;
+    background: #f5f3ff;
+    border: 1px solid #ddd6fe;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#trophy-room-modal .tr-treasure-charm.is-spent { color: #a39cb8; background: #f8f7fc; border-color: #ece9f6; }
+
+/* the Collector's Hoard sits at the top of the Treasures pocket */
+#trophy-room-modal .tr-hoard {
+    margin: 0 0 1rem;
+    padding: 0.75rem 0.95rem 0.7rem;
+    border-radius: 1.1rem;
+    background: linear-gradient(135deg, #fff4dc 0%, #fffaf0 70%);
+    border: 1.5px solid #f3d6a0;
+}
+#trophy-room-modal .tr-hoard-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.75rem; }
+#trophy-room-modal .tr-hoard-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #b45309;
+}
+#trophy-room-modal .tr-hoard-rank { font-family: var(--gcq-font-display); font-weight: 600; color: var(--sat-ink); }
+#trophy-room-modal .tr-hoard-points { margin-left: auto; font-size: 0.8rem; font-weight: 700; color: #92400e; }
+#trophy-room-modal .tr-hoard-bar {
+    height: 0.55rem;
+    margin: 0.5rem 0 0.4rem;
+    border-radius: 999px;
+    background: #f6e1bb;
+    box-shadow: inset 0 1px 2px rgba(146, 64, 14, 0.25);
+    overflow: hidden;
+}
+#trophy-room-modal .tr-hoard-bar span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background:
+        linear-gradient(90deg, transparent 0, rgba(255, 255, 255, 0.55) 50%, transparent 100%) -100% 0 / 50% 100% no-repeat,
+        linear-gradient(90deg, #fbbf24, #f97316);
+    animation: sat-shine 3.2s ease-in-out infinite;
+}
+#trophy-room-modal .tr-hoard-next { margin: 0; font-size: 0.74rem; color: #8a6f50; }
+
+/* the seals pocket: the section header becomes the pocket's own heading */
+#trophy-room-modal .sat-pocket--seals .tr-section { margin: 0; }
+#trophy-room-modal .tr-section-head { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 0.8rem; }
+#trophy-room-modal .tr-section-icon {
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 0.75rem;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    font-size: 0.85rem;
+    color: #fff;
+}
+#trophy-room-modal .tr-section-head h4 { display: flex; align-items: center; gap: 0.45rem; margin: 0; font-size: 1.12rem; color: var(--sat-ink); }
+#trophy-room-modal .tr-section-count {
+    padding: 0.05rem 0.5rem;
+    border-radius: 999px;
+    font-family: var(--gcq-font-display);
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--sat-ink-soft);
+    background: #f6ead2;
+}
+#trophy-room-modal .tr-section-head p { margin: 0.1rem 0 0; font-size: 0.8rem; color: var(--sat-ink-soft); }
+
+/* ── Empty + idle ─────────────────────────────────────────────────────── */
+
+#trophy-room-modal .tr-empty,
+#trophy-room-modal .tr-idle { display: flex; flex-direction: column; align-items: center; text-align: center; }
+#trophy-room-modal .tr-empty { padding: 1.4rem 1rem 1.2rem; }
+#trophy-room-modal .tr-idle { justify-content: center; min-height: 100%; padding: 2rem 1rem; }
+
+#trophy-room-modal .tr-empty-art svg { width: 6.5rem; height: 6rem; }
+#trophy-room-modal .tr-idle-art svg { width: 9.5rem; height: 8.7rem; animation: sat-bob 4s ease-in-out infinite; }
+#trophy-room-modal .sat-art-strap { fill: none; stroke: #5a2a0f; stroke-width: 8; stroke-linecap: round; }
+#trophy-room-modal .sat-art-body { fill: var(--sat-tan); stroke: #5a2a0f; stroke-width: 3; }
+#trophy-room-modal .sat-art-seam { stroke: rgba(90, 42, 15, 0.5); stroke-width: 2; stroke-dasharray: 4 3; }
+#trophy-room-modal .sat-art-flap { transform-box: view-box; transform-origin: 60px 38px; }
+#trophy-room-modal .sat-art-flap-leather { fill: var(--sat-leather-light); stroke: #5a2a0f; stroke-width: 3; stroke-linejoin: round; }
+#trophy-room-modal .sat-art-stitch { fill: none; stroke: var(--sat-brass-light); stroke-width: 1.6; stroke-dasharray: 3.5 3; opacity: 0.85; }
+#trophy-room-modal .sat-art-buckle { fill: none; stroke: var(--sat-brass); stroke-width: 4; }
+#trophy-room-modal .sat-art-tongue { stroke: var(--sat-brass); stroke-width: 3; stroke-linecap: round; }
+#trophy-room-modal .sat-art-sparkles path { fill: var(--sat-brass); animation: sat-twinkle 2.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+#trophy-room-modal .sat-art-sparkles path + path { animation-delay: 1.3s; }
+#trophy-room-modal .tr-idle:hover .sat-art-flap { animation: sat-art-peek 1.2s ease-in-out; }
+
+#trophy-room-modal .tr-empty h4,
+#trophy-room-modal .tr-idle h3 { margin: 0.8rem 0 0.3rem; color: var(--sat-ink); }
+#trophy-room-modal .tr-empty h4 { font-size: 1.15rem; }
+#trophy-room-modal .tr-idle h3 { font-size: 1.6rem; }
+#trophy-room-modal .tr-empty p,
+#trophy-room-modal .tr-idle p { margin: 0; max-width: 26rem; font-size: 0.88rem; line-height: 1.45; color: var(--sat-ink-soft); }
+#trophy-room-modal .tr-idle-stats { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin-top: 1.1rem; }
+#trophy-room-modal .tr-idle-stats span {
+    padding: 0.38rem 0.85rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    color: var(--sat-lining);
+    background: linear-gradient(180deg, #6b3415, var(--sat-leather-dark));
+}
+#trophy-room-modal .tr-idle-stats span.is-ready { color: #4a2a06; background: radial-gradient(circle at 35% 30%, #fff4cf, var(--sat-brass)); }
+
+/* ── Unbuckling: the flap lifts, the buckle swings, the lining rises ──── */
+
+#trophy-room-modal .sat-shell.is-opening .sat-flap { animation: sat-flap-lift 0.75s cubic-bezier(0.34, 1.4, 0.64, 1) both; }
+#trophy-room-modal .sat-shell.is-opening .sat-buckle { animation: sat-buckle-swing 1.05s 0.1s ease both; transform-origin: 50% -0.8rem; }
+#trophy-room-modal .sat-shell.is-opening .trophy-room-body { animation: sat-rise 0.5s 0.18s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+#trophy-room-modal .sat-shell.is-opening .sat-tab { animation: sat-tab-pop 0.45s calc(0.3s + var(--t, 0) * 60ms) cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+#trophy-room-modal .sat-tab:nth-child(2) { --t: 1; }
+#trophy-room-modal .sat-tab:nth-child(3) { --t: 2; }
+#trophy-room-modal .sat-tab:nth-child(4) { --t: 3; }
+
+@keyframes sat-flap-lift {
+    0% { transform: perspective(900px) rotateX(-24deg) translateY(1.6rem); }
+    100% { transform: none; }
+}
+@keyframes sat-buckle-swing {
+    0% { transform: translateY(-0.3rem) rotate(0deg); }
+    25% { transform: translateY(0.2rem) rotate(14deg); }
+    50% { transform: rotate(-9deg); }
+    72% { transform: rotate(5deg); }
+    88% { transform: rotate(-2deg); }
+    100% { transform: none; }
+}
+@keyframes sat-buckle-swing-sm {
+    0% { transform: scale(0.8) translateY(-0.3rem); }
+    25% { transform: scale(0.8) rotate(14deg); }
+    50% { transform: scale(0.8) rotate(-9deg); }
+    75% { transform: scale(0.8) rotate(4deg); }
+    100% { transform: scale(0.8); }
+}
+@keyframes sat-rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes sat-tab-pop {
+    from { opacity: 0; transform: translateY(14px); }
+}
+@keyframes sat-pocket-right {
+    from { opacity: 0; transform: translateX(22px); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes sat-pocket-left {
+    from { opacity: 0; transform: translateX(-22px); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes sat-item-in {
+    from { opacity: 0; transform: translateY(10px) scale(0.96); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes sat-glow {
+    0%, 100% { box-shadow: 0 0 0 2px #fff8e6, 0 0 6px rgba(251, 146, 60, 0.5); }
+    50% { box-shadow: 0 0 0 2px #fff8e6, 0 0 14px rgba(251, 146, 60, 0.95); }
+}
+@keyframes sat-tab-glow {
+    0%, 100% { box-shadow: 0 0 0 2px rgba(255, 248, 230, 0.85), 0 0 0 0 color-mix(in srgb, var(--tone) 50%, transparent); }
+    50% { box-shadow: 0 0 0 2px rgba(255, 248, 230, 0.85), 0 0 0 6px color-mix(in srgb, var(--tone) 0%, transparent); }
+}
+@keyframes sat-shine {
+    0%, 40% { background-position: -100% 0, 0 0; }
+    100% { background-position: 250% 0, 0 0; }
+}
+@keyframes sat-bob {
+    0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+    50% { transform: translateY(-6px) rotate(1.5deg); }
+}
+@keyframes sat-twinkle {
+    0%, 100% { opacity: 0.2; transform: scale(0.6); }
+    50% { opacity: 1; transform: scale(1.1); }
+}
+@keyframes sat-art-peek {
+    0%, 100% { transform: none; }
+    40%, 60% { transform: perspective(200px) rotateX(35deg); }
+}
+
+/* ── Narrow screens: name tags become a strip, tabs stack icon over label ── */
+
+@media (max-width: 767px) {
+    #trophy-room-modal { padding: 0.6rem; }
+    #trophy-room-modal .sat-shell { padding: 0 0.45rem 0.45rem; border-radius: 1.6rem; }
+    #trophy-room-modal .sat-shell::before { inset: 5px; border-radius: 1.35rem; }
+    #trophy-room-modal .sat-flap { margin: 0 -0.45rem; padding: 0.85rem 0.9rem 1.2rem 1rem; gap: 0.7rem; border-radius: 1.6rem 1.6rem 50% 50% / 1.6rem 1.6rem 1.2rem 1.2rem; }
+    #trophy-room-modal .sat-flap::after { inset: 6px 8px 7px; border-radius: 1.35rem 1.35rem 50% 50% / 1.35rem 1.35rem 1rem 1rem; }
+    #trophy-room-modal .sat-flap__ring--l { left: 2.2rem; }
+    #trophy-room-modal .sat-flap__ring--r { right: 2.2rem; }
+    #trophy-room-modal .sat-emblem { width: 2.4rem; height: 2.4rem; font-size: 1.1rem; }
+    #trophy-room-modal .trophy-room-heading h2 { font-size: 1.3rem; }
+    #trophy-room-modal .trophy-room-close { width: 2.2rem; height: 2.2rem; }
+    /* the buckle drops below the flap's edge so it never sits on the class line */
+    #trophy-room-modal .sat-buckle { bottom: -1.55rem; transform: scale(0.8); }
+    #trophy-room-modal .sat-buckle::before { top: -0.35rem; }
+    #trophy-room-modal .sat-shell.is-opening .sat-buckle { animation-name: sat-buckle-swing-sm; }
+
+    #trophy-room-modal .trophy-room-body {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr);
+        gap: 0.4rem;
+    }
+    #trophy-room-modal .sat-tags { border-radius: 0.8rem; }
+    #trophy-room-modal .trophy-room-roster-label { display: none; }
+    #trophy-room-modal .trophy-room-roster-list {
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+        gap: 0.35rem;
+        padding: 1.05rem 0.6rem 0.55rem;
+    }
+    /* tags hang from the top on phones: hole up, tag body below */
+    #trophy-room-modal .tr-roster-item {
+        grid-template-columns: minmax(0, 1fr);
+        justify-items: center;
+        gap: 0.22rem;
+        width: 4.7rem;
+        flex-shrink: 0;
+        padding: 1.05rem 0.25rem 0.4rem;
+        text-align: center;
+        clip-path: polygon(30% 0, 70% 0, 100% 0.65rem, 100% 100%, 0 100%, 0 0.65rem);
+        transform-origin: 50% 0;
+    }
+    #trophy-room-modal .tr-roster-item::before { left: 50%; top: 0.3rem; margin: 0 0 0 -0.275rem; }
+    #trophy-room-modal .tr-roster-item:hover { transform: rotate(-3deg); }
+    #trophy-room-modal .tr-roster-item.is-selected { transform: translateY(-3px); }
+    #trophy-room-modal .tr-roster-portrait { width: 2.5rem; height: 2.5rem; }
+    #trophy-room-modal .tr-roster-name { max-width: 100%; font-size: 0.72rem; }
+    #trophy-room-modal .tr-roster-count {
+        grid-column: auto;
+        position: absolute;
+        top: 0.95rem;
+        right: 0.25rem;
+        min-width: 1.2rem;
+        padding: 0 0.3rem;
+        font-size: 0.62rem;
+    }
+    #trophy-room-modal .tr-roster-ready { position: absolute; top: 1rem; left: 0.3rem; width: 1rem; height: 1rem; font-size: 0.5rem; }
+
+    #trophy-room-modal .sat-lining { padding: 1.25rem 0.7rem 1.3rem; border-radius: 0.8rem 0.8rem 1.25rem 1.25rem; }
+    #trophy-room-modal .tr-hero { flex-wrap: wrap; gap: 0.8rem; padding: 0.8rem 0.9rem; }
+    #trophy-room-modal .tr-hero-portrait { width: 3.2rem; height: 3.2rem; font-size: 1.3rem; }
+    #trophy-room-modal .tr-hero-id h3 { font-size: 1.3rem; }
+    #trophy-room-modal .tr-hero-pills { width: 100%; justify-content: flex-start; }
+
+    #trophy-room-modal .sat-tabs { gap: 0.25rem; padding: 0 0.2rem; margin-top: 1rem; }
+    #trophy-room-modal .sat-tab { flex-direction: column; gap: 0.2rem; padding: 0.5rem 0.2rem 0.5rem; font-size: 0.74rem; border-radius: 0.85rem 0.85rem 0 0; }
+    #trophy-room-modal .sat-tab::before { inset: 3px 4px 0; border-radius: 0.65rem 0.65rem 0 0; }
+    #trophy-room-modal .sat-tab__icon { width: 1.55rem; height: 1.55rem; font-size: 0.66rem; }
+    #trophy-room-modal .sat-tab__label { max-width: 100%; }
+    #trophy-room-modal .sat-tab__count { position: absolute; top: 0.25rem; right: 0.25rem; min-width: 1.15rem; padding: 0 0.28rem; font-size: 0.6rem; }
+
+    #trophy-room-modal .sat-pocket { padding: 0.95rem 0.75rem 1.1rem; border-radius: 1rem; }
+    #trophy-room-modal .sat-pocket::before { inset: 4px; border-radius: 0.8rem; }
+    #trophy-room-modal .tr-relic-grid { grid-template-columns: minmax(0, 1fr); }
+    #trophy-room-modal .tr-relic { grid-template-columns: 3.3rem minmax(0, 1fr); }
+    #trophy-room-modal .tr-relic-art { width: 3.3rem; height: 3.3rem; font-size: 1.6rem; }
+    #trophy-room-modal .tr-use-btn { grid-column: 1 / -1; }
+    #trophy-room-modal .tr-treasure-grid { grid-template-columns: repeat(auto-fill, minmax(6.6rem, 1fr)); gap: 0.6rem; }
+}
+
+/* Phone shell: the generic sheet rule makes every modal child scroll; this one scrolls its lining instead. */
+body.gcq-mobile #trophy-room-modal > .trophy-room-shell {
+    height: min(90vh, 100dvh);
+    overflow: visible !important;
+    padding-bottom: 0.45rem;
+}
+body.gcq-mobile #trophy-room-modal .trophy-room-content { padding-bottom: calc(1.4rem + env(safe-area-inset-bottom)); }
+body.gcq-mobile #trophy-room-modal .trophy-room-head { padding-right: 3.9rem; }
+
+@media (prefers-reduced-motion: reduce) {
+    #trophy-room-modal *,
+    #trophy-room-modal *::before,
+    #trophy-room-modal *::after {
+        animation: none !important;
+        transition-duration: 0.01s !important;
+    }
+    #trophy-room-modal .tr-relic:hover,
+    #trophy-room-modal .tr-treasure:hover,
+    #trophy-room-modal .trophy-room-close:hover,
+    #trophy-room-modal .tr-roster-item:hover { transform: none; }
+}
+
+/* the flap's emblem: a small drawn satchel on a brass medallion */
+#trophy-room-modal .sat-emblem .sat-art-strap { stroke-width: 9; }
+#trophy-room-modal .sat-emblem .sat-art-buckle { stroke: #5a2a0f; stroke-width: 5; }

@@ -298,25 +298,51 @@ test('a guild with no heroes in the class gets the Envoy, and the result card ne
   assert.doesNotMatch(wheelSrc, /MAX_SHOWN/);
 });
 
-// ─── Comeback wind (2026-10-30) ───
+// ─── The Tailwind (2026-11-02): one catch-up for every Glory, the Wheel included ───
 
-test('comeback wind: +0.5 Glory per hero for each place behind the Chapter leader, none for the leader or before anyone scores', async () => {
-  const { comebackWindFor, rankChapter, COMEBACK_WIND } = await import('../features/guildScoringCore.js');
-  assert.equal(COMEBACK_WIND.perPlace, 0.5);
-  const t = (perMember) => ({ perMember, unity: false });
-  const ranked = rankChapter({ a: t(10), b: t(8), c: t(8), d: t(0) });
-  assert.deepEqual(comebackWindFor(ranked, 'a'), { place: 1, behind: 0, perHero: 0 });
-  assert.equal(comebackWindFor(ranked, 'b').perHero, 0.5);
-  assert.equal(comebackWindFor(ranked, 'c').perHero, 0.5, 'tied guilds share the place and the wind');
-  assert.deepEqual(comebackWindFor(ranked, 'd'), { place: 3, behind: 2, perHero: 1 }, 'no Glory yet: behind every guild that has some');
-  assert.equal(comebackWindFor(rankChapter({ a: t(4), b: t(3), c: t(2), d: t(1) }), 'd').perHero, 1.5);
-  assert.equal(comebackWindFor(rankChapter({ a: t(0), b: t(0) }), 'a').perHero, 0, 'no wind before anyone has Glory');
-  assert.equal(comebackWindFor(ranked, 'zz').perHero, 0);
+test('tailwind: closes two thirds of the stars-per-member gap, in 5% steps, at most 30%, calm for the leader and early on', async () => {
+  const { tailwindsFor, tailwindGlory, TAILWIND } = await import('../features/guildScoringCore.js');
+  assert.equal(TAILWIND.cap, 0.3);
+  const w = tailwindsFor({ a: 20, b: 16, c: 12, d: 0 });
+  assert.equal(w.a.pct, 0, 'the leader has calm air');
+  assert.equal(w.a.key, 'calm');
+  assert.equal(w.b.pct, 0.15, '2/3 × (20/16 − 1) ≈ 16.7% → 15%');
+  assert.equal(w.c.pct, 0.3, '2/3 × (20/12 − 1) ≈ 44% → capped at 30%');
+  assert.equal(w.d.pct, 0.3, 'no stars yet: the full Tailwind');
+  assert.equal(w.c.key, 'gale');
+  assert.equal(tailwindsFor({ a: 19, b: 18.5 }).b.pct, 0, 'a guild a hair behind has calm air');
+  assert.equal(tailwindsFor({ a: 4, b: 1 }).b.pct, 0, 'calm everywhere before the leader has 5 stars per member');
+  assert.equal(tailwindGlory(2, 0.15), 0.3);
+  assert.equal(tailwindGlory(-2, 0.3), 0, 'a loss is never made bigger');
 });
 
-test('the wheel adds the comeback wind after the fate, never for the Envoy, and shows it before and after the spin', () => {
-  assert.match(wheelSrc, /if \(!envoy && wind\?\.perHero > 0 && guildStudents\.length\)/);
-  assert.match(wheelSrc, /wheelIo\.awardGlory\(guildStudents\.map\(\(s\) => s\.id\), wind\.perHero, 'wheel_comeback_wind'/);
+test('tailwind can close a gap but never carry a guild past one that earns more', async () => {
+  const { tailwindsFor } = await import('../features/guildScoringCore.js');
+  // Steady earners: per member per day, leader 2, chaser from 1 to 1.95. The chaser's boosted speed
+  // must stay below the leader's whatever the gap.
+  for (let chaser = 1; chaser < 2; chaser += 0.05) {
+    const pct = tailwindsFor({ lead: 2 * 30, chase: chaser * 30 }).chase.pct;
+    assert.ok(chaser * (1 + pct) < 2 + 1e-9, `chaser at ${chaser.toFixed(2)} with +${pct} stays behind`);
+  }
+});
+
+test('every Glory gain carries the Tailwind; exact take-backs and carry-overs never do', async () => {
+  const { calculateGuildGloryDelta, exactGuildGloryDelta } = await import('../features/guildScoringCore.js');
+  const gain = calculateGuildGloryDelta({ starDelta: 3, tailwindPct: 0.2 });
+  assert.equal(gain.windGlory, 1.2);
+  assert.equal(gain.totalGloryDelta, 7.2);
+  assert.ok(gain.breakdown.some((b) => b.type === 'tailwind'));
+  assert.equal(calculateGuildGloryDelta({ starDelta: -2, tailwindPct: 0.3 }).totalGloryDelta, -4);
+  assert.equal(calculateGuildGloryDelta({ directGlory: 5, tailwindPct: 0.1 }).totalGloryDelta, 5.5);
+  assert.equal(exactGuildGloryDelta({ starDelta: -1, glory: -2.6 }).windGlory, 0);
+  const scoringSrc = fs.readFileSync(path.join(__dirname, '..', 'features', 'guildScoring.js'), 'utf8');
+  assert.match(scoringSrc, /NO_TAILWIND_SOURCES = new Set\(\['guild_join', 'glory_correction', 'manual_score_override'\]\)/);
+  assert.match(scoringSrc, /chapterKey !== chapterKeyFor\(new Date\(now\)\)\) return 0/);
+});
+
+test('the wheel shows the Tailwind each Glory write brought, apart from the fate, before and after the spin', () => {
+  assert.doesNotMatch(wheelSrc, /wheel_comeback_wind/);
+  assert.match(wheelSrc, /windOut: ctx\.windOut/);
   assert.match(wheelSrc, /_wheelState\.wind = _wheelState\.envoy \? null : wheelIo\.wind\(guildId\)/);
   assert.match(wheelSrc, /fw-wheel-legend__wind/);
   assert.match(wheelSrc, /fw-result-wind/);

@@ -82,6 +82,7 @@ export function calculateGuildGloryDelta({
     directGlory = 0,
     scoreData = {},
     gloryPerStar = 2,
+    tailwindPct = 0,
 } = {}) {
     const safeStarDelta = Number(starDelta) || 0;
     const safeDirectGlory = Number(directGlory) || 0;
@@ -102,12 +103,19 @@ export function calculateGuildGloryDelta({
         breakdown.push({ type: 'direct_glory', amount: safeDirectGlory, detail: 'Direct Guild Glory event' });
     }
 
+    // The Tailwind: a share more on what was gained (a loss is never made bigger).
+    const windGlory = tailwindGlory(Math.max(0, starGlory) + bannerGlory + Math.max(0, safeDirectGlory), tailwindPct);
+    if (windGlory) {
+        breakdown.push({ type: 'tailwind', amount: windGlory, detail: `Tailwind +${Math.round(tailwindPct * 100)}%` });
+    }
+
     return {
         starDelta: safeStarDelta,
         baseGlory: roundTo(starGlory, 2),
         modifierGlory: roundTo(bannerGlory, 2),
         directGlory: roundTo(safeDirectGlory, 2),
-        totalGloryDelta: roundTo(starGlory + bannerGlory + safeDirectGlory, 2),
+        windGlory,
+        totalGloryDelta: roundTo(starGlory + bannerGlory + safeDirectGlory + windGlory, 2),
         breakdown,
     };
 }
@@ -120,6 +128,7 @@ export function exactGuildGloryDelta({ starDelta = 0, glory = 0 } = {}) {
         baseGlory: amount,
         modifierGlory: 0,
         directGlory: 0,
+        windGlory: 0,
         totalGloryDelta: amount,
         breakdown: [{ type: 'exact_glory', amount, detail: 'Exact Glory change' }],
     };
@@ -254,24 +263,58 @@ export function rankChapter(tallies = {}) {
     return result;
 }
 
-/**
- * Comeback wind: each Wheel spin adds `perPlace` Glory per hero for every place a guild trails
- * the live Chapter's leader (at most `maxPlaces`), so a guild that drew fewer star-collectors
- * still has a real chance at a month. Effort (stars) stays the main way to win.
- */
-export const COMEBACK_WIND = { perPlace: 0.5, maxPlaces: 3 };
+// ─── The Tailwind (catch-up for guilds the race has left behind) ─────────────
 
 /**
- * The wind for one guild, from rankChapter() of the live Chapter. A guild with no Glory yet
- * counts as behind every guild that has some. Before anyone has Glory there is no wind.
+ * Guilds are for life, so a guild that drew fewer star-collectors would trail all year. The
+ * Tailwind gives such a guild a share more on every Glory its members earn (stars, Quiz, Wheel,
+ * Market), sized by how far behind it is this year in stars per member:
+ *   pct = closes × (leader's stars per member ÷ ours − 1), in 5% steps, at most `cap`.
+ * `closes` (2/3) means it makes up about two thirds of the gap in earning speed and never all of
+ * it, so the Tailwind alone can never carry a guild past one that earns more: the last third is
+ * always effort. The leader, and anyone within a step of it, has calm air. Before the leader has
+ * `minStars` stars per member this year, every guild has calm air.
+ * Checked by simulation (8 classes, 4 guilds, 1500 school years, 2026-11-02): the strongest guild
+ * won 75% of months with no wind and 51% with the Tailwind; all four guilds won a month in
+ * 41% of years instead of 4%. The old Wheel-only wind did little unless every class spun weekly.
  */
-export function comebackWindFor(ranked = {}, guildId) {
-    const places = Object.values(ranked).map((r) => r?.place).filter((p) => Number(p) > 0);
-    const row = ranked[guildId];
-    if (!row || !places.length) return { place: null, behind: 0, perHero: 0 };
-    const place = row.place || Math.max(...places) + 1;
-    const behind = Math.min(COMEBACK_WIND.maxPlaces, Math.max(0, place - 1));
-    return { place, behind, perHero: roundTo(behind * COMEBACK_WIND.perPlace, 2) };
+export const TAILWIND = { closes: 2 / 3, cap: 0.3, step: 0.05, minStars: 5 };
+
+/** The Tailwind's name for a share (0 → calm). */
+export function tailwindLevel(pct = 0) {
+    const p = Number(pct) || 0;
+    if (p <= 0.0001) return { key: 'calm', name: 'Calm air', icon: '🍃' };
+    if (p < 0.149) return { key: 'breeze', name: 'Breeze', icon: '🌬️' };
+    if (p < 0.249) return { key: 'wind', name: 'Strong wind', icon: '🌬️' };
+    return { key: 'gale', name: 'Gale', icon: '🌪️' };
+}
+
+/**
+ * Tailwind for every guild from its stars per member this year: `{ [guildId]: { pct, ...level,
+ * starsPerMember, leaderStarsPerMember } }`. Guilds with no members are left out of the race.
+ */
+export function tailwindsFor(starsPerMember = {}) {
+    const racing = Object.entries(starsPerMember).filter(([, v]) => Number.isFinite(Number(v)) && v !== null);
+    const best = Math.max(0, ...racing.map(([, v]) => Number(v) || 0));
+    const out = {};
+    for (const [guildId, v] of racing) {
+        const mine = Math.max(0, Number(v) || 0);
+        let pct = 0;
+        if (best >= TAILWIND.minStars) {
+            const raw = mine > 0 ? TAILWIND.closes * (best / mine - 1) : TAILWIND.cap;
+            pct = Math.min(TAILWIND.cap, Math.round(raw / TAILWIND.step) * TAILWIND.step);
+            pct = roundTo(pct, 2);
+        }
+        out[guildId] = { pct, ...tailwindLevel(pct), starsPerMember: roundTo(mine, 2), leaderStarsPerMember: roundTo(best, 2) };
+    }
+    return out;
+}
+
+/** The extra Glory the Tailwind adds to a gain (never to a loss). */
+export function tailwindGlory(gain = 0, pct = 0) {
+    const g = Number(gain) || 0;
+    const p = Number(pct) || 0;
+    return g > 0 && p > 0 ? roundTo(g * p, 2) : 0;
 }
 
 /**

@@ -2,7 +2,7 @@
 
 import { quietly } from '../../utils/runtimeMetrics.js';
 import { getCrownRoadKeys, getGuildLeaderboardData } from '../../features/guildScoring.js';
-import { CHAPTER_CROWNS, UNITY_SEAL, chapterDaysLeft, chapterName, chapterShortName, sharedPlaces, unityProgress, unityProgressLabel } from '../../features/guildScoringCore.js';
+import { CHAPTER_CROWNS, TAILWIND, UNITY_SEAL, chapterDaysLeft, chapterName, chapterShortName, sharedPlaces, unityProgress, unityProgressLabel } from '../../features/guildScoringCore.js';
 import { getGuildById, getGuildEmblemUrl, GUILD_IDS } from '../../features/guilds.js';
 import { yearChronicles } from '../../features/guildChronicleCore.js';
 import { isSpeaking, isTtsSupported, speakText, stopSpeech } from '../../features/tts.js';
@@ -39,6 +39,10 @@ export function guildPowerExplainerCardHtml() {
         {
             key: 'active', icon: '🤝', name: 'The Unity Seal: +1 Crown',
             copy: `Any guild where at least 4 in 5 members earned ${UNITY_SEAL.minGlory} Glory (3 stars) that month. Bring the quiet heroes along!`,
+        },
+        {
+            key: 'wind', icon: '🌬️', name: 'The Tailwind',
+            copy: `A guild behind in stars per member this year earns a little more on every Glory, up to +${Math.round(TAILWIND.cap * 100)}%. It closes about two thirds of the gap, never all of it, so effort still decides the race.`,
         },
         {
             key: 'momentum', icon: '🏰', name: 'The June crown',
@@ -775,6 +779,7 @@ function _bannerShellHtml(guildId, i, seasonLive) {
                         <span class="gh-unity__seal" data-gh="unitySeal" aria-hidden="true"><span>🤝</span></span>
                         <span class="gh-unity__text"><b>Unity Seal</b><small data-gh="unityText"></small></span>
                     </div>
+                    <div class="gh-banner__wind" data-gh="wind"></div>
                     <div class="gh-banner__standards" data-gh="standards"></div>
                 </div>
                 <div class="gh-banner__details${_guildHallStatsExpanded && seasonLive ? ' is-open' : ''}" data-gh="details">
@@ -1027,12 +1032,22 @@ function _patchBanner(el, row, model, { fresh }) {
     q('unitySeal')?.style.setProperty('--p', String(up.fill));
     _setText(q('unityText'), sealed ? `Sealed! +${UNITY_SEAL.crowns} Crown · ${up.ready} of ${up.members}` : unityProgressLabel(up));
 
+    _setHtml(q('wind'), _windChipHtml(row.tailwind));
+
     const names = [...new Set((row.standards || []).map((s) => s?.name).filter(Boolean))];
     _setHtml(q('standards'), names.length
         ? `<span class="gh-standard" title="Raised with a Guild Standard from the Mystic Market"><i class="fas fa-flag" aria-hidden="true"></i>${names.slice(0, 2).map(_escapeHtml).join(' · ')}${names.length > 2 ? ` +${names.length - 2}` : ''}</span>`
         : '');
 
     _morph(q('detailsInner'), _detailsHtml(row));
+}
+
+/** The Tailwind chip on a banner: only while the guild is behind in the year. */
+function _windChipHtml(wind) {
+    const pct = Math.round((Number(wind?.pct) || 0) * 100);
+    if (!pct) return '';
+    const tip = `Tailwind: this guild is behind in stars per member this year (${formatGlory(wind.starsPerMember)} against ${formatGlory(wind.leaderStarsPerMember)}), so every Glory its members earn grows by ${pct}%. It closes about two thirds of the gap, never all of it.`;
+    return `<span class="gh-wind gh-wind--${wind.key || 'breeze'}" title="${_escapeHtml(tip)}"><span class="gh-wind__icon" aria-hidden="true">${wind.icon || '🌬️'}</span><b>+${pct}%</b> ${_escapeHtml(wind.name || 'Tailwind')}</span>`;
 }
 
 /** Like _setHtml, but keeps every node that can stay (pictures don't blink, bars glide). */

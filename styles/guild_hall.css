@@ -683,6 +683,36 @@
     100% { transform: none; }
 }
 
+/* The Tailwind: a pale-sky chip while a guild is behind in the year; its icon sways. */
+.gh-banner__wind:empty { display: none; }
+.gh-banner__wind { margin-top: 0.45rem; max-width: 100%; }
+.gh-wind {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    max-width: 100%;
+    padding: 0.15rem 0.6rem 0.15rem 0.45rem;
+    border-radius: 999px;
+    border: 1px solid rgba(186, 230, 253, 0.35);
+    background: linear-gradient(90deg, rgba(14, 116, 144, 0.45), rgba(12, 74, 110, 0.35));
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: #e0f2fe;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: help;
+}
+.gh-wind b { color: #bae6fd; }
+.gh-wind--gale { border-color: rgba(125, 211, 252, 0.6); box-shadow: 0 0 10px rgba(56, 189, 248, 0.25); }
+.gh-wind__icon { display: inline-block; transform-origin: 50% 80%; animation: gh-wind-sway 2.8s ease-in-out infinite; }
+@keyframes gh-wind-sway {
+    0%, 100% { transform: rotate(-6deg) translateX(-1px); }
+    50% { transform: rotate(6deg) translateX(1px); }
+}
+@media (prefers-reduced-motion: reduce) { .gh-wind__icon { animation: none; } }
+.gh--lite .gh-wind__icon { animation: none; }
+
 .gh-banner__standards:empty { display: none; }
 .gh-banner__standards { margin-top: 0.5rem; max-width: 100%; }
 .gh-standard {

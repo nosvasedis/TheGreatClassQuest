@@ -36,15 +36,23 @@ state.set('globalSelectedClassId', 'c1');
 const byGuildOf = (ids, n) => ids.reduce((acc, id) => { const g = students.find((s) => s.id === id)?.guildId; if (g) acc[g] = (acc[g] || 0) + n; return acc; }, {});
 const pick = (list, n) => [...list].sort(() => Math.random() - 0.5).slice(0, Math.min(n, list.length));
 const ARTIFACTS = [['🗡️', 'Blade of Dawn'], ['🔮', 'Seer’s Orb'], ['🪶', 'Phoenix Quill'], ['🛡️', 'Aegis of Owls'], ['📿', 'Moonstone Charm']];
+function _windOf(gid) {
+    if (params.get('wind') === '0') return { pct: 0, key: 'calm', name: 'Calm air', icon: '🍃' };
+    const pct = { owl_wisdom: 0, grizzly_might: 0.1, dragon_flame: 0.2, phoenix_rising: 0.3 }[gid] || 0;
+    return { pct, ...[{ key: 'calm', name: 'Calm air', icon: '🍃' }, { key: 'breeze', name: 'Breeze', icon: '🌬️' }, { key: 'wind', name: 'Strong wind', icon: '🌬️' }, { key: 'gale', name: 'Gale', icon: '🌪️' }][Math.round(pct * 10)] };
+}
 Object.assign(wheelIo, {
-    awardGlory: async (ids, n) => { ids.forEach((id) => monthGlory.set(id, (monthGlory.get(id) || 0) + n)); return byGuildOf(ids, n); },
-    monthGlory: (id) => monthGlory.get(id) || 0,
-    // Pretend Chapter places: Owl Wisdom leads, then Grizzly, Dragon, Phoenix (?wind=0 turns it off).
-    wind: (gid) => {
-        if (params.get('wind') === '0') return { place: null, behind: 0, perHero: 0 };
-        const place = { owl_wisdom: 1, grizzly_might: 2, dragon_flame: 3, phoenix_rising: 4 }[gid] || 1;
-        return { place, behind: place - 1, perHero: (place - 1) * 0.5 };
+    // Pretend Tailwinds: Owl Wisdom leads the year, then Grizzly, Dragon, Phoenix (?wind=0 turns it off).
+    wind: (gid) => _windOf(gid),
+    awardGlory: async (ids, n, _src, { windOut = null } = {}) => {
+        ids.forEach((id) => {
+            monthGlory.set(id, (monthGlory.get(id) || 0) + n);
+            const pct = _windOf(students.find((s) => s.id === id)?.guildId).pct;
+            if (windOut && pct > 0) windOut[id] = Math.round(((windOut[id] || 0) + n * pct) * 100) / 100;
+        });
+        return byGuildOf(ids, n);
     },
+    monthGlory: (id) => monthGlory.get(id) || 0,
     takeGlory: async (ids, n) => {
         const byGuild = {}; const byStudent = {};
         ids.forEach((id) => {
@@ -64,7 +72,10 @@ Object.assign(wheelIo, {
         return { affectedStudents: chosen.map((s) => s.id), starsDelta: starsDelta * chosen.length, goldDelta: goldApplied, artifactsGranted: grantedArtifacts.length, artifactsRemoved: 0, grantedArtifacts };
     },
     questBonus: async (_c, delta) => ({ classQuestDelta: delta }),
-    starGlory: async (_id, n) => ({ totalGloryDelta: n * 2 }),
+    starGlory: async (id, n) => {
+        const wind = Math.round(n * 2 * _windOf(students.find((s) => s.id === id)?.guildId).pct * 100) / 100;
+        return { totalGloryDelta: n * 2 + wind, windGlory: wind };
+    },
     bounty: async () => {},
     questCheck: async () => {},
     hasSpun: async () => false,

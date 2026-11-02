@@ -7,7 +7,7 @@ import { db, doc, updateDoc } from '../firebase.js';
 import { GUILD_IDS, getGuildById, getGuildEmblemUrl } from './guilds.js';
 import { WHEEL_RARITY_WEIGHTS, WHEEL_PRISMATIC_CONFIG, getRarityPalette } from '../constants.js';
 import { saveFortuneWheelResult, hasSpunThisWeek } from '../db/actions/guilds.js';
-import { getISOWeekKey, updateGuildScores, awardGloryToStudents, takeGloryFromStudents, chapterGloryOf, getGuildMemberCounts, getComebackWind } from './guildScoring.js';
+import { getISOWeekKey, updateGuildScores, awardGloryToStudents, takeGloryFromStudents, chapterGloryOf, getGuildMemberCounts, getGuildTailwind } from './guildScoring.js';
 import { chapterKeyFor } from './guildScoringCore.js';
 import { composeWheel, composeEnvoyWheel, wheelModeFor } from '../utils/fortuneWheelSegments.mjs';
 import { challengeBand } from '../utils/wheelChallenges.mjs';
@@ -29,7 +29,7 @@ export const wheelIo = {
     awardGlory: awardGloryToStudents,
     takeGlory: takeGloryFromStudents,
     monthGlory: chapterGloryOf,
-    wind: getComebackWind,
+    wind: getGuildTailwind,
     studentEffects: applyWheelStudentEffects,
     questBonus: applyClassQuestBonusDelta,
     starGlory: updateGuildScores,
@@ -211,6 +211,14 @@ function _mark(ctx, studentId, patch = {}) {
     ctx.ledger.set(studentId, row);
 }
 
+/** A star's Glory from the Wheel: notes the Tailwind's share apart and returns the star's own Glory. */
+function _noteStarWind(ctx, studentId, event) {
+    const total = Number(event?.totalGloryDelta) || 0;
+    const wind = Math.max(0, Number(event?.windGlory) || 0);
+    if (wind && ctx?.windOut) ctx.windOut[studentId] = _round2((ctx.windOut[studentId] || 0) + wind);
+    return _round2(total - wind);
+}
+
 /**
  * Pays (or charges) the chosen heroes. Firestore refuses one commit that touches 9 or more
  * heroes' scores, so a big group (a whole class from the Envoy) is written 6 at a time.
@@ -255,6 +263,7 @@ async function classGlory(ctx, perMember, lead = '', tag = 'glory') {
         classId: ctx.classId,
         note: "Fortune's Wheel",
         idempotencyPrefix: ctx.spinKey ? `${ctx.spinKey}_${tag}` : null,
+        windOut: ctx.windOut,
     });
     members.forEach((s) => _mark(ctx, s.id, { glory: perMember }));
     const gloryDelta = Math.round(Number(byGuild[ctx.guildId]) || 0);
@@ -273,6 +282,7 @@ async function giveGlory(ctx, students, perHero, tag, source = 'wheel_glory') {
         classId: ctx.classId,
         note: "Fortune's Wheel",
         idempotencyPrefix: ctx.spinKey ? `${ctx.spinKey}_${tag}` : null,
+        windOut: ctx.windOut,
     });
     students.forEach((s) => _mark(ctx, s.id, { glory: perHero }));
     return byGuild;
@@ -841,7 +851,7 @@ async function randomStars(ctx, count, amount) {
         let gloryDelta = 0;
         for (const sid of outcome.affectedStudents) {
             const event = await wheelIo.starGlory(sid, amount, 'wheel_star_blessing');
-            const g = Number(event?.totalGloryDelta) || 0;
+            const g = _noteStarWind(ctx, sid, event);
             // Stars carry Glory too, but only the spinning guild's counts toward its tile.
             if (members.find((s) => s.id === sid)?.guildId === ctx.guildId) gloryDelta += g;
             _mark(ctx, sid, { stars: amount, glory: g });
@@ -952,7 +962,7 @@ async function teachersFavor(ctx) {
     let gloryDelta = 0;
     if (sid) {
         const event = await wheelIo.starGlory(sid, 2, 'wheel_teachers_favor');
-        gloryDelta = Number(event?.totalGloryDelta) || 0;
+        gloryDelta = _noteStarWind(ctx, sid, event);
         _mark(ctx, sid, { stars: 2, gold: 30, glory: gloryDelta });
         await wheelIo.bounty(ctx.classId, 2, [sid]);
         await wheelIo.questCheck(ctx.classId).catch(quietly('features/fortunesWheel.js'));
@@ -1112,6 +1122,8 @@ async function _spendFortuneFavor(guildId, classId) {
  * @returns {Promise<object>} result with gloryDelta, description, affectedStudents, etc.
  */
 export async function applyWheelResult(guildId, segment, classId, { favored = false, decision = {}, previous = null, envoy = false, wind = null } = {}) {
+    // `wind` is the spinning guild's Tailwind as it was shown before the spin (for the words only:
+    // each Glory write works out its own guild's Tailwind).
     const allStudents = state.get('allStudents') || [];
     const guildStudents = allStudents.filter(s => s.guildId === guildId && s.classId === classId);
 
@@ -1123,6 +1135,8 @@ export async function applyWheelResult(guildId, segment, classId, { favored = fa
         memberCount: guildStudents.length || 1,
         previous,
         ledger: new Map(),
+        // The Tailwind's share of every Glory this spin gave, per hero (filled by the Glory writes).
+        windOut: {},
         // One spin per guild per class per week, so its Glory is written exactly once.
         spinKey: `wheel_${classId}_${getISOWeekKey()}_${guildId}`,
     };
@@ -1139,16 +1153,16 @@ export async function applyWheelResult(guildId, segment, classId, { favored = fa
     try {
         const effect = wheelTestHooks.effect || segment.effect || SEGMENTS_BY_ID.get(segment.id)?.effect;
         const result = (await effect(ctx, decision || {}, segment)) || {};
-        // Comeback wind: a guild behind the Chapter's leader gets a little extra on every spin.
-        // It is shown apart from the fate (its own badge per hero and its own tile), never mixed in.
-        if (!envoy && wind?.perHero > 0 && guildStudents.length) {
-            await wheelIo.awardGlory(guildStudents.map((s) => s.id), wind.perHero, 'wheel_comeback_wind', {
-                classId,
-                note: "Fortune's Wheel comeback wind",
-                idempotencyPrefix: `${ctx.spinKey}_wind`,
-            });
-            guildStudents.forEach((s) => _mark(ctx, s.id, { wind: wind.perHero }));
-            result.wind = { place: wind.place, behind: wind.behind, perHero: wind.perHero, total: _round2(wind.perHero * guildStudents.length) };
+        // The Tailwind: a guild behind in the year's race earns a share more on every Glory, here
+        // as everywhere. It is shown apart from the fate (its own badge per hero and its own tile).
+        const windRows = Object.entries(ctx.windOut).filter(([, w]) => w > 0);
+        if (windRows.length) {
+            windRows.forEach(([id, w]) => _mark(ctx, id, { wind: w }));
+            // The tile counts this guild's own Tailwind; other guilds' share shows in their Glory.
+            const own = new Set(guildStudents.map((s) => s.id));
+            const mine = windRows.filter(([id]) => own.has(id));
+            const total = _round2((mine.length ? mine : envoy ? windRows : []).reduce((sum, [, w]) => sum + w, 0));
+            if (total > 0) result.wind = { pct: mine.length ? Number(wind?.pct) || 0 : 0, name: wind?.name || 'Tailwind', total };
         }
         if (favored) await _spendFortuneFavor(guildId, classId);
         // What the Mirror of Fates copies: the wedge itself, unless the effect named its own echo.
@@ -1186,11 +1200,13 @@ const TAU = Math.PI * 2;
 
 const _ordinal = (n) => `${n}${({ 1: 'st', 2: 'nd', 3: 'rd' })[n] || 'th'}`;
 
-/** The comeback wind's sign beside the wheel, before the spin. */
+const _pctText = (pct) => `+${Math.round((Number(pct) || 0) * 100)}%`;
+
+/** The Tailwind's sign beside the wheel, before the spin. */
 function _windNoteHtml() {
     const wind = _wheelState.wind;
-    if (_wheelState.envoy || !(wind?.perHero > 0)) return '';
-    return `<div class="fw-wheel-legend__wind"><span aria-hidden="true">🌬️</span> <span><b>Comeback wind</b> · ${_ordinal(wind.place)} this month, so whatever the wheel brings, every guildmate here also gets <b>+${wind.perHero} Glory</b>.</span></div>`;
+    if (_wheelState.envoy || !(wind?.pct > 0)) return '';
+    return `<div class="fw-wheel-legend__wind"><span aria-hidden="true">${wind.icon || '🌬️'}</span> <span><b>Tailwind ${_pctText(wind.pct)}</b> · ${wind.name || 'Breeze'} at this guild's back: any Glory the wheel brings grows by ${_pctText(wind.pct)}, like every Glory it earns this year.</span></div>`;
 }
 
 /** How a wedge is painted: an Envoy's toll wears the storm's colours, so the class sees the risk. */
@@ -2530,7 +2546,7 @@ function _renderWheelPhase() {
                 : omen
                     ? `${guildName} steps up to the wheel… and an Omen glows on it tonight!`
                     : `${guildName} steps up to the wheel. Treasure, twists, trials… or a storm?`)
-        + (!_wheelState.envoy && _wheelState.wind?.perHero > 0 ? ` A comeback wind blows at their back: +${_wheelState.wind.perHero} Glory each.` : ''));
+        + (!_wheelState.envoy && _wheelState.wind?.pct > 0 ? ` A Tailwind blows at their back: ${_pctText(_wheelState.wind.pct)} on any Glory.` : ''));
     _setCardPhase('ready');
 
     const stageFrame = document.getElementById('fw-stage-frame');
@@ -2738,7 +2754,7 @@ function _heroLedgerHtml(result) {
                 row.stars ? `<span class="fw-hero__b fw-hero__b--star${row.stars < 0 ? ' is-neg' : ''}">${_fmtDelta(row.stars)}<i aria-hidden="true">⭐</i></span>` : '',
                 row.gold ? `<span class="fw-hero__b fw-hero__b--gold${row.gold < 0 ? ' is-neg' : ''}">${_fmtDelta(row.gold)}<i aria-hidden="true">🪙</i></span>` : '',
                 ...(row.artifacts || []).map((a) => `<span class="fw-hero__b fw-hero__b--artifact" title="${_esc(a.name)}"><i aria-hidden="true">${_esc(a.icon)}</i>${_esc(a.name)}</span>`),
-                row.wind ? `<span class="fw-hero__b fw-hero__b--wind" title="Comeback wind">${_fmtDelta(row.wind)}<i aria-hidden="true">🌬️</i></span>` : '',
+                row.wind ? `<span class="fw-hero__b fw-hero__b--wind" title="Tailwind">${_fmtDelta(row.wind)}<i aria-hidden="true">🌬️</i></span>` : '',
             ].join('');
             const spared = !badges && row.spared;
             const neg = (row.glory || 0) < 0 || (row.gold || 0) < 0;
@@ -2831,7 +2847,7 @@ function _renderWheelResult(segment, result, guildDef) {
             ? { icon: '⚜️', label: result.envoy ? 'Glory' : 'Guild Glory', displayStr: `${result.gloryDelta >= 0 ? '+' : ''}${result.gloryDelta}`, isNeg: result.gloryDelta < 0 }
             : null,
         result.wind
-            ? { icon: '🌬️', label: 'Comeback wind', displayStr: `+${result.wind.total}`, isNeg: false }
+            ? { icon: '🌬️', label: 'Tailwind', displayStr: `+${result.wind.total}`, isNeg: false }
             : null,
         ...Object.entries(result.gloryByGuild || {})
             .filter(([gid, n]) => n && (result.envoy || gid !== result.guildId))
@@ -2912,7 +2928,7 @@ function _renderWheelResult(segment, result, guildDef) {
             <div class="fw-result-title">${segment.label}</div>
             ${decisionHtml}
             <div class="fw-result-description">${result.description || segment.description}</div>
-            ${result.wind ? `<div class="fw-result-wind"><span aria-hidden="true">🌬️</span> And the comeback wind: +${result.wind.perHero} Glory for each guildmate here, because ${guildDef?.name || 'the guild'} is ${_ordinal(result.wind.place)} this month.</div>` : ''}
+            ${result.wind ? `<div class="fw-result-wind"><span aria-hidden="true">🌬️</span> And the Tailwind: +${result.wind.total} Glory more${result.wind.pct > 0 ? `, because ${guildDef?.name || 'the guild'} is behind this year and earns ${_pctText(result.wind.pct)} on every Glory` : ' for guilds that are behind this year'}.</div>` : ''}
             ${statsBlockHtml}
             ${artifactShowcaseHtml}
             ${heroLedgerHtml}
@@ -3071,7 +3087,7 @@ function _renderWheelSummary() {
             const signed = (n) => `${n >= 0 ? '+' : ''}${n}`;
             const deltas = [
                 r.gloryDelta ? deltaChip(signed(r.gloryDelta), '⚜️', 'Glory', r.gloryDelta < 0) : '',
-                r.wind?.total ? deltaChip(signed(r.wind.total), '🌬️', 'Comeback wind', false) : '',
+                r.wind?.total ? deltaChip(signed(r.wind.total), '🌬️', 'Tailwind', false) : '',
                 ...Object.entries(r.gloryByGuild || {}).filter(([gid, n]) => n && (r.envoy || gid !== r.guildId))
                     .map(([gid, n]) => deltaChip(signed(n), _crestIcon(gid), `${getGuildById(gid)?.name || 'Guild'} Glory`, n < 0)),
                 r.goldDelta ? deltaChip(signed(r.goldDelta), '🪙', 'Gold', r.goldDelta < 0) : '',

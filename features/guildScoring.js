@@ -27,7 +27,6 @@ import {
     chapterTally,
     isUnityReady,
     chaptersToSeal,
-    comebackWindFor,
     compareCrownRaceRows,
     countedGuildGlory,
     exactGuildGloryDelta,
@@ -37,6 +36,8 @@ import {
     rankChapter,
     roundTo,
     schoolYearChapterKeys,
+    tailwindLevel,
+    tailwindsFor,
 } from './guildScoringCore.js';
 import { PUBLIC_DATA_PATH as publicDataPath } from '../utils/tenant.mjs';
 
@@ -149,11 +150,31 @@ function _buildNewGuildScoreDoc({ guildId, guildDef, delta, studentId, chapterKe
     };
 }
 
-function _gloryDelta({ starDelta, directGlory, exactGlory, scoreData }) {
-    if (exactGlory !== null && exactGlory !== undefined && Number.isFinite(Number(exactGlory))) {
-        return exactGuildGloryDelta({ starDelta, glory: exactGlory });
+function _isExact(exactGlory) {
+    return exactGlory !== null && exactGlory !== undefined && Number.isFinite(Number(exactGlory));
+}
+
+function _gloryDelta({ starDelta, directGlory, exactGlory, scoreData, tailwindPct = 0 }) {
+    if (_isExact(exactGlory)) return exactGuildGloryDelta({ starDelta, glory: exactGlory });
+    return calculateGuildGloryDelta({ starDelta, directGlory, scoreData, gloryPerStar: GLORY_PER_STAR, tailwindPct });
+}
+
+/** Glory that is a correction or a carry-over, not something earned now: the Tailwind never touches it. */
+const NO_TAILWIND_SOURCES = new Set(['guild_join', 'glory_correction', 'manual_score_override']);
+
+/**
+ * The Tailwind share for a Glory change: only for Glory earned in the Chapter running now, once
+ * the Crown Race has begun, and never for exact amounts (take-backs and corrections).
+ */
+function _tailwindPctFor({ guildId, source, exactGlory, chapterKey, now }) {
+    if (_isExact(exactGlory) || NO_TAILWIND_SOURCES.has(source)) return 0;
+    if (!chapterKey || chapterKey !== chapterKeyFor(new Date(now))) return 0;
+    if (!isGameplaySeasonLiveFromAppState(state)) return 0;
+    try {
+        return Number(getGuildTailwinds(new Date(now))[guildId]?.pct) || 0;
+    } catch (_) {
+        return 0;
     }
-    return calculateGuildGloryDelta({ starDelta, directGlory, scoreData, gloryPerStar: GLORY_PER_STAR });
 }
 
 function _eventPayload({ guildId, studentId, classId, source, delta, note, eventMeta, chapterKey }) {
@@ -168,6 +189,7 @@ function _eventPayload({ guildId, studentId, classId, source, delta, note, event
         baseGlory: delta.baseGlory,
         modifierGlory: delta.modifierGlory,
         directGlory: delta.directGlory,
+        windGlory: Number(delta.windGlory) || 0,
         totalGloryDelta: delta.totalGloryDelta,
         breakdown: delta.breakdown,
         note: String(note || '').slice(0, 280),
@@ -224,11 +246,12 @@ export async function recordGuildGloryEvent({
     const liveGuildData = (guildSnap?.exists?.() ? guildSnap.data() : (state.get('allGuildScores') || {})[guildId]) || {};
     const liveScoreData = scoreData || (studentId ? _getStudentScore(studentId) : {});
     const guildDef = GUILDS[guildId];
-    const delta = _gloryDelta({ starDelta, directGlory, exactGlory, scoreData: liveScoreData });
+    const chapterKey = _resolveChapterKey(chapterArg, liveGuildData, now);
+    const tailwindPct = _tailwindPctFor({ guildId, source, exactGlory, chapterKey, now });
+    const delta = _gloryDelta({ starDelta, directGlory, exactGlory, scoreData: liveScoreData, tailwindPct });
 
     if (!delta.starDelta && !delta.totalGloryDelta) return delta;
 
-    const chapterKey = _resolveChapterKey(chapterArg, liveGuildData, now);
     const eventRef = doc(collection(db, `${publicDataPath}/guild_glory_events`));
     const batch = writeBatch(db);
     batch.set(eventRef, _eventPayload({ guildId, studentId, classId, source, delta, note, eventMeta, chapterKey }));
@@ -278,8 +301,9 @@ async function _recordIdempotentGuildGloryEvent({
         const liveGuildData = guildSnap.exists()
             ? guildSnap.data()
             : ((state.get('allGuildScores') || {})[guildId] || {});
-        const delta = _gloryDelta({ starDelta, directGlory, exactGlory, scoreData: liveScoreData });
         const chapterKey = _resolveChapterKey(chapter, liveGuildData, now);
+        const tailwindPct = _tailwindPctFor({ guildId, source, exactGlory, chapterKey, now });
+        const delta = _gloryDelta({ starDelta, directGlory, exactGlory, scoreData: liveScoreData, tailwindPct });
         // The marker event is written even for a zero delta so the key is recorded as processed.
         transaction.set(eventRef, _eventPayload({
             guildId, studentId, classId, source, delta, note, chapterKey,
@@ -328,7 +352,7 @@ export async function updateGuildScores(studentId, starDelta, source = 'star_awa
  * their Chapter and leaves with them if they leave. Used by the Wheel, the Quiz and the Market.
  * Returns the total Glory written per guild.
  */
-export async function awardGloryToStudents(studentIds = [], glory = 0, source = 'guild_gift', { note = '', classId = null, idempotencyPrefix = null } = {}) {
+export async function awardGloryToStudents(studentIds = [], glory = 0, source = 'guild_gift', { note = '', classId = null, idempotencyPrefix = null, windOut = null } = {}) {
     const amount = roundTo(Number(glory) || 0, 2);
     const byGuild = {};
     if (!(amount > 0)) return byGuild;
@@ -336,7 +360,7 @@ export async function awardGloryToStudents(studentIds = [], glory = 0, source = 
         const student = _getStudent(studentId);
         const guildId = student?.guildId;
         if (!guildId || !GUILD_IDS.includes(guildId)) continue;
-        await recordGuildGloryEvent({
+        const event = await recordGuildGloryEvent({
             guildId,
             studentId,
             classId: classId || student.classId || null,
@@ -346,6 +370,8 @@ export async function awardGloryToStudents(studentIds = [], glory = 0, source = 
             idempotencyKey: idempotencyPrefix ? `${idempotencyPrefix}_${studentId}` : null,
         });
         byGuild[guildId] = roundTo((byGuild[guildId] || 0) + amount, 2);
+        // The Tailwind's share is reported apart, so a fate's own Glory reads the same for everyone.
+        if (windOut && Number(event?.windGlory) > 0) windOut[studentId] = roundTo((windOut[studentId] || 0) + Number(event.windGlory), 2);
     }
     return byGuild;
 }
@@ -649,6 +675,7 @@ export function getGuildLeaderboardData(now = new Date()) {
     const liveTallies = Object.fromEntries(GUILD_IDS.map((gid) => [gid, chapterTally(books[gid].chapters[liveKey] || {}, members[gid])]));
     const liveRanked = rankChapter(liveTallies);
     const liveCounts = !firstKey || liveKey >= firstKey;
+    const winds = getGuildTailwinds(now);
 
     const rows = GUILD_IDS.map((gid) => {
         const gDoc = allGuildScores[gid] || {};
@@ -706,6 +733,8 @@ export function getGuildLeaderboardData(now = new Date()) {
             chapterTop,
             topContributors,
             standards,
+            // The Tailwind: a share more on every Glory while this guild is behind in the year.
+            tailwind: winds[gid] || { pct: 0, ...tailwindLevel(0) },
             // Per-member Glory, for the Guild Spotlight (this Chapter and the year).
             liveMemberGlory: Object.fromEntries(memberIds.map((id) => [id, roundTo(Number(liveMembers[id]) || 0, 1)])),
             // Who already has the Unity Seal's Glory, read from exact (unrounded) Glory.
@@ -720,19 +749,32 @@ export function getGuildLeaderboardData(now = new Date()) {
     return rows;
 }
 
-/** This guild's comeback wind for a Wheel spin now (none before the Crown Race's first Chapter). */
-export function getComebackWind(guildId, now = new Date()) {
+/**
+ * The Tailwind for every guild now, from each guild's stars per member this school year
+ * (current members only, so a child who joins brings their stars and one who leaves takes them).
+ * Calm everywhere before the Crown Race's first Chapter.
+ */
+export function getGuildTailwinds(now = new Date()) {
     const schoolYearKey = state.getActiveSchoolYearKey();
-    const liveKey = chapterKeyFor(now);
     const firstKey = getFirstCrownChapter(schoolYearKey);
-    if (firstKey && liveKey < firstKey) return { place: null, behind: 0, perHero: 0 };
-    const allGuildScores = state.get('allGuildScores') || {};
     const members = _memberIdsByGuild();
-    const tallies = Object.fromEntries(GUILD_IDS.map((gid) => [gid,
-        chapterTally(guildChapterBook(allGuildScores[gid] || {}, schoolYearKey).chapters[liveKey] || {}, members[gid])]));
-    // Guilds with no members anywhere can't race, so they don't count as places ahead.
-    const racing = Object.fromEntries(Object.entries(tallies).filter(([, t]) => t.memberCount > 0));
-    return comebackWindFor(rankChapter(racing), guildId);
+    const stars = new Map((state.get('allStudentScores') || []).map((sc) => [sc.id, Math.max(0, Number(sc.totalStars) || 0)]));
+    const perMember = {};
+    for (const gid of GUILD_IDS) {
+        const ids = members[gid] || [];
+        if (!ids.length) continue; // a guild with nobody in it is not in the race
+        perMember[gid] = ids.reduce((sum, id) => sum + (stars.get(id) || 0), 0) / ids.length;
+    }
+    const winds = tailwindsFor(perMember);
+    if (firstKey && chapterKeyFor(now) < firstKey) {
+        for (const gid of Object.keys(winds)) winds[gid] = { ...winds[gid], pct: 0, ...tailwindLevel(0) };
+    }
+    return winds;
+}
+
+/** One guild's Tailwind now (calm if it has no members). */
+export function getGuildTailwind(guildId, now = new Date()) {
+    return getGuildTailwinds(now)[guildId] || { pct: 0, ...tailwindLevel(0), starsPerMember: 0, leaderStarsPerMember: 0 };
 }
 
 /** The Chapter keys the Crown Road shows for this school year. */

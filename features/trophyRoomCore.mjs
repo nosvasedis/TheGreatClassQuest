@@ -98,7 +98,7 @@ export function buildTrophySatchel(inventory, { isUsable = () => false, present 
 
 /**
  * A short look inside the satchel (the Hero Stage under an enlarged portrait): every relic,
- * the newest treasures up to `treasureLimit`, and how many more wait in the Treasure Vault.
+ * the newest treasures up to `treasureLimit`, and how many more wait in the Satchel modal.
  */
 export function previewTrophySatchel(satchel, { treasureLimit = 8 } = {}) {
     const relics = Array.isArray(satchel?.relics) ? satchel.relics : [];

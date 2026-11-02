@@ -26,7 +26,7 @@ export function shopCharmMarkup(item) {
     const tierLabel = treasureTierLabel(charm.tier);
     const setSize = CHARM_SET_SIZE[charm.tier];
     return `
-                <div class="mm-charm mm-charm--${charm.tier}" title="${escapeShopHtml(`${charm.title}: ${words} Collect ${setSize} ${tierLabel.toLowerCase()} treasures to wake one ${tierLabel.toLowerCase()} charm, then use it from the Trophy Room; the treasure stays.`)}">
+                <div class="mm-charm mm-charm--${charm.tier}" title="${escapeShopHtml(`${charm.title}: ${words} Collect ${setSize} ${tierLabel.toLowerCase()} treasures to wake one ${tierLabel.toLowerCase()} charm, then use it from the Satchel; the treasure stays.`)}">
                     <span class="mm-charm__seal" aria-hidden="true"><span class="mm-charm__icon">${escapeShopHtml(charm.icon)}</span></span>
                     <span class="mm-charm__body">
                         <span class="mm-charm__kicker">Charm<span class="mm-charm__gems" role="img" aria-label="${tierLabel}">${charmGemsMarkup(charm.tier)}</span><span class="mm-charm__set">set of ${setSize}</span></span>

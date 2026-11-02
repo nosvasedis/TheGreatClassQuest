@@ -123,14 +123,14 @@ export const GUIDE_CHAPTERS = {
                     keys: 'prodigy of the month co-prodigy classic arena growth festival monthly ceremony'
                 },
                 {
-                    id: 'prodigies-trophies', icon: 'fa-landmark', name: 'Hall of Prodigies and Trophy Room', tier: 'starter',
+                    id: 'prodigies-trophies', icon: 'fa-landmark', name: 'Hall of Prodigies and Satchels', tier: 'starter',
                     where: "Buttons on Hero's Challenge", go: 'tab:student-leaderboard-tab',
-                    text: `The Hall of Prodigies is a sunlit marble hall with one crowned Prodigy for each finished month of this school year. The Trophy Room holds every hero's satchel: relics ready to use, effects working now, and treasures kept for good.`,
-                    keys: 'hall of prodigies trophy room satchel relics inventory treasures'
+                    text: `The Hall of Prodigies is a sunlit marble hall with one crowned Prodigy for each finished month of this school year. Satchels holds every hero's Satchel: relics ready to use, effects working now, and treasures kept for good.`,
+                    keys: 'hall of prodigies satchels satchel trophy room relics inventory treasures'
                 },
                 {
                     id: 'hero-seals', icon: 'fa-stamp', name: 'Hero Seals', tier: 'starter',
-                    where: "Scholar's Folio → Seals, and the Trophy Room", go: 'tab:student-leaderboard-tab',
+                    where: "Scholar's Folio → Seals, and the Satchel", go: 'tab:student-leaderboard-tab',
                     text: `Quiet personal milestones in each child's Seal Book: ten shared seals (a first star in each virtue, all four virtues in one month, ten lessons in a row, a first Hero's Boon, a kept Ember Oath, Quiz Champion, a personal best) and six chosen for that child from their Hero Path, guild, trials, attendance, birthday and a fixed draw of the stars. Seals give no Gold or stars. When children press seals, the usual notification says so; tap See who to see who got what.`,
                     why: 'Every child has a story worth marking, not only the ones at the top.',
                     keys: 'hero seals seal book milestones personal badges wax seal notice notification summary'
@@ -172,13 +172,13 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'market', icon: 'fa-store', name: 'Mystic Market', tier: 'starter',
                     where: 'Mystic Market tab', go: 'tab:shop-tab',
-                    text: `Pick the class and a shopper; the Market Keeper reads their purse. Fifteen Legendary Artifacts are always in stock at fixed prices, with two legendary buys per student per month. A few favourites: Time Warp Hourglass (+5 minutes on a Race the Clock bounty), Pathfinder's Map (+10 Team Quest stars) and Mask of the Protagonist (the next Hero of the Day). Purchases wait in the Trophy Room.`,
+                    text: `Pick the class and a shopper; the Market Keeper reads their purse. Fifteen Legendary Artifacts are always in stock at fixed prices, with two legendary buys per student per month. A few favourites: Time Warp Hourglass (+5 minutes on a Race the Clock bounty), Pathfinder's Map (+10 Team Quest stars) and Mask of the Protagonist (the next Hero of the Day). Purchases wait in the shopper's Satchel; the leather Satchel beside the till opens it.`,
                     keys: 'shop artifacts legendary shopper buy market keeper hourglass pathfinder mask'
                 },
                 {
                     id: 'seasonal', icon: 'fa-leaf', name: 'Seasonal and Festival stalls', tier: 'elite',
                     where: 'Mystic Market tab', go: 'tab:shop-tab',
-                    text: `A monthly stall of 15 treasures that follows the classroom season and suits each league's age. Copies are sized to the children in that league, sold-out pieces stay sold out, and each class gets a fair share of every rarity until the month's last week (one of each treasure per hero). Every treasure carries a Charm, a classroom privilege used once from the Trophy Room, and adds to the hero's Collector's Hoard, whose ranks pay a little Gold. Every stall is one of the month's collections, and the round brass Restock button on the counter brings a brand-new stall from a different one. A Festival Stall opens for Halloween, Christmas, New Year's Luck, Apokries, Easter, May Day and the End of Year Fair. The reigning Hero of the Day gets 25% off this shelf. Teacher Settings, Market repairs or replaces a piece.`,
+                    text: `A monthly stall of 15 treasures that follows the classroom season and suits each league's age. Copies are sized to the children in that league, sold-out pieces stay sold out, and each class gets a fair share of every rarity until the month's last week (one of each treasure per hero). Every treasure carries a Charm, a classroom privilege used once from the Satchel, and adds to the hero's Collector's Hoard, whose ranks pay a little Gold. Every stall is one of the month's collections, and the round brass Restock button on the counter brings a brand-new stall from a different one. A Festival Stall opens for Halloween, Christmas, New Year's Luck, Apokries, Easter, May Day and the End of Year Fair. The reigning Hero of the Day gets 25% off this shelf. Teacher Settings, Market repairs or replaces a piece.`,
                     keys: 'restock festival stall seasonal treasures collection halloween christmas new year vasilopita easter apokries may day end of year discount'
                 },
                 {
@@ -275,7 +275,7 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'ember-oaths', icon: 'fa-hand-sparkles', name: 'Ember Oaths', tier: 'pro',
                     where: 'Adventure Log, Ember Oaths button', go: 'tab:adventure-log-tab',
-                    text: `Small personal promises each child picks in a Choosing ceremony. Each lesson they keep it lights one ember: a 🔥 "I tried" at the Campfire or on the board, something you saw, or a matching star. All embers lit = keep the promise: a Star-Ember keepsake goes to the Trophy Room, a star joins the class sky, and the child takes a step on their Star Path (a little Gold, ranks, and a rare bonus star at milestones).`,
+                    text: `Small personal promises each child picks in a Choosing ceremony. Each lesson they keep it lights one ember: a 🔥 "I tried" at the Campfire or on the board, something you saw, or a matching star. All embers lit = keep the promise: a Star-Ember keepsake goes to the Satchel, a star joins the class sky, and the child takes a step on their Star Path (a little Gold, ranks, and a rare bonus star at milestones).`,
                     keys: 'oaths promises goals star-ember choosing ceremony'
                 },
                 {
@@ -523,8 +523,8 @@ export const GUIDE_CHAPTERS = {
                 },
                 {
                     id: 'trophy-room', icon: 'fa-box-open', name: 'Your satchel', tier: 'starter',
-                    text: `Everything you buy waits in your satchel in the Trophy Room until you use it. Treasures stay there for good: each one carries a Charm, a small classroom privilege you can use once, and fills your Collector's Hoard.`,
-                    keys: 'trophy room inventory'
+                    text: `Everything you buy waits in your Satchel until you use it. Treasures stay there for good: each one carries a Charm, a small classroom privilege you can use once, and fills your Collector's Hoard.`,
+                    keys: 'satchel trophy room inventory'
                 },
                 {
                     id: 'my-seals', icon: 'fa-stamp', name: 'Your Hero Seals', tier: 'starter',

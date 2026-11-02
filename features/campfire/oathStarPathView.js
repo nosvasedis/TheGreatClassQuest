@@ -52,7 +52,7 @@ export function perkMarkup(perk, { name = '', pending = false } = {}) {
         p.stars && '<li class="sp-gift sp-gift--stars" style="--g:0"><i aria-hidden="true">★</i><b data-count="' + p.stars + '">+' + p.stars + '</b><span>bonus ' + (p.stars === 1 ? 'star' : 'stars') + '</span></li>',
         '<li class="sp-gift sp-gift--gold" style="--g:1"><i aria-hidden="true">🪙</i><b data-count="' + p.goldTotal + '">+' + p.goldTotal + '</b><span>Gold</span></li>'
     ].filter(Boolean);
-    if (p.keepsake) chips.push('<li class="sp-gift sp-gift--keepsake" style="--g:2"><i aria-hidden="true">' + esc(p.keepsake.icon) + '</i><b>' + esc(p.keepsake.name) + '</b><span>in the Trophy Room</span></li>');
+    if (p.keepsake) chips.push('<li class="sp-gift sp-gift--keepsake" style="--g:2"><i aria-hidden="true">' + esc(p.keepsake.icon) + '</i><b>' + esc(p.keepsake.name) + '</b><span>in the Satchel</span></li>');
     const rank = p.rank ? '<div class="sp-rank' + (p.milestone ? ' is-milestone' : '') + '"><span class="sp-rank-seal" aria-hidden="true">' + p.rank.icon + '</span><div><small>' + (p.milestone ? 'New rank on the Star Path' : 'Star Path · promise ' + p.n) + '</small><b>' + esc(p.rank.name) + '</b>' +
         (p.milestone ? '<em>' + esc(p.milestone.line) + '</em>' : '') + '</div></div>' : '';
     const next = p.next ? '<p class="sp-next"><span class="sp-next-bar" style="--p:' + Math.round(100 * p.n / p.next.from) + '%"><i></i></span>' +

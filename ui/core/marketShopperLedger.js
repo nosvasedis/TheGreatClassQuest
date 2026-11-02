@@ -1,6 +1,7 @@
 // /ui/core/marketShopperLedger.js
 // The till on the Market counter: one brass-rimmed plaque holding the shopper (face, name)
-// and their purse, plus the Shoppers' Ledger that unfolds from it to pick who is buying.
+// and their purse, plus the Shoppers' Ledger that unfolds from it to pick who is buying,
+// and the shopper's Satchel hung beside it (opens the Satchel modal for that student).
 // The hidden #shop-student-select stays the source of truth (listeners, purchases and the
 // floating keeper all read it); this module only draws and drives it.
 
@@ -66,6 +67,67 @@ export function syncShopperTill() {
     trigger?.setAttribute('aria-label', student
         ? `Shopper: ${student.name}. Change shopper`
         : 'Choose a shopper');
+    syncSatchelButton();
+}
+
+/* ── The Satchel beside the till ─────────────────────────────────────────── */
+
+let satchelShown = { id: '', count: -1 };
+
+function satchelCount(studentId) {
+    const inventory = (state.get('allStudentScores') || []).find(s => s.id === studentId)?.inventory;
+    // same count as the Satchel modal's roster (summarizeSatchel): named entries only
+    return Array.isArray(inventory) ? inventory.filter(item => item && item.name).length : 0;
+}
+
+/** The Satchel button shows whose bag it is and how much is inside; a purchase drops into it. */
+export function syncSatchelButton() {
+    const btn = el('shop-satchel-btn');
+    if (!btn) return;
+    const sel = el('shop-student-select');
+    const student = sel?.value ? ledgerStudents.find(s => s.id === sel.value) : null;
+    const countEl = el('shop-satchel-count');
+    const badge = el('shop-satchel-badge');
+    btn.classList.toggle('has-shopper', !!student);
+    if (!student) {
+        satchelShown = { id: '', count: -1 };
+        if (countEl) countEl.textContent = 'No shopper yet';
+        if (badge) badge.hidden = true;
+        btn.dataset.tooltip = 'Choose a shopper first';
+        btn.setAttribute('aria-label', 'Choose a shopper to open their Satchel');
+        btn.classList.remove('is-filling');
+        return;
+    }
+    const count = satchelCount(student.id);
+    const first = String(student.name || '').trim().split(/\s+/)[0] || 'Hero';
+    const items = `${count} item${count === 1 ? '' : 's'}`;
+    if (countEl) countEl.textContent = count ? items : 'Empty';
+    if (badge) {
+        badge.textContent = count > 99 ? '99+' : String(count);
+        badge.hidden = count === 0;
+    }
+    btn.dataset.tooltip = `Open ${first}'s Satchel`;
+    btn.setAttribute('aria-label', `Open ${student.name}'s Satchel, ${items}`);
+    // a fresh buy for the same shopper: the flap lifts and the ware drops in
+    const filled = satchelShown.id === student.id && count > satchelShown.count && satchelShown.count >= 0;
+    satchelShown = { id: student.id, count };
+    if (filled && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+        btn.classList.remove('is-filling');
+        void btn.offsetWidth;
+        btn.classList.add('is-filling');
+        setTimeout(() => btn.classList.remove('is-filling'), 1400);
+    }
+}
+
+function openShopperSatchel() {
+    const studentId = el('shop-student-select')?.value || '';
+    if (!studentId) {
+        setOpen(true);
+        return;
+    }
+    import('../modals/index.js')
+        .then((m) => m.openTrophyRoomModal(studentId))
+        .catch((err) => console.warn('[market] Satchel failed to open', err));
 }
 
 function optionHtml(student, { selected, hero, gold, index }) {
@@ -263,6 +325,14 @@ export function bindShopperLedger({ onPick } = {}) {
         const panel = el('shop-shopper-listbox');
         if (!root || !trigger || !panel) return;
 
+        // the Satchel beside the till (with nobody at the till it unfolds the ledger)
+        if (e.target.closest('#shop-satchel-btn')) {
+            e.preventDefault();
+            if (isOpen()) setOpen(false, { focus: false });
+            openShopperSatchel();
+            return;
+        }
+
         // the whole till opens the ledger: the shopper half, the seam, or the purse
         if (trigger.contains(e.target) || e.target.closest('.mm-till__purse, .mm-till__seam')) {
             e.preventDefault();
@@ -277,6 +347,9 @@ export function bindShopperLedger({ onPick } = {}) {
         }
         if (isOpen() && !root.contains(e.target)) setOpen(false);
     });
+
+    // purchases, relic uses and live score updates change what the Satchel holds
+    state.subscribe(['allStudentScores'], () => syncSatchelButton());
 
     window.addEventListener('resize', () => {
         if (isOpen()) placeLedger(el('shop-shopper-listbox'));

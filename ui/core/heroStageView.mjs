@@ -84,7 +84,7 @@ export function renderHeroStageBodyHtml({ stats, effects = [], preview, total = 
             <p class="hs-label"><i class="fas fa-bolt" aria-hidden="true"></i>Relics · ready to use</p>
             <ul class="hs-relics">${relics.map(relicHtml).join('')}</ul>` : '';
         const moreTile = moreTreasures > 0
-            ? `<li><button type="button" class="hs-treasure hs-treasure--more" data-hs-action="vault" aria-label="${moreTreasures} more in the Treasure Vault">+${moreTreasures}</button></li>`
+            ? `<li><button type="button" class="hs-treasure hs-treasure--more" data-hs-action="vault" aria-label="${moreTreasures} more in the Satchel">+${moreTreasures}</button></li>`
             : '';
         const treasuresHtml = treasures.length ? `
             <p class="hs-label"><i class="fas fa-gem" aria-hidden="true"></i>Treasures · kept for good</p>
@@ -144,7 +144,7 @@ export function renderHeroStageHtml(view) {
                 ${renderHeroStageBodyHtml({ ...view, firstName })}
             </div>
             <footer class="hs-actions">
-                <button type="button" class="hs-btn hs-btn--gold" data-hs-action="vault"><i class="fas fa-gem" aria-hidden="true"></i><span>Treasure Vault</span></button>
+                <button type="button" class="hs-btn hs-btn--gold" data-hs-action="vault"><i class="fas fa-bag-shopping" aria-hidden="true"></i><span>Open Satchel</span></button>
                 <button type="button" class="hs-btn hs-btn--sky" data-hs-action="stats"><i class="fas fa-chart-line" aria-hidden="true"></i><span>Hero stats</span></button>
                 ${showSkillTree ? `<button type="button" class="hs-btn hs-btn--violet" data-hs-action="skills"><i class="fas fa-sitemap" aria-hidden="true"></i><span>Skill Tree</span></button>` : ''}
             </footer>

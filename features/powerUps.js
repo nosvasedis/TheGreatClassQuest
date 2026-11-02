@@ -447,7 +447,7 @@ export async function handleUseItem(studentId, itemIndex) {
                         const currentInventory = Array.isArray(currentData.inventory) ? [...currentData.inventory] : [];
                         const inventoryItem = currentInventory[itemIndex];
                         if (!inventoryItem || inventoryItem.id !== ownedItem.id || inventoryItem.name !== ownedItem.name) {
-                            return { success: false, errorMessage: 'That item is no longer in the inventory.' };
+                            return { success: false, errorMessage: 'That item is no longer in the Satchel.' };
                         }
 
                         const effectResult = await runEffect(student, classData, {

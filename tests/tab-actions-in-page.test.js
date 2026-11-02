@@ -28,7 +28,7 @@ test('Adventure Log keeps the Quest Board and Attendance as in-page class tools'
   assert.match(listeners, /'attendance-chronicle-btn'\)\?\.addEventListener\('click', modals\.openAttendanceChronicle\)/);
 });
 
-test("Hero's Challenge opens the Hall of Prodigies and Trophy Room from the page", () => {
+test("Hero's Challenge opens the Hall of Prodigies and the Satchels from the page", () => {
   const board = read('templates/app/tabs/leaderboard.js');
   assert.match(board, /class="hc-halls"/);
   assert.match(board, /id="open-prodigy-btn"/);

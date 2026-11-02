@@ -164,7 +164,7 @@ export function renderMarketGuideHtml({
 
     const shopperLine = shopper
         ? `<p class="mg-you"><span class="mg-you__tag">${first}</span>${awake > 0
-            ? `${plural(awake, 'charm')} awake now. Use ${awake === 1 ? 'it' : 'them'} from the Trophy Room.`
+            ? `${plural(awake, 'charm')} awake now. Use ${awake === 1 ? 'it' : 'them'} from the Satchel.`
             : 'No charm awake yet. The slots below show the next set.'}</p>`
         : '';
 

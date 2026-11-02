@@ -24,7 +24,7 @@ export const LOADING_TIPS = Object.freeze([
     'An Ember Oath is a small promise a child chooses for themselves.',
     'Oaths are checked with a flame, a candle or a moon. Every try counts.',
     'Every oath kept adds one star to the class constellation above the Campfire.',
-    'A kept oath leaves a Star-Ember in the Trophy Room, a keepsake forever.',
+    'A kept oath leaves a Star-Ember in the Satchel, a keepsake forever.',
     'Each kind of promise draws its own figure in the Campfire sky.',
     '“What we learned today” gathers the day’s quiz, story and quests by itself.',
 

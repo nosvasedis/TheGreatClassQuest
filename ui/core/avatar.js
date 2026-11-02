@@ -89,7 +89,7 @@ function buildStageView(studentId) {
     };
 }
 
-/** Show a beautiful enlarged detail view of an item (also used from Treasure Vault). */
+/** Show a beautiful enlarged detail view of an item (also used from the Satchel modal). */
 export function showInventoryItemDetail(itemData) {
     const current = currentArtifactFor(itemData);
     showItemDetail({

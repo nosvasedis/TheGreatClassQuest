@@ -478,7 +478,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
             (days.length ? '<p class="eo-kept-days">' + days.map(l => '<span>' + esc(l.icons) + ' ' + esc(prettyDate(l.date)) + '</span>').join('') + '</p>' : '') +
             '<section class="eo-kept-path"><div class="eo-kept-sky">' + personalSkyMarkup(perk.n, who, { animate: !reduced }) + '</div><div class="eo-kept-perks">' + perkMarkup(perk, { name: student?.name, pending }) + '</div></section>' +
             rankLadderMarkup(perk.n) +
-            '<p class="eo-kept-note" data-kept-note>' + (pending ? '<span class="eo-kept-spinner" aria-hidden="true"></span> Sealing it in the stars…' : 'The Star-Ember waits in their Trophy Room. The bonus stars count for this month, never for today.') + '</p>' +
+            '<p class="eo-kept-note" data-kept-note>' + (pending ? '<span class="eo-kept-spinner" aria-hidden="true"></span> Sealing it in the stars…' : 'The Star-Ember waits in their Satchel. The bonus stars count for this month, never for today.') + '</p>' +
             '<div class="eo-kept-actions">' + (canUseFeature('parentAccess') ? '<button type="button" class="eo-secondary" data-share="' + esc(oath.id) + '"' + (pending ? ' disabled' : '') + '><span aria-hidden="true">💌</span> Share with family</button>' : '') +
             '<button type="button" class="eo-secondary" data-new-for="' + esc(oath.studentId) + '"' + (pending ? ' disabled' : '') + '><span aria-hidden="true">✨</span> Choose the next promise</button>' +
             '<button type="button" class="eo-primary" data-back' + (pending ? ' disabled' : '') + '>Back to the board</button></div></div>', 'kept');
@@ -493,7 +493,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
         host.querySelector('.sp-perks')?.classList.remove('is-pending');
         host.querySelectorAll('.eo-kept-actions button').forEach(b => { b.disabled = false; });
         const note = host.querySelector('[data-kept-note]');
-        if (note) note.textContent = 'The Star-Ember waits in their Trophy Room. The bonus stars count for this month, never for today.';
+        if (note) note.textContent = 'The Star-Ember waits in their Satchel. The bonus stars count for this month, never for today.';
     }
     function renderShare(oath) {
         const student = roster.find(s => s.id === oath.studentId);

@@ -156,9 +156,9 @@ export const leaderboardTabHTML = `
                             <i class="fas fa-chevron-right hc-hall__go" aria-hidden="true"></i>
                         </button>
                         <button type="button" id="open-trophy-room-btn" class="hc-hall hc-hall--trophy" disabled>
-                            <span class="hc-hall__medal" aria-hidden="true"><i class="fas fa-trophy"></i></span>
+                            <span class="hc-hall__medal" aria-hidden="true"><i class="fas fa-bag-shopping"></i></span>
                             <span class="hc-hall__text">
-                                <span class="hc-hall__title">Trophy Room</span>
+                                <span class="hc-hall__title">Satchels</span>
                                 <span class="hc-hall__sub">Every hero's relics and treasures</span>
                             </span>
                             <i class="fas fa-chevron-right hc-hall__go" aria-hidden="true"></i>

@@ -47,9 +47,9 @@ export const shopTabHTML = `
                                 </div>
                             </div>
 
-                            <!-- The wooden counter-front: restock on the left, the till (shopper + purse) on the right -->
+                            <!-- The wooden counter-front: restock on the left, the till (shopper + purse) and their Satchel on the right -->
                             <div class="mm-counter__bar">
-                                <div class="mm-counter__controls" role="group" aria-label="Shopper, purse and restock">
+                                <div class="mm-counter__controls" role="group" aria-label="Shopper, purse, satchel and restock">
                                     <button id="generate-shop-btn" type="button"
                                         class="hidden shop-restock-btn mm-restock-btn inline-flex items-center justify-center shrink-0"
                                         aria-label="Restock the shelves" data-tooltip="Restock the shelves">
@@ -83,6 +83,30 @@ export const shopTabHTML = `
                                             <option value="">Choose your adventurer…</option>
                                         </select>
                                     </div>
+                                    <!-- The shopper's Satchel, hung beside the till: opens their relics and treasures.
+                                         Without a shopper it unfolds the Shoppers' Ledger instead (ui/core/marketShopperLedger.js). -->
+                                    <button type="button" id="shop-satchel-btn" class="mm-satchel"
+                                        aria-label="Choose a shopper to open their Satchel" data-tooltip="Choose a shopper first">
+                                        <span class="mm-satchel__art" aria-hidden="true">
+                                            <svg viewBox="0 0 40 40" focusable="false">
+                                                <path class="mm-satchel__strap" d="M11.5 16 C11.5 4.5 28.5 4.5 28.5 16" />
+                                                <rect class="mm-satchel__bag" x="5.5" y="14" width="29" height="21" rx="5.5" />
+                                                <path class="mm-satchel__seam" d="M8.5 31.5 H31.5" />
+                                                <g class="mm-satchel__flap">
+                                                    <path class="mm-satchel__flap-leather" d="M5.5 19 Q5.5 14 10.5 14 H29.5 Q34.5 14 34.5 19 V24.5 Q20 31 5.5 24.5 Z" />
+                                                    <path class="mm-satchel__stitch" d="M8 18.5 Q8 16.4 10.6 16.4 H29.4 Q32 16.4 32 18.5 V23.2 Q20 28.6 8 23.2 Z" />
+                                                    <rect class="mm-satchel__buckle" x="16.6" y="22.2" width="6.8" height="6.4" rx="1.4" />
+                                                    <path class="mm-satchel__tongue" d="M20 22.2 V27" />
+                                                </g>
+                                                <circle class="mm-satchel__glint" cx="27" cy="9" r="1.6" />
+                                            </svg>
+                                        </span>
+                                        <span class="mm-satchel__text">
+                                            <span class="mm-satchel__label">Satchel</span>
+                                            <span class="mm-satchel__count" id="shop-satchel-count">No shopper yet</span>
+                                        </span>
+                                        <span class="mm-satchel__badge" id="shop-satchel-badge" aria-hidden="true" hidden></span>
+                                    </button>
                                 </div>
                             </div>
                         </div>

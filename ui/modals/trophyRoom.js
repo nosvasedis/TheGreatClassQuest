@@ -1,4 +1,6 @@
-// /ui/modals/trophyRoom.js — Trophy Room modal (a student's satchel)
+// /ui/modals/trophyRoom.js — the Satchel modal (a class's satchels; code name "trophy room").
+// Shown to teachers as "Satchels" / "<Name>'s Satchel". Opened from Hero's Challenge,
+// the Hero Stage and the Mystic Market counter.
 // Model: features/trophyRoomCore.mjs. Markup: ui/modals/trophyRoomView.js.
 import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
@@ -72,6 +74,14 @@ function renderRoster() {
     const keepScroll = rosterEl.scrollTop;
     rosterEl.innerHTML = renderTrophyRosterHtml(entries, currentStudentId);
     rosterEl.scrollTop = keepScroll;
+
+    // "Maria's Satchel" once a hero is chosen, "Satchels" while the class list waits
+    const title = document.getElementById('trophy-room-title');
+    if (title) {
+        const chosen = currentStudentId ? findStudent(currentStudentId) : null;
+        const first = String(chosen?.name || '').trim().split(/\s+/)[0];
+        title.textContent = first ? `${first}'s Satchel` : 'Satchels';
+    }
 
     const cls = findClass(currentClassId);
     const subtitle = document.getElementById('trophy-room-subtitle');
@@ -218,7 +228,7 @@ export function openTrophyRoomModal(preselectedStudentId = null) {
 
     currentClassId = classId;
     currentStudentId = preselected?.id || '';
-    // Charm-set jars: their styles load with the Trophy Room, not with the first paint.
+    // Charm-set jars: their styles load with the Satchel, not with the first paint.
     import('../../styles/charm_sets.css').catch(quietly('ui/modals/trophyRoom.js'));
     bindListeners();
     ensureHeroSealsForClass(classId).catch(quietly('ui/modals/trophyRoom.js'));
@@ -230,7 +240,7 @@ export function openTrophyRoomModal(preselectedStudentId = null) {
     });
 }
 
-/** Re-render the Trophy Room for a student (kept for callers that refresh it directly). */
+/** Re-render the Satchel modal for a student (kept for callers that refresh it directly). */
 export function renderTrophyRoomContent(studentId) {
     currentStudentId = studentId || '';
     renderRoster();

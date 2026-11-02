@@ -2,17 +2,17 @@
 // Trophy room, shop, avatar maker
 
 export const trophyRoomModalsHTML = `
-    <!-- Trophy Room: a class's satchels. Hero list on the left, the chosen hero's Relics + Treasures on the right. -->
+    <!-- Satchels (code name: trophy room): a class's satchels. Hero list on the left, the chosen hero's Relics + Treasures on the right. -->
     <div id="trophy-room-modal"
         class="fixed inset-0 bg-indigo-950/60 z-[80] flex items-center justify-center p-4 hidden backdrop-blur-xl">
         <div class="trophy-room-shell pop-in" role="dialog" aria-modal="true" aria-labelledby="trophy-room-title">
             <header class="trophy-room-head">
-                <span class="trophy-room-emblem" aria-hidden="true">🏆</span>
+                <span class="trophy-room-emblem" aria-hidden="true">🎒</span>
                 <div class="trophy-room-heading">
-                    <h2 id="trophy-room-title" class="font-title">Trophy Room</h2>
+                    <h2 id="trophy-room-title" class="font-title">Satchels</h2>
                     <p id="trophy-room-subtitle">Every hero's satchel</p>
                 </div>
-                <button id="trophy-room-close-btn" type="button" class="trophy-room-close" aria-label="Close the Trophy Room">
+                <button id="trophy-room-close-btn" type="button" class="trophy-room-close" aria-label="Close the Satchel">
                     <i class="fas fa-times" aria-hidden="true"></i>
                 </button>
             </header>

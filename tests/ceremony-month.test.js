@@ -46,3 +46,16 @@ test('Home and ceremony status share the August-skip helper and a dedicated glow
   assert.match(css, /\.date-pill\.date-pill--ceremony/);
   assert.doesNotMatch(home, /id="trigger-ceremony-btn"[^>]*animate-pulse/);
 });
+
+test('a watched ceremony keeps its badge (greyed) only for the rest of that local day', async () => {
+  const { ceremonyWatchedOnDay } = await import('../features/ceremonyDomain.js');
+  const watched = new Date(2026, 10, 2, 9, 15);
+  const record = { complete: true, watchedAt: watched };
+  assert.equal(ceremonyWatchedOnDay(record, new Date(2026, 10, 2, 23, 59)), true);
+  assert.equal(ceremonyWatchedOnDay(record, new Date(2026, 10, 3, 0, 1)), false);
+  assert.equal(ceremonyWatchedOnDay({ complete: true, watchedAt: { toDate: () => watched } }, new Date(2026, 10, 2, 14)), true);
+  assert.equal(ceremonyWatchedOnDay({ complete: true, watchedAt: { seconds: watched.getTime() / 1000 } }, new Date(2026, 10, 2, 14)), true);
+  assert.equal(ceremonyWatchedOnDay({ complete: true }, new Date(2026, 10, 2)), false);
+  assert.equal(ceremonyWatchedOnDay({ complete: false, watchedAt: watched }, new Date(2026, 10, 2)), false);
+  assert.equal(ceremonyWatchedOnDay(null), false);
+});

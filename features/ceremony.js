@@ -2068,6 +2068,7 @@ async function saveCeremonyComplete() {
             if(!c.ceremonyHistory) c.ceremonyHistory = {};
             if(!c.ceremonyHistory[monthKey]) c.ceremonyHistory[monthKey] = {};
             c.ceremonyHistory[monthKey].complete = true;
+            c.ceremonyHistory[monthKey].watchedAt = new Date();
         }
         updateCeremonyStatus();
     } catch(e) { console.error("Save failed", e); }

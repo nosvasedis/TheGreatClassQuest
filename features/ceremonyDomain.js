@@ -29,6 +29,20 @@ export function resolvePendingCeremonyMonth(now = new Date()) {
     };
 }
 
+/**
+ * True when a class watched its ceremony (ceremonyHistory[monthKey]) on the same local day as `now`.
+ * watchedAt may be a Date, a Firestore Timestamp, epoch millis or a date string.
+ * The Home badge stays on, greyed, for the rest of that day and leaves at midnight.
+ */
+export function ceremonyWatchedOnDay(record, now = new Date()) {
+    if (!record?.complete || !record.watchedAt) return false;
+    const raw = record.watchedAt;
+    const when = typeof raw?.toDate === 'function' ? raw.toDate()
+        : (typeof raw?.seconds === 'number' ? new Date(raw.seconds * 1000) : new Date(raw));
+    if (Number.isNaN(when.getTime())) return false;
+    return when.getFullYear() === now.getFullYear() && when.getMonth() === now.getMonth() && when.getDate() === now.getDate();
+}
+
 export function resolveCeremonyMode(league) {
     const definition = typeof league === 'object' ? league : getQuestLeagueDefinition(league);
     if (!definition) return { ok: false, mode: null, reason: 'This class has no valid Quest League. Ceremony preparation is blocked.' };

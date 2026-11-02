@@ -1004,6 +1004,31 @@
     .cer-twinkle, .cer-pennant, .cer-beam, .cer-flame, .cer-torch__glow, .cer-intro__halo, .cer-action::after { animation: none !important; }
 }
 
+/* ---------------------------------------------------------------- tall closing scenes
+   The last steps (Portal Ascent, Chronicle, Rising Star, Honours, the Hero's Challenge
+   gate and the farewell) can be taller than the stage on a phone or a short laptop
+   window. Centred overflow used to spill up over the heading and down under the herald
+   and the button. Here the stage scrolls instead, and auto margins centre the scene
+   only while it fits, so its top line is never cut off. */
+.cer-screen:is([data-scene="ascent"], [data-scene="moments"], [data-scene="rising"], [data-scene="honours"], [data-scene="transition"], [data-scene="outro"], [data-scene="end"], [data-scene="finale"]) .cer-stage {
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(245, 197, 66, 0.45) transparent;
+    padding: 14px 0 10px;
+}
+.cer-screen:is([data-scene="ascent"], [data-scene="moments"], [data-scene="rising"], [data-scene="honours"], [data-scene="transition"], [data-scene="outro"], [data-scene="end"], [data-scene="finale"]) .cer-stage > * {
+    margin-top: auto;
+    margin-bottom: auto;
+    flex-shrink: 0;
+    max-width: 100%;
+    max-height: none;
+}
+
 /* ---------------------------------------------------------------- small screens */
 
 @media (max-width: 1100px) {
@@ -1047,6 +1072,10 @@
     .cer-roll__row { grid-template-columns: 44px 34px minmax(0, 1fr) auto; gap: 8px; padding: 6px 10px; }
     .cer-roll__face { width: 34px; height: 34px; }
     .cer-roll__chips, .cer-roll__boon { display: none; }
+    .cer-intro__month { font-size: clamp(2.2rem, min(9vh, 16vw), 5.4rem); }
+    .cer-gate__title { font-size: clamp(1.8rem, min(7vh, 11vw), 4rem); }
+    .cer-gate__text { font-size: 0.92rem; }
+    .cer-outro__title { font-size: clamp(1.5rem, min(5vh, 8.5vw), 3rem); }
 }
 @media (max-height: 820px) {
     .cer-reveal { gap: 0; }

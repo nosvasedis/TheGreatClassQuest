@@ -330,6 +330,22 @@
     .cer-mom__grid, .cer-mom[data-count] .cer-mom__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .cer-hon__cols { grid-template-columns: 1fr; }
 }
+@media (max-width: 560px) {
+    /* A phone: one column of slim tiles, seal beside the words, scroll title that fits. */
+    .cer-mom__grid, .cer-mom[data-count] .cer-mom__grid { grid-template-columns: 1fr; width: 100%; gap: 8px; }
+    .cer-mom__tile { flex-direction: row; text-align: left; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 16px; }
+    .cer-mom__body { align-items: flex-start; }
+    .cer-mom__items { justify-content: flex-start; }
+    .cer-mom__seal { width: 48px; height: 48px; }
+    .cer-mom__icon { font-size: 1.4rem; }
+    .cer-mom__label { letter-spacing: 0.1em; }
+    .cer-mom__value { font-size: 1.35rem; }
+    .cer-mom__value em { display: inline; margin-left: 4px; }
+    .cer-mom__line { -webkit-line-clamp: 1; }
+    .cer-mom__title { font-size: clamp(1rem, 5.4vw, 1.5rem); padding: 0 26px; }
+    .cer-mom__kicker { font-size: 0.6rem; }
+    .cer-hon .cer-mom__title { font-size: clamp(1.4rem, 8vw, 2.2rem); padding: 0; }
+}
 @media (max-height: 880px) {
     .cer-mom--many .cer-mom__items { display: none; }
     .cer-mom--many .cer-mom__line { -webkit-line-clamp: 1; }

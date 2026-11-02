@@ -2,7 +2,7 @@ import { quietly } from '../utils/runtimeMetrics.js';
 import { onSecond } from '../utils/clock.mjs';
 import { db, doc, getDoc } from '../firebase.js';
 import * as ceremony from '../features/ceremony.js';
-import { resolvePendingCeremonyMonth } from './ceremonyDomain.js';
+import { resolvePendingCeremonyMonth, ceremonyWatchedOnDay } from './ceremonyDomain.js';
 import { getCeremonyStarVerdict, ensureCeremonyStarVerdict } from './ceremonyStarCheck.js';
 import * as state from '../state.js';
 import { normalizeQuestType, QUEST_TYPE_LABELS } from './specialQuestEngine.js';
@@ -1313,13 +1313,16 @@ function treasureChestLeadHtml(dayIcon = '') {
     </span>`;
 }
 
-function ceremonyPillHtml(cls, pending) {
+function ceremonyPillHtml(cls, pending, { seen = false } = {}) {
     const isGrowth = cls.questLevel === 'Pre-Junior';
     const ceremonyClass = isGrowth ? 'date-pill--ceremony-growth' : '';
-    const pillIcon = isGrowth ? 'fa-seedling' : 'fa-trophy';
+    const pillIcon = seen ? 'fa-check' : (isGrowth ? 'fa-seedling' : 'fa-trophy');
     const kicker = isGrowth ? 'Growth Festival' : 'Ceremony of the Month';
+    const id = seen ? 'ceremony-seen-pill' : 'trigger-ceremony-btn';
+    const seenClass = seen ? 'date-pill--ceremony-seen' : '';
+    const label = seen ? `The ${pending.monthName} ${kicker} was watched today` : `Start the ${pending.monthName} ${kicker}`;
     return `
-        <button type="button" id="trigger-ceremony-btn" class="date-pill date-pill--ceremony ${ceremonyClass}" data-class-id="${cls.id}" aria-label="Start the ${pending.monthName} ${kicker}">
+        <button type="button" id="${id}" class="date-pill date-pill--ceremony ${ceremonyClass} ${seenClass}" data-class-id="${cls.id}" aria-label="${label}"${seen ? ' aria-disabled="true" title="Watched today"' : ''}>
             <span class="date-pill--ceremony__aurora" aria-hidden="true"></span>
             <span class="date-pill--ceremony__sheen" aria-hidden="true"></span>
             <span class="date-pill--ceremony__spark date-pill--ceremony__spark--a" aria-hidden="true">✦</span>
@@ -1327,7 +1330,7 @@ function ceremonyPillHtml(cls, pending) {
             <span class="date-pill--ceremony__icon" aria-hidden="true"><i class="fas ${pillIcon}"></i></span>
             <span class="date-pill--ceremony__copy">
                 <span class="date-pill--ceremony__kicker">${kicker}</span>
-                <span class="date-pill--ceremony__title">${pending.monthName}</span>
+                <span class="date-pill--ceremony__title">${pending.monthName}${seen ? ' <span class="date-pill--ceremony__done">· Watched</span>' : ''}</span>
             </span>
         </button>
     `;
@@ -1352,6 +1355,25 @@ function wireCeremonyPill(classId) {
             .catch(() => toast('The ceremony could not load. Check the connection and try again.', 'error'))
             .finally(() => { delete btn.dataset.opening; });
     };
+}
+
+let ceremonySeenMidnight = null;
+
+/** A watched ceremony's greyed badge: a gentle note on tap, and it leaves at midnight. */
+function wireCeremonySeenPill() {
+    const btn = document.getElementById('ceremony-seen-pill');
+    if (!btn) return;
+    btn.onclick = (e) => {
+        e.stopPropagation();
+        toast('This class has already watched its ceremony today. The badge leaves at midnight.', 'info');
+    };
+    if (ceremonySeenMidnight) clearTimeout(ceremonySeenMidnight);
+    const now = new Date();
+    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 2);
+    ceremonySeenMidnight = setTimeout(() => {
+        ceremonySeenMidnight = null;
+        document.getElementById('ceremony-seen-pill')?.remove();
+    }, midnight - now);
 }
 
 /** The Realm Raid pill: the whole school's raid, from its herald week to its aftermath. */
@@ -1447,8 +1469,13 @@ export function getReminderPills(classId) {
     if (classId) {
         const cls = state.get('allSchoolClasses').find(c => c.id === classId);
         const pending = resolvePendingCeremonyMonth(now);
-        const isDone = cls && pending && cls.ceremonyHistory?.[pending.monthKey]?.complete;
-        if (cls && pending && !isDone) {
+        const record = cls && pending ? cls.ceremonyHistory?.[pending.monthKey] : null;
+        const isDone = !!record?.complete;
+        if (cls && pending && isDone && ceremonyWatchedOnDay(record, new Date())) {
+            // Watched today: the badge stays, greyed and quiet, until midnight.
+            pills.push(ceremonyPillHtml(cls, pending, { seen: true }));
+            setTimeout(() => wireCeremonySeenPill(), 100);
+        } else if (cls && pending && !isDone) {
             const verdict = getCeremonyStarVerdict(classId, pending.monthKey);
             if (verdict === true) {
                 pills.push(ceremonyPillHtml(cls, pending));

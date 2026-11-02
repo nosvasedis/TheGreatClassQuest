@@ -6,10 +6,9 @@
 // notice and revealed in the Evolution Moment (features/familiarMoments.js); until it has been
 // watched the familiar keeps its old form and glows, waiting.
 
-import { quietly } from '../utils/runtimeMetrics.js';
 import { db, doc, getDoc, updateDoc } from '../firebase.js';
 import * as state from '../state.js';
-import { playSound, playFamiliarVoice, ensureAudioReady } from '../audio.js';
+import { playSound, playFamiliarVoice } from '../audio.js';
 import { showToast } from '../ui/effects.js';
 import { detectLowPowerTier } from '../utils/devicePerformance.mjs';
 import {
@@ -31,7 +30,6 @@ import { getFamiliarVariant, normalizeFamiliarName } from './familiarIdentity.mj
 import {
     FAMILIAR_LOOK_VERSION,
     FAMILIAR_TRICKS,
-    FAMILIAR_TRICK_LEVEL,
     buildFamiliarEggSvg,
     buildFamiliarSvg,
     createFamiliarLook,
@@ -193,6 +191,10 @@ function ensureFamiliarStyles() {
 }
 
 let liteTier = null;
+/** True on low-power machines: fewer moving things. */
+export function familiarLiteMode() {
+    return isLite();
+}
 function isLite() {
     if (liteTier === null) {
         try { liteTier = detectLowPowerTier(); } catch { liteTier = false; }
@@ -200,6 +202,9 @@ function isLite() {
     return liteTier;
 }
 
+export function familiarPrefersReducedMotion() {
+    return prefersReducedMotion();
+}
 function prefersReducedMotion() {
     try { return Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches); } catch { return false; }
 }
@@ -456,7 +461,7 @@ function _announceStageChange(studentId, familiar, newLevel) {
         .catch((e) => console.warn('Familiar notice failed:', e));
 }
 
-export function _playFamiliarSound(type) {
+export function playFamiliarSoundEffect(type) {
     try {
         playSound(type === 'hatch' ? 'familiar_hatch' : 'familiar_levelup');
     } catch (_) {}
@@ -619,7 +624,7 @@ export const FAMILIAR_DEN_THEMES = {
     cloverhop: { sigil: '🍀', element: 'Luck', burst: ['#4ade80', '#fde047', '#ffffff'] }
 };
 
-function spawnBurst(host, typeId, colours) {
+export function spawnFamiliarBurst(host, typeId, colours) {
     if (!host || prefersReducedMotion()) return;
     const burst = document.createElement('div');
     burst.className = 'fam-burst';
@@ -664,327 +669,23 @@ export function openFamiliarStatsOverlay(studentId, { skipMoment = false } = {})
     openDen(studentId);
 }
 
-// The Den's stylesheet is fetched the first time a Den opens, so it stays out of the first paint.
-let denStylesPromise = null;
-function ensureDenStyles() {
-    if (!denStylesPromise) {
-        denStylesPromise = import('../styles/familiar_modal.css').catch((e) => {
-            denStylesPromise = null;
-            console.warn('Familiar Den styles failed to load:', e);
-        });
-    }
-    return denStylesPromise;
-}
-
+// The Den (the familiar's habitat) and its styles are fetched the first time a Den opens, so
+// they stay out of the first paint. See features/familiarDen.js and features/familiarHabitat.mjs.
+let denModulePromise = null;
 function openDen(studentId) {
     ensureFamiliarStyles();
-    ensureDenStyles().finally(() => renderDen(studentId));
-}
-
-function renderDen(studentId) {
-    const scoreData = scoreFor(studentId);
-    const student = state.get('allStudents').find((s) => s.id === studentId);
-    if (!scoreData?.familiar || !student) return;
-
-    const familiar = scoreData.familiar;
-    const typeDef = FAMILIAR_TYPES[familiar.typeId];
-    if (!typeDef) return;
-    ensureFamiliarStyles();
-
-    const existingOverlay = document.querySelector('.familiar-stats-overlay');
-    if (existingOverlay) {
-        if (existingOverlay.dataset.studentId === studentId) {
-            existingOverlay.querySelector('.fam-overlay-tap')?.click();
-            return;
-        }
-        existingOverlay.remove();
-    }
-
-    const info = describeFamiliarForTip(studentId);
-    const isEgg = familiar.state === 'egg';
-    const level = isEgg ? 0 : info.level;
-    const progress = info.progress;
-    const progressPercent = info.percent;
-    const isMaxLevel = progress.phase === 'max';
-    const genome = getFamiliarGenome(familiar, studentId);
-    const spriteHtml = `<div class="familiar-container" style="width:${SIZE_PX.xl}px;height:${SIZE_PX.xl}px;">${familiarArtSvg(familiar, studentId, { mode: 'full' })}</div>`;
-    const displayName = info.name;
-    const speciesLabel = familiar.name ? `${typeDef.name} • ${genome?.preset?.label || ''}` : genome?.preset?.label || typeDef.name;
-    const denTheme = FAMILIAR_DEN_THEMES[familiar.typeId] || { sigil: '✨', element: 'Arcane', burst: ['#fde68a'] };
-    const trick = FAMILIAR_TRICKS[familiar.typeId];
-    const trickReady = isFamiliarTrickReady(familiar);
-    const tricksAllowed = familiarTricksPerMonth(familiar);
-    const tricksLeft = Math.max(0, tricksAllowed - familiarTricksUsed(familiar));
-
-    const overlay = document.createElement('div');
-    overlay.dataset.studentId = studentId;
-    overlay.className = 'familiar-stats-overlay fixed inset-0 z-[95] flex items-center justify-center';
-
-    // Habitat motes: the per-type CSS makes embers rise, snow fall, leaves drift, wisps flicker, sun motes shimmer.
-    const motes = Array.from({ length: isLite() ? 6 : 14 }, (_, i) => {
-        const left = 4 + ((i * 37) % 92);
-        const top = 6 + ((i * 53) % 80);
-        const dur = (4.8 + (i % 5) * 0.9).toFixed(1);
-        const delay = (-(i * 0.73)).toFixed(2);
-        const drift = (i % 2 ? -1 : 1) * (10 + (i % 4) * 7);
-        const size = 3 + (i % 4) * 1.5;
-        return `<span class="fam-den-mote" style="left:${left}%;top:${top}%;--mote-size:${size}px;--mote-dur:${dur}s;--mote-delay:${delay}s;--mote-drift:${drift}px;"></span>`;
-    }).join('');
-
-    const runeMarks = Array.from({ length: 12 }, (_, i) => {
-        const a = (i / 12) * Math.PI * 2;
-        const x = 100 + Math.cos(a) * 86;
-        const y = 100 + Math.sin(a) * 86;
-        return i % 3 === 0
-            ? `<path d="M${x.toFixed(1)} ${(y - 5).toFixed(1)}L${(x + 4).toFixed(1)} ${y.toFixed(1)}L${x.toFixed(1)} ${(y + 5).toFixed(1)}L${(x - 4).toFixed(1)} ${y.toFixed(1)}Z" class="fam-rune-gem"/>`
-            : `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="1.8" class="fam-rune-dot"/>`;
-    }).join('');
-
-    // Evolution path: Egg, then the five forms, each drawn as this very familiar. The next form
-    // shows as a shadow; later ones stay a mystery.
-    const stages = [{ name: 'Egg' }, ...typeDef.levelNames.map((name) => ({ name }))];
-    const evolutionTrack = stages.map((stage, i) => {
-        const status = i < level ? 'done' : i === level ? 'current' : i === level + 1 ? 'next' : 'locked';
-        let art;
-        if (status === 'locked') art = '<span class="fam-evo-mystery" aria-hidden="true">?</span>';
-        else if (i === 0) art = `<span class="fam-evo-art">${familiarArtSvg(familiar, studentId, { egg: true, progress: isEgg ? progressPercent : 100, mode: 'chip' })}</span>`;
-        else art = `<span class="fam-evo-art${status === 'next' ? ' fam-evo-art--shadow' : ''}">${familiarArtSvg(familiar, studentId, { egg: false, level: i, mode: 'chip', starbond: 0 })}</span>`;
-        const label = status === 'locked' ? '???' : stage.name;
-        return `
-            <li class="fam-evo-node fam-evo-node--${status}" style="--evo-i:${i};">
-                <span class="fam-evo-gem">${art}</span>
-                <span class="fam-evo-name">${escapeHtml(label)}</span>
-                ${i > 0 ? `<span class="fam-evo-need">${FAMILIAR_STAGE_BOND[i]}★</span>` : ''}
-            </li>`;
-    }).join('');
-    const trackFill = Math.round((level / FAMILIAR_MAX_LEVEL) * 100);
-
-    const progressSpan = Math.max(1, progress.max - progress.min);
-    const progressDone = Math.max(0, Math.min(progressSpan, progress.current - progress.min));
-    const progressVerb = progress.phase === 'egg' ? 'Hatches into' : 'Evolves into';
-    const nextStageName = isEgg ? familiarStageName(familiar.typeId, 1) : info.nextName;
-
-    const traits = (genome?.traits || []).slice(1)
-        .map((t) => `<span class="fam-den-trait${t === 'Shiny' ? ' fam-den-trait--shiny' : ''}">${escapeHtml(t)}</span>`).join('');
-
-    const starbond = info.starbond;
-    const starbondPips = Array.from({ length: Math.max(5, Math.min(10, starbond.marks + 1)) }, (_, i) =>
-        `<span class="fam-starbond-pip${i < starbond.marks ? ' is-lit' : ''}" aria-hidden="true">★</span>`).join('');
-
-    const trickPanel = trick ? (level >= FAMILIAR_TRICK_LEVEL ? `
-                    <section class="fam-den-panel fam-den-trick">
-                        <span class="fam-stat-icon" aria-hidden="true">🪄</span>
-                        <div>
-                            <div class="fam-den-label">Trick · ${escapeHtml(trick.name)}</div>
-                            <div class="fam-den-hint">${tricksAllowed > 1 ? 'Twice' : 'Once'} a month in the Quiz of the Week, ${escapeHtml(displayName)} ${escapeHtml(trick.verb)}.</div>
-                            <div class="fam-den-trick-state ${trickReady ? 'is-ready' : ''}">${trickReady ? (tricksLeft > 1 ? `${tricksLeft} ready this month` : 'Ready this month') : 'Used this month. Back next month!'}</div>
-                        </div>
-                    </section>` : `
-                    <section class="fam-den-panel fam-den-trick fam-den-trick--locked">
-                        <span class="fam-stat-icon" aria-hidden="true">🪄</span>
-                        <div>
-                            <div class="fam-den-label">Trick at ${escapeHtml(typeDef.levelNames[FAMILIAR_TRICK_LEVEL - 1])}</div>
-                            <div class="fam-den-hint">Learns ${escapeHtml(trick.name)}: once a month in the Quiz of the Week it ${escapeHtml(trick.verb)}. At ${escapeHtml(typeDef.levelNames[FAMILIAR_MAX_LEVEL - 1])}, twice a month.</div>
-                        </div>
-                    </section>`) : '';
-
-    overlay.innerHTML = `
-        <div class="fam-overlay-backdrop"></div>
-        <div class="fam-modal-card fam-den relative w-full${level >= FAMILIAR_MAX_LEVEL ? ' fam-den--mythic' : ''}" data-fam-type="${escapeHtml(familiar.typeId)}"
-             style="--fam-color:${typeDef.eggColor};--fam-accent:${typeDef.eggAccent || typeDef.eggColor};">
-            <div class="fam-modal-scroll">
-                <button type="button" class="fam-overlay-close" aria-label="Close">&times;</button>
-
-                <div class="fam-den-stage">
-                    <div class="fam-den-sky" aria-hidden="true"></div>
-                    <div class="fam-den-rays" aria-hidden="true"></div>
-                    <div class="fam-den-motes" aria-hidden="true">${motes}</div>
-                    <div class="fam-den-sigil">
-                        <span class="fam-den-sigil-icon" aria-hidden="true">${denTheme.sigil}</span>
-                        <span>${escapeHtml(denTheme.element)}</span>
-                    </div>
-                    ${level ? `<div class="fam-den-form-badge">Form ${level} of ${FAMILIAR_MAX_LEVEL}</div>` : ''}
-                    <div class="fam-den-altar">
-                        <svg class="fam-den-runes" viewBox="0 0 200 200" aria-hidden="true">
-                            <circle cx="100" cy="100" r="94" class="fam-rune-ring"/>
-                            <circle cx="100" cy="100" r="78" class="fam-rune-ring fam-rune-ring--dash"/>
-                            <circle cx="100" cy="100" r="64" class="fam-rune-ring fam-rune-ring--faint"/>
-                            ${runeMarks}
-                        </svg>
-                        <div class="fam-modal-sprite-halo" aria-hidden="true"></div>
-                        <div class="fam-den-pedestal" aria-hidden="true"></div>
-                        <button type="button" class="fam-overlay-tap fam-den-creature" aria-label="Pet ${escapeHtml(displayName)}">
-                            <span class="fc-tilt">${spriteHtml}</span>
-                        </button>
-                    </div>
-                    <div class="fam-den-pet-hint" aria-hidden="true">${isEgg ? 'Tap the egg to listen' : 'Tap to play'}</div>
-                </div>
-
-                <div class="fam-den-body">
-                    <div class="fam-den-heading">
-                        <div class="fam-modal-species">${escapeHtml(speciesLabel)}</div>
-                        <h3 class="fam-modal-name">${escapeHtml(displayName)}</h3>
-                        <div class="fam-modal-badge">${isEgg ? '🥚' : level >= FAMILIAR_MAX_LEVEL ? '👑' : '✨'} ${escapeHtml(info.stageName)}</div>
-                    </div>
-
-                    <blockquote class="fam-modal-quote">${escapeHtml(typeDef.personality)}</blockquote>
-                    ${traits ? `<div class="fam-den-traits">${traits}</div>` : ''}
-
-                    <section class="fam-den-panel" aria-label="Evolution path">
-                        <div class="fam-den-label">Evolution Path</div>
-                        <ol class="fam-evo-track" style="--evo-fill:${trackFill}%;">${evolutionTrack}</ol>
-                    </section>
-
-                    ${!isMaxLevel ? `
-                    <section class="fam-den-panel fam-den-progress">
-                        <div class="fam-den-progress-head">
-                            <div>
-                                <div class="fam-den-label">${progressVerb}</div>
-                                <div class="fam-den-next">${escapeHtml(nextStageName)}</div>
-                            </div>
-                            <div class="fam-den-count"><strong>${progressDone}</strong> / ${progressSpan} ⭐</div>
-                        </div>
-                        <div class="fam-den-bar">
-                            <div class="fam-modal-progress-bar" style="--fam-progress:${progressPercent}%;"></div>
-                        </div>
-                        <div class="fam-den-hint">${progress.remaining} more ${progress.remaining === 1 ? 'star' : 'stars'} to go · ${progressPercent}%</div>
-                    </section>` : `
-                    <section class="fam-den-panel fam-den-max">
-                        <span class="fam-den-max-crown" aria-hidden="true">👑</span>
-                        <div class="fam-den-max-body">
-                            <div class="fam-den-max-title">Mythic Form · Starbond ${starbond.marks}</div>
-                            <div class="fam-starbond-row">${starbondPips}</div>
-                            <div class="fam-den-bar fam-den-bar--starbond">
-                                <div class="fam-modal-progress-bar" style="--fam-progress:${Math.round((starbond.intoNext / starbond.step) * 100)}%;"></div>
-                            </div>
-                            <div class="fam-den-hint">${starbond.step - starbond.intoNext} more stars together for the next Starbond mark</div>
-                        </div>
-                    </section>`}
-
-                    ${trickPanel}
-
-                    <div class="fam-den-stats">
-                        <div class="fam-modal-stat">
-                            <span class="fam-stat-icon" aria-hidden="true">⭐</span>
-                            <div>
-                                <div class="fam-stat-value">${info.bond}</div>
-                                <div class="fam-den-label">Stars together</div>
-                            </div>
-                        </div>
-                        <div class="fam-modal-stat">
-                            <span class="fam-stat-icon" aria-hidden="true">${denTheme.sigil}</span>
-                            <div>
-                                <div class="fam-stat-value fam-stat-value--sm">${escapeHtml(genome?.preset?.label || 'Standard')}</div>
-                                <div class="fam-den-label">${isEgg ? 'Hatching as' : 'Kind'}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    ${familiar.state === 'alive' ? `
-                    <section class="fam-den-panel">
-                        <div class="fam-den-label">True name</div>
-                        <div class="fam-den-name-row">
-                            <input type="text" class="fam-name-input" maxlength="24" value="${escapeHtml(familiar.name || '')}" placeholder="Give this familiar a name">
-                            <button type="button" class="fam-name-save" data-student-id="${escapeHtml(studentId)}">Save</button>
-                        </div>
-                    </section>` : `
-                    <section class="fam-den-panel fam-den-egg-note">
-                        <span class="fam-stat-icon" aria-hidden="true">🥚</span>
-                        <div class="fam-den-hint">This egg can be named after it hatches.</div>
-                    </section>`}
-                </div>
-            </div>
-        </div>`;
-
-    document.body.appendChild(overlay);
-
-    const closeOverlay = () => {
-        const card = overlay.querySelector('.fam-modal-card');
-        const backdrop = overlay.querySelector('.fam-overlay-backdrop');
-        if (card) {
-            card.classList.add('fam-modal-card--exit');
-            if (backdrop) backdrop.classList.add('fam-overlay-backdrop--exit');
-            card.addEventListener('animationend', (e) => { if (e.target === card) overlay.remove(); });
-            setTimeout(() => overlay.remove(), 700);
-        } else {
-            overlay.remove();
-        }
-    };
-    overlay.querySelector('.fam-overlay-close').addEventListener('click', closeOverlay);
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeOverlay(); });
-
-    const altar = overlay.querySelector('.fam-den-altar');
-    const stageEl = overlay.querySelector('.fam-den-stage');
-    const tapBtn = overlay.querySelector('.fam-overlay-tap');
-
-    // A gentle 3D tilt toward the pointer; the head and eyes follow a little further.
-    if (stageEl && altar && !isLite() && !prefersReducedMotion()) {
-        stageEl.addEventListener('pointermove', (e) => {
-            const r = altar.getBoundingClientRect();
-            const px = Math.max(-1, Math.min(1, (e.clientX - (r.left + r.width / 2)) / (r.width / 1.2)));
-            const py = Math.max(-1, Math.min(1, (e.clientY - (r.top + r.height / 2)) / (r.height / 1.2)));
-            altar.style.setProperty('--fc-px', px.toFixed(3));
-            altar.style.setProperty('--fc-py', py.toFixed(3));
-        });
-        stageEl.addEventListener('pointerleave', () => {
-            altar.style.setProperty('--fc-px', '0');
-            altar.style.setProperty('--fc-py', '0');
+    if (!denModulePromise) {
+        denModulePromise = import('./familiarDen.js').catch((e) => {
+            denModulePromise = null;
+            throw e;
         });
     }
-
-    if (tapBtn) {
-        tapBtn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            await ensureAudioReady().catch(() => false);
-            const box = tapBtn.querySelector('.familiar-container');
-            if (isEgg) {
-                box?.classList.remove('fam-react-wiggle');
-                void box?.offsetWidth;
-                box?.classList.add('fam-react-wiggle');
-                _playFamiliarSound('hatch');
-                return;
-            }
-            const reaction = ['fam-react-spin', 'fam-react-hop', 'fam-react-wiggle'][Math.floor(Math.random() * 3)];
-            box?.classList.remove('fam-react-spin', 'fam-react-hop', 'fam-react-wiggle', 'fam-live');
-            void box?.offsetWidth;
-            box?.classList.add(reaction);
-            spawnBurst(altar, familiar.typeId, denTheme.burst);
-            playFamiliarCall(familiar, studentId);
+    denModulePromise
+        .then((m) => m.renderFamiliarDen(studentId))
+        .catch((e) => {
+            console.warn('Familiar Den failed to open:', e);
+            showToast('The familiar\'s home could not open. Please try again.', 'error');
         });
-    }
-
-    if (!isEgg) {
-        ensureAudioReady().then(() => playFamiliarCall(familiar, studentId)).catch(quietly('features/familiars.js'));
-    }
-
-    const saveBtn = overlay.querySelector('.fam-name-save');
-    const nameInput = overlay.querySelector('.fam-name-input');
-    if (saveBtn && nameInput) {
-        const commitName = async () => {
-            saveBtn.disabled = true;
-            saveBtn.textContent = 'Saving...';
-            try {
-                await saveFamiliarName(studentId, nameInput.value);
-                closeOverlay();
-                setTimeout(() => openDen(studentId), 480);
-            } finally {
-                saveBtn.disabled = false;
-                saveBtn.textContent = 'Save';
-            }
-        };
-
-        saveBtn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            await commitName();
-        });
-
-        nameInput.addEventListener('keydown', async (e) => {
-            if (e.key !== 'Enter') return;
-            e.preventDefault();
-            e.stopPropagation();
-            await commitName();
-        });
-    }
 }
 
 export async function saveFamiliarName(studentId, rawName) {

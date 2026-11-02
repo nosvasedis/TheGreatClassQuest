@@ -1,0 +1,783 @@
+/* styles/familiar_habitat.css — the Familiar's Habitat (the Den).
+   Loaded with features/familiarDen.js the first time a Den opens, never on first paint.
+   Wide: the living place on the left, the journal on the right. Phones: place on top,
+   journal below. Everything that moves is a transform or opacity; .fam-hab--lite (weak
+   machines) keeps the place still and the particles few; reduced motion stops everything. */
+
+/* ─── Species tokens ───────────────────────────────────────────────────────── */
+.fam-hab {
+    --den-glow: var(--fam-accent, #c4b5fd);
+    --den-glow-2: var(--fam-color, #8b5cf6);
+    --den-ink: #f5f3ff;
+    --den-body: #141026;
+    --den-deep: #08070f;
+}
+.fam-hab[data-fam-type="emberfang"] { --den-glow: #fb923c; --den-glow-2: #ef4444; --den-ink: #ffedd5; --den-body: #24100c; --den-deep: #0f0605; }
+.fam-hab[data-fam-type="frostpaw"] { --den-glow: #7dd3fc; --den-glow-2: #a78bfa; --den-ink: #e0f2fe; --den-body: #0b1a33; --den-deep: #050b18; }
+.fam-hab[data-fam-type="thornback"] { --den-glow: #a3e635; --den-glow-2: #22c55e; --den-ink: #ecfccb; --den-body: #0b2214; --den-deep: #040e08; }
+.fam-hab[data-fam-type="veilshade"] { --den-glow: #c084fc; --den-glow-2: #6366f1; --den-ink: #f3e8ff; --den-body: #160b30; --den-deep: #080414; }
+.fam-hab[data-fam-type="sparkling"] { --den-glow: #fcd34d; --den-glow-2: #fb7185; --den-ink: #fef3c7; --den-body: #2a1410; --den-deep: #120806; }
+.fam-hab[data-fam-type="tidefin"] { --den-glow: #7dd3fc; --den-glow-2: #2dd4bf; --den-ink: #e0f2fe; --den-body: #062238; --den-deep: #020e18; }
+.fam-hab[data-fam-type="stormwing"] { --den-glow: #fde047; --den-glow-2: #93c5fd; --den-ink: #f1f5f9; --den-body: #131c2e; --den-deep: #070b14; }
+.fam-hab[data-fam-type="gemshell"] { --den-glow: #5eead4; --den-glow-2: #f0abfc; --den-ink: #ccfbf1; --den-body: #0a2a28; --den-deep: #031110; }
+.fam-hab[data-fam-type="starfoal"] { --den-glow: #f9a8d4; --den-glow-2: #a5b4fc; --den-ink: #fdf4ff; --den-body: #1c0f3a; --den-deep: #0b0619; }
+.fam-hab[data-fam-type="cloverhop"] { --den-glow: #fde047; --den-glow-2: #4ade80; --den-ink: #f0fdf4; --den-body: #0b2a18; --den-deep: #04110a; }
+
+/* ─── Overlay and card ─────────────────────────────────────────────────────── */
+.fam-hab-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 95;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+@keyframes fam-modal-bg-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fam-modal-bg-out { from { opacity: 1; } to { opacity: 0; } }
+.fam-hab-overlay .fam-overlay-backdrop {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 45%, rgba(40, 30, 80, 0.3), transparent 60%), rgba(4, 6, 14, 0.84);
+    animation: fam-modal-bg-in 0.4s ease both;
+}
+.fam-hab-overlay .fam-overlay-backdrop--exit { animation: fam-modal-bg-out 0.32s ease both; }
+
+@keyframes fam-hab-in {
+    from { opacity: 0; transform: translateY(26px) scale(0.96); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes fam-hab-out {
+    from { opacity: 1; transform: none; }
+    to { opacity: 0; transform: translateY(16px) scale(0.97); }
+}
+.fam-hab {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(300px, 31%, 390px);
+    width: min(1240px, calc(100vw - 32px));
+    height: min(720px, calc(100dvh - 32px));
+    border-radius: 26px;
+    overflow: hidden;
+    isolation: isolate;
+    color: var(--den-ink);
+    background: var(--den-deep);
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--den-glow) 45%, transparent),
+        0 0 60px color-mix(in srgb, var(--den-glow) 22%, transparent),
+        0 40px 90px rgba(0, 0, 0, 0.6);
+    animation: fam-hab-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.fam-hab.fam-modal-card--exit { animation: fam-hab-out 0.32s ease both; pointer-events: none; }
+.fam-hab.is-mythic { box-shadow: 0 0 0 2px rgba(253, 224, 71, 0.6), 0 0 70px rgba(253, 224, 71, 0.25), 0 40px 90px rgba(0, 0, 0, 0.6); }
+
+.fam-hab-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 30;
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    font-size: 1.45rem;
+    line-height: 1;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid color-mix(in srgb, var(--den-glow) 45%, transparent);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.fam-hab-close:hover { transform: rotate(90deg); box-shadow: 0 0 16px color-mix(in srgb, var(--den-glow) 60%, transparent); }
+.fam-hab-close:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+/* ─── The place ────────────────────────────────────────────────────────────── */
+.fam-hab__world {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    container-type: size;
+    background: #0b1020;
+    --hab-size: 200px;
+    --hab-ground: 60px;
+}
+.fam-hab__scene {
+    position: absolute;
+    inset: 0;
+    transition: opacity 0.6s ease;
+}
+.fam-hab__scene.is-entering { opacity: 0; }
+.fam-hab__scene > svg { display: block; width: 100%; height: 100%; }
+/* Clouds and mist drift as whole layers: a GPU transform, no repaint of the place. */
+.fam-hab__air, .fam-hab__mist { position: absolute; inset: 0 -5%; pointer-events: none; will-change: transform; }
+.fam-hab__air { animation: hb-air 80s ease-in-out infinite alternate; }
+.fam-hab__mist { animation: hb-air 26s ease-in-out infinite alternate-reverse; }
+.fam-hab__air > svg, .fam-hab__mist > svg { display: block; width: 100%; height: 100%; }
+@keyframes hb-air { from { transform: translate3d(-2.5%, 0, 0); } to { transform: translate3d(2.5%, 0, 0); } }
+.fam-hab--lite .fam-hab__air, .fam-hab--lite .fam-hab__mist, .fam-hab--still .fam-hab__air, .fam-hab--still .fam-hab__mist { animation: none; }
+.fam-hab__world::after {
+    /* a soft vignette so the hud and the journal edge read well */
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 3;
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.32), transparent 22%),
+        linear-gradient(270deg, rgba(0, 0, 0, 0.28), transparent 10%);
+}
+.fam-hab__fx { position: absolute; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; }
+.fam-hab__ground {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+.fam-hab__ground:focus-visible { outline: 3px solid color-mix(in srgb, var(--den-glow) 70%, transparent); outline-offset: -6px; }
+
+/* The familiar */
+.fam-hab__walker {
+    position: absolute;
+    left: 0;
+    bottom: var(--hab-ground);
+    z-index: 5;
+    width: var(--hab-size);
+    height: var(--hab-size);
+    pointer-events: none;
+    transition: transform var(--walk-dur, 1.2s) cubic-bezier(0.45, 0.05, 0.4, 1);
+    will-change: transform;
+}
+.fam-hab__walker::before {
+    content: '';
+    position: absolute;
+    left: 18%;
+    right: 18%;
+    bottom: 2%;
+    height: 9%;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(0, 0, 0, 0.42), transparent);
+}
+.fam-hab__body { position: relative; width: 100%; height: 100%; transform-origin: 50% 100%; transition: transform 0.5s ease; }
+@keyframes fam-hab-walk {
+    0%, 100% { transform: translateY(0) rotate(calc(var(--dir, 1) * 3deg)); }
+    50% { transform: translateY(-7%) rotate(calc(var(--dir, 1) * -1.5deg)); }
+}
+.fam-hab__walker.is-walking .fam-hab__body { animation: fam-hab-walk 0.44s ease-in-out infinite; }
+.fam-hab__walker.is-napping .fam-hab__body { transform: scale(0.92, 0.86); }
+.fam-hab .fam-den-creature {
+    width: 100%;
+    height: 100%;
+    pointer-events: auto;
+    border-radius: 40%;
+}
+.fam-hab .fam-den-creature .fc-tilt,
+.fam-hab .fam-den-creature .familiar-container { display: block; width: 100%; height: 100%; }
+.fam-hab .familiar-container { filter: none; }
+.fam-hab .familiar-container:hover { filter: brightness(1.08); }
+.fam-hab.is-mythic .fam-hab__walker::after {
+    content: '';
+    position: absolute;
+    inset: -12%;
+    z-index: -1;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(253, 224, 71, 0.35), transparent);
+}
+
+/* Speech bubble */
+.fam-hab__bubble {
+    position: absolute;
+    left: 50%;
+    bottom: 96%;
+    z-index: 2;
+    max-width: 220px;
+    padding: 7px 14px;
+    border-radius: 16px;
+    font: 600 clamp(0.85rem, 0.7rem + 0.5cqw, 1.2rem)/1.2 'Fredoka', sans-serif;
+    white-space: nowrap;
+    color: #1f1633;
+    background: #fff;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    transform: translate(-50%, 8px) scale(0.85);
+    transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.fam-hab__bubble::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 100%;
+    margin-left: -7px;
+    border: 7px solid transparent;
+    border-top-color: #fff;
+}
+.fam-hab__bubble.is-on { opacity: 1; transform: translate(-50%, 0) scale(1); }
+.fam-hab__bubble:empty { display: none; }
+
+.fam-hab__pop { position: absolute; left: 50%; top: 18%; z-index: 3; pointer-events: none; }
+.fam-hab__pop i {
+    position: absolute;
+    font-style: normal;
+    font-size: clamp(14px, 1.6cqw, 26px);
+    color: #fb7185;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.7);
+    opacity: 0;
+    animation: fam-hab-pop 1.3s ease-out forwards;
+    animation-delay: calc(var(--n) * 90ms);
+}
+@keyframes fam-hab-pop {
+    0% { opacity: 0; transform: translate(0, 0) scale(0.4); }
+    20% { opacity: 1; transform: translate(calc(var(--x) * 0.3), -14px) scale(1.1); }
+    100% { opacity: 0; transform: translate(var(--x), -90px) scale(0.8); }
+}
+
+/* Snack, toy and home markers */
+.fam-hab__spots { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
+.fam-hab-spot {
+    position: absolute;
+    left: 0;
+    top: 0;
+    translate: -50% -50%;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    pointer-events: auto;
+    -webkit-tap-highlight-color: transparent;
+}
+.fam-hab-spot > span {
+    display: grid;
+    place-items: center;
+    width: clamp(34px, 3.4cqw, 52px);
+    height: clamp(34px, 3.4cqw, 52px);
+    border-radius: 50%;
+    font-size: clamp(17px, 1.7cqw, 26px);
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--den-glow) 60%, transparent), 0 6px 14px rgba(0, 0, 0, 0.3);
+    animation: fam-hab-bob 2.8s ease-in-out infinite;
+    transition: transform 0.2s ease;
+}
+.fam-hab-spot:nth-child(2) > span { animation-delay: -0.9s; }
+.fam-hab-spot:nth-child(3) > span { animation-delay: -1.8s; }
+.fam-hab-spot em {
+    font: 600 clamp(0.62rem, 0.55rem + 0.3cqw, 0.85rem)/1 'Fredoka', sans-serif;
+    font-style: normal;
+    color: #fff;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.45);
+}
+.fam-hab-spot:hover > span, .fam-hab-spot:focus-visible > span { transform: scale(1.12); }
+.fam-hab-spot:focus-visible { outline: none; }
+.fam-hab-spot:focus-visible > span { box-shadow: 0 0 0 4px #fff, 0 6px 14px rgba(0, 0, 0, 0.3); }
+@keyframes fam-hab-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+
+/* Narrow places (phones): markers without labels, a shorter hint. */
+.fam-hab__world.is-narrow .fam-hab-spot em, .fam-hab__world.is-narrow .fam-hab__hint-more { display: none; }
+.fam-hab__world.is-narrow .fam-hab-spot > span { width: 32px; height: 32px; font-size: 16px; }
+
+/* Place name and chips */
+.fam-hab__top {
+    position: absolute;
+    top: 14px;
+    left: 16px;
+    right: 16px;
+    z-index: 7;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    pointer-events: none;
+}
+.fam-hab__place {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 8px 16px 9px;
+    border-radius: 16px;
+    background: rgba(6, 8, 18, 0.55);
+    border: 1px solid color-mix(in srgb, var(--den-glow) 30%, transparent);
+    pointer-events: auto;
+}
+.fam-hab__home {
+    font: 700 clamp(0.62rem, 0.55rem + 0.25cqw, 0.85rem)/1.2 'Fredoka', sans-serif;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--den-glow);
+}
+.fam-hab__placename {
+    font-family: var(--gcq-font-title, 'Fredoka One', sans-serif);
+    font-weight: 400;
+    font-size: clamp(1.05rem, 0.8rem + 1cqw, 1.9rem);
+    line-height: 1.1;
+    color: #fff;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+.fam-hab__chips { display: flex; flex-wrap: wrap; gap: 6px; pointer-events: auto; }
+.fam-hab-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font: 600 clamp(0.72rem, 0.62rem + 0.3cqw, 1rem)/1 'Fredoka', sans-serif;
+    color: #fff;
+    background: rgba(6, 8, 18, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+.fam-hab-chip:hover { background: rgba(6, 8, 18, 0.75); transform: translateY(-1px); }
+.fam-hab-chip:focus-visible { outline: 2px solid var(--den-glow); outline-offset: 2px; }
+
+.fam-hab__hint {
+    position: absolute;
+    left: 50%;
+    bottom: 12px;
+    z-index: 7;
+    transform: translateX(-50%);
+    padding: 5px 14px;
+    border-radius: 999px;
+    font: 600 clamp(0.66rem, 0.6rem + 0.25cqw, 0.9rem)/1.2 'Fredoka', sans-serif;
+    white-space: nowrap;
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(0, 0, 0, 0.42);
+    pointer-events: none;
+    animation: fam-hab-hint 7s ease 1s both;
+}
+@keyframes fam-hab-hint { 0% { opacity: 0; } 10%, 80% { opacity: 1; } 100% { opacity: 0; } }
+
+/* ─── Journal ──────────────────────────────────────────────────────────────── */
+.fam-hab__journal {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 18px 18px 14px;
+    background:
+        radial-gradient(ellipse 120% 40% at 50% 0%, color-mix(in srgb, var(--den-glow) 16%, transparent), transparent 70%),
+        linear-gradient(180deg, var(--den-body), var(--den-deep));
+    border-left: 1px solid color-mix(in srgb, var(--den-glow) 28%, transparent);
+}
+.fam-hab-id { padding-right: 40px; }
+.fam-hab-id__row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.fam-hab-element, .fam-hab-form {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font: 700 0.7rem/1.1 'Fredoka', sans-serif;
+    letter-spacing: 0.05em;
+    color: var(--den-ink);
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid color-mix(in srgb, var(--den-glow) 40%, transparent);
+}
+.fam-hab.is-mythic .fam-hab-form { color: #1a1026; background: linear-gradient(135deg, #fffbeb, #fde047); border-color: transparent; }
+.fam-hab .fam-modal-species {
+    font-family: 'Cinzel', 'Lora', Georgia, serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--den-glow);
+}
+.fam-hab-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.fam-hab .fam-modal-name {
+    margin: 0;
+    min-width: 0;
+    font-family: var(--gcq-font-title, 'Fredoka One', sans-serif);
+    font-weight: 400;
+    font-size: clamp(1.7rem, 1.3rem + 0.8vw, 2.4rem);
+    line-height: 1.08;
+    color: #fff;
+    text-shadow: 0 0 18px color-mix(in srgb, var(--den-glow) 50%, transparent), 0 2px 0 rgba(0, 0, 0, 0.5);
+    overflow-wrap: anywhere;
+}
+.fam-hab-rename {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    color: var(--den-ink);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid color-mix(in srgb, var(--den-glow) 40%, transparent);
+    transition: background 0.2s ease;
+}
+.fam-hab-rename:hover { background: color-mix(in srgb, var(--den-glow) 30%, transparent); }
+.fam-hab .fam-modal-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 4px 14px;
+    border-radius: 999px;
+    font: 700 0.8rem/1.3 'Fredoka', sans-serif;
+    color: #1a1026;
+    background: linear-gradient(135deg, var(--den-ink), var(--den-glow) 55%, var(--den-glow-2));
+    box-shadow: 0 0 16px color-mix(in srgb, var(--den-glow) 45%, transparent);
+}
+
+.fam-den-name-row { display: flex; gap: 8px; margin-top: 8px; }
+.fam-den-name-row[hidden] { display: none; }
+.fam-name-input {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 12px;
+    border-radius: 12px;
+    font: 500 0.9rem 'Fredoka', sans-serif;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.fam-name-input::placeholder { color: rgba(255, 255, 255, 0.35); }
+.fam-name-input:focus { outline: none; border-color: var(--den-glow); box-shadow: 0 0 0 3px color-mix(in srgb, var(--den-glow) 25%, transparent); }
+.fam-name-save {
+    padding: 0 16px;
+    border-radius: 12px;
+    font: 700 0.85rem 'Fredoka', sans-serif;
+    color: #1a1026;
+    background: linear-gradient(135deg, var(--den-ink), var(--den-glow));
+}
+.fam-name-save:disabled { opacity: 0.6; }
+
+/* Tabs */
+.fam-hab-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    margin: 14px 0 10px;
+    padding: 4px;
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.fam-hab-tab {
+    position: relative;
+    padding: 7px 4px;
+    border-radius: 10px;
+    font: 600 0.82rem/1 'Fredoka', sans-serif;
+    color: color-mix(in srgb, var(--den-ink) 70%, transparent);
+    transition: background 0.2s ease, color 0.2s ease;
+}
+.fam-hab-tab:hover { color: #fff; }
+.fam-hab-tab.is-on { color: #1a1026; background: linear-gradient(135deg, var(--den-ink), var(--den-glow)); }
+.fam-hab-tab:focus-visible { outline: 2px solid var(--den-glow); outline-offset: 1px; }
+.fam-hab-tab__dot { position: absolute; top: 4px; right: 8px; width: 7px; height: 7px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 6px #4ade80; }
+
+.fam-hab-panes {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    margin: 0 -6px;
+    padding: 0 6px 4px;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--den-glow) 35%, transparent) transparent;
+}
+.fam-hab-pane { display: flex; flex-direction: column; gap: 10px; }
+.fam-hab-pane[hidden] { display: none; }
+.fam-hab-pane.is-on { animation: fam-hab-pane 0.3s ease both; }
+@keyframes fam-hab-pane { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+.fam-hab-card {
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+    border: 1px solid color-mix(in srgb, var(--den-glow) 24%, transparent);
+}
+.fam-hab-label {
+    font: 700 0.64rem/1.2 'Fredoka', sans-serif;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--den-ink) 62%, transparent);
+}
+.fam-hab-hint { margin: 0; font: 500 0.76rem/1.4 'Fredoka', sans-serif; color: color-mix(in srgb, var(--den-ink) 70%, transparent); }
+.fam-hab-next {
+    font-family: var(--gcq-font-title, 'Fredoka One', sans-serif);
+    font-size: 1.12rem;
+    line-height: 1.15;
+    color: #fff;
+    text-shadow: 0 0 12px color-mix(in srgb, var(--den-glow) 55%, transparent);
+}
+.fam-hab-grow__head { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.fam-hab-count { font: 500 0.8rem 'Fredoka', sans-serif; white-space: nowrap; color: color-mix(in srgb, var(--den-ink) 72%, transparent); }
+.fam-hab-count strong { font-family: var(--gcq-font-title, 'Fredoka One', sans-serif); font-weight: 400; font-size: 1.35rem; color: var(--den-glow); }
+.fam-hab-bar {
+    height: 12px;
+    margin-bottom: 7px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.45);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+}
+@keyframes fam-progress-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.fam-hab .fam-modal-progress-bar {
+    height: 100%;
+    min-width: 12px;
+    width: var(--fam-progress, 0%);
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--den-glow-2), var(--den-glow) 70%, #fff);
+    box-shadow: 0 0 12px var(--den-glow);
+    transform-origin: 0 50%;
+    animation: fam-progress-fill 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.4s both;
+}
+.fam-hab-bar--starbond .fam-modal-progress-bar { background: linear-gradient(90deg, #f59e0b, #fde047 70%, #fff); }
+.fam-hab-nexthome {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.14);
+    font: 500 0.76rem/1.35 'Fredoka', sans-serif;
+    color: color-mix(in srgb, var(--den-ink) 75%, transparent);
+}
+.fam-hab-nexthome strong { color: var(--den-glow); }
+
+.fam-hab-max { display: flex; align-items: center; gap: 12px; border-color: rgba(251, 191, 36, 0.55); background: linear-gradient(120deg, rgba(251, 191, 36, 0.16), rgba(251, 191, 36, 0.03) 60%); }
+.fam-hab-max__crown { font-size: 1.8rem; }
+.fam-hab-max__body { flex: 1; min-width: 0; }
+.fam-hab-max__title { font: 700 1rem 'Cinzel', Georgia, serif; color: #fde68a; }
+.fam-starbond-row { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 8px; }
+.fam-starbond-pip { font-size: 0.95rem; line-height: 1; color: rgba(255, 255, 255, 0.18); }
+.fam-starbond-pip.is-lit { color: #fde047; text-shadow: 0 0 8px rgba(251, 191, 36, 0.9); }
+
+/* Evolution path */
+.fam-evo-track { position: relative; display: grid; grid-template-columns: repeat(6, 1fr); margin: 10px 0 0; padding: 0; list-style: none; }
+.fam-evo-track::before, .fam-evo-track::after { content: ''; position: absolute; top: 17px; left: 8.33%; height: 3px; border-radius: 3px; }
+.fam-evo-track::before { right: 8.33%; background: rgba(255, 255, 255, 0.1); }
+.fam-evo-track::after { width: calc(var(--evo-fill, 0%) * 0.8334); background: linear-gradient(90deg, var(--den-glow-2), var(--den-glow)); box-shadow: 0 0 10px var(--den-glow); }
+.fam-evo-node { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+.fam-evo-gem { position: relative; display: grid; place-items: center; width: 38px; height: 38px; font: 700 0.8rem/1 Georgia, serif; }
+.fam-evo-gem::before { content: ''; position: absolute; inset: 6px; z-index: -1; border-radius: 7px; transform: rotate(45deg); }
+.fam-evo-node--done .fam-evo-gem::before { background: linear-gradient(135deg, var(--den-ink), var(--den-glow)); box-shadow: 0 0 12px color-mix(in srgb, var(--den-glow) 60%, transparent); }
+.fam-evo-node--current .fam-evo-gem::before { inset: 3px; background: linear-gradient(135deg, #fff, var(--den-glow) 60%, var(--den-glow-2)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--den-glow) 35%, transparent), 0 0 18px var(--den-glow); }
+.fam-evo-node--next .fam-evo-gem::before { background: #0b0a14; border: 1.5px solid color-mix(in srgb, var(--den-glow) 55%, transparent); }
+.fam-evo-node--locked .fam-evo-gem { color: rgba(255, 255, 255, 0.35); font-size: 0.62rem; }
+.fam-evo-node--locked .fam-evo-gem::before { background: #0b0a14; border: 1.5px dashed rgba(255, 255, 255, 0.22); }
+.fam-evo-name { font: 600 0.64rem/1.15 'Fredoka', sans-serif; color: var(--den-ink); padding: 0 1px; }
+.fam-evo-need { margin-top: -3px; font: 600 0.56rem/1 'Fredoka', sans-serif; color: color-mix(in srgb, var(--den-ink) 50%, transparent); }
+.fam-evo-node--current .fam-evo-name { color: var(--den-glow); font-weight: 700; }
+.fam-evo-node--next .fam-evo-name { opacity: 0.75; }
+.fam-evo-node--locked .fam-evo-name { opacity: 0.4; }
+
+.fam-hab-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.fam-hab-stat {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 10px 12px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+    border: 1px solid color-mix(in srgb, var(--den-glow) 24%, transparent);
+}
+.fam-hab-stat > span { flex-shrink: 0; font-size: 1.2rem; }
+.fam-hab-stat > div { display: flex; flex-direction: column; min-width: 0; }
+.fam-hab-stat strong { font-family: var(--gcq-font-title, 'Fredoka One', sans-serif); font-weight: 400; font-size: 1.35rem; line-height: 1.1; color: #fff; }
+.fam-hab-stat strong.is-sm { font-size: 0.88rem; line-height: 1.15; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.fam-hab-stat small { font: 600 0.62rem/1.2 'Fredoka', sans-serif; letter-spacing: 0.1em; text-transform: uppercase; color: color-mix(in srgb, var(--den-ink) 60%, transparent); }
+
+.fam-hab-trick { display: flex; gap: 12px; align-items: flex-start; }
+.fam-hab-trick__icon { font-size: 1.6rem; }
+.fam-hab-trick .fam-hab-hint { margin-top: 4px; }
+.fam-hab-trick__state { margin-top: 8px; font: 700 0.8rem/1.3 'Fredoka', sans-serif; color: rgba(255, 255, 255, 0.6); }
+.fam-hab-trick__state.is-ready { color: #86efac; }
+.fam-hab-trick.is-locked { opacity: 0.85; }
+
+.fam-hab .fam-modal-quote {
+    margin: 4px 0 0;
+    padding: 0 6px;
+    font-family: var(--gcq-font-serif, 'Lora', Georgia, serif);
+    font-style: italic;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: color-mix(in srgb, var(--den-ink) 90%, transparent);
+}
+.fam-den-traits { display: flex; flex-wrap: wrap; gap: 6px; }
+.fam-den-trait {
+    padding: 3px 10px;
+    border-radius: 999px;
+    font: 600 0.72rem 'Fredoka', sans-serif;
+    color: var(--den-ink);
+    background: color-mix(in srgb, var(--den-glow) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--den-glow) 38%, transparent);
+}
+.fam-hab-places { margin: 10px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.fam-hab-place { display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 8px; font: 600 0.82rem/1.2 'Fredoka', sans-serif; }
+.fam-hab-place__dot { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font-size: 0.7rem; color: #1a1026; background: rgba(255, 255, 255, 0.1); border: 1px dashed rgba(255, 255, 255, 0.25); }
+.fam-hab-place--done .fam-hab-place__dot, .fam-hab-place--current .fam-hab-place__dot { background: linear-gradient(135deg, var(--den-ink), var(--den-glow)); border: 0; }
+.fam-hab-place--current .fam-hab-place__name { color: var(--den-glow); }
+.fam-hab-place--locked { opacity: 0.45; }
+.fam-hab-place__note { font-size: 0.66rem; color: color-mix(in srgb, var(--den-ink) 55%, transparent); }
+.fam-hab-eggnote { display: flex; gap: 8px; align-items: center; }
+
+/* ─── Particles ────────────────────────────────────────────────────────────── */
+.hbp {
+    position: absolute;
+    display: block;
+    width: calc(6px * var(--s, 1));
+    height: calc(6px * var(--s, 1));
+    border-radius: 50%;
+    opacity: 0;
+    animation: var(--hbp-anim, hbp-rise) var(--d, 6s) linear var(--dl, 0s) infinite;
+    will-change: transform, opacity;
+}
+@keyframes hbp-rise {
+    0% { opacity: 0; transform: translate3d(0, 0, 0); }
+    15% { opacity: 0.9; }
+    85% { opacity: 0.7; }
+    100% { opacity: 0; transform: translate3d(var(--dx), -260px, 0); transform: translate3d(var(--dx), -45cqh, 0); }
+}
+@keyframes hbp-fall {
+    0% { opacity: 0; transform: translate3d(0, 0, 0) rotate(0deg); }
+    10% { opacity: 0.95; }
+    90% { opacity: 0.85; }
+    100% { opacity: 0; transform: translate3d(var(--dx), 640px, 0) rotate(300deg); transform: translate3d(var(--dx), 105cqh, 0) rotate(300deg); }
+}
+@keyframes hbp-sway {
+    0% { opacity: 0; transform: translate3d(0, 0, 0) rotate(0deg); }
+    10% { opacity: 0.95; }
+    30% { transform: translate3d(40px, 25cqh, 0) rotate(90deg); }
+    55% { transform: translate3d(-20px, 55cqh, 0) rotate(200deg); }
+    90% { opacity: 0.85; }
+    100% { opacity: 0; transform: translate3d(var(--dx), 640px, 0) rotate(320deg); transform: translate3d(var(--dx), 105cqh, 0) rotate(320deg); }
+}
+@keyframes hbp-rain {
+    0% { opacity: 0; transform: translate3d(0, 0, 0) rotate(12deg); }
+    10% { opacity: 0.6; }
+    100% { opacity: 0.4; transform: translate3d(-60px, 640px, 0) rotate(12deg); transform: translate3d(-60px, 110cqh, 0) rotate(12deg); }
+}
+@keyframes hbp-float {
+    0%, 100% { opacity: 0; transform: translate3d(0, 0, 0); }
+    25% { opacity: 0.9; transform: translate3d(calc(var(--dx) * 0.5), -20px, 0); }
+    50% { opacity: 0.4; transform: translate3d(var(--dx), -6px, 0); }
+    75% { opacity: 0.95; transform: translate3d(calc(var(--dx) * 0.3), -30px, 0); }
+}
+@keyframes hbp-glint {
+    0%, 100% { opacity: 0; transform: rotate(45deg) scale(0.4); }
+    50% { opacity: 1; transform: rotate(45deg) scale(1); }
+}
+@keyframes hbp-drift {
+    0% { opacity: 0; transform: translate3d(0, 0, 0); }
+    15% { opacity: 0.9; }
+    100% { opacity: 0; transform: translate3d(320px, 40px, 0); transform: translate3d(40cqw, 12cqh, 0); }
+}
+.hbp--ember { background: radial-gradient(circle, #fff1c2 0 30%, #ff9a3d 45%, rgba(255, 122, 26, 0) 70%); width: calc(12px * var(--s)); height: calc(12px * var(--s)); }
+.hbp--mote { background: radial-gradient(circle, #fffbe6 0 30%, rgba(253, 224, 71, 0.7) 45%, rgba(253, 224, 71, 0) 70%); width: calc(12px * var(--s)); height: calc(12px * var(--s)); }
+.hbp--bubble { background: rgba(224, 247, 255, 0.15); border: 1.5px solid rgba(224, 247, 255, 0.8); width: calc(10px * var(--s)); height: calc(10px * var(--s)); }
+.hbp--wisp { background: radial-gradient(circle, #f5edff 0 22%, rgba(192, 132, 252, 0.55) 40%, rgba(192, 132, 252, 0) 70%); width: calc(22px * var(--s)); height: calc(22px * var(--s)); --hbp-anim: hbp-float; }
+.hbp--firefly { background: radial-gradient(circle, #fefce8 0 22%, rgba(190, 242, 100, 0.75) 40%, rgba(190, 242, 100, 0) 70%); width: 16px; height: 16px; --hbp-anim: hbp-float; }
+.hbp--spark { background: #fef08a; border-radius: 1px; --hbp-anim: hbp-glint; }
+.hbp--glint { background: #fff; border-radius: 1px; --hbp-anim: hbp-glint; }
+.hbp--snow { background: #fff; --hbp-anim: hbp-fall; }
+.hbp--leaf { background: #86efac; border-radius: 0 80% 0 80%; width: calc(9px * var(--s)); --hbp-anim: hbp-sway; }
+.hbp--fall-leaf { background: #ea580c; border-radius: 0 80% 0 80%; width: calc(10px * var(--s)); height: calc(7px * var(--s)); --hbp-anim: hbp-sway; }
+.hbp--fall-leaf:nth-child(3n) { background: #f59e0b; }
+.hbp--fall-leaf:nth-child(3n + 1) { background: #b91c1c; }
+.hbp--petal { background: #fbcfe8; border-radius: 80% 0 80% 0; width: calc(9px * var(--s)); --hbp-anim: hbp-sway; }
+.hbp--rain { width: 2px; height: calc(18px * var(--s)); border-radius: 2px; background: linear-gradient(180deg, transparent, rgba(220, 235, 255, 0.85)); --hbp-anim: hbp-rain; }
+.hbp--seed { background: #fff; --hbp-anim: hbp-drift; }
+.fam-hab[data-fam-type="cloverhop"] .hbp--leaf { background: #4ade80; }
+.fam-hab[data-fam-type="thornback"] .hbp--leaf { background: #a3e635; }
+
+/* ─── Life inside the scene (small things only) ───────────────────────────── */
+.hb-scene .hb-pulse { animation: hb-pulse 3.2s ease-in-out infinite; }
+.hb-scene .hb-flicker { transform-box: fill-box; transform-origin: 50% 100%; animation: hb-flicker 0.8s ease-in-out infinite alternate; }
+.hb-scene .hb-twinkle { animation: hb-twinkle 3.4s ease-in-out infinite; animation-delay: var(--hb-dl, 0s); }
+.hb-scene .hb-float { animation: hb-float var(--hb-d, 7s) ease-in-out infinite; animation-delay: var(--hb-dl, 0s); }
+.hb-scene .hb-flag { transform-box: view-box; animation: hb-flag 2.6s ease-in-out infinite; }
+.hb-scene .hb-spin { transform-box: view-box; animation: hb-spin 24s linear infinite; }
+.hb-scene .hb-smoke { animation: hb-smoke 9s ease-in-out infinite alternate; }
+.hb-scene .hb-wave { animation: hb-wave 5s ease-in-out infinite alternate; }
+.hb-scene .hb-shimmer { animation: hb-pulse 2.6s ease-in-out infinite; }
+.hb-scene .hb-flow { animation: hb-pulse 1.6s ease-in-out infinite; }
+.hb-scene .hb-bolt { opacity: 0; animation: hb-bolt 11s linear infinite 2s; }
+.hb-scene .hb-comet { animation: hb-comet 7s ease-in infinite; }
+@keyframes hb-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.65; } }
+@keyframes hb-flicker { from { transform: scale(1, 1); } to { transform: scale(0.9, 1.12); } }
+@keyframes hb-twinkle { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+@keyframes hb-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+@keyframes hb-flag { 0%, 100% { transform: skewY(0deg) scaleX(1); } 50% { transform: skewY(-4deg) scaleX(0.92); } }
+@keyframes hb-spin { to { transform: rotate(360deg); } }
+@keyframes hb-smoke { from { transform: translate(0, 0); opacity: 0.9; } to { transform: translate(30px, -20px); opacity: 0.6; } }
+@keyframes hb-wave { from { transform: translateX(-24px); } to { transform: translateX(24px); } }
+@keyframes hb-bolt { 0%, 90%, 100% { opacity: 0; } 91% { opacity: 0.85; } 92% { opacity: 0.1; } 93.5% { opacity: 0.6; } 95% { opacity: 0; } }
+@keyframes hb-comet { 0% { opacity: 0; transform: translate(60px, -40px); } 20% { opacity: 1; } 60%, 100% { opacity: 0; transform: translate(-120px, 80px); } }
+
+/* Weak machines: the place stays still; only a few particles move. */
+.fam-hab--lite .hb-scene * { animation: none !important; }
+.fam-hab--lite .fam-hab-spot > span { animation: none; }
+.fam-hab--lite .hb-scene .hb-bolt { opacity: 0; }
+
+/* ─── Phones and narrow windows: place on top, journal below ──────────────── */
+@media (max-width: 760px) {
+    .fam-hab {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(260px, 50dvh) minmax(0, 1fr);
+        width: 100vw;
+        height: 100dvh;
+        border-radius: 0;
+    }
+    .fam-hab__journal { border-left: 0; border-top: 1px solid color-mix(in srgb, var(--den-glow) 28%, transparent); padding: 14px 14px 10px; }
+    .fam-hab-id { padding-right: 0; }
+    .fam-hab__top { top: 10px; left: 10px; right: 58px; }
+    .fam-hab__chips { gap: 4px; }
+    .fam-hab-chip { padding: 5px 9px; }
+    .fam-hab-chip span:last-child { display: none; }
+    .fam-hab-chip span:first-child { font-size: 1rem; }
+    .fam-hab__place { padding: 6px 12px 7px; }
+    .fam-hab__world::after { background: linear-gradient(180deg, rgba(0, 0, 0, 0.3), transparent 26%); }
+    .fam-hab .fam-modal-name { font-size: 1.6rem; }
+    .fam-evo-art { width: 36px; height: 36px; }
+}
+@media (max-width: 760px) and (max-height: 640px) {
+    .fam-hab { grid-template-rows: minmax(220px, 46dvh) minmax(0, 1fr); }
+}
+/* Landscape phones: keep the side journal, make the card full screen. */
+@media (max-height: 520px) and (min-width: 600px) {
+    .fam-hab { width: 100vw; height: 100dvh; border-radius: 0; grid-template-columns: minmax(0, 1fr) 300px; }
+    .fam-hab__journal { padding: 12px 12px 8px; }
+    .fam-hab .fam-modal-name { font-size: 1.4rem; }
+}
+
+/* ─── Projectors and big screens: the same place, bigger ──────────────────── */
+@media (min-width: 1600px) and (min-height: 900px) {
+    .fam-hab { width: min(1640px, calc(100vw - 64px)); height: min(920px, calc(100dvh - 64px)); grid-template-columns: minmax(0, 1fr) 440px; border-radius: 32px; }
+    .fam-hab__journal { padding: 26px 26px 18px; }
+    .fam-hab-id__row .fam-hab-element, .fam-hab-id__row .fam-hab-form { font-size: 0.85rem; }
+    .fam-hab .fam-modal-species { font-size: 0.85rem; }
+    .fam-hab .fam-modal-badge { font-size: 0.95rem; }
+    .fam-hab-tab { font-size: 1rem; padding: 10px 4px; }
+    .fam-hab-label { font-size: 0.75rem; }
+    .fam-hab-hint, .fam-hab-nexthome { font-size: 0.92rem; }
+    .fam-hab-next { font-size: 1.4rem; }
+    .fam-evo-gem { width: 48px; height: 48px; }
+    .fam-evo-art { width: 56px; height: 56px; }
+    .fam-evo-track::before, .fam-evo-track::after { top: 22px; }
+    .fam-evo-name { font-size: 0.8rem; }
+    .fam-hab-stat strong { font-size: 1.7rem; }
+    .fam-hab-stat strong.is-sm { font-size: 1.1rem; }
+    .fam-hab-place { font-size: 1rem; }
+    .fam-hab .fam-modal-quote { font-size: 1.1rem; }
+    .fam-hab-close { width: 46px; height: 46px; font-size: 1.7rem; }
+}
+
+/* ─── Reduced motion ───────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    .fam-hab, .fam-hab-overlay .fam-overlay-backdrop, .fam-hab-pane.is-on, .fam-hab .fam-modal-progress-bar,
+    .fam-hab-spot > span, .fam-hab__hint, .hb-scene *, .hbp, .fam-hab__air, .fam-hab__mist { animation: none !important; }
+    .fam-hab__hint { opacity: 1; }
+    .fam-hab__walker { transition: none; }
+}
+.fam-hab--still .hb-scene *, .fam-hab--still .fam-hab-spot > span { animation: none !important; }

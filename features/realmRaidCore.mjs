@@ -385,6 +385,8 @@ export function tallyRaidStars(logs = [], raid, { credit = (log) => Number(log?.
     const byHero = {};
     const byDay = {};
     const byDayClass = {};
+    const byClassReason = {};
+    const byDayClassReason = {};
     const seen = new Set();
     for (const log of logs) {
         if (!log?.classId || (log.id && seen.has(log.id))) continue;
@@ -400,6 +402,12 @@ export function tallyRaidStars(logs = [], raid, { credit = (log) => Number(log?.
         byDay[key] = (byDay[key] || 0) + stars;
         byDayClass[key] = byDayClass[key] || {};
         byDayClass[key][log.classId] = (byDayClass[key][log.classId] || 0) + stars;
+        const reason = String(log.reason || '');
+        const mine = byClassReason[log.classId] || (byClassReason[log.classId] = {});
+        mine[reason] = (mine[reason] || 0) + stars;
+        const dayReasons = byDayClassReason[key] || (byDayClassReason[key] = {});
+        const dayMine = dayReasons[log.classId] || (dayReasons[log.classId] = {});
+        dayMine[reason] = (dayMine[reason] || 0) + stars;
         if (log.studentId) {
             const hero = byHero[log.studentId] || { studentId: log.studentId, classId: log.classId, stars: 0, days: new Set() };
             hero.stars += stars;
@@ -410,7 +418,8 @@ export function tallyRaidStars(logs = [], raid, { credit = (log) => Number(log?.
     Object.keys(byClass).forEach((id) => { byClass[id] = half(byClass[id]); });
     Object.keys(byDay).forEach((key) => { byDay[key] = half(byDay[key]); });
     Object.values(byDayClass).forEach((day) => Object.keys(day).forEach((id) => { day[id] = half(day[id]); }));
-    return { byClass, byHero, byDay, byDayClass };
+    Object.values(byClassReason).forEach((m) => Object.keys(m).forEach((r) => { m[r] = half(m[r]); }));
+    return { byClass, byHero, byDay, byDayClass, byClassReason, byDayClassReason };
 }
 
 /**

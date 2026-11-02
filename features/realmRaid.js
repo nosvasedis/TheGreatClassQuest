@@ -88,6 +88,28 @@ function heroCounts() {
     return counts;
 }
 
+/** How many students of each class chose each hero class (the class fights as the biggest group). */
+function heroMixes() {
+    const mixes = {};
+    (state.get('allStudents') || []).forEach((s) => {
+        if (!s?.classId || !s.heroClass) return;
+        const mix = mixes[s.classId] || (mixes[s.classId] = {});
+        mix[s.heroClass] = (mix[s.heroClass] || 0) + 1;
+    });
+    return mixes;
+}
+
+/** Stars each guild's heroes earned in the raid, guild by guild. */
+function guildTally(tally) {
+    const guildOf = new Map((state.get('allStudents') || []).map((s) => [s.id, s.guildId]));
+    const stars = {};
+    Object.values(tally.byHero || {}).forEach((h) => {
+        const g = guildOf.get(h.studentId);
+        if (g) stars[g] = (stars[g] || 0) + h.stars;
+    });
+    return stars;
+}
+
 function lessonCheck(classes) {
     const overrides = state.get('allScheduleOverrides') || [];
     const holidays = state.get('schoolHolidayRanges') || [];
@@ -170,6 +192,7 @@ export function buildRaidView(raid, now = new Date()) {
     const uid = state.get('currentUserId');
     const byId = new Map(classes.map((c) => [c.id, c]));
     const today = dayKey(now);
+    const mixes = heroMixes();
     const rows = status.classes.map((row) => {
         const cls = byId.get(row.classId) || {};
         const nextLesson = (row.lessonDates || []).find((d) => d >= today) || null;
@@ -180,6 +203,8 @@ export function buildRaidView(raid, now = new Date()) {
             league: cls.questLevel || '',
             own: Boolean(uid && cls.createdBy?.uid === uid),
             receipt: cls.realmRaids?.[raid.raidId] || null,
+            heroMix: mixes[row.classId] || {},
+            reasons: tally.byClassReason?.[row.classId] || {},
             nextLesson,
             lessonsLeft: (row.lessonDates || []).filter((d) => d >= today).length
         };
@@ -190,6 +215,7 @@ export function buildRaidView(raid, now = new Date()) {
         status,
         rows,
         tally,
+        guilds: guildTally(tally),
         record,
         loading: fetchState === 'loading',
         brokenOn: toDateValue(record.brokenAt),

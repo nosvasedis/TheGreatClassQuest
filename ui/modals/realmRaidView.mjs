@@ -3,7 +3,7 @@
 // no state, no Firebase, so the preview page can use them as they are.
 import { bossSvg, bossFrontSvg, arenaSvg, shieldSvg, raysSvg, crackSvg, peaksSvg } from '../../features/realmRaidArt.mjs';
 import { RAID_REWARDS, LEGENDARY_AT, RAID_EFFORT, RAID_LENGTH_DAYS, guardianMood, raidCountdown, readDate, raidDays, dayKey, raidDayPlan } from '../../features/realmRaidCore.mjs';
-import { LEAGUE_JOBS, leagueJob, wordTier, battleMessages, battleTitle, bossLine, caption } from '../../features/realmRaidBattle.mjs';
+import { HERO_ARTS, STAR_ART, heroArt, classArt, strikeArts, leagueRank, wordTier, battleMessages, battleTitle, bossLine, caption } from '../../features/realmRaidBattle.mjs';
 import { sceneHtml } from '../../features/realmRaidScene.mjs';
 import { heroSpriteSvg, partyFormation } from '../../features/realmRaidParty.mjs';
 
@@ -95,12 +95,12 @@ function heroCardHtml(hero) {
 
 
 // ─── The battle screen ───────────────────────────────────────────────────────
-// A JRPG boss fight. Eldhorn stands in the middle; windows round him: the boss and his HP, the five
-// turns (Monday to Friday), the featured class (its league's job, its heroes by name), the treasure,
-// the message window (the fight told turn by turn) and the alliance (every class, by league).
+// A side-view boss battle in a real place. The classes stand on the left, each dressed as the hero
+// class most of its students chose; Eldhorn guards his gate on the right. Over the field: the
+// round road (top left), the boss bar (top), three buttons (top right). Under it: one class card.
+// Everything else (the year's raids, the guilds, the hero arts, how to play) is in the menu sheet.
 
 const RAID_TURNS = RAID_LENGTH_DAYS;
-const LEAGUE_ORDER = Object.keys(LEAGUE_JOBS);
 
 /** The five turns (raid days): stars the school dealt, whether anyone had a lesson, past / now / next. */
 export function raidTurns(view, now = new Date()) {
@@ -122,15 +122,21 @@ export function moodFor(view) {
     return guardianMood(status);
 }
 
-const jobStyle = (job) => `--job:${job.color};--job-deep:${job.deep}`;
+const artStyle = (art) => `--art:${art.color};--art-deep:${art.deep}`;
 
 /** The rounds of this raid (one per weekday, sized by that day's lessons). */
 export function roundsFor(view) {
     return raidDayPlan(view.raid, view.rows.filter((r) => r.share > 0), view.tally?.byDay || {});
 }
 
-/** The boss bar: his name and HP (the shield's stars still standing), marked where each round ends. */
-function bossWinHtml(view, rounds) {
+/** The classes in the raid, youngest league first, then by name. */
+export function raidClasses(view) {
+    return view.rows.filter((row) => row.share > 0 || row.stars > 0)
+        .sort((a, b) => leagueRank(a.league) - leagueRank(b.league) || String(a.name).localeCompare(String(b.name), undefined, { numeric: true }));
+}
+
+/** The boss bar: name, HP (the shield's stars still standing) marked where each round ends, the Victory chest at its end. */
+function bossBarHtml(view, rounds) {
     const { raid, status } = view;
     const season = raid.season;
     const [name, ...rest] = String(season.title).split(', ');
@@ -144,181 +150,136 @@ function bossWinHtml(view, rounds) {
         acc += r.weight;
         return `<i class="rr-hp__mark" style="left:${((1 - acc) * 100).toFixed(2)}%"></i>`;
     }).join('');
-    return `<section class="rr-win rr-bosswin ${state}" aria-label="Boss">
-        <div class="rr-bosswin__name">
-            <span class="rr-tag">BOSS</span>
-            <b>${esc(name)}</b>
-            <small>${esc(rest.join(', '))}</small>
-        </div>
+    const r = RAID_REWARDS;
+    const legendTip = `Legendary at ${fmt(status.legendaryAt)} ★: +${r.legendaryGold} Gold more for every hero and another map step`;
+    return `<div class="rr-boss ${state}">
+        <p class="rr-boss__name"><b>${esc(name)}</b><span>${esc(rest.join(', '))}</span></p>
         <div class="rr-hp" role="progressbar" aria-valuemin="0" aria-valuemax="${status.hp}" aria-valuenow="${left}" aria-label="Shield HP left">
-            <span class="rr-hp__label">HP</span>
             <span class="rr-hp__track">
                 <span class="rr-hp__ghost" style="--p:${hpPct.toFixed(4)}"></span>
                 <span class="rr-hp__fill" style="--p:${hpPct.toFixed(4)}"></span>
                 ${marks}
-                ${status.broken ? `<span class="rr-hp__broken">${status.legendary ? '👑 LEGENDARY!' : '💥 BROKEN!'}</span>` : ''}
             </span>
-            <span class="rr-hp__num"><b>${fmt(left)}</b>/${fmt(status.hp)}</span>
+            <span class="rr-hp__num">${status.broken ? `<b class="rr-hp__won">${status.legendary ? 'LEGENDARY' : 'BROKEN'}</b>` : `<b>${fmt(left)}</b><small>/${fmt(status.hp)}</small>`}</span>
+            <span class="rr-hp__goal${status.broken ? ' is-open' : ''}" title="Victory: +${r.victoryGold} Gold for every hero, a map step, a treasure for each Raid Hero" aria-hidden="true">🛡️</span>
         </div>
-        ${status.broken ? `<div class="rr-crownbar${status.legendary ? ' is-full' : ''}" title="Legendary at ${fmt(status.legendaryAt)} stars">
-            <span class="rr-crownbar__label">👑</span>
-            <span class="rr-crownbar__track"><span style="--p:${legendPct.toFixed(4)}"></span></span>
-            <span class="rr-crownbar__num">${status.legendary ? `${fmt(status.dealt)} ★` : `${fmt(Math.max(0, status.legendaryAt - status.dealt))} ★`}</span>
+        ${status.broken ? `<div class="rr-crown${status.legendary ? ' is-full' : ''}" title="${esc(legendTip)}">
+            <span class="rr-crown__track"><span style="--p:${legendPct.toFixed(4)}"></span></span>
+            <span class="rr-crown__icon" aria-hidden="true">👑</span>
+            <span class="rr-crown__num">${status.legendary ? `${fmt(status.dealt)} ★` : `${fmt(Math.max(0, status.legendaryAt - status.dealt))} ★`}</span>
         </div>` : ''}
-    </section>`;
+    </div>`;
 }
 
-/**
- * The rounds window: one block per weekday, as wide as that day's share of the shield. Each fills
- * with the stars dealt that day; a block glows once its round is won. Rest days are small moons.
- */
-function roundsWinHtml(view, rounds, now, tier) {
+/** The round road: one segment per weekday, as long as that day's share; it fills with the stars dealt. */
+function roadHtml(view, rounds, now, tier) {
     const { raid } = view;
     const today = dayKey(now);
     const current = raid.phase === 'active' ? raid.dayNumber : 0;
     const playing = rounds.filter((r) => !r.rest);
     const lastN = playing.length ? playing[playing.length - 1].n : RAID_TURNS;
-    const title = raid.phase === 'herald' ? `${raid.daysToStart} ${raid.daysToStart === 1 ? 'day' : 'days'}`
-        : raid.phase === 'active' ? (current === lastN ? caption('lastRound', tier) : caption('round', tier, { n: current }))
-            : `${playing.filter((r) => r.cleared).length}/${playing.length} ✓`;
-    return `<section class="rr-win rr-roundwin" aria-label="Rounds">
-        <h3 class="rr-win__title">${raid.phase === 'herald' ? 'STARTS IN' : 'ROUNDS'} <b>${esc(title)}</b></h3>
-        <ol class="rr-rounds">${rounds.map((r) => {
-            const when = r.key < today ? 'past' : r.key === today ? 'now' : 'next';
-            const fill = r.plan > 0 ? Math.min(1, r.dealt / r.plan) : 0;
-            const words = `${r.date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}: ${r.rest ? 'no lessons' : `${fmt(r.dealt)} of ${fmt(r.plan)} stars, ${r.classes.length} ${r.classes.length === 1 ? 'class' : 'classes'}, ${r.heroes} heroes`}`;
-            const grow = r.rest ? 0 : Math.max(0.6, r.weight * 10);
-            return `<li class="rr-round is-${when}${r.rest ? ' is-rest' : ''}${r.cleared ? ' is-cleared' : ''}" style="flex-grow:${grow.toFixed(2)}" title="${esc(words)}">
-                <span class="rr-round__bar"><span style="--p:${fill.toFixed(4)}"></span>${r.cleared ? '<i aria-hidden="true">✓</i>' : ''}</span>
-                <b>${esc(r.date.toLocaleDateString('en-GB', { weekday: 'short' }))}</b>
-                <small>${r.rest ? '☾' : `${fmt(r.dealt)}/${fmt(r.plan)}`}</small>
-            </li>`;
-        }).join('')}</ol>
-    </section>`;
-}
-
-/** The three treasure chests, small, in the top bar. Words in the tooltips. */
-function lootMiniHtml(view, focusRow) {
-    const { status, raid } = view;
-    const over = raid.phase === 'aftermath' || raid.phase === 'over';
-    const r = RAID_REWARDS;
-    const chest = (kind, icon, earned, tip) => {
-        const st = earned ? 'open' : over ? 'missed' : 'locked';
-        return `<li class="rr-chest rr-chest--${kind} is-${st}" title="${esc(tip)}" aria-label="${esc(tip)}">
-            <span class="rr-chest__box" aria-hidden="true"><span class="rr-chest__lid"></span><span class="rr-chest__icon">${icon}</span>${st === 'locked' ? '<i class="fas fa-lock rr-chest__lock"></i>' : ''}</span>
+    let eyebrow;
+    let big;
+    if (raid.phase === 'herald') { eyebrow = 'STARTS IN'; big = `${raid.daysToStart} ${raid.daysToStart === 1 ? 'day' : 'days'}`; }
+    else if (raid.phase === 'active') { eyebrow = current === lastN ? caption('lastRound', tier).toUpperCase() : 'ROUND'; big = current === lastN ? '' : `${current}`; }
+    else { eyebrow = 'ROUNDS WON'; big = `${playing.filter((x) => x.cleared).length}/${playing.length}`; }
+    const segs = rounds.map((r) => {
+        const when = r.key < today ? 'past' : r.key === today ? 'now' : 'next';
+        const fill = r.plan > 0 ? Math.min(1, r.dealt / r.plan) : 0;
+        const words = `${r.date.toLocaleDateString('en-GB', { weekday: 'long' })}: ${r.rest ? 'no lessons' : `${fmt(r.dealt)} of ${fmt(r.plan)} stars, ${r.classes.length} ${r.classes.length === 1 ? 'class' : 'classes'}`}`;
+        const grow = r.rest ? 0 : Math.max(0.7, r.weight * 10);
+        return `<li class="rr-road__seg is-${when}${r.rest ? ' is-rest' : ''}${r.cleared ? ' is-cleared' : ''}" style="flex-grow:${grow.toFixed(2)}" title="${esc(words)}" aria-label="${esc(words)}">
+            <span class="rr-road__bar"><span style="--p:${fill.toFixed(4)}"></span></span>
+            <span class="rr-road__day">${r.rest ? '☾' : esc(r.date.toLocaleDateString('en-GB', { weekday: 'short' }).slice(0, 2))}</span>
         </li>`;
-    };
-    return `<ul class="rr-win rr-lootwin" aria-label="Treasure">
-        ${chest('valor', '✨', Boolean(focusRow?.valor), `Valor: a class breaks its own shard. +${r.valorGold} Gold for each of its heroes. Never taken away.`)}
-        ${chest('victory', '🛡️', status.broken, `Victory: the school breaks the shield. +${r.victoryGold} Gold for every hero, a 5% map step, a treasure for each Raid Hero.`)}
-        ${chest('legendary', '👑', status.legendary, `Legendary: ${Math.round(LEGENDARY_AT * 100)}% of the shield. +${r.legendaryGold} Gold more for every hero and another map step.`)}
-    </ul>`;
-}
-
-/** The year's three raids, as medallions. Each opens that raid. */
-function yearNavHtml(year = [], currentId = '') {
-    if (!year.length) return '';
-    const label = { won: 'won', legendary: 'Legendary', held: 'the shield held', live: 'now', soon: '' };
-    return `<nav class="rr-year" aria-label="This year's raids">${year.map((y) => {
-        const current = y.raidId === currentId;
-        const date = readDate(y.start)?.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) || '';
-        const words = `${y.season.name}${label[y.state] ? `: ${label[y.state]}` : `, ${date}`}`;
-        return `<button type="button" class="rr-year__dot is-${esc(y.state)}${current ? ' is-current' : ''}" data-rr-raid="${esc(y.raidId)}" aria-label="${esc(words)}" title="${esc(words)}"${current ? ' aria-current="true"' : ''}>
-            <span aria-hidden="true">${esc(y.season.emoji)}</span>
-            ${y.state === 'won' || y.state === 'legendary' ? `<i class="fas fa-${y.state === 'legendary' ? 'crown' : 'check'}" aria-hidden="true"></i>` : ''}
-        </button>`;
-    }).join('')}</nav>`;
-}
-
-/** Every hero of the featured class by name; the ones who struck the shield are lit. */
-export function rosterHtml(roster = [], phase = 'active', tier = 'mid') {
-    if (!roster.length) return '';
-    const struck = roster.filter((h) => h.stars > 0).length;
-    const lead = phase === 'herald'
-        ? `${roster.length} heroes ready`
-        : tier === 'young' ? `${struck} of ${roster.length} heroes hit!` : `${struck}/${roster.length} heroes struck`;
-    return `<div class="rr-roster">
-        <p class="rr-roster__lead"><span aria-hidden="true">⚔️</span> ${esc(lead)}</p>
-        <ul class="rr-roster__list${roster.length > 18 ? ' is-many' : ''}">${roster.map((h) => `<li class="rr-roster__hero${h.stars > 0 ? ' is-lit' : ''}" title="${esc(h.fullName || h.name)}${h.stars > 0 ? `: ${fmt(h.stars)} ★` : ''}">${h.stars > 0 ? '<b aria-hidden="true">★</b>' : ''}${esc(h.name)}</li>`).join('')}</ul>
+    }).join('');
+    return `<div class="rr-roadbox">
+        <p class="rr-roadbox__head"><span>${esc(eyebrow)}</span>${big ? `<b>${esc(big)}</b>` : ''}${raid.phase === 'active' && big ? `<small>/${RAID_TURNS}</small>` : ''}</p>
+        <ol class="rr-road">${segs}</ol>
     </div>`;
 }
 
-/** The featured class's window: its league's job and skill, its shard gauge, its heroes by name. */
-function statusWinHtml(view, row, { heroCard = null, canReveal = false, roster = [], tier = 'mid' } = {}) {
-    if (!row) return '';
-    const job = leagueJob(row.league);
+/** The three buttons over the field: menu, music, close. */
+function toolsHtml({ musicOn = true } = {}) {
+    return `<div class="rr-tools">
+        <button type="button" class="rr-btn" data-rr-menu aria-label="Menu" title="Menu"><i class="fas fa-bars" aria-hidden="true"></i></button>
+        <button type="button" class="rr-btn rr-music${musicOn ? '' : ' is-off'}" data-rr-music aria-pressed="${musicOn}" aria-label="Battle music" title="Battle music"><i class="fas fa-music" aria-hidden="true"></i></button>
+        <button type="button" class="rr-btn" data-rr-close aria-label="Close" title="Close (Esc)"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+    </div>`;
+}
+
+/** Every hero of the featured class by name, with their hero class; the ones who struck are lit. */
+export function rosterHtml(roster = [], phase = 'active', tier = 'mid') {
+    if (!roster.length) return '';
+    const struck = roster.filter((h) => h.stars > 0).length;
+    const lead = phase === 'herald' ? `${roster.length} heroes ready`
+        : tier === 'young' ? `${struck} of ${roster.length} heroes hit!` : `${struck} of ${roster.length} heroes struck`;
+    return `<div class="rr-roster">
+        <p class="rr-roster__lead">${esc(lead)}</p>
+        <ul class="rr-roster__list${roster.length > 18 ? ' is-many' : ''}">${roster.map((h) => {
+            const art = h.heroClass ? heroArt(h.heroClass) : null;
+            const tip = `${h.fullName || h.name}${art && art !== STAR_ART ? `, ${art.heroClass}` : ''}${h.stars > 0 ? `: ${fmt(h.stars)} ★` : ''}`;
+            return `<li class="rr-hero-pill${h.stars > 0 ? ' is-lit' : ''}" title="${esc(tip)}">${art && art !== STAR_ART ? `<span class="rr-hero-pill__art" aria-hidden="true">${art.icon}</span>` : ''}${esc(h.name)}${h.stars > 0 ? `<b>${fmt(h.stars)}</b>` : ''}</li>`;
+        }).join('')}</ul>
+    </div>`;
+}
+
+/** A ring that fills around a class's emblem. */
+function ringHtml(fill, logo, art) {
+    const r = 26;
+    const c = 2 * Math.PI * r;
+    return `<span class="rr-ring" aria-hidden="true">
+        <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="${r}" class="rr-ring__track"/><circle cx="32" cy="32" r="${r}" class="rr-ring__fill" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${(c * (1 - fill)).toFixed(1)}"/></svg>
+        <span class="rr-ring__logo">${esc(logo)}</span>
+        <span class="rr-ring__art">${art.icon}</span>
+    </span>`;
+}
+
+/** The arts a class struck with this raid (from the reasons of its stars), biggest first. */
+function classArtsHtml(row) {
+    const arts = strikeArts(row.reasons || {}).slice(0, 4);
+    if (!arts.length) return '';
+    return `<ul class="rr-arts">${arts.map(({ art, stars }) => `<li style="${artStyle(art)}" title="${esc(`${art.art}: ${art.virtue} stars`)}"><span aria-hidden="true">${art.icon}</span>${esc(art.art)}<b>${fmt(stars)}</b></li>`).join('')}</ul>`;
+}
+
+/** The class card under the field: who they are, how they fight, their shard, their heroes. */
+function classCardHtml(view, row, { heroCard = null, canReveal = false, roster = [], tier = 'mid', count = 1 } = {}) {
+    if (!row) return '<section class="rr-dock"></section>';
+    const art = classArt(row);
     const fill = Math.min(1, row.pct || 0);
     const phase = view.raid.phase;
     const over = phase === 'aftermath' || phase === 'over';
     let goal;
-    if (phase === 'herald') goal = { icon: '🛡️', text: row.share ? `${fmt(row.share)} ★` : caption('away', tier) };
-    else if (!row.share) goal = { icon: '🌙', text: caption('away', tier) };
-    else if (row.valor) goal = { icon: '✨', text: row.stars > row.share ? `${caption('valor', tier)} +${fmt(row.stars - row.share)} ★` : caption('valor', tier), done: true };
-    else if (over) goal = { icon: '⚔️', text: `${fmt(row.stars)} ★` };
-    else goal = { icon: '🎯', text: tier === 'young' ? `${fmt(Math.max(0, row.share - row.stars))} ★ to go!` : `${fmt(Math.max(0, row.share - row.stars))} ★ to break` };
-    const reveal = canReveal ? '<button type="button" class="rr-cmd rr-cmd--gold" data-rr-reveal><span class="rr-cmd__cursor" aria-hidden="true">▶</span> Reveal our Raid Hero</button>' : '';
-    return `<section class="rr-win rr-statwin${row.valor ? ' is-full' : ''}" style="${jobStyle(job)}" aria-label="${esc(row.name)}">
-        <div class="rr-stat__head">
-            <span class="rr-crest" aria-hidden="true"><span class="rr-crest__icon">${job.icon}</span><span class="rr-crest__logo">${esc(row.logo)}</span></span>
-            <span class="rr-stat__who">
-                <b>${esc(row.name)}</b>
-                <em>${esc(job.job)} · ${esc(row.league || '')}</em>
-                <span class="rr-stat__skill">${job.icon} ${esc(job.skill)}</span>
-            </span>
+    if (phase === 'herald') goal = row.share ? `${fmt(row.share)} ★ shard` : caption('away', tier);
+    else if (!row.share) goal = caption('away', tier);
+    else if (row.valor) goal = row.stars > row.share ? `${caption('valor', tier)} +${fmt(row.stars - row.share)}` : caption('valor', tier);
+    else if (over) goal = `${fmt(row.stars)} ★`;
+    else goal = tier === 'young' ? `${fmt(Math.max(0, row.share - row.stars))} ★ to go!` : `${fmt(Math.max(0, row.share - row.stars))} ★ to break`;
+    const reveal = canReveal ? '<button type="button" class="rr-action" data-rr-reveal><span aria-hidden="true">🏅</span> Reveal our Raid Hero</button>' : '';
+    const nav = count > 1;
+    return `<section class="rr-dock${row.valor ? ' is-full' : ''}" style="${artStyle(art)}" aria-label="${esc(row.name)}">
+        ${nav ? '<button type="button" class="rr-dock__nav" data-rr-step="-1" aria-label="Previous class"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>' : ''}
+        <div class="rr-card">
+            <div class="rr-card__who">
+                ${ringHtml(fill, row.logo, art)}
+                <div class="rr-card__id">
+                    <h3>${esc(row.name)}</h3>
+                    <p><span class="rr-tag">${esc(row.league || 'Class')}</span><span class="rr-card__art" title="${esc(`Most of this class are ${art.heroClass || 'heroes'}`)}">${art.icon} ${esc(art.heroClass ? `${art.heroClass}s` : 'Heroes')}</span></p>
+                </div>
+            </div>
+            <div class="rr-card__shard">
+                <p class="rr-card__num"><b>${fmt(row.stars)}</b>${row.share ? `<small>/ ${fmt(row.share)} ★</small>` : '<small>★</small>'}</p>
+                <span class="rr-card__bar"><span style="--p:${fill.toFixed(4)}"></span></span>
+                <p class="rr-card__goal${row.valor ? ' is-done' : ''}">${row.valor ? '<span aria-hidden="true">✨</span> ' : ''}${esc(goal)}</p>
+                ${classArtsHtml(row)}
+            </div>
+            <div class="rr-card__heroes">
+                ${heroCardHtml(heroCard)}
+                ${reveal}
+                ${rosterHtml(roster, phase, tier)}
+            </div>
         </div>
-        <div class="rr-gauge" title="${row.share ? `${fmt(row.stars)} of ${fmt(row.share)} stars` : ''}">
-            <span class="rr-gauge__label">SHARD</span>
-            <span class="rr-gauge__track"><span style="--p:${fill.toFixed(4)}"></span></span>
-            <span class="rr-gauge__num"><b>${fmt(row.stars)}</b>${row.share ? `/${fmt(row.share)}` : ''}</span>
-            <span class="rr-stat__goal${goal.done ? ' is-done' : ''}"><span aria-hidden="true">${goal.icon}</span> ${esc(goal.text)}</span>
-        </div>
-        ${heroCardHtml(heroCard)}
-        ${reveal}
-        ${rosterHtml(roster, phase, tier)}
-    </section>`;
-}
-
-/** One class in the alliance window. */
-export function allyRowHtml(row, { focusId = '', phase = 'active' } = {}) {
-    const job = leagueJob(row.league);
-    const fill = Math.min(1, row.pct || 0);
-    const badge = row.valor ? '<span class="rr-ally__badge is-full">✨</span>'
-        : !row.share ? '<span class="rr-ally__badge">☾</span>'
-            : phase === 'active' && !row.lessonsLeft ? '<span class="rr-ally__badge">✓</span>' : '';
-    const words = `${row.name}: ${fmt(row.stars)}${row.share ? ` of ${fmt(row.share)}` : ''} stars${row.valor ? ', shard broken' : ''}`;
-    return `<li class="rr-ally__row${row.own ? ' is-own' : ''}${row.classId === focusId ? ' is-focus' : ''}${row.valor ? ' is-full' : ''}${!row.share ? ' is-away' : ''}" data-banner="${esc(row.classId)}" style="${jobStyle(job)}" title="${esc(words)}" role="button" tabindex="0" aria-label="${esc(words)}">
-        <span class="rr-ally__cursor" aria-hidden="true">▶</span>
-        <span class="rr-ally__logo" aria-hidden="true">${esc(row.logo)}</span>
-        <span class="rr-ally__name">${esc(row.name)}</span>
-        <span class="rr-atb" aria-hidden="true"><span style="--p:${fill.toFixed(4)}"></span></span>
-        <span class="rr-ally__dmg">${fmt(row.stars)}${row.share ? `<small>/${fmt(row.share)}</small>` : ''}</span>
-        ${badge}
-    </li>`;
-}
-
-/** The alliance window: every class in the raid, grouped by league (each league is a job). */
-function allyWinHtml(view, focusId) {
-    const rows = view.rows.filter((row) => row.share > 0 || row.stars > 0);
-    const groups = new Map();
-    rows.forEach((row) => {
-        const known = LEAGUE_ORDER.find((name) => leagueJob(name) === leagueJob(row.league));
-        const key = known || '~';
-        if (!groups.has(key)) groups.set(key, []);
-        groups.get(key).push(row);
-    });
-    const ordered = [...groups.entries()].sort((a, b) => (LEAGUE_ORDER.indexOf(a[0]) + 1 || 99) - (LEAGUE_ORDER.indexOf(b[0]) + 1 || 99));
-    const full = rows.filter((r) => r.valor).length;
-    const body = ordered.map(([league, list]) => {
-        const job = leagueJob(league === '~' ? '' : league);
-        list.sort((a, b) => String(a.name).localeCompare(String(b.name), undefined, { numeric: true }));
-        return `<li class="rr-ally__group" style="${jobStyle(job)}">
-            <p class="rr-ally__job"><span aria-hidden="true">${job.icon}</span> ${esc(job.job)}${league !== '~' ? ` <small>${esc(league)}</small>` : ''}</p>
-            <ul class="rr-ally__rows">${list.map((row) => allyRowHtml(row, { focusId, phase: view.raid.phase })).join('')}</ul>
-        </li>`;
-    }).join('');
-    return `<section class="rr-win rr-allywin" aria-label="Alliance">
-        <h3 class="rr-win__title">PARTY <small>${rows.length} ${rows.length === 1 ? 'class' : 'classes'}${full ? ` · ✨ ${full} broken` : ''}</small></h3>
-        <div class="rr-ally__scroll"><ul class="rr-ally__track">${body}</ul></div>
+        ${nav ? '<button type="button" class="rr-dock__nav" data-rr-step="1" aria-label="Next class"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>' : ''}
     </section>`;
 }
 
@@ -334,21 +295,21 @@ function fieldBannerHtml(view, tier, rounds) {
     }
     const title = battleTitle({ raid, status, tier });
     const sub = raid.phase === 'herald' ? `${raid.daysToStart} ${raid.daysToStart === 1 ? 'day' : 'days'}` : '';
-    return `<div class="rr-fieldbanner is-${raid.phase === 'herald' ? 'herald' : status.broken ? 'won' : 'held'}"><b>${esc(title)}</b>${sub ? `<small>⏳ ${esc(sub)}</small>` : ''}</div>`;
+    return `<div class="rr-fieldbanner is-round is-${raid.phase === 'herald' ? 'herald' : status.broken ? 'won' : 'held'}"><b>${esc(title)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</div>`;
 }
 
-/** One class on the battlefield: its hero (its league's job), its banner, its name and gauge. */
-function unitHtml(row, spot, { focusId = '', phase = 'active', tier = 'mid', i = 0 } = {}) {
-    const job = leagueJob(row.league);
+/** One class on the battlefield: its hero (its students' hero class), its banner, its name and gauge. */
+function unitHtml(row, spot, { focusId = '', phase = 'active', i = 0 } = {}) {
+    const art = classArt(row);
     const fill = Math.min(1, row.pct || 0);
     const away = !row.share;
-    const words = `${row.name}, ${job.job}: ${fmt(row.stars)}${row.share ? ` of ${fmt(row.share)}` : ''} stars${row.valor ? ', shard broken' : ''}`;
+    const words = `${row.name}, ${art.heroClass ? `${art.heroClass}s` : 'heroes'}: ${fmt(row.stars)}${row.share ? ` of ${fmt(row.share)}` : ''} stars${row.valor ? ', shard broken' : ''}`;
     return `<button type="button" class="rr-unit${row.classId === focusId ? ' is-focus' : ''}${row.valor ? ' is-full' : ''}${away ? ' is-away' : ''}${row.own ? ' is-own' : ''}" data-banner="${esc(row.classId)}"
-        style="left:${spot.x}%;top:${spot.y}%;--h:${spot.h};--d:${(spot.y / 100).toFixed(3)};z-index:${spot.z};--i:${i};${jobStyle(job)}" aria-label="${esc(words)}" title="${esc(words)}">
+        style="left:${spot.x}%;top:${spot.y}%;--h:${spot.h};--d:${(spot.y / 100).toFixed(3)};z-index:${spot.z};--i:${i};${artStyle(art)}" aria-label="${esc(words)}" title="${esc(words)}">
         <span class="rr-unit__body">
-            <span class="rr-unit__sprite">${heroSpriteSvg(job)}</span>
+            <span class="rr-unit__sprite">${heroSpriteSvg(art)}</span>
             <span class="rr-unit__flag" aria-hidden="true">${esc(row.logo)}</span>
-            ${row.valor ? `<span class="rr-unit__badge" aria-hidden="true">✨</span>` : ''}
+            ${row.valor ? '<span class="rr-unit__badge" aria-hidden="true">✨</span>' : ''}
             ${away && phase === 'active' ? `<span class="rr-unit__zz" aria-hidden="true">${esc(caption('away', 'young'))}</span>` : ''}
         </span>
         <span class="rr-unit__name">${esc(row.name)}</span>
@@ -357,33 +318,62 @@ function unitHtml(row, spot, { focusId = '', phase = 'active', tier = 'mid', i =
     </button>`;
 }
 
-/** The party: every class in the raid, in formation on the left (front column nearest the boss). */
-function partyHtml(view, focusId, tier) {
-    const rows = view.rows.filter((row) => row.share > 0 || row.stars > 0)
-        .sort((a, b) => (LEAGUE_ORDER.indexOf(a.league) + 1 || 99) - (LEAGUE_ORDER.indexOf(b.league) + 1 || 99) || String(a.name).localeCompare(String(b.name), undefined, { numeric: true }));
-    // Older leagues stand in front, nearest Eldhorn; the youngest are safe at the back.
-    rows.reverse();
+/** The party: every class in the raid, in formation on the left (older leagues in front, nearest Eldhorn). */
+function partyHtml(view, focusId) {
+    const rows = raidClasses(view).reverse();
     const spots = partyFormation(rows.length, { aspect: 1.5 });
-    return `<div class="rr-party${rows.length > 15 ? ' is-many' : ''}${rows.length > 6 ? ' is-crowd' : ''}" aria-label="The party">${rows.map((row, i) => unitHtml(row, spots[i], { focusId, phase: view.raid.phase, tier, i })).join('')}</div>`;
+    return `<div class="rr-party${rows.length > 15 ? ' is-many' : ''}${rows.length > 6 ? ' is-crowd' : ''}" aria-label="The party">${rows.map((row, i) => unitHtml(row, spots[i], { focusId, phase: view.raid.phase, i })).join('')}</div>`;
 }
 
-/** The tools in the corner: the year's raids, music, how to play, close. */
-function toolsHtml(view, { year = [], musicOn = true } = {}) {
-    return `<div class="rr-tools">
-        ${yearNavHtml(year, view.raid.raidId)}
-        <button type="button" class="rr-icon-btn rr-music${musicOn ? '' : ' is-off'}" data-rr-music aria-pressed="${musicOn}" aria-label="Battle music" title="Battle music"><span aria-hidden="true">♪</span></button>
-        <button type="button" class="rr-icon-btn" data-rr-help aria-label="How to play" title="How to play"><span aria-hidden="true">?</span></button>
-        <button type="button" class="rr-icon-btn" data-rr-close aria-label="Close" title="Close (Esc)"><i class="fas fa-xmark" aria-hidden="true"></i></button>
-    </div>`;
+const GUILD_LOOK = Object.freeze({
+    dragon_flame: { name: 'Dragon Flame', emoji: '🔥', color: '#ef4444' },
+    grizzly_might: { name: 'Grizzly Might', emoji: '🐻', color: '#d97706' },
+    owl_wisdom: { name: 'Owl Wisdom', emoji: '🦉', color: '#3b82f6' },
+    phoenix_rising: { name: 'Phoenix Rising', emoji: '🦅', color: '#ec4899' }
+});
+
+/** The menu sheet: this year's raids, the guilds' stars, the hero arts that powered the raid, music, how to play. */
+export function menuSheetHtml(view, { year = [], musicOn = true } = {}) {
+    const label = { won: 'Won', legendary: 'Legendary', held: 'The shield held', live: 'Now', soon: '' };
+    const raids = year.map((y) => {
+        const current = y.raidId === view.raid.raidId;
+        const date = readDate(y.start)?.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) || '';
+        return `<li><button type="button" class="rr-raidcard is-${esc(y.state)}${current ? ' is-current' : ''}" data-rr-raid="${esc(y.raidId)}"${current ? ' aria-current="true"' : ''}>
+            <span class="rr-raidcard__icon" aria-hidden="true">${esc(y.season.emoji)}</span>
+            <span class="rr-raidcard__text"><b>${esc(y.season.name)}</b><small>${esc(label[y.state] || date)}</small></span>
+            ${y.state === 'won' || y.state === 'legendary' ? `<i class="fas fa-${y.state === 'legendary' ? 'crown' : 'check'}" aria-hidden="true"></i>` : ''}
+        </button></li>`;
+    }).join('');
+    const guildStars = view.guilds || {};
+    const gMax = Math.max(1, ...Object.values(guildStars));
+    const guilds = Object.entries(GUILD_LOOK).map(([id, g]) => `<li style="--g:${g.color}"><span aria-hidden="true">${g.emoji}</span><b>${esc(g.name)}</b><span class="rr-meter"><span style="--p:${((guildStars[id] || 0) / gMax).toFixed(4)}"></span></span><em>${fmt(guildStars[id] || 0)} ★</em></li>`).join('');
+    const school = {};
+    view.rows.forEach((row) => Object.entries(row.reasons || {}).forEach(([reason, n]) => { school[reason] = (school[reason] || 0) + n; }));
+    const arts = strikeArts(school);
+    const aMax = Math.max(1, ...arts.map((a) => a.stars));
+    const artRows = arts.length
+        ? arts.map(({ art, stars }) => `<li style="${artStyle(art)}"><span aria-hidden="true">${art.icon}</span><b>${esc(art.art)}</b><small>${esc(art.virtue)}</small><span class="rr-meter"><span style="--p:${(stars / aMax).toFixed(4)}"></span></span><em>${fmt(stars)} ★</em></li>`).join('')
+        : '<li class="is-empty">No strikes yet.</li>';
+    return `<aside class="rr-sheet" role="dialog" aria-modal="true" aria-label="Raid menu">
+        <div class="rr-sheet__panel">
+            <header class="rr-sheet__head"><h3>${esc(view.raid.season.name)}</h3><button type="button" class="rr-btn" data-rr-menu-close aria-label="Close menu"><i class="fas fa-xmark" aria-hidden="true"></i></button></header>
+            ${raids ? `<section><h4>This year</h4><ul class="rr-raidcards">${raids}</ul></section>` : ''}
+            <section><h4>Hero arts in this raid</h4><ul class="rr-bars">${artRows}</ul></section>
+            <section><h4>Guild banners</h4><ul class="rr-bars rr-bars--guilds">${guilds}</ul></section>
+            <section class="rr-sheet__actions">
+                <button type="button" class="rr-action rr-action--ghost" data-rr-help><i class="fas fa-circle-question" aria-hidden="true"></i> How the raid works</button>
+                <button type="button" class="rr-action rr-action--ghost rr-music${musicOn ? '' : ' is-off'}" data-rr-music aria-pressed="${musicOn}"><i class="fas fa-music" aria-hidden="true"></i> Music</button>
+            </section>
+        </div>
+    </aside>`;
 }
 
 /**
- * The Raid Hall: a classic side-view boss battle. The classes stand on the left, Eldhorn on the
- * right; the windows below hold the rounds, the party list and the featured class. `focusId` is
- * the class to feature (its league sets the words); `heroCard` its Raid Hero; `roster` every hero
- * of it by name; `year` the year's three raids; `intro` plays the opening.
+ * The Raid Hall. `focusId` is the class on the card (its league sets the words); `heroCard` its
+ * Raid Hero; `roster` every hero of it by name; `year` the year's three raids; `intro` plays the
+ * opening; `menu` opens the menu sheet.
  */
-export function hallHtml(view, { focusId = '', heroCard = null, canReveal = false, lite = false, roster = [], year = [], now = new Date(), intro = false, musicOn = true } = {}) {
+export function hallHtml(view, { focusId = '', heroCard = null, canReveal = false, lite = false, roster = [], year = [], now = new Date(), intro = false, musicOn = true, menu = false } = {}) {
     const { raid, status } = view;
     const season = raid.season;
     const mood = moodFor(view);
@@ -392,17 +382,13 @@ export function hallHtml(view, { focusId = '', heroCard = null, canReveal = fals
     const rounds = roundsFor(view);
     const said = bossLine({ phase: raid.phase, mood, broken: status.broken, legendary: status.legendary, guardian: season.guardian, tier }).replace(/^[^:]+: /, '');
     const story = battleMessages({ raid, status, turns: raidTurns(view, now), byDayClass: view.tally?.byDayClass || {}, rows: view.rows, mood, tier, limit: 3 });
+    const count = raidClasses(view).length;
     return `<div class="rr-hall rr-hall--${season.id} rr-phase--${raid.phase} rr-mood--${mood} rr-tier--${tier}${status.broken ? ' is-broken' : ''}${status.legendary ? ' is-legendary' : ''}${lite ? ' rr-lite' : ''}${intro ? ' is-intro' : ''}">
         ${skyHtml(season.id, { lite })}
-        <header class="rr-top">
-            <h2 class="rr-sr" id="rr-hall-title">Realm Raid: ${esc(season.name)}. ${esc(battleTitle({ raid, status, tier }))}</h2>
-            ${bossWinHtml(view, rounds)}
-            ${lootMiniHtml(view, focusRow)}
-            ${toolsHtml(view, { year, musicOn })}
-        </header>
+        <h2 class="rr-sr" id="rr-hall-title">Realm Raid: ${esc(season.name)}. ${esc(battleTitle({ raid, status, tier }))}</h2>
         <div class="rr-field">
             ${sceneHtml(season.id, { id: 'rrscene', lite })}
-            ${partyHtml(view, focusId, tier)}
+            ${partyHtml(view, focusId)}
             <div class="rr-bossside">
                 <div class="rr-arena rr-stage">
                     ${stageHtml(season, {
@@ -424,37 +410,42 @@ export function hallHtml(view, { focusId = '', heroCard = null, canReveal = fals
             <div class="rr-dmg-layer" aria-hidden="true"></div>
             <span class="rr-flash" aria-hidden="true"></span>
             ${view.loading ? '<span class="rr-field__loading"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i></span>' : ''}
+            <header class="rr-hud">
+                ${roadHtml(view, rounds, now, tier)}
+                ${bossBarHtml(view, rounds)}
+                ${toolsHtml({ musicOn })}
+            </header>
         </div>
-        ${roundsWinHtml(view, rounds, now, tier)}
-        ${allyWinHtml(view, focusId)}
-        ${statusWinHtml(view, focusRow, { heroCard, canReveal, roster, tier })}
+        ${classCardHtml(view, focusRow, { heroCard, canReveal, roster, tier, count })}
+        ${menu ? menuSheetHtml(view, { year, musicOn }) : ''}
         <ol class="rr-sr" aria-live="polite">${story.map((l) => `<li>${esc(l.text)}</li>`).join('')}</ol>
         ${intro ? `<div class="rr-intro" aria-hidden="true">${Array.from({ length: 8 }, (_, i) => `<i style="--i:${i}"></i>`).join('')}<b>${esc(raid.phase === 'herald' ? battleTitle({ raid, status, tier }) : `${season.guardian}!`)}</b></div>` : ''}
     </div>`;
 }
 
-/** "How to play": three steps, the treasure, and every league's job. */
+/** "How the raid works": three steps, the hero arts (every star belongs to a hero class), the treasure. */
 export function howItWorksHtml(view) {
     const season = view?.raid?.season;
     const r = RAID_REWARDS;
     const step = (n, icon, big, small) => `<li class="rr-step"><span class="rr-step__n">${n}</span><span class="rr-step__icon" aria-hidden="true">${icon}</span><b>${big}</b><small>${small}</small></li>`;
-    const jobs = Object.entries(LEAGUE_JOBS).map(([league, job]) => `<li style="${jobStyle(job)}"><span class="rr-help__jobicon" aria-hidden="true">${job.icon}</span><b>${esc(job.job)}</b><small>${esc(league)} · ${esc(job.skill)}</small></li>`).join('');
+    const arts = [...Object.values(HERO_ARTS), STAR_ART].map((art) => `<li style="${artStyle(art)}"><span class="rr-help__arti" aria-hidden="true">${art.icon}</span><b>${esc(art.art)}</b><small>${esc(art.heroClass ? `${art.heroClass} · ${art.virtue}` : art.virtue)}</small></li>`).join('');
     return `<div class="rr-help" role="dialog" aria-modal="true" aria-labelledby="rr-help-title">
-        <div class="rr-win rr-help__card">
-            <button type="button" class="rr-icon-btn rr-help__close" data-rr-help-close aria-label="Close"><i class="fas fa-xmark" aria-hidden="true"></i></button>
-            <h3 id="rr-help-title" class="rr-win__title">HOW TO PLAY</h3>
+        <div class="rr-help__card">
+            <button type="button" class="rr-btn rr-help__close" data-rr-help-close aria-label="Close"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+            <h3 id="rr-help-title">How the raid works</h3>
             <ol class="rr-steps">
                 ${step(1, '⭐', 'Earn stars', 'in any lesson, Monday to Friday')}
-                ${step(2, '⚔️', 'Each star is a hit', `on ${esc(season?.guardian || 'Eldhorn')}'s shield`)}
+                ${step(2, '⚔️', 'Every star strikes', `${esc(season?.guardian || 'Eldhorn')}'s shield`)}
                 ${step(3, '🛡️', 'Break it together', 'the whole school is one party')}
             </ol>
+            <h4>Every star is a hero art</h4>
+            <ul class="rr-help__arts">${arts}</ul>
+            <h4>Treasure</h4>
             <ul class="rr-help__loot">
-                <li><span aria-hidden="true">✨</span><b>Valor</b><small>your class breaks its own shard: +${r.valorGold} 🪙 each</small></li>
-                <li><span aria-hidden="true">🛡️</span><b>Victory</b><small>+${r.victoryGold} 🪙 each, a map step, a treasure for each Raid Hero</small></li>
-                <li><span aria-hidden="true">👑</span><b>Legendary</b><small>${Math.round(LEGENDARY_AT * 100)}%: +${r.legendaryGold} 🪙 more, another map step</small></li>
+                <li><span aria-hidden="true">✨</span><b>Valor</b><small>your class breaks its own shard: +${r.valorGold} Gold each</small></li>
+                <li><span aria-hidden="true">🛡️</span><b>Victory</b><small>+${r.victoryGold} Gold each, a Team Quest map step, a festival treasure for each Raid Hero</small></li>
+                <li><span aria-hidden="true">👑</span><b>Legendary</b><small>${Math.round(LEGENDARY_AT * 100)}% of the shield: +${r.legendaryGold} Gold more, another map step</small></li>
             </ul>
-            <h4 class="rr-win__title">JOBS <small>every league fights its own way</small></h4>
-            <ul class="rr-help__jobs">${jobs}</ul>
             <p class="rr-help__foot">3 raids a year · 5 rounds, Monday to Friday · each round fits that day's lessons · each shard fits its class (${Math.round(RAID_EFFORT * 100)}% of a normal week) · nothing is ever taken away</p>
         </div>
     </div>`;
@@ -510,12 +501,11 @@ export function victoryHtml(view, { legendary = false, lite = false } = {}) {
 
 /** The whole party cheering under the results: every class, by name. */
 function victoryPartyHtml(view) {
-    const rows = view.rows.filter((row) => row.share > 0 || row.stars > 0)
-        .sort((a, b) => (LEAGUE_ORDER.indexOf(a.league) + 1 || 99) - (LEAGUE_ORDER.indexOf(b.league) + 1 || 99) || String(a.name).localeCompare(String(b.name), undefined, { numeric: true }));
+    const rows = raidClasses(view);
     if (!rows.length) return '';
     return `<ul class="rr-vparty${rows.length > 12 ? ' is-many' : ''}" aria-label="The party">${rows.map((row, i) => {
-        const job = leagueJob(row.league);
-        return `<li style="--i:${i};${jobStyle(job)}"><span class="rr-vparty__sprite" aria-hidden="true">${heroSpriteSvg(job)}<i>${esc(row.logo)}</i></span><b>${esc(row.name)}</b></li>`;
+        const art = classArt(row);
+        return `<li style="--i:${i};${artStyle(art)}"><span class="rr-vparty__sprite" aria-hidden="true">${heroSpriteSvg(art)}<i>${esc(row.logo)}</i></span><b>${esc(row.name)}</b></li>`;
     }).join('')}</ul>`;
 }
 
@@ -535,7 +525,7 @@ export function raidCardHtml(view, { focusId = '' } = {}) {
         : raid.phase === 'herald' ? `${season.guardian} ${raidCountdown(raid)} · the whole school is one party` : `${fmt(status.dealt)} ★ from ${view.rows.filter((r) => r.stars > 0).length} classes`;
     const left = Math.max(0, status.hp - status.dealt);
     const hp = `<div class="rr-qc__hp"><span class="rr-qc__hp-label">HP</span><span class="rr-qc__hp-track"><span style="--p:${(status.hp ? left / status.hp : 1).toFixed(4)}"></span></span><b>${fmt(left)}<small>/${fmt(status.hp)}</small></b></div>`;
-    const job = row ? leagueJob(row.league) : null;
+    const art = row ? classArt(row) : null;
     return `<div class="rr-qc rr-hall--${season.id}">
         <div class="rr-qc__art">
             <div class="rr-qc__sky" aria-hidden="true"><div class="rr-sky__peaks">${peaksSvg(season.id)}</div></div>
@@ -558,7 +548,7 @@ export function raidCardHtml(view, { focusId = '' } = {}) {
             <p class="sc-big sc-big--sm">${esc(big)}</p>
             <p class="sc-sub">${esc(sub)}</p>
             ${hp}
-            ${row && row.share ? `<p class="rr-qc__mine">${esc(row.logo)} <b>${esc(row.name)}</b> · ${job.icon} ${esc(job.skill)} · ${row.valor ? 'shard broken!' : `${fmt(row.stars)} / ${fmt(row.share)} ★`}</p>` : ''}
+            ${row && row.share ? `<p class="rr-qc__mine">${esc(row.logo)} <b>${esc(row.name)}</b> · ${art.icon} ${esc(art.heroClass ? `${art.heroClass}s` : art.art)} · ${row.valor ? 'shard broken!' : `${fmt(row.stars)} / ${fmt(row.share)} ★`}</p>` : ''}
         </div>
     </div>`;
 }

@@ -1,5 +1,6 @@
 /**
- * Realm Raid party: one little hero per class, dressed as its league's job, and the formation that
+ * Realm Raid party: one little hero per class, dressed as the hero class most of its students chose,
+ * and the formation that
  * places any number of classes on the left of the battlefield (classic side-view battle).
  * Pure string builders and maths; motion lives in styles/realm_raid.css (transform and opacity only).
  * Covered by tests/realm-raid-battle.test.mjs.
@@ -33,55 +34,19 @@ function body(color, deep, { cape = true, hair = '#5b3a1e' } = {}) {
 
 const arm = (color, x = 62, y = 66) => `<path class="rr-u__arm" d="M${x},${y} C${x + 8},${y + 4} ${x + 12},${y + 10} ${x + 12},${y + 16}" stroke="${color}" stroke-width="8" fill="none" stroke-linecap="round"/><circle cx="${x + 12}" cy="${y + 17}" r="4.6" fill="${SKIN}"/>`;
 
+// One look per hero class of the app (features/heroClasses.js), in its aura colours.
 const SPRITES = {
-    // Star Sprites: wings, a star clip, a star wand.
-    sprite: (c, d) => `
-        <g class="rr-u__wings" fill="#fdf2f8" stroke="${c}" stroke-width="1.5" opacity=".95">
-            <path d="M38,62 C22,48 12,56 18,68 C22,76 32,74 38,68 Z"/><path d="M38,70 C24,72 20,84 28,88 C34,90 38,82 40,76 Z"/>
-        </g>
-        ${body(c, d, { cape: false, hair: '#f9a8d4' })}
-        <circle cx="34" cy="22" r="7" fill="#f9a8d4"/>
-        <path d="M60,16 l2.6,5.4 5.9,.8 -4.3,4.1 1,5.8 -5.2,-2.8 -5.2,2.8 1,-5.8 -4.3,-4.1 5.9,-.8 Z" fill="#fde047" stroke="#ca8a04" stroke-width="1"/>
-        ${arm(c)}
-        <g class="rr-u__weapon"><path d="M74,82 L86,52" stroke="#fde68a" stroke-width="3" stroke-linecap="round"/>
-        <path d="M86,40 l3,6.2 6.8,1 -4.9,4.8 1.2,6.8 -6.1,-3.2 -6.1,3.2 1.2,-6.8 -4.9,-4.8 6.8,-1 Z" fill="#fde047" stroke="#ca8a04" stroke-width="1.2"/></g>`,
-    // Bubble Squires: a round helmet, a bubble wand.
-    squire: (c, d) => `
-        ${body(c, d, { hair: '#7c4a21' })}
-        <path d="M28,36 C28,20 38,12 50,12 C62,12 72,20 72,36 Z" fill="#e0f2fe" stroke="${d}" stroke-width="2.5"/>
-        <rect x="27" y="32" width="46" height="6" rx="3" fill="${c}" stroke="${d}" stroke-width="1.5"/>
-        <circle cx="50" cy="13" r="4" fill="${c}"/>
-        ${arm(c)}
-        <g class="rr-u__weapon"><path d="M74,82 L84,58" stroke="#94a3b8" stroke-width="3" stroke-linecap="round"/>
-        <circle cx="86" cy="52" r="7" fill="none" stroke="#e0f2fe" stroke-width="2.5"/>
-        <circle class="rr-u__bubble" cx="93" cy="40" r="4" fill="#bae6fd" opacity=".85"/><circle class="rr-u__bubble" cx="84" cy="34" r="2.6" fill="#e0f2fe" opacity=".85"/></g>`,
-    // Leaf Rangers: a leafy hood, a little bow.
-    ranger: (c, d) => `
-        ${body(c, d, { hair: '#6b3f1d' })}
-        <path d="M27,42 C24,22 36,10 52,10 C66,10 76,22 72,36 C66,26 58,22 50,22 C40,22 32,30 31,46 Z" fill="${d}"/>
-        <path d="M50,10 C56,2 66,2 70,6 C64,8 58,10 52,14 Z" fill="${c}"/>
-        ${arm(d)}
-        <g class="rr-u__weapon"><path d="M82,50 C94,62 94,82 82,94" stroke="#a16207" stroke-width="3.2" fill="none" stroke-linecap="round"/>
-        <path d="M82,50 L82,94" stroke="#fef3c7" stroke-width="1"/><path d="M72,72 L94,72" stroke="#713f12" stroke-width="2"/><path d="M94,72 l-5,-3 0,6 Z" fill="${c}"/></g>`,
-    // Comet Knights: a helmet with a plume, a sword.
-    knight: (c, d) => `
+    // Guardian (Respect): a round helm, a big shield, a short sword.
+    guardian: (c, d) => `
         ${body(c, d, { hair: '#3f2a14' })}
-        <path d="M28,40 C27,22 38,12 50,12 C62,12 73,22 72,40 L72,44 L60,44 L60,34 L40,34 L40,44 L28,44 Z" fill="#cbd5e1" stroke="#475569" stroke-width="2"/>
-        <path class="rr-u__plume" d="M46,13 C40,2 52,-4 62,2 C56,4 52,8 52,13 Z" fill="${c}"/>
-        ${arm('#94a3b8')}
-        <g class="rr-u__weapon"><path d="M74,84 L94,44" stroke="#e2e8f0" stroke-width="5" stroke-linecap="round"/>
-        <path d="M70,80 L80,86" stroke="#a16207" stroke-width="4" stroke-linecap="round"/><path d="M92,48 L96,40" stroke="#fff" stroke-width="2"/></g>`,
-    // Storm Archers: a feathered cap, a bow with a lightning arrow.
-    archer: (c, d) => `
-        ${body(c, d, { hair: '#7c2d12' })}
-        <path d="M28,30 C30,16 42,10 54,12 C64,14 72,20 72,30 C62,26 42,26 28,30 Z" fill="${d}"/>
-        <path d="M66,18 C76,8 86,8 90,10 C84,14 78,20 70,24 Z" fill="${c}"/>
-        ${arm(c)}
-        <g class="rr-u__weapon"><path d="M82,48 C96,60 96,84 82,96" stroke="#78350f" stroke-width="3.2" fill="none" stroke-linecap="round"/>
-        <path d="M82,48 L82,96" stroke="#fef3c7" stroke-width="1"/>
-        <path d="M70,72 L84,70 L80,74 L96,72" stroke="#facc15" stroke-width="2.6" fill="none" stroke-linejoin="round"/></g>`,
-    // Arcane Mages: a pointed hat with stars, a staff with an orb.
-    mage: (c, d) => `
+        <path d="M28,40 C27,22 38,12 50,12 C62,12 73,22 72,40 L60,40 L60,32 L40,32 L40,40 Z" fill="#e2e8f0" stroke="${d}" stroke-width="2"/>
+        <rect x="47" y="8" width="6" height="8" rx="3" fill="${c}"/>
+        <g class="rr-u__weapon"><path d="M86,96 L94,52" stroke="#e2e8f0" stroke-width="4.5" stroke-linecap="round"/><path d="M82,90 L92,94" stroke="#a16207" stroke-width="4" stroke-linecap="round"/></g>
+        ${arm('#e2e8f0', 60, 66)}
+        <path d="M66,60 C80,60 84,65 84,72 C84,88 75,96 66,101 C57,96 48,88 48,72 C48,65 52,60 66,60 Z" fill="${c}" stroke="#f0fdf4" stroke-width="2.5"/>
+        <path d="M66,66 L66,94 M54,76 L78,76" stroke="#f0fdf4" stroke-width="3" stroke-linecap="round"/>`,
+    // Sage (Creativity): a pointed hat with stars, a staff with an orb.
+    sage: (c, d) => `
         ${body(c, d, { hair: '#1e1b4b' })}
         <path d="M24,32 C40,26 60,26 76,32 C70,36 30,36 24,32 Z" fill="${d}"/>
         <path d="M32,31 C40,20 46,4 64,-2 C58,10 62,20 68,31 Z" fill="${d}"/>
@@ -89,16 +54,57 @@ const SPRITES = {
         ${arm(d)}
         <g class="rr-u__weapon"><path d="M76,104 L88,44" stroke="#78350f" stroke-width="3.4" stroke-linecap="round"/>
         <circle class="rr-u__orb" cx="89" cy="40" r="7" fill="${c}" stroke="#ede9fe" stroke-width="2"/><circle cx="87" cy="38" r="2" fill="#fff"/></g>`,
-    // Dragon Paladins: a horned helm, a shield with a dragon mark, a spear.
+    // Paladin (Teamwork): a plumed helm, a raised sword.
     paladin: (c, d) => `
-        ${body(c, d, { hair: '#1c1917' })}
-        <path d="M28,40 C27,22 38,12 50,12 C62,12 73,22 72,40 L60,40 L60,32 L40,32 L40,40 Z" fill="#fca5a5" stroke="${d}" stroke-width="2"/>
-        <path d="M32,20 C24,14 22,6 26,2 C28,10 34,14 38,16 Z M68,20 C76,14 78,6 74,2 C72,10 66,14 62,16 Z" fill="#fef3c7" stroke="${d}" stroke-width="1.5"/>
-        <g class="rr-u__weapon"><path d="M88,104 L88,30" stroke="#a8a29e" stroke-width="3.4" stroke-linecap="round"/><path d="M88,22 L93,34 L83,34 Z" fill="#e7e5e4" stroke="#57534e" stroke-width="1"/></g>
-        ${arm('#fca5a5', 60, 66)}
-        <path d="M66,62 C78,62 82,66 82,72 C82,86 74,94 66,98 C58,94 50,86 50,72 C50,66 54,62 66,62 Z" fill="${c}" stroke="#fef3c7" stroke-width="2.5"/>
-        <path d="M60,74 C62,68 70,68 72,74 C68,72 66,76 66,80 C64,78 62,76 60,74 Z" fill="#fef3c7"/>`,
-    // Anyone else: a bandana and a sword.
+        ${body(c, d, { hair: '#3f2a14' })}
+        <path d="M28,40 C27,22 38,12 50,12 C62,12 73,22 72,40 L72,44 L60,44 L60,34 L40,34 L40,44 L28,44 Z" fill="#cbd5e1" stroke="#475569" stroke-width="2"/>
+        <path class="rr-u__plume" d="M46,13 C40,2 52,-4 62,2 C56,4 52,8 52,13 Z" fill="${c}"/>
+        ${arm('#94a3b8')}
+        <g class="rr-u__weapon"><path d="M74,84 L94,44" stroke="#e2e8f0" stroke-width="5" stroke-linecap="round"/>
+        <path d="M70,80 L80,86" stroke="#a16207" stroke-width="4" stroke-linecap="round"/><path d="M92,48 L96,40" stroke="#fff" stroke-width="2"/></g>`,
+    // Artificer (Focus): goggles on the forehead, a hammer, a gear.
+    artificer: (c, d) => `
+        ${body(c, d, { hair: '#7c2d12' })}
+        <rect x="31" y="22" width="40" height="7" rx="3.5" fill="${d}"/>
+        <circle cx="44" cy="25" r="6.5" fill="#bae6fd" stroke="${d}" stroke-width="2.5"/><circle cx="58" cy="25" r="6.5" fill="#bae6fd" stroke="${d}" stroke-width="2.5"/>
+        <circle cx="42.5" cy="23.5" r="1.8" fill="#fff"/><circle cx="56.5" cy="23.5" r="1.8" fill="#fff"/>
+        ${arm(c)}
+        <g class="rr-u__weapon"><path d="M74,84 L88,52" stroke="#78350f" stroke-width="3.6" stroke-linecap="round"/>
+        <rect x="80" y="40" width="20" height="12" rx="2.5" fill="#94a3b8" stroke="#475569" stroke-width="1.5" transform="rotate(24 90 46)"/>
+        <g class="rr-u__orb" transform="translate(92 26)"><circle r="6" fill="none" stroke="${c}" stroke-width="3.5" stroke-dasharray="3 2.3"/><circle r="2.2" fill="${c}"/></g></g>`,
+    // Scholar (trial results): a square cap with a tassel, a book and a quill.
+    scholar: (c, d) => `
+        ${body(c, d, { hair: '#44403c' })}
+        <path d="M24,22 L50,12 L76,22 L50,32 Z" fill="${d}"/><rect x="36" y="24" width="28" height="8" fill="${d}"/>
+        <path d="M70,24 L72,38" stroke="#fde68a" stroke-width="2"/><circle cx="72" cy="40" r="2.4" fill="#fde68a"/>
+        ${arm(c)}
+        <g class="rr-u__weapon"><path d="M70,74 L94,70 L94,90 L70,94 Z" fill="#fff7ed" stroke="${d}" stroke-width="2"/><path d="M82,72 L82,92" stroke="${d}" stroke-width="1.5"/>
+        <path d="M74,78 L80,77 M74,83 L80,82 M85,77 L91,76" stroke="#94a3b8" stroke-width="1.2"/>
+        <path class="rr-u__plume" d="M92,68 C98,56 100,48 98,40 C92,48 90,58 90,68 Z" fill="${c}"/></g>`,
+    // Vanguard (Training Grounds): a hood, a little bow.
+    vanguard: (c, d) => `
+        ${body(c, d, { hair: '#6b3f1d' })}
+        <path d="M27,42 C24,22 36,10 52,10 C66,10 76,22 72,36 C66,26 58,22 50,22 C40,22 32,30 31,46 Z" fill="${d}"/>
+        <path d="M50,10 C56,2 66,2 70,6 C64,8 58,10 52,14 Z" fill="${c}"/>
+        ${arm(d)}
+        <g class="rr-u__weapon"><path d="M82,50 C94,62 94,82 82,94" stroke="#a16207" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+        <path d="M82,50 L82,94" stroke="#fef3c7" stroke-width="1"/><path d="M72,72 L94,72" stroke="#713f12" stroke-width="2"/><path d="M94,72 l-5,-3 0,6 Z" fill="${c}"/></g>`,
+    // Nomad (coming back): a wide travel hat, a walking staff, a satchel.
+    nomad: (c, d) => `
+        <path d="M30,64 C24,70 24,84 30,88 L40,86 L40,66 Z" fill="#a16207"/>
+        ${body(c, d, { cape: false, hair: '#78350f' })}
+        <ellipse cx="50" cy="24" rx="30" ry="6" fill="${d}"/><path d="M36,23 C36,10 64,10 64,23 Z" fill="${d}"/><path d="M36,20 L64,20" stroke="${c}" stroke-width="3"/>
+        ${arm(c)}
+        <g class="rr-u__weapon"><path d="M78,108 L88,36" stroke="#92400e" stroke-width="3.6" stroke-linecap="round"/><path d="M88,36 C92,30 98,32 96,38" stroke="#92400e" stroke-width="3.2" fill="none" stroke-linecap="round"/></g>`,
+    // Patron (Hero's Boons): a little circlet, a lantern with a heart.
+    patron: (c, d) => `
+        ${body(c, d, { hair: '#9a3412' })}
+        <path d="M32,24 C40,18 60,18 68,24" stroke="#fde68a" stroke-width="3.5" fill="none"/><circle cx="50" cy="19" r="3.4" fill="${c}" stroke="#fde68a" stroke-width="1.5"/>
+        ${arm(c)}
+        <g class="rr-u__weapon"><path d="M76,80 L86,58" stroke="#a16207" stroke-width="2.6" stroke-linecap="round"/>
+        <rect x="78" y="40" width="18" height="20" rx="5" fill="#fff1f2" stroke="#fde68a" stroke-width="2"/>
+        <path class="rr-u__orb" d="M87,55 C80,50 80,45 84,44 C86,44 87,46 87,47 C87,46 88,44 90,44 C94,45 94,50 87,55 Z" fill="${c}"/></g>`,
+    // Anyone without a hero class yet: a bandana and a sword.
     adventurer: (c, d) => `
         ${body(c, d)}
         <path d="M29,30 C34,22 66,22 71,30 L71,34 L29,34 Z" fill="${c}"/><path d="M29,32 C22,34 20,40 24,44 C26,40 28,36 31,34 Z" fill="${d}"/>
@@ -106,7 +112,7 @@ const SPRITES = {
         <g class="rr-u__weapon"><path d="M74,84 L92,48" stroke="#e2e8f0" stroke-width="4.6" stroke-linecap="round"/><path d="M70,80 L80,86" stroke="#a16207" stroke-width="4" stroke-linecap="round"/></g>`
 };
 
-/** A hero in the colours of a league's job (realmRaidBattle#leagueJob). */
+/** A hero dressed as a hero art's class, in its colours (realmRaidBattle#heroArt / #classArt). */
 export function heroSpriteSvg(job) {
     const draw = SPRITES[job?.sprite] || SPRITES.adventurer;
     return `<svg class="rr-u__svg" viewBox="0 -6 100 124" aria-hidden="true" focusable="false">

@@ -1,36 +1,84 @@
 /**
- * Realm Raid as a battle: each league's job and skill, and the battle messages in words that fit
- * the class watching (young, middle or older leagues). Pure; no DOM. Covered by
+ * Realm Raid as a battle: the hero arts each star strikes with, and the battle words that fit the
+ * class watching (young, middle or older leagues). Pure; no DOM. Covered by
  * tests/realm-raid-battle.test.mjs. The rules of the raid itself are in realmRaidCore.mjs.
  *
  * Every word is gentle: nobody is hurt. Classes "cast" skills of light at Eldhorn's shield, the
  * shield "cracks" and "loses light", and Eldhorn is a friendly guardian who bows when it breaks.
  */
 
-/** One job per league, from the youngest to the oldest. `tier` picks the words the class reads. */
-export const LEAGUE_JOBS = Object.freeze({
-    'Pre-Junior': { job: 'Star Sprites', skill: 'Twinkle Toss', icon: '✨', color: '#f472b6', deep: '#9d174d', sprite: 'sprite', tier: 'young' },
-    'Junior A': { job: 'Bubble Squires', skill: 'Bubble Burst', icon: '🫧', color: '#38bdf8', deep: '#075985', sprite: 'squire', tier: 'young' },
-    'Junior B': { job: 'Leaf Rangers', skill: 'Leaf Whirl', icon: '🍃', color: '#4ade80', deep: '#166534', sprite: 'ranger', tier: 'young' },
-    A: { job: 'Comet Knights', skill: 'Comet Dash', icon: '☄️', color: '#fb923c', deep: '#9a3412', sprite: 'knight', tier: 'mid' },
-    B: { job: 'Storm Archers', skill: 'Thunder Arrow', icon: '⚡', color: '#facc15', deep: '#854d0e', sprite: 'archer', tier: 'mid' },
-    C: { job: 'Arcane Mages', skill: 'Arcane Nova', icon: '🔮', color: '#a78bfa', deep: '#5b21b6', sprite: 'mage', tier: 'senior' },
-    D: { job: 'Dragon Paladins', skill: 'Dragon Flare', icon: '🐉', color: '#f87171', deep: '#991b1b', sprite: 'paladin', tier: 'senior' }
+/**
+ * The app's eight hero classes (features/heroClasses.js), each with the star it earns from and one
+ * art from its own skill tree (features/heroSkillTree.js). In the raid, every star a class earns
+ * strikes Eldhorn's shield with the art of the hero class that star belongs to: a Respect star is a
+ * Guardian's Bulwark, a Creativity star a Sage's Creative Spark, and so on. A class stands on the
+ * battlefield dressed as the hero class most of its students chose.
+ */
+export const HERO_ARTS = Object.freeze({
+    Guardian: { heroClass: 'Guardian', art: 'Bulwark', icon: '🛡️', reasons: ['respect'], virtue: 'Respect', color: '#22c55e', deep: '#166534', sprite: 'guardian' },
+    Sage: { heroClass: 'Sage', art: 'Creative Spark', icon: '🔮', reasons: ['creativity'], virtue: 'Creativity', color: '#a855f7', deep: '#6b21a8', sprite: 'sage' },
+    Paladin: { heroClass: 'Paladin', art: 'Battle Bond', icon: '⚔️', reasons: ['teamwork'], virtue: 'Teamwork', color: '#3b82f6', deep: '#1e3a8a', sprite: 'paladin' },
+    Artificer: { heroClass: 'Artificer', art: 'Workshop', icon: '⚙️', reasons: ['focus'], virtue: 'Focus', color: '#f59e0b', deep: '#92400e', sprite: 'artificer' },
+    Scholar: { heroClass: 'Scholar', art: 'Academic Edge', icon: '📜', reasons: ['scholar_s_bonus'], virtue: 'Trial results', color: '#06b6d4', deep: '#155e75', sprite: 'scholar' },
+    Vanguard: { heroClass: 'Vanguard', art: 'Four Arts', icon: '⚜️', reasons: ['story_weaver', 'vanishing_hoard', 'torn_map', 'round_table'], virtue: 'Training Grounds', color: '#14b8a6', deep: '#115e59', sprite: 'vanguard' },
+    Nomad: { heroClass: 'Nomad', art: 'Open Road', icon: '👟', reasons: ['welcome_back'], virtue: 'Coming back', color: '#8b5cf6', deep: '#4c1d95', sprite: 'nomad' },
+    Patron: { heroClass: 'Patron', art: 'Open Hand', icon: '💝', reasons: ['peer_boon'], virtue: "Hero's Boons", color: '#f43f5e', deep: '#9f1239', sprite: 'patron' }
 });
 
-const FALLBACK_JOB = Object.freeze({ job: 'Adventurers', skill: 'Star Strike', icon: '⭐', color: '#fbbf24', deep: '#92400e', sprite: 'adventurer', tier: 'mid' });
+/** Stars that belong to no hero class (quizzes, quests, excellence...): the whole class's Star Strike. */
+export const STAR_ART = Object.freeze({ heroClass: '', art: 'Star Strike', icon: '⭐', reasons: [], virtue: 'Every other star', color: '#fbbf24', deep: '#92400e', sprite: 'adventurer' });
 
-/** The job of a league ("Junior A", "junior a", "JUNIOR-A" all match). */
-export function leagueJob(league) {
-    const norm = (v) => String(v || '').trim().toLowerCase().replace(/[-_\s]+/g, ' ');
-    const key = norm(league);
-    const hit = Object.entries(LEAGUE_JOBS).find(([name]) => norm(name) === key);
-    return hit ? hit[1] : FALLBACK_JOB;
+const ART_BY_REASON = new Map(Object.values(HERO_ARTS).flatMap((art) => art.reasons.map((r) => [r, art])));
+
+/** The hero art a star of this reason strikes with. */
+export function artForReason(reason) {
+    return ART_BY_REASON.get(String(reason || '')) || STAR_ART;
+}
+
+/** The hero art of a hero class (old names such as "Weaver" read as Vanguard). */
+export function heroArt(heroClass) {
+    const name = String(heroClass || '').trim();
+    return HERO_ARTS[name === 'Weaver' ? 'Vanguard' : name] || STAR_ART;
+}
+
+/**
+ * The hero class a class fights as: the one most of its students chose (`heroMix`, counts by hero
+ * class); with no choices yet, the hero class of the stars it earned most this raid (`reasons`).
+ */
+export function classArt(row = {}) {
+    const pick = (counts, toArt) => {
+        const best = Object.entries(counts || {}).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+            .map(([key]) => toArt(key)).find((art) => art !== STAR_ART);
+        return best || null;
+    };
+    return pick(row.heroMix, heroArt) || pick(row.reasons, artForReason) || STAR_ART;
+}
+
+/** The arts of a strike, biggest first: { art, stars } from the stars it gained by reason. */
+export function strikeArts(gained = {}) {
+    const byArt = new Map();
+    Object.entries(gained).forEach(([reason, n]) => {
+        if (!(n > 0)) return;
+        const art = artForReason(reason);
+        byArt.set(art, (byArt.get(art) || 0) + n);
+    });
+    return [...byArt.entries()].map(([art, stars]) => ({ art, stars })).sort((a, b) => b.stars - a.stars);
+}
+
+/** The leagues, youngest first, and the words each one reads (young, mid or senior). */
+export const LEAGUES = Object.freeze(['Pre-Junior', 'Junior A', 'Junior B', 'A', 'B', 'C', 'D']);
+const TIERS = { 'pre junior': 'young', 'junior a': 'young', 'junior b': 'young', a: 'mid', b: 'mid', c: 'senior', d: 'senior' };
+const norm = (v) => String(v || '').trim().toLowerCase().replace(/[-_\s]+/g, ' ');
+
+/** Where a league sits, youngest first (unknown leagues last). */
+export function leagueRank(league) {
+    const i = LEAGUES.findIndex((name) => norm(name) === norm(league));
+    return i < 0 ? 99 : i;
 }
 
 /** The words for a class: young (Pre-Junior, Junior), mid (A, B) or senior (C, D). */
 export function wordTier(league) {
-    return leagueJob(league).tier;
+    return TIERS[norm(league)] || 'mid';
 }
 
 const fmt = (n) => {
@@ -45,7 +93,7 @@ export function isBigHit(stars, share = 0) {
 
 /** One class striking the shield, in the watching class's words. */
 export function strikeLine(row, stars, tier = 'mid') {
-    const { skill, icon } = leagueJob(row?.league);
+    const { art: skill, icon } = classArt(row);
     const name = row?.name || 'A class';
     const big = isBigHit(stars, row?.share);
     if (tier === 'young') return `${name}: ${icon} ${skill}! ${big ? 'WOW! ' : ''}−${fmt(stars)} ⭐`;

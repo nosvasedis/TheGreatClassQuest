@@ -199,7 +199,7 @@ function nearShapes(seasonId, c) {
         return `<path d="M0,200 L0,110 Q60,70 150,100 Q220,80 260,130 Q300,150 300,200 Z" fill="#eef8ff"/>
             <path d="M0,200 L0,140 Q80,110 170,140 Q240,130 270,200 Z" fill="#cfe4f7"/>
             <path d="M1600,200 L1600,100 Q1530,74 1450,104 Q1380,96 1350,140 Q1320,160 1320,200 Z" fill="#eef8ff"/>
-            <g transform="translate(70 70) rotate(-24)"><path d="M0,0 L120,0" stroke="${c.peakNear}" stroke-width="8"/>${Array.from({ length: 7 }, (_, k) => `<path d="M${10 + k * 16},0 l12,-22 M${10 + k * 16},0 l12,22" stroke="${c.peakNear}" stroke-width="7" stroke-linecap="round"/>`).join('')}</g>`;
+`;
     }
     if (seasonId === 'carnival') {
         const barrel = (x, s) => `<g transform="translate(${x} 200) scale(${s})"><path d="M-46,0 L-52,-110 Q0,-124 52,-110 L46,0 Z" fill="#7c2d12"/><path d="M-50,-90 Q0,-100 50,-90 M-48,-26 Q0,-34 48,-26" stroke="#fbbf24" stroke-width="7" fill="none"/></g>`;

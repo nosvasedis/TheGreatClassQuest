@@ -1,24 +1,36 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { LEAGUE_JOBS, leagueJob, wordTier, strikeLine, bossLine, turnLine, battleMessages, battleTitle } from '../features/realmRaidBattle.mjs';
+import { HERO_ARTS, STAR_ART, artForReason, heroArt, classArt, strikeArts, leagueRank, wordTier, strikeLine, bossLine, turnLine, battleMessages, battleTitle } from '../features/realmRaidBattle.mjs';
 
-test('every league has its own job, skill and colour', () => {
-    const names = Object.values(LEAGUE_JOBS).map((j) => j.job);
-    assert.equal(new Set(names).size, names.length);
-    assert.equal(new Set(Object.values(LEAGUE_JOBS).map((j) => j.skill)).size, names.length);
-    assert.equal(leagueJob('junior a').job, 'Bubble Squires');
-    assert.equal(leagueJob('Junior-B').job, 'Leaf Rangers');
-    assert.equal(leagueJob('Mystery').job, 'Adventurers');
+test('every hero class has its own art, sprite and colour, tied to the stars it earns', () => {
+    const arts = Object.values(HERO_ARTS);
+    assert.equal(new Set(arts.map((a) => a.art)).size, arts.length);
+    assert.equal(new Set(arts.map((a) => a.sprite)).size, arts.length);
+    assert.equal(artForReason('respect'), HERO_ARTS.Guardian);
+    assert.equal(artForReason('torn_map'), HERO_ARTS.Vanguard);
+    assert.equal(artForReason('mystery'), STAR_ART);
+    assert.equal(heroArt('Weaver'), HERO_ARTS.Vanguard);
+    assert.equal(heroArt(''), STAR_ART);
     assert.equal(wordTier('Pre-Junior'), 'young');
     assert.equal(wordTier('B'), 'mid');
     assert.equal(wordTier('D'), 'senior');
+    assert.ok(leagueRank('Junior A') < leagueRank('C'));
+    assert.equal(leagueRank('Mystery'), 99);
 });
 
-test('strike lines use the striking class\'s skill and the watching class\'s words', () => {
-    const owls = { name: 'Little Owls', league: 'Pre-Junior' };
-    assert.equal(strikeLine(owls, 3, 'young'), 'Little Owls: ✨ Twinkle Toss! −3 ⭐');
+test('a class fights as its students\' main hero class, then as its biggest stars', () => {
+    assert.equal(classArt({ heroMix: { Sage: 3, Guardian: 5 }, reasons: { focus: 20 } }), HERO_ARTS.Guardian);
+    assert.equal(classArt({ heroMix: {}, reasons: { focus: 20, respect: 2 } }), HERO_ARTS.Artificer);
+    assert.equal(classArt({}), STAR_ART);
+    const arts = strikeArts({ respect: 2, teamwork: 5, story_weaver: 1, torn_map: 1, bogus: 0 });
+    assert.deepEqual(arts.map((a) => [a.art.heroClass, a.stars]), [['Paladin', 5], ['Guardian', 2], ['Vanguard', 2]]);
+});
+
+test('strike lines use the striking class\'s art and the watching class\'s words', () => {
+    const owls = { name: 'Little Owls', league: 'Pre-Junior', heroMix: { Sage: 2 } };
+    assert.equal(strikeLine(owls, 3, 'young'), 'Little Owls: 🔮 Creative Spark! −3 ⭐');
     assert.match(strikeLine(owls, 12, 'young'), /WOW!/);
-    assert.equal(strikeLine({ name: 'Hawks', league: 'B' }, 4.5, 'mid'), 'Hawks use Thunder Arrow! The shield loses 4.5.');
+    assert.equal(strikeLine({ name: 'Hawks', league: 'B', heroMix: { Paladin: 1 } }, 4.5, 'mid'), 'Hawks use Battle Bond! The shield loses 4.5.');
     assert.match(strikeLine({ name: 'Mages', league: 'C' }, 11, 'senior'), /critical/);
 });
 
@@ -44,11 +56,11 @@ test('the message window tells the fight turn by turn, newest last', () => {
         { n: 2, key: 'd2', when: 'now', lessons: true },
         { n: 3, key: 'd3', when: 'next', lessons: true }
     ];
-    const rows = [{ classId: 'a', name: 'Owls', league: 'Pre-Junior' }, { classId: 'b', name: 'Hawks', league: 'B' }];
+    const rows = [{ classId: 'a', name: 'Owls', league: 'Pre-Junior' }, { classId: 'b', name: 'Hawks', league: 'B', heroMix: { Scholar: 4 } }];
     const lines = battleMessages({ raid, status: { broken: false }, turns, byDayClass: { d1: { a: 2 }, d2: { a: 1, b: 5 } }, rows, mood: 'brace', tier: 'mid', limit: 10 });
     assert.deepEqual(lines.map((l) => l.kind), ['turn', 'hit', 'turn', 'hit', 'hit', 'boss']);
     // Smaller hits first, the biggest right before Eldhorn speaks.
-    assert.match(lines[4].text, /^Hawks use Thunder Arrow/);
+    assert.match(lines[4].text, /^Hawks use Academic Edge/);
     assert.equal(battleMessages({ raid, turns, rows, limit: 2 }).length, 2);
     const herald = battleMessages({ raid: { ...raid, phase: 'herald', daysToStart: 3 }, tier: 'young' });
     assert.match(herald[0].text, /3 days/);
@@ -84,7 +96,7 @@ test('the party formation fits any number of classes inside its area', async () 
             }
         }
     }
-    for (const sprite of ['sprite', 'squire', 'ranger', 'knight', 'archer', 'mage', 'paladin', 'adventurer', 'nope']) {
+    for (const sprite of ['guardian', 'sage', 'paladin', 'artificer', 'scholar', 'vanguard', 'nomad', 'patron', 'adventurer', 'nope']) {
         assert.match(heroSpriteSvg({ sprite, color: '#f00', deep: '#900' }), /^<svg class="rr-u__svg"/);
     }
 });

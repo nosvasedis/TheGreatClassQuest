@@ -9,8 +9,8 @@ import { playSound } from '../../audio.js';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 import { getRaidView, subscribeRaid, revealRaidHero, currentRaid, buildRaidView, ensureRaidLogs, raidViewById, raidOptions } from '../../features/realmRaid.js';
 import { owedRaidRewards, raidsOfYear, raidOn, raidOutcome } from '../../features/realmRaidCore.mjs';
-import { hallHtml, howItWorksHtml, victoryHtml } from './realmRaidView.mjs';
-import { leagueJob, isBigHit, caption } from '../../features/realmRaidBattle.mjs';
+import { hallHtml, howItWorksHtml, victoryHtml, raidClasses } from './realmRaidView.mjs';
+import { classArt, strikeArts, isBigHit, caption } from '../../features/realmRaidBattle.mjs';
 import { startRaidMusic, stopRaidMusic, setRaidMusicMode, raidMusicOn, setRaidMusicOn, playRaidSfx } from '../../features/realmRaidAudio.js';
 import { faceHtml } from './classTools.js';
 import { partyFormation } from '../../features/realmRaidParty.mjs';
@@ -64,7 +64,7 @@ export function shortNames(students = []) {
     return students.map((s) => {
         const parts = String(s?.name || '').trim().split(/\s+/);
         const name = counts[first(s)] > 1 && parts[1] ? `${first(s)} ${parts[1][0]}.` : first(s);
-        return { id: s.id, name, fullName: s.name || name };
+        return { id: s.id, name, fullName: s.name || name, heroClass: s.heroClass || '' };
     });
 }
 
@@ -108,7 +108,8 @@ function render(view) {
         year: hall.year ? hall.year(view) : yearFor(view),
         now: hall.now ? hall.now() : new Date(),
         intro,
-        musicOn: raidMusicOn()
+        musicOn: raidMusicOn(),
+        menu: Boolean(hall.menu)
     });
     if (hall.last) {
         animateHp(hall.last, view);
@@ -123,7 +124,6 @@ function render(view) {
     }
     layoutParty();
     followPointer();
-    fitAlliance();
     if (intro) setTimeout(() => hall?.root.querySelector('.rr-intro')?.remove(), 2600);
     syncMusic(view);
     hall.last = view;
@@ -166,7 +166,12 @@ function layoutParty() {
         unit.style.setProperty('--d', (spot.y / 100).toFixed(3));
         unit.style.zIndex = spot.z;
     });
-    party.classList.toggle('is-tiny', (spots[0]?.h || 0) * box.height / 100 < 70);
+    // Names never run into the next hero's: each may be as wide as the gap to its neighbour, and
+    // when heroes stand too close for names, only the chosen class keeps its name (the rest on hover).
+    const row = spots.filter((s) => Math.abs(s.y - spots[0].y) < 1);
+    const pitch = row.length > 1 ? Math.abs(row[1].x - row[0].x) * box.width / 100 : box.width;
+    party.style.setProperty('--rr-pitch', `${Math.max(48, pitch - 6).toFixed(0)}px`);
+    party.classList.toggle('is-tiny', (spots[0]?.h || 0) * box.height / 100 < 70 || pitch < 62);
 }
 
 /**
@@ -191,23 +196,6 @@ function followPointer() {
             f.style.setProperty('--py', y.toFixed(3));
         });
     };
-}
-
-/** When the alliance is longer than its window, it rolls slowly up and back (not on the lite tier). */
-function fitAlliance() {
-    const win = hall?.root.querySelector('.rr-allywin');
-    if (!win || hall.lite) return;
-    requestAnimationFrame(() => {
-        const box = win.querySelector('.rr-ally__scroll');
-        const track = win.querySelector('.rr-ally__track');
-        if (!box || !track) return;
-        const over = track.scrollHeight - box.clientHeight;
-        if (over > 8 && getComputedStyle(box).overflowY !== 'visible') {
-            win.style.setProperty('--rr-roll', `${-over}px`);
-            win.style.setProperty('--rr-roll-t', `${Math.max(14, over / 14)}s`);
-            win.classList.add('is-auto');
-        }
-    });
 }
 
 /** The music follows the fight: calm before and after, the battle theme, a bright one once broken. */
@@ -253,7 +241,11 @@ function strike(before, after, { lite = false } = {}) {
     const gap = lite ? 500 : 900;
     gains.forEach(({ id, gain }, i) => {
         const row = byId.get(id);
-        const job = leagueJob(row?.league);
+        // The art of the stars just earned (a Respect star strikes as a Guardian's Bulwark), else the class's own.
+        const was = before.tally?.byClassReason?.[id] || {};
+        const now = after.tally?.byClassReason?.[id] || {};
+        const gained = Object.fromEntries(Object.entries(now).map(([r, n]) => [r, n - (Number(was[r]) || 0)]));
+        const job = strikeArts(gained)[0]?.art || classArt(row);
         const from = root.querySelector(`.rr-unit[data-banner="${CSS.escape(id)}"]`) || root.querySelector(`.rr-ally__row[data-banner="${CSS.escape(id)}"]`);
         const to = root.querySelector(`[data-shard="${CSS.escape(id)}"]`) || root.querySelector('.rr-stage__shield');
         const big = isBigHit(gain, row?.share ? row.share / 2 : 0);
@@ -268,12 +260,12 @@ function strike(before, after, { lite = false } = {}) {
                 cast.innerHTML = '';
                 const line = document.createElement('div');
                 line.className = 'rr-cast__line';
-                line.style.setProperty('--job', job.color);
+                line.style.setProperty('--art', job.color);
                 const icon = document.createElement('span');
                 icon.textContent = job.icon;
                 const name = document.createElement('small');
                 name.textContent = row?.name || '';
-                line.append(icon, document.createTextNode(` ${job.skill}! `), name);
+                line.append(icon, document.createTextNode(` ${job.art}! `), name);
                 cast.appendChild(line);
             }
             if (!lite && to) {
@@ -282,7 +274,7 @@ function strike(before, after, { lite = false } = {}) {
                 const orb = document.createElement('span');
                 orb.className = 'rr-skill';
                 orb.textContent = job.icon;
-                orb.style.setProperty('--job', job.color);
+                orb.style.setProperty('--art', job.color);
                 const x0 = a.left + a.width * 0.85;
                 const y0 = a.top + a.height * 0.4;
                 orb.style.left = `${x0 - box.left - 20}px`;
@@ -303,7 +295,7 @@ function strike(before, after, { lite = false } = {}) {
             if (!layer?.isConnected) return;
             const pop = document.createElement('span');
             pop.className = `rr-dmg${big ? ' is-big' : ''}`;
-            pop.style.setProperty('--job-deep', job.deep);
+            pop.style.setProperty('--art-deep', job.deep);
             const b = to?.getBoundingClientRect();
             const lb = layer.getBoundingClientRect();
             // Over the shard that was hit, a little apart each time so numbers never pile up.
@@ -322,7 +314,7 @@ function strike(before, after, { lite = false } = {}) {
             if (!lite && b) {
                 const burst = document.createElement('span');
                 burst.className = 'rr-burst';
-                burst.style.setProperty('--job', job.color);
+                burst.style.setProperty('--art', job.color);
                 burst.style.left = `${b.left + b.width / 2 - box.left}px`;
                 burst.style.top = `${b.top + b.height / 2 - box.top}px`;
                 host.appendChild(burst);
@@ -350,12 +342,17 @@ function strike(before, after, { lite = false } = {}) {
 function onClick(event) {
     const target = event.target;
     if (target.closest('[data-rr-close]')) { closeRaidHall(); return; }
+    if (target.closest('[data-rr-menu]')) { setMenu(true); return; }
+    if (target.closest('[data-rr-menu-close]') || target.classList.contains('rr-sheet')) { setMenu(false); return; }
+    const step = target.closest('[data-rr-step]');
+    if (step) { stepClass(Number(step.dataset.rrStep) || 1); return; }
     if (target.closest('[data-rr-music]')) { toggleMusic(); return; }
-    if (target.closest('[data-rr-help]')) { openHelp(); return; }
+    if (target.closest('[data-rr-help]')) { hall.menu = false; hall.root.querySelector('.rr-sheet')?.remove(); openHelp(); return; }
     if (target.closest('[data-rr-help-close]') || target.classList.contains('rr-help')) { hall.root.querySelector('.rr-help')?.remove(); return; }
     const other = target.closest('[data-rr-raid]');
     if (other) {
         if (other.dataset.rrRaid !== hall.view()?.raid?.raidId) openRaidHall({ raidId: other.dataset.rrRaid, focusId: hall.focusId, keepSound: true });
+        else setMenu(false);
         return;
     }
     const banner = target.closest('[data-banner]');
@@ -370,7 +367,24 @@ function focusClass(classId) {
     hall.heroCard = null;
     playRaidSfx('cursor');
     render(hall.view());
-    hall.root.querySelector(`.rr-ally__row[data-banner="${CSS.escape(classId)}"]`)?.focus({ preventScroll: true });
+}
+
+/** The previous or next class on the card (youngest league first, as on the field from back to front). */
+function stepClass(dir) {
+    const list = raidClasses(hall.view()).map((r) => r.classId);
+    if (!list.length) return;
+    const at = Math.max(0, list.indexOf(hall.focusId));
+    focusClass(list[(at + dir + list.length) % list.length]);
+}
+
+/** Opens or closes the menu sheet (the year's raids, the guilds, the hero arts, music, how to play). */
+function setMenu(open) {
+    if (!hall) return;
+    hall.menu = open;
+    playRaidSfx(open ? 'open' : 'cursor');
+    render(hall.view());
+    if (open) hall.root.querySelector('.rr-sheet [data-rr-menu-close]')?.focus({ preventScroll: true });
+    else hall.root.querySelector('[data-rr-menu]')?.focus({ preventScroll: true });
 }
 
 function toggleMusic() {
@@ -453,18 +467,15 @@ export async function openRaidHall({ view: given = null, focusId = '', raidId = 
     hall.onKey = (event) => {
         if (event.key === 'Escape') {
             if (root.querySelector('.rr-help')) root.querySelector('.rr-help').remove();
+            else if (root.querySelector('.rr-sheet')) setMenu(false);
             else closeRaidHall();
             return;
         }
-        const row = event.target.closest?.('.rr-ally__row');
-        if (row && (event.key === 'Enter' || event.key === ' ')) {
+        if (root.querySelector('.rr-help, .rr-sheet')) return;
+        if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+            if (/^(INPUT|TEXTAREA|SELECT)$/.test(event.target?.tagName || '')) return;
             event.preventDefault();
-            focusClass(row.dataset.banner);
-        } else if (row && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
-            event.preventDefault();
-            const rows = [...root.querySelectorAll('.rr-ally__row')];
-            const next = rows[rows.indexOf(row) + (event.key === 'ArrowDown' ? 1 : -1)];
-            if (next) { next.focus(); playRaidSfx('cursor'); }
+            stepClass(event.key === 'ArrowRight' ? 1 : -1);
         }
     };
     document.addEventListener('keydown', hall.onKey);

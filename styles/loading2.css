@@ -7,10 +7,11 @@
    Two cuts of the same film (templates/loading.js#loadingFilmCut):
                          full (first of the day)   short (.loading-short)
      the logo drifts down  0.3s → 1.3s               0.05s → 0.6s
-     Lumi wakes from it    1.35s → 2.3s              0.6s → 1.2s
-     the spark writes      2.15s → ~3.45s            1.05s → ~1.75s
-     THE REVEAL            3.7s                      1.75s
-       The crest sparkle pops and, in the same moment, the Welcome
+     the spark writes      1.45s → ~2.75s            0.65s → ~1.35s
+       under the logo, and the crest sparkle pops    2.75s / 1.35s
+     Lumi wakes from it    2.95s → 4.2s              1.45s → 2.2s
+     THE REVEAL            4.3s                      2.25s
+       The Welcome and, in the same moment, the Welcome
        (greeting, school ribbon, name) takes the place of the line under
        the title and all three stars light together (.loading-final-moment).
      if still loading      the line under the title, the constellation (lit
@@ -26,17 +27,17 @@
 #loading-screen {
     --t-arrive: 0.3s;
     --arrive-dur: 1s;
-    --t-wake: 1.35s;
-    --wake-dur: 0.95s;
-    --t-burst: 1.95s;
-    --t-landed: 2.3s;
+    --t-wake: 2.95s;
+    --wake-dur: 1.25s;
+    --t-burst: 3.7s;
+    --t-landed: 4.2s;
     --t-pool: 1.2s;
-    --t-pen: 2150ms;
+    --t-pen: 1450ms;
     --pen-dur: 1.3s;
     --t-step: 56ms;
-    --t-medal: 3700ms;
-    --t-tagline: 4000ms;
-    --t-path: 4300ms;
+    --t-medal: 2750ms;
+    --t-tagline: 4500ms;
+    --t-path: 4800ms;
     /* The tip comes early, as the title is being written, so it can be read */
     --t-tip: 2600ms;
 }
@@ -44,17 +45,17 @@
 #loading-screen.loading-short {
     --t-arrive: 0.05s;
     --arrive-dur: 0.55s;
-    --t-wake: 0.6s;
-    --wake-dur: 0.6s;
-    --t-burst: 0.98s;
-    --t-landed: 1.2s;
+    --t-wake: 1.45s;
+    --wake-dur: 0.75s;
+    --t-burst: 1.9s;
+    --t-landed: 2.2s;
     --t-pool: 0.5s;
-    --t-pen: 1050ms;
+    --t-pen: 650ms;
     --pen-dur: 0.7s;
     --t-step: 28ms;
-    --t-medal: 1750ms;
-    --t-tagline: 1950ms;
-    --t-path: 2150ms;
+    --t-medal: 1350ms;
+    --t-tagline: 2450ms;
+    --t-path: 2650ms;
 }
 
 .loading-stage {
@@ -140,7 +141,7 @@
     opacity: 0;
     animation:
         lumi-logo-drop var(--arrive-dur) linear var(--t-arrive) both,
-        lumi-logo-fade calc(var(--wake-dur) * 0.55) ease-in calc(var(--t-wake) + var(--wake-dur) * 0.12) forwards;
+        lumi-logo-fade calc(var(--wake-dur) * 0.45) ease-in calc(var(--t-wake) + var(--wake-dur) * 0.4) forwards;
 }
 
 .loading-lumi__logo img {
@@ -186,13 +187,36 @@
         rgba(253, 214, 90, 0.28) 62%,
         rgba(253, 214, 90, 0) 100%);
     opacity: 0;
-    animation: lumi-wake-glow calc(var(--wake-dur) * 1.1) ease-out var(--t-wake) both;
+    animation: lumi-wake-glow var(--wake-dur) ease-in-out var(--t-wake) both;
 }
 
 @keyframes lumi-wake-glow {
-    0% { opacity: 0; transform: scale(0.45); }
-    38% { opacity: 1; transform: scale(0.85); }
-    100% { opacity: 0; transform: scale(1.35); }
+    0% { opacity: 0; transform: scale(0.4); }
+    50% { opacity: 1; transform: scale(0.8); }
+    62% { opacity: 1; transform: scale(0.7); }
+    100% { opacity: 0; transform: scale(1.4); }
+}
+
+/* First a ring of light gathers into the star, then she springs out */
+.loading-lumi__wake::before {
+    content: '';
+    position: absolute;
+    inset: -20%;
+    border-radius: 50%;
+    background: radial-gradient(closest-side,
+        rgba(255, 251, 235, 0) 58%,
+        rgba(255, 251, 235, 0.9) 74%,
+        rgba(253, 224, 71, 0.45) 86%,
+        rgba(196, 181, 253, 0) 100%);
+    opacity: 0;
+    animation: lumi-wake-gather var(--wake-dur) cubic-bezier(0.5, 0, 0.75, 0) var(--t-wake) both;
+}
+
+@keyframes lumi-wake-gather {
+    0% { opacity: 0; transform: scale(1.9); }
+    25% { opacity: 0.85; }
+    55% { opacity: 0.9; transform: scale(0.35); }
+    60%, 100% { opacity: 0; transform: scale(0.3); }
 }
 
 .loading-lumi__fly { z-index: 2; }
@@ -204,11 +228,11 @@
 }
 
 @keyframes lumi-wake {
-    0% { opacity: 0; transform: scale(0.66); }
-    28% { opacity: 1; transform: scale(0.68); animation-timing-function: ease-in-out; }
-    50% { transform: scale(0.62, 0.7); animation-timing-function: cubic-bezier(0.3, 1.5, 0.5, 1); }
-    74% { transform: scale(1.14) rotate(-5deg); animation-timing-function: ease-in-out; }
-    88% { transform: scale(0.96, 1.04) rotate(2deg); }
+    0%, 15% { opacity: 0; transform: scale(0.66); }
+    40% { opacity: 1; transform: scale(0.68); animation-timing-function: ease-in-out; }
+    56% { transform: scale(0.6, 0.7); animation-timing-function: cubic-bezier(0.3, 1.5, 0.5, 1); }
+    74% { transform: scale(1.18) rotate(-6deg); animation-timing-function: ease-in-out; }
+    87% { transform: scale(0.95, 1.05) rotate(2deg); }
     100% { opacity: 1; transform: none; }
 }
 
@@ -273,7 +297,7 @@
 
 .lumi__eyes {
     animation:
-        lumi-eyes-open 0.32s ease-out calc(var(--t-wake) + var(--wake-dur) * 0.62) backwards,
+        lumi-eyes-open 0.32s ease-out calc(var(--t-wake) + var(--wake-dur) * 0.66) backwards,
         lumi-blink 4.6s ease-in-out calc(var(--t-landed) + 1s) infinite;
 }
 
@@ -1198,6 +1222,32 @@
     opacity: 0;
     transition: opacity 0.3s ease;
 }
+
+/* ── Lumi flies home ─────────────────────────────────────────────
+   Her own fixed layer above the app while the scene melts, until she lands
+   on the header Lumi's starting point (templates/loading.js#flyLumiHome). */
+.gcq-lumi-courier {
+    position: fixed;
+    inset: 0;
+    z-index: 1250;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.gcq-lumi-courier__fly {
+    position: absolute;
+    left: 0;
+    top: 0;
+    will-change: transform;
+}
+
+.gcq-lumi-courier__body,
+.gcq-lumi-courier__dust {
+    position: absolute;
+    inset: 0;
+}
+
+.gcq-lumi-courier__body { will-change: transform; }
 
 /* ── Weaker machines (templates/loading.js: detectLowPowerTier) ── */
 

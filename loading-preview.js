@@ -3,9 +3,11 @@
 //   role=teacher|secretary|parent|signedout  part=morning|afternoon|evening|night
 //   speed=fast|slow  low=1 (weak-laptop scene)  gate=1 (arrive through the sign-in gate)
 //   film=full|short (force a cut)  shot=1 (hide the toolbar)  ready=<ms> (when the app is ready)
+//   header=0 (plain next screen, no app header: Lumi leaves by the top corner)
 //   sky=dawn|day|golden|twilight|night  wx=<WMO weather code, e.g. 0 clear, 3 grey, 45 fog, 63 rain, 73 snow, 95 storm>
 // The hand-over is the app's own (templates/loading.js#playLoadingExit); window.__pvLog
 // records when each step happened, for headless timing checks.
+import { headerHTML } from './templates/app/header.js';
 import { loadingHTML, initLoadingAtmosphere, initLoadingTips, markLoadingStage, stageLoadingPersonalization, playLoadingExit, reopenLoadingScreen, setLoadingFilmCut } from './templates/loading.js';
 
 const params = new URLSearchParams(location.search);
@@ -25,6 +27,12 @@ const t0 = performance.now();
 window.__pvLog = [];
 const log = (step) => window.__pvLog.push({ step, at: Math.round(performance.now() - t0) });
 
+if (params.get('header') !== '0') {
+    // The real app header, so Lumi can fly home to the little Lumi over its title.
+    const next = document.getElementById('pv-next');
+    next.style.placeItems = 'start stretch';
+    next.innerHTML = `<div class="gcq-sky-atmosphere relative">${headerHTML}</div>`;
+}
 document.getElementById('app-root').innerHTML = loadingHTML;
 initLoadingAtmosphere();
 initLoadingTips();

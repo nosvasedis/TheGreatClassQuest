@@ -6,21 +6,24 @@ import { createTipDeck } from './loadingTips.mjs';
 // The loading screen is a short film starring Lumi, the app's guiding star.
 // The house lights dim into a twilight sky over the Quest hills, and then:
 //
-//   arrive    The Great Class Quest logo drifts down from the sky and lands;
-//             its star glows, and Lumi wakes out of it (she grows from the
-//             star, opens her eyes, a ring of light) as the logo fades away
+//   arrive    The Great Class Quest logo drifts down from the sky and lands.
+//   title     A spark writes "The Great Class Quest" in starlight under it
+//             and a gold sparkle between two lines pops: logo and title
+//             together, for a moment.
+//   wake      A ring of light gathers into the logo's star and Lumi wakes
+//             out of it (a breath, a spring to full size, eyes open, a ring
+//             of light and a shower of sparkles) as the logo fades away
 //             (styles/loading2.css).
-//   title     A spark writes "The Great Class Quest" in starlight while
-//             Lumi's eyes follow it; a gold sparkle between two lines and
-//             the line under it rise in.
 //   wait      Lumi floats and plays (a twirl, a peek, a happy bounce, a
 //             shower of sparkles). Each real step of the start-up lights a
 //             star in the constellation: she casts a spark to it.
 //   welcome   A big starlit line for the moment, the school on a gold
 //             ribbon, the person under it. Lumi cheers.
-//   woosh     She winds up and swoops right over the screen in a long arc,
-//             sprinkling stardust; dawn breaks over the hills, the scene
-//             melts away and the last of the stardust falls over Home.
+//   woosh     She winds up and swoops low over the hills, sprinkling
+//             stardust; dawn breaks, the scene melts away, and she flies home
+//             to the header, landing where its little Lumi starts her trip
+//             round the title and becoming her (flyLumiHome). Where that Lumi
+//             is not shown (phones), she swoops off past the top corner.
 //
 // Every move is a transform or an opacity change, so the compositor keeps it
 // smooth while the app boots on the main thread. Weak machines get a smaller
@@ -61,8 +64,9 @@ const FILM_CUTS = {
     // (--t-path in styles/loading2.css, plus its 0.7s rise).
     // lineStart / lineDwell: when the line under the title starts rising
     // (--t-tagline, plus its 0.8s rise), and how long it stays once risen.
-    full: { reveal: 3700, lineStart: 4000, lineDwell: 1400, pathStart: 4300, pathShown: 4800, signedOutMin: 4400, hold: 3600, tricksAt: 5600, letterWaveMs: 750 },
-    short: { reveal: 1750, lineStart: 1950, lineDwell: 1100, pathStart: 2150, pathShown: 2650, signedOutMin: 2400, hold: 2700, tricksAt: 3400, letterWaveMs: 550 },
+    // wakePop: the moment Lumi springs out of the logo (--t-wake + 0.72 × --wake-dur).
+    full: { reveal: 4300, lineStart: 4500, lineDwell: 1400, pathStart: 4800, pathShown: 5300, signedOutMin: 5000, hold: 3600, tricksAt: 6200, letterWaveMs: 750, wakePop: 3850 },
+    short: { reveal: 2250, lineStart: 2450, lineDwell: 1100, pathStart: 2650, pathShown: 3150, signedOutMin: 2600, hold: 2700, tricksAt: 3900, letterWaveMs: 550, wakePop: 1990 },
 };
 const WELCOME_HOLD_REDUCED_MS = 2600;
 const LINE_RISE_MS = 800;
@@ -640,9 +644,16 @@ function lumiSprinkle(count) {
     }
 }
 
+let _wakeTimer = 0;
+
 function scheduleLumiTricks() {
     clearTimeout(_trickTimer);
+    clearTimeout(_wakeTimer);
     if (prefersReducedMotion()) return;
+    // Sparkles shaken loose as she springs out of the logo.
+    const sinceShown = performance.now() - _shownAt;
+    const popIn = cutTiming().wakePop - sinceShown;
+    if (popIn > -150) _wakeTimer = setTimeout(() => lumiSprinkle(detectLowPowerTier() ? 5 : 9), Math.max(0, popIn));
     const next = () => {
         const screen = document.getElementById('loading-screen');
         if (!screen || screen.classList.contains('hidden') || screen.classList.contains('loading-final-moment')
@@ -950,7 +961,7 @@ function animateWoosh(loadingScreen, plan) {
         });
     }
     const timing = { duration: total, fill: 'forwards', easing: 'linear' };
-    fly.animate(flyFrames, timing);
+    const flight = fly.animate(flyFrames, timing);
     pose.animate(poseFrames, timing);
     trail?.animate(trailFrames, timing);
 }
@@ -987,7 +998,7 @@ function sprinkleWooshDust(loadingScreen, plan) {
  * underneath (Home, or the sign-in gate) after the scene has melted away.
  * A plain fixed layer above the app that never takes a click, removed after.
  */
-function sprinkleStardustVeil(delayMs) {
+function sprinkleStardustVeil(delayMs, { even = false } = {}) {
     if (typeof document === 'undefined' || prefersReducedMotion()) return;
     const lowPower = detectLowPowerTier();
     const mobile = isMobileLoadingViewport();
@@ -999,7 +1010,7 @@ function sprinkleStardustVeil(delayMs) {
         const glint = makeGlint('gcq-stardust-veil__grain');
         glint.innerHTML = GLINT_WARM_SVG;
         // Heavier towards the top right, where she left.
-        const x = 100 - Math.pow(Math.random(), 1.6) * 100;
+        const x = even ? randomRange(2, 98) : 100 - Math.pow(Math.random(), 1.6) * 100;
         glint.style.left = `${x.toFixed(1)}%`;
         glint.style.top = `${randomRange(-4, 38).toFixed(1)}%`;
         const size = randomRange(12, 26);
@@ -1013,6 +1024,283 @@ function sprinkleStardustVeil(delayMs) {
     }
     document.body.appendChild(veil);
     setTimeout(() => veil.remove(), delayMs + 3200);
+}
+
+// ── Lumi flies home ──────────────────────────────────────────────────
+// When the header's little Lumi can be seen (desktop and tablet; phones hide
+// her), the woosh does not leave the screen: Lumi swoops low over the hills,
+// sprinkling stardust, climbs, curls in under the title and lands exactly
+// where the header Lumi starts her trip, at her size and moving with her
+// speed, and becomes her (styles/header_flourish.css, .gcq-pixie).
+//
+// The scene melts away while she is in the air, so she flies in her own fixed
+// layer above the app (a "courier" copy, painted with its own gradients so it
+// never depends on the hidden screen). The header Lumi's own CSS animations
+// are paused at the hand-off point (3% of her cycle, fully shown) while the
+// courier flies, then they play on from there: the same flight, unbroken.
+
+const PIXIE_CYCLE_MS = 26000;
+const PIXIE_HANDOFF_AT = 0.03; // of her cycle: faded in, full size
+const HOME_WINDUP_MS = 280;
+const HOME_FLIGHT_MS = 1950;
+const HOME_TAIL_MS = 220; // courier and header Lumi overlap, moving together
+
+const COURIER_LUMI_SVG = LUMI_SVG
+    .replace('<svg class="lumi" viewBox="0 0 100 100" focusable="false">', `<svg class="lumi" viewBox="0 0 100 100" focusable="false"><defs>
+        <radialGradient id="gcq-courier-body" cx="0.42" cy="0.35" r="0.75"><stop offset="0" stop-color="#fffbe0"/><stop offset="0.45" stop-color="#ffe066"/><stop offset="0.85" stop-color="#ffb938"/><stop offset="1" stop-color="#f59e0b"/></radialGradient>
+        <radialGradient id="gcq-courier-shine"><stop offset="0" stop-color="#ffffff" stop-opacity="0.85"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient>
+        <path id="gcq-courier-star" d="${LUMI_STAR_PATH}"/></defs>`)
+    .replace('href="#lumi-star"', 'href="#gcq-courier-star"')
+    .replace('url(#lumi-body)', 'url(#gcq-courier-body)')
+    .replace('url(#lumi-shine)', 'url(#gcq-courier-shine)');
+
+function centerOf(rect) {
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+}
+
+/** The header Lumi that can be seen right now, paused at the hand-off point, or null. */
+function catchHeaderLumi() {
+    if (prefersReducedMotion() || typeof Element === 'undefined' || !Element.prototype.getAnimations) return null;
+    const lanes = [...document.querySelectorAll('.gcq-pixie-lane')];
+    for (const lane of lanes) {
+        const box = lane.getBoundingClientRect();
+        if (!box.width || !box.height || box.bottom < 0 || box.top > window.innerHeight * 0.5) continue;
+        const body = lane.querySelector('.gcq-pixie__lumi');
+        const pixie = lane.querySelector('.gcq-pixie');
+        if (!body || !pixie) continue;
+        const swashStar = lane.parentElement?.querySelector('.gcq-swash__star');
+        const anims = [...lane.getAnimations({ subtree: true }), ...(swashStar?.getAnimations() || [])];
+        const flyAnim = pixie.getAnimations().find(a => a.animationName === 'gcq-pixie-fly');
+        if (!flyAnim) continue;
+        const base = Number(flyAnim.effect?.getTiming?.().delay) || 0;
+        const handoff = base + PIXIE_CYCLE_MS * PIXIE_HANDOFF_AT;
+        // Every part of her cycle (and the swash star's flare) to the same
+        // moment; her sway to its middle, where she is upright.
+        const seek = (offset) => anims.forEach((a) => {
+            const timing = a.effect?.getTiming?.() || {};
+            a.pause();
+            a.currentTime = Number(timing.duration) === PIXIE_CYCLE_MS ? handoff + offset : Number(timing.duration) / 2;
+        });
+        seek(120);
+        const ahead = centerOf(body.getBoundingClientRect());
+        seek(0);
+        const rect = body.getBoundingClientRect();
+        if (!rect.width) { anims.forEach(a => a.play()); continue; }
+        const at = centerOf(rect);
+        lane.style.opacity = '0';
+        return {
+            lane,
+            anims,
+            x: at.x,
+            y: at.y,
+            size: rect.width,
+            vx: (ahead.x - at.x) / 0.12,
+            vy: (ahead.y - at.y) / 0.12,
+        };
+    }
+    return null;
+}
+
+/** Hermite spline through timed points with set velocities (px/ms). */
+function hermiteAt(keys, t) {
+    let i = 0;
+    while (i < keys.length - 2 && t > keys[i + 1].t) i += 1;
+    const a = keys[i];
+    const b = keys[i + 1];
+    const d = b.t - a.t;
+    const u = Math.min(1, Math.max(0, (t - a.t) / d));
+    const u2 = u * u;
+    const u3 = u2 * u;
+    const h00 = 2 * u3 - 3 * u2 + 1;
+    const h10 = u3 - 2 * u2 + u;
+    const h01 = -2 * u3 + 3 * u2;
+    const h11 = u3 - u2;
+    const dh00 = 6 * u2 - 6 * u;
+    const dh10 = 3 * u2 - 4 * u + 1;
+    const dh01 = -6 * u2 + 6 * u;
+    const dh11 = 3 * u2 - 2 * u;
+    const smooth = u2 * (3 - 2 * u);
+    return {
+        x: h00 * a.x + h10 * d * a.vx + h01 * b.x + h11 * d * b.vx,
+        y: h00 * a.y + h10 * d * a.vy + h01 * b.y + h11 * d * b.vy,
+        vx: (dh00 * a.x + dh10 * d * a.vx + dh01 * b.x + dh11 * d * b.vx) / d,
+        vy: (dh00 * a.y + dh10 * d * a.vy + dh01 * b.y + dh11 * d * b.vy) / d,
+        scale: a.s + (b.s - a.s) * smooth,
+    };
+}
+
+/** Where she is on the loading screen right now: centre, size, tilt, scale. */
+function lumiPoseNow(loadingScreen) {
+    const box = loadingScreen.querySelector('.loading-lumi');
+    if (!box) return null;
+    const rect = box.getBoundingClientRect();
+    if (!rect.width) return null;
+    let m = new DOMMatrix();
+    const w = rect.width;
+    const h = rect.height;
+    // hop (origin 50% 70%), then float (origin 50% 50%), as nested in the markup
+    [['.loading-lumi__hop', 0.7], ['.loading-lumi__float', 0.5]].forEach(([sel, oy]) => {
+        const el = box.querySelector(sel);
+        const t = el ? getComputedStyle(el).transform : 'none';
+        if (!t || t === 'none') return;
+        m = m.translate(w / 2, h * oy).multiply(new DOMMatrix(t)).translate(-w / 2, -h * oy);
+    });
+    const c = m.transformPoint(new DOMPoint(w / 2, h / 2));
+    return {
+        x: rect.left + c.x,
+        y: rect.top + c.y,
+        size: w,
+        rot: Math.atan2(m.b, m.a) * 180 / Math.PI,
+        scale: Math.hypot(m.a, m.b),
+    };
+}
+
+function flyLumiHome(loadingScreen, home) {
+    const from = lumiPoseNow(loadingScreen);
+    if (!from) return false;
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    const lowPower = detectLowPowerTier();
+    const size = from.size;
+    const endScale = home.size / size;
+    const T = HOME_FLIGHT_MS;
+    const v = { x: home.vx / 1000, y: home.vy / 1000 };
+    // The route, in screen pixels and ms from take-off: back and down, low
+    // over the hills towards us, up the far side, across, and in under the
+    // title to curl up into her starting point.
+    const keys = [
+        { t: 0, x: from.x, y: from.y, vx: -0.45 * W / 1000, vy: 0.75 * H / 1000, s: from.scale },
+        { t: T * 0.25, x: 0.24 * W, y: 0.72 * H, vx: 1.05 * W / 1000, vy: 0.2 * H / 1000, s: 1.35 },
+        { t: T * 0.46, x: 0.68 * W, y: 0.7 * H, vx: 0.8 * W / 1000, vy: -0.95 * H / 1000, s: 1.75 },
+        { t: T * 0.66, x: 0.8 * W, y: 0.26 * H, vx: -0.55 * W / 1000, vy: -0.45 * H / 1000, s: 0.95 },
+        { t: T * 0.86, x: home.x + Math.min(90, 0.08 * W), y: home.y + 64, vx: -0.3, vy: -0.06, s: endScale * 1.7 },
+        { t: T, x: home.x, y: home.y, vx: v.x, vy: v.y, s: endScale },
+    ];
+    // A short tail past the hand-off, moving on with the header Lumi.
+    keys.push({ t: T + HOME_TAIL_MS, x: home.x + v.x * HOME_TAIL_MS, y: home.y + v.y * HOME_TAIL_MS, vx: v.x, vy: v.y, s: endScale });
+
+    const layer = document.createElement('div');
+    layer.className = 'gcq-lumi-courier';
+    layer.setAttribute('aria-hidden', 'true');
+    layer.innerHTML = `
+        <div class="gcq-lumi-courier__fly" style="width:${size}px;height:${size}px">
+            <span class="loading-lumi__trail gcq-lumi-courier__trail"></span>
+            <div class="gcq-lumi-courier__body">
+                <span class="loading-lumi__halo gcq-lumi-courier__halo"></span>
+                ${COURIER_LUMI_SVG}
+            </div>
+        </div>
+        <div class="gcq-lumi-courier__dust"></div>`;
+    document.body.appendChild(layer);
+    const fly = layer.querySelector('.gcq-lumi-courier__fly');
+    const body = layer.querySelector('.gcq-lumi-courier__body');
+    const trail = layer.querySelector('.gcq-lumi-courier__trail');
+    const halo = layer.querySelector('.gcq-lumi-courier__halo');
+    const cheer = layer.querySelector('.lumi__cheer');
+    const smile = layer.querySelector('.lumi__smile');
+    // She takes over from the screen's Lumi in the same frame.
+    const screenLumi = loadingScreen.querySelector('.loading-lumi');
+    if (screenLumi) screenLumi.style.visibility = 'hidden';
+
+    const total = HOME_WINDUP_MS + T + HOME_TAIL_MS;
+    const off = (ms) => Math.min(1, ms / total);
+    const pos = (x, y) => `translate3d(${r1(x - size / 2)}px, ${r1(y - size / 2)}px, 0)`;
+    const flyFrames = [{ offset: 0, transform: pos(from.x, from.y) }, { offset: off(HOME_WINDUP_MS), transform: pos(from.x, from.y) }];
+    const s0 = from.scale;
+    const bodyFrames = [
+        { offset: 0, transform: `rotate(${r1(from.rot)}deg) scale(${r1(s0)})` },
+        { offset: off(HOME_WINDUP_MS * 0.6), transform: `rotate(0deg) scale(${r1(s0 * 1.18)}, ${r1(s0 * 0.8)})` },
+        { offset: off(HOME_WINDUP_MS), transform: `rotate(0deg) scale(${r1(s0 * 0.9)}, ${r1(s0 * 1.12)})` },
+    ];
+    const trailFrames = [{ offset: 0, opacity: 0, transform: 'rotate(180deg) scale(0, 1)' }, { offset: off(HOME_WINDUP_MS), opacity: 0, transform: 'rotate(180deg) scale(0, 1)' }];
+    const STEPS = lowPower ? 40 : 64;
+    const fullSpeed = 1.2 * W / 1000;
+    for (let k = 1; k <= STEPS; k += 1) {
+        const t = (T + HOME_TAIL_MS) * (k / STEPS);
+        const p = hermiteAt(keys, t);
+        const offset = off(HOME_WINDUP_MS + t);
+        const speed = Math.hypot(p.vx, p.vy);
+        const heading = Math.atan2(p.vy, p.vx) * 180 / Math.PI;
+        // One joyful spin over the swoop; a lean into the turns that settles
+        // to upright as she lands.
+        const spinU = Math.min(1, t / (T * 0.6));
+        const spin = 360 * (spinU * spinU * (3 - 2 * spinU));
+        const settle = Math.min(1, Math.max(0, (T - t) / (T * 0.25)));
+        const lean = Math.max(-16, Math.min(16, p.vx / fullSpeed * 16)) * settle;
+        flyFrames.push({ offset, transform: pos(p.x, p.y) });
+        bodyFrames.push({ offset, transform: `rotate(${r1(spin + lean)}deg) scale(${r1(p.scale)})` });
+        const tail = Math.min(1.5, speed / fullSpeed * 1.3) * Math.min(1, settle * 1.4);
+        trailFrames.push({
+            offset,
+            opacity: r1(Math.min(1, tail * 1.2)),
+            transform: `rotate(${r1(heading + 180)}deg) scale(${r1(tail * p.scale)}, ${r1(p.scale)})`,
+        });
+    }
+    const timing = { duration: total, fill: 'forwards', easing: 'linear' };
+    const flight = fly.animate(flyFrames, timing);
+    body.animate(bodyFrames, timing);
+    trail.animate(trailFrames, timing);
+    halo.animate([
+        { offset: 0, opacity: 1 },
+        { offset: off(HOME_WINDUP_MS + T * 0.66), opacity: 0.85 },
+        { offset: off(HOME_WINDUP_MS + T), opacity: 0.4 },
+        { offset: 1, opacity: 0 },
+    ], timing);
+    // Her hooray turns back into her quiet smile as she comes in to land.
+    const faceAt = off(HOME_WINDUP_MS + T * 0.7);
+    const faceTo = off(HOME_WINDUP_MS + T * 0.8);
+    cheer?.animate([{ offset: 0, opacity: 1 }, { offset: faceAt, opacity: 1 }, { offset: faceTo, opacity: 0 }, { offset: 1, opacity: 0 }], timing);
+    smile?.animate([{ offset: 0, opacity: 0 }, { offset: faceAt, opacity: 0 }, { offset: faceTo, opacity: 1 }, { offset: 1, opacity: 1 }], timing);
+    // She hands over while both move together.
+    layer.animate([{ opacity: 1 }, { offset: off(HOME_WINDUP_MS + T + 50), opacity: 1 }, { opacity: 0 }], timing);
+
+    // Stardust along the way, each grain dropped as she passes.
+    const dust = layer.querySelector('.gcq-lumi-courier__dust');
+    const count = lowPower ? 18 : 34;
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < count; i += 1) {
+        const t = T * 0.9 * ((i + 0.5) / count);
+        const p = hermiteAt(keys, t);
+        const glint = makeGlint('loading-stardust');
+        glint.innerHTML = GLINT_WARM_SVG;
+        glint.style.left = `${Math.round(p.x + randomRange(-16, 16) * p.scale)}px`;
+        glint.style.top = `${Math.round(p.y + randomRange(-12, 12) * p.scale)}px`;
+        const grain = randomRange(11, 22) * Math.max(0.55, Math.min(1.6, p.scale));
+        glint.style.width = `${grain.toFixed(0)}px`;
+        glint.style.height = `${grain.toFixed(0)}px`;
+        glint.style.setProperty('--fall', `${randomRange(50, 150).toFixed(0)}px`);
+        glint.style.setProperty('--drift', `${randomRange(-30, 30).toFixed(0)}px`);
+        glint.style.animationDelay = `${Math.round(HOME_WINDUP_MS + t)}ms`;
+        frag.appendChild(glint);
+    }
+    dust.appendChild(frag);
+
+    // The hand-off: the header Lumi plays on from the very spot and moment.
+    // Timed on her flight's own clock (it can start a frame or two late while
+    // the layer first paints), so the hand-off lands on the exact frame. Not
+    // tied to later(): reopening the screen must never strand her paused.
+    let handedOff = false;
+    const handOff = () => {
+        if (handedOff) return;
+        handedOff = true;
+        home.lane.style.transition = `opacity ${HOME_TAIL_MS}ms linear`;
+        home.lane.style.opacity = '1';
+        home.anims.forEach(a => a.play());
+    };
+    const landAt = HOME_WINDUP_MS + T;
+    const watch = () => {
+        if (handedOff) return;
+        if ((Number(flight.currentTime) || 0) >= landAt - 24) handOff();
+        else requestAnimationFrame(watch);
+    };
+    requestAnimationFrame(watch);
+    setTimeout(handOff, HOME_WINDUP_MS + T + 1500); // a background tab may never finish the clock
+    setTimeout(() => {
+        home.lane.style.transition = '';
+        home.lane.style.opacity = '';
+    }, total + 200);
+    setTimeout(() => layer.remove(), total + 1600);
+    return true;
 }
 
 function clearExitTimers() {
@@ -1073,14 +1361,29 @@ export function playLoadingExit(loadingScreen, { schoolName = '', dayPart = '', 
     later(wooshAt, () => {
         loadingScreen.classList.remove('loading-screen-from-gate');
         if (!reduced) {
+            let home = null;
+            let flewHome = false;
             try {
-                const plan = planWoosh(loadingScreen);
-                if (plan) {
-                    animateWoosh(loadingScreen, plan);
-                    sprinkleWooshDust(loadingScreen, plan);
-                }
-            } catch { /* she just fades with the scene */ }
-            sprinkleStardustVeil(WOOSH_REVEAL_AT_MS - 150);
+                home = catchHeaderLumi();
+                if (home) flewHome = flyLumiHome(loadingScreen, home);
+            } catch (error) {
+                console.warn('Lumi could not fly home:', error);
+            }
+            if (home && !flewHome) {
+                // Something failed after the header Lumi was caught: let her be.
+                home.lane.style.opacity = '';
+                home.anims.forEach(a => a.play());
+            }
+            if (!flewHome) {
+                try {
+                    const plan = planWoosh(loadingScreen);
+                    if (plan) {
+                        animateWoosh(loadingScreen, plan);
+                        sprinkleWooshDust(loadingScreen, plan);
+                    }
+                } catch { /* she just fades with the scene */ }
+            }
+            sprinkleStardustVeil(WOOSH_REVEAL_AT_MS - 150, { even: flewHome });
         }
         loadingScreen.classList.add('loading-screen-exit');
     });
@@ -1115,6 +1418,8 @@ export function reopenLoadingScreen({ fromGate = false } = {}) {
     paintLoadingSky(loadingScreen, { mobile: isMobileLoadingViewport(), lowPower: detectLowPowerTier() });
     _shownAt = performance.now();
     loadingScreen.style.setProperty('--since', '0ms');
+    const screenLumi = loadingScreen.querySelector('.loading-lumi');
+    if (screenLumi) screenLumi.style.visibility = '';
     loadingScreen.querySelectorAll('.loading-lumi__fly, .loading-lumi__pose, .loading-lumi__trail').forEach((el) => {
         // Only the woosh's Web Animations: cancelling a CSS animation would stop
         // her arrival from ever playing again.

@@ -76,7 +76,7 @@ const rows = status.classes.map((row) => {
         receipt: null,
         nextLesson: row.lessonDates.find((d) => d >= today) || null,
         lessonsLeft: row.lessonDates.filter((d) => d >= today).length,
-        heroMix: { [HERO_CLASSES[idx(row.classId) % HERO_CLASSES.length]]: 5, [HERO_CLASSES[(idx(row.classId) + 3) % HERO_CLASSES.length]]: 3 },
+        heroMix: { [HERO_CLASSES[idx(row.classId) % HERO_CLASSES.length]]: 5, [HERO_CLASSES[(idx(row.classId) + 3) % HERO_CLASSES.length]]: 3, [HERO_CLASSES[(idx(row.classId) + 5) % HERO_CLASSES.length]]: 2, ...(idx(row.classId) % 3 ? {} : { '': 1 }) },
         reasons: row.stars > 0 ? splitReasons(row.stars, idx(row.classId)) : {}
     };
 });

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { HERO_ARTS, STAR_ART, artForReason, heroArt, classArt, strikeArts, leagueRank, wordTier, strikeLine, bossLine, turnLine, battleMessages, battleTitle } from '../features/realmRaidBattle.mjs';
+import { HERO_ARTS, STAR_ART, artForReason, heroArt, classArt, classBand, strikeArts, leagueRank, wordTier, strikeLine, bossLine, turnLine, battleMessages, battleTitle } from '../features/realmRaidBattle.mjs';
 
 test('every hero class has its own art, sprite and colour, tied to the stars it earns', () => {
     const arts = Object.values(HERO_ARTS);
@@ -24,6 +24,12 @@ test('a class fights as its students\' main hero class, then as its biggest star
     assert.equal(classArt({}), STAR_ART);
     const arts = strikeArts({ respect: 2, teamwork: 5, story_weaver: 1, torn_map: 1, bogus: 0 });
     assert.deepEqual(arts.map((a) => [a.art.heroClass, a.stars]), [['Paladin', 5], ['Guardian', 2], ['Vanguard', 2]]);
+});
+
+test('a class marches as a band of all its hero classes, most chosen first', () => {
+    const band = classBand({ heroMix: { Sage: 3, Guardian: 5, Weaver: 1, Vanguard: 2, '': 4 } });
+    assert.deepEqual(band.map((b) => [b.art.heroClass || 'Adventurer', b.count]), [['Guardian', 5], ['Adventurer', 4], ['Sage', 3], ['Vanguard', 3]]);
+    assert.deepEqual(classBand({ reasons: { focus: 3 } }).map((b) => b.art), [HERO_ARTS.Artificer]);
 });
 
 test('strike lines use the striking class\'s art and the watching class\'s words', () => {

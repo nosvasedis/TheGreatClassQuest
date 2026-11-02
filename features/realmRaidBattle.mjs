@@ -54,6 +54,23 @@ export function classArt(row = {}) {
     return pick(row.heroMix, heroArt) || pick(row.reasons, artForReason) || STAR_ART;
 }
 
+/**
+ * The band a class sends to the raid: its students' hero classes, most chosen first, with how many
+ * of each ({ art, count }). Students with no hero class yet march as Adventurers (STAR_ART).
+ * A class with no students on record sends one hero of the art it earned most.
+ */
+export function classBand(row = {}) {
+    const byArt = new Map();
+    Object.entries(row.heroMix || {}).forEach(([name, n]) => {
+        if (!(n > 0)) return;
+        const art = heroArt(name);
+        byArt.set(art, (byArt.get(art) || 0) + n);
+    });
+    const band = [...byArt.entries()].map(([art, count]) => ({ art, count }))
+        .sort((a, b) => b.count - a.count || (a.art === STAR_ART) - (b.art === STAR_ART) || a.art.heroClass.localeCompare(b.art.heroClass));
+    return band.length ? band : [{ art: classArt(row), count: 0 }];
+}
+
 /** The arts of a strike, biggest first: { art, stars } from the stars it gained by reason. */
 export function strikeArts(gained = {}) {
     const byArt = new Map();

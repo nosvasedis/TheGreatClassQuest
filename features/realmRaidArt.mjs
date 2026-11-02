@@ -36,6 +36,10 @@ export function coatFor(seasonId) {
     return COATS[seasonId] || COATS.winter;
 }
 
+// Eldhorn's line art: one deep ink outline on every big shape, like a hand-inked game sprite.
+const INK = '#1b1630';
+const LINE = `stroke="${INK}" stroke-width="4" stroke-linejoin="round"`;
+
 // The left antler; the right one is its mirror. Beam first, then tines (beam is thicker).
 const ANTLER_BEAM = 'M181,128 C170,104 150,86 128,66 C112,51 101,36 95,14';
 const ANTLER_TINES = [
@@ -56,6 +60,7 @@ function antlerSet(c, id, side) {
     const tines = ANTLER_TINES.map((d) => `<path d="${d}"/>`).join('');
     return `<g class="rr-g__antler rr-g__antler--${side}"${flip}>
         <g fill="none" stroke="${c.glow}" stroke-linecap="round" opacity=".28" stroke-width="17"><path d="${ANTLER_BEAM}"/>${tines}</g>
+        <g fill="none" stroke="${INK}" stroke-linecap="round"><path d="${ANTLER_BEAM}" stroke-width="16"/><g stroke-width="13">${tines}</g></g>
         <g fill="none" stroke="url(#${id}-antler)" stroke-linecap="round">
             <path d="${ANTLER_BEAM}" stroke-width="10"/>
             <g stroke-width="7">${tines}</g>
@@ -63,7 +68,7 @@ function antlerSet(c, id, side) {
         <g fill="none" stroke="${c.antlerTip}" stroke-linecap="round" stroke-width="2.4" opacity=".75">
             <path d="M178,122 C168,102 150,86 130,68"/><path d="M144,84 C140,68 142,56 150,44"/><path d="M108,44 C110,34 116,26 124,18"/>
         </g>
-        <g class="rr-g__tips">${ANTLER_TIPS.map(([x, y], i) => `<circle class="rr-g__tip" style="--i:${i}" cx="${x}" cy="${y}" r="4.2" fill="${c.antlerTip}"/>`).join('')}</g>
+        <g class="rr-g__tips">${ANTLER_TIPS.map(([x, y], i) => `<circle class="rr-g__tip" style="--i:${i}" cx="${x}" cy="${y}" r="4.6" fill="${c.antlerTip}" stroke="${INK}" stroke-width="2.4"/>`).join('')}</g>
     </g>`;
 }
 
@@ -157,7 +162,7 @@ function scallop(cx, cy, rx, ry, bumps, puff) {
 
 function ruff(c) {
     return `<g class="rr-g__ruff">
-        <path d="${scallop(200, 262, 96, 58, 9, 1.16)}" fill="${c.furLight}"/>
+        <path d="${scallop(200, 262, 96, 58, 9, 1.16)}" fill="${c.furLight}" ${LINE}/>
         <path d="${scallop(200, 266, 70, 44, 7, 1.14)}" fill="${c.muzzle}"/>
         <g fill="none" stroke="${c.fur}" stroke-width="1.6" stroke-linecap="round" opacity=".45">
             <path d="M136,292 q6,10 2,20"/><path d="M160,304 q5,10 1,18"/><path d="M240,304 q-5,10 -1,18"/><path d="M264,292 q-6,10 -2,20"/>
@@ -203,15 +208,17 @@ function headSvg(seasonId, c, id, mood, crown) {
     return `<g class="rr-g__head">
             ${antlerSet(c, id, 'left')}${antlerSet(c, id, 'right')}
             ${coatAntlerTrim(seasonId, c)}
-            <path d="M166,240 C164,270 156,292 144,312 L256,312 C244,292 236,270 234,240 Z" fill="${c.fur}"/>
+            <path d="M166,240 C164,270 156,292 144,312 L256,312 C244,292 236,270 234,240 Z" fill="${c.fur}" ${LINE}/>
             ${ruff(c)}
-            <g class="rr-g__ear rr-g__ear--left"><path d="${EAR}" fill="${c.fur}"/><path d="${EAR_INNER}" fill="${c.furLight}"/><path d="${EAR_INNER}" fill="${c.accent}" opacity=".18"/></g>
-            <g class="rr-g__ear rr-g__ear--right" transform="translate(400 0) scale(-1 1)"><path d="${EAR}" fill="${c.fur}"/><path d="${EAR_INNER}" fill="${c.furLight}"/><path d="${EAR_INNER}" fill="${c.accent}" opacity=".18"/></g>
-            <path d="${HEAD}" fill="url(#${id}-fur)"/>
+            <g class="rr-g__ear rr-g__ear--left"><path d="${EAR}" fill="${c.fur}" ${LINE}/><path d="${EAR_INNER}" fill="${c.furLight}"/><path d="${EAR_INNER}" fill="${c.accent}" opacity=".18"/></g>
+            <g class="rr-g__ear rr-g__ear--right" transform="translate(400 0) scale(-1 1)"><path d="${EAR}" fill="${c.fur}" ${LINE}/><path d="${EAR_INNER}" fill="${c.furLight}"/><path d="${EAR_INNER}" fill="${c.accent}" opacity=".18"/></g>
+            <path d="${HEAD}" fill="url(#${id}-fur)" ${LINE}/>
+            <path d="M152,150 C160,128 178,118 196,116 C176,128 166,146 162,172 Z" fill="#ffffff" opacity=".22"/>
+            <path d="M244,182 C246,210 236,236 222,262 C232,236 238,212 236,186 Z" fill="${c.furDeep}" opacity=".35"/>
             <path d="M200,120 C189,150 185,196 189,248 L211,248 C215,196 211,150 200,120 Z" fill="${c.furLight}" opacity=".6"/>
             <path d="M152,208 C162,218 168,232 171,248 M248,208 C238,218 232,232 229,248" stroke="${c.furDeep}" stroke-width="2.4" fill="none" opacity=".35" stroke-linecap="round"/>
             <path d="M176,252 C176,238 224,238 224,252 C224,272 214,290 200,290 C186,290 176,272 176,252 Z" fill="${c.muzzle}"/>
-            <path d="M185,258 C185,250 215,250 215,258 C215,266 207,273 200,273 C193,273 185,266 185,258 Z" fill="${c.nose}"/>
+            <path d="M185,258 C185,250 215,250 215,258 C215,266 207,273 200,273 C193,273 185,266 185,258 Z" fill="${c.nose}" stroke="${INK}" stroke-width="2.4"/>
             <ellipse cx="194" cy="255" rx="4.4" ry="2.4" fill="#ffffff" opacity=".45"/>
             ${mouth(c, mood)}
             <ellipse cx="158" cy="216" rx="11" ry="7" fill="${c.accent}" opacity=".22"/><ellipse cx="242" cy="216" rx="11" ry="7" fill="${c.accent}" opacity=".22"/>
@@ -272,9 +279,11 @@ function staffSvg(seasonId, c, id) {
 /** A pauldron: a domed shoulder plate with the season's trim. `side` is -1 (left) or 1 (right). */
 function pauldron(seasonId, c, id, side) {
     const x = 200 + side * 112;
-    const plate = `<path d="M${x - 58},372 C${x - 64},326 ${x - 30},300 ${x},300 C${x + 30},300 ${x + 64},326 ${x + 58},372 C${x + 30},356 ${x - 30},356 ${x - 58},372 Z" fill="url(#${id}-metal)" stroke="${c.metalDeep}" stroke-width="3"/>
+    const plate = `<path d="M${x - 54},386 C${x - 56},364 ${x - 30},352 ${x},352 C${x + 30},352 ${x + 56},364 ${x + 54},386 C${x + 26},376 ${x - 26},376 ${x - 54},386 Z" fill="${c.metalDeep}" ${LINE}/>
+        <path d="M${x - 58},372 C${x - 64},326 ${x - 30},300 ${x},300 C${x + 30},300 ${x + 64},326 ${x + 58},372 C${x + 30},356 ${x - 30},356 ${x - 58},372 Z" fill="url(#${id}-metal)" ${LINE}/>
+        <path d="M${x - 40},336 C${x - 32},316 ${x - 14},308 ${x + 4},308" stroke="#ffffff" stroke-width="5" fill="none" opacity=".55" stroke-linecap="round"/>
         <path d="M${x - 46},360 C${x - 20},348 ${x + 20},348 ${x + 46},360" stroke="${c.metalLight}" stroke-width="3" fill="none" opacity=".8"/>
-        <circle cx="${x}" cy="326" r="9" fill="url(#${id}-gem)" stroke="${c.metalLight}" stroke-width="2"/>`;
+        <circle cx="${x}" cy="326" r="9" fill="url(#${id}-gem)" stroke="${INK}" stroke-width="2.4"/>`;
     let trim = '';
     if (seasonId === 'winter') {
         trim = `<path d="M${x + side * 20},306 L${x + side * 44},262 L${x + side * 40},312 Z" fill="${c.antler}" stroke="${c.antlerTip}" stroke-width="2"/>
@@ -295,42 +304,57 @@ function pauldron(seasonId, c, id, side) {
  */
 export function bossSvg(seasonId = 'winter', { mood = 'proud', id = 'rrb', title = 'Eldhorn, the Realm Guardian', crown = false, hands = true } = {}) {
     const c = coatFor(seasonId);
-    const arms = hands
-        ? `<path d="M96,356 C76,392 68,426 70,462" stroke="url(#${id}-mantle)" stroke-width="42" fill="none" stroke-linecap="round"/>
-            <path d="M304,356 C324,392 332,426 330,462" stroke="url(#${id}-mantle)" stroke-width="42" fill="none" stroke-linecap="round"/>`
-        : `<path d="M96,356 C78,410 82,470 100,520" stroke="url(#${id}-mantle)" stroke-width="40" fill="none" stroke-linecap="round"/>
-            <path d="M304,356 C322,410 318,470 300,520" stroke="url(#${id}-mantle)" stroke-width="40" fill="none" stroke-linecap="round"/>
-            ${[102, 298].map((x) => `<g><path d="M${x - 24},516 C${x - 28},540 ${x - 18},560 ${x},562 C${x + 18},560 ${x + 28},540 ${x + 24},516 C${x + 12},506 ${x - 12},506 ${x - 24},516 Z" fill="url(#${id}-metal)" stroke="${c.metalDeep}" stroke-width="3"/><path d="M${x - 18},530 L${x + 18},530 M${x - 18},544 L${x + 18},544" stroke="${c.metalDeep}" stroke-width="2.5" opacity=".6" stroke-linecap="round"/><path d="M${x - 28},510 C${x - 24},498 ${x + 24},498 ${x + 28},510 L${x + 26},520 L${x - 26},520 Z" fill="${c.mantle}" stroke="${c.trim}" stroke-width="2.5"/></g>`).join('')}`;
+    const mirror = (g) => `${g}<g transform="translate(400 0) scale(-1 1)">${g}</g>`;
+    // Arms: a mantle sleeve and a steel bracer, reaching to the shield's rim (or resting at his sides).
+    const arm = hands
+        ? `<path d="M74,340 C54,376 44,412 44,446 L86,450 C88,420 98,390 116,362 Z" fill="url(#${id}-mantle)" ${LINE}/>
+            <path d="M80,352 C66,380 58,408 56,436" stroke="${c.lining}" stroke-width="5" fill="none" opacity=".5" stroke-linecap="round"/>
+            <path d="M44,414 L88,420 L86,452 L44,448 Z" fill="url(#${id}-metal)" ${LINE}/>
+            <path d="M48,424 L84,428" stroke="#ffffff" stroke-width="3" opacity=".5" stroke-linecap="round"/>`
+        : `<path d="M74,340 C58,398 62,466 78,516 L122,510 C106,466 102,410 116,362 Z" fill="url(#${id}-mantle)" ${LINE}/>
+            <path d="M80,352 C70,400 72,456 84,500" stroke="${c.lining}" stroke-width="5" fill="none" opacity=".5" stroke-linecap="round"/>
+            <g><path d="M78,512 C74,536 84,556 102,558 C120,556 130,536 126,512 C114,502 90,502 78,512 Z" fill="url(#${id}-metal)" ${LINE}/><path d="M84,526 L120,526 M84,540 L120,540" stroke="${c.metalDeep}" stroke-width="2.5" opacity=".6" stroke-linecap="round"/><path d="M74,506 C78,494 126,494 130,506 L128,516 L76,516 Z" fill="${c.mantle}" ${LINE}/></g>`;
+    // Legs: a stag's legs in steel greaves, standing on cloven hooves.
+    const leg = `<path d="M130,522 C120,548 122,572 132,594 L130,620 L172,620 L168,594 C178,572 180,546 174,522 Z" fill="url(#${id}-body)" ${LINE}/>
+        <path d="M128,560 C138,552 166,552 176,560 L170,602 C158,598 144,598 134,602 Z" fill="url(#${id}-metal)" ${LINE}/>
+        <path d="M136,566 C146,562 156,562 164,564" stroke="#ffffff" stroke-width="3" opacity=".55" fill="none" stroke-linecap="round"/>
+        <path d="M152,556 L152,600" stroke="${c.metalDeep}" stroke-width="2" opacity=".5"/>
+        <path d="M124,616 C126,606 176,606 178,616 L180,636 L156,636 L152,626 L148,636 L122,636 Z" fill="${c.nose}" ${LINE}/>
+        <path d="M130,614 C140,610 160,610 170,613" stroke="#ffffff" stroke-width="2.4" opacity=".3" fill="none" stroke-linecap="round"/>`;
     return `<svg class="rr-boss-sprite rr-guardian rr-guardian--${seasonId} rr-guardian--${mood}" viewBox="0 -40 400 680" role="img" aria-label="${title}">
         ${guardianDefs(c, id)}
         <ellipse class="rr-g__aura" cx="200" cy="250" rx="210" ry="320" fill="url(#${id}-aura)"/>
         ${coatBackdrop(seasonId, c)}
-        <ellipse class="rr-b__shadow" cx="200" cy="634" rx="150" ry="16" fill="#000" opacity=".28"/>
+        <ellipse class="rr-b__shadow" cx="200" cy="636" rx="160" ry="16" fill="#000" opacity=".3"/>
         <g class="rr-b__cape">
-            <path d="M118,318 C70,380 34,500 20,622 C64,610 92,632 130,618 C170,634 230,634 270,618 C308,632 336,610 380,622 C366,500 330,380 282,318 Z" fill="url(#${id}-mantle)"/>
+            <path d="M118,318 C70,380 34,500 20,622 C64,610 92,632 130,618 C170,634 230,634 270,618 C308,632 336,610 380,622 C366,500 330,380 282,318 Z" fill="url(#${id}-mantle)" ${LINE}/>
             <path d="M20,622 C64,610 92,632 130,618 C170,634 230,634 270,618 C308,632 336,610 380,622" stroke="${c.trim}" stroke-width="6" fill="none"/>
+            <g fill="none" stroke="${INK}" stroke-width="3" opacity=".28" stroke-linecap="round">
+                <path d="M96,420 C80,480 70,550 66,612"/><path d="M132,440 C124,500 120,560 120,614"/><path d="M268,440 C276,500 280,560 280,614"/><path d="M304,420 C320,480 330,550 334,612"/>
+            </g>
             <path d="M118,318 C84,370 56,450 42,540" stroke="${c.lining}" stroke-width="10" fill="none" opacity=".55" stroke-linecap="round"/>
             <path d="M282,318 C316,370 344,450 358,540" stroke="${c.lining}" stroke-width="10" fill="none" opacity=".55" stroke-linecap="round"/>
         </g>
         ${staffSvg(seasonId, c, id)}
         <g class="rr-b__body">
-            <g class="rr-b__legs">
-                <path d="M128,520 L122,606 L172,606 L178,520 Z" fill="url(#${id}-body)"/>
-                <path d="M222,520 L228,606 L278,606 L272,520 Z" fill="url(#${id}-body)"/>
-                <path d="M118,566 L176,566 L172,606 L122,606 Z M224,566 L282,566 L278,606 L228,606 Z" fill="url(#${id}-metal)" stroke="${c.metalDeep}" stroke-width="2.5"/>
-                <path d="M116,604 L178,604 L180,634 L148,634 L147,622 L144,634 L114,634 Z" fill="${c.nose}"/>
-                <path d="M222,604 L284,604 L286,634 L256,634 L253,622 L250,634 L220,634 Z" fill="${c.nose}"/>
+            <g class="rr-b__legs">${mirror(leg)}</g>
+            <path d="M162,516 L238,516 L246,612 L200,598 L154,612 Z" fill="url(#${id}-mantle)" ${LINE}/>
+            <path d="M162,516 L238,516 L246,612 L200,598 L154,612 Z" fill="none" stroke="${c.trim}" stroke-width="3" transform="translate(200 560) scale(.86) translate(-200 -560)"/>
+            <g transform="translate(200 566) scale(1.1)">${sigilShape(seasonId, c.trim, c)}</g>
+            ${mirror(arm)}
+            <path d="M144,302 C98,312 82,350 92,396 C100,436 126,474 156,512 L244,512 C274,474 300,436 308,396 C318,350 302,312 256,302 Z" fill="url(#${id}-metal)" ${LINE}/>
+            <g fill="none" stroke="${INK}" stroke-width="3" opacity=".4" stroke-linecap="round">
+                <path d="M110,392 C136,418 176,420 198,396"/><path d="M290,392 C264,418 224,420 202,396"/>
+                <path d="M136,452 C170,466 230,466 264,452"/><path d="M148,478 C180,490 220,490 252,478"/>
             </g>
-            ${arms}
-            <path d="M150,300 C116,316 98,350 100,400 C102,460 118,512 132,540 L268,540 C282,512 298,460 300,400 C302,350 284,316 250,300 Z" fill="url(#${id}-metal)" stroke="${c.metalDeep}" stroke-width="3"/>
+            <path d="M200,316 L200,500" stroke="${c.metalDeep}" stroke-width="3" opacity=".45"/>
+            <path d="M116,356 C112,392 122,428 146,464" stroke="#ffffff" stroke-width="7" fill="none" opacity=".4" stroke-linecap="round"/>
             <path d="M124,346 C150,370 250,370 276,346" stroke="${c.metalLight}" stroke-width="4" fill="none" opacity=".8"/>
-            <path d="M160,330 L240,330 L232,506 L168,506 Z" fill="url(#${id}-mantle)" stroke="${c.trim}" stroke-width="3"/>
-            <path d="M168,470 L232,470" stroke="${c.trim}" stroke-width="2" opacity=".6"/>
-            <g transform="translate(200 412) scale(1.6)">${sigilShape(seasonId, c.trim, c)}</g>
-            <g fill="${c.metalLight}" opacity=".85"><circle cx="122" cy="420" r="4"/><circle cx="278" cy="420" r="4"/><circle cx="130" cy="470" r="4"/><circle cx="270" cy="470" r="4"/></g>
-            <rect x="122" y="506" width="156" height="30" rx="10" fill="${c.mantle}" stroke="${c.trim}" stroke-width="3"/>
-            <path d="M200,506 L216,521 L200,536 L184,521 Z" fill="url(#${id}-gem)" stroke="${c.trim}" stroke-width="2"/>
-            <path d="M130,536 L126,566 L162,570 L170,536 Z M270,536 L274,566 L238,570 L230,536 Z M176,536 L172,572 L228,572 L224,536 Z" fill="url(#${id}-metal)" stroke="${c.metalDeep}" stroke-width="2.5"/>
+            <path d="M260,330 C292,360 298,420 280,480" stroke="${INK}" stroke-width="10" fill="none" opacity=".12" stroke-linecap="round"/>
+            <g transform="translate(200 420) scale(1.6)">${sigilShape(seasonId, c.trim, c)}</g>
+            <rect x="138" y="500" width="124" height="28" rx="10" fill="${c.mantle}" ${LINE}/>
+            <path d="M146,508 L254,508" stroke="${c.trim}" stroke-width="2.4" opacity=".7"/>
+            <path d="M200,498 L217,514 L200,530 L183,514 Z" fill="url(#${id}-gem)" ${LINE}/>
             ${pauldron(seasonId, c, id, -1)}${pauldron(seasonId, c, id, 1)}
         </g>
         ${headSvg(seasonId, c, id, mood, crown)}
@@ -341,9 +365,10 @@ export function bossSvg(seasonId = 'winter', { mood = 'proud', id = 'rrb', title
 export function bossFrontSvg(seasonId = 'winter', { id = 'rrbf', mood = 'proud' } = {}) {
     const c = coatFor(seasonId);
     const hand = (x, side) => `<g class="rr-b__hand rr-b__hand--${side < 0 ? 'left' : 'right'}">
-        <path d="M${x - 26},446 C${x - 30},470 ${x - 20},492 ${x},494 C${x + 20},492 ${x + 30},470 ${x + 26},446 C${x + 14},436 ${x - 14},436 ${x - 26},446 Z" fill="url(#${id}-metal)" stroke="${c.metalDeep}" stroke-width="3"/>
+        <path d="M${x - 26},446 C${x - 30},470 ${x - 20},492 ${x},494 C${x + 20},492 ${x + 30},470 ${x + 26},446 C${x + 14},436 ${x - 14},436 ${x - 26},446 Z" fill="url(#${id}-metal)" ${LINE}/>
+        <path d="M${x - 14},448 C${x - 18},462 ${x - 16},476 ${x - 10},486" stroke="#ffffff" stroke-width="3" fill="none" opacity=".5" stroke-linecap="round"/>
         <path d="M${x - 20},458 L${x + 20},458 M${x - 22},470 L${x + 22},470 M${x - 18},482 L${x + 18},482" stroke="${c.metalDeep}" stroke-width="2.5" opacity=".6" stroke-linecap="round"/>
-        <path d="M${x - 30},440 C${x - 26},428 ${x + 26},428 ${x + 30},440 L${x + 28},450 L${x - 28},450 Z" fill="${c.mantle}" stroke="${c.trim}" stroke-width="2.5"/>
+        <path d="M${x - 30},440 C${x - 26},428 ${x + 26},428 ${x + 30},440 L${x + 28},450 L${x - 28},450 Z" fill="${c.mantle}" ${LINE}/>
         <circle cx="${x}" cy="440" r="4.5" fill="url(#${id}-gem)"/>
     </g>`;
     return `<svg class="rr-boss-front rr-guardian--${mood}" viewBox="0 -40 400 680" aria-hidden="true" focusable="false">

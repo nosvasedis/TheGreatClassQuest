@@ -157,7 +157,10 @@ function layoutParty() {
     const box = party.getBoundingClientRect();
     if (!box.width || !box.height) return;
     const units = [...party.querySelectorAll('.rr-unit')];
-    const spots = partyFormation(units.length, { aspect: box.width / box.height });
+    // On a narrow field (phones) each class sends only its front hero, so the heroes stay big.
+    const band = box.width >= 480;
+    party.classList.toggle('is-solo', !band);
+    const spots = partyFormation(units.length, { aspect: box.width / box.height, band });
     units.forEach((unit, i) => {
         const spot = spots[i];
         unit.style.left = `${spot.x}%`;
@@ -253,8 +256,14 @@ function strike(before, after, { lite = false } = {}) {
         setTimeout(() => {
             if (!from?.isConnected) return;
             from.classList.remove('is-acting');
+            // The band member whose art this is steps out to strike (else the one in front).
+            const heroes = [...from.querySelectorAll('.rr-unit__sprite')].filter((h) => h.getClientRects().length);
+            const striker = heroes.find((h) => h.dataset.sprite === job.sprite) || from.querySelector('.rr-unit__sprite--0') || heroes[0];
+            heroes.forEach((h) => h.classList.toggle('is-striker', h === striker));
+            striker?.style.setProperty('--strike', job.color);
             void from.offsetWidth;
             from.classList.add('is-acting');
+            setTimeout(() => { from.classList.remove('is-acting'); striker?.classList.remove('is-striker'); }, 1400);
             if (!lite) kick(root.querySelector('.rr-field'), 'is-cam', 1150);
             if (cast) {
                 cast.innerHTML = '';

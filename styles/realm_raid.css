@@ -410,7 +410,20 @@
     cursor: pointer;
 }
 .rr-unit__body { position: relative; width: 100%; flex: 1 1 auto; min-height: 0; }
-.rr-unit__sprite { position: absolute; inset: 0; animation: rr-idle 1.6s ease-in-out infinite; animation-delay: calc(var(--i) * -.37s); transform-origin: 50% 100%; }
+.rr-unit__sprite { position: absolute; inset: 0; animation: rr-idle 1.6s ease-in-out infinite; animation-delay: calc(var(--i) * -.37s - var(--k, 0) * .5s); transform-origin: 50% 100%; }
+/* The band: the class's most chosen hero class in front, the next two a step behind. */
+.rr-unit__sprite--1 { translate: -30% -6%; scale: .8; }
+.rr-unit__sprite--2 { translate: -52% -11%; scale: .68; }
+.rr-unit__sprite--1 .rr-u__body, .rr-unit__sprite--2 .rr-u__body { opacity: .94; }
+.rr-party.is-many .rr-unit__sprite:not(.rr-unit__sprite--0), .rr-party.is-solo .rr-unit__sprite:not(.rr-unit__sprite--0) { display: none; }
+/* The hero whose art struck steps out in front, a rune ring flashing under their feet. */
+.rr-unit__sprite.is-striker { z-index: 3; translate: 0 0; scale: 1; transition: translate .2s ease, scale .2s ease; }
+.rr-unit__sprite.is-striker::after {
+    content: ''; position: absolute; left: 14%; right: 14%; bottom: 3%; height: 10%;
+    border-radius: 50%; border: 3px solid var(--strike, var(--art)); box-shadow: 0 0 14px var(--strike, var(--art)), inset 0 0 10px var(--strike, var(--art));
+    pointer-events: none; animation: rr-rune .8s ease-out both;
+}
+@keyframes rr-rune { 0% { opacity: 0; transform: scale(.3); } 25% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0; transform: scale(1.5); } }
 .rr-u__svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .rr-u__weapon { transform-box: fill-box; transform-origin: 0% 100%; }
 .rr-unit__flag {
@@ -443,13 +456,24 @@
 .rr-unit__cursor { position: absolute; left: 50%; top: -.9em; translate: -50% 0; color: #fff; font-size: 1.3em; text-shadow: 0 2px 0 #000; animation: rr-cursor .7s ease-in-out infinite; }
 .rr-unit:hover .rr-unit__name, .rr-unit:focus-visible .rr-unit__name { background: #f4f7fb; color: #0f172a; max-width: none; position: relative; z-index: 2; }
 .rr-unit:focus-visible { outline: none; }
-.rr-unit.is-acting .rr-unit__sprite { animation: rr-lunge .62s cubic-bezier(.3, 0, .3, 1); }
-.rr-unit.is-acting .rr-u__weapon { animation: rr-swing .62s ease-out; }
+.rr-unit.is-acting .rr-unit__sprite.is-striker { animation: rr-lunge .7s cubic-bezier(.3, 0, .3, 1); }
+.rr-unit.is-acting .rr-unit__sprite.is-striker .rr-u__weapon { animation: rr-swing .7s ease-out; }
+.rr-unit.is-acting .rr-unit__sprite:not(.is-striker) { animation: rr-cheer .7s ease-in-out; }
 .rr-hall.is-broken .rr-unit:not(.is-away) .rr-unit__sprite, .rr-phase--over.is-broken .rr-unit__sprite { animation: rr-cheer .9s ease-in-out infinite; animation-delay: calc(var(--i) * -.13s); }
 .rr-u__bubble, .rr-u__orb { transform-box: fill-box; transform-origin: center; animation: rr-twinkle 1.8s ease-in-out infinite; }
 .rr-u__plume, .rr-u__cape { transform-box: fill-box; transform-origin: 50% 100%; }
+/* Little signs of life: capes and plumes sway, eyes blink, tools rock with the breath. */
+.rr-u__cape { transform-origin: 90% 0; animation: rr-u-cape 2.6s ease-in-out infinite; animation-delay: calc(var(--i, 0) * -.41s); }
+.rr-u__plume { animation: rr-u-sway 1.9s ease-in-out infinite; animation-delay: calc(var(--i, 0) * -.29s); }
+.rr-u__eyes { transform-box: fill-box; transform-origin: center; animation: rr-u-blink 4.8s infinite; animation-delay: calc(var(--i, 0) * -.93s - var(--k, 0) * 1.7s); }
+.rr-u__weapon { animation: rr-u-rock 1.6s ease-in-out infinite; animation-delay: calc(var(--i, 0) * -.37s - var(--k, 0) * .5s); }
+.rr-party.is-many .rr-u__cape, .rr-party.is-many .rr-u__plume, .rr-party.is-many .rr-u__weapon { animation: none; }
+@keyframes rr-u-cape { 0%, 100% { transform: skewX(0) scaleX(1); } 50% { transform: skewX(5deg) scaleX(1.05); } }
+@keyframes rr-u-sway { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(6deg); } }
+@keyframes rr-u-blink { 0%, 93%, 100% { transform: scaleY(1); } 95.5% { transform: scaleY(.12); } }
+@keyframes rr-u-rock { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-3deg); } }
 @keyframes rr-idle { 0%, 100% { transform: translateY(0) scaleY(1); } 50% { transform: translateY(-2%) scaleY(1.015); } }
-@keyframes rr-lunge { 0% { transform: none; } 30% { transform: translateX(45%) translateY(-6%); } 55% { transform: translateX(55%); } 100% { transform: none; } }
+@keyframes rr-lunge { 0% { transform: none; } 16% { transform: translateX(-8%) scale(1.04, .9); } 36% { transform: translateX(58%) translateY(-12%) scale(.96, 1.06); } 50% { transform: translateX(70%) translateY(-2%); } 72% { transform: translateX(62%); } 100% { transform: none; } }
 @keyframes rr-swing { 0%, 25% { transform: rotate(0); } 45% { transform: rotate(-40deg); } 60% { transform: rotate(25deg); } 100% { transform: rotate(0); } }
 @keyframes rr-cheer { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-12%); } 60% { transform: translateY(-12%); } }
 @keyframes rr-cursor { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
@@ -566,7 +590,9 @@
 .rr-card__id { min-width: 0; }
 .rr-card__id h3 { margin: 0; font: 400 clamp(1.15rem, 1.7vw, 1.45rem)/1.15 'Fredoka One', sans-serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rr-card__id p { margin: .3rem 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; }
-.rr-card__art { font-size: .85rem; font-weight: 700; color: var(--art, #fbbf24); filter: brightness(1.25); }
+.rr-card__art { display: inline-flex; align-items: center; gap: .2rem; padding: .05rem .45rem; border-radius: 999px; background: color-mix(in srgb, var(--art, #fbbf24) 18%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--art, #fbbf24) 45%, transparent); font-size: .78rem; font-weight: 700; color: color-mix(in srgb, var(--art, #fbbf24) 55%, #fff); }
+.rr-card__artname { font-weight: 600; }
+@media (min-width: 561px) and (max-width: 1180px) { .rr-card__artname { display: none; } }
 .rr-card__shard { display: flex; flex-direction: column; gap: .3rem; min-width: 0; }
 .rr-card__num { margin: 0; display: flex; align-items: baseline; gap: .3rem; line-height: 1; }
 .rr-card__num b { font: 400 2rem 'Fredoka One', sans-serif; }
@@ -913,7 +939,8 @@
 .rr-lite .rr-round__bar,
 .rr-lite .rr-scene *,
 .rr-lite .rr-vparty__sprite { animation: none !important; }
-.rr-lite .rr-unit.is-acting .rr-unit__sprite { animation: rr-lunge .5s ease-out !important; }
+.rr-lite .rr-unit.is-acting .rr-unit__sprite.is-striker { animation: rr-lunge .5s ease-out !important; }
+.rr-lite .rr-unit__sprite.is-striker::after { display: none; }
 .rr-lite .rr-unit.is-full .rr-unit__sprite { filter: none; }
 .rr-lite .rr-scene__near svg { filter: brightness(.85); }
 .rr-lite .rr-field.is-cam, .rr-lite .rr-field.is-shake .rr-scene, .rr-lite .rr-field.is-shake .rr-bossside { animation: none; }

@@ -3,7 +3,7 @@
 // no state, no Firebase, so the preview page can use them as they are.
 import { bossSvg, bossFrontSvg, arenaSvg, shieldSvg, raysSvg, crackSvg, peaksSvg } from '../../features/realmRaidArt.mjs';
 import { RAID_REWARDS, LEGENDARY_AT, RAID_EFFORT, RAID_LENGTH_DAYS, guardianMood, raidCountdown, readDate, raidDays, dayKey, raidDayPlan } from '../../features/realmRaidCore.mjs';
-import { HERO_ARTS, STAR_ART, heroArt, classArt, strikeArts, leagueRank, wordTier, battleMessages, battleTitle, bossLine, caption } from '../../features/realmRaidBattle.mjs';
+import { HERO_ARTS, STAR_ART, heroArt, classArt, classBand, strikeArts, leagueRank, wordTier, battleMessages, battleTitle, bossLine, caption } from '../../features/realmRaidBattle.mjs';
 import { sceneHtml } from '../../features/realmRaidScene.mjs';
 import { heroSpriteSvg, partyFormation } from '../../features/realmRaidParty.mjs';
 
@@ -245,7 +245,13 @@ function classArtsHtml(row) {
 /** The class card under the field: who they are, how they fight, their shard, their heroes. */
 function classCardHtml(view, row, { heroCard = null, canReveal = false, roster = [], tier = 'mid', count = 1 } = {}) {
     if (!row) return '<section class="rr-dock"></section>';
-    const art = classArt(row);
+    const band = classBand(row);
+    const art = band[0].art;
+    // Every hero class in the class, with how many chose it (the band on the field shows the first three).
+    const mix = band.filter((b) => b.count).map((b) => {
+        const name = b.art.heroClass || 'Adventurer';
+        return `<span class="rr-card__art" style="${artStyle(b.art)}" title="${esc(`${b.count} ${name}${b.count === 1 ? '' : 's'}`)}">${b.art.icon} ${b.count} <span class="rr-card__artname">${esc(name)}${b.count === 1 ? '' : 's'}</span></span>`;
+    }).join('');
     const fill = Math.min(1, row.pct || 0);
     const phase = view.raid.phase;
     const over = phase === 'aftermath' || phase === 'over';
@@ -264,7 +270,7 @@ function classCardHtml(view, row, { heroCard = null, canReveal = false, roster =
                 ${ringHtml(fill, row.logo, art)}
                 <div class="rr-card__id">
                     <h3>${esc(row.name)}</h3>
-                    <p><span class="rr-tag">${esc(row.league || 'Class')}</span><span class="rr-card__art" title="${esc(`Most of this class are ${art.heroClass || 'heroes'}`)}">${art.icon} ${esc(art.heroClass ? `${art.heroClass}s` : 'Heroes')}</span></p>
+                    <p><span class="rr-tag">${esc(row.league || 'Class')}</span>${mix || `<span class="rr-card__art">${art.icon} ${esc(art.heroClass ? `${art.heroClass}s` : 'Heroes')}</span>`}</p>
                 </div>
             </div>
             <div class="rr-card__shard">
@@ -300,14 +306,18 @@ function fieldBannerHtml(view, tier, rounds) {
 
 /** One class on the battlefield: its hero (its students' hero class), its banner, its name and gauge. */
 function unitHtml(row, spot, { focusId = '', phase = 'active', i = 0 } = {}) {
-    const art = classArt(row);
+    const band = classBand(row);
+    const art = band[0].art;
     const fill = Math.min(1, row.pct || 0);
     const away = !row.share;
-    const words = `${row.name}, ${art.heroClass ? `${art.heroClass}s` : 'heroes'}: ${fmt(row.stars)}${row.share ? ` of ${fmt(row.share)}` : ''} stars${row.valor ? ', shard broken' : ''}`;
+    const mix = band.filter((b) => b.count).map((b) => `${b.count} ${b.art.heroClass ? `${b.art.heroClass}${b.count === 1 ? '' : 's'}` : `Adventurer${b.count === 1 ? '' : 's'}`}`).join(', ');
+    const words = `${row.name}${mix ? ` (${mix})` : ''}: ${fmt(row.stars)}${row.share ? ` of ${fmt(row.share)}` : ''} stars${row.valor ? ', shard broken' : ''}`;
+    // The class marches as a little band: its most chosen hero class in front, the next two behind.
+    const heroes = band.slice(0, 3).map((b, k) => `<span class="rr-unit__sprite rr-unit__sprite--${k}" data-sprite="${esc(b.art.sprite)}" style="--k:${k}">${heroSpriteSvg(b.art)}</span>`).reverse().join('');
     return `<button type="button" class="rr-unit${row.classId === focusId ? ' is-focus' : ''}${row.valor ? ' is-full' : ''}${away ? ' is-away' : ''}${row.own ? ' is-own' : ''}" data-banner="${esc(row.classId)}"
         style="left:${spot.x}%;top:${spot.y}%;--h:${spot.h};--d:${(spot.y / 100).toFixed(3)};z-index:${spot.z};--i:${i};${artStyle(art)}" aria-label="${esc(words)}" title="${esc(words)}">
         <span class="rr-unit__body">
-            <span class="rr-unit__sprite">${heroSpriteSvg(art)}</span>
+            ${heroes}
             <span class="rr-unit__flag" aria-hidden="true">${esc(row.logo)}</span>
             ${row.valor ? '<span class="rr-unit__badge" aria-hidden="true">✨</span>' : ''}
             ${away && phase === 'active' ? `<span class="rr-unit__zz" aria-hidden="true">${esc(caption('away', 'young'))}</span>` : ''}
@@ -321,7 +331,7 @@ function unitHtml(row, spot, { focusId = '', phase = 'active', i = 0 } = {}) {
 /** The party: every class in the raid, in formation on the left (older leagues in front, nearest Eldhorn). */
 function partyHtml(view, focusId) {
     const rows = raidClasses(view).reverse();
-    const spots = partyFormation(rows.length, { aspect: 1.5 });
+    const spots = partyFormation(rows.length, { aspect: 1.5, band: true });
     return `<div class="rr-party${rows.length > 15 ? ' is-many' : ''}${rows.length > 6 ? ' is-crowd' : ''}" aria-label="The party">${rows.map((row, i) => unitHtml(row, spots[i], { focusId, phase: view.raid.phase, i })).join('')}</div>`;
 }
 
@@ -504,7 +514,7 @@ function victoryPartyHtml(view) {
     const rows = raidClasses(view);
     if (!rows.length) return '';
     return `<ul class="rr-vparty${rows.length > 12 ? ' is-many' : ''}" aria-label="The party">${rows.map((row, i) => {
-        const art = classArt(row);
+        const art = classBand(row)[0].art;
         return `<li style="--i:${i};${artStyle(art)}"><span class="rr-vparty__sprite" aria-hidden="true">${heroSpriteSvg(art)}<i>${esc(row.logo)}</i></span><b>${esc(row.name)}</b></li>`;
     }).join('')}</ul>`;
 }

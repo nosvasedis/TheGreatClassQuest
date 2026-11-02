@@ -92,9 +92,10 @@ function heroCounts() {
 function heroMixes() {
     const mixes = {};
     (state.get('allStudents') || []).forEach((s) => {
-        if (!s?.classId || !s.heroClass) return;
+        if (!s?.classId) return;
         const mix = mixes[s.classId] || (mixes[s.classId] = {});
-        mix[s.heroClass] = (mix[s.heroClass] || 0) + 1;
+        const key = s.heroClass || ''; // no hero class yet: an Adventurer
+        mix[key] = (mix[key] || 0) + 1;
     });
     return mixes;
 }

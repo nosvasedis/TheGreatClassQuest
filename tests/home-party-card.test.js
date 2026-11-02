@@ -61,3 +61,19 @@ test('with everyone present the card shows no away markings', async () => {
   assert.ok(!html.includes('home-party__count--away'));
   assert.ok(!html.includes('is-absent'));
 });
+
+test('party card names every reason the way the app does, never as a raw key', async () => {
+  const { buildHomePartyCardHtml } = await load();
+  const html = buildHomePartyCardHtml({ students: [hero('a', 'Anna')], virtueStars: { quiz_of_the_week: 6, peer_boon: 2, scholar_s_bonus: 1 } });
+  assert.match(html, />Quiz of the Week</);
+  assert.match(html, /Hero’s Boon 2 stars/);
+  assert.match(html, /Scholar’s Bonus 1 star/);
+  assert.doesNotMatch(html, /quiz of the week|peer boon/);
+});
+
+test('unknown reasons fall back to title case', async () => {
+  const { getAwardReasonLabel } = await import('../features/awardLogReasonMeta.js');
+  assert.equal(getAwardReasonLabel('quiz_of_the_week'), 'Quiz of the Week');
+  assert.equal(getAwardReasonLabel('brand_new_quest_of_the_day'), 'Brand New Quest of the Day');
+  assert.equal(getAwardReasonLabel(''), 'Other');
+});

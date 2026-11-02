@@ -40,6 +40,50 @@ export function getClassQuestBonusStarsFromAwardLog(log) {
     return log?.reason === PATHFINDER_AWARD_REASON ? PATHFINDER_CLASS_QUEST_BONUS_STARS : 0;
 }
 
+/** Display name for every award_log `reason`, written the way the app names it everywhere. */
+export const AWARD_LOG_REASON_LABELS = Object.freeze({
+    teamwork: 'Teamwork',
+    creativity: 'Creativity',
+    respect: 'Respect',
+    focus: 'Focus',
+    correction: 'Correction',
+    welcome_back: 'Welcome Back',
+    story_weaver: 'Story Weavers',
+    vanishing_hoard: 'Vanishing Hoard',
+    torn_map: 'Torn Map',
+    round_table: 'Round Table',
+    scholar_s_bonus: 'Scholar’s Bonus',
+    teacher_boon: 'Teacher Boon',
+    peer_boon: 'Hero’s Boon',
+    pathfinder_map: 'Pathfinder’s Map',
+    quiz_of_the_week: 'Quiz of the Week',
+    wheel_fortune: 'Fortune’s Wheel',
+    wheel_curse: 'Fortune’s Wheel',
+    marked_present: 'Present',
+    excellence: 'Excellence',
+    special_quest: 'Special Quest',
+    quiet_dragon: 'The Quiet Dragon',
+    showdown: 'Showdown Arena',
+    ember_oath: 'Ember Oath kept'
+});
+
+/** Small words that stay lowercase inside a title ("Quiz of the Week"). */
+const TITLE_SMALL_WORDS = new Set(['a', 'an', 'and', 'at', 'by', 'for', 'in', 'of', 'on', 'or', 'the', 'to']);
+
+/**
+ * Human name for an award reason. Unknown keys become title case ("quiz_of_the_week" would read
+ * "Quiz of the Week"), so a new reason never shows up as a raw lowercase key.
+ */
+export function getAwardReasonLabel(reason, fallback = 'Other') {
+    const key = String(reason || '').trim();
+    if (!key) return fallback;
+    if (AWARD_LOG_REASON_LABELS[key]) return AWARD_LOG_REASON_LABELS[key];
+    return key.split(/[_\s]+/).filter(Boolean).map((w, i) => {
+        const lower = w.toLowerCase();
+        return i > 0 && TITLE_SMALL_WORDS.has(lower) ? lower : lower.charAt(0).toUpperCase() + lower.slice(1);
+    }).join(' ') || fallback;
+}
+
 /** Tailwind gradient classes for logbook / history cards */
 export const AWARD_LOG_REASON_GRADIENTS = {
     teamwork: 'from-purple-500 to-indigo-600',

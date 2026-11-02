@@ -23,7 +23,8 @@ import {
 import {
     AWARD_LOG_REASON_ICONS,
     getAwardLogMonthlyStarCredit,
-    shouldShowInStarAwardLog
+    shouldShowInStarAwardLog,
+    getAwardReasonLabel,
 } from '../../features/awardLogReasonMeta.js';
 import { getTeacherBoonForMonth } from '../../features/boons.js';
 import {
@@ -51,21 +52,13 @@ const CLASS_TONES = [
     ['#ffe4e6', '#fecdd3', '#e11d48']
 ];
 
-const REASON_LABELS = {
-    teamwork: 'Teamwork', creativity: 'Creativity', respect: 'Respect', focus: 'Focus',
-    welcome_back: 'Welcome Back', story_weaver: 'Story Weavers', vanishing_hoard: 'Vanishing Hoard', torn_map: 'Torn Map', round_table: 'Round Table', scholar_s_bonus: 'Scholar’s Bonus',
-    teacher_boon: 'Teacher Boon', peer_boon: 'Hero’s Boon', pathfinder_map: 'Pathfinder’s Map',
-    quiz_of_the_week: 'Quiz of the Week', wheel_fortune: 'Fortune’s Wheel', wheel_curse: 'Fortune’s Wheel',
-    marked_present: 'Present', excellence: 'Excellence', special_quest: 'Special Quest', quiet_dragon: 'The Quiet Dragon', showdown: 'Showdown Arena', ember_oath: 'Ember Oath kept', correction: 'Correction'
-};
 const VIRTUE_STYLE = {
     teamwork: { icon: 'fa-users', color: '#7c3aed' },
     creativity: { icon: 'fa-lightbulb', color: '#db2777' },
     respect: { icon: 'fa-handshake', color: '#059669' },
     focus: { icon: 'fa-bullseye', color: '#d97706' }
 };
-const reasonLabel = (reason) => REASON_LABELS[reason]
-    || String(reason || 'Other').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+const reasonLabel = (reason) => getAwardReasonLabel(reason);
 
 const AVATAR_TONES = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#f97316'];
 

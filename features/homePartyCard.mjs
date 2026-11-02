@@ -2,20 +2,41 @@
 // Pure markup, no app state, so the guidebook capture renders the same card
 // (docs/product/guidebook/capture/fill-surfaces.js). Styles: styles/home_party.css.
 import { escapeHtml as esc } from '../utils/html.mjs';
+import { AWARD_LOG_REASON_ICONS, getAwardReasonLabel } from './awardLogReasonMeta.js';
 
-/** Every reason a star can carry, with the crest icon and colour family it shows on the card. */
+/** The four class virtues and the other everyday reasons, with the crest icon and colour family each shows. */
 const VIRTUES = {
-    teamwork: { icon: 'fa-users', name: 'Teamwork', tone: 'violet' },
-    creativity: { icon: 'fa-lightbulb', name: 'Creativity', tone: 'rose' },
-    respect: { icon: 'fa-hands-helping', name: 'Respect', tone: 'emerald' },
-    focus: { icon: 'fa-brain', name: 'Focus', tone: 'amber' },
-    welcome_back: { icon: 'fa-hand-sparkles', name: 'Welcome', tone: 'sky' },
-    story_weaver: { icon: 'fa-feather-alt', name: 'Story', tone: 'cyan' },
-    scholar_s_bonus: { icon: 'fa-graduation-cap', name: 'Scholar', tone: 'orange' }
+    teamwork: { icon: 'fa-users', tone: 'violet' },
+    creativity: { icon: 'fa-lightbulb', tone: 'rose' },
+    respect: { icon: 'fa-hands-helping', tone: 'emerald' },
+    focus: { icon: 'fa-brain', tone: 'amber' },
+    welcome_back: { icon: 'fa-hand-sparkles', tone: 'sky' },
+    story_weaver: { icon: 'fa-feather-alt', tone: 'cyan' },
+    scholar_s_bonus: { icon: 'fa-graduation-cap', tone: 'orange' },
+    quiz_of_the_week: { tone: 'sky' },
+    showdown: { tone: 'rose' },
+    quiet_dragon: { tone: 'cyan' },
+    ember_oath: { tone: 'orange' },
+    teacher_boon: { tone: 'rose' },
+    peer_boon: { tone: 'rose' },
+    pathfinder_map: { tone: 'sky' },
+    special_quest: { tone: 'violet' },
+    excellence: { tone: 'amber' },
+    vanishing_hoard: { tone: 'amber' },
+    torn_map: { tone: 'sky' },
+    round_table: { tone: 'emerald' },
+    wheel_fortune: { tone: 'amber' },
+    marked_present: { tone: 'emerald' }
 };
 
 function virtueInfo(key) {
-    return VIRTUES[key] || { icon: 'fa-star', name: String(key || '').replace(/_/g, ' '), tone: 'slate' };
+    const known = VIRTUES[key] || {};
+    return {
+        icon: known.icon || AWARD_LOG_REASON_ICONS[key] || 'fa-star',
+        // Shared names, so the card says "Quiz of the Week", never the raw "quiz of the week" key.
+        name: getAwardReasonLabel(key),
+        tone: known.tone || 'slate'
+    };
 }
 
 function formatStars(n) {
@@ -91,7 +112,7 @@ export function buildHomePartyCardHtml({ students = [], virtueStars = {}, absent
            <div class="home-party__virtue">
                <span class="home-party__eyebrow">Class virtue</span>
                <span class="home-party__name font-title">${esc(top.name)}</span>
-               <span class="home-party__sub">${formatStars(topStars)} of ${formatStars(total)} stars</span>
+               <span class="home-party__sub">${formatStars(topStars)} of ${formatStars(total)} ${Number(total) === 1 ? 'star' : 'stars'}</span>
            </div>`
         : `<div class="home-party__crest home-party__crest--compass" aria-hidden="true"><i class="fas fa-compass"></i></div>
            <div class="home-party__virtue">
@@ -104,7 +125,7 @@ export function buildHomePartyCardHtml({ students = [], virtueStars = {}, absent
     const shown = ranked.slice(0, 4);
     const rest = ranked.slice(4).reduce((sum, [, n]) => sum + Number(n), 0);
     const ribbon = total > 0
-        ? `<div class="home-party__ribbon" role="img" aria-label="${esc(shown.map(([k, n]) => `${virtueInfo(k).name} ${formatStars(n)} stars`).join(', '))}">
+        ? `<div class="home-party__ribbon" role="img" aria-label="${esc(shown.map(([k, n]) => `${virtueInfo(k).name} ${formatStars(n)} ${Number(n) === 1 ? 'star' : 'stars'}`).join(', '))}">
                ${shown.map(([k, n]) => `<span class="home-party__seg" data-tone="${virtueInfo(k).tone}" style="flex-grow:${Number(n)}" title="${esc(virtueInfo(k).name)}: ${formatStars(n)} ⭐"></span>`).join('')}
                ${rest > 0 ? `<span class="home-party__seg" data-tone="slate" style="flex-grow:${rest}" title="Other: ${formatStars(rest)} ⭐"></span>` : ''}
            </div>`

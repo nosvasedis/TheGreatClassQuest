@@ -33,7 +33,7 @@ import { loadTeacherJourneyState, markTeacherGuideSeen } from './teacherJourney.
 import { getNextAssessmentOccurrenceForToday, getUpcomingScheduledAssessment } from './assessmentConfig.js';
 import { shouldShowQuizButton } from './quizOfTheWeek.js';
 import { quizLaunchButtonHtml } from '../ui/modals/quizStageMarkup.js';
-import { sumLiveMonthlyStarsFromStudentScores } from './awardLogReasonMeta.js';
+import { sumLiveMonthlyStarsFromStudentScores, getAwardLogMonthlyStarCredit } from './awardLogReasonMeta.js';
 import { escapeHtml } from './roles/shared.js';
 import { getRaidView, raidPill, subscribeRaid, openRealmRaid } from './realmRaid.js';
 import {
@@ -684,9 +684,20 @@ function getActiveDashboard(classData, theme, spice) {
         return { id: s.id, name: s.name, avatar: s.avatar, monthlyStars: scoreData?.monthlyStars || 0, pendingSkillChoice: !!scoreData?.pendingSkillChoice };
     });
 
-    const classLogs = state.get('allAwardLogs').filter(l => l.classId === classId);
+    // This month only: the Calendar can load the whole year's logs into the same list.
+    const monthKey = utils.getMonthKey(now);
+    const logMonthKey = (l) => {
+        const at = l?.createdAt;
+        const d = at ? (typeof at.toDate === 'function' ? at.toDate() : new Date(at?.seconds ? at.seconds * 1000 : at)) : null;
+        if (d && !Number.isNaN(d.getTime())) return utils.getMonthKey(d);
+        return typeof l?.date === 'string' && l.date ? utils.getMonthKey(utils.parseDDMMYYYY(l.date)) : null;
+    };
     const virtueStars = {};
-    classLogs.forEach(l => { if (l.reason) virtueStars[l.reason] = (virtueStars[l.reason] || 0) + l.stars; });
+    state.get('allAwardLogs').forEach(l => {
+        if (l.classId !== classId || !l.reason || logMonthKey(l) !== monthKey) return;
+        // Same credit the hero's monthly stars got (wheel rows carry it outside `stars`).
+        virtueStars[l.reason] = (virtueStars[l.reason] || 0) + getAwardLogMonthlyStarCredit(l);
+    });
 
     const boon = classData.teacherBoons?.[utils.getLocalMonthKey()] || null;
     const boonHero = boon ? students.find(st => st.id === boon.studentId) : null;

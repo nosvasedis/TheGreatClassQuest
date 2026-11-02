@@ -189,35 +189,125 @@
     background: radial-gradient(closest-side, rgba(253, 224, 71, 0.35), transparent);
 }
 
-/* Speech bubble */
-.fam-hab__bubble {
+/* Going home for a nap, eating, coming back out */
+@keyframes fam-hab-eat {
+    0%, 100% { transform: rotate(0) translateY(0); }
+    40% { transform: rotate(calc(var(--dir, 1) * 9deg)) translateY(7%) scale(1.03, 0.95); }
+    60% { transform: rotate(calc(var(--dir, 1) * 6deg)) translateY(4%); }
+}
+.fam-hab__walker.is-eating .fam-hab__body { animation: fam-hab-eat 0.38s ease-in-out infinite; }
+@keyframes fam-hab-go-in { to { transform: translateY(-10%) scale(0.2); opacity: 0; } }
+@keyframes fam-hab-come-out { from { transform: translateY(-10%) scale(0.2); opacity: 0; } 70% { transform: translateY(-6%) scale(1.08, 0.94); opacity: 1; } to { transform: none; opacity: 1; } }
+.fam-hab__walker.is-going-in .fam-hab__body { animation: fam-hab-go-in 0.6s cubic-bezier(0.5, 0, 0.75, 0) forwards; }
+.fam-hab__walker.is-coming-out .fam-hab__body { animation: fam-hab-come-out 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.fam-hab__walker.is-going-in::before { opacity: 0; transition: opacity 0.4s ease; }
+
+/* ─── Speech bubbles: each kind of line has its own look ──────────────────── */
+.fam-hab__bubble:empty { display: none; }
+.fam-say {
     position: absolute;
     left: 50%;
-    bottom: 96%;
+    bottom: 94%;
     z-index: 2;
-    max-width: 220px;
-    padding: 7px 14px;
-    border-radius: 16px;
-    font: 600 clamp(0.85rem, 0.7rem + 0.5cqw, 1.2rem)/1.2 'Fredoka', sans-serif;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    max-width: min(300px, 70cqw);
+    padding: 9px 16px 9px 10px;
+    border-radius: 22px;
+    font: 600 clamp(0.9rem, 0.72rem + 0.55cqw, 1.3rem)/1.15 'Fredoka', sans-serif;
     white-space: nowrap;
-    color: #1f1633;
-    background: #fff;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+    color: #2a1f45;
+    background: #fffdf8;
+    border: 3px solid var(--den-glow);
+    box-shadow: 0 8px 0 -3px color-mix(in srgb, var(--den-glow-2) 70%, #000), 0 12px 24px rgba(0, 0, 0, 0.28);
     opacity: 0;
-    transform: translate(-50%, 8px) scale(0.85);
-    transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: none;
+    transform: translate(-50%, 12px) scale(0.6) rotate(-4deg);
+    transform-origin: 50% 120%;
+    transition: opacity 0.2s ease, transform 0.42s cubic-bezier(0.34, 1.7, 0.6, 1);
 }
-.fam-hab__bubble::after {
+.fam-say.is-on { opacity: 1; transform: translate(-50%, 0) scale(1) rotate(0); }
+.fam-say::after {
+    /* tail */
     content: '';
     position: absolute;
     left: 50%;
     top: 100%;
-    margin-left: -7px;
-    border: 7px solid transparent;
-    border-top-color: #fff;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    background: inherit;
+    border-right: 3px solid var(--den-glow);
+    border-bottom: 3px solid var(--den-glow);
+    border-radius: 0 0 5px 0;
+    transform: rotate(45deg);
 }
-.fam-hab__bubble.is-on { opacity: 1; transform: translate(-50%, 0) scale(1); }
-.fam-hab__bubble:empty { display: none; }
+.fam-say__icon {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 1.9em;
+    height: 1.9em;
+    border-radius: 50%;
+    font-size: 0.85em;
+    background: color-mix(in srgb, var(--den-glow) 30%, #fff);
+    box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+}
+.fam-say__text { position: relative; }
+.fam-say__w { display: inline-block; }
+.fam-say.is-on .fam-say__w { animation: fam-say-word 0.36s cubic-bezier(0.34, 1.7, 0.6, 1) both; animation-delay: calc(0.08s + var(--i) * 0.07s); }
+@keyframes fam-say-word { from { opacity: 0; transform: translateY(6px) scale(0.6); } to { opacity: 1; transform: none; } }
+.fam-say__bg { position: absolute; inset: -14px -18px; z-index: -1; width: calc(100% + 36px); height: calc(100% + 28px); overflow: visible; }
+
+/* love: pink, a heart badge, a little heartbeat */
+.fam-say--love { color: #fff; background: linear-gradient(135deg, #f472b6, #ec4899); border-color: #fff; box-shadow: 0 8px 0 -3px #9d174d, 0 12px 24px rgba(236, 72, 153, 0.35); }
+.fam-say--love::after { border-color: #fff; }
+.fam-say--love .fam-say__icon { background: #fff; }
+.fam-say--love.is-on { animation: fam-say-beat 0.9s ease-in-out 0.45s 2; }
+@keyframes fam-say-beat { 0%, 100% { transform: translate(-50%, 0) scale(1); } 30% { transform: translate(-50%, 0) scale(1.08); } 50% { transform: translate(-50%, 0) scale(0.98); } }
+
+/* yum: a cream plate of a bubble with crumbs falling off */
+.fam-say--yum { background: #fff4d6; border-color: #f59e0b; color: #7c2d12; border-radius: 26px 26px 26px 26px / 22px 22px 30px 30px; box-shadow: 0 8px 0 -3px #b45309, 0 12px 24px rgba(0, 0, 0, 0.25); }
+.fam-say--yum::after { border-color: #f59e0b; }
+.fam-say--yum .fam-say__icon { background: #fde68a; }
+.fam-say--yum.is-on .fam-say__icon { animation: fam-say-munch 0.36s ease-in-out 4; }
+@keyframes fam-say-munch { 50% { transform: scale(1.18) rotate(-10deg); } }
+.fam-say__crumbs { position: absolute; left: 20%; right: 20%; top: 100%; height: 0; }
+.fam-say__crumbs i { position: absolute; top: 4px; width: 6px; height: 6px; border-radius: 2px; background: #d97706; opacity: 0; }
+.fam-say__crumbs i:nth-child(1) { left: 10%; } .fam-say__crumbs i:nth-child(2) { left: 35%; background: #fbbf24; }
+.fam-say__crumbs i:nth-child(3) { left: 62%; } .fam-say__crumbs i:nth-child(4) { left: 88%; background: #fbbf24; }
+.fam-say--yum.is-on .fam-say__crumbs i { animation: fam-say-crumb 0.9s ease-in 0.3s 2; }
+.fam-say__crumbs i:nth-child(2n) { animation-delay: 0.5s !important; }
+@keyframes fam-say-crumb { 0% { opacity: 1; transform: translateY(0) rotate(0); } 100% { opacity: 0; transform: translateY(34px) rotate(140deg); } }
+
+/* burst: a starburst shout for play */
+.fam-say--burst { background: none; border: 0; box-shadow: none; color: #3b0764; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; padding: 12px 22px 12px 14px; }
+.fam-say--burst::after { display: none; }
+.fam-say--burst .fam-say__bg path { fill: #fde047; stroke: var(--den-glow-2); stroke-width: 4; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.fam-say--burst .fam-say__icon { background: #fff; }
+.fam-say--burst.is-on { animation: fam-say-shake 0.5s ease-in-out 0.35s; }
+@keyframes fam-say-shake { 20% { transform: translate(-50%, 0) rotate(-5deg) scale(1.06); } 50% { transform: translate(-50%, 0) rotate(4deg); } 80% { transform: translate(-50%, 0) rotate(-2deg); } }
+
+/* think: a dreamy cloud with bubbles for a tail and floating Zs */
+.fam-say--think { background: none; border: 0; box-shadow: none; color: #3b2a6b; font-style: italic; padding: 12px 22px 14px 14px; }
+.fam-say--think::after {
+    width: 12px; height: 12px; margin: 6px 0 0 -26px; border: 0; border-radius: 50%; transform: none;
+    background: #f5f3ff; box-shadow: -14px 14px 0 -2px #f5f3ff, 0 0 0 2px var(--den-glow);
+}
+.fam-say--think .fam-say__bg path { fill: #f5f3ff; stroke: var(--den-glow); stroke-width: 3; vector-effect: non-scaling-stroke; }
+.fam-say--think .fam-say__icon { background: #312e81; }
+.fam-say--think.is-on { animation: fam-say-drift 3s ease-in-out infinite 0.5s; }
+@keyframes fam-say-drift { 50% { transform: translate(-50%, -6px); } }
+.fam-say__zzz { position: absolute; right: -10px; top: -6px; }
+.fam-say__zzz i { position: absolute; font: 700 1em/1 'Fredoka', sans-serif; font-style: normal; color: #fff; text-shadow: 0 0 6px var(--den-glow-2), 0 2px 0 #312e81; opacity: 0; animation: fam-say-z 2.4s ease-out infinite; }
+.fam-say__zzz i:nth-child(2) { animation-delay: 0.8s; font-size: 1.2em; }
+.fam-say__zzz i:nth-child(3) { animation-delay: 1.6s; font-size: 1.5em; }
+@keyframes fam-say-z { 0% { opacity: 0; transform: translate(0, 6px) rotate(-10deg); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate(26px, -40px) rotate(14deg); } }
+
+/* whisper: the egg's shy dotted bubble */
+.fam-say--whisper { background: rgba(255, 255, 255, 0.82); border: 2.5px dashed var(--den-glow); box-shadow: none; color: #4b5563; font-style: italic; font-weight: 500; }
+.fam-say--whisper::after { border-style: dashed; }
 
 .fam-hab__pop { position: absolute; left: 50%; top: 18%; z-index: 3; pointer-events: none; }
 .fam-hab__pop i {
@@ -236,17 +326,12 @@
     100% { opacity: 0; transform: translate(var(--x), -90px) scale(0.8); }
 }
 
-/* Snack, toy and home markers */
-.fam-hab__spots { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
-.fam-hab-spot {
+/* ─── Stations: snack, ball, home ─────────────────────────────────────────── */
+.fam-hab__stations { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+.fam-hab-station, .fam-hab-toy {
     position: absolute;
     left: 0;
     top: 0;
-    translate: -50% -50%;
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
     padding: 0;
     border: 0;
     background: none;
@@ -254,38 +339,84 @@
     pointer-events: auto;
     -webkit-tap-highlight-color: transparent;
 }
-.fam-hab-spot > span {
-    display: grid;
-    place-items: center;
-    width: clamp(34px, 3.4cqw, 52px);
-    height: clamp(34px, 3.4cqw, 52px);
-    border-radius: 50%;
-    font-size: clamp(17px, 1.7cqw, 26px);
-    background: rgba(255, 255, 255, 0.88);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--den-glow) 60%, transparent), 0 6px 14px rgba(0, 0, 0, 0.3);
-    animation: fam-hab-bob 2.8s ease-in-out infinite;
-    transition: transform 0.2s ease;
-}
-.fam-hab-spot:nth-child(2) > span { animation-delay: -0.9s; }
-.fam-hab-spot:nth-child(3) > span { animation-delay: -1.8s; }
-.fam-hab-spot em {
-    font: 600 clamp(0.62rem, 0.55rem + 0.3cqw, 0.85rem)/1 'Fredoka', sans-serif;
-    font-style: normal;
-    color: #fff;
-    padding: 2px 7px;
+.fam-hab-station > svg, .fam-hab-toy svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.fam-hab-station--snack { z-index: 2; }
+.fam-hab-station--snack > svg { transition: transform 0.25s ease; transform-origin: 50% 100%; }
+.fam-hab-station--snack:hover > svg, .fam-hab-station--snack:focus-visible > svg { transform: scale(1.06); }
+.fam-hab-station--home { z-index: 0; border-radius: 40% 40% 12px 12px; }
+.fam-hab-station:focus-visible, .fam-hab-toy:focus-visible { outline: 3px solid #fff; outline-offset: 2px; border-radius: 16px; }
+/* the hover tag: a little hanging wooden-free label in the species colour */
+.fam-hab-station__tag {
+    position: absolute;
+    left: 50%;
+    bottom: 100%;
+    margin-bottom: 4px;
+    padding: 3px 10px;
     border-radius: 999px;
-    background: rgba(0, 0, 0, 0.45);
+    font: 700 clamp(0.62rem, 0.55rem + 0.3cqw, 0.9rem)/1.2 'Fredoka', sans-serif;
+    white-space: nowrap;
+    color: #1a1026;
+    background: linear-gradient(135deg, #fff, var(--den-glow));
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+    opacity: 0;
+    transform: translate(-50%, 4px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
 }
-.fam-hab-spot:hover > span, .fam-hab-spot:focus-visible > span { transform: scale(1.12); }
-.fam-hab-spot:focus-visible { outline: none; }
-.fam-hab-spot:focus-visible > span { box-shadow: 0 0 0 4px #fff, 0 6px 14px rgba(0, 0, 0, 0.3); }
-@keyframes fam-hab-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+.fam-hab-station--home .fam-hab-station__tag { bottom: auto; top: 0; }
+.fam-hab-station:hover .fam-hab-station__tag, .fam-hab-station:focus-visible .fam-hab-station__tag,
+.fam-hab-toy:hover .fam-hab-station__tag, .fam-hab-toy:focus-visible .fam-hab-station__tag { opacity: 1; transform: translate(-50%, 0); }
+/* the bites the familiar eats, and how they grow back */
+.fst-bite { transition: opacity 0.25s ease, transform 0.3s ease; transform-box: fill-box; transform-origin: 50% 50%; }
+.fst-bite.is-eaten { opacity: 0; transform: scale(0.2) translateY(-10px); }
+.fam-hab-station--snack.is-regrow .fst-bite { animation: fst-grow 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; animation-delay: calc(var(--i) * 0.12s); }
+@keyframes fst-grow { from { transform: scale(0); opacity: 0; } to { transform: none; opacity: 1; } }
+.fam-hab-station--snack:not(.is-empty) .fst-bite { animation: fst-wiggle 3.2s ease-in-out infinite; animation-delay: calc(var(--i) * -0.6s); }
+@keyframes fst-wiggle { 0%, 80%, 100% { transform: none; } 88% { transform: rotate(-8deg); } 94% { transform: rotate(6deg); } }
+.fst-glow { animation: hb-pulse 2.4s ease-in-out infinite; }
+.fst-float { animation: hb-float 4s ease-in-out infinite; }
+.fam-hab-crumbs { position: absolute; left: 50%; top: 35%; pointer-events: none; }
+.fam-hab-crumbs i { position: absolute; width: 6px; height: 6px; border-radius: 2px; background: #fbbf24; animation: fam-hab-crumb 0.8s ease-out forwards; }
+.fam-hab-crumbs i:nth-child(1) { --cx: -30px; } .fam-hab-crumbs i:nth-child(2) { --cx: -12px; background: #fde68a; }
+.fam-hab-crumbs i:nth-child(3) { --cx: 6px; } .fam-hab-crumbs i:nth-child(4) { --cx: 22px; background: #f97316; }
+.fam-hab-crumbs i:nth-child(5) { --cx: 34px; }
+@keyframes fam-hab-crumb { 0% { transform: translate(0, 0); opacity: 1; } 60% { transform: translate(var(--cx), -26px); opacity: 1; } 100% { transform: translate(calc(var(--cx) * 1.3), 10px); opacity: 0; } }
 
-/* Narrow places (phones): markers without labels, a shorter hint. */
-.fam-hab__world.is-narrow .fam-hab-spot em, .fam-hab__world.is-narrow .fam-hab__hint-more { display: none; }
-.fam-hab__world.is-narrow .fam-hab-spot > span { width: 32px; height: 32px; font-size: 16px; }
+/* the ball: it rolls across the ground and bounces when kicked */
+.fam-hab-toy { z-index: 3; transition: transform var(--kick-dur, 1.3s) cubic-bezier(0.2, 0.7, 0.3, 1); will-change: transform; }
+.fam-hab-toy__hop { display: block; width: 100%; height: 100%; }
+.fam-hab-toy .fst-toy__ball { transform-box: fill-box; transform-origin: 50% 50%; }
+.fam-hab-toy:not(.is-kicked) .fam-hab-toy__hop { animation: fst-toy-idle 2.6s ease-in-out infinite; }
+@keyframes fst-toy-idle { 0%, 70%, 100% { transform: none; } 80% { transform: translateY(-14%); } 90% { transform: translateY(0) scale(1.06, 0.94); } }
+.fam-hab-toy.is-kicked .fam-hab-toy__hop { animation: fst-toy-bounce var(--kick-dur, 1.3s) linear both; }
+.fam-hab-toy.is-kicked .fst-toy__ball { animation: fst-toy-spin var(--kick-dur, 1.3s) cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+@keyframes fst-toy-bounce {
+    0% { transform: translateY(0); animation-timing-function: ease-out; }
+    22% { transform: translateY(-160%); animation-timing-function: ease-in; }
+    44% { transform: translateY(0) scale(1.1, 0.88); animation-timing-function: ease-out; }
+    60% { transform: translateY(-70%); animation-timing-function: ease-in; }
+    76% { transform: translateY(0) scale(1.06, 0.94); animation-timing-function: ease-out; }
+    86% { transform: translateY(-24%); animation-timing-function: ease-in; }
+    100% { transform: translateY(0); }
+}
+@keyframes fst-toy-spin { to { transform: rotate(calc(var(--spin, 1) * 720deg)); } }
+.fam-hab-toy:hover .fam-hab-toy__hop { filter: brightness(1.1); }
 
-/* Place name and chips */
+/* the home window glows while it naps inside */
+.fam-hab-homeglow {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 1;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(255, 236, 160, 0.85), rgba(255, 200, 90, 0.35) 45%, transparent 75%);
+    opacity: 0;
+    transition: opacity 0.8s ease;
+    pointer-events: none;
+}
+.fam-hab-homeglow.is-on { opacity: 1; animation: hb-pulse 2.2s ease-in-out infinite 0.8s; }
+
+/* Place name */
 .fam-hab__top {
     position: absolute;
     top: 14px;
@@ -323,21 +454,6 @@
     color: #fff;
     text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
 }
-.fam-hab__chips { display: flex; flex-wrap: wrap; gap: 6px; pointer-events: auto; }
-.fam-hab-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    border-radius: 999px;
-    font: 600 clamp(0.72rem, 0.62rem + 0.3cqw, 1rem)/1 'Fredoka', sans-serif;
-    color: #fff;
-    background: rgba(6, 8, 18, 0.55);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    transition: background 0.2s ease, transform 0.2s ease;
-}
-.fam-hab-chip:hover { background: rgba(6, 8, 18, 0.75); transform: translateY(-1px); }
-.fam-hab-chip:focus-visible { outline: 2px solid var(--den-glow); outline-offset: 2px; }
 
 .fam-hab__hint {
     position: absolute;
@@ -348,7 +464,7 @@
     padding: 5px 14px;
     border-radius: 999px;
     font: 600 clamp(0.66rem, 0.6rem + 0.25cqw, 0.9rem)/1.2 'Fredoka', sans-serif;
-    white-space: nowrap;
+    max-width: 92%; text-align: center; width: max-content;
     color: rgba(255, 255, 255, 0.9);
     background: rgba(0, 0, 0, 0.42);
     pointer-events: none;
@@ -717,7 +833,7 @@
 
 /* Weak machines: the place stays still; only a few particles move. */
 .fam-hab--lite .hb-scene * { animation: none !important; }
-.fam-hab--lite .fam-hab-spot > span { animation: none; }
+.fam-hab--lite .fst-bite, .fam-hab--lite .fst-glow, .fam-hab--lite .fst-float, .fam-hab--lite .fam-hab-toy:not(.is-kicked) .fam-hab-toy__hop { animation: none; }
 .fam-hab--lite .hb-scene .hb-bolt { opacity: 0; }
 
 /* ─── Phones and narrow windows: place on top, journal below ──────────────── */
@@ -732,10 +848,6 @@
     .fam-hab__journal { border-left: 0; border-top: 1px solid color-mix(in srgb, var(--den-glow) 28%, transparent); padding: 14px 14px 10px; }
     .fam-hab-id { padding-right: 0; }
     .fam-hab__top { top: 10px; left: 10px; right: 58px; }
-    .fam-hab__chips { gap: 4px; }
-    .fam-hab-chip { padding: 5px 9px; }
-    .fam-hab-chip span:last-child { display: none; }
-    .fam-hab-chip span:first-child { font-size: 1rem; }
     .fam-hab__place { padding: 6px 12px 7px; }
     .fam-hab__world::after { background: linear-gradient(180deg, rgba(0, 0, 0, 0.3), transparent 26%); }
     .fam-hab .fam-modal-name { font-size: 1.6rem; }
@@ -776,8 +888,8 @@
 /* ─── Reduced motion ───────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
     .fam-hab, .fam-hab-overlay .fam-overlay-backdrop, .fam-hab-pane.is-on, .fam-hab .fam-modal-progress-bar,
-    .fam-hab-spot > span, .fam-hab__hint, .hb-scene *, .hbp, .fam-hab__air, .fam-hab__mist { animation: none !important; }
+    .fam-hab__hint, .fst-bite, .fst-glow, .fst-float, .fam-hab-toy__hop, .fst-toy__ball, .fam-say, .fam-say *, .hb-scene *, .hbp, .fam-hab__air, .fam-hab__mist { animation: none !important; }
     .fam-hab__hint { opacity: 1; }
     .fam-hab__walker { transition: none; }
 }
-.fam-hab--still .hb-scene *, .fam-hab--still .fam-hab-spot > span { animation: none !important; }
+.fam-hab--still .hb-scene *, .fam-hab--still .fst-bite, .fam-hab--still .fam-hab-toy__hop { animation: none !important; }

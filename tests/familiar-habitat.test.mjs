@@ -7,11 +7,11 @@ import {
     buildHabitat,
     habitatPlaces,
     habitatSeason,
-    habitatSpots,
     habitatTimeOfDay,
     habitatWeather,
     habitatWeathers
 } from '../features/familiarHabitat.mjs';
+import { STATION_BITES, familiarWords, snackStationSvg, toySvg } from '../features/familiarStations.mjs';
 
 const SPECIES = ['emberfang', 'frostpaw', 'thornback', 'veilshade', 'sparkling', 'tidefin', 'stormwing', 'gemshell', 'starfoal', 'cloverhop'];
 
@@ -85,7 +85,15 @@ test("today's weather stays the same all day and fits the season", () => {
     assert.ok(habitatWeathers('winter').includes(morning));
 });
 
-test('the snack is always there; the toy and the home come with the forms', () => {
-    assert.deepEqual(habitatSpots(1).map((s) => s.id), ['treat', 'home']);
-    assert.deepEqual(habitatSpots(2).map((s) => s.id), ['treat', 'toy', 'home']);
+test('every species has its own snack with three bites, a toy and its own words', () => {
+    const sounds = new Set();
+    for (const typeId of SPECIES) {
+        const snack = snackStationSvg(typeId);
+        assert.equal((snack.match(/class="fst-bite"/g) || []).length, STATION_BITES, typeId);
+        assert.doesNotMatch(snack + toySvg(typeId), /NaN|undefined/);
+        const w = familiarWords(typeId);
+        assert.ok(w.sound && w.food && w.foodIcon, typeId);
+        sounds.add(w.sound);
+    }
+    assert.equal(sounds.size, SPECIES.length);
 });

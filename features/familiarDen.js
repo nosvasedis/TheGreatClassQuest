@@ -40,25 +40,32 @@ import {
 import {
     GROUND_Y,
     HABITAT_H,
-    HABITAT_SEASONS,
-    HABITAT_TIMES,
     HABITAT_W,
+    HOME_SPOT,
     TOY_SPOT,
     TREAT_SPOT,
     buildHabitat,
     habitatPlaces,
-    habitatSpots,
-    habitatWeathers,
     hashString
 } from './familiarHabitat.mjs';
+import { STATION_BITES, familiarWords, snackStationSvg, toySvg } from './familiarStations.mjs';
 
-const SAYINGS = {
-    hello: ['Hi, {hero}!', 'Hello, {hero}!', 'You came back!', 'Yay, {hero}!'],
-    pet: ['Hehe!', 'Again!', 'That tickles!', 'Wheee!', 'I like you!', '♥'],
-    treat: ['Yum!', 'So tasty!', 'Munch munch!', 'Thank you!'],
-    toy: ['Wheee!', 'Catch!', 'Boing!', 'Fun!'],
-    home: ['Zzz...', 'Nap time...', 'Cosy...'],
-    egg: ['*tap tap*', '*wobble*', '*crack?*', '...']
+// What the familiar says, and how each kind of line looks: a friendly speech bubble, a pink
+// love bubble, a cream "yum" bubble with crumbs, a starburst shout, a dreamy thought cloud or a
+// shy whisper (the egg). {hero} = the student's first name, {sound} = the species' own voice
+// word, {food} = its favourite food.
+const MOODS = {
+    hello: { shape: 'talk', icon: '👋', lines: ['Hi, {hero}!', 'You came back, {hero}!', '{sound} Hello!', 'Yay, it is {hero}!'] },
+    pet: { shape: 'love', icon: '💖', lines: ['Hehe, that tickles!', '{sound}', 'I love you, {hero}!', 'Again, again!', 'Best friends!'] },
+    come: { shape: 'talk', icon: '✨', lines: ['Coming!', 'On my way!', 'Here I am!', 'Wait for me!'] },
+    eat: { shape: 'yum', icon: '{foodIcon}', lines: ['Yum yum!', 'Munch munch!', 'Mmm, {food}!', 'So tasty!'] },
+    full: { shape: 'love', icon: '😋', lines: ['I am full! Thank you!', 'Best {food} ever!', 'Thank you, {hero}!'] },
+    hungry: { shape: 'talk', icon: '{foodIcon}', lines: ['More {food} soon!', 'All gone! They grow back soon.'] },
+    play: { shape: 'burst', icon: '⚡', lines: ['Wheee!', 'Catch it!', 'Kick!', '{sound}', 'Fetch!'] },
+    caught: { shape: 'burst', icon: '🏆', lines: ['Got it!', 'Again!', 'I win!', 'One more time!'] },
+    sleep: { shape: 'think', icon: '🌙', lines: ['Zzz...', 'Sweet dreams...', 'Zzz... {food}... Zzz'] },
+    wake: { shape: 'talk', icon: '☀️', lines: ['Good nap!', 'Yaaawn! Hi, {hero}!', 'I feel great!'] },
+    egg: { shape: 'whisper', icon: '🥚', lines: ['tap... tap...', '*wobble wobble*', 'Is it time yet?', 'crack...?'] }
 };
 
 function esc(value) {
@@ -150,8 +157,9 @@ export function renderFamiliarDen(studentId) {
     const uid = `hb${hashString(seed).toString(36)}`;
     const forced = previewOverride();
     const view = { time: forced.time || null, season: forced.season || null, weather: forced.weather || null };
-    let habitat = buildHabitat({ typeId: familiar.typeId, stage: level, seed, lite, uid: `${uid}a`, ...view });
+    const habitat = buildHabitat({ typeId: familiar.typeId, stage: level, seed, lite, uid: `${uid}a`, ...view });
     const places = habitatPlaces(familiar.typeId);
+    const words = familiarWords(familiar.typeId);
 
     const spriteHtml = `<div class="familiar-container">${familiarArtSvg(familiar, studentId, { mode: 'full' })}</div>`;
     const progressSpan = Math.max(1, progress.max - progress.min);
@@ -227,7 +235,12 @@ export function renderFamiliarDen(studentId) {
                 <div class="fam-hab__scene">${sceneHtml(habitat)}</div>
                 <div class="fam-hab__fx" aria-hidden="true">${still ? '' : particlesHtml(habitat.particles)}</div>
                 <button type="button" class="fam-hab__ground" aria-label="${isEgg ? 'Tap near the egg' : `Call ${esc(displayName)} here`}"></button>
-                <div class="fam-hab__spots"></div>
+                ${isEgg ? '' : `<div class="fam-hab__stations">
+                    <button type="button" class="fam-hab-station fam-hab-station--home" data-station="home" aria-label="${esc(`Send ${displayName} home for a nap`)}"><span class="fam-hab-station__tag">Nap</span></button>
+                    <div class="fam-hab-homeglow" aria-hidden="true"></div>
+                    <button type="button" class="fam-hab-station fam-hab-station--snack" data-station="snack" aria-label="${esc(`Give ${displayName} a snack: ${words.food}`)}">${snackStationSvg(familiar.typeId)}<span class="fam-hab-station__tag">Snack</span></button>
+                    <button type="button" class="fam-hab-toy" data-station="toy" aria-label="${esc(`Play ball with ${displayName}`)}"><span class="fam-hab-toy__hop">${toySvg(familiar.typeId)}</span><span class="fam-hab-station__tag">Play</span></button>
+                </div>`}
                 <div class="fam-hab__walker">
                     <div class="fam-hab__bubble" aria-live="polite"></div>
                     <div class="fam-hab__body">
@@ -241,13 +254,8 @@ export function renderFamiliarDen(studentId) {
                         <span class="fam-hab__home"><span aria-hidden="true">${theme.sigil}</span> ${esc(habitat.home)}</span>
                         <strong class="fam-hab__placename">${esc(habitat.place)}</strong>
                     </div>
-                    <div class="fam-hab__chips" role="group" aria-label="The habitat right now">
-                        <button type="button" class="fam-hab-chip" data-cycle="time" title="Change the time of day"><span aria-hidden="true">${habitat.timeIcon}</span><span>${habitat.timeLabel}</span></button>
-                        <button type="button" class="fam-hab-chip" data-cycle="season" title="Change the season"><span aria-hidden="true">${habitat.seasonIcon}</span><span>${habitat.seasonLabel}</span></button>
-                        <button type="button" class="fam-hab-chip" data-cycle="weather" title="Change the weather"><span aria-hidden="true">${habitat.weatherIcon}</span><span>${habitat.weatherLabel}</span></button>
-                    </div>
                 </header>
-                <div class="fam-hab__hint" aria-hidden="true">${isEgg ? 'Tap the egg to listen' : `Tap ${esc(displayName)} to play<span class="fam-hab__hint-more"> · tap the ground to call it</span>`}</div>
+                <div class="fam-hab__hint" aria-hidden="true">${isEgg ? 'Tap the egg to listen' : `Tap ${esc(displayName)}, its ${esc(words.food)}, its ball or its home`}</div>
             </section>
 
             <aside class="fam-hab__journal">
@@ -306,12 +314,11 @@ export function renderFamiliarDen(studentId) {
 
     const card = overlay.querySelector('.fam-hab');
     const world = overlay.querySelector('.fam-hab__world');
-    const fxHost = overlay.querySelector('.fam-hab__fx');
     const walker = overlay.querySelector('.fam-hab__walker');
     const body = overlay.querySelector('.fam-hab__body');
     const bubble = overlay.querySelector('.fam-hab__bubble');
     const tapBtn = overlay.querySelector('.fam-overlay-tap');
-    const spotsHost = overlay.querySelector('.fam-hab__spots');
+    const stationsHost = overlay.querySelector('.fam-hab__stations');
     const groundBtn = overlay.querySelector('.fam-hab__ground');
     const timers = new Set();
     const later = (fn, ms) => { const t = setTimeout(() => { timers.delete(t); fn(); }, ms); timers.add(t); return t; };
@@ -368,19 +375,29 @@ export function renderFamiliarDen(studentId) {
         const [lo, hi] = visibleRange(walkerState.size / geo.s / 2);
         walkerState.x = Math.max(lo, Math.min(hi, walkerState.x));
         placeWalker(true);
-        placeSpots();
+        placeStations(true);
     }
 
-    // ─── Speech bubble and moods ────────────────────────────────────────────
+    // ─── Speech bubbles ─────────────────────────────────────────────────────
     let bubbleTimer = null;
-    function say(kind) {
-        const text = pick(SAYINGS[kind] || SAYINGS.pet).replace('{hero}', heroFirst);
-        bubble.textContent = text;
-        bubble.classList.remove('is-on');
+    const fill = (text) => text.replace(/\{hero\}/g, heroFirst).replace(/\{sound\}/g, words.sound)
+        .replace(/\{food\}/g, words.food).replace(/\{foodIcon\}/g, words.foodIcon);
+    const SHAPES = {
+        burst: '<svg class="fam-say__bg" viewBox="0 0 200 100" preserveAspectRatio="none" aria-hidden="true"><path d="M100 2l14 16l22 -12l2 22l26 -6l-10 22l30 6l-24 16l22 18l-30 2l8 24l-26 -12l-12 22l-16 -20l-16 20l-12 -22l-26 12l8 -24l-30 -2l22 -18l-24 -16l30 -6l-10 -22l26 6l2 -22l22 12z"/></svg>',
+        think: '<svg class="fam-say__bg" viewBox="0 0 200 100" preserveAspectRatio="none" aria-hidden="true"><path d="M40 86q-34 0 -34 -26q0 -22 26 -26q2 -26 34 -28q18 -14 40 -2q20 -10 40 4q30 -2 34 24q22 6 18 30q-4 24 -34 22q-14 14 -38 8q-20 12 -44 2q-26 8 -42 -8z"/></svg>'
+    };
+    function say(mood, lineOverride) {
+        const m = MOODS[mood] || MOODS.pet;
+        const text = fill(lineOverride || pick(m.lines));
+        const wordsHtml = text.split(' ').map((w, i) => `<span class="fam-say__w" style="--i:${i}">${esc(w)}</span>`).join(' ');
+        const zzz = m.shape === 'think' ? '<span class="fam-say__zzz" aria-hidden="true"><i>z</i><i>z</i><i>Z</i></span>' : '';
+        const crumbs = m.shape === 'yum' ? '<span class="fam-say__crumbs" aria-hidden="true"><i></i><i></i><i></i><i></i></span>' : '';
+        bubble.className = `fam-hab__bubble fam-say fam-say--${m.shape}`;
+        bubble.innerHTML = `${SHAPES[m.shape] || ''}<span class="fam-say__icon" aria-hidden="true">${fill(m.icon)}</span><span class="fam-say__text">${wordsHtml}</span>${zzz}${crumbs}`;
         void bubble.offsetWidth;
         bubble.classList.add('is-on');
         if (bubbleTimer) clearTimeout(bubbleTimer);
-        bubbleTimer = later(() => bubble.classList.remove('is-on'), 2200);
+        bubbleTimer = later(() => bubble.classList.remove('is-on'), mood === 'sleep' ? 4200 : 2600);
     }
     function react(kind) {
         const box = tapBtn.querySelector('.familiar-container');
@@ -424,7 +441,7 @@ export function renderFamiliarDen(studentId) {
         if (closed || isEgg || still) return;
         later(() => {
             if (closed) return;
-            if (Date.now() - lastTouch > 5000 && !walker.classList.contains('is-napping')) {
+            if (Date.now() - lastTouch > 5000 && !busy) {
                 const [lo, hi] = visibleRange(walkerState.size / geo.s / 2 + 40);
                 const roll = Math.random();
                 if (roll < 0.25) { react('fam-react-hop'); }
@@ -434,44 +451,143 @@ export function renderFamiliarDen(studentId) {
         }, 6000 + Math.random() * 5000);
     }
 
-    // ─── Hotspots: snack, toy, home ─────────────────────────────────────────
-    const spots = isEgg ? [] : habitatSpots(level);
-    const spotAnchor = { treat: TREAT_SPOT, toy: TOY_SPOT, home: [1065, 712] };
-    spotsHost.innerHTML = spots.map((sp) => `<button type="button" class="fam-hab-spot" data-spot="${sp.id}" aria-label="${esc(`${sp.label}: send ${displayName}`)}"><span aria-hidden="true">${sp.icon}</span><em>${esc(sp.label)}</em></button>`).join('');
-    function placeSpots() {
-        spotsHost.querySelectorAll('.fam-hab-spot').forEach((btn) => {
-            const [x, y] = spotAnchor[btn.dataset.spot] || [800, 700];
-            btn.style.transform = `translate3d(${toPx(x).toFixed(1)}px, ${(geo.h - (HABITAT_H - y + 70) * geo.s).toFixed(1)}px, 0)`;
-            const [lo, hi] = visibleRange(0);
-            btn.hidden = x < lo - 60 || x > hi + 60;
+    // ─── Stations: the snack, the ball and the home ──────────────────────────
+    // Each one is a real thing in the place, and the familiar really does it: it eats the
+    // bites one by one (they grow back), kicks the ball and chases it, or goes into its home
+    // for a nap while the window glows.
+    let busy = false;
+    const toy = { x: TOY_SPOT[0] };
+    let bitesLeft = STATION_BITES;
+    const snackBtn = stationsHost?.querySelector('[data-station="snack"]');
+    const toyBtn = stationsHost?.querySelector('[data-station="toy"]');
+    const homeBtn = stationsHost?.querySelector('[data-station="home"]');
+    const homeGlow = stationsHost?.querySelector('.fam-hab-homeglow');
+    function placeAt(el, x, y, w, h, extra = '') {
+        if (!el) return;
+        el.style.width = `${(w * geo.s).toFixed(1)}px`;
+        el.style.height = `${(h * geo.s).toFixed(1)}px`;
+        el.style.transform = `translate3d(${(toPx(x) - (w * geo.s) / 2).toFixed(1)}px, ${(geo.h - (HABITAT_H - y) * geo.s - h * geo.s).toFixed(1)}px, 0)${extra}`;
+    }
+    function placeStations(instant = false) {
+        if (!stationsHost) return;
+        placeAt(snackBtn, TREAT_SPOT[0], TREAT_SPOT[1], 150, 108);
+        placeAt(homeBtn, HOME_SPOT[0], HOME_SPOT[1] + 6, 230, 200);
+        placeAt(homeGlow, HOME_SPOT[0], HOME_SPOT[1] - 20, 160, 140);
+        if (instant) toyBtn.style.transition = 'none';
+        placeAt(toyBtn, toy.x, TOY_SPOT[1], 74, 74);
+        if (instant) { void toyBtn.offsetWidth; toyBtn.style.transition = ''; }
+    }
+    function setBites(n) {
+        bitesLeft = n;
+        snackBtn?.querySelectorAll('.fst-bite').forEach((g, i) => g.classList.toggle('is-eaten', i >= n));
+        snackBtn?.classList.toggle('is-empty', n === 0);
+    }
+    function doSnack() {
+        if (bitesLeft === 0) { walkTo(TREAT_SPOT[0] + 95, () => { react('fam-react-wiggle'); say('hungry'); busy = false; }); return; }
+        walkTo(TREAT_SPOT[0] + 95, () => {
+            body.style.setProperty('--dir', '-1');
+            walker.classList.add('is-eating');
+            say('eat');
+            let n = bitesLeft;
+            const chomp = () => {
+                if (closed) return;
+                n -= 1;
+                setBites(n);
+                crumbs();
+                if (n > 0) { later(chomp, 750); return; }
+                later(() => {
+                    walker.classList.remove('is-eating');
+                    react('fam-react-hop');
+                    hearts('♥');
+                    say(n === 0 ? 'full' : 'eat');
+                    playFamiliarCall(familiar, studentId);
+                    busy = false;
+                    if (n === 0) later(() => { setBites(STATION_BITES); snackBtn?.classList.add('is-regrow'); later(() => snackBtn?.classList.remove('is-regrow'), 900); }, 9000);
+                }, 500);
+            };
+            later(chomp, 450);
         });
     }
-    spotsHost.addEventListener('click', (e) => {
-        const btn = e.target.closest('.fam-hab-spot');
+    function crumbs() {
+        if (still || !snackBtn) return;
+        const pop = document.createElement('span');
+        pop.className = 'fam-hab-crumbs';
+        pop.innerHTML = '<i></i><i></i><i></i><i></i><i></i>';
+        snackBtn.appendChild(pop);
+        later(() => pop.remove(), 900);
+    }
+    function doPlay() {
+        const side = walkerState.x < toy.x ? -1 : 1;
+        walkTo(toy.x + side * 70, () => {
+            react('fam-react-hop');
+            // Kick the ball the other way, as far as the place allows.
+            const [lo, hi] = visibleRange(80);
+            const dir = -side;
+            let target = toy.x + dir * (260 + Math.random() * 260);
+            if (target < lo || target > hi) target = toy.x - dir * (260 + Math.random() * 200);
+            target = Math.max(lo, Math.min(hi, target));
+            const dur = still ? 0 : 1.3;
+            toyBtn.style.setProperty('--kick-dur', `${dur}s`);
+            toyBtn.style.setProperty('--spin', target > toy.x ? '1' : '-1');
+            toy.x = target;
+            toyBtn.classList.remove('is-kicked');
+            void toyBtn.offsetWidth;
+            toyBtn.classList.add('is-kicked');
+            placeStations();
+            say('play');
+            later(() => {
+                toyBtn.classList.remove('is-kicked');
+                const back = walkerState.x < toy.x ? -1 : 1;
+                walkTo(toy.x + back * 70, () => {
+                    react(Math.random() < 0.5 ? 'fam-react-spin' : 'fam-react-hop');
+                    spawnFamiliarBurst(walker, familiar.typeId, theme.burst);
+                    say('caught');
+                    playFamiliarCall(familiar, studentId);
+                    busy = false;
+                });
+            }, dur * 1000 + 150);
+        });
+    }
+    function doNap() {
+        walkTo(HOME_SPOT[0], () => {
+            walker.classList.add('is-going-in');
+            later(() => {
+                homeGlow?.classList.add('is-on');
+                say('sleep');
+            }, 650);
+            later(() => {
+                if (closed) return;
+                homeGlow?.classList.remove('is-on');
+                walker.classList.remove('is-going-in');
+                walker.classList.add('is-coming-out');
+                say('wake');
+                later(() => { walker.classList.remove('is-coming-out'); react('fam-react-hop'); busy = false; }, 700);
+            }, 5200);
+        });
+    }
+    stationsHost?.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-station]');
         if (!btn) return;
         e.stopPropagation();
         lastTouch = Date.now();
-        const spot = spots.find((s) => s.id === btn.dataset.spot);
-        if (!spot) return;
-        walker.classList.remove('is-napping');
-        walkTo(spot.x, () => {
-            if (spot.id === 'treat') { react('fam-react-hop'); hearts('♥'); say('treat'); playFamiliarCall(familiar, studentId); }
-            else if (spot.id === 'toy') { react('fam-react-spin'); hearts('✦'); say('toy'); spawnFamiliarBurst(walker, familiar.typeId, theme.burst); }
-            else {
-                walker.classList.add('is-napping');
-                say('home');
-                later(() => walker.classList.remove('is-napping'), 4200);
-            }
-        });
+        if (busy) return;
+        busy = true;
+        ensureAudioReady().catch(() => false);
+        say('come');
+        const kind = btn.dataset.station;
+        if (kind === 'snack') doSnack();
+        else if (kind === 'toy') doPlay();
+        else doNap();
     });
 
     // Tap the ground: the familiar comes over.
     groundBtn.addEventListener('click', (e) => {
         lastTouch = Date.now();
         if (isEgg) { tapBtn.click(); return; }
+        if (busy) return;
         const r = world.getBoundingClientRect();
-        walker.classList.remove('is-napping');
-        walkTo(toUnits(e.clientX - r.left), () => { if (Math.random() < 0.5) say('pet'); });
+        say('come');
+        walkTo(toUnits(e.clientX - r.left));
     });
 
     // Tap the familiar: the old Den's play reaction, voice and burst.
@@ -485,7 +601,7 @@ export function renderFamiliarDen(studentId) {
             playFamiliarSoundEffect('hatch');
             return;
         }
-        walker.classList.remove('is-napping');
+        if (walker.classList.contains('is-going-in')) return;
         react();
         hearts();
         say('pet');
@@ -507,42 +623,6 @@ export function renderFamiliarDen(studentId) {
             walker.style.setProperty('--fc-py', '0');
         });
     }
-
-    // ─── Time, season and weather chips: try the place in another light ────
-    let paintN = 0;
-    function repaint(changes) {
-        Object.assign(view, changes);
-        paintN += 1;
-        habitat = buildHabitat({ typeId: familiar.typeId, stage: level, seed, lite, uid: `${uid}${paintN}`, ...view });
-        const next = document.createElement('div');
-        next.className = 'fam-hab__scene is-entering';
-        next.innerHTML = sceneHtml(habitat);
-        const old = world.querySelectorAll('.fam-hab__scene');
-        world.insertBefore(next, fxHost);
-        requestAnimationFrame(() => next.classList.remove('is-entering'));
-        later(() => old.forEach((el) => { if (el !== next) el.remove(); }), 650);
-        fxHost.innerHTML = still ? '' : particlesHtml(habitat.particles);
-        world.dataset.time = habitat.time;
-        const chip = (k) => overlay.querySelector(`[data-cycle="${k}"]`);
-        chip('time').innerHTML = `<span aria-hidden="true">${habitat.timeIcon}</span><span>${habitat.timeLabel}</span>`;
-        chip('season').innerHTML = `<span aria-hidden="true">${habitat.seasonIcon}</span><span>${habitat.seasonLabel}</span>`;
-        chip('weather').innerHTML = `<span aria-hidden="true">${habitat.weatherIcon}</span><span>${habitat.weatherLabel}</span>`;
-    }
-    overlay.querySelector('.fam-hab__chips').addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-cycle]');
-        if (!btn) return;
-        e.stopPropagation();
-        const key = btn.dataset.cycle;
-        if (key === 'time') {
-            repaint({ time: HABITAT_TIMES[(HABITAT_TIMES.indexOf(habitat.time) + 1) % HABITAT_TIMES.length] });
-        } else if (key === 'season') {
-            const season = HABITAT_SEASONS[(HABITAT_SEASONS.indexOf(habitat.season) + 1) % HABITAT_SEASONS.length];
-            repaint({ season, weather: habitatWeathers(season)[0] });
-        } else {
-            const list = habitatWeathers(habitat.season);
-            repaint({ weather: list[(list.indexOf(habitat.weather) + 1) % list.length] });
-        }
-    });
 
     // ─── Journal tabs ───────────────────────────────────────────────────────
     const tabs = [...overlay.querySelectorAll('.fam-hab-tab')];

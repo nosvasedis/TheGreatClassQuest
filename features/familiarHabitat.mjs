@@ -833,29 +833,10 @@ function drawForeground(c) {
     return s;
 }
 
-function treatProp(c) {
-    const [x, y] = TREAT_SPOT;
-    const col = c.lit(c.biome.treat);
-    return E(x, y + 2, 46, 10, 'rgba(0,0,0,.25)') + P(`M${x - 40} ${y - 18}L${x + 40} ${y - 18}Q${x + 34} ${y + 2} ${x} ${y + 2}Q${x - 34} ${y + 2} ${x - 40} ${y - 18}Z`, c.lit('#8b5e3c'))
-        + E(x, y - 18, 40, 8, c.lit('#5a3a24')) + C(x - 14, y - 24, 10, col) + C(x + 4, y - 28, 11, col) + C(x + 18, y - 22, 9, col) + C(x - 2, y - 33, 4, '#ffffff', op(0.6));
-}
-
-function toyProp(c) {
-    const [x, y] = TOY_SPOT;
-    const col = c.lit(c.biome.glow);
-    return E(x, y + 2, 28, 7, 'rgba(0,0,0,.25)') + C(x, y - 22, 24, col) + P(`M${x - 24} ${y - 22}Q${x} ${y - 6} ${x + 24} ${y - 22}`, 'none', ` stroke="#ffffff" stroke-width="4"${op(0.8)}`) + C(x - 8, y - 32, 5, '#ffffff', op(0.7));
-}
-
-export const TREAT_SPOT = [655, 830];
-export const TOY_SPOT = [955, 836];
-
-/** Where the familiar can walk to: the treat, the toy (form 2+), its home (form 1+). */
-export function habitatSpots(stage) {
-    const spots = [{ id: 'treat', x: TREAT_SPOT[0] + 70, label: 'Snack', icon: '🍓' }];
-    if (stage >= 2) spots.push({ id: 'toy', x: TOY_SPOT[0] - 60, label: 'Toy', icon: '🎈' });
-    if (stage >= 1) spots.push({ id: 'home', x: SLOT.home[0] - 10, label: 'Home', icon: '🏡' });
-    return spots;
-}
+export const TREAT_SPOT = [640, 836];
+export const TOY_SPOT = [975, 842];
+/** The door of the familiar's home (its first-form landmark). */
+export const HOME_SPOT = [1065, 772];
 
 // ─── Particles (HTML spans, animated with CSS) ───────────────────────────────
 
@@ -951,8 +932,6 @@ export function buildHabitat({ typeId, stage = 1, time = null, season = null, we
     c.reseed('nest');
     const nestSlot = st === 0 ? SLOT.centre : SLOT.bed;
     layers.push(`<g class="hb-landmark" data-stage="0">${biome.props[0](c, nestSlot[0], nestSlot[1], st === 0 ? 1.45 : 0.62)}</g>`);
-    if (st >= 1) layers.push(treatProp(c));
-    if (st >= 2) layers.push(toyProp(c));
     c.reseed('front');
     layers.push(drawForeground(c));
     if (c.weather === 'fog') {

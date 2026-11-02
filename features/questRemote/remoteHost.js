@@ -1177,10 +1177,10 @@ function iconOf(el) {
 function labelOf(el) {
     if (el.dataset.remote) return el.dataset.remote;
     if (/^(SELECT|INPUT|TEXTAREA)$/.test(el.tagName)) {
-        return el.getAttribute('aria-label') || el.labels?.[0]?.textContent || el.getAttribute('placeholder') || el.getAttribute('title') || el.name || '';
+        return el.getAttribute('aria-label') || el.labels?.[0]?.textContent || el.getAttribute('placeholder') || el.getAttribute('title') || el.dataset?.gtip || el.name || '';
     }
     // `data-remote-label`: the words the screen wants on the Wand (its colour says the rest).
-    return el.dataset.remoteLabel || el.getAttribute('aria-label') || visibleText(el) || el.getAttribute('title') || '';
+    return el.dataset.remoteLabel || el.getAttribute('aria-label') || visibleText(el) || el.getAttribute('title') || el.dataset?.gtip || '';
 }
 
 /**

@@ -7,8 +7,10 @@
 
 import { setupQuestCursor } from './ui/questCursor.js';
 import { showUpdateBadge } from './ui/updateBadge.js';
+import { setupQuestTips } from './ui/questTips.js';
 
 setupQuestCursor();
+setupQuestTips();
 window.__GCQ_BUILD_ID__ = typeof __GCQ_BUILD_ID__ === 'string' ? __GCQ_BUILD_ID__ : 'development';
 
 function logRuntimeFailure(label, error) {

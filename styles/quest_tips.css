@@ -1,0 +1,651 @@
+/* App-wide tooltips (ui/questTips.js + ui/questTipsCard.js). One card, many looks: the look comes
+   from where the hovered thing lives, so a tip feels like part of that place. */
+
+.qtip {
+    --qtip-bg: #1b1d4a;
+    --qtip-fg: #eef0ff;
+    --qtip-sub: #c7cbf3;
+    --qtip-edge: rgba(250, 204, 21, 0.55);
+    --qtip-arrow: var(--qtip-bg);
+    --qtip-x: 50%;
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 2147483000;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.45rem;
+    width: max-content;
+    max-width: min(16.5rem, calc(100vw - 16px));
+    padding: 0.42rem 0.7rem 0.46rem;
+    border-radius: 0.7rem;
+    background: var(--qtip-bg);
+    border: 1px solid var(--qtip-edge);
+    color: var(--qtip-fg);
+    box-shadow: 0 10px 26px -10px rgba(10, 12, 40, 0.55), 0 2px 6px rgba(10, 12, 40, 0.18);
+    font-family: var(--gcq-font-body, 'Open Sans', sans-serif);
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.38;
+    text-align: left;
+    letter-spacing: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+.qtip.is-long { max-width: min(19rem, calc(100vw - 16px)); }
+.qtip.is-on {
+    opacity: 1;
+    visibility: visible;
+    animation: qtip-in 0.17s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+.qtip.is-on.is-below { animation-name: qtip-in-below; }
+@keyframes qtip-in { from { opacity: 0; transform: translateY(5px) scale(0.96); } }
+@keyframes qtip-in-below { from { opacity: 0; transform: translateY(-5px) scale(0.96); } }
+
+/* Pointer */
+.qtip::after {
+    content: '';
+    position: absolute;
+    left: var(--qtip-x);
+    bottom: -6px;
+    width: 11px;
+    height: 11px;
+    margin-left: -5.5px;
+    background: var(--qtip-arrow);
+    border-right: 1px solid var(--qtip-edge);
+    border-bottom: 1px solid var(--qtip-edge);
+    border-radius: 0 0 2px 0;
+    transform: rotate(45deg);
+}
+.qtip.is-below::after {
+    top: -6px;
+    bottom: auto;
+    border: 0;
+    border-left: 1px solid var(--qtip-edge);
+    border-top: 1px solid var(--qtip-edge);
+    border-radius: 2px 0 0 0;
+}
+
+.qtip__mark { display: none; flex: none; line-height: 1; }
+.qtip__copy { display: flex; flex-direction: column; min-width: 0; }
+.qtip__head { display: none; }
+.qtip.has-head .qtip__head {
+    display: block;
+    font-family: var(--gcq-font-display, 'Fredoka', sans-serif);
+    font-size: 0.86rem;
+    font-weight: 600;
+    line-height: 1.22;
+    color: var(--qtip-fg);
+}
+.qtip.has-head .qtip__body { color: var(--qtip-sub); font-size: 0.75rem; margin-top: 0.08rem; }
+.qtip__key { display: none; }
+.qtip.has-key .qtip__key {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    align-self: center;
+    min-width: 1.45rem;
+    height: 1.35rem;
+    padding: 0 0.32rem;
+    border-radius: 0.35rem;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-bottom-width: 2px;
+    color: inherit;
+    font: 700 0.68rem/1 var(--gcq-font-body, 'Open Sans', sans-serif);
+    letter-spacing: 0.02em;
+}
+
+/* ---------- Quest (default): night sky with a gold star ---------- */
+.qtip--quest .qtip__mark,
+.qtip--header .qtip__mark { display: block; color: #fcd34d; font-size: 0.72rem; margin-top: 0.18rem; }
+.qtip--quest .qtip__mark::before,
+.qtip--header .qtip__mark::before { content: '✦'; text-shadow: 0 0 6px rgba(252, 211, 77, 0.8); }
+.qtip--quest {
+    --qtip-bg: #1e1b4b;
+    background: radial-gradient(120% 140% at 0% 0%, #312e81 0%, #1e1b4b 55%, #17153b 100%);
+}
+
+/* ---------- Header: a lantern of the sky header, glassy, hanging below ---------- */
+.qtip--header {
+    --qtip-bg: rgba(18, 32, 74, 0.92);
+    --qtip-edge: rgba(191, 219, 254, 0.45);
+    background: linear-gradient(180deg, rgba(37, 64, 140, 0.94), rgba(18, 32, 74, 0.94));
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    border-radius: 999px;
+    padding: 0.36rem 0.85rem 0.4rem 0.7rem;
+    box-shadow: 0 8px 22px -8px rgba(8, 20, 60, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 0 0 3px rgba(147, 197, 253, 0.12);
+}
+.qtip--header.has-head,
+.qtip--header.is-long { border-radius: 0.9rem; }
+.qtip--header .qtip__mark { color: #bfdbfe; }
+.qtip--header .qtip__mark::before { text-shadow: 0 0 8px rgba(191, 219, 254, 0.9); }
+
+/* ---------- Projector: frosted night glass, keys first ---------- */
+.qtip--projector {
+    --qtip-bg: rgba(8, 15, 35, 0.86);
+    --qtip-edge: rgba(103, 232, 249, 0.45);
+    background:
+        radial-gradient(1px 1px at 18% 30%, rgba(255, 255, 255, 0.8), transparent 60%),
+        radial-gradient(1px 1px at 72% 70%, rgba(255, 255, 255, 0.6), transparent 60%),
+        radial-gradient(1.4px 1.4px at 88% 22%, rgba(165, 243, 252, 0.9), transparent 60%),
+        rgba(8, 15, 35, 0.86);
+    -webkit-backdrop-filter: blur(10px) saturate(1.2);
+    backdrop-filter: blur(10px) saturate(1.2);
+    border-radius: 0.85rem;
+    font-size: 0.82rem;
+    box-shadow: 0 0 0 1px rgba(103, 232, 249, 0.12), 0 0 22px -4px rgba(34, 211, 238, 0.45), 0 14px 30px -12px rgba(0, 0, 0, 0.8);
+    flex-direction: row-reverse;
+}
+.qtip--projector .qtip__key {
+    background: rgba(34, 211, 238, 0.16);
+    border-color: rgba(103, 232, 249, 0.55);
+    color: #cffafe;
+}
+
+/* ---------- Ceremony: black velvet, double gold rule, carved capitals ---------- */
+.qtip--ceremony {
+    --qtip-bg: #120d08;
+    --qtip-fg: #fde68a;
+    --qtip-sub: #f5e6c4;
+    --qtip-edge: #b8892b;
+    background: radial-gradient(130% 120% at 50% 0%, #2a1d0c 0%, #120d08 70%);
+    border-radius: 0.25rem;
+    padding: 0.5rem 0.85rem 0.55rem;
+    box-shadow: inset 0 0 0 3px #120d08, inset 0 0 0 4px rgba(250, 204, 21, 0.45), 0 12px 28px -10px rgba(0, 0, 0, 0.85), 0 0 18px -6px rgba(250, 204, 21, 0.45);
+    font-family: var(--gcq-font-serif, 'Lora', serif);
+    font-weight: 500;
+    text-align: center;
+    justify-content: center;
+}
+.qtip--ceremony .qtip__copy { align-items: center; }
+.qtip--ceremony .qtip__head,
+.qtip--ceremony:not(.has-head) .qtip__body {
+    font-family: var(--gcq-font-rune, 'Cinzel', serif) !important;
+    letter-spacing: 0.06em;
+    background: linear-gradient(180deg, #fff3c4, #f5c451 60%, #c78a1c);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent !important;
+}
+.qtip--ceremony:not(.has-head) .qtip__body { font-weight: 700; font-size: 0.8rem; }
+.qtip--ceremony .qtip__key { background: rgba(250, 204, 21, 0.12); border-color: rgba(250, 204, 21, 0.5); color: #fde68a; }
+
+/* ---------- Ember (Campfire, Ember Oaths): charcoal with a glowing ember edge ---------- */
+.qtip--ember {
+    --qtip-bg: #26140c;
+    --qtip-fg: #ffedd5;
+    --qtip-sub: #fdba74;
+    --qtip-edge: rgba(251, 146, 60, 0.55);
+    background: linear-gradient(180deg, #2f1a0f 0%, #1f0f08 100%);
+    border-radius: 0.6rem 0.6rem 0.75rem 0.75rem;
+    box-shadow: 0 3px 0 -1px #ea580c, 0 0 18px -2px rgba(249, 115, 22, 0.55), 0 12px 26px -10px rgba(0, 0, 0, 0.8);
+    animation-duration: 0.22s;
+}
+.qtip--ember.is-on { animation: qtip-in 0.22s ease-out, qtip-ember 2.4s ease-in-out 0.22s infinite; }
+.qtip--ember.is-on.is-below { animation: qtip-in-below 0.22s ease-out, qtip-ember 2.4s ease-in-out 0.22s infinite; }
+@keyframes qtip-ember {
+    50% { box-shadow: 0 3px 0 -1px #f97316, 0 0 24px 0 rgba(251, 146, 60, 0.6), 0 12px 26px -10px rgba(0, 0, 0, 0.8); }
+}
+.qtip--ember .qtip__mark { display: block; font-size: 0.8rem; margin-top: 0.05rem; }
+.qtip--ember .qtip__mark::before { content: '🔥'; filter: drop-shadow(0 0 4px rgba(251, 146, 60, 0.8)); }
+.qtip--ember .qtip__key { background: rgba(251, 146, 60, 0.16); border-color: rgba(251, 146, 60, 0.5); }
+
+/* ---------- Quiet Dragon: misty jade, sleepy and soft ---------- */
+.qtip--dragon {
+    --qtip-bg: #0f3b3a;
+    --qtip-fg: #e6fffb;
+    --qtip-sub: #99f6e4;
+    --qtip-edge: rgba(94, 234, 212, 0.4);
+    background: linear-gradient(160deg, rgba(19, 78, 74, 0.95), rgba(15, 59, 58, 0.95));
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    border-radius: 1.1rem;
+    padding: 0.45rem 0.85rem 0.5rem 0.75rem;
+    box-shadow: 0 0 0 4px rgba(94, 234, 212, 0.1), 0 12px 28px -12px rgba(4, 30, 30, 0.8);
+}
+.qtip--dragon .qtip__mark { display: block; color: #5eead4; font: 700 0.7rem/1 var(--gcq-font-display, 'Fredoka', sans-serif); margin-top: 0.12rem; }
+.qtip--dragon .qtip__mark::before { content: 'z'; }
+.qtip--dragon .qtip__mark::after { content: 'z'; font-size: 0.55rem; vertical-align: 0.35em; opacity: 0.7; }
+
+/* ---------- Quiz of the Week: game-show marquee ---------- */
+.qtip--quiz {
+    --qtip-bg: #4c1d95;
+    --qtip-edge: #f0abfc;
+    background:
+        radial-gradient(circle, #fde68a 0 1.3px, transparent 1.8px) 0 0 / 9px 9px repeat-x,
+        radial-gradient(circle, #fde68a 0 1.3px, transparent 1.8px) 4px 100% / 9px 9px repeat-x,
+        linear-gradient(135deg, #7c3aed 0%, #a21caf 100%);
+    border: 1.5px solid #f0abfc;
+    border-radius: 0.65rem;
+    padding: 0.6rem 0.8rem 0.62rem;
+    font-family: var(--gcq-font-display, 'Fredoka', sans-serif);
+    font-size: 0.82rem;
+    font-weight: 500;
+    box-shadow: 0 0 0 3px rgba(240, 171, 252, 0.18), 0 0 20px -4px rgba(217, 70, 239, 0.6), 0 12px 24px -10px rgba(46, 16, 101, 0.7);
+}
+.qtip--quiz { --qtip-arrow: #a21caf; }
+.qtip--quiz .qtip__key { background: #fde68a; border-color: #f59e0b; color: #4c1d95; }
+
+/* ---------- Arena (Hero Duels, Showdown, Fortune's Wheel, Team Maker): bold comic card ---------- */
+.qtip--arena {
+    --qtip-ink: #f59e0b;
+    --qtip-bg: #fff7d6;
+    --qtip-fg: #1c1917;
+    --qtip-sub: #44403c;
+    --qtip-edge: #1c1917;
+    background: #fff7d6;
+    border: 2px solid #1c1917;
+    border-radius: 0.5rem;
+    box-shadow: 4px 4px 0 #1c1917;
+    transform: rotate(-1.2deg);
+    font-family: var(--gcq-font-display, 'Fredoka', sans-serif);
+    font-weight: 500;
+    font-size: 0.82rem;
+    padding: 0.4rem 0.7rem 0.45rem 0.6rem;
+}
+.qtip--arena.is-on { animation-name: qtip-pop; }
+.qtip--arena.is-on.is-below { animation-name: qtip-pop; }
+@keyframes qtip-pop { from { opacity: 0; transform: rotate(-4deg) scale(0.8); } 70% { transform: rotate(0.5deg) scale(1.04); } }
+.qtip--arena::after { border-width: 2px; border-color: #1c1917; }
+.qtip--arena .qtip__mark { display: block; width: 0.55rem; height: 0.55rem; margin-top: 0.36rem; border: 2px solid #1c1917; border-radius: 50%; background: var(--qtip-ink); }
+.qtip--arena .qtip__head { font-family: var(--gcq-font-title, 'Fredoka One', sans-serif); font-weight: 400; }
+.qtip--arena .qtip__key { background: #fff; border-color: #1c1917; color: #1c1917; }
+
+/* ---------- Award Stars: a little cloud of daylight sky ---------- */
+.qtip--sky {
+    --qtip-bg: #ffffff;
+    --qtip-fg: #1e3a8a;
+    --qtip-sub: #1d4ed8;
+    --qtip-edge: #bae6fd;
+    --qtip-arrow: #f0f9ff;
+    background: linear-gradient(180deg, #ffffff, #f0f9ff);
+    border: 1.5px solid #bae6fd;
+    border-radius: 0.95rem;
+    padding: 0.4rem 0.8rem 0.42rem 0.55rem;
+    box-shadow: 0 10px 24px -8px rgba(30, 64, 175, 0.3);
+    font-family: var(--gcq-font-display, 'Fredoka', sans-serif);
+    font-weight: 500;
+}
+.qtip--sky .qtip__mark { display: block; color: #f59e0b; font-size: 0.78rem; margin-top: 0.08rem; }
+.qtip--sky .qtip__mark::before { content: '★'; text-shadow: 0 0 5px rgba(251, 191, 36, 0.7); }
+.qtip--sky .qtip__key { background: #fff; border-color: #bae6fd; color: #1e3a8a; }
+
+/* ---------- Crystal Portal and Portal story: prism glass ---------- */
+.qtip--portal {
+    --qtip-bg: rgba(30, 27, 75, 0.9);
+    --qtip-fg: #f5f3ff;
+    --qtip-sub: #c4b5fd;
+    --qtip-edge: rgba(196, 181, 253, 0.7);
+    --qtip-arrow: #2b2a6b;
+    background:
+        linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.14) 45%, transparent 60%),
+        linear-gradient(160deg, rgba(76, 29, 149, 0.92), rgba(30, 58, 138, 0.92) 60%, rgba(14, 116, 144, 0.92));
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    clip-path: polygon(0.55rem 0, calc(100% - 0.55rem) 0, 100% 0.55rem, 100% calc(100% - 0.55rem), calc(100% - 0.55rem) 100%, 0.55rem 100%, 0 calc(100% - 0.55rem), 0 0.55rem);
+    border-radius: 0;
+    padding: 0.48rem 0.95rem 0.52rem;
+    margin: 0;
+    filter: drop-shadow(0 8px 14px rgba(30, 20, 80, 0.55));
+}
+.qtip--portal::after { display: none; }
+.qtip--portal .qtip__mark { display: block; color: #a5f3fc; font-size: 0.75rem; margin-top: 0.12rem; }
+.qtip--portal .qtip__mark::before { content: '◆'; text-shadow: 0 0 6px #67e8f9; }
+
+/* ---------- Realm Raid: a battle-menu window ---------- */
+.qtip--raid {
+    --qtip-bg: #1d2f8f;
+    --qtip-fg: #ffffff;
+    --qtip-sub: #dbe4ff;
+    --qtip-edge: #ffffff;
+    --qtip-arrow: #18267a;
+    background: linear-gradient(180deg, #3550c8 0%, #1d2f8f 55%, #142170 100%);
+    border: 2px solid #f8fafc;
+    border-radius: 0.4rem;
+    padding: 0.42rem 0.8rem 0.46rem 0.55rem;
+    box-shadow: inset 0 0 0 2px #0b1450, 0 0 0 2px #0b1450, 0 12px 24px -10px rgba(5, 10, 40, 0.8);
+    font-family: var(--gcq-font-display, 'Fredoka', sans-serif);
+    font-weight: 500;
+    text-shadow: 1px 1px 0 #0b1450;
+}
+.qtip--raid::after { border-width: 2px; }
+.qtip--raid .qtip__mark { display: block; color: #fff; font-size: 0.62rem; margin-top: 0.28rem; animation: qtip-cursor 0.7s steps(2) infinite; }
+.qtip--raid .qtip__mark::before { content: '▶'; }
+@keyframes qtip-cursor { 50% { transform: translateX(2px); } }
+.qtip--raid .qtip__head { color: #fde047 !important; }
+.qtip--raid .qtip__key { background: #0b1450; border-color: #fff; }
+
+/* ---------- Guild Hall: a banner hanging from a gold rod, in the guild's colour ---------- */
+.qtip--guild {
+    --qtip-ink: #7f1d1d;
+    --qtip-bg: color-mix(in srgb, var(--qtip-ink) 62%, #1a0b0b);
+    --qtip-fg: #fff7e6;
+    --qtip-sub: #fde7c2;
+    --qtip-edge: #d4a24a;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--qtip-ink) 78%, #1a0b0b), color-mix(in srgb, var(--qtip-ink) 52%, #120707));
+    border: 1.5px solid #d4a24a;
+    border-top: 0;
+    border-radius: 0 0 0.55rem 0.55rem;
+    padding: 0.5rem 0.8rem 0.5rem;
+    margin-top: 4px;
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--qtip-ink) 70%, #000), inset 0 0 0 3px rgba(253, 230, 138, 0.35), 0 12px 24px -10px rgba(30, 10, 10, 0.75);
+    font-family: var(--gcq-font-serif, 'Lora', serif);
+}
+.qtip--guild::before {
+    content: '';
+    position: absolute;
+    left: -7px;
+    right: -7px;
+    top: -5px;
+    height: 6px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #fde68a, #c9902d 60%, #8a5a12);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+.qtip--guild.is-below::before { top: -5px; }
+.qtip--guild.is-below::after { top: -12px; background: #c9902d; border: 0; }
+.qtip--guild .qtip__head { font-family: var(--gcq-font-rune, 'Cinzel', serif) !important; letter-spacing: 0.04em; color: #fde68a !important; }
+
+/* ---------- Standings (leaderboards, Hall of Prodigies, Teacher Boon): laurel and gold leaf ---------- */
+.qtip--standings {
+    --qtip-bg: #fff8e1;
+    --qtip-fg: #5b3a05;
+    --qtip-sub: #7c5a1c;
+    --qtip-edge: #d6a737;
+    background: linear-gradient(180deg, #fffbeb 0%, #fdeec0 100%);
+    border: 1.5px solid #d6a737;
+    border-radius: 0.6rem;
+    padding: 0.45rem 0.85rem 0.5rem 0.6rem;
+    box-shadow: inset 0 1px 0 #fff, inset 0 -2px 0 rgba(214, 167, 55, 0.3), 0 10px 24px -10px rgba(120, 80, 10, 0.55);
+}
+.qtip--standings .qtip__mark { display: block; color: #b7791f; font-size: 0.85rem; margin-top: 0.05rem; }
+.qtip--standings .qtip__mark::before { content: '❦'; }
+.qtip--standings .qtip__head { font-family: var(--gcq-font-rune, 'Cinzel', serif) !important; letter-spacing: 0.03em; color: #7a4a00 !important; }
+.qtip--standings .qtip__key { background: #fff; border-color: #d6a737; color: #7a4a00; }
+
+/* ---------- Map (Team Quest, League Archive, Map Journal, Realm): old map parchment ---------- */
+.qtip--map {
+    --qtip-bg: #f1dfb6;
+    --qtip-fg: #4a2f12;
+    --qtip-sub: #6b4a22;
+    --qtip-edge: #a77b3f;
+    background:
+        radial-gradient(120% 140% at 50% 50%, transparent 55%, rgba(120, 72, 20, 0.28) 100%),
+        linear-gradient(170deg, #f6e7c4 0%, #ecd6a4 100%);
+    border: 1px solid #a77b3f;
+    outline: 1.5px dashed rgba(122, 78, 28, 0.55);
+    outline-offset: -5px;
+    border-radius: 0.35rem;
+    padding: 0.55rem 0.85rem 0.6rem 0.7rem;
+    box-shadow: 0 10px 22px -10px rgba(80, 50, 10, 0.6);
+    font-family: var(--gcq-font-serif, 'Lora', serif);
+}
+.qtip--map .qtip__mark { display: block; color: #9a3412; font-size: 0.9rem; margin-top: 0.02rem; }
+.qtip--map .qtip__mark::before { content: '✥'; }
+.qtip--map .qtip__head { font-family: 'Uncial Antiqua', var(--gcq-font-serif, serif) !important; font-weight: 400 !important; color: #7c2d12 !important; }
+.qtip--map .qtip__key { background: #fff8e7; border-color: #a77b3f; color: #4a2f12; }
+
+/* ---------- Scholar (Scholar's Scroll, Folio, trial history, Guide): a ledger slip ---------- */
+.qtip--scholar {
+    --qtip-bg: #fffdf6;
+    --qtip-fg: #2b2118;
+    --qtip-sub: #54463a;
+    --qtip-edge: #d6cbb5;
+    background:
+        linear-gradient(90deg, transparent 1.25rem, rgba(220, 38, 38, 0.45) 1.25rem, rgba(220, 38, 38, 0.45) calc(1.25rem + 1px), transparent calc(1.25rem + 1px)),
+        repeating-linear-gradient(180deg, #fffdf6 0 1.05rem, rgba(59, 130, 246, 0.14) 1.05rem calc(1.05rem + 1px)),
+        #fffdf6;
+    border-radius: 0.2rem;
+    padding: 0.38rem 0.75rem 0.42rem 0.4rem;
+    box-shadow: 0 1px 0 #e7dcc6, 0 10px 22px -12px rgba(43, 33, 24, 0.55);
+    font-family: var(--gcq-font-serif, 'Lora', serif);
+    font-weight: 500;
+    font-size: 0.8rem;
+}
+.qtip--scholar .qtip__mark { display: block; width: 0.75rem; color: #1e3a8a; font-size: 0.72rem; margin-top: 0.15rem; text-align: center; }
+.qtip--scholar .qtip__mark::before { content: '✒'; }
+.qtip--scholar .qtip__copy { padding-left: 0.3rem; }
+.qtip--scholar .qtip__head { font-family: var(--gcq-font-serif, 'Lora', serif) !important; font-weight: 700 !important; font-style: italic; color: #1e3a8a !important; }
+.qtip--scholar .qtip__key { background: #f5f0e4; border-color: #c9bca2; color: #2b2118; }
+
+/* ---------- Diary (Adventure Log, Logbook, Hero's Chronicle): a taped note ---------- */
+.qtip--diary {
+    --qtip-bg: #fffaf0;
+    --qtip-fg: #3b2a1a;
+    --qtip-sub: #5c4630;
+    --qtip-edge: #e9dcc3;
+    background: #fffaf0;
+    border-radius: 0.15rem 0.15rem 0.5rem 0.2rem;
+    padding: 0.62rem 0.8rem 0.45rem;
+    margin-top: 6px;
+    transform: rotate(-0.8deg);
+    box-shadow: 0 1px 0 #efe2c8, 2px 10px 18px -10px rgba(60, 40, 20, 0.55);
+    font-family: var(--gcq-font-hand, 'Caveat', cursive);
+    font-size: 1.12rem;
+    font-weight: 600;
+    line-height: 1.12;
+}
+.qtip--diary::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: -7px;
+    width: 3.2rem;
+    height: 0.95rem;
+    margin-left: -1.6rem;
+    background: rgba(251, 191, 36, 0.55);
+    border-left: 1px dashed rgba(255, 255, 255, 0.6);
+    border-right: 1px dashed rgba(255, 255, 255, 0.6);
+    transform: rotate(-3deg);
+}
+.qtip--diary.has-head .qtip__head { font-family: var(--gcq-font-hand, 'Caveat', cursive); font-size: 1.22rem; font-weight: 700; color: #9a3412; }
+.qtip--diary.has-head .qtip__body { font-size: 1.05rem; }
+.qtip--diary .qtip__key { font-family: var(--gcq-font-body, sans-serif); background: #fef3c7; border-color: #e9c46a; color: #3b2a1a; }
+
+/* ---------- Calendar (Calendar, Planner, attendance): a tear-off date tag ---------- */
+.qtip--calendar {
+    --qtip-bg: #ffffff;
+    --qtip-fg: #1f2937;
+    --qtip-sub: #4b5563;
+    --qtip-edge: #e5e7eb;
+    --qtip-arrow: #fff;
+    background: linear-gradient(180deg, #ef4444 0 0.42rem, #fff 0.42rem);
+    border-radius: 0.45rem;
+    padding: 0.7rem 0.8rem 0.45rem;
+    box-shadow: 0 10px 22px -10px rgba(15, 23, 42, 0.45), 0 1px 2px rgba(15, 23, 42, 0.1);
+}
+.qtip--calendar.is-below { --qtip-arrow: #ef4444; }
+.qtip--calendar::before {
+    content: '';
+    position: absolute;
+    top: 0.09rem;
+    left: 50%;
+    width: 2.2rem;
+    height: 0.26rem;
+    margin-left: -1.1rem;
+    background: radial-gradient(circle, #7f1d1d 0 0.12rem, transparent 0.14rem) 0 50% / 0.55rem 0.26rem repeat-x;
+}
+.qtip--calendar .qtip__head { font-family: var(--gcq-font-display, 'Fredoka', sans-serif); color: #b91c1c !important; }
+.qtip--calendar .qtip__key { background: #f3f4f6; border-color: #d1d5db; color: #111827; }
+
+/* ---------- Story (Ideas tab, Story Weavers): twilight violet with a shimmering edge ---------- */
+.qtip--story {
+    --qtip-bg: #2e1065;
+    --qtip-fg: #f5f3ff;
+    --qtip-sub: #ddd6fe;
+    --qtip-edge: transparent;
+    border: 1.5px solid transparent;
+    background:
+        linear-gradient(160deg, #3b0764, #2e1065) padding-box,
+        linear-gradient(90deg, #f0abfc, #a78bfa, #67e8f9, #f0abfc) border-box;
+    background-size: 100% 100%, 300% 100%;
+    border-radius: 0.8rem;
+    box-shadow: 0 0 18px -6px rgba(167, 139, 250, 0.75), 0 12px 26px -12px rgba(30, 6, 70, 0.8);
+}
+.qtip--story.is-on { animation: qtip-in 0.17s ease-out, qtip-shimmer 3s linear infinite; }
+.qtip--story.is-on.is-below { animation: qtip-in-below 0.17s ease-out, qtip-shimmer 3s linear infinite; }
+@keyframes qtip-shimmer { to { background-position: 0 0, 300% 0; } }
+.qtip--story::after { background: #2e1065; border-color: #a78bfa; }
+.qtip--story .qtip__mark { display: block; color: #f0abfc; font-size: 0.8rem; margin-top: 0.08rem; }
+.qtip--story .qtip__mark::before { content: '✧'; text-shadow: 0 0 6px #f0abfc; }
+
+/* ---------- Passport (student profile): a visa stamp ---------- */
+.qtip--passport {
+    --qtip-bg: #fbf7ee;
+    --qtip-fg: #3f1d2b;
+    --qtip-sub: #5b3444;
+    --qtip-edge: #b4536f;
+    background:
+        repeating-linear-gradient(45deg, rgba(180, 83, 111, 0.05) 0 2px, transparent 2px 6px),
+        #fbf7ee;
+    border: 1.5px solid #b4536f;
+    outline: 1px solid rgba(180, 83, 111, 0.5);
+    outline-offset: 2px;
+    border-radius: 0.3rem;
+    padding: 0.42rem 0.75rem 0.46rem;
+    box-shadow: 0 12px 24px -12px rgba(63, 29, 43, 0.6);
+}
+.qtip--passport .qtip__head { font: 700 0.66rem/1.2 var(--gcq-font-body, sans-serif) !important; text-transform: uppercase; letter-spacing: 0.14em; color: #9f1239 !important; }
+.qtip--passport .qtip__key { background: #fff; border-color: #b4536f; color: #3f1d2b; }
+
+/* ---------- Satchel: a stitched leather tag with a brass eyelet ---------- */
+.qtip--satchel {
+    --qtip-bg: #6b3f1f;
+    --qtip-fg: #fff3dc;
+    --qtip-sub: #f3d6a8;
+    --qtip-edge: #3d220e;
+    background: linear-gradient(175deg, #82502a 0%, #6b3f1f 55%, #5a3418 100%);
+    border-radius: 0.5rem 0.5rem 0.5rem 0.5rem;
+    padding: 0.45rem 0.8rem 0.5rem 0.6rem;
+    outline: 1.5px dashed rgba(255, 231, 186, 0.55);
+    outline-offset: -4px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 10px 22px -10px rgba(40, 20, 5, 0.7);
+}
+.qtip--satchel .qtip__mark { display: block; width: 0.6rem; height: 0.6rem; margin-top: 0.28rem; border-radius: 50%; background: radial-gradient(circle, #3d220e 0 28%, #f6c453 32% 62%, #a8741d 66%); box-shadow: 0 1px 1px rgba(0, 0, 0, 0.4); }
+.qtip--satchel .qtip__head { font-family: var(--gcq-font-title, 'Fredoka One', sans-serif) !important; font-weight: 400 !important; color: #ffe8b8 !important; }
+
+/* ---------- Mystic Market (market only): a little wooden sign ---------- */
+.qtip--market {
+    --qtip-bg: #7a4a22;
+    --qtip-fg: #fff4dc;
+    --qtip-sub: #f5dcae;
+    --qtip-edge: #4a2a10;
+    background:
+        repeating-linear-gradient(178deg, rgba(255, 255, 255, 0.05) 0 3px, rgba(0, 0, 0, 0.05) 3px 7px),
+        linear-gradient(180deg, #96602f 0%, #7a4a22 60%, #663c1a 100%);
+    border: 1.5px solid #4a2a10;
+    border-radius: 0.35rem;
+    padding: 0.45rem 1.05rem 0.5rem;
+    box-shadow: inset 0 1px 0 rgba(255, 220, 160, 0.3), 0 10px 22px -10px rgba(40, 20, 5, 0.75);
+    font-family: var(--gcq-font-display, 'Fredoka', sans-serif);
+    font-weight: 500;
+}
+.qtip--market::before {
+    content: '';
+    position: absolute;
+    inset: 0.32rem 0.35rem auto;
+    height: 0.26rem;
+    background:
+        radial-gradient(circle, #e2c18b 0 0.1rem, #5a3a18 0.12rem, transparent 0.15rem) 0 0 / 0.3rem 0.3rem no-repeat,
+        radial-gradient(circle, #e2c18b 0 0.1rem, #5a3a18 0.12rem, transparent 0.15rem) 100% 0 / 0.3rem 0.3rem no-repeat;
+}
+.qtip--market .qtip__head { font-family: var(--gcq-font-title, 'Fredoka One', sans-serif) !important; font-weight: 400 !important; color: #ffe1a8 !important; }
+
+/* ---------- Greenhouse: a fresh leaf card ---------- */
+.qtip--greenhouse {
+    --qtip-bg: #f0fdf4;
+    --qtip-fg: #14532d;
+    --qtip-sub: #166534;
+    --qtip-edge: #86efac;
+    background: linear-gradient(160deg, #f7fee7 0%, #dcfce7 100%);
+    border-radius: 1.05rem 0.25rem 1.05rem 0.25rem;
+    padding: 0.45rem 0.85rem 0.5rem 0.6rem;
+    box-shadow: 0 10px 22px -12px rgba(20, 83, 45, 0.55);
+}
+.qtip--greenhouse .qtip__mark { display: block; font-size: 0.8rem; margin-top: 0.05rem; }
+.qtip--greenhouse .qtip__mark::before { content: '🌱'; }
+.qtip--greenhouse .qtip__head { color: #15803d !important; }
+
+/* ---------- Office (Secretary): a tidy filing label ---------- */
+.qtip--office {
+    --qtip-bg: #ffffff;
+    --qtip-fg: #0f172a;
+    --qtip-sub: #475569;
+    --qtip-edge: #cbd5e1;
+    background: #fff;
+    border-left: 4px solid #2563eb;
+    border-radius: 0.3rem 0.5rem 0.5rem 0.3rem;
+    padding: 0.4rem 0.75rem 0.45rem 0.6rem;
+    box-shadow: 0 8px 20px -10px rgba(15, 23, 42, 0.4), 0 1px 2px rgba(15, 23, 42, 0.08);
+    font-weight: 600;
+}
+.qtip--office .qtip__head { font: 700 0.64rem/1.3 var(--gcq-font-body, sans-serif) !important; text-transform: uppercase; letter-spacing: 0.1em; color: #2563eb !important; }
+.qtip--office .qtip__key { background: #f1f5f9; border-color: #cbd5e1; color: #0f172a; }
+
+/* ---------- Family portal: a soft, friendly speech bubble ---------- */
+.qtip--family {
+    --qtip-bg: #fff7ed;
+    --qtip-fg: #431407;
+    --qtip-sub: #7c2d12;
+    --qtip-edge: #fed7aa;
+    background: #fff7ed;
+    border: 1.5px solid #fed7aa;
+    border-radius: 1.1rem;
+    padding: 0.42rem 0.9rem 0.46rem;
+    box-shadow: 0 10px 22px -12px rgba(124, 45, 18, 0.45);
+    font-family: var(--gcq-font-display, 'Fredoka', sans-serif);
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+/* ---------- My Classes cards and class roster: chalk on slate in a wooden frame ---------- */
+.qtip--classes {
+    --qtip-bg: #26352f;
+    --qtip-fg: #f1f5f0;
+    --qtip-sub: #cbd8cf;
+    --qtip-edge: #8b5e34;
+    background:
+        radial-gradient(80% 120% at 30% 20%, rgba(255, 255, 255, 0.06), transparent 70%),
+        #26352f;
+    border: 3px solid #8b5e34;
+    border-radius: 0.35rem;
+    padding: 0.4rem 0.75rem 0.45rem;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.4), 0 10px 22px -10px rgba(15, 25, 20, 0.7);
+    font-family: var(--gcq-font-display, 'Fredoka', sans-serif);
+    font-weight: 500;
+}
+.qtip--classes::after { border-width: 3px; }
+.qtip--classes .qtip__head { color: #fef9c3 !important; }
+
+/* ---------- Home: a sunny morning card ---------- */
+.qtip--home {
+    --qtip-bg: #fffbeb;
+    --qtip-fg: #1e3a5f;
+    --qtip-sub: #355a83;
+    --qtip-edge: #fcd9a0;
+    --qtip-arrow: #ffe9c9;
+    background: linear-gradient(170deg, #e0f2fe 0%, #fff7ed 70%, #ffe9c9 100%);
+    border-radius: 0.85rem;
+    padding: 0.42rem 0.85rem 0.46rem 0.62rem;
+    box-shadow: 0 10px 22px -12px rgba(30, 58, 95, 0.5);
+}
+.qtip--home.is-below { --qtip-arrow: #e0f2fe; }
+.qtip--home .qtip__mark { display: block; width: 0.62rem; height: 0.62rem; margin-top: 0.3rem; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff7c2, #fbbf24 60%, #f59e0b); box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.22), 0 0 8px rgba(251, 191, 36, 0.7); }
+.qtip--home .qtip__head { color: #0c4a6e !important; }
+.qtip--home .qtip__key { background: #fff; border-color: #fcd9a0; color: #1e3a5f; }
+
+@media (prefers-reduced-motion: reduce) {
+    .qtip.is-on,
+    .qtip.is-on.is-below,
+    .qtip .qtip__mark { animation: none !important; }
+}
+@media (forced-colors: active) {
+    .qtip { border: 1px solid CanvasText; background: Canvas; color: CanvasText; }
+}

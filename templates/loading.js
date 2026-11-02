@@ -1069,7 +1069,11 @@ function catchHeaderLumi() {
         const pixie = lane.querySelector('.gcq-pixie');
         if (!body || !pixie) continue;
         const swashStar = lane.parentElement?.querySelector('.gcq-swash__star');
-        const anims = [...lane.getAnimations({ subtree: true }), ...(swashStar?.getAnimations() || [])];
+        // Her cycle (flight, glow, melt, spark, the dust riding her path), the
+        // swash star's flare, and her sway. The motes' own little falls keep
+        // their staggered rhythm and are left alone.
+        const anims = [...lane.getAnimations({ subtree: true }), ...(swashStar?.getAnimations() || [])]
+            .filter(a => Number(a.effect?.getTiming?.().duration) === PIXIE_CYCLE_MS || a.animationName === 'gcq-lumi-sway');
         const flyAnim = pixie.getAnimations().find(a => a.animationName === 'gcq-pixie-fly');
         if (!flyAnim) continue;
         const base = Number(flyAnim.effect?.getTiming?.().delay) || 0;
@@ -1254,24 +1258,57 @@ function flyLumiHome(loadingScreen, home) {
     // She hands over while both move together.
     layer.animate([{ opacity: 1 }, { offset: off(HOME_WINDUP_MS + T + 50), opacity: 1 }, { opacity: 0 }], timing);
 
-    // Stardust along the way, each grain dropped as she passes.
+    // Stardust along the way, each grain dropped as she passes: a burst as
+    // she takes off, sparkles and a haze of tiny motes all along her trip
+    // (finer and finer as she shrinks to land), and the last of it trickling
+    // down over the title as she becomes the header Lumi.
     const dust = layer.querySelector('.gcq-lumi-courier__dust');
-    const count = lowPower ? 18 : 34;
     const frag = document.createDocumentFragment();
-    for (let i = 0; i < count; i += 1) {
-        const t = T * 0.9 * ((i + 0.5) / count);
+    const drop = ({ x, y, size, at, fall, drift, dur, mote }) => {
+        const grain = mote ? document.createElement('span') : makeGlint('loading-stardust');
+        if (mote) grain.className = 'gcq-lumi-courier__mote';
+        else grain.innerHTML = GLINT_WARM_SVG;
+        grain.style.left = `${Math.round(x)}px`;
+        grain.style.top = `${Math.round(y)}px`;
+        grain.style.width = `${size.toFixed(1)}px`;
+        grain.style.height = `${size.toFixed(1)}px`;
+        grain.style.setProperty('--fall', `${Math.round(fall)}px`);
+        grain.style.setProperty('--drift', `${Math.round(drift)}px`);
+        grain.style.animationDelay = `${Math.round(at)}ms`;
+        grain.style.animationDuration = `${Math.round(dur)}ms`;
+        frag.appendChild(grain);
+    };
+    // The take-off puff
+    const puff = lowPower ? 6 : 12;
+    for (let i = 0; i < puff; i += 1) {
+        const a = (i / puff) * Math.PI * 2 + randomRange(-0.3, 0.3);
+        const r = size * randomRange(0.35, 0.7);
+        drop({ x: from.x + Math.cos(a) * r, y: from.y + Math.sin(a) * r, size: randomRange(10, 20), at: HOME_WINDUP_MS * 0.7, fall: randomRange(30, 90), drift: Math.cos(a) * 40, dur: randomRange(900, 1300) });
+    }
+    const sparks = lowPower ? 26 : 60;
+    const motes = lowPower ? 50 : 170;
+    for (let i = 0; i < sparks + motes; i += 1) {
+        const mote = i >= sparks;
+        const u = mote ? (i - sparks + Math.random()) / motes : (i + Math.random()) / sparks;
+        const t = T * u;
         const p = hermiteAt(keys, t);
-        const glint = makeGlint('loading-stardust');
-        glint.innerHTML = GLINT_WARM_SVG;
-        glint.style.left = `${Math.round(p.x + randomRange(-16, 16) * p.scale)}px`;
-        glint.style.top = `${Math.round(p.y + randomRange(-12, 12) * p.scale)}px`;
-        const grain = randomRange(11, 22) * Math.max(0.55, Math.min(1.6, p.scale));
-        glint.style.width = `${grain.toFixed(0)}px`;
-        glint.style.height = `${grain.toFixed(0)}px`;
-        glint.style.setProperty('--fall', `${randomRange(50, 150).toFixed(0)}px`);
-        glint.style.setProperty('--drift', `${randomRange(-30, 30).toFixed(0)}px`);
-        glint.style.animationDelay = `${Math.round(HOME_WINDUP_MS + t)}ms`;
-        frag.appendChild(glint);
+        const k = Math.max(0.12, Math.min(1.6, p.scale));
+        const spread = size * 0.3 * k;
+        drop({
+            x: p.x + randomRange(-spread, spread),
+            y: p.y + randomRange(-spread, spread),
+            size: mote ? randomRange(3, 7) * Math.max(0.55, k) : randomRange(9, 20) * Math.max(0.45, k),
+            at: HOME_WINDUP_MS + t,
+            fall: randomRange(40, 140) * Math.max(0.35, k),
+            drift: randomRange(-28, 28) * Math.max(0.4, k),
+            dur: mote ? randomRange(900, 1700) : randomRange(1000, 1500),
+            mote,
+        });
+    }
+    // The last of it, trickling down over the title as she lands
+    const trickle = lowPower ? 8 : 16;
+    for (let i = 0; i < trickle; i += 1) {
+        drop({ x: home.x + randomRange(-10, 40), y: home.y + randomRange(-4, 8), size: randomRange(2, 4.5), at: HOME_WINDUP_MS + T - 60 + i * 35, fall: randomRange(14, 34), drift: randomRange(-10, 14), dur: randomRange(900, 1400), mote: true });
     }
     dust.appendChild(frag);
 
@@ -1299,7 +1336,7 @@ function flyLumiHome(loadingScreen, home) {
         home.lane.style.transition = '';
         home.lane.style.opacity = '';
     }, total + 200);
-    setTimeout(() => layer.remove(), total + 1600);
+    setTimeout(() => layer.remove(), total + 2200);
     return true;
 }
 

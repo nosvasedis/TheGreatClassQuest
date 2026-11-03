@@ -16,7 +16,7 @@
 /* A faint shield behind the week, so the band reads at a glance. */
 .calendar-day-cell.qc-day--raid::before {
     content: '\f3ed';
-    font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free';
+    font-family: 'Font Awesome 7 Free', 'Font Awesome 5 Free';
     font-weight: 900;
     position: absolute;
     right: .35rem;

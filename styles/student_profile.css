@@ -900,7 +900,7 @@
 
 .sp-lookup--locked::after {
     content: '\f023';
-    font-family: 'Font Awesome 6 Free';
+    font-family: 'Font Awesome 7 Free';
     font-weight: 900;
     font-size: 0.65rem;
 }
@@ -934,7 +934,7 @@
     position: absolute;
     right: 12px;
     top: 10px;
-    font-family: 'Fredoka', 'Font Awesome 6 Free';
+    font-family: 'Fredoka', 'Font Awesome 7 Free';
     font-size: 0.6rem;
     font-weight: 900;
     letter-spacing: 0.25em;

@@ -17,6 +17,9 @@
 /* 0. Shared design tokens: fonts, motion, focus ring, radii, elevation, feedback tones */
 @import url('./styles/tokens.css');
 
+/* Font Awesome 7 icons keep Font Awesome 6's widths so buttons and chips do not shift. */
+@import url('./styles/fa_widths.css');
+
 /* 1. Base: Fonts, body, core animations, pop-in/out, date-time */
 @import url('./styles/base.css');
 

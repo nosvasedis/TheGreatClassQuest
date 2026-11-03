@@ -1062,7 +1062,7 @@
 /* Wax seal */
 .fw-availability-card::before {
     content: '\f186';
-    font-family: 'Font Awesome 6 Free';
+    font-family: 'Font Awesome 7 Free';
     font-weight: 900;
     position: absolute;
     left: 0.75rem;
@@ -1997,7 +1997,7 @@
 
 .fw-locked-orb::after {
     content: '\f186';
-    font-family: 'Font Awesome 6 Free';
+    font-family: 'Font Awesome 7 Free';
     font-weight: 900;
     position: absolute;
     inset: 0;

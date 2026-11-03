@@ -1,0 +1,156 @@
+/*
+ * Font Awesome 7 draws every icon in a fixed 1.25em box. Font Awesome 6 sized each icon to its own
+ * drawing, and the app's buttons, chips and pills were laid out around those widths. This sheet puts
+ * that back: icons size to their drawing again, and the icons whose FA7 drawing is wider or narrower
+ * than FA6's keep their FA6 width (measured from 6.5.2), so nothing shifts.
+ * fa-fw and stacked icons keep their own fixed widths.
+ */
+:root { --fa-width: auto; }
+
+/* Solid (fas / fa-solid / fa) */
+:is(.fas, .fa-solid, .fa).fa-exclamation { --fa-width: 0.125em; }
+:is(.fas, .fa-solid, .fa).fa-backward-step,
+:is(.fas, .fa-solid, .fa).fa-forward-step,
+:is(.fas, .fa-solid, .fa).fa-pause,
+:is(.fas, .fa-solid, .fa).fa-person-walking { --fa-width: 0.625em; }
+:is(.fas, .fa-solid, .fa).fa-arrow-up-long,
+:is(.fas, .fa-solid, .fa).fa-award,
+:is(.fas, .fa-solid, .fa).fa-moon,
+:is(.fas, .fa-solid, .fa).fa-person-hiking,
+:is(.fas, .fa-solid, .fa).fa-play,
+:is(.fas, .fa-solid, .fa).fa-stop { --fa-width: 0.75em; }
+:is(.fas, .fa-solid, .fa).fa-angle-double-down,
+:is(.fas, .fa-solid, .fa).fa-angle-double-up,
+:is(.fas, .fa-solid, .fa).fa-angles-down,
+:is(.fas, .fa-solid, .fa).fa-angles-up,
+:is(.fas, .fa-solid, .fa).fa-arrow-left,
+:is(.fas, .fa-solid, .fa).fa-arrow-right,
+:is(.fas, .fa-solid, .fa).fa-arrow-right-arrow-left,
+:is(.fas, .fa-solid, .fa).fa-chart-simple,
+:is(.fas, .fa-solid, .fa).fa-check-double,
+:is(.fas, .fa-solid, .fa).fa-chess-knight,
+:is(.fas, .fa-solid, .fa).fa-chess-rook,
+:is(.fas, .fa-solid, .fa).fa-clover,
+:is(.fas, .fa-solid, .fa).fa-font,
+:is(.fas, .fa-solid, .fa).fa-hashtag,
+:is(.fas, .fa-solid, .fa).fa-lock,
+:is(.fas, .fa-solid, .fa).fa-passport,
+:is(.fas, .fa-solid, .fa).fa-snowflake,
+:is(.fas, .fa-solid, .fa).fa-tag { --fa-width: 0.875em; }
+:is(.fas, .fa-solid, .fa).fa-angles-right,
+:is(.fas, .fa-solid, .fa).fa-arrow-right-long,
+:is(.fas, .fa-solid, .fa).fa-arrows-left-right,
+:is(.fas, .fa-solid, .fa).fa-chevron-down,
+:is(.fas, .fa-solid, .fa).fa-chevron-up,
+:is(.fas, .fa-solid, .fa).fa-clock-rotate-left,
+:is(.fas, .fa-solid, .fa).fa-crosshairs,
+:is(.fas, .fa-solid, .fa).fa-download,
+:is(.fas, .fa-solid, .fa).fa-envelope-open-text,
+:is(.fas, .fa-solid, .fa).fa-file-csv,
+:is(.fas, .fa-solid, .fa).fa-file-pdf,
+:is(.fas, .fa-solid, .fa).fa-forward,
+:is(.fas, .fa-solid, .fa).fa-gavel,
+:is(.fas, .fa-solid, .fa).fa-headphones,
+:is(.fas, .fa-solid, .fa).fa-history,
+:is(.fas, .fa-solid, .fa).fa-image,
+:is(.fas, .fa-solid, .fa).fa-location-crosshairs,
+:is(.fas, .fa-solid, .fa).fa-medal,
+:is(.fas, .fa-solid, .fa).fa-mug-hot,
+:is(.fas, .fa-solid, .fa).fa-paper-plane,
+:is(.fas, .fa-solid, .fa).fa-screwdriver-wrench,
+:is(.fas, .fa-solid, .fa).fa-sun,
+:is(.fas, .fa-solid, .fa).fa-table,
+:is(.fas, .fa-solid, .fa).fa-table-cells-large,
+:is(.fas, .fa-solid, .fa).fa-tags,
+:is(.fas, .fa-solid, .fa).fa-th,
+:is(.fas, .fa-solid, .fa).fa-tools,
+:is(.fas, .fa-solid, .fa).fa-upload,
+:is(.fas, .fa-solid, .fa).fa-wrench { --fa-width: 1em; }
+:is(.fas, .fa-solid, .fa).fa-battery-quarter,
+:is(.fas, .fa-solid, .fa).fa-book-open,
+:is(.fas, .fa-solid, .fa).fa-campground,
+:is(.fas, .fa-solid, .fa).fa-credit-card,
+:is(.fas, .fa-solid, .fa).fa-diagram-project,
+:is(.fas, .fa-solid, .fa).fa-display,
+:is(.fas, .fa-solid, .fa).fa-door-closed,
+:is(.fas, .fa-solid, .fa).fa-door-open,
+:is(.fas, .fa-solid, .fa).fa-file-pen,
+:is(.fas, .fa-solid, .fa).fa-file-signature,
+:is(.fas, .fa-solid, .fa).fa-hammer,
+:is(.fas, .fa-solid, .fa).fa-home,
+:is(.fas, .fa-solid, .fa).fa-house,
+:is(.fas, .fa-solid, .fa).fa-house-chimney,
+:is(.fas, .fa-solid, .fa).fa-house-chimney-crack,
+:is(.fas, .fa-solid, .fa).fa-house-chimney-user,
+:is(.fas, .fa-solid, .fa).fa-house-chimney-window,
+:is(.fas, .fa-solid, .fa).fa-house-user,
+:is(.fas, .fa-solid, .fa).fa-layer-group,
+:is(.fas, .fa-solid, .fa).fa-map,
+:is(.fas, .fa-solid, .fa).fa-map-location-dot,
+:is(.fas, .fa-solid, .fa).fa-map-marked-alt,
+:is(.fas, .fa-solid, .fa).fa-road,
+:is(.fas, .fa-solid, .fa).fa-sitemap,
+:is(.fas, .fa-solid, .fa).fa-sort-alpha-down,
+:is(.fas, .fa-solid, .fa).fa-store,
+:is(.fas, .fa-solid, .fa).fa-temperature-arrow-down,
+:is(.fas, .fa-solid, .fa).fa-temperature-arrow-up,
+:is(.fas, .fa-solid, .fa).fa-trophy,
+:is(.fas, .fa-solid, .fa).fa-umbrella-beach,
+:is(.fas, .fa-solid, .fa).fa-water { --fa-width: 1.125em; }
+:is(.fas, .fa-solid, .fa).fa-bed,
+:is(.fas, .fa-solid, .fa).fa-cloud,
+:is(.fas, .fa-solid, .fa).fa-cloud-arrow-up,
+:is(.fas, .fa-solid, .fa).fa-comments,
+:is(.fas, .fa-solid, .fa).fa-dice,
+:is(.fas, .fa-solid, .fa).fa-eye-slash,
+:is(.fas, .fa-solid, .fa).fa-graduation-cap,
+:is(.fas, .fa-solid, .fa).fa-hands-helping,
+:is(.fas, .fa-solid, .fa).fa-handshake,
+:is(.fas, .fa-solid, .fa).fa-handshake-angle,
+:is(.fas, .fa-solid, .fa).fa-language,
+:is(.fas, .fa-solid, .fa).fa-link,
+:is(.fas, .fa-solid, .fa).fa-link-slash,
+:is(.fas, .fa-solid, .fa).fa-masks-theater,
+:is(.fas, .fa-solid, .fa).fa-mountain-sun,
+:is(.fas, .fa-solid, .fa).fa-people-arrows,
+:is(.fas, .fa-solid, .fa).fa-people-group,
+:is(.fas, .fa-solid, .fa).fa-people-roof,
+:is(.fas, .fa-solid, .fa).fa-ranking-star,
+:is(.fas, .fa-solid, .fa).fa-school,
+:is(.fas, .fa-solid, .fa).fa-shoe-prints,
+:is(.fas, .fa-solid, .fa).fa-smog,
+:is(.fas, .fa-solid, .fa).fa-tv,
+:is(.fas, .fa-solid, .fa).fa-user-clock,
+:is(.fas, .fa-solid, .fa).fa-user-friends,
+:is(.fas, .fa-solid, .fa).fa-user-group,
+:is(.fas, .fa-solid, .fa).fa-user-shield,
+:is(.fas, .fa-solid, .fa).fa-user-slash,
+:is(.fas, .fa-solid, .fa).fa-wifi { --fa-width: 1.25em; }
+
+/* Regular (far / fa-regular) */
+:is(.far, .fa-regular).fa-exclamation { --fa-width: 0.125em; }
+:is(.far, .fa-regular).fa-question { --fa-width: 0.625em; }
+:is(.far, .fa-regular).fa-cloud,
+:is(.far, .fa-regular).fa-headphones,
+:is(.far, .fa-regular).fa-home,
+:is(.far, .fa-regular).fa-house,
+:is(.far, .fa-regular).fa-moon,
+:is(.far, .fa-regular).fa-x { --fa-width: 0.75em; }
+:is(.far, .fa-regular).fa-chess-rook,
+:is(.far, .fa-regular).fa-equals,
+:is(.far, .fa-regular).fa-hashtag,
+:is(.far, .fa-regular).fa-plus,
+:is(.far, .fa-regular).fa-snowflake { --fa-width: 0.875em; }
+:is(.far, .fa-regular).fa-file-pdf,
+:is(.far, .fa-regular).fa-image,
+:is(.far, .fa-regular).fa-paper-plane,
+:is(.far, .fa-regular).fa-sun { --fa-width: 1em; }
+:is(.far, .fa-regular).fa-credit-card,
+:is(.far, .fa-regular).fa-map { --fa-width: 1.125em; }
+:is(.far, .fa-regular).fa-comments,
+:is(.far, .fa-regular).fa-eye-slash { --fa-width: 1.25em; }
+
+:is(.fas, .far, .fa-solid, .fa-regular, .fa).fa-fw,
+:is(.fas, .far, .fa-solid, .fa-regular, .fa).fa-width-fixed { --fa-width: 1.25em; }
+:is(.fas, .far, .fa-solid, .fa-regular, .fa).fa-width-auto { --fa-width: auto; }
+:is(.fas, .far, .fa-solid, .fa-regular, .fa):is(.fa-stack-1x, .fa-stack-2x) { --fa-width: 100%; }

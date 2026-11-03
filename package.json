@@ -47,6 +47,6 @@
     "html2canvas": "1.4.1",
     "jspdf": "4.2.1",
     "qrcode-generator": "2.0.4",
-    "tone": "14.8.49"
+    "tone": "15.1.22"
   }
 }

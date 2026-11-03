@@ -2228,34 +2228,45 @@
     animation-delay: calc(var(--hcs-i, var(--k, 0)) * -0.45s);
 }
 
+/* The chip fills the nest exactly and the creature is drawn at the nest's
+   size, centred. Only width/height/inset are used here, never transform or
+   scale: the base chip rule (familiars.css) shrinks the chip towards its
+   bottom-left corner, and the build merges transform with scale/translate. */
 .hcs-pet .hero-challenge-familiar-chip {
     position: absolute;
-    inset: auto;
-    top: 50%;
-    left: 50%;
+    inset: 0;
+    display: grid;
+    place-items: center;
     transform: none;
-    translate: -50% -50%;
-    scale: 0.74;
+    transform-origin: 50% 50%;
+}
+
+.hcs-pet .familiar-container {
+    position: relative;
+    /* The art stands on the bottom of its square: lift it so the creature,
+       not its square, sits in the middle of the nest. */
+    top: -9%;
+    width: var(--pet-art, 128%) !important;
+    height: var(--pet-art, 128%) !important;
+    filter: drop-shadow(0 1px 1px rgba(46, 16, 101, 0.25));
+}
+
+/* The nest keeps the creature inside its circle */
+.hcs-pet .hero-challenge-familiar-chip {
+    border-radius: 999px;
+    overflow: hidden;
 }
 
 .hcs-figure__portrait > .hcs-pet {
     right: -0.55rem;
     bottom: -0.1rem;
-    width: 2.6rem;
-    height: 2.6rem;
-}
-
-.hcs-figure__portrait > .hcs-pet .hero-challenge-familiar-chip {
-    scale: 1;
+    width: 2.75rem;
+    height: 2.75rem;
 }
 
 .hcs-figure--packed .hcs-figure__portrait > .hcs-pet {
-    width: 2rem;
-    height: 2rem;
-}
-
-.hcs-figure--packed .hcs-figure__portrait > .hcs-pet .hero-challenge-familiar-chip {
-    scale: 0.78;
+    width: 2.15rem;
+    height: 2.15rem;
 }
 
 @keyframes hcs-pet-bob {
@@ -2808,18 +2819,10 @@
         right: -0.6rem;
     }
 
-    .hcs-row__portrait > .hcs-pet .hero-challenge-familiar-chip {
-        scale: 0.62;
-    }
-
     .hcs-figure__portrait > .hcs-pet {
         width: 2rem;
         height: 2rem;
         right: -0.5rem;
-    }
-
-    .hcs-figure__portrait > .hcs-pet .hero-challenge-familiar-chip {
-        scale: 0.76;
     }
 
     .hcs-figure__portrait > .hcs-crest .guild-badge {

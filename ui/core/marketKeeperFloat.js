@@ -2,7 +2,11 @@
 // The Market Keeper follows shoppers down the shelves. Once the counter (and the keeper
 // behind it) scrolls out of view, a small keeper rises from the bottom-left corner on a
 // wooden ledge, still speaking every line. Scrolling back up, switching aisles until the
-// list is short, or leaving the tab sends him back down.
+// list is short, or leaving the tab sends him back down. Tapping him unfolds the Shoppers'
+// Ledger above his corner (marketShopperLedger.js) so the shopper can change mid-shelf;
+// tapping his speech bubble hushes him.
+
+import { closeKeeperLedger } from './marketShopperLedger.js';
 
 const SHOW_PAST_PX = 8;   // keeper art bottom this far above the scroller top → he follows
 const HIDE_BELOW_PX = 56; // ...and this far back into view → he returns to the counter
@@ -85,8 +89,6 @@ function syncPurse() {
 function setTucked(tucked) {
     clearTimeout(tuckTimer);
     floatEl.classList.toggle('is-tucked', tucked);
-    floatEl.querySelector('.mm-keeper-float__keeper')
-        ?.setAttribute('aria-label', tucked ? 'Hear the Market Keeper again' : 'Hush the Market Keeper');
     if (!tucked) tuckTimer = setTimeout(() => {
         if (floatEl.matches(':hover, :focus-within')) setTucked(false);
         else setTucked(true);
@@ -115,6 +117,7 @@ function leave({ instant = false } = {}) {
         keeper?.classList.add('is-speaking');
     }
     isHere = false;
+    closeKeeperLedger();
     clearTimeout(tuckTimer);
     floatEl.inert = true;
     if (floatEl.contains(document.activeElement)) document.activeElement.blur();
@@ -206,9 +209,9 @@ export function initMarketKeeperFloat() {
     if (gold) new MutationObserver(syncPurse).observe(gold, { childList: true, characterData: true, subtree: true });
     document.getElementById('shop-student-select')?.addEventListener('change', syncPurse);
 
-    floatEl.querySelector('.mm-keeper-float__keeper')?.addEventListener('click', () => {
-        setTucked(!floatEl.classList.contains('is-tucked'));
-    });
+    // the keeper himself opens the Shoppers' Ledger (bound in marketShopperLedger.js);
+    // a tap on what he's saying hushes him until his next line
+    floatEl.querySelector('.mm-keeper-float__bubble')?.addEventListener('click', () => setTucked(true));
 
     floatEl.querySelector('.mm-keeper-float__back')?.addEventListener('click', () => {
         const deck = document.getElementById('shop-command-deck');

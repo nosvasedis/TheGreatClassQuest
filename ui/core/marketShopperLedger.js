@@ -2,6 +2,8 @@
 // The till on the Market counter: one brass-rimmed plaque holding the shopper (face, name)
 // and their purse, plus the Shoppers' Ledger that unfolds from it to pick who is buying,
 // and the shopper's Satchel hung beside it (opens the Satchel modal for that student).
+// The same ledger also unfolds above the floating keeper (bottom-left, once the counter has
+// scrolled away), so a teacher deep in the shelves can switch shopper without scrolling up.
 // The hidden #shop-student-select stays the source of truth (listeners, purchases and the
 // floating keeper all read it); this module only draws and drives it.
 
@@ -42,8 +44,32 @@ function goldOf(studentId) {
     return getLiveYearGoldFromAppState(scoreData, state);
 }
 
-function isOpen() {
-    return !!el('shop-shopper-listbox')?.classList.contains('is-open');
+/* Two places the ledger unfolds from: the till on the counter, and the floating keeper. */
+const HOSTS = {
+    till: {
+        panel: () => el('shop-shopper-listbox'),
+        trigger: () => el('shop-shopper-trigger'),
+        root: () => el('shop-shopper-root'),
+        shell: () => el('shop-till')
+    },
+    keeper: {
+        panel: () => el('shop-keeper-ledger'),
+        trigger: () => el('shop-keeper-float')?.querySelector('.mm-keeper-float__keeper'),
+        root: () => el('shop-keeper-float'),
+        shell: () => el('shop-keeper-float')
+    }
+};
+
+let openHost = '';
+
+function isOpen(host) {
+    return host ? openHost === host : !!openHost;
+}
+
+/** Which ledger an element sits in ('' when neither). */
+function hostOf(node) {
+    if (!node) return '';
+    return Object.keys(HOSTS).find(key => HOSTS[key].panel()?.contains(node)) || '';
 }
 
 /** The till shows who is shopping: their face, name, and whether the purse is live. */
@@ -151,8 +177,8 @@ function optionHtml(student, { selected, hero, gold, index }) {
         </button>`;
 }
 
-function renderLedger() {
-    const panel = el('shop-shopper-listbox');
+function renderLedger(host = 'till') {
+    const panel = HOSTS[host].panel();
     const sel = el('shop-student-select');
     if (!panel || !sel) return;
     const heroId = state.get('reigningHero')?.id || '';
@@ -172,7 +198,7 @@ function renderLedger() {
             <span class="mm-ledger__quill" aria-hidden="true"><i class="fas fa-feather-alt"></i></span>
             <div class="mm-ledger__titles">
                 <span class="mm-ledger__kicker">The Shoppers' Ledger</span>
-                <span class="mm-ledger__title" id="shop-ledger-title">Who's at the counter?</span>
+                <span class="mm-ledger__title" id="shop-ledger-title-${host}">${host === 'keeper' ? 'Who\'s shopping next?' : 'Who\'s at the counter?'}</span>
             </div>
             <span class="mm-ledger__count">${count} ${count === 1 ? 'adventurer' : 'adventurers'}</span>
         </div>
@@ -180,10 +206,10 @@ function renderLedger() {
         <label class="mm-ledger__search">
             <i class="fas fa-search" aria-hidden="true"></i>
             <span class="sr-only">Find a shopper</span>
-            <input type="search" id="shop-ledger-search" autocomplete="off" spellcheck="false" placeholder="Find a name…">
+            <input type="search" class="mm-ledger__find" autocomplete="off" spellcheck="false" placeholder="Find a name…">
         </label>` : ''}
         ${count
-            ? `<div class="mm-ledger__page" role="listbox" id="shop-ledger-list" aria-labelledby="shop-ledger-title">${entries}</div>
+            ? `<div class="mm-ledger__page" role="listbox" aria-labelledby="shop-ledger-title-${host}">${entries}</div>
                <p class="mm-ledger__none" hidden>No adventurer by that name.</p>`
             : '<p class="mm-ledger__none">No adventurers in this class yet.</p>'}
         ${sel.value ? `
@@ -194,25 +220,29 @@ function renderLedger() {
         </div>` : ''}`;
 }
 
-function entries() {
-    return [...(el('shop-shopper-listbox')?.querySelectorAll('.mm-ledger__entry:not([hidden])') || [])];
+function entries(host = openHost || 'till') {
+    return [...(HOSTS[host]?.panel()?.querySelectorAll('.mm-ledger__entry:not([hidden])') || [])];
+}
+
+function searchOf(host) {
+    return HOSTS[host]?.panel()?.querySelector('.mm-ledger__find') || null;
 }
 
 function focusEntry(entry) {
     if (!entry) return;
-    entries().forEach(e => e.setAttribute('tabindex', e === entry ? '0' : '-1'));
+    entries(hostOf(entry)).forEach(e => e.setAttribute('tabindex', e === entry ? '0' : '-1'));
     entry.focus({ preventScroll: false });
 }
 
-function filterLedger(query) {
+function filterLedger(panel, query) {
     const q = fold(query).trim();
     let shown = 0;
-    el('shop-shopper-listbox')?.querySelectorAll('.mm-ledger__entry').forEach(entry => {
+    panel?.querySelectorAll('.mm-ledger__entry').forEach(entry => {
         const hit = !q || entry.dataset.name.split(/\s+/).some(part => part.startsWith(q)) || entry.dataset.name.includes(q);
         entry.hidden = !hit;
         if (hit) shown++;
     });
-    const none = el('shop-shopper-listbox')?.querySelector('.mm-ledger__none');
+    const none = panel?.querySelector('.mm-ledger__none');
     if (none && ledgerStudents.length) none.hidden = shown > 0;
 }
 
@@ -233,32 +263,62 @@ function placeLedger(panel) {
     panel.style.setProperty('--tail-x', `${Math.round(Math.max(22, Math.min(width - 22, tail)))}px`);
 }
 
-function setOpen(open, { focus = true } = {}) {
-    const trigger = el('shop-shopper-trigger');
-    const panel = el('shop-shopper-listbox');
-    const till = el('shop-till');
+/**
+ * Above the floating keeper: the ledger opens upward from his corner, as wide as the shelf
+ * allows and no taller than the room between him and the top of the page, tail at his hat.
+ */
+function placeKeeperLedger(panel) {
+    const float = el('shop-keeper-float');
+    const art = float?.querySelector('.mm-keeper-float__keeper');
+    if (!float) return;
+    const box = float.getBoundingClientRect();
+    const scrollerTop = float.closest('main')?.getBoundingClientRect().top ?? 0;
+    const gutter = 12;
+    const room = parseFloat(getComputedStyle(float).getPropertyValue('--mmf-room')) || (window.innerWidth - gutter * 2);
+    const width = Math.max(220, Math.min(576, room, window.innerWidth - box.left - gutter));
+    panel.style.width = `${Math.round(width)}px`;
+    panel.style.left = '0px';
+    const gap = parseFloat(getComputedStyle(panel).getPropertyValue('--keeper-gap')) || 10;
+    const tallest = box.top - Math.max(scrollerTop, 0) - gap - gutter;
+    panel.style.setProperty('--ledger-max', `${Math.round(Math.max(180, tallest))}px`);
+    const artBox = art?.getBoundingClientRect();
+    const tail = artBox ? artBox.left + artBox.width * 0.42 - box.left : 48;
+    panel.style.setProperty('--tail-x', `${Math.round(Math.max(22, Math.min(width - 22, tail)))}px`);
+}
+
+function setOpen(open, { focus = true, host = openHost || 'till' } = {}) {
+    // only one ledger at a time: opening one folds the other away
+    if (open && openHost && openHost !== host) setOpen(false, { focus: false, host: openHost });
+    const parts = HOSTS[host];
+    const trigger = parts?.trigger();
+    const panel = parts?.panel();
     if (!trigger || !panel) return;
     if (open) {
-        renderLedger();
-        placeLedger(panel);
+        renderLedger(host);
+        if (host === 'keeper') placeKeeperLedger(panel);
+        else placeLedger(panel);
     }
+    if (open) openHost = host;
+    else if (openHost === host) openHost = '';
     trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
     panel.classList.toggle('is-open', open);
     panel.setAttribute('aria-hidden', open ? 'false' : 'true');
     panel.inert = !open;
-    till?.classList.toggle('is-ledger-open', open);
+    parts.shell()?.classList.toggle('is-ledger-open', open);
     if (!open || !focus) return;
     const touch = window.matchMedia?.('(hover: none)').matches;
-    const search = el('shop-ledger-search');
+    const search = searchOf(host);
     if (search && !touch) search.focus({ preventScroll: true });
     else {
-        const current = panel.querySelector('.mm-ledger__entry.is-selected') || entries()[0];
+        const current = panel.querySelector('.mm-ledger__entry.is-selected') || entries(host)[0];
         if (current) {
-            entries().forEach(e => e.setAttribute('tabindex', e === current ? '0' : '-1'));
+            entries(host).forEach(e => e.setAttribute('tabindex', e === current ? '0' : '-1'));
             if (!touch) current.focus({ preventScroll: true });
         }
     }
-    // keep the open ledger on screen (the counter can sit near the bottom on short windows)
+    // keep the open ledger on screen (the counter can sit near the bottom on short windows);
+    // the keeper's ledger opens upward inside the window, and scrolling would send him home
+    if (host !== 'till') return;
     requestAnimationFrame(() => {
         const r = panel.getBoundingClientRect();
         if (r.bottom > window.innerHeight - 8) panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -266,17 +326,22 @@ function setOpen(open, { focus = true } = {}) {
 }
 
 export function closeShopperLedger() {
-    if (isOpen()) setOpen(false);
+    if (isOpen()) setOpen(false, { host: openHost });
 }
 
-function pick(value, onPick) {
+/** The floating keeper went back to the counter: his ledger folds away with him. */
+export function closeKeeperLedger() {
+    if (isOpen('keeper')) setOpen(false, { focus: false, host: 'keeper' });
+}
+
+function pick(value, onPick, host = openHost || 'till') {
     const sel = el('shop-student-select');
     if (!sel) return;
     const changed = sel.value !== value;
     sel.value = value;
     syncShopperTill();
-    setOpen(false);
-    el('shop-shopper-trigger')?.focus({ preventScroll: true });
+    setOpen(false, { host });
+    HOSTS[host].trigger()?.focus({ preventScroll: true });
     if (changed) {
         const till = el('shop-till');
         if (till && value && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
@@ -285,6 +350,7 @@ function pick(value, onPick) {
             till.classList.add('is-greeting');
             setTimeout(() => till.classList.remove('is-greeting'), 900);
         }
+        if (host === 'keeper') greetFromKeeper();
         sel.dispatchEvent(new Event('change', { bubbles: true }));
         onPick?.(value);
     }
@@ -312,7 +378,16 @@ export function populateShopStudentPicker(validStudents) {
     const shouldRestore = previousValue && ledgerStudents.some(s => s.id === previousValue);
     sel.value = shouldRestore ? previousValue : '';
     syncShopperTill();
-    setOpen(false, { focus: false });
+    if (openHost) setOpen(false, { focus: false, host: openHost });
+}
+
+/** A shopper picked from the keeper's ledger: his purse plank gives a little bump. */
+function greetFromKeeper() {
+    const purse = el('shop-keeper-float')?.querySelector('.mm-keeper-float__purse');
+    if (!purse || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    purse.classList.remove('is-bumped');
+    void purse.offsetWidth;
+    purse.classList.add('is-bumped');
 }
 
 export function bindShopperLedger({ onPick } = {}) {
@@ -320,15 +395,13 @@ export function bindShopperLedger({ onPick } = {}) {
     bound = true;
 
     document.body.addEventListener('click', (e) => {
-        const root = el('shop-shopper-root');
         const trigger = el('shop-shopper-trigger');
-        const panel = el('shop-shopper-listbox');
-        if (!root || !trigger || !panel) return;
+        if (!trigger) return;
 
         // the Satchel beside the till (with nobody at the till it unfolds the ledger)
         if (e.target.closest('#shop-satchel-btn')) {
             e.preventDefault();
-            if (isOpen()) setOpen(false, { focus: false });
+            if (isOpen()) setOpen(false, { focus: false, host: openHost });
             openShopperSatchel();
             return;
         }
@@ -336,55 +409,66 @@ export function bindShopperLedger({ onPick } = {}) {
         // the whole till opens the ledger: the shopper half, the seam, or the purse
         if (trigger.contains(e.target) || e.target.closest('.mm-till__purse, .mm-till__seam')) {
             e.preventDefault();
-            setOpen(!isOpen());
+            setOpen(!isOpen('till'), { host: 'till' });
             return;
         }
-        if (panel.contains(e.target)) {
+        // the floating keeper down the shelves opens the same ledger above his corner
+        const keeperBtn = HOSTS.keeper.trigger();
+        if (keeperBtn?.contains(e.target)) {
+            e.preventDefault();
+            setOpen(!isOpen('keeper'), { host: 'keeper' });
+            return;
+        }
+        const inside = hostOf(e.target);
+        if (inside) {
             const entry = e.target.closest('.mm-ledger__entry');
-            if (entry) pick(entry.dataset.value ?? '', onPick);
-            else if (e.target.closest('[data-ledger-clear]')) pick('', onPick);
+            if (entry) pick(entry.dataset.value ?? '', onPick, inside);
+            else if (e.target.closest('[data-ledger-clear]')) pick('', onPick, inside);
             return;
         }
-        if (isOpen() && !root.contains(e.target)) setOpen(false);
+        if (isOpen() && !HOSTS[openHost].root()?.contains(e.target)) setOpen(false, { host: openHost });
     });
 
     // purchases, relic uses and live score updates change what the Satchel holds
     state.subscribe(['allStudentScores'], () => syncSatchelButton());
 
     window.addEventListener('resize', () => {
-        if (isOpen()) placeLedger(el('shop-shopper-listbox'));
+        if (isOpen('till')) placeLedger(HOSTS.till.panel());
+        if (isOpen('keeper')) placeKeeperLedger(HOSTS.keeper.panel());
     }, { passive: true });
 
     document.body.addEventListener('input', (e) => {
-        if (e.target?.id === 'shop-ledger-search') filterLedger(e.target.value);
+        if (e.target?.classList?.contains('mm-ledger__find')) filterLedger(e.target.closest('.mm-ledger'), e.target.value);
     });
 
     document.body.addEventListener('keydown', (e) => {
         if (!isOpen()) return;
-        const panel = el('shop-shopper-listbox');
+        const host = openHost;
+        const panel = HOSTS[host].panel();
         if (e.key === 'Escape') {
             e.preventDefault();
-            setOpen(false);
-            el('shop-shopper-trigger')?.focus();
+            setOpen(false, { host });
+            HOSTS[host].trigger()?.focus();
             return;
         }
         if (!panel?.contains(document.activeElement)) return;
-        const list = entries();
+        const list = entries(host);
         if (!list.length) return;
-        const inSearch = document.activeElement?.id === 'shop-ledger-search';
+        const search = searchOf(host);
+        const inSearch = document.activeElement === search;
         const at = list.indexOf(document.activeElement);
         const cols = Math.max(1, Math.round((panel.querySelector('.mm-ledger__page')?.clientWidth || 1)
             / (list[0].getBoundingClientRect().width || 1)));
         let next = null;
         if (inSearch) {
             if (e.key === 'ArrowDown') next = list[0];
-            if (e.key === 'Enter' && list.length) { e.preventDefault(); pick(list[0].dataset.value ?? '', onPick); return; }
+            if (e.key === 'Enter' && list.length) { e.preventDefault(); pick(list[0].dataset.value ?? '', onPick, host); return; }
         } else if (at >= 0) {
             if (e.key === 'ArrowRight') next = list[Math.min(list.length - 1, at + 1)];
             if (e.key === 'ArrowLeft') next = list[Math.max(0, at - 1)];
             if (e.key === 'ArrowDown') next = list[Math.min(list.length - 1, at + cols)];
             if (e.key === 'ArrowUp') {
-                if (at - cols < 0 && el('shop-ledger-search')) { e.preventDefault(); el('shop-ledger-search').focus(); return; }
+                if (at - cols < 0 && search) { e.preventDefault(); search.focus(); return; }
                 next = list[Math.max(0, at - cols)];
             }
             if (e.key === 'Home') next = list[0];

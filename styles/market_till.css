@@ -591,6 +591,101 @@
 .mm-ledger__clear:hover,
 .mm-ledger__clear:focus-visible { outline: none; background: rgba(138, 90, 28, 0.1); color: var(--mm-ink); }
 
+/* ── The ledger above the floating keeper ──────────────────────────────── */
+/* Deep in the shelves the keeper waits in the bottom-left corner (mystic_market.css 7b).
+   Tapping him unfolds the same Shoppers' Ledger upward from his hat, sized by
+   placeKeeperLedger() in ui/core/marketShopperLedger.js (--ledger-max, --tail-x). */
+
+.mm-ledger--keeper {
+    --keeper-gap: 0.6rem;
+    top: auto;
+    bottom: calc(100% + var(--keeper-gap));
+    left: 0;
+    z-index: 4;
+    display: flex;
+    flex-direction: column;
+    max-height: var(--ledger-max, 60vh);
+    transform-origin: var(--tail-x) bottom;
+    transform: translateY(10px) scale(0.94);
+}
+.mm-ledger--keeper.is-open { transform: none; }
+
+.mm-ledger--keeper .mm-ledger__head,
+.mm-ledger--keeper .mm-ledger__search,
+.mm-ledger--keeper .mm-ledger__foot { flex: 0 0 auto; }
+.mm-ledger--keeper .mm-ledger__page {
+    flex: 1 1 auto;
+    min-height: 3.5rem;
+    max-height: min(50vh, 21rem);
+}
+
+/* the tail points down at the keeper's hat */
+.mm-ledger--keeper .mm-ledger__tail {
+    top: auto;
+    bottom: -9px;
+    background: var(--mm-parchment-dark);
+    border: 0;
+    border-right: 2px solid var(--mm-brass);
+    border-bottom: 2px solid var(--mm-brass);
+    border-radius: 0 0 4px 0;
+}
+
+/* the keeper while his ledger is open: no speech, a lean toward the page, a lit ring */
+.mm-keeper-float.is-ledger-open .mm-keeper-float__bubble {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transform: translate(-0.9rem, 0.9rem) scale(0.35) !important;
+    animation: none !important;
+}
+.mm-keeper-float .mm-keeper-float__art { transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.mm-keeper-float.is-ledger-open .mm-keeper-float__art { transform: translateY(-4%) rotate(3deg); }
+
+/* the bubble is tapped to hush him now, so it shows a pointer */
+.mm-keeper-float__bubble { cursor: pointer; }
+
+/* the hushed "…" dot gives way to the brass shopper badge: the keeper is a button */
+.mm-keeper-float .mm-keeper-float__keeper::after { display: none; }
+.mm-keeper-float__ask {
+    position: absolute;
+    z-index: 2;
+    top: 0.35rem;
+    right: -0.35rem;
+    display: grid;
+    place-items: center;
+    width: 1.9rem;
+    height: 1.9rem;
+    border-radius: 50%;
+    background: linear-gradient(180deg, var(--mm-brass-light) 0%, var(--mm-brass) 55%, var(--mm-brass-dark) 100%);
+    color: var(--mm-wood-900);
+    font-size: 0.78rem;
+    box-shadow: 0 0 0 2px var(--mm-wood-800), 0 4px 10px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    transform: scale(0.85);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+    pointer-events: none;
+}
+.mm-keeper-float:not(.has-shopper) .mm-keeper-float__ask { animation: mm-keeper-ask 2.4s ease-in-out infinite; }
+.mm-keeper-float__keeper:hover .mm-keeper-float__ask,
+.mm-keeper-float__keeper:focus-visible .mm-keeper-float__ask,
+.mm-keeper-float.is-ledger-open .mm-keeper-float__ask {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 2px var(--mm-wood-800), 0 0 0 5px rgba(251, 191, 36, 0.35), 0 4px 10px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.mm-keeper-float.is-ledger-open .mm-keeper-float__ask { animation: none; }
+
+@keyframes mm-keeper-ask {
+    0%, 100% { transform: scale(0.85); }
+    50% { transform: scale(1); box-shadow: 0 0 0 2px var(--mm-wood-800), 0 0 0 6px rgba(251, 191, 36, 0.3), 0 4px 10px rgba(0, 0, 0, 0.45); }
+}
+
+@media (max-width: 640px) {
+    .mm-keeper-float__ask { width: 1.55rem; height: 1.55rem; font-size: 0.66rem; top: 0.1rem; right: -0.45rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mm-keeper-float__ask,
+    .mm-keeper-float.is-ledger-open .mm-keeper-float__art { animation: none !important; transform: none; }
+}
+
 /* ── The Satchel beside the till ────────────────────────────────────────── */
 /* A tooled-leather bag hung on the counter, brass-rimmed like the till. It opens
    the shopper's Satchel (the same modal as Hero's Challenge and the Hero Stage). */

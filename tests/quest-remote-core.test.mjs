@@ -240,7 +240,7 @@ test('flag wiring: Pro and Elite only', () => {
 
 test('cast list mirrors the dock and its plan gates', async () => {
     const nav = read('templates/app/nav.js');
-    const dockTabs = [...nav.matchAll(/class="nav-button [^"]*" data-tab="([a-z-]+)"/g)].map((m) => m[1]);
+    const dockTabs = [...nav.matchAll(/\{ tab: '([a-z-]+)'/g)].map((m) => m[1]);
     assert.deepEqual(CAST_TAB_IDS, dockTabs, 'same screens, same order as the cloud dock');
     const { TAB_FEATURE_FLAGS } = await import('../config/tiers/features.js');
     const { CAST_TABS } = await import('../features/questRemote/remoteCore.mjs');

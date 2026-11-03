@@ -40,6 +40,7 @@ import { renderFamiliarOptionsUi } from '../../features/familiars.js';
 import { renderAccessCenterUi, wireAccessCenterEvents } from '../../features/accessManagement.js';
 import { renderMarketManagerUi, wireMarketManagerEvents } from '../core/marketManager.js';
 import { renderQuizOptionsUi } from './quizSetup.js';
+import { NAV_TABS, navTipText } from '../../templates/app/nav.js';
 
 export { renderQuizOptionsUi };
 
@@ -57,17 +58,23 @@ export function updateBottomNavGateState() {
 
         btn.classList.toggle('nav-button-locked', isLocked);
         btn.setAttribute('aria-disabled', isLocked ? 'true' : 'false');
+        // Never a `title`: the tooltip system copies titles into data-gtip, so a "requires Pro" set
+        // before the plan loaded used to stay on the cloud after it unlocked. The cloud's own story
+        // (templates/app/nav.js) stays; a plan note joins it only while the tab is locked.
+        btn.removeAttribute('title');
+        const navTab = NAV_TABS.find(t => t.tab === tabId);
+        if (navTab) btn.dataset.gtip = navTipText(navTab);
 
         if (isLocked && gate) {
             btn.dataset.lockedTier = (gate.tier || '').toLowerCase();
             btn.dataset.lockedLabel = gate.tier || '';
-            btn.title = `${gate.feature} requires ${gate.tier}.`;
+            btn.dataset.gtipNote = `Opens with the ${gate.tier} plan`;
             return;
         }
 
         btn.removeAttribute('data-locked-tier');
         btn.removeAttribute('data-locked-label');
-        btn.removeAttribute('title');
+        btn.removeAttribute('data-gtip-note');
     });
 }
 

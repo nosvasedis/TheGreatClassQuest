@@ -10,6 +10,7 @@ const pre = (...names) => names.map((n) => `[class^="${n}-"],[class*=" ${n}-"]`)
 
 // Order matters only when one element matches several rules; the nearest ancestor always wins.
 const LOOKS = [
+    ['cloud', '#bottom-nav-bar'],
     ['market', '#shop-tab,#shop-purchase-modal,.mm-keeper-float,.mm-ledger'],
     ['satchel', `#trophy-room-modal,${pre('tr')}`],
     ['ember', `#hero-campfire-scene,[class*="campfire"],${pre('cf', 'eo')}`],
@@ -79,7 +80,7 @@ function ensureTip(host) {
         tipEl.id = 'gcq-quest-tip';
         tipEl.className = 'qtip';
         tipEl.setAttribute('role', 'tooltip');
-        tipEl.innerHTML = '<span class="qtip__mark" aria-hidden="true"></span><span class="qtip__copy"><b class="qtip__head"></b><span class="qtip__body"></span></span><kbd class="qtip__key"></kbd>';
+        tipEl.innerHTML = '<span class="qtip__mark" aria-hidden="true"></span><span class="qtip__copy"><b class="qtip__head"></b><span class="qtip__body"></span><span class="qtip__note"></span></span><kbd class="qtip__key"></kbd>';
     }
     // Modal <dialog>s and full-screen scenes sit in the top layer, so the tip has to live inside them.
     if (tipEl.parentNode !== host) host.appendChild(tipEl);
@@ -100,7 +101,7 @@ function hostFor(el) {
 function place(tip, target, look) {
     const r = target.getBoundingClientRect();
     const margin = 8;
-    const gap = look === 'guild' ? 14 : 11;
+    const gap = look === 'guild' ? 14 : look === 'cloud' ? 20 : 11;
     tip.style.left = '0px';
     tip.style.top = '0px';
     // Inside a transformed dialog "fixed" is relative to the dialog: measure where 0,0 lands.
@@ -133,9 +134,17 @@ export function showQuestTip(target) {
     tip.classList.toggle('has-head', !!head);
     tip.classList.toggle('has-key', !!key);
     tip.classList.toggle('is-long', text.length > 70);
-    // Guild banners and Team Maker heroes carry their own colour.
-    const ink = target.closest('[style*="--g:"],[style*="--crm-guild"],[style*="--gc:"],[style*="--c:"]');
-    const color = ink && (getComputedStyle(ink).getPropertyValue('--g') || getComputedStyle(ink).getPropertyValue('--crm-guild') || getComputedStyle(ink).getPropertyValue('--gc') || getComputedStyle(ink).getPropertyValue('--c'));
+    // Optional extras: an icon in the mark (data-gtip-icon="fa-store") and a small note pill (data-gtip-note).
+    const mark = tip.querySelector('.qtip__mark');
+    const icon = target.dataset.gtipIcon || '';
+    mark.innerHTML = /^fa-[\w-]+$/.test(icon) ? `<i class="fas ${icon}"></i>` : '';
+    tip.classList.toggle('has-icon', !!mark.firstChild);
+    const note = target.dataset.gtipNote || '';
+    tip.querySelector('.qtip__note').textContent = note;
+    tip.classList.toggle('has-note', !!note);
+    // Guild banners and Team Maker heroes carry their own colour; anything else can name one in data-gtip-ink.
+    const ink = target.closest('[data-gtip-ink],[style*="--g:"],[style*="--crm-guild"],[style*="--gc:"],[style*="--c:"]');
+    const color = ink && (ink.dataset.gtipInk || getComputedStyle(ink).getPropertyValue('--g') || getComputedStyle(ink).getPropertyValue('--crm-guild') || getComputedStyle(ink).getPropertyValue('--gc') || getComputedStyle(ink).getPropertyValue('--c'));
     if (color && color.trim()) tip.style.setProperty('--qtip-ink', color.trim());
     else tip.style.removeProperty('--qtip-ink');
     if (tipFor && tipFor !== target) tipFor.removeAttribute('aria-describedby');

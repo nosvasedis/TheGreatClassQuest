@@ -19,9 +19,10 @@ test('bottom nav is a bar-less cloud dock sitting flush on the bottom edge', () 
 test('every teacher nav tab gets its own cloud shape', () => {
   const css = read('styles/nav.css');
   const nav = read('templates/app/nav.js');
-  const tabs = [...nav.matchAll(/class="nav-button [^"]*" data-tab="([^"]+)"/g)].map((m) => m[1]);
+  const tabs = [...nav.matchAll(/\{ tab: '([a-z-]+)'/g)].map((m) => m[1]);
   assert.equal(tabs.length, 10);
-  assert.equal((nav.match(/class="nav-cloud"/g) || []).length, tabs.length);
+  assert.match(nav, /class="nav-button nav-color-\$\{t\.color\}[^"]*" data-tab="\$\{t\.tab\}"/);
+  assert.match(nav, /<span class="nav-cloud" aria-hidden="true"><\/span>/, 'every cloud button renders its cloud body');
 
   const shapes = new Set();
   for (const tab of tabs) {
@@ -50,4 +51,15 @@ test('bottom nav night theme dims the clouds under the night sky', () => {
   const css = read('styles/nav.css');
   assert.match(css, /body\.night-mode:not\(\.projector-mode\)\s+#bottom-nav-bar::before\s*\{/s);
   assert.match(css, /body\.night-mode:not\(\.projector-mode\)\s+#bottom-nav-bar \.nav-cloud\s*\{/s);
+});
+
+test('each cloud carries its own description tip, never a "requires" title', async () => {
+  const nav = read('templates/app/nav.js');
+  assert.match(nav, /data-gtip-look="cloud"/);
+  assert.match(nav, /data-gtip="\$\{navTipText\(t\)/);
+  const gate = read('ui/tabs/navigation.js');
+  assert.doesNotMatch(gate, /btn\.title\s*=/, 'a title would be kept by the tooltip system after the plan unlocks');
+  assert.match(gate, /btn\.removeAttribute\('data-gtip-note'\)/);
+  assert.match(read('ui/questTipsCard.js'), /\['cloud', '#bottom-nav-bar'\]/);
+  assert.match(read('styles/quest_tips.css'), /\.qtip--cloud\s*\{/);
 });

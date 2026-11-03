@@ -371,6 +371,93 @@ body.night-mode:not(.projector-mode) #bottom-nav-bar::before {
     transform-origin: 50% 88%;
 }
 
+/* Silver lining: a hairline of light along every top edge of the cloud (the shape minus itself moved
+   down 2px), brighter on hover and sun-gold on the open tab. Kept thin so white icons never look cut. */
+#bottom-nav-bar .nav-cloud::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, #fff 0%, rgba(255, 255, 255, 0.7) 45%, rgba(255, 255, 255, 0) 75%);
+    -webkit-mask: var(--cloud-shape) 0 0 / 100% 100% no-repeat, var(--cloud-shape) 0 2px / 100% 100% no-repeat;
+    -webkit-mask-composite: xor;
+    mask: var(--cloud-shape) 0 0 / 100% 100% no-repeat exclude, var(--cloud-shape) 0 2px / 100% 100% no-repeat;
+    opacity: 0.55;
+    transition: opacity 300ms ease;
+}
+
+#bottom-nav-bar .nav-button:hover .nav-cloud::before,
+#bottom-nav-bar .nav-button:focus-visible .nav-cloud::before { opacity: 0.95; }
+
+#bottom-nav-bar .nav-button.active .nav-cloud::before {
+    background: linear-gradient(to bottom, #fff7cc 0%, rgba(253, 230, 138, 0.75) 45%, rgba(253, 230, 138, 0) 75%);
+    opacity: 1;
+}
+
+/* Hover puffs the cloud up a little (on top of its slow breathing). */
+#bottom-nav-bar .nav-cloud {
+    transition: scale 450ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+#bottom-nav-bar .nav-button:hover .nav-cloud,
+#bottom-nav-bar .nav-button:focus-visible .nav-cloud { scale: 1.02 1.06; }
+
+/* Two small sparkles that twinkle around the dome while the pointer rests on a cloud; the open tab
+   keeps one faint star. */
+#bottom-nav-bar .nav-glints {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+}
+
+#bottom-nav-bar .nav-glints::before,
+#bottom-nav-bar .nav-glints::after {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: #fff;
+    clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+    filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.9));
+    opacity: 0;
+    transform: scale(0.2) rotate(0deg);
+    transition: opacity 250ms ease, transform 350ms ease;
+}
+
+#bottom-nav-bar .nav-glints::before { left: 24%; top: 26%; }
+#bottom-nav-bar .nav-glints::after { right: 22%; top: 10%; width: 8px; height: 8px; }
+
+#bottom-nav-bar .nav-button:hover .nav-glints::before,
+#bottom-nav-bar .nav-button:focus-visible .nav-glints::before { animation: nav-glint 1.8s ease-in-out 0.15s infinite; }
+#bottom-nav-bar .nav-button:hover .nav-glints::after,
+#bottom-nav-bar .nav-button:focus-visible .nav-glints::after { animation: nav-glint 1.8s ease-in-out 0.95s infinite; }
+
+#bottom-nav-bar .nav-button.active:not(:hover) .nav-glints::after {
+    opacity: 0.7;
+    transform: scale(0.85) rotate(45deg);
+    background: #fef9c3;
+}
+
+@keyframes nav-glint {
+    0%, 100% { opacity: 0; transform: scale(0.2) rotate(0deg); }
+    45% { opacity: 1; transform: scale(1) rotate(45deg); }
+    70% { opacity: 0.6; transform: scale(0.7) rotate(70deg); }
+}
+
+#bottom-nav-bar .nav-button.nav-button-locked .nav-glints { display: none; }
+
+/* The plan pill on a locked cloud sits on the cloud's shoulder, like a little tag. */
+#bottom-nav-bar .nav-button.nav-button-locked::after {
+    top: 0.85rem;
+    right: 1.15rem;
+    z-index: 2;
+    padding: 0.1rem 0.36rem;
+    font-size: 0.5rem;
+    color: #475569;
+    background: linear-gradient(to bottom, #fff, #e2e8f0);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.25);
+}
+
 /*
  * Icon and label sit inside the cloud like a painted sticker: the icon is a pearly white-to-tint glyph
  * with a raised edge in the cloud's own deep colour, the label is rounded Fredoka with a soft outline
@@ -513,6 +600,11 @@ body:not(.gcq-mobile) #app-screen > main {
 @media (prefers-reduced-motion: reduce) {
     #bottom-nav-bar .nav-cloud {
         animation: none;
+    }
+
+    #bottom-nav-bar .nav-button .nav-glints::before,
+    #bottom-nav-bar .nav-button .nav-glints::after {
+        animation: none !important;
     }
 
     #bottom-nav-bar .nav-button,

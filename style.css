@@ -9,7 +9,10 @@
 
 /* Compiled utility CSS and icons replace the production browser CDNs. */
 @import url('./styles/tailwind.css');
-@import url('@fortawesome/fontawesome-free/css/all.min.css');
+/* Only the icon sets the app uses: no brand icons, no v4/v5 compatibility faces. */
+@import url('@fortawesome/fontawesome-free/css/fontawesome.min.css');
+@import url('@fortawesome/fontawesome-free/css/solid.min.css');
+@import url('@fortawesome/fontawesome-free/css/regular.min.css');
 
 /* 0. Shared design tokens: fonts, motion, focus ring, radii, elevation, feedback tones */
 @import url('./styles/tokens.css');

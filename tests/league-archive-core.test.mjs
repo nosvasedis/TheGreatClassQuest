@@ -9,8 +9,17 @@ import {
     getArchiveTrackMax,
     getArchiveTrackPosition,
     layoutArchiveRaceLanes,
-    summarizeArchiveLeague
+    summarizeArchiveLeague,
+    awardLogMonthKey,
+    sumArchiveLogStarsByStudent,
+    resolveArchiveHeroStars,
+    collectArchiveCrossings,
+    buildArchiveMonthEntry,
+    describeArchiveSky,
+    listArchiveLostLessons
 } from '../features/leagueArchiveCore.mjs';
+import { getAwardLogMonthlyStarCredit } from '../features/awardLogReasonMeta.js';
+import { getHistoricalDifficultyForMonth, calculateMonthlyDaysLostForDate } from '../utils.js';
 
 const league = [
     { id: 'owl', name: 'Owls', totalStars: 281, diamondGoal: 185, progress: 151.9, isQuestComplete: false },
@@ -22,9 +31,11 @@ const league = [
 test('the chart ends at the finish line unless a party ran past it', () => {
     assert.equal(getArchiveTrackMax([40, 99.9]), 100);
     assert.equal(getArchiveTrackMax([]), 100);
-    assert.equal(getArchiveTrackMax([151.9, 20]), 160);
+    // Past the goal the chart ends at the next stone of the Starward Way, up to the Palace.
+    assert.equal(getArchiveTrackMax([151.9, 20]), 175);
     assert.equal(getArchiveTrackMax([103]), 110);
-    assert.equal(getArchiveTrackMax([900]), 160);
+    assert.equal(getArchiveTrackMax([125]), 125);
+    assert.equal(getArchiveTrackMax([900]), 200);
     assert.equal(getArchiveTrackPosition(80, 160), 0.5);
     assert.equal(getArchiveTrackPosition(-5, 100), 0);
     assert.equal(getArchiveTrackPosition(900, 160), 1);
@@ -94,4 +105,73 @@ test('stars keep quarters and group thousands', () => {
     assert.equal(formatArchiveStars(1073), '1,073');
     assert.equal(formatArchiveStars(12.25), '12.25');
     assert.equal(formatArchiveStars(undefined), '0');
+});
+
+test('award rows count for the month of their own date, once', () => {
+    assert.equal(awardLogMonthKey({ date: '28-10-2026' }), '2026-10');
+    assert.equal(awardLogMonthKey({ date: '2026-09-03' }), '2026-09');
+    assert.equal(awardLogMonthKey({ createdAt: new Date(2026, 10, 2) }), '2026-11');
+    const logs = [
+        { id: 'a', studentId: 's1', date: '02-10-2026', stars: 2 },
+        { id: 'a', studentId: 's1', date: '02-10-2026', stars: 2 }, // read twice
+        { id: 'b', studentId: 's1', date: '30-09-2026', stars: 5 }, // Star Manager row for September
+        { id: 'c', studentId: 's2', date: '10-10-2026', stars: 0.5 }, // half star
+        { id: 'd', studentId: 's2', date: '11-10-2026', reason: 'showdown', stars: 3, appliedStarCredit: 3 },
+        { id: 'e', studentId: 's2', date: '12-10-2026', reason: 'wheel_fortune', wheel: { deltaStars: 2 } }
+    ];
+    assert.deepEqual(sumArchiveLogStarsByStudent(logs, '2026-10', getAwardLogMonthlyStarCredit), { s1: 2, s2: 5.5 });
+});
+
+test('a hero\'s month comes from the archived counter, then the live one, then the rows', () => {
+    const base = { monthKey: '2026-10', logTotals: { s1: 4 } };
+    assert.deepEqual(resolveArchiveHeroStars({ ...base, studentId: 's1', history: { s1: 30 } }), { stars: 30, source: 'history' });
+    assert.deepEqual(resolveArchiveHeroStars({ ...base, studentId: 's1', score: { monthlyStars: 27, lastMonthlyResetDate: '2026-10-01' } }), { stars: 27, source: 'counter' });
+    assert.deepEqual(resolveArchiveHeroStars({ ...base, studentId: 's1', score: { monthlyStars: 3, lastMonthlyResetDate: '2026-11-01' } }), { stars: 4, source: 'logs' });
+});
+
+test('crossings come from quest_history and the class docs, once per month', () => {
+    const classes = [{ id: 'c1', difficultyLevel: 2, portalCrossings: { '2026-09': { level: 1, goal: 180, stars: 181 }, '2026-10': { level: 2, goal: 205, stars: 206 } } }];
+    const rows = [{ classId: 'c1', monthKey: '2026-10', levelReached: 2, goalTarget: 205, starsEarned: 206 }];
+    const all = collectArchiveCrossings(classes, rows);
+    assert.equal(all.length, 2);
+    // Level 1 in September, Level 2 in October, Level 3 now.
+    assert.equal(getHistoricalDifficultyForMonth(classes[0], new Date(2026, 8, 1), all), 0);
+    assert.equal(getHistoricalDifficultyForMonth(classes[0], new Date(2026, 9, 1), all), 1);
+    assert.equal(getHistoricalDifficultyForMonth(classes[0], new Date(2026, 10, 1), all), 2);
+});
+
+test('a party that crossed keeps every star after it, above 100%', () => {
+    const crossed = buildArchiveMonthEntry({ heroStars: 250, classBonus: 10, goal: 240, crossing: { goalTarget: 200, starsEarned: 201 } });
+    assert.equal(crossed.totalStars, 260);
+    assert.equal(crossed.diamondGoal, 200);
+    assert.equal(crossed.goalSource, 'crossing');
+    assert.equal(crossed.progress, 130);
+    assert.equal(crossed.isQuestComplete, true);
+    // The stars it had when it stepped through are never lost.
+    assert.equal(buildArchiveMonthEntry({ heroStars: 150, crossing: { goalTarget: 200, starsEarned: 201 } }).totalStars, 201);
+    // Otherwise the ceremony's locked goal, then the computed one.
+    assert.equal(buildArchiveMonthEntry({ heroStars: 90, goal: 120, lockedGoal: 100 }).progress, 90);
+    assert.equal(buildArchiveMonthEntry({ heroStars: 90, goal: 120 }).diamondGoal, 120);
+});
+
+test('only a party through the Portal climbs into the Crystal Sky', () => {
+    assert.equal(describeArchiveSky(130, false).inSky, false);
+    assert.equal(describeArchiveSky(100, true).inSky, false);
+    const sky = describeArchiveSky(130, true, 260, 200);
+    assert.equal(sky.inSky, true);
+    assert.equal(sky.mark.id, 'comet');
+    assert.equal(sky.next.id, 'crown');
+    assert.equal(sky.next.starsShort, 40);
+    assert.equal(describeArchiveSky(230, true, 460, 200).palace, true);
+});
+
+test('lost lessons are named, and only on the class\'s own days', () => {
+    const tueThu = { id: 'c1', scheduleDays: ['2', '4'] };
+    const ranges = [{ name: 'Ohi Day', start: '2026-10-28', end: '2026-10-28' }];
+    const overrides = [{ classId: 'c1', date: '01-10-2026', type: 'cancelled' }];
+    const lost = listArchiveLostLessons(tueThu, '2026-10', ranges, overrides);
+    assert.deepEqual(lost, [{ day: '2026-10-01', why: 'Lesson cancelled' }]);
+    assert.equal(calculateMonthlyDaysLostForDate(tueThu, ranges, overrides, new Date(2026, 9, 1)), 1);
+    const wed = { id: 'c2', scheduleDays: ['3'] };
+    assert.deepEqual(listArchiveLostLessons(wed, '2026-10', ranges, []), [{ day: '2026-10-28', why: 'Ohi Day' }]);
 });

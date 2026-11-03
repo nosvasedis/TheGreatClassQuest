@@ -1424,3 +1424,225 @@
 .la-ranks--found .la-road__fill {
     animation: none;
 }
+
+/* ── The month as it was: past the goal, the Crystal Sky, the calendar ─── */
+
+/* Race chart: past the finish flag the map opens into the Crystal Sky, the
+   Starward Way's star stones lit up to the furthest party that climbed them. */
+.la-race.has-sky { padding-right: 1.9rem; }
+
+.la-race__sky {
+    position: absolute;
+    left: var(--finish);
+    right: -1.9rem;
+    top: -0.5rem;
+    bottom: -0.1rem;
+    border-radius: 0 0.95rem 0 0;
+    background:
+        radial-gradient(1.2px 1.2px at 14% 22%, rgba(255, 255, 255, 0.95), transparent 60%),
+        radial-gradient(1px 1px at 38% 58%, rgba(255, 255, 255, 0.8), transparent 60%),
+        radial-gradient(1.4px 1.4px at 62% 18%, rgba(255, 244, 214, 0.95), transparent 60%),
+        radial-gradient(1px 1px at 82% 46%, rgba(255, 255, 255, 0.75), transparent 60%),
+        radial-gradient(1.2px 1.2px at 92% 12%, rgba(255, 255, 255, 0.9), transparent 60%),
+        radial-gradient(ellipse 80% 70% at 0% 100%, rgba(216, 180, 254, 0.55), transparent 70%),
+        linear-gradient(180deg, #1e1b4b 0%, #4338ca 55%, #a78bfa 100%);
+    box-shadow: inset 6px 0 14px -8px rgba(15, 10, 50, 0.6);
+    overflow: hidden;
+}
+
+.la-race__sky::before { /* the cloud sea the Way rises out of */
+    content: '';
+    position: absolute;
+    left: -10%;
+    right: -10%;
+    bottom: -0.6rem;
+    height: 1.6rem;
+    background:
+        radial-gradient(ellipse 30% 100% at 15% 100%, rgba(255, 255, 255, 0.55), transparent 70%),
+        radial-gradient(ellipse 34% 100% at 55% 100%, rgba(255, 255, 255, 0.45), transparent 70%),
+        radial-gradient(ellipse 30% 100% at 90% 100%, rgba(255, 255, 255, 0.5), transparent 70%);
+}
+
+.la-race__sky-name {
+    position: absolute;
+    top: 0.4rem;
+    right: 0.6rem;
+    font-size: 0.56rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(237, 233, 254, 0.85);
+}
+
+.la-race.has-sky .la-race__road {
+    right: -1.4rem;
+    background:
+        linear-gradient(90deg, transparent 0 calc(var(--finish) + 0.6rem), rgba(253, 230, 138, 0.9) calc(var(--finish) + 0.6rem), rgba(255, 251, 235, 0.95)),
+        linear-gradient(180deg, #e2c58e, #cfa86a);
+}
+
+.la-race__stone {
+    position: absolute;
+    left: var(--at);
+    bottom: 0.25rem;
+    display: grid;
+    place-items: center;
+    width: 1.3rem;
+    height: 1.3rem;
+    margin-left: -0.65rem;
+    border-radius: 999px;
+    font-size: 0.56rem;
+    color: #c4b5fd;
+    background: #312e81;
+    box-shadow: 0 0 0 1.5px rgba(196, 181, 253, 0.6);
+    z-index: 1;
+}
+
+.la-race__stone.is-lit {
+    color: #78350f;
+    background: radial-gradient(circle at 35% 30%, #fffbeb, #fcd34d 70%);
+    box-shadow: 0 0 0 1.5px #f59e0b, 0 0 10px 2px rgba(253, 224, 71, 0.75);
+}
+
+.la-runner.is-sky .la-token {
+    border-color: #facc15;
+    background: radial-gradient(circle at 50% 35%, #fff, #ede9fe);
+    box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.45), 0 0 16px 3px rgba(253, 224, 71, 0.55), 0 6px 10px -6px rgba(30, 27, 75, 0.9);
+}
+
+.la-runner.is-sky::after { border-left-color: rgba(253, 230, 138, 0.85); }
+
+.la-token__seal {
+    position: absolute;
+    left: -0.35rem;
+    bottom: -0.3rem;
+    display: grid;
+    place-items: center;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 999px;
+    font-size: 0.48rem;
+    color: #fff;
+    background: #6d28d9;
+    box-shadow: 0 0 0 2px #fff;
+}
+
+.la-race.has-sky .la-race__scale-end { color: #4338ca; }
+
+/* Ledger: the road bar runs on past the goal flag, into the sky */
+.la-road.is-over { overflow: visible; }
+
+.la-road__beyond {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: var(--finish);
+    width: var(--w, 0%);
+    border-radius: 0 999px 999px 0;
+    background: linear-gradient(90deg, #a78bfa, #6366f1 55%, #fde68a);
+    box-shadow: 0 0 8px rgba(167, 139, 250, 0.7);
+    transform-origin: left center;
+    animation: la-fill 700ms cubic-bezier(0.22, 0.8, 0.25, 1) both;
+    animation-delay: calc(1000ms + var(--i, 0) * 45ms);
+}
+
+.la-row:not(.is-sky) .la-road__beyond { background: linear-gradient(90deg, #f59e0b, #fbbf24); box-shadow: none; }
+
+.la-row__pct.is-over { color: #6d28d9; }
+.la-row.is-sky .la-row__pct {
+    background: linear-gradient(90deg, #6d28d9, #d97706);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.la-row__bonus {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: var(--la-sea);
+    white-space: nowrap;
+}
+
+.la-chip--sky { color: #4c1d95; background: linear-gradient(90deg, #ede9fe, #fef3c7); border-color: #c4b5fd; }
+.la-fact--sky i { color: #7c3aed; }
+
+/* The month's calendar strip */
+.la-cal {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.7rem;
+    padding: 0.6rem 0.85rem;
+    border-radius: 0.9rem;
+    background: var(--la-paper);
+    border: 1px dashed var(--la-line);
+    animation: la-rise 420ms cubic-bezier(0.22, 0.76, 0.25, 1) both;
+}
+
+.la-cal__label {
+    margin: 0;
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--la-ink-soft);
+}
+
+.la-cal__label i { color: var(--la-brass); margin-right: 0.2rem; }
+
+.la-cal__days {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+}
+
+.la-cal__day {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.12rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #9f1239;
+    background: #fff1f2;
+    border: 1px solid #fecdd3;
+}
+
+.la-cal__day em { font-style: normal; font-weight: 600; color: #be123c; opacity: 0.8; }
+.la-cal__day i { font-size: 0.62rem; }
+.la-cal__day--june { color: #92400e; background: #fef3c7; border-color: #fde68a; }
+
+.la-cal__note {
+    flex-basis: 100%;
+    margin: 0;
+    font-family: var(--gcq-font-serif);
+    font-size: 0.72rem;
+    font-style: italic;
+    color: var(--la-muted);
+}
+
+.la-warn {
+    margin: 0;
+    padding: 0.55rem 0.8rem;
+    border-radius: 0.8rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #92400e;
+    background: #fef3c7;
+    border: 1px solid #fde68a;
+}
+
+@media (max-width: 640px) {
+    .la-race.has-sky { padding-right: 1.4rem; }
+    .la-race__sky { right: -1.4rem; }
+    .la-race__sky-name,
+    .la-race__scale-name,
+    .la-row__bonus { display: none; }
+    .la-race__stone { width: 1.05rem; height: 1.05rem; margin-left: -0.525rem; font-size: 0.48rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .la-road__beyond,
+    .la-cal { animation: none; }
+}

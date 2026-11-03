@@ -9,12 +9,16 @@ import '../../styles/quest_ranks.css';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { questLeagues, getQuestLeagueDefinition } from '../../constants.js';
+import { getAwardLogMonthlyStarCredit, STAR_MANAGER_SOURCE } from '../../features/awardLogReasonMeta.js';
 import {
-    mergeMonthlyStarsFromArchivedHistoryAndAwardLogs,
-    sumMonthlyStarCreditsByStudentFromAwardLogs
-} from '../../features/awardLogReasonMeta.js';
-import {
+    BEYOND_MARKS,
     QUEST_ROAD_STOPS,
+    buildArchiveMonthEntry,
+    collectArchiveCrossings,
+    describeArchiveSky,
+    listArchiveLostLessons,
+    resolveArchiveHeroStars,
+    sumArchiveLogStarsByStudent,
     describeArchiveGaps,
     describeArchiveStretch,
     describeChampionLine,
@@ -50,6 +54,7 @@ const view = { league: ALL, query: '', monthKey: '', journal: false };
 // Per open: computed standings by month, and the year's quest completions.
 const monthCache = new Map();
 let questHistoryRows = null;
+let starManagerRows = null;
 let archiveToken = 0;
 let bound = false;
 
@@ -108,83 +113,145 @@ async function loadQuestHistory() {
     return questHistoryRows;
 }
 
-/** Final standings of every league for one closed month (same numbers and order as before the redesign). */
+/**
+ * Star Manager rows of the year (Settings › Add Historical Award). They are written
+ * later than the lesson they are for, so a read by write time files them in the wrong
+ * month: they are matched to their month by their own date instead.
+ */
+async function loadStarManagerRows() {
+    if (starManagerRows) return starManagerRows;
+    const yearKey = state.getActiveSchoolYearKey();
+    if (!yearKey) return [];
+    const snap = await getDocs(query(
+        collection(db, `${PUBLIC_DATA_PATH}/award_log`),
+        where('schoolYearKey', '==', yearKey),
+        where('source', '==', STAR_MANAGER_SOURCE)
+    ));
+    starManagerRows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    return starManagerRows;
+}
+
+/** The goals the Ceremony of the Month locked for that month, by class id. */
+async function loadLockedCeremonyGoals(monthKey) {
+    const goals = new Map();
+    const snap = await getDocs(query(
+        collection(db, `${PUBLIC_DATA_PATH}/ceremony_snapshots`),
+        where('monthKey', '==', monthKey)
+    ));
+    snap.docs.forEach((d) => {
+        const data = d.data();
+        if (!['locked', 'completed'].includes(data.status)) return;
+        if (data.schoolYearKey && data.schoolYearKey !== state.getActiveSchoolYearKey()) return;
+        (Array.isArray(data.classResults) ? data.classResults : []).forEach((row) => {
+            const goal = Number(row?.goal);
+            if (row?.id && goal > 0 && !goals.has(row.id)) goals.set(row.id, goal);
+        });
+    });
+    return goals;
+}
+
+function createdAtOf(record) {
+    const at = record?.createdAt;
+    if (!at) return null;
+    const d = typeof at.toDate === 'function' ? at.toDate() : new Date(at?.seconds ? at.seconds * 1000 : at);
+    return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** Classes and heroes that did not exist yet by the end of that month are left out of it. */
+function existedBy(record, monthEnd) {
+    const created = createdAtOf(record);
+    return !created || created <= monthEnd;
+}
+
+const withinTime = (promise, ms, fallback) => Promise.race([
+    Promise.resolve(promise).catch(() => fallback),
+    new Promise((resolve) => setTimeout(() => resolve(fallback), ms))
+]);
+
+/**
+ * Final standings of every league for one closed month, rebuilt from that month's own
+ * facts: its heroes and their stars (archived counter, live counter, or the month's
+ * award rows by their own date), the class's own Team Quest gifts, the quest level it
+ * raced at, its lessons and holidays, and the goal it had to fill. Progress is not
+ * clamped at 100%.
+ */
 async function computeMonth(monthKey) {
     if (monthCache.has(monthKey)) return monthCache.get(monthKey);
 
-    let monthlyScores = {};
+    const [year, month] = monthKey.split('-').map(Number);
+    const monthStart = new Date(year, month - 1, 1);
+    const monthEnd = new Date(year, month, 0, 23, 59, 59, 999);
+    let logs = [];
+    let history = {};
     let questHistoryData = [];
+    let lockedGoals = new Map();
+    let readFailed = false;
     try {
         const { fetchLogsForMonth } = await import('../../db/queries.js');
         const { fetchMonthlyHistory } = await import('../../state.js');
-        const [year, month] = monthKey.split('-').map(Number);
-        const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000));
-        const [logs, archivedRows, history] = await Promise.all([
-            Promise.race([fetchLogsForMonth(year, month), timeout]).catch(() => []),
-            fetchMonthlyHistory(monthKey).catch(() => ({})),
-            loadQuestHistory()
+        const [monthLogs, managerRows, archivedRows, records, goals] = await Promise.all([
+            withinTime(fetchLogsForMonth(year, month, { throwOnError: true }), 8000, null),
+            withinTime(loadStarManagerRows(), 6000, []),
+            withinTime(fetchMonthlyHistory(monthKey), 8000, {}),
+            withinTime(loadQuestHistory(), 6000, []),
+            withinTime(loadLockedCeremonyGoals(monthKey), 5000, new Map())
         ]);
-        monthlyScores = mergeMonthlyStarsFromArchivedHistoryAndAwardLogs(
-            sumMonthlyStarCreditsByStudentFromAwardLogs(logs || []),
-            archivedRows || {}
-        );
-        questHistoryData = history || [];
+        if (monthLogs === null) readFailed = true;
+        logs = [...(monthLogs || []), ...(managerRows || [])];
+        history = archivedRows || {};
+        questHistoryData = records || [];
+        lockedGoals = goals || new Map();
     } catch (error) {
         console.error('League Archive fetch error:', error);
+        readFailed = true;
     }
 
     const ranges = state.get('schoolHolidayRanges') || [];
     const overrides = state.get('allScheduleOverrides') || [];
-    const monthStart = new Date(`${monthKey}-01T00:00:00`);
     const allClasses = state.get('allSchoolClasses') || [];
     const allStudents = state.get('allStudents') || [];
+    const scoresById = new Map((state.get('allStudentScores') || []).map((s) => [s.id, s]));
+    const logTotals = sumArchiveLogStarsByStudent(logs, monthKey, getAwardLogMonthlyStarCredit);
+    const crossings = collectArchiveCrossings(allClasses, questHistoryData);
     const byLeague = new Map();
 
     for (const league of questLeagues) {
-        const classesInLeague = allClasses.filter((c) => c.questLevel === league);
+        const classesInLeague = allClasses.filter((c) => c.questLevel === league && existedBy(c, monthEnd));
         if (!classesInLeague.length) continue;
 
         const entries = classesInLeague.map((c) => {
-            const daysLost = utils.calculateMonthlyDaysLostForDate(c, ranges, overrides, monthStart);
-            // A completion snapshot is the official record for that month.
-            const record = questHistoryData.find((h) => h.classId === c.id && h.monthKey === monthKey);
-            if (record) {
-                return {
-                    ...c,
-                    totalStars: Number(record.starsEarned) || 0,
-                    progress: 100,
-                    diamondGoal: Number(record.goalTarget) || 0,
-                    daysLost,
-                    historicalLevel: (Number(record.levelReached) || 1) - 1,
-                    isQuestComplete: true
-                };
-            }
-            // Otherwise rebuild it from the month's star logs.
-            const roster = allStudents.filter((s) => s.classId === c.id);
-            const bonus = Number(c.teamQuestBonuses?.[monthKey]) || 0;
-            const totalStars = roster.reduce((sum, s) => sum + (monthlyScores[s.id] || 0), 0) + bonus;
-            const diamondGoal = utils.calculateMonthlyClassGoalForDate(c, roster.length, ranges, overrides, monthStart, questHistoryData);
+            const roster = allStudents.filter((s) => s.classId === c.id && existedBy(s, monthEnd));
+            const heroStars = roster.reduce((sum, s) => sum + resolveArchiveHeroStars({
+                studentId: s.id, monthKey, history, score: scoresById.get(s.id), logTotals
+            }).stars, 0);
+            const crossing = crossings.find((h) => h.classId === c.id && h.monthKey === monthKey) || null;
+            const lessons = utils.getMonthlyLessonBalanceForDate(c, ranges, overrides, monthStart);
+            const entry = buildArchiveMonthEntry({
+                heroStars,
+                classBonus: Number(c.teamQuestBonuses?.[monthKey]) || 0,
+                goal: utils.calculateMonthlyClassGoalForDate(c, roster.length, ranges, overrides, monthStart, crossings),
+                crossing,
+                lockedGoal: lockedGoals.get(c.id) || 0
+            });
             return {
                 ...c,
-                totalStars,
-                progress: diamondGoal > 0 ? (totalStars / diamondGoal) * 100 : 0,
-                diamondGoal,
-                daysLost,
-                historicalLevel: utils.getHistoricalDifficultyForMonth(c, monthStart, questHistoryData),
-                isQuestComplete: false
+                ...entry,
+                heroes: roster.length,
+                daysLost: lessons.lost,
+                lessonsScheduled: lessons.scheduled,
+                lostLessons: listArchiveLostLessons(c, monthKey, ranges, overrides),
+                goalModifier: utils.getMonthlyGoalModifierForDate(c, ranges, overrides, monthStart),
+                historicalLevel: utils.getHistoricalDifficultyForMonth(c, monthStart, crossings)
             };
         }).sort(utils.sortTeamQuestEntries)
-            .map((entry, index) => ({
-                ...entry,
-                progress: Number.isFinite(entry.progress) ? entry.progress : 0,
-                rank: index + 1
-            }));
+            .map((entry, index) => ({ ...entry, rank: index + 1 }));
 
         byLeague.set(league, entries);
     }
 
-    const result = { monthKey, byLeague };
-    monthCache.set(monthKey, result);
+    const result = { monthKey, byLeague, readFailed };
+    // A month that could not be read is not kept, so stepping back to it tries again.
+    if (!readFailed) monthCache.set(monthKey, result);
     return result;
 }
 
@@ -301,39 +368,72 @@ function badgeImg(zoneId, extraClass = '') {
     return `<img class="la-badge${extraClass}" src="${src}" alt="" aria-hidden="true" loading="lazy" decoding="async" draggable="false">`;
 }
 
-function raceChartHtml(entries, trackMax) {
+/**
+ * Where a party stands on the race chart. Only a party that stepped through the Portal
+ * climbs on into the Crystal Sky; one whose Portal stayed sealed waits at it.
+ */
+function chartProgress(entry) {
+    const pct = Number(entry.progress) || 0;
+    return entry.isQuestComplete ? pct : Math.min(100, pct);
+}
+
+function pctText(progress) {
+    return `${Math.floor(Math.max(0, Number(progress) || 0))}%`;
+}
+
+function dayLabel(iso) {
+    const [y, m, d] = String(iso).split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+function raceChartHtml(entries) {
     const runners = entries.filter((e) => e.totalStars > 0);
     if (!runners.length) return '';
-    const positions = runners.map((e) => getArchiveTrackPosition(e.progress, trackMax));
+    const trackMax = getArchiveTrackMax(runners.map(chartProgress));
+    const positions = runners.map((e) => getArchiveTrackPosition(chartProgress(e), trackMax));
     const lanes = layoutArchiveRaceLanes(positions);
     const laneCount = Math.max(...lanes) + 1;
     const finish = getArchiveTrackPosition(100, trackMax);
     const myIds = getMyClassIds();
+    const sky = trackMax > 100;
 
     const realms = QUEST_ROAD_STOPS.filter((stop) => stop.progress < 100).map((stop) => {
         const zone = QUEST_MAP_ZONES.find((z) => z.minPercent === stop.progress);
         return `<span class="la-race__realm" style="--at:${(getArchiveTrackPosition(stop.progress, trackMax) * 100).toFixed(2)}%" title="${esc(stop.label)} (${stop.progress}%)"><span aria-hidden="true">${zone?.icon || '•'}</span></span>`;
     }).join('');
 
+    const top = Math.max(...runners.filter((e) => e.isQuestComplete).map((e) => Number(e.progress) || 0), 0);
+    const stones = sky ? BEYOND_MARKS.filter((mark) => mark.at <= trackMax).map((mark) => `
+        <span class="la-race__stone${top >= mark.at ? ' is-lit' : ''}" style="--at:${(getArchiveTrackPosition(mark.at, trackMax) * 100).toFixed(2)}%" title="${esc(mark.label)} (${mark.at}%)"><i class="fas ${esc(mark.icon)}" aria-hidden="true"></i></span>`).join('') : '';
+
     const tokens = runners.map((e, i) => {
         const x = (positions[i] * 100).toFixed(2);
-        const cls = ['la-runner', e.rank === 1 ? 'is-leader' : '', myIds.has(e.id) ? 'is-mine' : '', e.progress >= 100 ? 'is-home' : '']
+        const inSky = e.isQuestComplete && e.progress >= 101;
+        const sealed = !e.isQuestComplete && e.progress >= 100;
+        const cls = ['la-runner', e.rank === 1 ? 'is-leader' : '', myIds.has(e.id) ? 'is-mine' : '', e.progress >= 100 ? 'is-home' : '', inSky ? 'is-sky' : '', sealed ? 'is-sealed' : '']
             .filter(Boolean).join(' ');
+        const tip = inSky ? `${e.name} · ${pctText(e.progress)} · on the Starward Way`
+            : sealed ? `${e.name} · ${pctText(e.progress)} · the Portal stayed sealed`
+                : `${e.name} · ${pctText(e.progress)}`;
         return `
             <span class="${cls}" style="--x:${x}%;--lane:${lanes[i]};--i:${Math.min(i, 10)}">
-                <span class="la-token" title="${esc(e.name)} · ${Math.round(e.progress)}%">
+                <span class="la-token" title="${esc(tip)}">
                     <span class="la-token__crest" aria-hidden="true">${esc(e.logo || '📚')}</span>
                     <span class="la-token__rank">${e.rank}</span>
+                    ${sealed ? '<span class="la-token__seal" aria-hidden="true"><i class="fas fa-lock"></i></span>' : ''}
                 </span>
             </span>`;
     }).join('');
 
-    const label = runners.map((e) => `${e.rank}. ${e.name} ${Math.round(e.progress)}%`).join(', ');
+    const endMark = BEYOND_MARKS.find((mark) => mark.at === trackMax);
+    const label = runners.map((e) => `${e.rank}. ${e.name} ${pctText(e.progress)}`).join(', ');
     return `
-        <div class="la-race" style="--lanes:${laneCount};--finish:${(finish * 100).toFixed(2)}%" role="img" aria-label="Where each party stopped: ${esc(label)}">
+        <div class="la-race${sky ? ' has-sky' : ''}" style="--lanes:${laneCount};--finish:${(finish * 100).toFixed(2)}%" role="img" aria-label="Where each party stopped: ${esc(label)}">
             <div class="la-race__field">
+                ${sky ? '<div class="la-race__sky" aria-hidden="true"><span class="la-race__sky-name">Crystal Sky</span></div>' : ''}
                 <div class="la-race__road" aria-hidden="true"></div>
                 ${realms}
+                ${stones}
                 <span class="la-race__start" aria-hidden="true"></span>
                 <span class="la-race__finish" aria-hidden="true"><i class="fas fa-flag-checkered"></i></span>
                 ${tokens}
@@ -341,35 +441,69 @@ function raceChartHtml(entries, trackMax) {
             <div class="la-race__scale" aria-hidden="true">
                 <span>Start</span>
                 <span class="la-race__scale-goal" style="--at:${(finish * 100).toFixed(2)}%">Goal</span>
-                ${trackMax > 100 ? `<span class="la-race__scale-end">${trackMax}%</span>` : ''}
+                ${sky ? `<span class="la-race__scale-end">${endMark ? `<span class="la-race__scale-name">${esc(endMark.label.replace(/^The /, ''))} </span>` : ''}${trackMax}%</span>` : ''}
             </div>
         </div>`;
 }
 
-function rowHtml(entry, index, gaps, trackMax, myIds, showLeague) {
+function rowHtml(entry, index, gaps, trackMax, myIds, showLeague, monthKey) {
     const isMine = myIds.has(entry.id);
     const stretch = describeArchiveStretch(entry.progress, entry.totalStars, entry.diamondGoal);
+    const skyInfo = describeArchiveSky(entry.progress, entry.isQuestComplete, entry.totalStars, entry.diamondGoal);
     const reached = entry.isQuestComplete || entry.progress >= 100;
     const gap = gaps.get(entry.id);
     const fill = getArchiveTrackPosition(entry.progress, trackMax);
     const finish = getArchiveTrackPosition(100, trackMax);
     const tone = entry.rank <= 3 ? ` la-row--top${entry.rank}` : '';
-    const classes = `la-row${tone}${isMine ? ' is-mine' : ''}${reached ? ' is-complete' : ''}`;
+    const classes = `la-row${tone}${isMine ? ' is-mine' : ''}${reached ? ' is-complete' : ''}${skyInfo.inSky ? ' is-sky' : ''}`;
+    const level = entry.historicalLevel + 1;
+    const rank = rankForLevel(level);
+    const monthName = monthLong(monthKey).split(' ')[0];
+    const june = Number(String(monthKey).split('-')[1]) === 6;
+
+    const lost = entry.lostLessons || [];
+    const lessonsTip = entry.daysLost > 0
+        ? `${entry.lessonsScheduled - entry.daysLost} of ${entry.lessonsScheduled} lessons ran in ${monthName}. ${lost.length ? `Lost: ${lost.map((l) => `${dayLabel(l.day)} (${l.why})`).join(', ')}.` : ''}${lost.length > entry.daysLost ? ' A make-up lesson gave one back.' : ''} The goal was eased to match.`
+        : '';
 
     const chips = [
         showLeague ? `<span class="la-chip la-chip--league"><i class="fas ${esc(leagueIcon(entry.questLevel))}" aria-hidden="true"></i>${esc(entry.questLevel)}</span>` : '',
         isMine ? '<span class="la-chip la-chip--mine">Your class</span>' : '',
-        reached ? '<span class="la-chip la-chip--goal"><i class="fas fa-gem" aria-hidden="true"></i>Goal reached</span>' : '',
-        `<span class="la-chip la-chip--level qr-chip qr-chip--${rankForLevel(entry.historicalLevel + 1).id}" title="Quest Level that month">${rankCrestSvg(entry.historicalLevel + 1, { className: 'qr-chip__crest' })}<span>${esc(rankForLevel(entry.historicalLevel + 1).title)}</span><b>Lv ${entry.historicalLevel + 1}</b></span>`,
-        entry.daysLost > 0 ? `<span class="la-chip la-chip--lost" title="${entry.daysLost} lesson day${entry.daysLost === 1 ? '' : 's'} lost to holidays or cancellations">−${entry.daysLost} day${entry.daysLost === 1 ? '' : 's'}</span>` : ''
+        entry.isQuestComplete ? '<span class="la-chip la-chip--goal"><i class="fas fa-dungeon" aria-hidden="true"></i>Crossed the Portal</span>'
+            : reached ? '<span class="la-chip la-chip--goal"><i class="fas fa-gem" aria-hidden="true"></i>Goal reached</span>' : '',
+        skyInfo.inSky ? `<span class="la-chip la-chip--sky" title="Past the goal, on the Starward Way above the Crystal Realm"><i class="fas ${esc(skyInfo.mark?.icon || 'fa-star')}" aria-hidden="true"></i>${esc(skyInfo.mark ? skyInfo.mark.label.replace(/^The /, '') : 'Starward Way')}</span>` : '',
+        `<span class="la-chip la-chip--level qr-chip qr-chip--${rank.id}" title="Quest Level ${level} in ${esc(monthName)}${entry.isQuestComplete ? `; it rose to Level ${level + 1} by stepping through the Portal` : ''}">${rankCrestSvg(level, { className: 'qr-chip__crest' })}<span>${esc(rank.title)}</span><b>Lv ${level}</b></span>`,
+        entry.daysLost > 0 ? `<span class="la-chip la-chip--lost" title="${esc(lessonsTip)}"><i class="fas fa-calendar-xmark" aria-hidden="true"></i>${entry.lessonsScheduled - entry.daysLost}/${entry.lessonsScheduled} lessons</span>` : '',
+        june ? '<span class="la-chip la-chip--lost" title="June is a short month: every class needs half its usual goal"><i class="fas fa-sun" aria-hidden="true"></i>Half goal</span>' : ''
     ].filter(Boolean).join('');
 
-    const where = reached && !entry.isQuestComplete && entry.historicalLevel > 0
-        ? `${badgeImg('crystal')}<span>Filled the goal · the Portal stayed sealed</span>`
-        : reached
-        ? `${badgeImg('crystal')}<span>Crossed the Portal</span>`
-        : `${badgeImg(stretch.zone.id)}<span>Stopped in ${esc(stretch.zone.label)} · ${stretch.starsShortOfGoal}★ short of the goal</span>`;
+    let where;
+    if (skyInfo.inSky) {
+        const mark = skyInfo.mark;
+        const climbed = skyInfo.palace ? 'reached the Celestial Palace'
+            : mark ? `climbed the Starward Way to ${esc(mark.label.replace(/^The /, 'the '))}` : 'stepped onto the Starward Way';
+        const next = skyInfo.next && !skyInfo.palace ? ` · ${skyInfo.next.starsShort}★ short of ${esc(skyInfo.next.label.replace(/^The /, 'the '))}` : '';
+        where = `${badgeImg('crystal')}<span>Crossed the Portal and ${climbed}${next}</span>`;
+    } else if (entry.isQuestComplete) {
+        where = `${badgeImg('crystal')}<span>Crossed the Portal</span>`;
+    } else if (reached && entry.historicalLevel > 0) {
+        where = `${badgeImg('crystal')}<span>Filled the goal${entry.progress >= 101 ? ` and ran ${formatArchiveStars(entry.totalStars - entry.diamondGoal)}★ past it` : ''} · the Portal stayed sealed</span>`;
+    } else if (reached) {
+        where = `${badgeImg('crystal')}<span>Filled the goal${entry.progress >= 101 ? ` and ran ${formatArchiveStars(entry.totalStars - entry.diamondGoal)}★ past it` : ''}</span>`;
+    } else {
+        where = `${badgeImg(stretch.zone.id)}<span>Stopped in ${esc(stretch.zone.label)} · ${stretch.starsShortOfGoal}★ short of the goal</span>`;
+    }
     const chase = gap ? `<span class="la-row__gap"><i class="fas fa-person-running" aria-hidden="true"></i>${gap.starsToCatch}★ behind ${esc(gap.name)}</span>` : '';
+
+    const goalWhy = [
+        `${monthName}'s goal: ${formatArchiveStars(entry.diamondGoal)}★`,
+        entry.goalSource === 'crossing' ? 'the goal it filled to open the Portal'
+            : entry.goalSource === 'ceremony' ? 'as locked at the Ceremony of the Month'
+                : `${entry.heroes} ${entry.heroes === 1 ? 'hero' : 'heroes'} at Quest Level ${level}${entry.goalModifier < 1 ? `, eased to ${Math.round(entry.goalModifier * 100)}% for ${june ? 'June' : 'lost lessons'}` : ''}`
+    ].join(', ');
+    const starsWhy = `${formatArchiveStars(entry.totalStars)}★ in ${monthName}${entry.classBonus > 0 ? `: ${formatArchiveStars(entry.heroStars)}★ by the heroes + ${formatArchiveStars(entry.classBonus)}★ Team Quest gifts (Pathfinder’s Map, Realm Raid, Fortune’s Wheel, Ember Oaths)` : ''}. ${goalWhy}.`;
+    const over = entry.progress >= 101;
+    const beyond = over ? Math.max(0, fill - finish) : 0;
 
     return `
         <li class="${classes}" id="la-row-${esc(entry.id)}" style="--i:${Math.min(index, 12)}">
@@ -380,20 +514,22 @@ function rowHtml(entry, index, gaps, trackMax, myIds, showLeague) {
                     <p class="la-row__name">${esc(entry.name)}</p>
                     ${chips ? `<div class="la-row__chips">${chips}</div>` : ''}
                 </div>
-                <span class="la-road" style="--finish:${(finish * 100).toFixed(2)}%" aria-hidden="true">
-                    <span class="la-road__fill" style="--p:${fill.toFixed(4)}"></span>
+                <span class="la-road${over ? ' is-over' : ''}" style="--finish:${(finish * 100).toFixed(2)}%" aria-hidden="true">
+                    <span class="la-road__fill" style="--p:${Math.min(fill, finish).toFixed(4)}"></span>
+                    ${over ? `<span class="la-road__beyond" style="--w:${(beyond * 100).toFixed(2)}%"></span>` : ''}
                     <span class="la-road__goal"></span>
                 </span>
                 <p class="la-row__note"><span class="la-row__where">${where}</span>${chase}</p>
             </div>
-            <div class="la-row__score">
-                <span class="la-row__pct font-title">${Math.round(entry.progress)}%</span>
+            <div class="la-row__score" title="${esc(starsWhy)}">
+                <span class="la-row__pct font-title${over ? ' is-over' : ''}">${pctText(entry.progress)}</span>
                 <span class="la-row__stars">${formatArchiveStars(entry.totalStars)} / ${formatArchiveStars(entry.diamondGoal)}<i class="fas fa-star" aria-hidden="true"></i></span>
+                ${entry.classBonus > 0 ? `<span class="la-row__bonus">incl. +${formatArchiveStars(entry.classBonus)}★ team gifts</span>` : ''}
             </div>
         </li>`;
 }
 
-function sheetHtml(league, entries, sheetIndex) {
+function sheetHtml(league, entries, sheetIndex, monthKey) {
     const myIds = getMyClassIds();
     const summary = summarizeArchiveLeague(entries);
     const runners = entries.filter((e) => e.totalStars > 0);
@@ -401,10 +537,14 @@ function sheetHtml(league, entries, sheetIndex) {
     const trackMax = getArchiveTrackMax(runners.map((e) => e.progress));
     const gaps = describeArchiveGaps(runners);
     const champ = summary.champion;
+    const skyward = runners.filter((e) => e.isQuestComplete && e.progress >= 101).length;
+    const crossed = runners.filter((e) => e.isQuestComplete).length;
 
     const facts = [
         `<span class="la-fact"><i class="fas fa-people-group" aria-hidden="true"></i><strong>${summary.parties}</strong> ${summary.parties === 1 ? 'party' : 'parties'}</span>`,
         `<span class="la-fact"><i class="fas fa-gem" aria-hidden="true"></i><strong>${summary.goalsReached}</strong> reached the goal</span>`,
+        crossed ? `<span class="la-fact"><i class="fas fa-dungeon" aria-hidden="true"></i><strong>${crossed}</strong> crossed the Portal</span>` : '',
+        skyward ? `<span class="la-fact la-fact--sky"><i class="fas fa-star" aria-hidden="true"></i><strong>${skyward}</strong> climbed into the Crystal Sky</span>` : '',
         `<span class="la-fact"><i class="fas fa-star" aria-hidden="true"></i><strong>${formatArchiveStars(summary.totalStars)}</strong> stars</span>`
     ].join('');
 
@@ -435,9 +575,9 @@ function sheetHtml(league, entries, sheetIndex) {
                 </div>
                 ${champion}
             </header>
-            ${runners.length ? raceChartHtml(runners, trackMax) : ''}
+            ${runners.length ? raceChartHtml(runners) : ''}
             ${runners.length
-                ? `<ol class="la-ranks">${runners.map((e, i) => rowHtml(e, i, gaps, trackMax, myIds, false)).join('')}</ol>`
+                ? `<ol class="la-ranks">${runners.map((e, i) => rowHtml(e, i, gaps, trackMax, myIds, false, monthKey)).join('')}</ol>`
                 : '<p class="la-sheet__quiet"><i class="fas fa-wind" aria-hidden="true"></i> No party set out this month.</p>'}
             ${waitingHtml}
         </section>`;
@@ -453,12 +593,13 @@ function yoursHtml(leagueMap) {
             const ran = e.totalStars > 0;
             const place = ran ? `${rankWord(e.rank)} of ${runners.length}` : 'Did not set out';
             const reached = e.isQuestComplete || e.progress >= 100;
+            const pct = `${Math.floor(Math.max(0, Number(e.progress) || 0))}%`;
             cards.push(`
                 <button type="button" class="la-mine${e.rank === 1 && ran ? ' is-champion' : ''}" ${ran ? `data-la-jump="${esc(e.id)}"` : 'disabled'}>
                     <span class="la-mine__crest" aria-hidden="true">${esc(e.logo || '📚')}</span>
                     <span class="la-mine__text">
                         <span class="la-mine__name">${esc(e.name)}</span>
-                        <span class="la-mine__place">${e.rank === 1 && ran ? '<i class="fas fa-crown" aria-hidden="true"></i> ' : ''}${place} · ${esc(league)} League${ran ? ` · ${Math.round(e.progress)}%` : ''}${reached ? ' · <i class="fas fa-gem" aria-hidden="true"></i>' : ''}</span>
+                        <span class="la-mine__place">${e.rank === 1 && ran ? '<i class="fas fa-crown" aria-hidden="true"></i> ' : ''}${place} · ${esc(league)} League${ran ? ` · ${pct}` : ''}${reached ? ' · <i class="fas fa-gem" aria-hidden="true"></i>' : ''}</span>
                     </span>
                 </button>`);
         });
@@ -478,6 +619,54 @@ function emptyHtml(icon, title, text, tone = '') {
             <p class="la-empty__title font-title">${title}</p>
             <p class="la-empty__text">${text}</p>
         </div>`;
+}
+
+/**
+ * The month's calendar strip: the school holidays that closed lessons that month, and
+ * how they eased each class's goal (only the lessons a class really lost count).
+ */
+function monthConditionsHtml(monthKey) {
+    const [year, month] = String(monthKey).split('-').map(Number);
+    if (!year || !month) return '';
+    const first = `${monthKey}-01`;
+    const last = `${monthKey}-${String(new Date(year, month, 0).getDate()).padStart(2, '0')}`;
+    const isoOf = (raw) => {
+        const d = utils.parseFlexibleDate(raw);
+        return d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` : '';
+    };
+    const byName = new Map();
+    (state.get('schoolHolidayRanges') || []).forEach((range) => {
+        const start = isoOf(range?.start);
+        const end = isoOf(range?.end);
+        if (!start || !end || end < first || start > last) return;
+        const name = range.name || 'School holiday';
+        const from = start < first ? first : start;
+        const to = end > last ? last : end;
+        const known = byName.get(name);
+        if (known) {
+            if (from < known.from) known.from = from;
+            if (to > known.to) known.to = to;
+        } else byName.set(name, { name, icon: range.icon || '', from, to });
+    });
+    // Only closures that fall on a school day matter.
+    const items = [...byName.values()].filter(({ from, to }) => {
+        const cursor = new Date(`${from}T12:00:00`);
+        const stop = new Date(`${to}T12:00:00`);
+        for (; cursor <= stop; cursor.setDate(cursor.getDate() + 1)) {
+            if (cursor.getDay() !== 0 && cursor.getDay() !== 6) return true;
+        }
+        return false;
+    }).sort((a, b) => a.from.localeCompare(b.from));
+    const june = month === 6;
+    if (!items.length && !june) return '';
+    const fmt = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    const pills = items.map((h) => `<span class="la-cal__day">${h.icon ? `<span aria-hidden="true">${esc(h.icon)}</span>` : '<i class="fas fa-umbrella-beach" aria-hidden="true"></i>'}${esc(h.name)} <em>${esc(h.from === h.to ? fmt(h.from) : `${fmt(h.from)} – ${fmt(h.to)}`)}</em></span>`).join('');
+    return `
+        <section class="la-cal" aria-label="The month's calendar">
+            <p class="la-cal__label"><i class="fas fa-calendar-days" aria-hidden="true"></i> ${esc(monthLong(monthKey).split(' ')[0])}’s calendar</p>
+            <div class="la-cal__days">${pills}${june ? '<span class="la-cal__day la-cal__day--june"><i class="fas fa-sun" aria-hidden="true"></i>June: every goal is halved</span>' : ''}</div>
+            ${items.length ? '<p class="la-cal__note">Each class’s goal was eased only for the lessons it really lost.</p>' : ''}
+        </section>`;
 }
 
 function renderSheets(data) {
@@ -501,7 +690,7 @@ function renderSheets(data) {
             const trackMax = getArchiveTrackMax(runners.map((e) => e.progress));
             const gaps = describeArchiveGaps(runners);
             entries.filter((e) => (e.name || '').toLowerCase().includes(q))
-                .forEach((e) => hits.push(rowHtml(e, hits.length, gaps, trackMax, myIds, true)));
+                .forEach((e) => hits.push(rowHtml(e, hits.length, gaps, trackMax, myIds, true, data.monthKey)));
         });
         contentEl.innerHTML = hits.length
             ? `<p class="la-found">${hits.length} ${hits.length === 1 ? 'class' : 'classes'} found in ${esc(monthName)}</p><ol class="la-ranks la-ranks--found">${hits.join('')}</ol>`
@@ -513,7 +702,7 @@ function renderSheets(data) {
     inView.forEach((entries, league) => {
         // In "All leagues", a league where nobody earned a star gets no sheet.
         if (view.league === ALL && !entries.some((e) => e.totalStars > 0)) return;
-        sheets.push(sheetHtml(league, entries, sheets.length));
+        sheets.push(sheetHtml(league, entries, sheets.length, data.monthKey));
     });
 
     if (!sheets.length || (view.league !== ALL && !inView.get(view.league).some((e) => e.totalStars > 0))) {
@@ -521,7 +710,10 @@ function renderSheets(data) {
         return;
     }
 
-    contentEl.innerHTML = yoursHtml(inView) + sheets.join('');
+    const warning = data.readFailed
+        ? '<p class="la-warn"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Part of this month’s star record could not be read just now, so some numbers may be low. Close and reopen the archive to try again.</p>'
+        : '';
+    contentEl.innerHTML = warning + yoursHtml(inView) + monthConditionsHtml(data.monthKey) + sheets.join('');
 }
 
 function loadingHtml(monthKey) {
@@ -640,6 +832,7 @@ export function openLeagueArchive({ league = null } = {}) {
     bindOnce();
     monthCache.clear();
     questHistoryRows = null;
+    starManagerRows = null;
     view.query = '';
     view.journal = false;
 

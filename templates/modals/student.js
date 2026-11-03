@@ -266,7 +266,7 @@ export const studentModalsHTML = `
     </div>
 
     <div id="award-note-modal"
-        class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden">
+        class="fixed inset-0 bg-black/50 z-[72] flex items-center justify-center p-4 hidden">
         <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-md w-full pop-in border-4 border-blue-300">
             <h2 class="font-title text-2xl text-blue-700 mb-4 text-center">Teacher's Note for Award</h2>
             <input type="hidden" id="award-note-log-id-input">
@@ -287,7 +287,7 @@ export const studentModalsHTML = `
     </div>
 
     <div id="note-modal"
-        class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden"
+        class="fixed inset-0 bg-black/50 z-[72] flex items-center justify-center p-4 hidden"
         role="dialog" aria-modal="true" aria-labelledby="note-modal-title">
         <div class="diary-sticky pop-in">
             <span class="diary-sticky__tape" aria-hidden="true"></span>
@@ -307,7 +307,7 @@ export const studentModalsHTML = `
 
     <!-- Move Student: "transfer orders". Rendered by ui/modals/moveStudent.js, styled in styles/move_student.css. -->
     <div id="move-student-modal"
-        class="move-student-modal fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden"
+        class="move-student-modal fixed inset-0 bg-black/50 z-[72] flex items-center justify-center p-4 hidden"
         role="dialog" aria-modal="true" aria-labelledby="move-student-title">
         <div class="ms-card pop-in"></div>
     </div>

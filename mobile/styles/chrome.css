@@ -785,9 +785,9 @@ body.gcq-mobile .role-main {
 }
 
 body.gcq-mobile .m-dock .m-dock-btn {
-    --cloud-ink: color-mix(in srgb, var(--tw-gradient-from, #0ea5e9) 58%, #0f172a);
-    --cloud-ink-soft: color-mix(in srgb, var(--tw-gradient-from, #0ea5e9) 70%, rgba(15, 23, 42, 0.35));
-    --cloud-pearl: color-mix(in srgb, var(--tw-gradient-to, #bae6fd) 22%, #ffffff);
+    --cloud-ink: color-mix(in srgb, var(--nav-from, #0ea5e9) 58%, #0f172a);
+    --cloud-ink-soft: color-mix(in srgb, var(--nav-from, #0ea5e9) 70%, rgba(15, 23, 42, 0.35));
+    --cloud-pearl: color-mix(in srgb, var(--nav-to, #bae6fd) 22%, #ffffff);
     position: relative;
     height: 4.35rem;
     min-height: 4.35rem;
@@ -829,7 +829,7 @@ body.gcq-mobile .m-dock .m-dock-btn::before {
         radial-gradient(ellipse 22% 16% at 40% 16%, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0) 75%),
         radial-gradient(ellipse 24% 22% at 16% 60%, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 70%),
         linear-gradient(to top, rgba(15, 23, 42, 0.26) 0%, rgba(15, 23, 42, 0.07) 18%, rgba(15, 23, 42, 0) 34%),
-        linear-gradient(to top, var(--tw-gradient-from, #7dd3fc), var(--tw-gradient-to, #bae6fd));
+        linear-gradient(to top, var(--nav-from, #7dd3fc), var(--nav-to, #bae6fd));
     -webkit-mask: var(--cloud-shape) center / 100% 100% no-repeat;
     mask: var(--cloud-shape) center / 100% 100% no-repeat;
 }
@@ -914,8 +914,8 @@ body.night-mode .m-dock .m-dock-btn.active {
 
 /* Locked (plan) tabs: a grey cloud with the tier tag on its shoulder. */
 body.gcq-mobile .m-dock .m-dock-btn.nav-button-locked {
-    --tw-gradient-from: #94a3b8;
-    --tw-gradient-to: #cbd5e1;
+    --nav-from: #94a3b8;
+    --nav-to: #cbd5e1;
     opacity: 0.85;
 }
 
@@ -1158,8 +1158,8 @@ body.gcq-mobile #m-options-subtab-sheet.m-sheet--closing {
 }
 
 body.gcq-mobile .m-more-item.nav-button {
-    --cloud-ink: color-mix(in srgb, var(--tw-gradient-from, #0ea5e9) 58%, #0f172a);
-    --cloud-pearl: color-mix(in srgb, var(--tw-gradient-to, #bae6fd) 22%, #ffffff);
+    --cloud-ink: color-mix(in srgb, var(--nav-from, #0ea5e9) 58%, #0f172a);
+    --cloud-pearl: color-mix(in srgb, var(--nav-to, #bae6fd) 22%, #ffffff);
     width: 100%;
     height: auto;
     min-height: 6.4rem;

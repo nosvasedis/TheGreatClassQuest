@@ -30,7 +30,7 @@ function starfallCrestStarSvg() {
 
 export const miscModalsHTML = `
     <div id="quest-update-modal"
-        class="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center p-4 hidden">
+        class="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4 hidden">
         <div class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl max-w-2xl w-full pop-in border-4 border-purple-300">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="font-title text-2xl md:text-3xl text-purple-700">Latest Quest Update</h2>
@@ -53,7 +53,7 @@ export const miscModalsHTML = `
     </div>
 
     <div id="milestone-details-modal"
-        class="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center p-4 hidden">
+        class="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4 hidden">
         <div id="milestone-details-panel" class="milestone-details-panel bg-white p-6 md:p-8 rounded-3xl shadow-2xl max-w-4xl w-full pop-in border-4 border-blue-300 max-h-[90vh] overflow-y-auto">
             <div class="milestone-details-header flex justify-between items-center mb-4 gap-3">
                 <h2 id="milestone-modal-title" class="font-title text-2xl md:text-3xl text-blue-700">Milestone Progress
@@ -74,7 +74,7 @@ export const miscModalsHTML = `
     </div>
 
     <div id="quest-assignment-modal"
-        class="fixed inset-0 bg-black bg-opacity-60 z-[72] flex items-center justify-center p-4 hidden backdrop-blur-md"
+        class="fixed inset-0 bg-black/60 z-[72] flex items-center justify-center p-4 hidden backdrop-blur-md"
         role="dialog" aria-modal="true" aria-labelledby="quest-board-title">
         <div class="qb-board pop-in">
             <header class="qb-header">
@@ -164,7 +164,7 @@ export const miscModalsHTML = `
 
     <!-- New Test Modal -->
     <div id="quest-test-modal"
-        class="fixed inset-0 bg-black bg-opacity-60 z-[75] flex items-center justify-center p-4 hidden backdrop-blur-sm"
+        class="fixed inset-0 bg-black/60 z-[75] flex items-center justify-center p-4 hidden backdrop-blur-sm"
         role="dialog" aria-modal="true" aria-labelledby="quest-test-title-heading">
         <div class="qb-test-card pop-in">
             <span class="qb-pin qb-pin--notice" aria-hidden="true"></span>

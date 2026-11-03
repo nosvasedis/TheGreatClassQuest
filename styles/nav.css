@@ -182,34 +182,34 @@
 }
 
 /* Individual Nav Button Colors */
-.nav-color-cyan { background-image: linear-gradient(to top, var(--tw-gradient-stops)); --tw-gradient-from: #06b6d4; --tw-gradient-to: #22d3ee; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); border-bottom-color: #0891B2; }
-.nav-color-cyan.active { --tw-gradient-from: #22d3ee; --tw-gradient-to: #67e8f9; }
-.nav-color-amber { background-image: linear-gradient(to top, var(--tw-gradient-stops)); --tw-gradient-from: #f59e0b; --tw-gradient-to: #fbbf24; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); border-bottom-color: #B45309; }
-.nav-color-amber.active { --tw-gradient-from: #fbbf24; --tw-gradient-to: #fcd34d; }
-.nav-color-purple { background-image: linear-gradient(to top, var(--tw-gradient-stops)); --tw-gradient-from: #a855f7; --tw-gradient-to: #c084fc; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); border-bottom-color: #5B21B6; }
-.nav-color-purple.active { --tw-gradient-from: #c084fc; --tw-gradient-to: #d8b4fe; }
-.nav-color-green { background-image: linear-gradient(to top, var(--tw-gradient-stops)); --tw-gradient-from: #22c55e; --tw-gradient-to: #4ade80; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); border-bottom-color: #047857; }
-.nav-color-green.active { --tw-gradient-from: #4ade80; --tw-gradient-to: #86efac; }
-.nav-color-rose { background-image: linear-gradient(to top, var(--tw-gradient-stops)); --tw-gradient-from: #f43f5e; --tw-gradient-to: #fb7185; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); border-bottom-color: #9F1239; }
-.nav-color-rose.active { --tw-gradient-from: #fb7185; --tw-gradient-to: #fda4af; }
-.nav-color-blue { background-image: linear-gradient(to top, var(--tw-gradient-stops)); --tw-gradient-from: #3b82f6; --tw-gradient-to: #60a5fa; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); border-bottom-color: #1D4ED8; }
-.nav-color-blue.active { --tw-gradient-from: #60a5fa; --tw-gradient-to: #93c5fd; }
-.nav-color-indigo { background-image: linear-gradient(to top, var(--tw-gradient-stops)); --tw-gradient-from: #6366f1; --tw-gradient-to: #818cf8; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); border-bottom-color: #3730A3; }
-.nav-color-indigo.active { --tw-gradient-from: #818cf8; --tw-gradient-to: #a5b4fc; }
-.nav-color-gray { background-image: linear-gradient(to top, var(--tw-gradient-stops)); --tw-gradient-from: #6b7280; --tw-gradient-to: #9ca3af; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); border-bottom-color: #374151; }
-.nav-color-gray.active { --tw-gradient-from: #9ca3af; --tw-gradient-to: #d1d5db; }
-.nav-color-teal { background-image: linear-gradient(to top, var(--tw-gradient-stops)); --tw-gradient-from: #14b8a6; --tw-gradient-to: #2dd4bf; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); border-bottom-color: #0F766E; }
-.nav-color-teal.active { --tw-gradient-from: #2dd4bf; --tw-gradient-to: #5eead4; }
-.nav-color-scroll { background-image: linear-gradient(to top, var(--tw-gradient-stops)); --tw-gradient-from: #d97706; --tw-gradient-to: #f59e0b; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); border-bottom-color: #9A3412; }
-.nav-color-scroll.active { --tw-gradient-from: #f59e0b; --tw-gradient-to: #fbbf24; }
-.nav-color-guild { background-image: linear-gradient(to top, var(--tw-gradient-stops)); --tw-gradient-from: #c2410c; --tw-gradient-to: #f97316; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); border-bottom-color: #7c2d12; }
-.nav-color-guild.active { --tw-gradient-from: #ea580c; --tw-gradient-to: #fb923c; }
-.nav-color-fuchsia { background-image: linear-gradient(to top, var(--tw-gradient-stops)); --tw-gradient-from: #d946ef; --tw-gradient-to: #e879f9; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); border-bottom-color: #a21caf; }
-.nav-color-fuchsia.active { --tw-gradient-from: #e879f9; --tw-gradient-to: #f0abfc; }
-.nav-color-lime { background-image: linear-gradient(to top, var(--tw-gradient-stops)); --tw-gradient-from: #65a30d; --tw-gradient-to: #84cc16; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); border-bottom-color: #3f6212; }
-.nav-color-lime.active { --tw-gradient-from: #84cc16; --tw-gradient-to: #a3e635; }
-.nav-color-pink { background-image: linear-gradient(to top, var(--tw-gradient-stops)); --tw-gradient-from: #be185d; --tw-gradient-to: #db2777; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); border-bottom-color: #831843; }
-.nav-color-pink.active { --tw-gradient-from: #db2777; --tw-gradient-to: #ec4899; }
+.nav-color-cyan { background-image: linear-gradient(to top, var(--nav-stops)); --nav-from: #06b6d4; --nav-to: #22d3ee; --nav-stops: var(--nav-from), var(--nav-to); border-bottom-color: #0891B2; }
+.nav-color-cyan.active { --nav-from: #22d3ee; --nav-to: #67e8f9; }
+.nav-color-amber { background-image: linear-gradient(to top, var(--nav-stops)); --nav-from: #f59e0b; --nav-to: #fbbf24; --nav-stops: var(--nav-from), var(--nav-to); border-bottom-color: #B45309; }
+.nav-color-amber.active { --nav-from: #fbbf24; --nav-to: #fcd34d; }
+.nav-color-purple { background-image: linear-gradient(to top, var(--nav-stops)); --nav-from: #a855f7; --nav-to: #c084fc; --nav-stops: var(--nav-from), var(--nav-to); border-bottom-color: #5B21B6; }
+.nav-color-purple.active { --nav-from: #c084fc; --nav-to: #d8b4fe; }
+.nav-color-green { background-image: linear-gradient(to top, var(--nav-stops)); --nav-from: #22c55e; --nav-to: #4ade80; --nav-stops: var(--nav-from), var(--nav-to); border-bottom-color: #047857; }
+.nav-color-green.active { --nav-from: #4ade80; --nav-to: #86efac; }
+.nav-color-rose { background-image: linear-gradient(to top, var(--nav-stops)); --nav-from: #f43f5e; --nav-to: #fb7185; --nav-stops: var(--nav-from), var(--nav-to); border-bottom-color: #9F1239; }
+.nav-color-rose.active { --nav-from: #fb7185; --nav-to: #fda4af; }
+.nav-color-blue { background-image: linear-gradient(to top, var(--nav-stops)); --nav-from: #3b82f6; --nav-to: #60a5fa; --nav-stops: var(--nav-from), var(--nav-to); border-bottom-color: #1D4ED8; }
+.nav-color-blue.active { --nav-from: #60a5fa; --nav-to: #93c5fd; }
+.nav-color-indigo { background-image: linear-gradient(to top, var(--nav-stops)); --nav-from: #6366f1; --nav-to: #818cf8; --nav-stops: var(--nav-from), var(--nav-to); border-bottom-color: #3730A3; }
+.nav-color-indigo.active { --nav-from: #818cf8; --nav-to: #a5b4fc; }
+.nav-color-gray { background-image: linear-gradient(to top, var(--nav-stops)); --nav-from: #6b7280; --nav-to: #9ca3af; --nav-stops: var(--nav-from), var(--nav-to); border-bottom-color: #374151; }
+.nav-color-gray.active { --nav-from: #9ca3af; --nav-to: #d1d5db; }
+.nav-color-teal { background-image: linear-gradient(to top, var(--nav-stops)); --nav-from: #14b8a6; --nav-to: #2dd4bf; --nav-stops: var(--nav-from), var(--nav-to); border-bottom-color: #0F766E; }
+.nav-color-teal.active { --nav-from: #2dd4bf; --nav-to: #5eead4; }
+.nav-color-scroll { background-image: linear-gradient(to top, var(--nav-stops)); --nav-from: #d97706; --nav-to: #f59e0b; --nav-stops: var(--nav-from), var(--nav-to); border-bottom-color: #9A3412; }
+.nav-color-scroll.active { --nav-from: #f59e0b; --nav-to: #fbbf24; }
+.nav-color-guild { background-image: linear-gradient(to top, var(--nav-stops)); --nav-from: #c2410c; --nav-to: #f97316; --nav-stops: var(--nav-from), var(--nav-to); border-bottom-color: #7c2d12; }
+.nav-color-guild.active { --nav-from: #ea580c; --nav-to: #fb923c; }
+.nav-color-fuchsia { background-image: linear-gradient(to top, var(--nav-stops)); --nav-from: #d946ef; --nav-to: #e879f9; --nav-stops: var(--nav-from), var(--nav-to); border-bottom-color: #a21caf; }
+.nav-color-fuchsia.active { --nav-from: #e879f9; --nav-to: #f0abfc; }
+.nav-color-lime { background-image: linear-gradient(to top, var(--nav-stops)); --nav-from: #65a30d; --nav-to: #84cc16; --nav-stops: var(--nav-from), var(--nav-to); border-bottom-color: #3f6212; }
+.nav-color-lime.active { --nav-from: #84cc16; --nav-to: #a3e635; }
+.nav-color-pink { background-image: linear-gradient(to top, var(--nav-stops)); --nav-from: #be185d; --nav-to: #db2777; --nav-stops: var(--nav-from), var(--nav-to); border-bottom-color: #831843; }
+.nav-color-pink.active { --nav-from: #db2777; --nav-to: #ec4899; }
 
 /* Shared timing: sky unfolds from top — header clouds + sun stay in sync */
 #app-screen.award-sky-active {
@@ -352,7 +352,7 @@ body.night-mode:not(.projector-mode) #bottom-nav-bar::before {
         radial-gradient(ellipse 24% 22% at 16% 60%, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0) 70%),
         radial-gradient(ellipse 24% 22% at 84% 60%, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 70%),
         linear-gradient(to top, rgba(15, 23, 42, 0.3) 0%, rgba(15, 23, 42, 0.08) 18%, rgba(15, 23, 42, 0) 34%),
-        linear-gradient(to top, var(--tw-gradient-from, #7dd3fc), var(--tw-gradient-to, #bae6fd));
+        linear-gradient(to top, var(--nav-from, #7dd3fc), var(--nav-to, #bae6fd));
     -webkit-mask: var(--cloud-shape) center / 100% 100% no-repeat;
     mask: var(--cloud-shape) center / 100% 100% no-repeat;
     transform-origin: 50% 100%;
@@ -377,9 +377,9 @@ body.night-mode:not(.projector-mode) #bottom-nav-bar::before {
  * in that same colour. `--cloud-ink` is the cloud colour pushed towards night blue.
  */
 #bottom-nav-bar .nav-button {
-    --cloud-ink: color-mix(in srgb, var(--tw-gradient-from, #0ea5e9) 58%, #0f172a);
-    --cloud-ink-soft: color-mix(in srgb, var(--tw-gradient-from, #0ea5e9) 70%, rgba(15, 23, 42, 0.35));
-    --cloud-pearl: color-mix(in srgb, var(--tw-gradient-to, #bae6fd) 22%, #ffffff);
+    --cloud-ink: color-mix(in srgb, var(--nav-from, #0ea5e9) 58%, #0f172a);
+    --cloud-ink-soft: color-mix(in srgb, var(--nav-from, #0ea5e9) 70%, rgba(15, 23, 42, 0.35));
+    --cloud-pearl: color-mix(in srgb, var(--nav-to, #bae6fd) 22%, #ffffff);
 }
 
 #bottom-nav-bar .nav-button .icon {
@@ -432,8 +432,8 @@ body.night-mode:not(.projector-mode) #bottom-nav-bar::before {
 
 #bottom-nav-bar .nav-button.nav-button-locked {
     background: none;
-    --tw-gradient-from: #9ca3af;
-    --tw-gradient-to: #d1d5db;
+    --nav-from: #9ca3af;
+    --nav-to: #d1d5db;
     filter: grayscale(1) drop-shadow(0 0 1px var(--cloud-halo)) drop-shadow(0 4px 5px var(--cloud-shadow));
 }
 

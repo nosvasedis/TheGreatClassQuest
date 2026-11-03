@@ -46,7 +46,7 @@ body:not(.gcq-mobile) [id$="-modal"].fixed.inset-0:has(.pop-in):not(#fortunes-wh
 }
 
 /* Legacy shells used flat black at 50%; match the newer slate tint. */
-body:not(.gcq-mobile) [id$="-modal"].fixed.inset-0.bg-black.bg-opacity-50 {
+body:not(.gcq-mobile) [id$="-modal"].fixed.inset-0.bg-black\/50 {
     background-color: rgba(15, 23, 42, 0.55);
 }
 

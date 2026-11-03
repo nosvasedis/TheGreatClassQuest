@@ -823,7 +823,7 @@
 /* ── Showdown: hot seat, finish line, got-it ticks, bonus pops, hidden scores, the Dragon, star players ── */
 .qr-lane { position: relative; }
 .qr-lane__seat { justify-self: center; display: inline-flex; align-items: center; gap: 8px; margin-top: 8px; padding: 6px 14px 6px 10px; border-radius: 999px; font: 400 clamp(0.95rem, 2.1vmin, 1.4rem)/1 var(--qr-ui); color: #422006; background: linear-gradient(180deg, #fef3c7, #fbbf24); box-shadow: 0 6px 18px -6px rgba(251, 191, 36, 0.7); }
-.qr-lane__seat[hidden] { display: inline-flex; visibility: hidden; }
+.qr-lane__seat[hidden] { display: inline-flex !important; visibility: hidden; } /* keeps its space; beats the [hidden] reset */
 .qr-lane__seat i { display: grid; place-items: center; width: 1.6em; height: 1.6em; border-radius: 50%; font-size: 0.75em; color: #fde68a; background: #422006; }
 .qr-lane__seat.is-new { animation: qr-seat-in 0.55s cubic-bezier(0.22, 1.6, 0.36, 1); }
 @keyframes qr-seat-in { 0% { transform: translateY(10px) scale(0.6); opacity: 0; } 100% { transform: none; opacity: 1; } }

@@ -339,7 +339,7 @@ function getTimerToneMeta(deadline) {
 function renderTimerBountyCard(bounty) {
     const tone = getTimerToneMeta(bounty.deadline);
     return `
-        <div class="bounty-card bounty-card--timer-live mb-4 overflow-hidden rounded-[28px] border bg-gradient-to-br ${tone.shellClass} p-5 text-white" data-bounty-timer-card data-bounty-id="${bounty.id}" data-deadline="${bounty.deadline}" data-bounty-tone="${tone.tone}">
+        <div class="bounty-card bounty-card--timer-live mb-4 overflow-hidden rounded-[28px] border bg-linear-to-br ${tone.shellClass} p-5 text-white" data-bounty-timer-card data-bounty-id="${bounty.id}" data-deadline="${bounty.deadline}" data-bounty-tone="${tone.tone}">
             <div class="flex items-start justify-between gap-4">
                 <div class="flex min-w-0 items-center gap-4">
                     <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-2xl shadow-inner shadow-white/10">
@@ -383,7 +383,7 @@ function renderStarBountyCard(bounty) {
     return `
         <div class="bounty-card mb-4 overflow-hidden rounded-[28px] border border-amber-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.95),_rgba(255,251,235,0.98)_48%,_rgba(254,243,199,0.96))] p-4 shadow-[0_18px_40px_rgba(251,191,36,0.16)]">
             <div class="flex items-start gap-4">
-                <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-300 via-yellow-300 to-orange-300 text-3xl text-amber-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_10px_18px_rgba(245,158,11,0.22)]">
+                <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-amber-300 via-yellow-300 to-orange-300 text-3xl text-amber-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_10px_18px_rgba(245,158,11,0.22)]">
                     <i class="fas fa-stars"></i>
                 </div>
                 <div class="min-w-0 flex-1">
@@ -400,7 +400,7 @@ function renderStarBountyCard(bounty) {
                         </button>
                     </div>
                     <div class="mt-4 overflow-hidden rounded-full bg-slate-200">
-                        <div class="h-3 rounded-full bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 transition-all duration-1000" style="width: ${progressPercent}%"></div>
+                        <div class="h-3 rounded-full bg-linear-to-r from-amber-400 via-yellow-400 to-orange-400 transition-all duration-1000" style="width: ${progressPercent}%"></div>
                     </div>
                     <div class="mt-3 flex items-center justify-between gap-3">
                         <p class="text-sm font-bold text-slate-500">Reward: <span class="text-slate-700">${bounty.reward}</span></p>
@@ -446,7 +446,7 @@ export function renderActiveBounties() {
             : `<span class="text-xs font-bold text-amber-500">${b.currentProgress}/${b.target} ⭐</span>`;
 
         return `
-            <div class="bounty-card mb-3 bg-gradient-to-r from-amber-50 to-white border-l-4 border-amber-400 shadow-sm p-3 flex items-center gap-3">
+            <div class="bounty-card mb-3 bg-linear-to-r from-amber-50 to-white border-l-4 border-amber-400 shadow-sm p-3 flex items-center gap-3">
                 <div class="text-2xl text-amber-500">🎯</div>
                 <div class="flex-grow min-w-0">
                     <div class="flex justify-between items-center mb-1">

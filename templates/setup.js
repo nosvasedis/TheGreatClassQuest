@@ -5,11 +5,11 @@ export const setupHTML = `
         style="background: radial-gradient(circle at top, #fef3c7 0%, #c7d2fe 36%, #8ee3f8 100%);">
         <div class="mx-auto w-full max-w-6xl">
             <div class="bg-white/90 backdrop-blur rounded-[2rem] shadow-2xl border border-white/70 overflow-hidden">
-                <div class="px-6 py-8 md:px-10 md:py-10 bg-gradient-to-r from-sky-500 via-cyan-500 to-indigo-500 text-white">
+                <div class="px-6 py-8 md:px-10 md:py-10 bg-linear-to-r from-sky-500 via-cyan-500 to-indigo-500 text-white">
                     <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                         <div>
                             <p class="font-black uppercase tracking-[0.25em] text-white/75 text-xs mb-2">Teacher Setup Quest</p>
-                            <h1 id="setup-title" class="font-title text-4xl md:text-5xl leading-tight">Set up your teacher adventure</h1>
+                            <h1 id="setup-title" class="font-title text-4xl md:text-5xl leading-tight md:leading-none">Set up your teacher adventure</h1>
                             <p id="setup-subtitle" class="text-white/90 text-lg mt-3 max-w-3xl">
                                 Before entering the app, add your own classes and the students you teach.
                             </p>
@@ -145,7 +145,7 @@ export const setupHTML = `
                             <p id="setup-enter-copy" class="text-slate-300">When you press this button, GCQ creates your classes, adds your students, and opens the app.</p>
                         </div>
                         <div class="w-full lg:w-auto text-center">
-                            <button type="button" id="setup-enter-quest-btn" class="w-full lg:w-auto bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-title text-xl py-4 px-8 rounded-2xl bubbly-button flex items-center justify-center gap-3">
+                            <button type="button" id="setup-enter-quest-btn" class="w-full lg:w-auto bg-linear-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-title text-xl py-4 px-8 rounded-2xl bubbly-button flex items-center justify-center gap-3">
                                 <i class="fas fa-dragon"></i>
                                 <span>Save Everything & Enter the Quest</span>
                             </button>

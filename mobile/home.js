@@ -191,7 +191,7 @@ function getClassScheduleRows() {
                 ${isMine ? `data-m-quick-class="${escapeHtml(c.id)}"` : `data-m-peek-class="${escapeHtml(c.id)}"`}
                 aria-label="${isMine ? `Open ${escapeHtml(c.name)}` : `View roster for ${escapeHtml(c.name)} (view only)`}">
                 <span class="m-home-schedule-row__time">${escapeHtml(c.timeStart || 'TBD')}</span>
-                <span class="m-home-schedule-row__logo bg-gradient-to-br ${gradient}">${escapeHtml(c.logo || '📚')}</span>
+                <span class="m-home-schedule-row__logo bg-linear-to-br ${gradient}">${escapeHtml(c.logo || '📚')}</span>
                 <span class="m-home-schedule-row__body">
                     <strong>${escapeHtml(c.name)}</strong>
                     <small>${escapeHtml(c.questLevel || 'Quest')}${isMine ? '' : ` • ${escapeHtml(c.createdBy?.name || 'Teacher')}`}</small>

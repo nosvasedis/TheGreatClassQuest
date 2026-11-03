@@ -220,7 +220,7 @@ export async function openMilestoneModal(markerElement) {
     modalTitle.className = 'font-title text-2xl md:text-3xl text-blue-700';
     modalContent.innerHTML = `
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-            <div class="vibrant-card p-6 bg-gradient-to-b from-white to-${color}-50 border-4 border-${color}-400 shadow-[0_10px_30px_rgba(0,0,0,0.1)] rounded-[3rem] text-center">
+            <div class="vibrant-card p-6 bg-linear-to-b from-white to-${color}-50 border-4 border-${color}-400 shadow-[0_10px_30px_rgba(0,0,0,0.1)] rounded-[3rem] text-center">
                 <div class="mb-4">
                     <span class="text-4xl filter drop-shadow-md">${classInfo.logo}</span>
                     <h3 class="font-title text-4xl text-gray-800 tracking-tight mt-2">${classInfo.name}</h3>
@@ -229,12 +229,12 @@ export async function openMilestoneModal(markerElement) {
                 
                 <div class="relative py-4">
                     <div class="flex justify-center items-baseline gap-2 mb-2">
-                        <span class="font-title text-7xl text-transparent bg-clip-text bg-gradient-to-br from-${color}-500 to-${color}-800">${currentMonthlyStars}</span>
+                        <span class="font-title text-7xl text-transparent bg-clip-text bg-linear-to-br from-${color}-500 to-${color}-800">${currentMonthlyStars}</span>
                         <span class="font-title text-2xl text-gray-400">/ ${goal}</span>
                     </div>
                     ${classQuestBonus > 0 ? `<p class="text-sm font-black uppercase tracking-wider text-indigo-600 mb-3">Includes +${classQuestBonus} Pathfinder Quest Bonus</p>` : ''}
                     <div class="w-full bg-gray-200/50 rounded-full h-10 border-4 border-white shadow-inner relative overflow-hidden">
-                        <div class="h-full bg-gradient-to-r from-${color}-400 to-${color}-600 transition-all duration-1000 shadow-[0_0_20px_rgba(0,0,0,0.2)]" style="width: ${progressPercent}%">
+                        <div class="h-full bg-linear-to-r from-${color}-400 to-${color}-600 transition-all duration-1000 shadow-[0_0_20px_rgba(0,0,0,0.2)]" style="width: ${progressPercent}%">
                             <div class="absolute inset-0 bg-white/20 animate-pulse"></div>
                         </div>
                         <span class="absolute inset-0 flex items-center justify-center text-sm font-black text-gray-800 mix-blend-overlay">${progressPercent}%</span>

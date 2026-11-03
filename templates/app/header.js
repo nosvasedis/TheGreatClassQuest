@@ -131,7 +131,7 @@ export const headerDateHTML = (idAttr = '') => `
 
 /** The clock. Each digit is its own glyph so a changing one can fade out as the new one fades in. */
 export const headerTimeHTML = (idAttr = '') => `
-                    <div ${idAttr} class="gcq-header-time text-xl font-bold leading-none text-white sm:text-3xl md:text-4xl" data-text=""></div>`;
+                    <div ${idAttr} class="gcq-header-time text-xl font-bold leading-none text-white sm:text-3xl sm:leading-9 md:text-4xl md:leading-10" data-text=""></div>`;
 
 export const headerHTML = `
     <header class="gcq-sky-header relative z-[1] flex w-full items-center justify-between gap-3 bg-transparent p-4 shadow-none overflow-visible">

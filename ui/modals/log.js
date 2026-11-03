@@ -191,11 +191,11 @@ export async function showLogbookModal(dateString, isOndemand = false) {
         const mixHtml = reasonEntries.length > 1 ? `
             <section class="qc-log-mix" aria-label="Virtue mix">
                 <div class="qc-log-mix__bar">
-                    ${reasonEntries.map(([reason, value]) => `<span class="bg-gradient-to-r ${reasonColors[reason] || 'from-gray-400 to-gray-600'}" style="flex-grow:${value}" title="${escapeLogText(reasonLabel(reason))}: ${formatStars(value)} ⭐"></span>`).join('')}
+                    ${reasonEntries.map(([reason, value]) => `<span class="bg-linear-to-r ${reasonColors[reason] || 'from-gray-400 to-gray-600'}" style="flex-grow:${value}" title="${escapeLogText(reasonLabel(reason))}: ${formatStars(value)} ⭐"></span>`).join('')}
                 </div>
                 <ul class="qc-log-mix__legend">
                     ${reasonEntries.map(([reason, value]) => `
-                        <li><span class="qc-log-mix__dot bg-gradient-to-br ${reasonColors[reason] || 'from-gray-400 to-gray-600'}"></span>${escapeLogText(reasonLabel(reason))}<strong>${Math.round((value / reasonTotal) * 100)}%</strong></li>`).join('')}
+                        <li><span class="qc-log-mix__dot bg-linear-to-br ${reasonColors[reason] || 'from-gray-400 to-gray-600'}"></span>${escapeLogText(reasonLabel(reason))}<strong>${Math.round((value / reasonTotal) * 100)}%</strong></li>`).join('')}
                 </ul>
             </section>` : '';
 
@@ -276,7 +276,7 @@ export async function showLogbookModal(dateString, isOndemand = false) {
 
                 detailsHtml += `
                     <li class="log-entry qc-log-entry${isDayHero ? ' qc-log-entry--hero' : ''}" id="log-entry-${escapeLogText(log.id)}" data-student-name="${escapeLogText(studentName.toLowerCase())}" style="--i:${Math.min(idx, 12)}">
-                        <span class="qc-log-entry__gem bg-gradient-to-br ${gradientClass}" aria-hidden="true"><i class="fas ${reasonIcon}"></i></span>
+                        <span class="qc-log-entry__gem bg-linear-to-br ${gradientClass}" aria-hidden="true"><i class="fas ${reasonIcon}"></i></span>
                         <div class="qc-log-entry__main">
                             <div class="qc-log-entry__line">
                                 <span class="qc-log-entry__name">${isDayHero ? '<i class="fas fa-crown" title="Hero of the day" aria-label="Hero of the day"></i>' : ''}${escapeLogText(studentName)}</span>

@@ -244,7 +244,7 @@ export function renderSecretaryHome() {
             <div class="office-home-desk__copy">
                 <p class="office-home-desk__date">${escapeHtml(todayLabel())}</p>
                 <h2 class="font-title office-home-desk__greeting">
-                    <span class="office-home-desk__hello bg-gradient-to-r ${theme.greetingGradient}">${theme.greeting},</span>
+                    <span class="office-home-desk__hello bg-linear-to-r ${theme.greetingGradient}">${theme.greeting},</span>
                     <span class="office-home-desk__name">${escapeHtml(secretaryName)}!</span>
                 </h2>
                 <p class="office-home-desk__school" data-school-name><i class="fas fa-university" aria-hidden="true"></i>${escapeHtml(schoolName)}</p>

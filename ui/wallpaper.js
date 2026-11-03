@@ -1646,7 +1646,7 @@ function getClassGoldTopTrioCard(classId) {
         const avatar = s.avatar
             ? `<img src="${s.avatar}" class="w-14 h-14 rounded-full object-cover border-2 mx-auto mb-2" style="border-color: rgba(251,191,36,0.4);">`
             : `<div class="w-14 h-14 rounded-full bg-indigo-700 flex items-center justify-center text-2xl font-bold text-white mx-auto mb-2">${s.name.charAt(0)}</div>`;
-        return `<div class="flex-1 bg-gradient-to-b ${style.bg} border ${style.border} rounded-2xl p-3 text-center">
+        return `<div class="flex-1 bg-linear-to-b ${style.bg} border ${style.border} rounded-2xl p-3 text-center">
             <div class="text-2xl mb-1">${style.emoji}</div>
             ${avatar}
             <div class="font-bold text-white text-sm truncate">${s.name.split(' ')[0]}</div>
@@ -2202,7 +2202,7 @@ function getActiveSpecialQuestCard(classId) {
     const title = event.details?.title || 'Special Class Quest';
     const prompt = event.presentation?.prompt || event.presentation?.instructions || event.details?.instructions || 'Join forces to achieve our quest goal!';
     return {
-        html: `<div class="text-center p-6 max-w-xl mx-auto"><div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-purple-100 text-purple-800 uppercase tracking-wider mb-3"><i class="fas fa-bolt text-amber-500"></i> Active Special Quest</div><div class="text-7xl mb-3 animate-bounce-slow">✨</div><h2 class="font-title text-4xl md:text-5xl text-white mb-3 drop-shadow-md">${title}</h2><p class="text-purple-100 text-lg md:text-xl font-medium leading-relaxed">${prompt}</p></div>`,
+        html: `<div class="text-center p-6 max-w-xl mx-auto"><div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-purple-100 text-purple-800 uppercase tracking-wider mb-3"><i class="fas fa-bolt text-amber-500"></i> Active Special Quest</div><div class="text-7xl mb-3 animate-bounce-slow">✨</div><h2 class="font-title text-4xl md:text-5xl text-white mb-3 drop-shadow-md">${title}</h2><p class="text-purple-100 text-lg md:text-xl font-medium leading-relaxed md:leading-7">${prompt}</p></div>`,
         css: 'float-card-purple'
     };
 }
@@ -2465,7 +2465,7 @@ function getClassQuestCard(classId) {
     const rank = rankForLevel(utils.getHistoricalDifficultyForMonth(cls, new Date()) + 1);
 
     return {
-        html: `<div class="text-center w-full"><div class="badge-pill bg-blue-100 text-blue-700">Quest Progress</div><p class="text-sm font-bold text-indigo-600 mb-2">${escapeCardText(rank.title)} · Level ${rank.displayLevel}</p><div class="text-9xl mb-4 filter drop-shadow-md animate-pulse">${cls.logo}</div><div class="w-full bg-white h-8 rounded-full overflow-hidden border-2 border-blue-200 mb-2 shadow-inner"><div class="bg-gradient-to-r from-blue-400 to-indigo-500 h-full" style="width:${pct}%"></div></div><p class="font-title text-4xl text-blue-900"><span class="js-count-up" data-target="${pct}">0</span>% Complete</p>${classQuestBonus > 0 ? `<p class="text-sm font-bold text-indigo-600 mt-2">Includes +${classQuestBonus} Pathfinder bonus</p>` : ''}</div>`,
+        html: `<div class="text-center w-full"><div class="badge-pill bg-blue-100 text-blue-700">Quest Progress</div><p class="text-sm font-bold text-indigo-600 mb-2">${escapeCardText(rank.title)} · Level ${rank.displayLevel}</p><div class="text-9xl mb-4 filter drop-shadow-md animate-pulse">${cls.logo}</div><div class="w-full bg-white h-8 rounded-full overflow-hidden border-2 border-blue-200 mb-2 shadow-inner"><div class="bg-linear-to-r from-blue-400 to-indigo-500 h-full" style="width:${pct}%"></div></div><p class="font-title text-4xl text-blue-900"><span class="js-count-up" data-target="${pct}">0</span>% Complete</p>${classQuestBonus > 0 ? `<p class="text-sm font-bold text-indigo-600 mt-2">Includes +${classQuestBonus} Pathfinder bonus</p>` : ''}</div>`,
         css: 'float-card-blue'
     };
 }

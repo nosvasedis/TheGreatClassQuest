@@ -95,7 +95,7 @@ export function attachBookRecognition(classId, { force = false } = {}) {
             setTone(unsure ? 'unsure' : 'calm');
             chip.innerHTML = '<div class="flex flex-wrap items-start gap-3"><span class="text-2xl" aria-hidden="true">' + (unsure ? '🤔' : '📘') + '</span><div class="min-w-[12rem] flex-1">' +
                 '<p class="text-xs font-black uppercase tracking-widest ' + (unsure ? 'text-amber-600' : 'text-purple-400') + '">' + (unsure ? 'Is this the right lesson?' : 'Lessons recognised') + '</p>' + summaries(list) + '</div>' +
-                '<button type="button" data-book-confirm class="bubbly-button rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-md">✓ Yes, that’s it</button>' +
+                '<button type="button" data-book-confirm class="bubbly-button rounded-xl bg-linear-to-r from-purple-500 to-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-md">✓ Yes, that’s it</button>' +
                 '<button type="button" data-book-change class="rounded-xl border-2 border-purple-200 bg-white px-3 py-2 text-xs font-bold text-purple-700 hover:bg-purple-50">Choose the books</button></div>' + wordChips(words);
         } else {
             setTone('calm');
@@ -162,7 +162,7 @@ export function attachBookRecognition(classId, { force = false } = {}) {
             '<div class="grid gap-3">' + rowHtml + '</div>' +
             '<div class="mt-3"><button type="button" data-add class="rounded-xl border-2 border-dashed border-purple-300 px-3 py-2 text-xs font-bold text-purple-600 hover:bg-purple-50">＋ Add another book</button></div>' +
             '<div class="mt-4 flex flex-wrap items-center justify-end gap-2"><button type="button" data-cancel class="rounded-xl px-3 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100">Cancel</button>' +
-            '<button type="button" data-apply class="bubbly-button rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 px-5 py-2 text-sm font-bold text-white shadow-md">✓ Save these lessons</button></div>';
+            '<button type="button" data-apply class="bubbly-button rounded-xl bg-linear-to-r from-purple-500 to-indigo-600 px-5 py-2 text-sm font-bold text-white shadow-md">✓ Save these lessons</button></div>';
         rows.forEach((row, i) => {
             const get = name => chip.querySelector('[data-' + name + '="' + i + '"]');
             const bookSelect = get('book'), partSelect = get('part'), unitInput = get('unit'), pageInput = get('page'), mapHint = get('maphint');

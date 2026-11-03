@@ -574,7 +574,7 @@ function getGeneralDashboard(theme, spice) {
         
         <!-- Grand Guild Ceremony Button (shown on ceremony day) -->
         <div id="grand-guild-ceremony-btn-home" class="hidden h-span-3">
-            <div class="bg-gradient-to-r from-amber-400 to-orange-500 text-white p-4 rounded-2xl shadow-lg animate-pulse h-full flex flex-col justify-center items-center cursor-pointer hover:scale-105 transition-transform" onclick="startGrandGuildCeremony()">
+            <div class="bg-linear-to-r from-amber-400 to-orange-500 text-white p-4 rounded-2xl shadow-lg animate-pulse h-full flex flex-col justify-center items-center cursor-pointer transition-transform" onclick="startGrandGuildCeremony()">
                 <i class="fas fa-crown text-3xl mb-2"></i>
                 <div class="font-title text-lg">Grand Guild Ceremony</div>
                 <div class="text-sm opacity-75">Click to begin!</div>
@@ -720,7 +720,7 @@ function getActiveDashboard(classData, theme, spice) {
         
         <!-- Grand Guild Ceremony Button (shown on ceremony day for this class) -->
         <div id="grand-guild-ceremony-btn-class" class="hidden h-span-4">
-            <div class="bg-gradient-to-r from-purple-400 to-pink-500 text-white p-4 rounded-2xl shadow-lg animate-pulse h-full flex flex-col justify-center items-center cursor-pointer hover:scale-105 transition-transform" onclick="startGrandGuildCeremony(['${classId}'])">
+            <div class="bg-linear-to-r from-purple-400 to-pink-500 text-white p-4 rounded-2xl shadow-lg animate-pulse h-full flex flex-col justify-center items-center cursor-pointer transition-transform" onclick="startGrandGuildCeremony(['${classId}'])">
                 <i class="fas fa-crown text-3xl mb-2"></i>
                 <div class="font-title text-lg">Your Class Ceremony</div>
                 <div class="text-sm opacity-75">Click to begin!</div>
@@ -878,14 +878,14 @@ function getScheduleHtml(dateString, activeClassId) {
     }
 
     const gradients = [
-        "bg-gradient-to-br from-red-100 to-red-200", "bg-gradient-to-br from-orange-100 to-orange-200",
-        "bg-gradient-to-br from-amber-100 to-amber-200", "bg-gradient-to-br from-green-100 to-green-200",
-        "bg-gradient-to-br from-emerald-100 to-emerald-200", "bg-gradient-to-br from-teal-100 to-teal-200",
-        "bg-gradient-to-br from-cyan-100 to-cyan-200", "bg-gradient-to-br from-sky-100 to-sky-200",
-        "bg-gradient-to-br from-blue-100 to-blue-200", "bg-gradient-to-br from-indigo-100 to-indigo-200",
-        "bg-gradient-to-br from-violet-100 to-violet-200", "bg-gradient-to-br from-purple-100 to-purple-200",
-        "bg-gradient-to-br from-fuchsia-100 to-fuchsia-200", "bg-gradient-to-br from-pink-100 to-pink-200",
-        "bg-gradient-to-br from-rose-100 to-rose-200"
+        "bg-linear-to-br from-red-100 to-red-200", "bg-linear-to-br from-orange-100 to-orange-200",
+        "bg-linear-to-br from-amber-100 to-amber-200", "bg-linear-to-br from-green-100 to-green-200",
+        "bg-linear-to-br from-emerald-100 to-emerald-200", "bg-linear-to-br from-teal-100 to-teal-200",
+        "bg-linear-to-br from-cyan-100 to-cyan-200", "bg-linear-to-br from-sky-100 to-sky-200",
+        "bg-linear-to-br from-blue-100 to-blue-200", "bg-linear-to-br from-indigo-100 to-indigo-200",
+        "bg-linear-to-br from-violet-100 to-violet-200", "bg-linear-to-br from-purple-100 to-purple-200",
+        "bg-linear-to-br from-fuchsia-100 to-fuchsia-200", "bg-linear-to-br from-pink-100 to-pink-200",
+        "bg-linear-to-br from-rose-100 to-rose-200"
     ];
 
     const dayNote = buildScheduleDayNoteHtml(utils.parseFlexibleDate(dateString) || new Date());

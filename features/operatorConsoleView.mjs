@@ -263,7 +263,7 @@ export function detailPageHtml(details, { result = null, deleteCode = '' } = {})
 export function shellHtml() {
     return `
         <div class="mx-auto my-4 w-full max-w-5xl overflow-hidden rounded-3xl bg-slate-50 text-left shadow-2xl ring-1 ring-black/5 sm:my-8" role="dialog" aria-modal="true" aria-labelledby="operator-console-title">
-            <div class="flex items-center justify-between gap-3 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 px-5 py-4 text-white">
+            <div class="flex items-center justify-between gap-3 bg-linear-to-r from-slate-900 via-indigo-950 to-slate-900 px-5 py-4 text-white">
                 <div>
                     <h2 id="operator-console-title" class="font-title text-2xl">Operator console</h2>
                     <p data-role="message" class="text-sm text-white/70">Loading…</p>

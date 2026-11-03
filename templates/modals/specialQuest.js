@@ -3,7 +3,7 @@ export const specialQuestModalHTML = `
   <div class="special-quest-runner bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden border border-white/40 my-auto" role="dialog" aria-modal="true" aria-labelledby="special-quest-runner-title">
     
     <!-- Dynamic Themed Banner -->
-    <div id="special-quest-runner-banner" class="relative p-5 md:p-7 bg-gradient-to-r from-indigo-900 via-purple-900 to-indigo-950 text-white overflow-hidden">
+    <div id="special-quest-runner-banner" class="relative p-5 md:p-7 bg-linear-to-r from-indigo-900 via-purple-900 to-indigo-950 text-white overflow-hidden">
       <div class="absolute -right-6 -bottom-6 w-32 h-32 opacity-15 pointer-events-none" id="special-quest-runner-bg-icon"></div>
       <div class="flex items-start justify-between gap-4 relative z-10">
         <div class="flex items-center gap-3.5 md:gap-4">
@@ -45,7 +45,7 @@ export const specialQuestModalHTML = `
           <span id="special-quest-runner-count" class="text-base font-black text-indigo-600">0 / 0</span>
         </div>
         <div class="special-quest-progress-track h-3 bg-slate-200 rounded-full overflow-hidden">
-          <div id="special-quest-runner-progress" class="special-quest-progress-fill h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-amber-400 transition-all duration-300 rounded-full" style="width: 0%"></div>
+          <div id="special-quest-runner-progress" class="special-quest-progress-fill h-full bg-linear-to-r from-indigo-500 via-purple-500 to-amber-400 transition-all duration-300 rounded-full" style="width: 0%"></div>
         </div>
       </div>
 
@@ -86,7 +86,7 @@ export const specialQuestModalHTML = `
         <button id="special-quest-runner-undo" type="button" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 font-bold text-slate-700 text-sm transition-colors flex items-center gap-1.5">
           <i class="fas fa-rotate-left text-xs"></i> Undo
         </button>
-        <button id="special-quest-runner-complete" type="button" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none transition-all flex items-center gap-2" disabled>
+        <button id="special-quest-runner-complete" type="button" class="px-6 py-2.5 rounded-xl bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none transition-all flex items-center gap-2" disabled>
           <i class="fas fa-award"></i> Complete Quest
         </button>
       </div>

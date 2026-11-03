@@ -15,27 +15,27 @@ let lastVaultGemCount = null;
 const QUEST_THEMES = {
   vocabulary_vault: {
     icon: '/assets/ceremony/quest-vocabulary-vault.svg',
-    banner: 'bg-gradient-to-r from-purple-900 via-indigo-900 to-amber-950',
+    banner: 'bg-linear-to-r from-purple-900 via-indigo-900 to-amber-950',
     accentColor: '#a855f7'
   },
   grammar_guardians: {
     icon: '/assets/ceremony/quest-grammar-guardians.svg',
-    banner: 'bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900',
+    banner: 'bg-linear-to-r from-emerald-900 via-teal-900 to-slate-900',
     accentColor: '#10b981'
   },
   unbroken_chain: {
     icon: '/assets/ceremony/quest-unbroken-chain.svg',
-    banner: 'bg-gradient-to-r from-cyan-950 via-teal-900 to-slate-950',
+    banner: 'bg-linear-to-r from-cyan-950 via-teal-900 to-slate-950',
     accentColor: '#06b6d4'
   },
   scribes_sketch: {
     icon: '/assets/ceremony/quest-scribes-sketch.svg',
-    banner: 'bg-gradient-to-r from-amber-900 via-indigo-950 to-slate-900',
+    banner: 'bg-linear-to-r from-amber-900 via-indigo-950 to-slate-900',
     accentColor: '#f59e0b'
   },
   five_sentence_saga: {
     icon: '/assets/ceremony/quest-five-sentence-saga.svg',
-    banner: 'bg-gradient-to-r from-rose-900 via-purple-900 to-amber-950',
+    banner: 'bg-linear-to-r from-rose-900 via-purple-900 to-amber-950',
     accentColor: '#f43f5e'
   }
 };

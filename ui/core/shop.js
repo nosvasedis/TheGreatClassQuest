@@ -831,13 +831,13 @@ export async function updateShopStudentDisplay(studentId, { quiet = false, only 
         if (isHero) {
             till.dataset.standing = 'hero';
             badge.id = 'shop-hero-badge';
-            badge.className = `shop-status-badge bg-gradient-to-r ${gradientMap.hero} text-white ${isMythic ? 'animate-pulse' : ''}`;
+            badge.className = `shop-status-badge bg-linear-to-r ${gradientMap.hero} text-white ${isMythic ? 'animate-pulse' : ''}`;
             badge.innerHTML = '<i class="fas fa-crown"></i><span>Hero of the Day</span>';
             till.appendChild(badge);
         } else if (legendMeta.legendDiscount > 0) {
             till.dataset.standing = themeKey;
             badge.id = 'shop-legend-badge';
-            badge.className = `shop-status-badge bg-gradient-to-r ${gradientMap[themeKey]} text-white ${isMythic ? 'animate-pulse' : ''}`;
+            badge.className = `shop-status-badge bg-linear-to-r ${gradientMap[themeKey]} text-white ${isMythic ? 'animate-pulse' : ''}`;
             badge.innerHTML = `<i class="fas fa-trophy"></i><span>${legendMeta.legendTier.label} ${legendMeta.legendDiscount}% off</span>`;
             till.appendChild(badge);
         }

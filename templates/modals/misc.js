@@ -545,7 +545,7 @@ export const miscModalsHTML = `
         <div class="bg-white p-0 rounded-[1.8rem] shadow-2xl max-w-6xl w-full h-[85vh] pop-in border border-slate-200 flex flex-col overflow-hidden relative">
             <button id="pricing-modal-close-btn" class="premium-close-btn absolute top-4 right-4 bg-white/75 hover:bg-white text-slate-500 hover:text-rose-500 font-bold w-10 h-10 rounded-full bubbly-button z-50 transition-colors">&times;</button>
             
-            <div class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6 text-center">
+            <div class="bg-linear-to-r from-indigo-600 to-purple-600 text-white p-6 text-center">
                 <h2 class="font-title text-3xl mb-2">🏆 Choose Your Quest Plan</h2>
                 <p class="text-indigo-100">Unlock powerful features to transform your English teaching adventure</p>
             </div>
@@ -554,7 +554,7 @@ export const miscModalsHTML = `
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <!-- Starter Tier -->
                     <div class="bg-white rounded-2xl border-2 border-gray-200 shadow-lg overflow-hidden">
-                        <div class="bg-gradient-to-r from-gray-500 to-gray-600 text-white p-4 text-center">
+                        <div class="bg-linear-to-r from-gray-500 to-gray-600 text-white p-4 text-center">
                             <h3 class="font-title text-2xl mb-1">Starter</h3>
                             ${pricingHeaderPrice('starter')}
                             <p class="text-gray-100 text-sm">Perfect for getting started</p>
@@ -578,8 +578,8 @@ export const miscModalsHTML = `
                     
                     <!-- Pro Tier -->
                     <div class="bg-white rounded-2xl border-2 border-indigo-400 shadow-lg overflow-hidden relative">
-                        <div class="absolute top-0 right-0 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs px-3 py-1 rounded-bl-xl">MOST POPULAR</div>
-                        <div class="bg-gradient-to-r from-indigo-500 to-purple-500 text-white p-4 text-center">
+                        <div class="absolute top-0 right-0 bg-linear-to-r from-indigo-500 to-purple-500 text-white text-xs px-3 py-1 rounded-bl-xl">MOST POPULAR</div>
+                        <div class="bg-linear-to-r from-indigo-500 to-purple-500 text-white p-4 text-center">
                             <h3 class="font-title text-2xl mb-1">Pro</h3>
                             ${pricingHeaderPrice('pro')}
                             <p class="text-indigo-100 text-sm">Complete classroom management</p>
@@ -605,7 +605,7 @@ export const miscModalsHTML = `
                     
                     <!-- Elite Tier -->
                     <div class="bg-white rounded-2xl border-2 border-purple-400 shadow-lg overflow-hidden">
-                        <div class="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 text-center">
+                        <div class="bg-linear-to-r from-purple-500 to-pink-500 text-white p-4 text-center">
                             <h3 class="font-title text-2xl mb-1">Elite</h3>
                             ${pricingHeaderPrice('elite')}
                             <p class="text-purple-100 text-sm">Ultimate AI-powered experience</p>

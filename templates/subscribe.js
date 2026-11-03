@@ -24,7 +24,7 @@ const PLANS = [
         name: 'Pro',
         tagline: 'The complete Quest for a thriving language school, with parents on board.',
         popular: true,
-        accent: { ring: 'ring-indigo-400', chip: 'bg-indigo-100 text-indigo-700', check: 'text-indigo-500', button: 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white' },
+        accent: { ring: 'ring-indigo-400', chip: 'bg-indigo-100 text-indigo-700', check: 'text-indigo-500', button: 'bg-linear-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white' },
         features: [
             'Everything in Starter, plus:',
             'Four Guilds and a magical Sorting Ceremony',
@@ -39,7 +39,7 @@ const PLANS = [
         tier: 'elite',
         name: 'Elite',
         tagline: 'The full magic for your whole school, with AI that gives you hours back every week.',
-        accent: { ring: 'ring-fuchsia-300', chip: 'bg-fuchsia-100 text-fuchsia-700', check: 'text-fuchsia-500', button: 'bg-gradient-to-r from-fuchsia-600 to-rose-500 hover:from-fuchsia-700 hover:to-rose-600 text-white' },
+        accent: { ring: 'ring-fuchsia-300', chip: 'bg-fuchsia-100 text-fuchsia-700', check: 'text-fuchsia-500', button: 'bg-linear-to-r from-fuchsia-600 to-rose-500 hover:from-fuchsia-700 hover:to-rose-600 text-white' },
         features: [
             'Everything in Pro, plus:',
             'AI that writes the class diary, reports and certificates',
@@ -71,7 +71,7 @@ function planCard(plan) {
     const { accent } = plan;
     return `
         <article class="relative flex flex-col rounded-3xl bg-white p-6 shadow-xl ring-1 ${plan.popular ? `ring-2 ${accent.ring} md:-translate-y-2 shadow-indigo-200/60` : accent.ring}">
-            ${plan.popular ? '<div class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-1 text-xs font-black uppercase tracking-widest text-white shadow-md">Most popular</div>' : ''}
+            ${plan.popular ? '<div class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-linear-to-r from-indigo-600 to-violet-600 px-4 py-1 text-xs font-black uppercase tracking-widest text-white shadow-md">Most popular</div>' : ''}
             <div class="mb-4">
                 <span class="inline-flex rounded-full px-3 py-1 text-xs font-black uppercase tracking-widest ${accent.chip}">${plan.name}</span>
                 <p class="mt-3 text-sm text-slate-600">${plan.tagline}</p>
@@ -111,7 +111,7 @@ const FAQ = [
 
 export const subscribeHTML = `
     <div id="subscribe-screen" class="fixed inset-0 z-40 hidden overflow-y-auto bg-[#f6f4ff]">
-        <div class="pointer-events-none absolute inset-x-0 top-0 h-[28rem] bg-gradient-to-b from-indigo-200/70 via-violet-100/60 to-transparent"></div>
+        <div class="pointer-events-none absolute inset-x-0 top-0 h-[28rem] bg-linear-to-b from-indigo-200/70 via-violet-100/60 to-transparent"></div>
         <div class="pointer-events-none absolute -top-24 right-[-6rem] h-72 w-72 rounded-full bg-amber-200/50 blur-3xl"></div>
         <div class="pointer-events-none absolute top-40 left-[-5rem] h-64 w-64 rounded-full bg-sky-200/50 blur-3xl"></div>
 
@@ -131,7 +131,7 @@ export const subscribeHTML = `
 
             <section class="mx-auto mt-6 max-w-3xl text-center">
                 <p id="subscribe-eyebrow" class="text-sm font-black uppercase tracking-[0.25em] text-indigo-500">Choose your plan</p>
-                <h1 id="subscribe-headline" class="mt-3 font-title text-4xl leading-tight text-indigo-950 sm:text-5xl">Make every lesson an adventure</h1>
+                <h1 id="subscribe-headline" class="mt-3 font-title text-4xl leading-tight text-indigo-950 sm:text-5xl sm:leading-none">Make every lesson an adventure</h1>
                 <p id="subscribe-lead" class="mx-auto mt-4 max-w-2xl text-lg text-slate-600">Your school is ready. Choose the plan that fits and start your Quest today.</p>
             </section>
 
@@ -187,7 +187,7 @@ export const subscribeHTML = `
                     </div>
                 </section>
 
-                <section class="mx-auto mt-12 max-w-3xl rounded-3xl bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 p-8 text-center text-white shadow-xl">
+                <section class="mx-auto mt-12 max-w-3xl rounded-3xl bg-linear-to-r from-indigo-600 via-violet-600 to-fuchsia-600 p-8 text-center text-white shadow-xl">
                     <h2 class="font-title text-3xl">Tomorrow’s lesson could be the first chapter</h2>
                     <p class="mx-auto mt-2 max-w-xl text-white/85">Choose your plan in a minute and watch your students light up on their very first quest.</p>
                     <button type="button" id="subscribe-back-to-plans" class="mt-5 rounded-2xl bg-white px-6 py-3 font-title text-lg text-indigo-700 shadow-md hover:bg-indigo-50">Choose my plan</button>

@@ -57,7 +57,7 @@ test('Secretary Home plan badge has a colored Elite treatment and a visible icon
     assert.match(home, /secretary-plan-pill/);
     assert.match(home, /secretary-plan-pill__icon/);
     assert.match(home, /fa-gem/);
-    assert.doesNotMatch(home, /date-pill bg-gradient-to-r from-sky-500/);
+    assert.doesNotMatch(home, /date-pill bg-linear-to-r from-sky-500/);
     assert.match(css, /\.secretary-plan-pill--elite\s*\{[\s\S]*?background:/);
     assert.match(css, /\.secretary-plan-pill__icon\s*\{/);
 });

@@ -49,7 +49,7 @@ export function loadChart() {
 export function loadPdfTools() {
     if (!pdfPromise) {
         pdfPromise = Promise.all([
-            import('html2canvas'),
+            import('html2canvas-pro'),
             import('jspdf'),
         ]).then(([canvasModule, pdfModule]) => {
             const html2canvas = canvasModule.default || canvasModule;

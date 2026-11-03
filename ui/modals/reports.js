@@ -745,6 +745,7 @@ export async function downloadCertificateAsPdf() {
         });
         const captureTemplate = certificateElement.cloneNode(true);
         captureTemplate.removeAttribute('id');
+        captureTemplate.classList.add('gcq-cert--capture');
         captureHost.appendChild(captureTemplate);
         document.body.appendChild(captureHost);
 

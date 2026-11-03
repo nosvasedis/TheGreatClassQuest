@@ -6,13 +6,12 @@
  * No clip-path, masks, filters, blend modes or background-clip:text on the page.
  */
 
-/* html2canvas measures each font's baseline with a hidden 1×1 GIF placed on the main document's
-   body. Tailwind's preflight makes every img display:block, which drops that GIF to its own line and
-   shifts all captured text down by most of a line. Keep the probe inline so PDFs print text where
-   the page shows it (certificates, storybooks and analytics exports all use html2canvas). */
-body > div > img[src^="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP"] {
-    display: inline;
-}
+/* The PDF copy (.gcq-cert--capture) keeps the look certificates have always printed with: the old
+   html2canvas never drew the 0 0 0 Npx ring shadows round the crest, hero medallion and guild
+   shield, and html2canvas-pro does. The on-screen certificate keeps its rings. */
+.gcq-cert--capture .gcq-cert__crest { box-shadow: 0 4px 10px rgba(80, 50, 10, 0.25); }
+.gcq-cert--capture .gcq-cert__medallion-ring,
+.gcq-cert--capture .gcq-cert__shield { box-shadow: 0 6px 14px rgba(60, 40, 10, 0.28); }
 
 /* ─── The printed certificate (A4 landscape at 96dpi) ───────────────────────── */
 

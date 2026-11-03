@@ -1217,6 +1217,9 @@
 
 .wr-body--print * { animation: none !important; }
 
+/* html2canvas 1.4 cannot parse color-mix() and aborts the whole PDF: the print copy uses a plain shadow. */
+.wr-body--print .wr-virtue__icon { box-shadow: 0 3px 8px rgba(15, 23, 42, 0.22); }
+
 /* ---------- Responsive ---------- */
 @media (max-width: 860px) {
     .wr-head {

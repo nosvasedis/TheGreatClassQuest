@@ -25,6 +25,23 @@ function sparksHtml(count) {
 }
 
 /**
+ * The pill under next month's goal: always there when both goals are known, saying how many
+ * stars more (or the same, or fewer in a shorter holiday month) than the month just ended.
+ */
+export function goalChangePillHtml(ascent, garden = false) {
+    const change = ascent?.goalChange;
+    if (!(ascent?.nextGoal > 0) || change === null || change === undefined) return '';
+    const month = esc(ascent.monthName || 'last month');
+    if (change > 0) {
+        return `<span class="cer-asc__delta cer-asc__delta--up"><i class="fas fa-arrow-trend-up" aria-hidden="true"></i><span class="cer-asc__delta-n">+${change}★</span> more than ${month}</span>`;
+    }
+    if (change === 0) {
+        return `<span class="cer-asc__delta cer-asc__delta--same"><i class="fas fa-equals" aria-hidden="true"></i>The same goal as ${month}</span>`;
+    }
+    return `<span class="cer-asc__delta cer-asc__delta--down"><i class="fas fa-calendar-minus" aria-hidden="true"></i><span class="cer-asc__delta-n">${Math.abs(change)}★</span> fewer than ${month}${garden ? '' : ' · fewer lessons'}</span>`;
+}
+
+/**
  * @param {object} ascent - buildQuestAscent() result
  * @param {object} options
  * @param {string} options.className
@@ -54,7 +71,7 @@ export function questAscentHtml(ascent, { className = '', classLogo = '📚', ga
                 <small>${esc(ascent.nextMonthName)}'s quest</small>
                 <b><i class="fas fa-star" aria-hidden="true"></i><span class="cer-count" data-count="${ascent.nextGoal}">${ascent.nextGoal}</span></b>
                 <em>${up ? 'stars to the next Portal' : `stars to open the Portal`}</em>
-                ${ascent.goalDelta > 0 ? `<span class="cer-asc__delta"><i class="fas fa-arrow-trend-up" aria-hidden="true"></i>${ascent.goalDelta} more than ${esc(ascent.monthName)}</span>` : ''}
+                ${goalChangePillHtml(ascent, garden)}
            </div>`
         : `<div class="cer-asc__goal cer-asc__goal--soft">
                 <small>The next quest</small>

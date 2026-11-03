@@ -5,6 +5,7 @@
 
 import { rankForLevel } from './questRanksCore.mjs';
 import { rankCrestSvg } from './questRankCrest.mjs';
+import { ceremonyMonthTheme, ceremonyDriftHtml, ceremonyHorizonHtml, ceremonyLightsHtml } from './ceremonyMonthTheme.js';
 
 export function escapeCeremonyHtml(value) {
     return String(value ?? '').replace(/[<&>"']/g, (ch) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[ch]));
@@ -207,23 +208,30 @@ function arenaStandsSvg() {
     </svg>`;
 }
 
-function pennantsHtml() {
+function pennantsHtml(theme) {
     const colors = ['a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'c'];
     return `<div class="cer-pennants" aria-hidden="true">
         <svg class="cer-pennants__rope" viewBox="0 0 1600 120" preserveAspectRatio="none"><path d="M0 18 Q400 70 800 40 T1600 18" fill="none"/></svg>
         ${colors.map((c, i) => `<span class="cer-pennant cer-pennant--${c}" style="--i:${i}"></span>`).join('')}
+        ${ceremonyLightsHtml(theme)}
     </div>`;
 }
 
-/** Scenery behind every Classic Arena scene (sky, stars, stands, torches, lights). */
-export function arenaBackdropHtml() {
+/**
+ * Scenery behind every Classic Arena scene (sky, stars, stands, torches, lights).
+ * `monthKey` picks the month's own stage (ceremonyMonthTheme.js): its horizon, weather and lights;
+ * the colours come from custom properties the ceremony sets on the screen.
+ */
+export function arenaBackdropHtml({ monthKey = '' } = {}) {
+    const theme = ceremonyMonthTheme(monthKey);
     return `
         ${arenaDefsSvg()}
         <div class="cer-sky cer-sky--ember" aria-hidden="true"></div>
         <div class="cer-sky cer-sky--violet" aria-hidden="true"></div>
         ${starsFieldSvg()}
-        <div class="cer-moon" aria-hidden="true"></div>
-        ${pennantsHtml()}
+        <div class="cer-moon${theme.bigMoon ? ' cer-moon--big' : ''}" aria-hidden="true"></div>
+        ${ceremonyHorizonHtml(theme)}
+        ${pennantsHtml(theme)}
         <div class="cer-beams" aria-hidden="true">
             <span class="cer-beam cer-beam--l"></span>
             <span class="cer-beam cer-beam--r"></span>
@@ -231,6 +239,7 @@ export function arenaBackdropHtml() {
         ${arenaStandsSvg()}
         ${torchHtml('l')}
         ${torchHtml('r')}
+        ${ceremonyDriftHtml(theme)}
         <div class="cer-dim" aria-hidden="true"></div>
         <div class="cer-spots" aria-hidden="true">
             <span class="cer-spot cer-spot--l"></span>
@@ -241,7 +250,8 @@ export function arenaBackdropHtml() {
 
 // ---------------------------------------------------------------- scenes
 
-export function arenaIntroHtml({ monthName = '', league = '', className = '', classLogo = '📚' } = {}) {
+export function arenaIntroHtml({ monthName = '', league = '', className = '', classLogo = '📚', monthKey = '' } = {}) {
+    const theme = monthKey ? ceremonyMonthTheme(monthKey) : null;
     return `
         <div class="cer-intro">
             <div class="cer-intro__crest">
@@ -251,6 +261,7 @@ export function arenaIntroHtml({ monthName = '', league = '', className = '', cl
             </div>
             <p class="cer-intro__kicker">Ceremony of the Month</p>
             <h1 class="cer-intro__month">${esc(monthName)}</h1>
+            ${theme ? `<p class="cer-intro__stage"><span aria-hidden="true">✦</span><b>${esc(theme.name)}</b><span aria-hidden="true">✦</span><small>${esc(theme.motto)}</small></p>` : ''}
             <div class="cer-intro__chips">
                 <span class="cer-tag cer-tag--ember"><i class="fas fa-route" aria-hidden="true"></i>League ${esc(league)}</span>
                 <span class="cer-tag cer-tag--violet"><i class="fas fa-school" aria-hidden="true"></i>${esc(className)}</span>
@@ -379,7 +390,7 @@ export function arenaCardFaceHtml(entry, type, { isMyClass = false, compact = fa
     return `<article class="cer-card cer-card--${isHero ? 'hero' : 'class'} cer-metal--${metal}${compact ? ' cer-card--compact' : ''}" data-rank="${Number(entry.rank) || 0}">
         <div class="cer-card__frame">
             ${isMyClass ? '<span class="cer-card__you">Your class</span>' : ''}
-            <div class="cer-card__plate"><span>${METAL_LABEL[metal]}</span><b>#${Number(entry.rank) || '?'}</b></div>
+            <div class="cer-card__plate"><span>${METAL_LABEL[metal]}</span><b>${metal === 'mystery' ? '?' : `#${Number(entry.rank) || '?'}`}</b></div>
             ${compact ? '' : arenaMedalHtml(metal, entry.rank)}
             ${classStrip}
             ${emblem}
@@ -434,11 +445,33 @@ export function arenaDuelHtml(left, right, type, { myClassId = null } = {}) {
         </div>
         ${side(right, 'right')}
         <div class="cer-steps" aria-hidden="true">
-            <span class="cer-step cer-step--2"><b>2</b></span>
-            <span class="cer-step cer-step--1"><b>1</b></span>
-            <span class="cer-step cer-step--3"><b>3</b></span>
+            ${[2, 1, 3].map(podiumStepHtml).join('')}
         </div>
+        <div class="cer-podium-base" aria-hidden="true"><span class="cer-podium-base__pool"></span></div>
     </div>`;
+}
+
+/**
+ * One marble podium step: a metal top, an engraved numeral inside a laurel and a metal band.
+ * Steps rise lowest first when the podium forms (styles/ceremony_arena.css).
+ */
+export function podiumStepHtml(place) {
+    const metal = arenaMetalForRank(place);
+    return `<span class="cer-step cer-step--${place} cer-metal--${metal}">
+        <span class="cer-step__top"></span>
+        <span class="cer-step__face">
+            <span class="cer-step__band"></span>
+            ${arenaLaurelSvg('cer-laurel cer-step__laurel')}
+            <b class="cer-step__num">${place}</b>
+            <small class="cer-step__word">${METAL_LABEL[metal]}</small>
+            <span class="cer-step__sheen"></span>
+        </span>
+    </span>`;
+}
+
+/** A light pillar that falls on the champion once the podium stands. */
+export function arenaPillarHtml() {
+    return '<span class="cer-pillar" aria-hidden="true"><i></i><i></i><i></i></span>';
 }
 
 export function arenaTransitionHtml() {
@@ -461,6 +494,16 @@ export function arenaLadderTokenHtml(entry, type) {
         ? avatarHtml(entry, 'cer-token__face')
         : `<span class="cer-token__face cer-token__face--emoji">${esc(entry.logo || '📚')}</span>`;
     return `<li class="cer-token cer-metal--${metal}"><b>#${Number(entry.rank)}</b>${face}<span class="cer-token__name">${esc(entry.name)}</span></li>`;
+}
+
+/**
+ * The next place to be revealed, waiting on the ladder as a question mark.
+ * `final` marks the last two places (the Final Duel).
+ */
+export function arenaLadderNextHtml(rank, type, { final = false } = {}) {
+    const metal = arenaMetalForRank(rank);
+    const label = final ? 'The Final Duel' : (type === 'student' ? 'Which hero?' : 'Which class?');
+    return `<li class="cer-token cer-token--next cer-metal--${metal}${final ? ' is-final' : ''}" aria-label="${final ? 'Next: the Final Duel' : `Next: place ${Number(rank)}`}"><b>${final ? '#2·1' : `#${Number(rank)}`}</b><span class="cer-token__face cer-token__face--ask" aria-hidden="true">${final ? '<i class="fas fa-crown"></i>' : '?'}</span><span class="cer-token__name">${label}</span></li>`;
 }
 
 export function arenaStandingsHtml(queueBestFirst = [], { monthName = '', risingStarId = null } = {}) {

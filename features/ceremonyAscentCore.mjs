@@ -110,8 +110,10 @@ export function buildQuestAscent({ monthName = '', nextMonthName = '', level = 1
         goal: Math.max(0, Math.round(num(goal))),
         progress,
         nextGoal: goalNext,
-        // Only a bigger goal is news worth saying (a holiday month can make it smaller).
+        // How next month's goal compares with this month's: the pill always shows it
+        // (bigger, the same, or smaller when holidays make a shorter month).
         goalDelta: goalNext > 0 && num(goal) > 0 ? Math.max(0, goalNext - Math.round(num(goal))) : 0,
+        goalChange: goalNext > 0 && num(goal) > 0 ? goalNext - Math.round(num(goal)) : null,
         newRule,
         runes,
         spoilsGold: crossed ? Math.max(0, Math.round(num(spoilsGold))) : 0,

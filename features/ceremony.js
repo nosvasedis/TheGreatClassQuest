@@ -8,6 +8,7 @@
 import { quietly } from '../utils/runtimeMetrics.js';
 import '../styles/ceremony_arena.css';
 import '../styles/ceremony_garden.css';
+import '../styles/ceremony_months.css';
 import { db, updateDoc, setDoc, getDoc, doc, collection, getDocs, query, where } from '../firebase.js';
 import * as state from '../state.js';
 import {
@@ -59,8 +60,11 @@ import {
     arenaCollectiveHtml,
     arenaOutroHtml,
     arenaMedalHtml,
-    arenaRaysHtml
+    arenaRaysHtml,
+    arenaLadderNextHtml,
+    arenaPillarHtml
 } from './ceremonyArenaView.js';
+import { ceremonyMonthTheme, ceremonyMonthThemeStyle, ceremonyDriftHtml } from './ceremonyMonthTheme.js';
 import {
     gardenBackdropHtml,
     gardenIntroHtml,
@@ -694,9 +698,15 @@ function mountShell(mode) {
     const screen = screenEl();
     const backdrop = $('ceremony-backdrop');
     screen.dataset.mode = mode;
-    if (backdrop && backdrop.dataset.mode !== mode) {
-        backdrop.innerHTML = mode === 'garden' ? gardenBackdropHtml() : arenaBackdropHtml();
-        backdrop.dataset.mode = mode;
+    // Every month has its own stage: colours on the screen, weather and horizon in the backdrop.
+    const monthKey = ceremonyData.monthKey || '';
+    const theme = ceremonyMonthTheme(monthKey);
+    screen.dataset.month = theme.id;
+    screen.setAttribute('style', ceremonyMonthThemeStyle(theme));
+    const backdropKey = `${mode}:${theme.id}`;
+    if (backdrop && backdrop.dataset.mode !== backdropKey) {
+        backdrop.innerHTML = mode === 'garden' ? `${gardenBackdropHtml()}${ceremonyDriftHtml(theme)}` : arenaBackdropHtml({ monthKey });
+        backdrop.dataset.mode = backdropKey;
     }
     const bedRow = document.getElementById('gdn-bed-row');
     if (bedRow) bedRow.innerHTML = '';
@@ -962,7 +972,7 @@ export function startCeremony(params) {
         setAction('Enter the Garden 🌸', openGardenGate);
     } else {
         setScene('intro', { realm: 'ember' });
-        stage.innerHTML = arenaIntroHtml({ monthName: ceremonyData.monthName, league: ceremonyData.league, className: ceremonyData.className, classLogo: ceremonyData.classLogo });
+        stage.innerHTML = arenaIntroHtml({ monthName: ceremonyData.monthName, league: ceremonyData.league, className: ceremonyData.className, classLogo: ceremonyData.classLogo, monthKey: ceremonyData.monthKey });
         setHeading('', '');
         setHerald('The scrolls are sealed. The arena awaits…');
         setAction('Start Ceremony', () => loadDataAndAdvance());
@@ -1014,15 +1024,35 @@ function ladderReset(type, upTo = 0) {
     // A big class: slimmer tokens, and the newest one always in view.
     ladder.dataset.dense = queue.length > 9 ? 'on' : 'off';
     queue.slice(0, upTo).forEach((entry) => ladder.insertAdjacentHTML('beforeend', arenaLadderTokenHtml(entry, type)));
+    ladderNext(type, upTo, { fresh: false });
     ladder.scrollTop = ladder.scrollHeight;
+}
+
+/**
+ * The place still to come waits under the revealed ones as a question mark:
+ * the next rank, or the Final Duel once only the last two are left.
+ */
+function ladderNext(type, nextIndex, { fresh = true } = {}) {
+    const ladder = getLadder();
+    if (!ladder) return;
+    ladder.querySelector('.cer-token--next')?.remove();
+    const queue = type === 'student' ? ceremonyData.studentQueue : ceremonyData.classQueue;
+    if (!queue?.length || queue.length === 1 || nextIndex >= queue.length) return;
+    const final = nextIndex >= queue.length - 2;
+    ladder.insertAdjacentHTML('beforeend', arenaLadderNextHtml(final ? 1 : queue[nextIndex].rank, type, { final }));
+    if (fresh) ladder.lastElementChild?.classList.add('is-new');
 }
 
 function ladderAdd(entry, type) {
     const ladder = getLadder();
     if (!ladder) return;
+    ladder.querySelector('.cer-token--next')?.remove();
     ladder.insertAdjacentHTML('beforeend', arenaLadderTokenHtml(entry, type));
     const token = ladder.lastElementChild;
     token?.classList.add('is-new');
+    const queue = type === 'student' ? ceremonyData.studentQueue : ceremonyData.classQueue;
+    const index = (queue || []).indexOf(entry);
+    if (index >= 0) ladderNext(type, index + 1);
     ladder.dataset.overflow = ladder.scrollHeight > ladder.clientHeight + 2 ? 'on' : 'off';
     if (typeof ladder.scrollTo === 'function') ladder.scrollTo({ top: ladder.scrollHeight, behavior: 'smooth' });
     else ladder.scrollTop = ladder.scrollHeight;
@@ -1144,45 +1174,19 @@ function handleDuelReveal() {
         replay(duel.querySelector('.cer-vs'), 'is-tick');
         playCeremonySfx('heartbeat');
     } }));
-    // Silver first (unless two share the crown): the runner-up is honoured on its own,
-    // then a short second drumroll and the gold lands.
+    // Silver and gold are revealed in the same breath: the drumroll ends, the runner-up's
+    // silver lands and the champion's crown comes down at once. Then the podium rises.
     const runnerUp = isTie ? null : [left, right].find((d) => Number(d?.dataset.rank) !== 1) || null;
-    const GOLD_AT = runnerUp ? 5000 : 2950;
-    if (runnerUp) {
-        steps.push({ at: 2950, run: (fast) => {
-            stopCeremonyDrumroll({ crash: false });
-            screen.dataset.spot = runnerUp === left ? 'l' : 'r';
-            duel.classList.add('is-silvered');
-            unveilDuelist(runnerUp, fast);
-            const kicker = type === 'student' ? `Hero's Challenge · ${ceremonyData.className}` : `League ${ceremonyData.league}`;
-            setHeading(kicker, type === 'student' ? 'The Silver Hero' : 'Silver of the League');
-            if (labelEl) labelEl.textContent = 'And the gold…';
-            if (countEl) countEl.textContent = '2';
-            if (!fast) {
-                playCeremonySfx('medal_silver');
-                const p = fxPoint(runnerUp.querySelector('.cer-card'));
-                ceremonyFx?.burst(p.x, p.y, { colors: METAL_SPARKS.silver, count: 90, speed: 300, ring: true });
-                replay(screen, 'is-cheering');
-            }
-        } });
-        steps.push({ at: 3700, run: (fast) => {
-            if (fast) return;
-            screen.dataset.spot = runnerUp === left ? 'r' : 'l';
-            if (countEl) countEl.textContent = '1';
-            replay(duel.querySelector('.cer-vs'), 'is-tick');
-            startCeremonyDrumroll(1.25);
-        } });
-    }
-    steps.push({ at: GOLD_AT, run: (fast) => {
+    const REVEAL_AT = 2950;
+    steps.push({ at: REVEAL_AT, run: (fast) => {
         stopCeremonyDrumroll({ crash: !fast });
-        screen.dataset.spot = winnerSide;
+        screen.dataset.spot = 'both';
         screen.classList.remove('is-drumroll');
         screen.classList.add('is-revealed');
         duel.classList.remove('is-tense');
         duel.classList.add('is-revealed');
         if (!fast) replay(screen, 'is-flashing');
-        [left, right].forEach((d) => d && d !== runnerUp && unveilDuelist(d, fast));
-        duel.classList.remove('is-silvered');
+        [left, right].forEach((d) => d && unveilDuelist(d, fast));
         const winners = [left, right].filter((d) => Number(d?.dataset.rank) === 1);
         const names = winners.map((d) => d.querySelector('.cer-card__name')?.textContent || '');
         if (isTie) {
@@ -1196,10 +1200,15 @@ function handleDuelReveal() {
         if (!fast) {
             playCeremonyTrack('victory');
             playCeremonySfx('gold');
-            setTimeout(() => playCeremonySfx('medal_gold'), 520);
+            if (runnerUp) {
+                setTimeout(() => playCeremonySfx('medal_silver'), 160);
+                const p = fxPoint(runnerUp.querySelector('.cer-card'));
+                ceremonyFx?.burst(p.x, p.y, { colors: METAL_SPARKS.silver, count: 70, speed: 260, ring: true });
+            }
+            setTimeout(() => playCeremonySfx('medal_gold'), 560);
             winners.forEach((d) => {
                 const p = fxPoint(d.querySelector('.cer-card'));
-                ceremonyFx?.burst(p.x, p.y, { colors: METAL_SPARKS.gold, count: 140, speed: 380, ring: true });
+                ceremonyFx?.burst(p.x, p.y, { colors: METAL_SPARKS.gold, count: 150, speed: 400, ring: true });
             });
             ceremonyFx?.fireworks({ count: 7, spread: 2600 });
             ceremonyFx?.confetti({ count: 160, duration: 1400 });
@@ -1207,9 +1216,17 @@ function handleDuelReveal() {
         }
         ceremonyData.phase = finishedClassShowdown ? 'class_showdown_done' : 'student_showdown_done';
     } });
-    steps.push({ at: GOLD_AT + 2650, run: (fast) => {
+    steps.push({ at: REVEAL_AT + 1200, run: (fast) => {
+        if (fast) return;
+        screen.dataset.spot = winnerSide;
+    } });
+    // The podium: marble steps rise from the arena floor (bronze, silver, then gold),
+    // the finalists step onto them, bronze takes its place, a fanfare and a pillar of light.
+    const PODIUM_AT = REVEAL_AT + 2500;
+    steps.push({ at: PODIUM_AT, run: (fast) => {
         const bronze = isTie ? null : ceremonyData.duel?.bronze;
         const duelists = [left, right].filter(Boolean);
+        if (!fast) playCeremonySfx('podium_rise');
         flipLayout(duelists, () => {
             duel.classList.add('is-podium');
             if (isTie) duel.classList.add('is-tie');
@@ -1218,22 +1235,45 @@ function handleDuelReveal() {
         if (bronze) {
             duel.insertAdjacentHTML('beforeend', `<div class="cer-duelist cer-duelist--bronze is-runnerup" data-place="3" data-rank="3">
                 <div class="cer-pedestal" aria-hidden="true"><span></span></div>
+                ${arenaRaysHtml('bronze')}
                 ${arenaCardFaceHtml(bronze, type, { metal: 'bronze', isMyClass: type === 'class' && bronze.id === ceremonyData.currentAppClassId })}
             </div>`);
             const bronzeCard = duel.querySelector('.cer-duelist--bronze .cer-card');
             if (!fast) {
-                playCeremonySfx('medal_bronze');
                 setTimeout(() => {
                     if (!bronzeCard?.isConnected) return;
+                    playCeremonySfx('medal_bronze');
                     const p = fxPoint(bronzeCard);
                     ceremonyFx?.burst(p.x, p.y, { colors: METAL_SPARKS.bronze, count: 60, speed: 240 });
-                }, 450);
+                }, 620);
             }
             countUp(bronzeCard?.querySelector('.cer-count'), bronze.score, { fast });
         } else {
             duel.classList.add('is-duo');
         }
         delete screen.dataset.spot;
+    } });
+    steps.push({ at: PODIUM_AT + 1350, run: (fast) => {
+        duel.classList.add('is-crowned');
+        duel.querySelectorAll('.cer-duelist[data-place="1"], .cer-duelist[data-place="1b"]').forEach((d) => {
+            if (!d.querySelector('.cer-pillar')) d.insertAdjacentHTML('afterbegin', arenaPillarHtml());
+        });
+        if (fast) return;
+        playCeremonySfx('podium_fanfare');
+        replay(screen, 'is-cheering');
+        const base = duel.querySelector('.cer-podium-base');
+        const box = base?.getBoundingClientRect();
+        const host = $('ceremony-fx-host')?.getBoundingClientRect();
+        if (box && host) {
+            const y = box.top - host.top;
+            ceremonyFx?.confetti({ count: 70, duration: 500, origin: { x: box.left - host.left + 10, y } });
+            ceremonyFx?.confetti({ count: 70, duration: 500, origin: { x: box.right - host.left - 10, y } });
+        }
+        ceremonyFx?.stars({ count: 26, colors: METAL_SPARKS.gold, duration: 1600 });
+        duel.querySelectorAll('.cer-duelist[data-place="1"] .cer-card, .cer-duelist[data-place="1b"] .cer-card').forEach((card) => {
+            const p = fxPoint(card);
+            ceremonyFx?.burst(p.x, p.y, { colors: METAL_SPARKS.gold, count: 60, speed: 200 });
+        });
     } });
     runTimeline(steps, () => {
         setAction(finishedClassShowdown ? afterTeamQuestLabel() : afterHeroesLabel(), advanceCeremony);

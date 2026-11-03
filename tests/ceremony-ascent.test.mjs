@@ -32,6 +32,7 @@ test('a class that stepped through rises one rank with its new Portal rune and n
     assert.deepEqual(a.runes.map((r) => [r.id, r.isNew]), [['virtues', true]]);
     assert.equal(a.nextGoal, 205);
     assert.equal(a.goalDelta, 25);
+    assert.equal(a.goalChange, 25);
     assert.equal(a.spoilsGold, 5);
     assert.equal(a.nextMonthName, 'November');
     assert.match(a.line, /Torchbearers/);
@@ -53,6 +54,7 @@ test('a class that did not step through keeps its rank and is shown the next one
     assert.equal(a.newRule, null);
     assert.equal(a.spoilsGold, 0, 'no spoils without a crossing');
     assert.equal(a.goalDelta, 0, 'a smaller goal is not announced as more');
+    assert.equal(a.goalChange, -10, 'the pill still says how the goal changed');
     assert.match(a.line, /Shieldbearers/);
 });
 

@@ -252,6 +252,11 @@
     background: rgba(34, 197, 94, 0.14);
     border: 1px solid rgba(134, 239, 172, 0.4);
 }
+/* The goal pill is always there: greener for a bigger goal, gold for the same, sky-blue for a shorter month. */
+.cer-asc__delta-n { font-weight: 800; color: #fff; }
+.cer-asc.is-quest .cer-asc__delta { animation: cer-asc-pop 0.6s cubic-bezier(.2, 1.4, .3, 1) 0.55s both; }
+.cer-asc__delta--same { color: #fde68a; background: rgba(245, 197, 66, 0.14); border-color: rgba(253, 230, 138, 0.42); }
+.cer-asc__delta--down { color: #bae6fd; background: rgba(56, 189, 248, 0.14); border-color: rgba(125, 211, 252, 0.42); }
 
 .cer-asc__rule {
     display: flex;
@@ -355,6 +360,9 @@
 .cer-asc--garden .cer-asc__rule small { color: #be185d; }
 .cer-asc--garden .cer-asc__rule b { font-family: var(--gdn-font); color: #14532d; }
 .cer-asc--garden .cer-asc__delta { color: #166534; background: #dcfce7; border-color: #86efac; }
+.cer-asc--garden .cer-asc__delta-n { color: #14532d; }
+.cer-asc--garden .cer-asc__delta--same { color: #854d0e; background: #fef9c3; border-color: #fde047; }
+.cer-asc--garden .cer-asc__delta--down { color: #075985; background: #e0f2fe; border-color: #7dd3fc; }
 .cer-asc--garden .cer-asc__runes li { color: #3f2a14; background: #fff; border-color: #fbcfe8; }
 .cer-asc--garden .cer-asc__runes li.is-new { color: #14532d; }
 .cer-asc--garden .cer-asc__spoils { color: #92400e; background: #fef3c7; border-color: #fcd34d; }

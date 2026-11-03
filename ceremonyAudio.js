@@ -275,7 +275,7 @@ const NOTE_SETS = {
 /** One-shot effects. Unknown names are ignored. */
 export function playCeremonySfx(name) {
     if (muted || !fxReady || !Tone) return;
-    const fx = getFx(name === 'gong' ? 6 : 4);
+    const fx = getFx(name === 'gong' || name === 'podium_fanfare' ? 6 : 4);
     const now = Tone.now() + 0.02;
     try {
         switch (name) {
@@ -317,6 +317,33 @@ export function playCeremonySfx(name) {
             case 'medal_gold':
                 fx.tick.triggerAttackRelease('A4', '64n', now);
                 ['C7', 'G6', 'E7', 'C7', 'G7'].forEach((note, i) => fx.bells.triggerAttackRelease(note, '16n', now + 0.03 + i * 0.06, 0.7));
+                break;
+            // ---- The podium: marble steps rise, then a royal fanfare for the champion ----
+            case 'podium_rise':
+                // A low stone rumble and three landings, bronze, silver, gold (lowest first).
+                fx.whooshFilter.frequency.cancelScheduledValues(now);
+                fx.whooshFilter.frequency.setValueAtTime(140, now);
+                fx.whooshFilter.frequency.exponentialRampToValueAtTime(520, now + 0.8);
+                fx.whooshNoise.triggerAttackRelease(0.85, now);
+                fx.boom.triggerAttackRelease('A1', '8n', now + 0.12);
+                fx.boom.triggerAttackRelease('F1', '8n', now + 0.32);
+                fx.boom.triggerAttackRelease('C1', '4n', now + 0.54);
+                fx.tick.triggerAttackRelease('C3', '32n', now + 0.54);
+                break;
+            case 'podium_fanfare':
+                // Herald trumpets (da-da-DAAA, twice up the scale), a gong under the last chord
+                // and a cascade of bells on top.
+                fx.brass.triggerAttackRelease(['C4', 'G4'], 0.14, now);
+                fx.brass.triggerAttackRelease(['C4', 'G4'], 0.14, now + 0.16);
+                fx.brass.triggerAttackRelease(['E4', 'C5'], 0.42, now + 0.32);
+                fx.brass.triggerAttackRelease(['F4', 'A4'], 0.14, now + 0.8);
+                fx.brass.triggerAttackRelease(['F4', 'A4'], 0.14, now + 0.96);
+                fx.brass.triggerAttackRelease(['G4', 'B4', 'D5'], 0.3, now + 1.12);
+                fx.brass.triggerAttackRelease(['C4', 'E4', 'G4', 'C5'], 2, now + 1.5);
+                fx.boom.triggerAttackRelease('C1', '4n', now + 1.5);
+                fx.gong.triggerAttackRelease('C2', 3, now + 1.5);
+                fx.crash.triggerAttackRelease('2n', now + 1.5);
+                ['C6', 'E6', 'G6', 'C7', 'E7', 'G7'].forEach((note, i) => fx.bells.triggerAttackRelease(note, '8n', now + 1.56 + i * 0.07, 0.7));
                 break;
             case 'tick':
                 fx.tick.triggerAttackRelease('G4', '32n', now);

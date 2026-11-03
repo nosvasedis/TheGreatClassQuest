@@ -4,8 +4,12 @@
 import js from '@eslint/js';
 import globals from 'globals';
 
+// ESLint 10 added these to `recommended`. Off for now so the count matches ESLint 9;
+// turn one on when there is time to clear its warnings.
+const NOT_YET = new Set(['no-useless-assignment', 'preserve-caught-error']);
+
 const recommendedAsWarnings = Object.fromEntries(
-    Object.keys(js.configs.recommended.rules).map((rule) => [rule, 'warn'])
+    Object.keys(js.configs.recommended.rules).map((rule) => [rule, NOT_YET.has(rule) ? 'off' : 'warn'])
 );
 
 export default [

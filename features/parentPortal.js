@@ -9,6 +9,9 @@ import { renderParentProgress } from './parent/progress.js';
 import { renderParentMessages, getActiveThread, absenceStarter } from './parent/messages.js';
 import { getLang, setLang, tr } from './parent/i18n.js';
 import '../styles/family_portal_lang.css';
+import '../styles/family_portal_more.css';
+import { showTreasureDetail, hydrateTreasures } from './parent/treasures.js';
+import { handleInstallClick, wirePullToRefresh, wireKeyboardRoom } from './parent/phone.js';
 import {
     familyTopics,
     markThreadSeen,
@@ -98,6 +101,7 @@ export function renderParentTab(tabKey) {
         autoGrow(el);
     });
 
+    if (resolved === 'progress') hydrateTreasures(section);
     if (resolved === 'messages') {
         const log = document.getElementById('fp-chat-log');
         if (log) log.lastElementChild?.scrollIntoView({ block: 'end' });
@@ -188,9 +192,9 @@ export function wireParentPortalListeners({ onLogout, onRefresh, onSelectThread 
 
     document.getElementById('parent-logout-btn')?.addEventListener('click', () => onLogout?.());
     document.getElementById('parent-lang-btn')?.addEventListener('click', switchLanguage);
-    document.getElementById('parent-refresh-btn')?.addEventListener('click', async (event) => {
-        const button = event.currentTarget;
-        if (button.classList.contains('is-busy')) return;
+    const checkForNews = async () => {
+        const button = document.getElementById('parent-refresh-btn');
+        if (button?.classList.contains('is-busy')) return;
         setBusy(button, true);
         try {
             await onRefresh?.();
@@ -201,12 +205,25 @@ export function wireParentPortalListeners({ onLogout, onRefresh, onSelectThread 
         } finally {
             setBusy(button, false);
         }
-    });
+    };
+    document.getElementById('parent-refresh-btn')?.addEventListener('click', checkForNews);
 
     const screen = document.getElementById('parent-screen');
     screen?.addEventListener('input', (event) => autoGrow(event.target));
+    wirePullToRefresh(screen?.querySelector('.fp-main'), checkForNews);
+    wireKeyboardRoom(screen);
 
     screen?.addEventListener('click', (event) => {
+        const itemBtn = event.target.closest('[data-parent-item]');
+        if (itemBtn) {
+            showTreasureDetail(itemBtn);
+            return;
+        }
+        if (event.target.closest('[data-parent-install]')) {
+            handleInstallClick(event.target);
+            return;
+        }
+
         const navBtn = event.target.closest('.fp-nav__btn[data-parent-tab]');
         if (navBtn) {
             const key = navBtn.dataset.parentTab || 'home';

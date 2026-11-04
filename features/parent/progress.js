@@ -14,6 +14,7 @@ import {
     isGreek
 } from './helpers.js';
 import { countWord, STAR_WORDS, LESSON_WORDS } from './i18n.js';
+import { renderTreasures } from './treasures.js';
 
 const VISIBLE_RESULTS = 5;
 
@@ -175,17 +176,25 @@ function renderHeroCard(snapshot, name) {
                     <span class="fp-hero__hint">${tr('to spend in the class market', 'για την αγορά της τάξης')}</span>
                 </div>
             </div>
+            ${Number(snapshot.heroOfDayWins || 0) > 0 ? `
+                <p class="fp-hero__crowns"><span aria-hidden="true">👑</span> ${isGreek()
+                    ? `Ήρωας της Ημέρας ${snapshot.heroOfDayWins === 1 ? 'μία φορά' : `${Number(snapshot.heroOfDayWins)} φορές`} φέτος`
+                    : `Hero of the Day ${snapshot.heroOfDayWins === 1 ? 'once' : `${Number(snapshot.heroOfDayWins)} times`} this year`}</p>` : ''}
             <details class="fp-explain">
                 <summary>${tr('How the class game works', 'Πώς λειτουργεί το παιχνίδι της τάξης')}</summary>
                 <ul>${isGreek() ? `
                     <li><strong>Τα αστέρια (Stars)</strong> επιβραβεύουν την προσπάθεια, την ομαδικότητα και την καλοσύνη στο μάθημα των Αγγλικών. Δεν είναι δεύτερος βαθμός.</li>
                     <li><strong>Τα αστέρια του μήνα</strong> ξεκινούν από την αρχή κάθε μήνα· τα αστέρια της χρονιάς συνεχίζουν να αθροίζονται.</li>
                     <li><strong>Η συντεχνία (Guild)</strong> είναι η ομάδα του παιδιού σας για όλη τη χρονιά. Οι συντεχνίες εμψυχώνουν η μία την άλλη.</li>
-                    <li><strong>Ο χρυσός (Gold)</strong> αγοράζει μικρές ανταμοιβές στην αγορά της τάξης. Κερδίζεται μόνο μέσα στην τάξη και ποτέ δεν αγοράζεται.</li>` : `
+                    <li><strong>Ο χρυσός (Gold)</strong> αγοράζει μικρές ανταμοιβές στην αγορά της τάξης. Κερδίζεται μόνο μέσα στην τάξη και ποτέ δεν αγοράζεται.</li>
+                    <li><strong>Το Σακίδιο (Satchel)</strong> φυλάει κάθε θησαυρό που έχει αγοράσει ή κερδίσει. Κάποιοι είναι κειμήλια με μια δύναμη που χρησιμοποιείται μία φορά στην τάξη.</li>
+                    <li><strong>Το ζωάκι-σύντροφος (Familiar)</strong> βγαίνει από ένα αυγό και μεγαλώνει όσο κερδίζονται αστέρια.</li>` : `
                     <li><strong>Stars</strong> reward effort, teamwork and kindness in English class. They are not a second grade.</li>
                     <li><strong>This month's stars</strong> start again each month; stars for the year keep adding up.</li>
                     <li><strong>The guild</strong> is ${escapeHtml(name)}'s team for good. Guilds cheer each other on all year.</li>
-                    <li><strong>Gold</strong> buys small rewards in the class market. It is earned in class, never bought.</li>`}
+                    <li><strong>Gold</strong> buys small rewards in the class market. It is earned in class, never bought.</li>
+                    <li><strong>The Satchel</strong> keeps every treasure ${escapeHtml(name)} has bought or won. Some are relics with a one-time power in class.</li>
+                    <li><strong>The familiar</strong> is a class companion that hatches from an egg and grows as stars are earned.</li>`}
                 </ul>
             </details>
         </article>`;
@@ -207,5 +216,6 @@ export function renderParentProgress() {
             ${renderResults(snapshot)}
             ${renderAttendance(snapshot, name)}
             ${renderHeroCard(snapshot, name)}
+            ${renderTreasures()}
         </div>`;
 }

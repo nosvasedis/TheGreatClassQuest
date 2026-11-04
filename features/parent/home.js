@@ -28,6 +28,9 @@ import {
     whenPhrase
 } from './helpers.js';
 import { tr, isGreek, countWord, STAR_WORDS } from './i18n.js';
+import { renderFortnight } from './calendar.js';
+import { renderClassDiary } from './diary.js';
+import { renderInstallCard } from './phone.js';
 
 function formatStars(value) {
     const n = Number(value || 0);
@@ -72,12 +75,14 @@ function buildSummary(snapshot, name, lesson, test) {
         const title = isDictation ? tr('dictation', 'υπαγόρευση') : latest.title;
         // "?" is what the teacher writes when a paper could not be marked at all.
         const unmarkable = latest.label === '?';
+        // "18 / 20" stays on one line.
+        const label = String(latest.label).replace(/ \/ /g, '\u00a0/\u00a0');
         sentences.push(unmarkable ? tr(
             `The latest ${title ? `result (${title})` : 'result'} could not be marked.`,
             `Ο τελευταίος βαθμός${title ? ` (${title})` : ''} δεν μπόρεσε να βαθμολογηθεί.`
         ) : tr(
-            `Latest ${title ? `result (${title})` : 'result'}: ${latest.label}.`,
-            `Τελευταίος βαθμός${title ? ` (${title})` : ''}: ${latest.label}.`
+            `Latest ${title ? `result (${title})` : 'result'}: ${label}.`,
+            `Τελευταίος βαθμός${title ? ` (${title})` : ''}: ${label}.`
         ));
     }
     const lessonLine = lessonPhrase(lesson);
@@ -198,7 +203,7 @@ function renderStarJar(snapshot, name) {
             `Καλύτερος μήνας ως τώρα: ${escapeHtml(monthShort(`${best.month}-01`))} με ${formatStars(best.stars)}.`)
         : tr('Every star this month lands in the jar.', 'Κάθε αστέρι του μήνα πέφτει στο βάζο.');
     return `
-        <article class="fp-card fp-jar-card fp-rise" style="--fp-delay:2">
+        <article class="fp-card fp-jar-card fp-rise" style="--fp-delay:3">
             <svg class="fp-jar" viewBox="0 0 120 140" role="img" aria-label="${stars(month)} ${tr('this month', 'αυτόν τον μήνα')}">
                 <defs><clipPath id="fp-jar-inside"><path d="M30 30h60v8c8 6 12 14 12 24v54c0 8-6 14-14 14H32c-8 0-14-6-14-14V62c0-10 4-18 12-24z"/></clipPath></defs>
                 <g clip-path="url(#fp-jar-inside)">
@@ -237,7 +242,7 @@ function renderLetter(snapshot) {
     const [latest, ...earlier] = notes;
     const hasThread = (state.get('currentCommunicationThreads') || []).some((thread) => thread.threadType === 'progress-share');
     return `
-        <article class="fp-card fp-letter fp-rise" id="fp-latest-note" style="--fp-delay:3">
+        <article class="fp-card fp-letter fp-rise" id="fp-latest-note" style="--fp-delay:4">
             <p class="fp-kicker"><i class="fas fa-feather-pointed" aria-hidden="true"></i> ${escapeHtml(noteLabel(latest))}</p>
             <blockquote class="fp-letter__body">${escapeHtml(latest.body || latest.text || '')}</blockquote>
             <div class="fp-letter__foot">
@@ -259,7 +264,7 @@ function renderLetter(snapshot) {
 function renderMoments(snapshot, name) {
     const moments = (snapshot.recentCelebrations || []).filter((item) => Number(item.stars ?? 1) > 0).slice(0, 4);
     return `
-        <article class="fp-card fp-rise" style="--fp-delay:4">
+        <article class="fp-card fp-moments-card fp-rise" style="--fp-delay:5">
             <p class="fp-kicker">${tr('Star moments', 'Στιγμές με αστέρια')}</p>
             <h3 class="fp-card__title">${isGreek() ? 'Γιατί κέρδισε αστέρια' : `Why ${escapeHtml(name)} earned stars`}</h3>
             ${moments.length ? `
@@ -313,9 +318,12 @@ export function renderParentHome() {
                 ${renderNextLessonTile(lesson)}
                 ${renderSecondTile(homework, parts)}
             </div>
+            ${renderFortnight()}
             ${renderStarJar(snapshot, name)}
+            ${renderClassDiary()}
             ${renderLetter(snapshot)}
             ${renderMoments(snapshot, name)}
+            ${renderInstallCard()}
         </div>`;
 }
 
@@ -330,14 +338,14 @@ export function updateParentHeader(snapshot = getSnapshot()) {
     const portraitEl = document.querySelector('[data-parent-portrait]');
     const schoolName = snapshot.schoolName || state.get('schoolName') || '';
     if (titleEl) titleEl.textContent = name ? firstName(name) : tr('Welcome', 'Καλώς ήρθατε');
-    if (schoolEl) schoolEl.textContent = schoolName ? ` · ${schoolName}` : '';
+    if (schoolEl) schoolEl.textContent = schoolName || '';
     if (subtitleEl) {
         const guild = getGuildById(snapshot.guildId);
         const hero = heroClassMeta(snapshot.heroClass);
         // The hero class is the first thing to go when a phone runs out of room.
         const bits = [
             snapshot.className ? escapeHtml(snapshot.className) : '',
-            guild ? `${escapeHtml(guild.emoji)} ${escapeHtml(guild.name)}` : '',
+            guild ? `${escapeHtml(guild.emoji)}<span class="fp-sub-guild"> ${escapeHtml(guild.name)}</span>` : '',
             hero ? `<span class="fp-sub-hero">${escapeHtml(hero.icon)} ${escapeHtml(normalizeHeroClass(snapshot.heroClass))}</span>` : ''
         ].filter(Boolean);
         subtitleEl.innerHTML = name

@@ -744,13 +744,88 @@ function assessmentScoreLabel(item) {
   return item.scoreQualitative || `${item.scoreNumeric || 0}${item.maxScore ? ` / ${item.maxScore}` : ''}`;
 }
 
+// ---- What the class game holds for a family to see (Satchel, familiar, class diary) ----
+
+function familyText(value, max) {
+  const text = String(value ?? '').replace(/\s+/g, ' ').trim();
+  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+}
+
+// Only short web links travel to families; inline data pictures would bloat the summary.
+function familyImageUrl(value) {
+  const url = String(value || '').trim();
+  return /^https:\/\//i.test(url) && url.length <= 800 ? url : null;
+}
+
+// The child's Satchel, newest first. Every item is listed: nothing hides behind a count.
+function familySatchel(inventory) {
+  if (!Array.isArray(inventory)) return [];
+  return inventory
+    .filter((item) => item && item.name)
+    .map((item) => ({
+      name: familyText(item.name, 60),
+      icon: familyText(item.icon, 8) || null,
+      image: familyImageUrl(item.image),
+      artId: familyText(item.artId, 40) || null,
+      description: familyText(item.description, 160),
+      tier: familyText(item.tier, 20) || null,
+      kind: familyText(item.kind, 20) || null,
+      acquiredAt: familyText(item.acquiredAt, 40) || null
+    }))
+    .reverse()
+    .slice(0, 40);
+}
+
+function familyFamiliar(familiar) {
+  if (!familiar || typeof familiar !== 'object' || !familiar.typeId) return null;
+  const pick = {};
+  ['typeId', 'level', 'state', 'seenLevel', 'name', 'look', 'variant', 'variantKey', 'hatchStars', 'starsAtHatch', 'eggStars'].forEach((key) => {
+    if (familiar[key] !== undefined) pick[key] = familiar[key];
+  });
+  return pick;
+}
+
+// The class's latest diary pages: what the lesson was about, in the class's own story.
+async function getClassDiary(classId, studentId) {
+  if (!classId) return [];
+  try {
+    const snap = await db.collection(`${dataRoot()}/adventure_logs`)
+      .where('classId', '==', classId)
+      .orderBy('createdAt', 'desc')
+      .limit(6)
+      .get();
+    return snap.docs
+      .map((docSnap) => docSnap.data() || {})
+      .filter((log) => String(log.text || '').trim())
+      .slice(0, 3)
+      .map((log) => ({
+        date: toIsoDateKey(log.date) || '',
+        title: familyText(log.title, 90),
+        text: familyText(log.text, 900),
+        imageUrl: familyImageUrl(log.imageUrl),
+        hero: familyText(log.hero, 60),
+        isHero: Boolean(studentId && log.heroStudentId === studentId),
+        totalStars: Number(log.totalStars || 0),
+        learned: (Array.isArray(log.learnedToday?.items) ? log.learnedToday.items : [])
+          .map((item) => familyText(item?.label, 80)).filter(Boolean).slice(0, 5),
+        words: (Array.isArray(log.learnedToday?.words) ? log.learnedToday.words : [])
+          .map((word) => familyText(word, 30)).filter(Boolean).slice(0, 12)
+      }));
+  } catch (error) {
+    console.warn('Family diary skipped:', error?.message || error);
+    return [];
+  }
+}
+
 async function buildParentSnapshot(studentId, extra = {}) {
   // Everything except the class is read at once; the class waits only for the student record.
   const studentPromise = getStudent(studentId);
   const classPromise = studentPromise.then((student) => db.doc(`${dataRoot()}/classes/${student.classId}`).get());
-  const [student, classSnap, score, assessments, attendanceSummary, awardLogs, starsHistory, parentLink, schoolSettings, homeworkCount, previousSnap] = await Promise.all([
+  const diaryPromise = studentPromise.then((student) => getClassDiary(student.classId, studentId));
+  const [student, classSnap, classDiary, score, assessments, attendanceSummary, awardLogs, starsHistory, parentLink, schoolSettings, homeworkCount, previousSnap] = await Promise.all([
     studentPromise,
     classPromise,
+    diaryPromise,
     getScore(studentId),
     getRecentAssessments(studentId),
     getAttendanceSummary(studentId),
@@ -799,6 +874,13 @@ async function buildParentSnapshot(studentId, extra = {}) {
     },
     weekStars,
     starsHistory,
+    // Hero of the Day crowns count for this school year only.
+    heroOfDayWins: (!score.heroOfDayWinsYearKey || !student.activeSchoolYearKey || score.heroOfDayWinsYearKey === student.activeSchoolYearKey)
+      ? Number(score.heroOfDayWins || 0)
+      : 0,
+    familiar: familyFamiliar(score.familiar),
+    satchel: familySatchel(score.inventory),
+    classDiary,
     attendanceSummary,
     latestGrade: latestGrade
       ? {

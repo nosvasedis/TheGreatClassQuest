@@ -976,7 +976,8 @@ export function getMonthlyLessonBalanceForDate(classData, schoolHolidayRanges, a
             makeUps += 1;
         }
     }
-    return { scheduled, lost: Math.max(0, lost - makeUps) };
+    // `ran`: the lessons that really happen (lost ones given back by make-ups, extra ones added).
+    return { scheduled, lost: Math.max(0, lost - makeUps), ran: scheduled - lost + makeUps };
 }
 
 /** Lessons this class loses this month (only its own lesson days count). */
@@ -985,14 +986,38 @@ export function calculateMonthlyDaysLostForDate(classData, schoolHolidayRanges, 
 }
 
 /**
- * How much of the usual monthly goal the class needs: the share of its own lessons that still
- * run (never below 0.6), and always half in June.
+ * From this month on, a goal follows the lessons a class really has that month, measured against
+ * an average month for its weekly rotation. Before, a month with five Mondays gave a Monday class
+ * an extra lesson for the same goal (and a month with four Tuesdays cost a Tuesday class one),
+ * so the weekday a class meets on could decide the Team Quest. Months before it keep the goals
+ * they were played (and locked) with.
+ */
+export const FAIR_LESSON_GOALS_FROM = '2026-12';
+const FAIR_GOAL_MIN = 0.6;
+const FAIR_GOAL_MAX = 1.2;
+
+/**
+ * How much of the usual monthly goal the class needs, always half in June.
+ * From FAIR_LESSON_GOALS_FROM: the lessons that run that month (its own lesson days, minus
+ * holidays and cancellations, plus make-ups) over an average month of its rotation
+ * (lessons per week × days in month ÷ 7), between 0.6 and 1.2, so every class needs the same
+ * stars per lesson whichever weekday it meets on.
+ * Before: the share of its own lessons that still run (never below 0.6, never above 1).
  */
 export function getMonthlyGoalModifierForDate(classData, schoolHolidayRanges, allScheduleOverrides, date = new Date()) {
     const targetDate = normalizeMonthDate(date);
     if (targetDate.getMonth() === 5) return 0.5;
-    const { scheduled, lost } = getMonthlyLessonBalanceForDate(classData, schoolHolidayRanges, allScheduleOverrides, targetDate);
-    if (!scheduled || !lost) return 1;
+    const { scheduled, lost, ran } = getMonthlyLessonBalanceForDate(classData, schoolHolidayRanges, allScheduleOverrides, targetDate);
+    if (!scheduled) return 1;
+    if (getMonthKey(targetDate) >= FAIR_LESSON_GOALS_FROM) {
+        const weekly = new Set((classData?.scheduleDays || []).map(String).filter((d) => /^[0-6]$/.test(d))).size;
+        const daysInMonth = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0).getDate();
+        const average = (weekly * daysInMonth) / 7;
+        if (!(average > 0)) return 1;
+        const share = Math.round((ran / average) * 1000) / 1000;
+        return Math.max(FAIR_GOAL_MIN, Math.min(FAIR_GOAL_MAX, share));
+    }
+    if (!lost) return 1;
     return Math.max(0.6, Math.min(1.0, (scheduled - lost) / scheduled));
 }
 

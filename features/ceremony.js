@@ -36,8 +36,6 @@ import { buildHeroTieStats, rankHeroes } from './heroRanking.js';
 import { formatTeacherBoonReason, getTeacherBoonForMonth } from './boons.js';
 import {
     getAwardLogMonthlyStarCredit,
-    mergeMonthlyStarsFromArchivedHistoryAndAwardLogs,
-    sumMonthlyStarCreditsByStudentFromAwardLogs
 } from './awardLogReasonMeta.js';
 import { getQuestMapZoneForProgressPercent } from './worldMap.js';
 import { isGrowthStarfallNote } from './growthStarfallCore.mjs';
@@ -47,6 +45,7 @@ import { rankForLevel } from './questRanksCore.mjs';
 import { buildQuestAscent, crossedPortalInMonth, hasNextQuestMonth, nextMonthKeyOf } from './ceremonyAscentCore.mjs';
 import { prepareCeremonySnapshot, lockCeremonySnapshot, saveCeremonyPlayback, ceremonySnapshotId, stripUndefinedDeep } from './ceremonySnapshots.js';
 import { buildMonthMoments, buildMonthHonours } from './ceremonyMomentsCore.mjs';
+import { buildHeroMarks, earlierSchoolMonths } from './ceremonyMarksCore.mjs';
 import {
     arenaBackdropHtml,
     arenaIntroHtml,
@@ -76,6 +75,14 @@ import {
     gardenSprigHtml
 } from './ceremonyGardenView.js';
 import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
+import {
+    awardLogMonthKey,
+    sumArchiveLogStarsByStudent,
+    resolveArchiveHeroStars,
+    collectArchiveCrossings,
+    buildArchiveMonthEntry,
+    describeArchiveSky
+} from './leagueArchiveCore.mjs';
 
 let ceremonyData = {
     active: false,
@@ -195,6 +202,46 @@ export async function replayCeremony(classId) {
 }
 // --- 2. DATA LOADING ---
 
+/**
+ * Every hero's stars for a closed month, read the way the League Archive reads it:
+ * the archived monthly_history counter, else the live counter while it still holds that
+ * month, else that month's award rows matched by their OWN date, so a star written in
+ * the first days of the next month for a lesson of this month (Star Manager repairs) counts
+ * here, and a repair written now for an older month does not. Raw month reads are cached in
+ * `cache` (monthKey -> rows) so the Rising Star's comparison does not read a month twice.
+ */
+async function readMonthHeroStars(monthKey, { throwOnError = false, cache = new Map() } = {}) {
+    const readRaw = (key, options = {}) => {
+        if (!cache.has(key)) {
+            const [y, m] = key.split('-').map(Number);
+            cache.set(key, fetchLogsForMonth(y, m, options));
+        }
+        return cache.get(key);
+    };
+    const nextKey = nextMonthKeyOf(monthKey);
+    const nextStarted = nextKey && getCeremonyMonthBounds(nextKey).monthStart.getTime() <= Date.now();
+    const { fetchMonthlyHistory } = await import('../state.js');
+    const [own, after, archived] = await Promise.all([
+        readRaw(monthKey, { throwOnError }),
+        nextStarted ? withinTime(readRaw(nextKey), 8000, []) : [],
+        fetchMonthlyHistory(monthKey).catch(() => ({}))
+    ]);
+    const seen = new Set();
+    const logs = [...(own || []), ...(after || [])].filter((log) => {
+        if (!log) return false;
+        if (log.id) {
+            if (seen.has(log.id)) return false;
+            seen.add(log.id);
+        }
+        return awardLogMonthKey(log) === monthKey;
+    });
+    const logTotals = sumArchiveLogStarsByStudent(logs, monthKey, getAwardLogMonthlyStarCredit);
+    const scoresById = new Map((state.get('allStudentScores') || []).map((sc) => [sc.id, sc]));
+    const history = archived || {};
+    const starsOf = (studentId) => resolveArchiveHeroStars({ studentId, monthKey, history, score: scoresById.get(studentId) || null, logTotals }).stars;
+    return { logs, archived: history, starsOf, readAny: Boolean((own || []).length || logs.length) };
+}
+
 async function loadCeremonyResults() {
     if (ceremonyData.loaded) return true;
     try {
@@ -215,11 +262,13 @@ async function loadCeremonyResults() {
         const { monthStart } = getCeremonyMonthBounds(ceremonyData.monthKey);
         const allStudents = state.get('allStudents') || [];
         
-        // 1. Fetch Logs (a failed read must stop here: the results are locked once prepared)
-        const logs = await fetchLogsForMonth(year, month, { throwOnError: true });
+        // 1. The month's stars (a failed read must stop here: the results are locked once prepared)
+        const monthCache = new Map();
+        ceremonyData.monthReadCache = monthCache;
+        const monthRead = await readMonthHeroStars(ceremonyData.monthKey, { throwOnError: true, cache: monthCache });
+        const logs = monthRead.logs;
+        const archived = monthRead.archived;
         ceremonyData.monthLogs = logs;
-        const { fetchMonthlyHistory } = await import('../state.js');
-        const archived = await fetchMonthlyHistory(ceremonyData.monthKey).catch(() => ({}));
         const activeYearKey = state.getActiveSchoolYearKey();
         const questHistorySnap = await getDocs(query(
             collection(db, `${PUBLIC_DATA_PATH}/quest_history`),
@@ -227,8 +276,8 @@ async function loadCeremonyResults() {
         ));
         const questHistoryRecords = questHistorySnap.docs.map(docSnap => docSnap.data());
         ceremonyData.questHistoryRecords = questHistoryRecords;
-        const fromLogs = sumMonthlyStarCreditsByStudentFromAwardLogs(logs);
-        const monthlyScores = mergeMonthlyStarsFromArchivedHistoryAndAwardLogs(fromLogs, archived || {});
+        const starsOf = monthRead.starsOf;
+        const crossings = collectArchiveCrossings(state.get('allSchoolClasses') || [], questHistoryRecords);
 
         // 2. PREPARE CLASSES
         const allClasses = state.get('allSchoolClasses')
@@ -238,10 +287,9 @@ async function loadCeremonyResults() {
 
         let classScores = allClasses.map(c => {
             const students = allStudents.filter(s => s.classId === c.id && existedByMonthEnd(s, ceremonyData.monthKey));
-            const scoreFromStudents = students.reduce((sum, s) => sum + (monthlyScores[s.id] || 0), 0);
+            const scoreFromStudents = students.reduce((sum, s) => sum + (starsOf(s.id)), 0);
             const classTeamBonus = Number(c.teamQuestBonuses?.[ceremonyData.monthKey]) || 0;
-            const score = scoreFromStudents + classTeamBonus;
-            const goal = utils.calculateMonthlyClassGoalForDate(
+            const computedGoal = utils.calculateMonthlyClassGoalForDate(
                 c,
                 students.length,
                 ranges,
@@ -250,8 +298,16 @@ async function loadCeremonyResults() {
                 questHistoryRecords
             );
             const historicalDifficulty = utils.getHistoricalDifficultyForMonth(c, monthStart, questHistoryRecords);
-            
-            const progress = goal > 0 ? (score / goal) * 100 : 0;
+            // The same month the League Archive shows: a party that stepped through the Portal is
+            // measured against the goal it filled, keeps every star it had then, and is never
+            // clamped at 100%: past the goal it climbs the Starward Way into the Crystal Sky.
+            const crossing = crossings.find((row) => row.classId === c.id && row.monthKey === ceremonyData.monthKey) || null;
+            const month = buildArchiveMonthEntry({ heroStars: scoreFromStudents, classBonus: classTeamBonus, goal: computedGoal, crossing });
+            const score = month.totalStars;
+            const goal = month.diamondGoal;
+            const progress = month.progress;
+            const sky = describeArchiveSky(progress, Boolean(crossing), score, goal);
+            const crossedAt = crossing ? (normalizeCreatedAt(crossing.completedAt || crossing.createdAt || c.portalCrossings?.[ceremonyData.monthKey]?.at)?.getTime() || null) : null;
             const studentIds = new Set(students.map(s => s.id));
             const classLogs = logs.filter(l => studentIds.has(l.studentId) && l.reason !== 'pathfinder_bonus');
             const reasonCounts = {};
@@ -269,10 +325,16 @@ async function loadCeremonyResults() {
                 studentStars: scoreFromStudents,
                 avgPerHero: students.length > 0 ? scoreFromStudents / students.length : 0,
                 zone: getQuestMapZoneForProgressPercent(progress),
+                crossed: Boolean(crossing),
+                crossedAt,
+                sky: sky.inSky ? { mark: sky.mark, next: sky.next, palace: Boolean(sky.palace), over: Math.round(sky.overGoal) } : null,
                 topSkill
             };
         });
 
+        // The first party through the Portal that month gets its own mark on the card.
+        const firstThrough = classScores.filter((c) => c.crossedAt).sort((a, b) => a.crossedAt - b.crossedAt)[0];
+        if (firstThrough) firstThrough.firstThrough = true;
         classScores = utils.assignUniqueTeamQuestRanks(classScores);
 
         ceremonyData.classQueue = classScores.reverse(); 
@@ -287,7 +349,7 @@ async function loadCeremonyResults() {
         // Hero's Challenge, the Hall of Prodigies and this ceremony agree.
         const studentStats = rankHeroes(studentsInClass.map(s => {
             const sLogs = logs.filter(l => l.studentId === s.id);
-            const score = monthlyScores[s.id] || 0;
+            const score = starsOf(s.id);
             const reasonCounts = {};
             sLogs.forEach(l => {
                 if (l.reason === 'special_quest' || !l.reason) return;
@@ -318,11 +380,11 @@ async function loadCeremonyResults() {
 
         // The class had stars that month (that is why the ceremony is offered), so a month that
         // reads as completely empty is a read that went wrong (offline cache): never lock it.
-        if (!ceremonyData.replay && !logs.length && !Object.keys(archived || {}).length) {
+        if (!ceremonyData.replay && !monthRead.readAny && !Object.keys(archived || {}).length) {
             throw new Error('The month read as empty; not locking the ceremony.');
         }
         ceremonyData.studentQueue = studentStats.reverse();
-        ceremonyData.risingStar = await findRisingStar(studentsInClass, logs, monthlyScores, studentStats);
+        ceremonyData.risingStar = await findRisingStar(studentsInClass, logs, starsOf, studentStats);
         ceremonyData.phase = 'class_reveal';
         await persistPreparedCeremonySnapshot();
         await Promise.all([loadQuestAscent(), loadMonthMoments()]);
@@ -338,28 +400,24 @@ async function loadCeremonyResults() {
  * Rising Star: the hero (not the Prodigy) who grew most against their own previous month.
  * September has no previous month in the school year, so only Growth Starfalls count then.
  */
-async function findRisingStar(studentsInClass, logs, monthlyScores, rankedStudents) {
+async function findRisingStar(studentsInClass, logs, starsOf, rankedStudents) {
     try {
         if (studentsInClass.length < 3) return null;
         const [year, month] = ceremonyData.monthKey.split('-').map(Number);
         const prevDate = new Date(year, month - 2, 1);
         const prevKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
         const comparable = prevDate.getMonth() + 1 !== 8 && month !== 9;
-        let previousScores = {};
+        let previousOf = () => 0;
         if (comparable) {
-            const { fetchMonthlyHistory } = await import('../state.js');
-            const [prevLogs, prevArchived] = await Promise.all([
-                fetchLogsForMonth(prevDate.getFullYear(), prevDate.getMonth() + 1).catch(() => []),
-                fetchMonthlyHistory(prevKey).catch(() => ({}))
-            ]);
-            previousScores = mergeMonthlyStarsFromArchivedHistoryAndAwardLogs(sumMonthlyStarCreditsByStudentFromAwardLogs(prevLogs), prevArchived || {});
+            const prev = await readMonthHeroStars(prevKey, { cache: ceremonyData.monthReadCache || new Map() }).catch(() => null);
+            if (prev) previousOf = prev.starsOf;
         }
         const candidates = studentsInClass.map((s) => ({
             id: s.id,
             name: s.name,
             avatar: s.avatar,
-            current: monthlyScores[s.id] || 0,
-            previous: previousScores[s.id] || 0,
+            current: starsOf(s.id),
+            previous: previousOf(s.id),
             hasPrevious: comparable && existedByMonthEnd(s, prevKey),
             growthStarfalls: logs.filter((l) => l.studentId === s.id && l.reason === 'scholar_s_bonus' && isGrowthStarfallNote(l.note)).length
         }));
@@ -494,12 +552,44 @@ async function loadMonthMoments() {
         if (ceremonyData.mode !== 'growth_festival') {
             const honours = buildMonthHonours({ monthKey, students, scores, quizzes: quizzes || [], classId });
             ceremonyData.honours = honours.sections.length ? honours : null;
+            await applyHeroMarks(honours, logs || []);
         }
         if (ceremonyData.moments.length || ceremonyData.honours) import('./ceremonyMoments.js').catch(quietly('features/ceremony.js'));
     } catch (error) {
         console.warn('Month moments skipped:', error);
         ceremonyData.moments = [];
         ceremonyData.honours = null;
+    }
+}
+
+/**
+ * Each hero's milestones of the month (ceremonyMarksCore.mjs) onto the hero queue, so the
+ * reveal cards and the final standings show them: Quiz Champion, Seal Bearer, new Legend,
+ * Rising Star, Growth Starfall and Best month yet (against the archived earlier months).
+ */
+async function applyHeroMarks(honours, logs) {
+    try {
+        const queue = ceremonyData.studentQueue || [];
+        if (!queue.length) return;
+        const { fetchMonthlyHistory } = await import('../state.js');
+        const months = earlierSchoolMonths(ceremonyData.monthKey);
+        const histories = await withinTime(Promise.all(months.map((key) => fetchMonthlyHistory(key).catch(() => null))), 4000, []);
+        const earlierMonths = {};
+        (histories || []).forEach((history) => {
+            if (!history || typeof history !== 'object') return;
+            queue.forEach((hero) => {
+                if (!Object.prototype.hasOwnProperty.call(history, hero.id)) return;
+                (earlierMonths[hero.id] = earlierMonths[hero.id] || []).push(Number(history[hero.id]) || 0);
+            });
+        });
+        const starfalls = {};
+        (logs || []).forEach((l) => {
+            if (l?.reason === 'scholar_s_bonus' && isGrowthStarfallNote(l.note)) starfalls[l.studentId] = (starfalls[l.studentId] || 0) + 1;
+        });
+        const marks = buildHeroMarks({ honours, heroes: queue, earlierMonths, risingStarId: ceremonyData.risingStar?.id || null, starfalls });
+        queue.forEach((hero) => { hero.marks = marks.get(hero.id) || []; });
+    } catch (error) {
+        console.warn('Hero milestones skipped:', error);
     }
 }
 
@@ -1304,7 +1394,8 @@ async function renderRisingStar() {
     if (!ceremonyData.active) return;
     ladderOff();
     setScene('rising', { realm: 'violet' });
-    stage.innerHTML = view.risingStarHtml(star, { monthName: ceremonyData.monthName });
+    const heroEntry = (ceremonyData.studentQueue || []).find((h) => h.id === star.id);
+    stage.innerHTML = view.risingStarHtml({ ...star, marks: star.marks || heroEntry?.marks || [] }, { monthName: ceremonyData.monthName });
     setHeading(`${ceremonyData.monthName} · ${ceremonyData.className}`, 'Rising Star');
     setHerald('');
     triggerAICommentary('rising_star', { name: star.name, gain: star.gain, starfalls: star.starfalls });
@@ -1321,9 +1412,17 @@ async function renderRisingStar() {
                 ceremonyFx?.burst(p.x, p.y, { colors: ['#fef3c7', '#fde68a', '#c4b5fd', '#a5f3fc'], count: 110, speed: 320, ring: true });
             } },
             { at: 1500, run: (fast) => {
-                countUp(stage.querySelector('.cer-rise__gain .cer-count'), star.gain, { fast });
+                stage.querySelector('.cer-rise')?.classList.add('is-climb');
+                if (!fast && stage.querySelector('.cer-rise.has-climb')) playCeremonySfx('charge');
+            } },
+            { at: 2700, run: (fast) => {
+                const rise = stage.querySelector('.cer-rise');
+                rise?.classList.add('is-crowned');
+                countUp(stage.querySelector('.cer-rise__gain .cer-count'), star.gain, { fast, tally: !fast });
                 if (!fast && !reduced) {
                     playCeremonySfx('gold');
+                    const p = fxPoint(stage.querySelector('.cer-rise__emblem'));
+                    ceremonyFx?.burst(p.x, p.y, { colors: ['#fef3c7', '#fde68a', '#c4b5fd', '#a5f3fc'], count: 90, speed: 300, ring: true });
                     ceremonyFx?.stars({ count: 36, colors: ['#fef3c7', '#c4b5fd', '#a5f3fc'], duration: 2200 });
                 }
             } }

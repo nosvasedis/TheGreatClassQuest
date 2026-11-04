@@ -310,8 +310,8 @@ export function arenaClassChipsHtml(entry, { compact = false } = {}) {
     if (entry.zone && compact) chips.push(chip(`zone-${esc(entry.zone.id || 'bronze')}`, { gem: esc(entry.zone.icon || '⛰️'), value: compact ? '' : (entry.zone.label || ''), title: entry.zone.desc || entry.zone.label || '' }));
     if (!compact && Number(entry.avgPerHero) > 0) chips.push(chip('avg', { gem: icon('fa-user-group'), value: Number(entry.avgPerHero).toFixed(1), label: 'per hero', title: 'Average stars per hero' }));
     if (Number(entry.teamBonus) > 0) {
-        const pathfinder = Number(entry.teamBonus) >= 10;
-        chips.push(chip(pathfinder ? 'pathfinder' : 'bonus', { gem: icon(pathfinder ? 'fa-map' : 'fa-people-group'), value: `+${Number(entry.teamBonus)}★`, label: compact ? '' : (pathfinder ? 'Pathfinder' : 'team bonus'), title: 'Team Quest bonus stars' }));
+        // Stars given to the class itself: Pathfinder's Map, Realm Raid, Fortune's Wheel, Ember Oaths.
+        chips.push(chip('bonus', { gem: icon('fa-gift'), value: `+${Number(entry.teamBonus)}★`, label: compact ? '' : 'team gifts', title: "Team Quest stars given to the whole class (Pathfinder's Map, Realm Raid, Fortune's Wheel, Ember Oaths)" }));
     }
     if (entry.topSkill) {
         const info = ARENA_REASON_INFO[entry.topSkill] || { icon: 'fa-star', tone: 'neutral', name: 'Strength' };
@@ -335,17 +335,72 @@ export function arenaHeroChipsHtml(entry, { compact = false } = {}) {
     return `<div class="cer-chips">${chips.join('')}</div>`;
 }
 
+const SKY_MARKS = [
+    { at: 110, icon: 'fa-moon', label: 'Moonstep' },
+    { at: 125, icon: 'fa-meteor', label: 'Comet’s Rest' },
+    { at: 150, icon: 'fa-crown', label: 'The Star Crown' },
+    { at: 175, icon: 'fa-rainbow', label: 'Aurora Bridge' },
+    { at: 200, icon: 'fa-sun', label: 'The Celestial Palace' }
+];
+
+/**
+ * The class's month on the quest road. Up to the goal: the road through the four realms.
+ * Past it (a party that stepped through the Portal): the road shines full and a second,
+ * starry track climbs the Starward Way to the Celestial Palace at 200%, with its stones.
+ * A party that filled its goal while the Portal stayed sealed shows its real share, waiting at the gate.
+ */
 export function arenaQuestTrailHtml(entry) {
-    const p = Math.min(100, Math.max(0, Number(entry.progress) || 0));
+    const real = Math.max(0, Number(entry.progress) || 0);
+    const p = Math.min(100, real);
     const zone = entry.zone || {};
-    return `<div class="cer-trail" aria-label="Quest goal ${Math.round(p)} percent">
-        <div class="cer-trail__row"><span>${esc(zone.icon || '🌿')} ${esc(zone.label || 'Quest Path')}</span><b>${Math.round(p)}%</b></div>
+    const score = Number(entry.score) || 0;
+    const goal = Number(entry.goal) || 0;
+    const fmt = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+    const sky = entry.sky || null;
+    const over = real > 100.5;
+    const label = sky
+        ? `<span class="cer-trail__sky-label"><i class="fas ${esc(sky.mark?.icon || 'fa-star')}" aria-hidden="true"></i> ${esc(sky.palace ? 'The Celestial Palace' : (sky.mark?.label || 'The Starward Way'))}</span>`
+        : (over && !entry.crossed
+            ? `<span><i class="fas fa-lock" aria-hidden="true"></i> At the sealed Portal</span>`
+            : `<span>${esc(zone.icon || '🌿')} ${esc(zone.label || 'Quest Path')}</span>`);
+    const skyTrack = sky
+        ? `<div class="cer-trail__sky" style="--q:${(Math.min(100, real - 100) / 100).toFixed(3)}" aria-hidden="true">
+                <span class="cer-trail__sky-fill"></span>
+                ${SKY_MARKS.map((m) => `<i class="${real >= m.at ? 'is-lit' : ''}" style="left:${m.at - 100}%" title="${esc(m.label)}"><b class="fas ${m.icon}"></b></i>`).join('')}
+           </div>`
+        : '';
+    const note = sky
+        ? `${fmt(score)} / ${fmt(goal)} goal · <b>+${Math.max(0, Math.round(real - 100))}%</b> into the Crystal Sky`
+        : `${fmt(score)} / ${fmt(goal)} goal${over ? ` · <b>${Math.round(real)}%</b>` : ''}`;
+    return `<div class="cer-trail${sky ? ' cer-trail--sky' : ''}${over ? ' is-over' : ''}" aria-label="Quest goal ${Math.round(real)} percent">
+        <div class="cer-trail__row">${label}<b>${Math.round(real)}%</b></div>
         <div class="cer-trail__track">
             <span class="cer-trail__fill" style="--p:${(p / 100).toFixed(3)}"></span>
             <i style="left:30%"></i><i style="left:60%"></i><i style="left:85%"></i>
         </div>
-        <div class="cer-trail__goal">${Number(entry.score) || 0} / ${Number(entry.goal) || 0} goal</div>
+        ${skyTrack}
+        <div class="cer-trail__goal">${note}</div>
     </div>`;
+}
+
+/**
+ * A ribbon of this month's milestones under a card: each one a small enamel medallion with
+ * its name (Quiz Champion, Seal Bearer, new Legend, Best month yet, First through the Portal…).
+ */
+export function arenaMarksHtml(marks = [], { compact = false } = {}) {
+    const list = (marks || []).filter((m) => m && m.label);
+    if (!list.length) return '';
+    return `<ul class="cer-marks${compact ? ' cer-marks--compact' : ''}" aria-label="Milestones this month">${list.map((m) => `<li class="cer-mark cer-mark--${esc(m.tone || 'gold')}"${m.title ? ` title="${esc(m.title)}"` : ''}><span class="cer-mark__gem" aria-hidden="true"><i class="fas ${esc(m.icon || 'fa-star')}"></i></span><span class="cer-mark__label">${esc(m.label)}</span></li>`).join('')}</ul>`;
+}
+
+/** The milestones a class reached in its month (Portal, the first through, the Starward Way). */
+export function arenaClassMarks(entry = {}) {
+    const marks = [];
+    if (entry.firstThrough) marks.push({ icon: 'fa-flag-checkered', label: 'First through the Portal', tone: 'crystal', title: 'The first party of the league to step through the Crystal Portal this month' });
+    else if (entry.crossed) marks.push({ icon: 'fa-dungeon', label: 'Through the Portal', tone: 'crystal' });
+    if (entry.sky?.palace) marks.push({ icon: 'fa-sun', label: 'Reached the Celestial Palace', tone: 'gold' });
+    else if (entry.sky?.mark && entry.sky.mark.at >= 150) marks.push({ icon: 'fa-crown', label: 'Reached the Star Crown', tone: 'gold' });
+    return marks;
 }
 
 export function arenaBoonRibbonHtml(teacherBoon) {
@@ -385,6 +440,7 @@ export function arenaCardFaceHtml(entry, type, { isMyClass = false, compact = fa
         ? ''
         : `<div class="cer-card__details">
                 ${isHero ? arenaHeroChipsHtml(entry) : `${arenaQuestTrailHtml(entry)}${arenaClassChipsHtml(entry)}`}
+                ${arenaMarksHtml(isHero ? entry.marks : arenaClassMarks(entry))}
                 ${isHero ? arenaBoonRibbonHtml(entry.teacherBoon) : ''}
            </div>`;
     return `<article class="cer-card cer-card--${isHero ? 'hero' : 'class'} cer-metal--${metal}${compact ? ' cer-card--compact' : ''}" data-rank="${Number(entry.rank) || 0}">
@@ -514,7 +570,7 @@ export function arenaStandingsHtml(queueBestFirst = [], { monthName = '', rising
         return `<li class="cer-roll__row cer-metal--${metal}${rising ? ' is-rising' : ''}" style="--i:${index}">
             <span class="cer-roll__rank">${s.rank <= 3 ? `<i class="fas fa-medal" aria-hidden="true"></i>` : ''}#${Number(s.rank)}</span>
             ${avatarHtml(s, 'cer-roll__face')}
-            <span class="cer-roll__who"><b>${esc(s.name)}</b>${title ? `<small>${title}</small>` : ''}</span>
+            <span class="cer-roll__who"><b>${esc(s.name)}</b>${title ? `<small>${title}</small>` : ''}${(s.marks || []).length ? `<span class="cer-roll__marks">${s.marks.map((m) => `<span class="cer-mark__gem cer-mark--${esc(m.tone || 'gold')}" title="${esc(m.label)}"><i class="fas ${esc(m.icon || 'fa-star')}" aria-hidden="true"></i></span>`).join('')}</span>` : ''}</span>
             <span class="cer-roll__chips">${arenaHeroChipsHtml(s, { compact: true })}</span>
             <span class="cer-roll__stars"><i class="fas fa-star" aria-hidden="true"></i>${Number(s.score) || 0}</span>
             ${s.teacherBoon && s.rank <= 2 ? `<span class="cer-roll__boon" title="Teacher Boon"><i class="fas fa-gift" aria-hidden="true"></i></span>` : ''}

@@ -2,7 +2,7 @@
 // with Firestore, the award log and the AI herald replaced by ceremony-preview.vite.mjs.
 //   npx vite --config ceremony-preview.vite.mjs --port 3007 → /ceremony-preview.html
 // ?league=A|B|C|D|Junior A|Junior B|Pre-Junior   ?classes=1..8   ?heroes=2..24   ?tie=1
-// ?cross=0 (no Portal crossing)   ?quiet=1 (no month moments)   ?tier=lite   ?shot=1   ?resume=phase:index
+// ?cross=0 (no Portal crossing)   ?sky=1 (our class far past its goal, on the Starward Way)   ?quiet=1 (no month moments)   ?tier=lite   ?shot=1   ?resume=phase:index
 const params = new URLSearchParams(location.search);
 if (params.has('shot')) document.body.classList.add('pv-shot');
 if (params.get('tier') === 'lite') {
@@ -54,7 +54,7 @@ const classes = CLASSES.slice(0, classCount).map(([name, logo], i) => ({
     createdAt: new Date(2026, 8, 1).toISOString(),
     portalCrossings: i === 0 && params.get('cross') !== '0' ? { [month]: { gold: 6, at: at(23).toISOString() } } : {},
     ceremonyHistory: {},
-    teamQuestBonuses: i === 1 ? { [month]: 10 } : (i === 0 ? { [month]: 2 } : {}),
+    teamQuestBonuses: i === 1 ? { [month]: 10 } : (i === 0 ? { [month]: params.has('sky') ? 160 : 2 } : {}),
     ...(i === 0 && !quiet ? {
         mapJournal: { [month]: { silver: { date: iso(at(9)), at: at(9).getTime(), stars: 60 }, gold: { date: iso(at(19)), at: at(19).getTime(), stars: 140 }, crystal: { date: iso(at(23)), at: at(23).getTime(), stars: 190 } } },
         trainingGrounds: {

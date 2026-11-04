@@ -711,6 +711,92 @@
 .cer-duelist.is-winner .cer-trail__fill,
 .cer-duelist.is-runnerup .cer-trail__fill { transform: scaleX(var(--p)); }
 
+/* Past the goal: the road shines and the Starward Way climbs on into the Crystal Sky. */
+.cer-trail.is-over .cer-trail__row b { color: #a5f3fc; text-shadow: 0 0 10px rgba(165, 243, 252, 0.6); }
+.cer-trail--sky .cer-trail__fill { background: linear-gradient(90deg, var(--m3), var(--m2), #e0f2fe); }
+.cer-trail__sky-label { color: #a5f3fc; }
+.cer-trail__sky-label i { color: #fde68a; }
+.cer-trail__sky {
+    position: relative;
+    height: 12px;
+    margin: 5px 0 6px;
+    border-radius: 999px;
+    background:
+        radial-gradient(circle at 12% 50%, rgba(255, 255, 255, 0.5) 0 1px, transparent 1.5px),
+        radial-gradient(circle at 47% 30%, rgba(255, 255, 255, 0.45) 0 1px, transparent 1.5px),
+        radial-gradient(circle at 81% 65%, rgba(255, 255, 255, 0.45) 0 1px, transparent 1.5px),
+        linear-gradient(90deg, rgba(30, 27, 75, 0.9), rgba(49, 46, 129, 0.9));
+    box-shadow: inset 0 0 0 1px rgba(165, 243, 252, 0.35);
+}
+.cer-trail__sky-fill {
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #67e8f9, #a5b4fc 55%, #fde68a);
+    box-shadow: 0 0 12px rgba(165, 243, 252, 0.6);
+    transform-origin: 0 50%;
+    transform: scaleX(0);
+    transition: transform 1.3s cubic-bezier(.2, .8, .2, 1) 1.2s;
+}
+.cer-reveal.is-open .cer-trail__sky-fill,
+.cer-duelist.is-winner .cer-trail__sky-fill,
+.cer-duelist.is-runnerup .cer-trail__sky-fill { transform: scaleX(var(--q)); }
+.cer-trail__sky i {
+    position: absolute; top: 50%;
+    width: 17px; height: 17px;
+    transform: translate(-50%, -50%);
+    display: grid; place-items: center;
+    border-radius: 50%;
+    background: #1e1b4b;
+    border: 1.5px solid rgba(165, 180, 252, 0.6);
+    color: rgba(199, 210, 254, 0.75);
+    font-size: 0.5rem;
+    transition: background 0.4s ease 2s, color 0.4s ease 2s, border-color 0.4s ease 2s;
+}
+.cer-trail__sky i:last-child { transform: translate(-90%, -50%); }
+.cer-reveal.is-open .cer-trail__sky i.is-lit,
+.cer-duelist .cer-trail__sky i.is-lit { background: radial-gradient(circle at 35% 30%, #fffbeb, #fde68a 55%, #b45309); color: #451a03; border-color: #fef3c7; }
+.cer-trail__goal b { color: #a5f3fc; }
+
+/* Milestones: small enamel medallions with their names under a card. */
+.cer-marks { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 5px 6px; }
+.cer-mark {
+    --k1: #fef3c7; --k2: #f59e0b; --k3: #78350f;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 2px 10px 2px 2px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03));
+    border: 1px solid color-mix(in srgb, var(--k2) 55%, transparent);
+    font-family: var(--cer-caps-font);
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--k1);
+    animation: cer-mark-in 0.5s cubic-bezier(.2, .9, .3, 1.4) both;
+    animation-delay: calc(1.5s + var(--n, 0) * 0.12s);
+}
+.cer-mark:nth-child(2) { --n: 1; }
+.cer-mark:nth-child(3) { --n: 2; }
+.cer-mark:nth-child(4) { --n: 3; }
+.cer-mark:nth-child(5) { --n: 4; }
+.cer-mark__gem {
+    width: 20px; height: 20px;
+    display: grid; place-items: center;
+    border-radius: 50%;
+    font-size: 0.6rem;
+    color: var(--k3);
+    background: radial-gradient(circle at 34% 28%, #fff, var(--k1) 30%, var(--k2) 75%, var(--k3));
+    box-shadow: 0 0 10px color-mix(in srgb, var(--k2) 50%, transparent);
+}
+.cer-mark--crystal { --k1: #cffafe; --k2: #22d3ee; --k3: #164e63; }
+.cer-mark--violet { --k1: #ede9fe; --k2: #a78bfa; --k3: #3b0764; }
+.cer-mark--rose { --k1: #ffe4e6; --k2: #fb7185; --k3: #881337; }
+.cer-mark--green { --k1: #dcfce7; --k2: #4ade80; --k3: #14532d; }
+.cer-mark--sky { --k1: #e0f2fe; --k2: #38bdf8; --k3: #0c4a6e; }
+.cer-duel .cer-mark, .cer-screen.is-skipping .cer-mark { animation-delay: 0s; }
+.cer-roll__marks { display: inline-flex; gap: 3px; }
+.cer-roll__marks .cer-mark__gem { width: 18px; height: 18px; font-size: 0.55rem; }
+@keyframes cer-mark-in { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: none; } }
+
 .cer-boon {
     display: flex; flex-direction: column; gap: 2px;
     padding: 7px 12px;

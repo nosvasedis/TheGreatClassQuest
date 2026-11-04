@@ -55,7 +55,7 @@ function findClass(classId) {
 }
 
 /** Hero Path: level, title and the road to the next level (null when the school has no Hero Paths). */
-function buildPath(student, scoreData) {
+export function buildPath(student, scoreData) {
     if (!canUseFeature('heroProgression') || !student.heroClass || !HERO_CLASSES[student.heroClass]) return null;
     const heroClass = HERO_CLASSES[student.heroClass];
     const tree = HERO_SKILL_TREE[student.heroClass];
@@ -136,12 +136,16 @@ export function showInventoryItemDetail(itemData, options = {}) {
         .catch((err) => console.error('Item close-up failed to open:', err));
 }
 
-/** Hero stats = the class roster's hero view (virtues, latest stars, boons, Scholar's Scroll). */
+/** Hero stats = the hero's record of the year (ui/modals/heroStats.js, lazy). */
 async function openHeroView(studentId) {
-    const { openRosterHeroView } = await import('../../features/home.js');
-    if (openRosterHeroView(studentId)) return;
+    try {
+        const { openHeroStatsModal } = await import('../modals/heroStats.js');
+        if (await openHeroStatsModal(studentId)) return;
+    } catch (err) {
+        console.error('Hero stats failed to open:', err);
+    }
     const { showToast } = await import('../effects.js');
-    showToast("This hero's class could not be found.", 'error');
+    showToast("This hero's stats could not be opened.", 'error');
 }
 
 function placeFixed(el, rect) {

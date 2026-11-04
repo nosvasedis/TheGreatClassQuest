@@ -1053,7 +1053,7 @@ function attachListeners(container) {
 }
 
 /** School Schedule card → roster peek (lazy). Own classes get shortcuts; colleagues' are view-only. */
-async function openScheduleClassRoster(classId, options = {}) {
+async function openScheduleClassRoster(classId) {
     try {
         const { openClassRosterModal } = await import('../ui/modals/classRoster.js');
         openClassRosterModal(classId, {
@@ -1071,22 +1071,10 @@ async function openScheduleClassRoster(classId, options = {}) {
                 renderHomeTab();
                 modals.openTeacherBoonModal();
             }
-        }, options);
+        });
     } catch (error) {
         console.error('Class roster unavailable:', error);
     }
-}
-
-/**
- * Hero view of the class roster for one student (Hero Stage → Hero stats).
- * @returns {boolean} false when the student's class is not on the school schedule.
- */
-export function openRosterHeroView(studentId) {
-    const student = (state.get('allStudents') || []).find((s) => s.id === studentId);
-    const known = student && (state.get('allSchoolClasses') || []).some((c) => c.id === student.classId);
-    if (!known) return false;
-    openScheduleClassRoster(student.classId, { heroId: studentId });
-    return true;
 }
 
 async function activateOptionsSubtab(key) {

@@ -62,6 +62,42 @@ body.gcq-mobile .gh-race__track { grid-area: track; }
 body.gcq-mobile .gh-race__total { grid-area: total; }
 body.gcq-mobile .gh-race__row--head { display: none; }
 
+/* Every guild's full name shows on its banner: wrap to two lines instead of "DRAGON FL…".
+   The fixed two-line box keeps the four banners level. */
+body.gcq-mobile .gh-banner__name {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.3em;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+    font-size: 0.84rem;
+    line-height: 1.12;
+}
+
+/* The chapter card: the month's name wraps rather than running under the "?" stud. */
+body.gcq-mobile .gh-chapter__name { white-space: normal; font-size: 1.02rem; }
+body.gcq-mobile .gh-chapter { align-items: flex-start; }
+body.gcq-mobile .gh-chapter__dial,
+body.gcq-mobile .gh-chapter > .gh-info { align-self: center; }
+
+/* Fortune's Wheel / Guild Stats chips: the title may take two short lines. */
+body.gcq-mobile .gh-action { min-width: 0; }
+body.gcq-mobile .gh-action__title { white-space: normal; line-height: 1.1; }
+
+/* Small studs keep their look but get a finger-sized hit area. */
+body.gcq-mobile .gh-info { position: relative; }
+body.gcq-mobile .gh-info::after,
+body.gcq-mobile .gh-banner__anthem::after {
+    content: '';
+    position: absolute;
+    inset: -0.5rem;
+    border-radius: 50%;
+}
+
 /* Fortune Ledger: phone layout lives in styles/fortune_ledger.css */
 
 /* The banner hangs free (rod, tassels and tail sit outside the card box);

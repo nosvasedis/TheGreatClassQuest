@@ -1354,6 +1354,11 @@ body.gcq-mobile .m-more-item .text {
     text-shadow: none;
     pointer-events: none;
     margin-top: 0.15rem;
+    /* "Training Grounds" wraps on a narrow phone instead of losing its last letters */
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    text-wrap: balance;
 }
 
 .m-more-item__hint {
@@ -1659,5 +1664,60 @@ body.gcq-mobile #m-class-picker-sheet.m-sheet--open {
     .m-header__bead,
     body.gcq-mobile .m-more-item:active .icon {
         animation: none !important;
+    }
+}
+
+/* ==========================================================================
+   Phone on its side. A 390px-tall screen can't spare 120px of header and
+   90px of dock, so the header drops its title row (the clock and class pill
+   stay) and the island narrows to a centred bar with slimmer buttons.
+   ========================================================================== */
+@media (orientation: landscape) and (max-height: 520px) {
+    body.gcq-mobile #m-teacher-header .m-header__row--primary {
+        display: none;
+    }
+
+    body.gcq-mobile #m-teacher-header .m-header__row--class {
+        padding-top: calc(0.4rem + env(safe-area-inset-top));
+        padding-bottom: 0.7rem;
+    }
+
+    body.gcq-mobile .m-header__row {
+        padding-left: max(0.85rem, env(safe-area-inset-left));
+        padding-right: max(0.85rem, env(safe-area-inset-right));
+    }
+
+    body.gcq-mobile #m-teacher-header .m-class-pill {
+        max-width: 18rem;
+    }
+
+    body.gcq-mobile .m-dock {
+        --dock-h: 3.3rem;
+        --dock-gap: calc(0.35rem + var(--m-safe-bottom, env(safe-area-inset-bottom, 0px)));
+        padding-top: 0.9rem;
+        padding-left: max(0.95rem, calc((100% - 30rem) / 2));
+        padding-right: max(0.95rem, calc((100% - 30rem) / 2));
+    }
+
+    body.gcq-mobile .m-dock::before {
+        left: max(0.7rem, calc((100% - 30rem) / 2 - 0.25rem));
+        right: max(0.7rem, calc((100% - 30rem) / 2 - 0.25rem));
+    }
+
+    body.gcq-mobile .m-dock .m-dock-btn .text {
+        font-size: 0.56rem;
+    }
+
+    /* sheets: shorter screens need nearly all of the height */
+    .m-sheet__panel {
+        max-height: 94dvh;
+        padding-left: max(0.95rem, env(safe-area-inset-left));
+        padding-right: max(0.95rem, env(safe-area-inset-right));
+    }
+
+    /* tab content clears the notch on the left/right */
+    body.gcq-mobile #app-screen main {
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
     }
 }

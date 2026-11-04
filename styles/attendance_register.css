@@ -570,7 +570,10 @@
     #attendance-chronicle-modal .ac-register { padding: 0.5rem 0.45rem 0.5rem 1rem; border-radius: 0.9rem; }
     #attendance-chronicle-modal .ac-register::before { left: 0.45rem; }
     .ac-register__cover { padding: 0.3rem 3rem 0.7rem 0.3rem; }
-    .ac-register__title { font-size: 1.25rem; }
+    .ac-register__title { font-size: 1.15rem; }
+    /* the paper label shrinks to fit beside the close stud instead of sliding under it */
+    .ac-register__label { min-width: 0; max-width: 100%; padding: 0.45rem 0.75rem 0.5rem; }
+    .ac-register__kicker { font-size: 0.55rem; letter-spacing: 0.18em; }
     .ac-register__subtitle { font-size: 0.78rem; }
     .ac-register__page { padding: 0.9rem 0.75rem 1rem; }
     .ac-register-nav__name { font-size: 1.9rem; }

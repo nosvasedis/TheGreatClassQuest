@@ -179,8 +179,16 @@ body.gcq-mobile [id$="-modal"] > *:not(.hidden) {
     isolation: isolate;
 }
 
-/* Close (X) sits above the modal body — content’s .relative layer was eating taps */
-body.gcq-mobile [id$="-modal"] [id$="-close-btn"],
+/* Close (X) sits above the modal body — content’s .relative layer was eating taps.
+   Only for the corner studs that are already absolutely placed on desktop: a close that
+   lives in a modal's own header row (planner, Log Trial "Cancel", Hall of Prodigies…)
+   stays where its design puts it, or it lands on top of that header's other buttons. */
+body.gcq-mobile [id$="-modal"] :is(
+    #league-picker-close-btn, #logo-picker-close-btn, #report-modal-close-btn,
+    #edit-student-top-close-btn, #app-info-close-btn, #attendance-chronicle-close-btn,
+    #pricing-modal-close-btn, #skill-tree-close-btn, #guild-heroes-close-btn,
+    #fw-close-btn, #hcs-close-btn
+),
 body.gcq-mobile [id$="-modal"] button.absolute.top-4,
 body.gcq-mobile #create-class-close-btn,
 body.gcq-mobile #edit-class-close-btn {

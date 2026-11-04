@@ -936,6 +936,10 @@
     .mm-till__ph-long { display: none; }
     .mm-till__ph-short { display: inline; }
     .mm-till__chev { display: none; }
+    /* nobody at the till: an empty purse says nothing yet, so "Tap to choose" gets the whole plaque */
+    .mm-till:not(.has-shopper) .mm-till__purse,
+    .mm-till:not(.has-shopper) .mm-till__seam { display: none; }
+    .mm-till:not(.has-shopper) .mm-till__name { white-space: normal; line-height: 1.1; }
 }
 
 /* the narrowest phones: hide the "Shopper"/"Purse" labels to keep the name readable */

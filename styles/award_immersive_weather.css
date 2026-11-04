@@ -250,3 +250,11 @@
         opacity: 0.58;
     }
 }
+
+/* The stars and sun rays only twinkle while the Award sky is showing; hidden, they rest
+   (an invisible infinite animation still costs a slow phone a repaint every frame). */
+#app-screen:not(.award-sky-active) .award-immersive-stars::before,
+#app-screen:not(.award-sky-active) .award-immersive-stars::after,
+#app-screen:not(.award-sky-active) .award-immersive-sun::after {
+    animation-play-state: paused;
+}

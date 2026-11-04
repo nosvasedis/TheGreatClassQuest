@@ -329,3 +329,34 @@ body.gcq-mobile #m-secretary-dock {
         animation-delay: 0ms !important;
     }
 }
+
+/* ==========================================================================
+   Light mode for weak Android phones and data savers (body.gcq-lite, set in
+   mobile/index.js with the same test as the phone loading screen). Looping
+   decorations hold still and glass stops blurring what scrolls under it:
+   every frame those cost is a frame a 2-3 GB phone needs for scrolling.
+   Entrances, presses and celebrations still play.
+   ========================================================================== */
+body.gcq-mobile.gcq-lite :is(
+    .wx-cloud, .m-header__bead, .m-class-pill__eyebrow,
+    .day-ring__halo, .greeting-emblem__face, .m-home-quest__shine, .m-home-stat__icon,
+    .aw-roll__ring, .student-cloud-card, .aw-boon__heart,
+    .quest-banner-center, .tq-mobile-race__glow, .tq-mobile-race-card__marker,
+    .mm-sign, .mm-ware__emoji, .mm-till__face,
+    .tg-sign__pennant, .mc-slot__pulse, .floating-icon
+),
+body.gcq-mobile.gcq-lite .tab-sign *,
+body.gcq-mobile.gcq-lite [class*="day-ring__"],
+body.gcq-mobile.gcq-lite .m-class-pill__eyebrow::before,
+body.gcq-mobile.gcq-lite :is(.hero-month-banner, .quest-month-banner, .tq-mobile-race-card__fill)::after,
+body.gcq-mobile.gcq-lite :is(.award-immersive-stars, .award-immersive-sun)::before,
+body.gcq-mobile.gcq-lite :is(.award-immersive-stars, .award-immersive-sun)::after {
+    animation: none !important;
+}
+
+body.gcq-mobile.gcq-lite *,
+body.gcq-mobile.gcq-lite *::before,
+body.gcq-mobile.gcq-lite *::after {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+}

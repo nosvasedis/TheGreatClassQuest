@@ -11,6 +11,9 @@ import { closeKeeperLedger } from './marketShopperLedger.js';
 const SHOW_PAST_PX = 8;   // keeper art bottom this far above the scroller top → he follows
 const HIDE_BELOW_PX = 56; // ...and this far back into view → he returns to the counter
 const TUCK_AFTER_MS = 9000;
+// On a phone his speech bubble covers half a shelf, so he hushes sooner there.
+const TUCK_AFTER_MS_PHONE = 4500;
+const tuckAfter = () => (document.body.classList.contains('gcq-mobile') ? TUCK_AFTER_MS_PHONE : TUCK_AFTER_MS);
 
 let floatEl = null;
 let tabEl = null;
@@ -92,7 +95,7 @@ function setTucked(tucked) {
     if (!tucked) tuckTimer = setTimeout(() => {
         if (floatEl.matches(':hover, :focus-within')) setTucked(false);
         else setTucked(true);
-    }, TUCK_AFTER_MS);
+    }, tuckAfter());
 }
 
 function arrive() {

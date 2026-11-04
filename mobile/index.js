@@ -117,6 +117,27 @@ function wireModalCloseFallback() {
     }, true);
 }
 
+/**
+ * Weak Android phones (<=3 GB or <=4 cores) and data savers get body.gcq-lite:
+ * looping decorations rest and glass stops blurring (mobile/styles/motion.css).
+ * iPhones always get the full look. `?lite=1` forces it for testing.
+ */
+function isLiteDevice() {
+    try {
+        if (new URLSearchParams(window.location.search).get('lite') === '1') return true;
+        const nav = navigator;
+        if (nav.connection?.saveData) return true;
+        const ua = nav.userAgent || '';
+        if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && nav.maxTouchPoints > 1)) return false;
+        if (!/Android/i.test(ua)) return false;
+        const memory = Number(nav.deviceMemory) || 0;
+        const cores = Number(nav.hardwareConcurrency) || 0;
+        return Boolean((memory && memory <= 3) || (cores && cores <= 4));
+    } catch {
+        return false;
+    }
+}
+
 function applyMobileMode() {
     const active = mediaQuery ? mediaQuery.matches : false;
     document.body.classList.toggle('gcq-mobile', active);
@@ -135,6 +156,7 @@ export function initMobileLayer() {
     if (initialized) return;
     initialized = true;
 
+    document.body.classList.toggle('gcq-lite', isLiteDevice());
     injectMobileShells();
     // The phone headers carry their own update badge mounts (bootstrap.js).
     window.dispatchEvent(new Event('gcq:update-mounts'));

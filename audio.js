@@ -266,14 +266,15 @@ export function playSound(sound) {
         else if (cloudPick) {
             // Bottom nav clouds: each cloud rings its own soft two-note chime on one pentatonic scale
             // (cloud_0 … cloud_9, left to right); cloud_nope is a low, gentle "not yet".
-            const scale = ['C5', 'D5', 'E5', 'G5', 'A5', 'C6', 'D6', 'E6', 'G6', 'A6', 'C7', 'D7'];
+            // Kept quiet and an octave low on purpose: a whisper of a tune, not a doorbell.
+            const scale = ['C4', 'D4', 'E4', 'G4', 'A4', 'C5', 'D5', 'E5', 'G5', 'A5', 'C6', 'D6'];
             if (sound === 'cloud_nope') {
-                sounds.pluck.triggerAttackRelease('E4', '16n', playTime, 0.3);
-                sounds.pluck.triggerAttackRelease('C4', '8n', playTime + 0.09, 0.26);
+                sounds.pluck.triggerAttackRelease('E3', '32n', playTime, 0.12);
+                sounds.pluck.triggerAttackRelease('C3', '16n', playTime + 0.09, 0.1);
             } else {
                 const i = Math.max(0, Math.min(9, parseInt(sound.slice(6), 10) || 0));
-                sounds.pluck.triggerAttackRelease(scale[i], '16n', playTime, 0.32);
-                sounds.pluck.triggerAttackRelease(scale[i + 2], '8n', playTime + 0.075, 0.24);
+                sounds.pluck.triggerAttackRelease(scale[i], '32n', playTime, 0.11);
+                sounds.pluck.triggerAttackRelease(scale[i + 2], '16n', playTime + 0.07, 0.07);
             }
         }
         else if (sound === 'cash') {

@@ -3707,3 +3707,536 @@ body.projector-mode .hcs-row {
         font-size: 0.5rem;
     }
 }
+
+/* ==========================================================================
+   The Grand Arena (2026-11-04, round 2)
+   A theatre under the stars: velvet curtains tied back with gold tassels, a
+   swagged valance, an aurora over the stage, a marble floor that shines,
+   and pedestals built like monuments (cornice with a set gem, fluted body,
+   a laurel-wreathed medallion, a plinth). All drawn once: SVG backgrounds
+   and gradients, no moving filters.
+   ========================================================================== */
+
+.hcs-podium {
+    --floor-h: 2.4rem;
+    padding: 3.6rem clamp(1rem, 6%, 4.5rem) 0;
+    background:
+        radial-gradient(ellipse 60% 34% at 50% 100%, rgba(251, 191, 36, 0.3), transparent 72%),
+        radial-gradient(ellipse 80% 50% at 50% -8%, rgba(196, 181, 253, 0.38), transparent 70%),
+        linear-gradient(180deg, #120e33 0%, #231a5c 40%, #3b1d84 76%, #4c1d95 100%);
+}
+
+.hcs-podium__stage {
+    padding-bottom: calc(var(--floor-h) - 0.6rem);
+}
+
+/* Aurora ribbons drifting high over the stage (still on weak machines) */
+.hcs-podium__aurora {
+    position: absolute;
+    left: -10%;
+    right: -10%;
+    top: 8%;
+    height: 46%;
+    background:
+        radial-gradient(ellipse 34% 40% at 24% 60%, rgba(45, 212, 191, 0.22), transparent 70%),
+        radial-gradient(ellipse 30% 46% at 52% 40%, rgba(167, 139, 250, 0.3), transparent 70%),
+        radial-gradient(ellipse 34% 40% at 78% 58%, rgba(244, 114, 182, 0.2), transparent 70%);
+    animation: hcs-aurora 18s ease-in-out infinite alternate;
+}
+
+@keyframes hcs-aurora {
+    from { translate: -3% 0; opacity: 0.75; }
+    to { translate: 3% -4%; opacity: 1; }
+}
+
+/* A celestial seal behind the winner: rings of light and a crown of rays */
+.hcs-podium__rays {
+    top: 38%;
+    width: 520px;
+    height: 520px;
+    margin: -260px 0 0 -260px;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle, transparent 0 29%, rgba(253, 230, 138, 0.16) 29.4% 29.8%, transparent 30.2% 39%, rgba(253, 230, 138, 0.09) 39.3% 39.6%, transparent 40%),
+        repeating-conic-gradient(from 0deg, rgba(253, 230, 138, 0.08) 0deg 2deg, transparent 2deg 12deg),
+        radial-gradient(circle, rgba(253, 230, 138, 0.26) 0, rgba(253, 230, 138, 0.08) 32%, transparent 58%);
+    -webkit-mask-image: radial-gradient(circle, #000 40%, transparent 64%);
+    mask-image: radial-gradient(circle, #000 40%, transparent 64%);
+}
+
+/* Velvet curtains, tied back */
+.hcs-podium__curtain {
+    position: absolute;
+    top: 0;
+    bottom: calc(var(--floor-h) - 0.4rem);
+    z-index: 2;
+    width: clamp(2.6rem, 8.5%, 6.5rem);
+    background: url('../assets/hero-challenge/curtain.svg') top left / 100% 100% no-repeat;
+    pointer-events: none;
+}
+
+.hcs-podium__curtain--l {
+    left: 0;
+}
+
+.hcs-podium__curtain--r {
+    right: 0;
+    transform: scaleX(-1);
+}
+
+/* Swagged valance with a gold fringe */
+.hcs-podium__valance {
+    display: block;
+    height: 2rem;
+    z-index: 3;
+    background: url('../assets/hero-challenge/valance.svg') top left / 100% 100% no-repeat;
+    filter: none;
+}
+
+/* Marble floor with a shine line where the light lands */
+.hcs-podium::after {
+    z-index: 0;
+    height: var(--floor-h);
+    border-radius: 0 0 1.75rem 1.75rem;
+    background:
+        linear-gradient(90deg, transparent 2%, rgba(253, 230, 138, 0.95) 50%, transparent 98%) top / 100% 2px no-repeat,
+        radial-gradient(ellipse 45% 70% at 50% 0%, rgba(253, 230, 138, 0.35), transparent 70%),
+        repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 22px),
+        linear-gradient(180deg, #5b35b0 0%, #3b1d84 45%, #241457 100%);
+}
+
+/* Spotlights soften into the backdrop */
+.hcs-spot::before {
+    top: -3.6rem;
+    opacity: 0.6;
+}
+
+.hcs-spot--gold::before {
+    opacity: 0.9;
+}
+
+/* ─── Pedestals as monuments ────────────────────────────────────────────── */
+
+.hcs-spot { --ped-h: 9rem; --gem: #e11d48; --gem-hi: #fecdd3; }
+.hcs-spot--silver { --ped-h: 6.9rem; --gem: #2563eb; --gem-hi: #bfdbfe; }
+.hcs-spot--bronze { --ped-h: 5.5rem; --gem: #059669; --gem-hi: #a7f3d0; }
+
+.hcs-pedestal {
+    overflow: visible;
+    padding-top: 1.05rem;
+    margin-top: 6px;
+    border-radius: 0;
+    background:
+        linear-gradient(90deg, rgba(0, 0, 0, 0.2), transparent 10%, transparent 90%, rgba(0, 0, 0, 0.26)),
+        repeating-linear-gradient(90deg, transparent 0 9px, rgba(255, 255, 255, 0.1) 9px 11px, rgba(0, 0, 0, 0.07) 11px 13px, transparent 13px 22px),
+        linear-gradient(180deg, var(--ped-1), var(--ped-2) 46%, var(--ped-3));
+    box-shadow:
+        inset 0 -20px 26px -16px rgba(0, 0, 0, 0.45),
+        0 0 40px -10px var(--metal-glow);
+}
+
+/* The sheen stays inside the block */
+.hcs-pedestal::after {
+    clip-path: inset(0);
+}
+
+/* Cornice: a wider slab with a gem set in its face */
+.hcs-pedestal__cap {
+    top: -7px;
+    left: -8px;
+    right: -8px;
+    z-index: 2;
+    height: 17px;
+    border-radius: 5px 5px 2px 2px;
+    clip-path: none;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0 2px, transparent 2px),
+        linear-gradient(180deg, var(--metal-3) 0%, var(--metal-1) 45%, var(--metal-2) 100%);
+    box-shadow: 0 4px 6px -2px rgba(0, 0, 0, 0.45), inset 0 -2px 0 rgba(0, 0, 0, 0.18);
+}
+
+.hcs-pedestal__cap::after {
+    display: none;
+}
+
+.hcs-pedestal__gem {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 9px;
+    height: 9px;
+    translate: -50% -50%;
+    rotate: 45deg;
+    border-radius: 2px;
+    background: radial-gradient(circle at 35% 30%, var(--gem-hi), var(--gem) 55%, color-mix(in srgb, var(--gem) 60%, #000));
+    box-shadow: 0 0 0 1.5px var(--metal-3), 0 0 8px 1px color-mix(in srgb, var(--gem) 60%, transparent);
+}
+
+.hcs-pedestal__base {
+    position: absolute;
+    left: -10px;
+    right: -10px;
+    bottom: 0;
+    height: 13px;
+    border-radius: 4px 4px 0 0;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0 1.5px, transparent 1.5px),
+        linear-gradient(180deg, var(--metal-1), var(--ped-3));
+    box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.25), 0 10px 18px -6px var(--metal-glow);
+}
+
+/* Medallion inside a laurel wreath */
+.hcs-pedestal__seal {
+    position: relative;
+    display: grid;
+    place-items: center;
+    padding: 0.5rem;
+}
+
+.hcs-pedestal__wreath {
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--ped-ink) 60%, transparent), color-mix(in srgb, var(--ped-ink) 85%, transparent));
+    -webkit-mask: url('../assets/hero-challenge/laurel.svg') center / contain no-repeat;
+    mask: url('../assets/hero-challenge/laurel.svg') center / contain no-repeat;
+}
+
+.hcs-spot--gold .hcs-pedestal__wreath {
+    background: linear-gradient(180deg, #fffbeb, #fde68a 40%, #b45309);
+    inset: -6px;
+}
+
+.hcs-pedestal__num {
+    margin: 0;
+}
+
+.hcs-pedestal__tag {
+    margin-top: 0.1rem;
+}
+
+/* Tiers: the slab reads as a long step */
+.hcs-podium--tiers .hcs-pedestal {
+    margin-top: 8px;
+    padding: 0.8rem 1rem 1rem;
+}
+
+.hcs-podium--tiers .hcs-pedestal__seal {
+    padding: 0.25rem;
+}
+
+.hcs-podium--tiers .hcs-pedestal__wreath {
+    display: none;
+}
+
+/* Entrance: curtains settle, the valance drops */
+.hcs-list--enter .hcs-podium__curtain--l {
+    animation: hcs-curtain-l 1s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(0ms - var(--hcs-skip, 0ms) + var(--hcs-d, 0) * 110ms);
+}
+
+.hcs-list--enter .hcs-podium__curtain--r {
+    animation: hcs-curtain-r 1s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(0ms - var(--hcs-skip, 0ms) + var(--hcs-d, 0) * 110ms);
+}
+
+.hcs-list--enter .hcs-pedestal__gem {
+    animation: hcs-gem-in 0.6s cubic-bezier(0.34, 1.6, 0.64, 1) both;
+    animation-delay: calc(0ms - var(--hcs-skip, 0ms) + var(--hcs-d, 0) * 110ms + 700ms);
+}
+
+.hcs-list--enter .hcs-pedestal__wreath {
+    animation: hcs-fade-in 0.8s ease-out both;
+    animation-delay: calc(0ms - var(--hcs-skip, 0ms) + var(--hcs-d, 0) * 110ms + 600ms);
+}
+
+@keyframes hcs-curtain-l {
+    from { translate: 40% 0; scale: 1.6 1; transform-origin: left; }
+}
+
+@keyframes hcs-curtain-r {
+    from { translate: -40% 0; scale: 1.6 1; }
+}
+
+@keyframes hcs-gem-in {
+    from { opacity: 0; scale: 0.2; }
+}
+
+.hcs-list--lite .hcs-podium__aurora {
+    animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hcs-podium__aurora {
+        animation: none !important;
+    }
+}
+
+/* ─── The class banner: a royal pennant ─────────────────────────────────── */
+
+.hcs-section__head {
+    gap: 1rem;
+    margin-bottom: 1.6rem;
+    padding: 0.6rem 1.1rem 0.6rem 0.6rem;
+    border-radius: 1.4rem;
+    background:
+        radial-gradient(ellipse 50% 90% at 0% 50%, rgba(251, 191, 36, 0.16), transparent 70%),
+        linear-gradient(180deg, #fffefa, #fbf8ff);
+    box-shadow:
+        0 0 0 1.5px #f2c94c,
+        0 0 0 4px #fff,
+        0 0 0 5.5px rgba(124, 58, 237, 0.35),
+        0 16px 30px -18px rgba(46, 16, 101, 0.6);
+    backdrop-filter: none;
+}
+
+.hcs-section--mine .hcs-section__head {
+    box-shadow:
+        0 0 0 1.5px #f59e0b,
+        0 0 0 4px #fff,
+        0 0 0 6px #fbbf24,
+        0 16px 30px -18px rgba(180, 83, 9, 0.6);
+}
+
+/* Ribbon tails behind both ends */
+.hcs-section__tails {
+    position: absolute;
+    left: -1.4rem;
+    right: -1.4rem;
+    top: 50%;
+    z-index: -1;
+    height: 2.2rem;
+    translate: 0 -30%;
+    pointer-events: none;
+    background: linear-gradient(180deg, #8b5cf6, #5b21b6);
+    clip-path: polygon(0 0, 8% 0, 8% 100%, 0 100%, 3.5% 50%, 0 0, 100% 0, 96.5% 50%, 100% 100%, 92% 100%, 92% 0, 100% 0);
+}
+
+.hcs-section--mine .hcs-section__tails {
+    background: linear-gradient(180deg, #fbbf24, #b45309);
+}
+
+.hcs-section__head {
+    isolation: isolate;
+}
+
+.hcs-section__crest {
+    position: relative;
+    width: 3.6rem;
+    height: 3.6rem;
+    font-size: 1.9rem;
+    box-shadow: 0 0 0 2.5px #fbbf24, 0 0 0 5px #fff, 0 6px 14px -4px rgba(76, 29, 149, 0.5);
+}
+
+.hcs-section__wreath {
+    position: absolute;
+    inset: -0.75rem;
+    z-index: -1;
+    background: linear-gradient(180deg, #fde68a, #d97706);
+    -webkit-mask: url('../assets/hero-challenge/laurel.svg') center / contain no-repeat;
+    mask: url('../assets/hero-challenge/laurel.svg') center / contain no-repeat;
+}
+
+.hcs-section__crest {
+    isolation: isolate;
+}
+
+.hcs-section__crest > .hcs-section__logo,
+.hcs-section__crest > i {
+    position: relative;
+    z-index: 1;
+}
+
+.hcs-section__kicker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-bottom: 0.15rem;
+    font-size: 0.68rem;
+}
+
+.hcs-section__mine {
+    padding: 0.06rem 0.55rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.02em;
+}
+
+.hcs-section__name {
+    font-size: 1.75rem;
+}
+
+.hcs-section__facts {
+    gap: 0.3rem;
+    margin-top: 0.3rem;
+}
+
+.hcs-section__fact {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.12rem 0.55rem 0.12rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    color: #5b21b6;
+    background: #f5f3ff;
+    box-shadow: inset 0 0 0 1px #e4dcfd;
+}
+
+.hcs-section__fact i {
+    margin-right: 0.3rem;
+}
+
+.hcs-section__fact--shine {
+    color: #92400e;
+    background: #fffbeb;
+    box-shadow: inset 0 0 0 1px #fde68a;
+}
+
+.hcs-section__fact--shine i {
+    color: #f59e0b;
+}
+
+/* Who wears the crown right now */
+.hcs-section__leader {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-left: 0.4rem;
+    padding: 0.35rem 0.9rem 0.35rem 0.4rem;
+    border-radius: 1rem;
+    background: linear-gradient(135deg, #3b0764, #6d28d9);
+    box-shadow: inset 0 0 0 1px rgba(253, 230, 138, 0.55), 0 6px 14px -8px rgba(46, 16, 101, 0.8);
+    color: #fff;
+}
+
+.hcs-section__leader-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 2.3rem;
+    height: 2.3rem;
+    border-radius: 50%;
+    font-size: 1rem;
+    color: #78350f;
+    background: radial-gradient(circle at 35% 30%, #fffbeb, #fbbf24 60%, #d97706);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35), 0 0 14px rgba(251, 191, 36, 0.5);
+}
+
+.hcs-section__leader-copy {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.15;
+}
+
+.hcs-section__leader-kicker {
+    font-size: 0.6rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #fde68a;
+}
+
+.hcs-section__leader-name {
+    font-family: var(--gcq-font-title);
+    font-size: 1.05rem;
+    white-space: nowrap;
+}
+
+.hcs-section__leader-sub {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #ddd6fe;
+    white-space: nowrap;
+}
+
+.hcs-section__leader--open,
+.hcs-section__leader--sealed {
+    background: linear-gradient(135deg, #312e81, #4c1d95);
+}
+
+.hcs-section__leader--sealed .hcs-section__leader-icon {
+    color: #fde68a;
+    background: radial-gradient(circle at 35% 30%, #a21caf, #701a75);
+}
+
+.hcs-list--enter .hcs-section__leader {
+    animation: hcs-rise-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(0ms - var(--hcs-skip, 0ms) + var(--hcs-d, 0) * 110ms + 900ms);
+}
+
+@media (max-width: 639px) {
+    .hcs-podium {
+        --floor-h: 1.6rem;
+        padding: 2.9rem 1.6rem 0;
+    }
+
+    .hcs-podium__curtain {
+        width: 1.7rem;
+    }
+
+    .hcs-podium__valance {
+        height: 1.4rem;
+    }
+
+    .hcs-spot { --ped-h: 6rem; }
+    .hcs-spot--silver { --ped-h: 4.7rem; }
+    .hcs-spot--bronze { --ped-h: 3.9rem; }
+
+    .hcs-pedestal {
+        padding-top: 0.75rem;
+    }
+
+    .hcs-pedestal__cap {
+        left: -4px;
+        right: -4px;
+        height: 13px;
+        top: -6px;
+    }
+
+    .hcs-pedestal__base {
+        left: -5px;
+        right: -5px;
+        height: 9px;
+    }
+
+    .hcs-pedestal__seal {
+        padding: 0.3rem;
+    }
+
+    .hcs-section__head {
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        padding: 0.55rem 0.8rem 0.55rem 0.55rem;
+        border-radius: 1.2rem;
+    }
+
+    .hcs-section__tails {
+        display: none;
+    }
+
+    .hcs-section__crest {
+        width: 2.8rem;
+        height: 2.8rem;
+        font-size: 1.45rem;
+    }
+
+    .hcs-section__wreath {
+        inset: -0.55rem;
+    }
+
+    .hcs-section__copy {
+        flex: 1 1 0;
+    }
+
+    .hcs-section__name {
+        font-size: 1.35rem;
+    }
+
+    .hcs-section__fact {
+        font-size: 0.64rem;
+    }
+
+    .hcs-section__leader {
+        flex: 1 1 100%;
+        margin-left: 0;
+    }
+}

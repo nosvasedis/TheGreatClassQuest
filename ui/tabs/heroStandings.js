@@ -356,9 +356,13 @@ function podiumHtml(spots, metric) {
             <div class="hcs-spot hcs-spot--${metal}${n > 1 ? ' hcs-spot--shared' : ''}" style="--n:${n}">
                 <div class="hcs-spot__heroes">${figures}</div>
                 <div class="hcs-pedestal" aria-hidden="true">
-                    <span class="hcs-pedestal__cap"></span>
-                    <span class="hcs-pedestal__num font-title">${group.rank}</span>
+                    <span class="hcs-pedestal__cap"><span class="hcs-pedestal__gem"></span></span>
+                    <span class="hcs-pedestal__seal">
+                        <span class="hcs-pedestal__wreath"></span>
+                        <span class="hcs-pedestal__num font-title">${group.rank}</span>
+                    </span>
                     ${pedestalTagHtml(group)}
+                    <span class="hcs-pedestal__base"></span>
                 </div>
             </div>`;
     }).join('');
@@ -366,7 +370,10 @@ function podiumHtml(spots, metric) {
     return `
         <div class="hcs-podium hcs-podium--${layout}" data-spots="${spots.length}" style="--total:${spots.length}">
             <div class="hcs-podium__backdrop" aria-hidden="true">
+                <div class="hcs-podium__aurora"></div>
                 <div class="hcs-podium__rays"></div>
+                <div class="hcs-podium__curtain hcs-podium__curtain--l"></div>
+                <div class="hcs-podium__curtain hcs-podium__curtain--r"></div>
                 <div class="hcs-podium__motes">${motes}</div>
                 <div class="hcs-podium__valance"></div>
             </div>
@@ -479,6 +486,28 @@ function rowHtml(e, above, { firstBelowPodium = false, leaderScore = 0, podiumFl
         </li>`;
 }
 
+/**
+ * The banner's right side: who wears the crown right now, by how much, or
+ * that the race hasn't started. Never drawn on a sealed board.
+ */
+function sectionLeaderHtml(spots, entries, metric, monthName) {
+    const golds = spots.filter((e) => e.rank === 1);
+    if (!golds.length) {
+        return `<div class="hcs-section__leader hcs-section__leader--open"><span class="hcs-section__leader-icon" aria-hidden="true"><i class="fas fa-crown"></i></span><span class="hcs-section__leader-copy"><span class="hcs-section__leader-kicker">The crown</span><span class="hcs-section__leader-name">Still up for grabs</span></span></div>`;
+    }
+    const names = golds.map((e) => escapeStandingsHtml(String(e.name).split(' ')[0]));
+    const who = names.length === 1 ? names[0] : names.length === 2 ? `${names[0]} &amp; ${names[1]}` : `${names.length} heroes`;
+    const next = entries.find((e) => e.rank > 1);
+    const lead = next ? golds[0].score - next.score : 0;
+    let sub;
+    if (golds.length > 1) sub = `Share 1st on ${formatStandingsStars(golds[0].score)} ${starWord(golds[0].score)}`;
+    else if (lead > 0) sub = `${formatStandingsStars(golds[0].score)} ${starWord(golds[0].score)} · ${formatStandingsStars(lead)} ahead`;
+    else if (next) sub = `${formatStandingsStars(golds[0].score)} ${starWord(golds[0].score)} · wins the tie-break`;
+    else sub = `${formatStandingsStars(golds[0].score)} ${starWord(golds[0].score)}`;
+    const kicker = metric === 'monthly' ? `Leading ${escapeStandingsHtml(monthName)}` : 'Leading all-time';
+    return `<div class="hcs-section__leader"><span class="hcs-section__leader-icon" aria-hidden="true"><i class="fas fa-crown"></i></span><span class="hcs-section__leader-copy"><span class="hcs-section__leader-kicker">${kicker}</span><span class="hcs-section__leader-name">${who}</span><span class="hcs-section__leader-sub">${sub}</span></span></div>`;
+}
+
 function openRaceHtml(monthName, metric) {
     const line = metric === 'monthly'
         ? `No stars yet in ${escapeStandingsHtml(monthName)}. The first hero to shine takes the crown!`
@@ -563,19 +592,29 @@ export function renderStandingsSectionHtml(section, { monthName = '', metric = '
         : (section.mine ? '<span class="hcs-section__mine"><i class="fas fa-chalkboard-teacher" aria-hidden="true"></i>Your class</span>' : '');
     const facts = (section.facts || []).map((f) => `<span class="hcs-section__fact">${f}</span>`).join('');
     const logo = section.logo
-        ? `<span class="hcs-section__crest" aria-hidden="true"><span class="hcs-section__logo">${section.logo}</span></span>`
-        : '<span class="hcs-section__crest hcs-section__crest--league" aria-hidden="true"><i class="fas fa-globe"></i></span>';
+        ? `<span class="hcs-section__crest" aria-hidden="true"><span class="hcs-section__wreath"></span><span class="hcs-section__logo">${section.logo}</span></span>`
+        : '<span class="hcs-section__crest hcs-section__crest--league" aria-hidden="true"><span class="hcs-section__wreath"></span><i class="fas fa-globe"></i></span>';
     const sealed = section.seal === 'sealed';
+    const shining = metric === 'monthly' && entries.length
+        ? `<span class="hcs-section__fact hcs-section__fact--shine" title="Heroes with at least one star in ${escapeStandingsHtml(monthName)}"><i class="fas fa-sun" aria-hidden="true"></i>${entries.filter((e) => e.score > 0).length} of ${entries.length} shining</span>`
+        : '';
+    const leader = section.seal ? '' : sectionLeaderHtml(spots, entries, metric, monthName);
+    const sealNote = section.seal
+        ? `<div class="hcs-section__leader hcs-section__leader--sealed"><span class="hcs-section__leader-icon" aria-hidden="true"><i class="fas fa-lock"></i></span><span class="hcs-section__leader-copy"><span class="hcs-section__leader-kicker">The crown</span><span class="hcs-section__leader-name">Sealed until the Ceremony</span></span></div>`
+        : '';
     const sealClass = sealed ? ' hcs-section--sealed' : (section.seal === 'open' ? ' hcs-section--peeked' : '');
     const board = `${podium}${rows ? `<ol class="hcs-ranks">${rows}</ol>` : ''}`;
     return `
-        <section class="hcs-section${section.mine ? ' hcs-section--mine' : ''}${sealClass}" data-hcs-section="${escapeStandingsHtml(section.id)}" style="--hcs-d:${delayIndex}">
+        <section class="hcs-section${section.mine ? ' hcs-section--mine' : ''}${section.live ? ' hcs-section--live' : ''}${sealClass}" data-hcs-section="${escapeStandingsHtml(section.id)}" style="--hcs-d:${delayIndex}">
             <header class="hcs-section__head">
+                <span class="hcs-section__tails" aria-hidden="true"></span>
                 ${logo}
                 <div class="hcs-section__copy">
+                    ${mine ? `<div class="hcs-section__kicker">${mine}</div>` : ''}
                     <h3 class="hcs-section__name font-title">${escapeStandingsHtml(section.title)}</h3>
-                    <div class="hcs-section__facts">${mine}${facts}</div>
+                    <div class="hcs-section__facts">${facts}${shining}</div>
                 </div>
+                ${leader || sealNote}
                 ${section.seal === 'open' ? resealButtonHtml() : ''}
             </header>
             ${sealed ? `${sealHtml(monthName)}<div class="hcs-section__board" data-hcs-sealed-board hidden>${board}</div>` : board}

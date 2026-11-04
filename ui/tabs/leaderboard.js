@@ -774,6 +774,7 @@ async function clearHeroStandingsList(list, html, seq) {
     list.__hcsToken = null;
     list.className = _heroLite ? 'hcs-list hcs-list--lite hcs-list--leaving' : 'hcs-list hcs-list--leaving';
     list.innerHTML = html;
+    list.__hcsDrawnAt = performance.now();
     finishStandingsLeave(list);
     playStandingsEntrance(list);
 }
@@ -1226,16 +1227,20 @@ export async function renderStudentLeaderboardTab({ freshVisit = false, classCha
     // Same board, something changed (a star, a chip): swap only the sections
     // that differ, and let an entrance still playing carry on where it was.
     // (A star landing mid-entrance just updates; the board is still rising.)
-    const entering = Boolean(list.__hcsEnterAt) && performance.now() - list.__hcsEnterAt < 2600;
+    // Data still trickling in around the opening (scores, logs, guilds,
+    // last month's Prodigies) is not a rank-change show: within a few seconds
+    // of the board's entrance it just updates in place, so the stage never
+    // replays the moment it has settled.
+    const sinceEntrance = list.__hcsDrawnAt ? performance.now() - list.__hcsDrawnAt : Infinity;
+    const entering = sinceEntrance < 7000;
     if (sameBoard && !freshVisit && !leaving && (!moved || entering)) {
         // The nodes already on screen stay where they are: only the text,
         // attributes and pieces that changed are touched, so nothing flashes,
         // no portrait reloads and an entrance still playing just carries on.
-        if (!entering) {
-            list.__hcsEnterAt = 0;
-            list.style.removeProperty('--hcs-skip');
-            list.className = `hcs-list${lite}${list.classList.contains('hcs-list--settled') ? ' hcs-list--settled' : ''}`;
-        }
+        // The list's classes are left exactly as they are: dropping the
+        // entrance class here used to cut every entrance animation short
+        // (some still run after 2.6s on a hidden-then-shown tab), which
+        // flashed the banner and podium once they had settled.
         morphStandingsList(list, outputHtml);
         if (classChange) spotlightPickedClass(list);
         return;
@@ -1243,6 +1248,7 @@ export async function renderStudentLeaderboardTab({ freshVisit = false, classCha
 
     list.className = `hcs-list${lite}${leaving ? ' hcs-list--leaving' : ''}`;
     list.innerHTML = outputHtml;
+    list.__hcsDrawnAt = performance.now();
     finishStandingsLeave(list);
 
     if (moved) playStandingsChanges(list, sections);

@@ -1,4 +1,5 @@
 import { quietly } from '../utils/runtimeMetrics.js';
+import { wireDock } from './dock.js';
 import * as state from '../state.js';
 import { playSound } from '../audio.js';
 import { auth, signOut } from '../firebaseAuth.js';
@@ -215,13 +216,13 @@ function syncMoreButton() {
     if (tabId && !DOCK_TAB_IDS.has(tabId)) {
         moreBtn.classList.add(colorClass(activeItem) || 'nav-color-indigo', 'active', 'm-dock-btn--carrying');
         const itemIcon = activeItem.querySelector('.icon');
-        icon.className = `${[...(itemIcon?.classList || [])].filter((c) => c.startsWith('fa')).join(' ') || 'fas fa-ellipsis'} icon`;
+        icon.className = `${[...(itemIcon?.classList || [])].filter((c) => c.startsWith('fa')).join(' ') || 'fas fa-compass'} icon`;
         text.textContent = MORE_SHORT_LABELS[tabId] || 'More';
         moreBtn.setAttribute('aria-label', `More (now: ${activeItem.getAttribute('aria-label') || text.textContent})`);
     } else {
         moreBtn.classList.remove('active', 'm-dock-btn--carrying');
         moreBtn.classList.add('nav-color-indigo');
-        icon.className = 'fas fa-ellipsis icon';
+        icon.className = 'fas fa-compass icon';
         text.textContent = 'More';
         moreBtn.setAttribute('aria-label', 'More');
     }
@@ -593,6 +594,7 @@ function wire() {
     observeDesktopClassPill();
     observeOptionsSubtabs();
     observeMoreActive();
+    wireDock(document.getElementById('m-teacher-dock'));
     requestAnimationFrame(measureHeaderHeight);
 }
 

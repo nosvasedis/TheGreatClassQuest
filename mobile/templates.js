@@ -79,29 +79,31 @@ const teacherHeaderHTML = `
         ${HEADER_TRIM}
     </header>`;
 
+// Phone dock: a floating glass "sky island" (not the desktop clouds). One coloured gem slides under
+// the open tab (mobile/dock.js); Award Stars, the thing a teacher does most on a phone, is a raised
+// gold star coin in the middle. Styles: mobile/styles/chrome.css ("Sky island dock").
+const dockBtn = (attrs, color, icon, label, aria, extra = '') => `
+        <button type="button" class="nav-button m-dock-btn m-pressable nav-color-${color}${extra}" ${attrs} aria-label="${aria}">
+            <span class="m-dock-icon" aria-hidden="true"><i class="fas ${icon} icon"></i></span><span class="text">${label}</span>
+        </button>`;
+
 const teacherDockHTML = `
     <nav id="m-teacher-dock" class="m-dock m-dock--teacher" aria-label="Main navigation">
+        <span class="m-dock-ind" aria-hidden="true"></span>
         <button type="button" class="nav-button m-dock-btn m-pressable nav-color-cyan active" data-tab="about-tab" aria-label="Home" aria-current="page">
-            <span class="m-dock-cloud" aria-hidden="true"></span><i class="fas fa-home icon"></i><span class="text">Home</span>
-        </button>
-        <button type="button" class="nav-button m-dock-btn m-pressable nav-color-amber" data-tab="class-leaderboard-tab" aria-label="Team Quest">
-            <span class="m-dock-cloud" aria-hidden="true"></span><i class="fas fa-route icon"></i><span class="text">Team</span>
-        </button>
-        <button type="button" class="nav-button m-dock-btn m-pressable nav-color-purple" data-tab="student-leaderboard-tab" aria-label="Heroes">
-            <span class="m-dock-cloud" aria-hidden="true"></span><i class="fas fa-user-graduate icon"></i><span class="text">Heroes</span>
-        </button>
-        <button type="button" class="nav-button m-dock-btn m-pressable nav-color-rose" data-tab="award-stars-tab" aria-label="Award Stars">
-            <span class="m-dock-cloud" aria-hidden="true"></span><i class="fas fa-star icon"></i><span class="text">Award</span>
-        </button>
+            <span class="m-dock-icon" aria-hidden="true"><i class="fas fa-home icon"></i></span><span class="text">Home</span>
+        </button>${dockBtn('data-tab="class-leaderboard-tab"', 'amber', 'fa-route', 'Team', 'Team Quest')}
+        <button type="button" class="nav-button m-dock-btn m-dock-btn--coin m-pressable nav-color-rose" data-tab="award-stars-tab" aria-label="Award Stars">
+            <span class="m-dock-coin" aria-hidden="true"><i class="fas fa-star icon"></i></span><span class="text">Award</span>
+        </button>${dockBtn('data-tab="student-leaderboard-tab"', 'purple', 'fa-user-graduate', 'Heroes', 'Heroes')}
         <button type="button" id="m-more-btn" class="nav-button m-dock-btn m-pressable nav-color-indigo" aria-label="More" aria-haspopup="dialog" aria-expanded="false">
-            <span class="m-dock-cloud" aria-hidden="true"></span><i class="fas fa-ellipsis icon" id="m-more-btn-icon"></i><span class="text" id="m-more-btn-text">More</span>
-            <span class="m-dock-more-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="m-dock-icon" aria-hidden="true"><i class="fas fa-compass icon" id="m-more-btn-icon"></i><span class="m-dock-more-dots"><i></i><i></i><i></i></span></span><span class="text" id="m-more-btn-text">More</span>
         </button>
     </nav>`;
 
 const moreItem = (tab, color, icon, label, hint) => `
     <button type="button" class="nav-button m-more-item m-pressable ${color}" data-tab="${tab}" aria-label="${label}">
-        <span class="m-more-item__medal" aria-hidden="true"><span class="m-dock-cloud"></span><i class="fas ${icon} icon"></i></span>
+        <span class="m-more-item__medal" aria-hidden="true"><i class="fas ${icon} icon"></i></span>
         <span class="text">${label}</span>
         <span class="m-more-item__hint">${hint}</span>
     </button>`;
@@ -125,7 +127,7 @@ const moreSheetHTML = `
                 ${moreItem('reward-ideas-tab', 'nav-color-indigo', 'fa-bullseye', 'Training Grounds', 'Class games')}
                 ${moreItem('manage-students-tab', 'nav-color-fuchsia', 'fa-user-graduate', 'Student Roster', 'Your heroes')}
                 <button type="button" id="m-quest-remote-item" class="nav-button m-more-item m-pressable nav-color-amber hidden" aria-label="Quest Remote">
-                    <span class="m-more-item__medal" aria-hidden="true"><span class="m-dock-cloud"></span><i class="fas fa-wand-magic-sparkles icon"></i></span>
+                    <span class="m-more-item__medal" aria-hidden="true"><i class="fas fa-wand-magic-sparkles icon"></i></span>
                     <span class="text">Quest Remote</span>
                     <span class="m-more-item__hint">Run the projector</span>
                 </button>
@@ -231,21 +233,10 @@ const secretaryHeaderHTML = roleHeaderHTML(
 
 const secretaryDockHTML = `
     <nav id="m-secretary-dock" class="m-dock m-dock--secretary" aria-label="School office navigation">
+        <span class="m-dock-ind" aria-hidden="true"></span>
         <button type="button" class="nav-button m-dock-btn m-pressable nav-color-cyan active" data-secretary-tab="home" aria-label="Home" aria-current="page">
-            <span class="m-dock-cloud" aria-hidden="true"></span><i class="fas fa-home icon"></i><span class="text">Home</span>
-        </button>
-        <button type="button" class="nav-button m-dock-btn m-pressable nav-color-green" data-secretary-tab="school" aria-label="School">
-            <span class="m-dock-cloud" aria-hidden="true"></span><i class="fas fa-school icon"></i><span class="text">School</span>
-        </button>
-        <button type="button" class="nav-button m-dock-btn m-pressable nav-color-amber" data-secretary-tab="grades" aria-label="Grades">
-            <span class="m-dock-cloud" aria-hidden="true"></span><i class="fas fa-chart-bar icon"></i><span class="text">Grades</span>
-        </button>
-        <button type="button" class="nav-button m-dock-btn m-pressable nav-color-purple" data-secretary-tab="messages" aria-label="Messages">
-            <span class="m-dock-cloud" aria-hidden="true"></span><i class="fas fa-comments icon"></i><span class="text">Messages</span>
-        </button>
-        <button type="button" class="nav-button m-dock-btn m-pressable nav-color-indigo" data-secretary-tab="admin" aria-label="Admin">
-            <span class="m-dock-cloud" aria-hidden="true"></span><i class="fas fa-cog icon"></i><span class="text">Admin</span>
-        </button>
+            <span class="m-dock-icon" aria-hidden="true"><i class="fas fa-home icon"></i></span><span class="text">Home</span>
+        </button>${dockBtn('data-secretary-tab="school"', 'green', 'fa-school', 'School', 'School')}${dockBtn('data-secretary-tab="grades"', 'amber', 'fa-chart-bar', 'Grades', 'Grades')}${dockBtn('data-secretary-tab="messages"', 'purple', 'fa-comments', 'Messages', 'Messages')}${dockBtn('data-secretary-tab="admin"', 'indigo', 'fa-cog', 'Admin', 'Admin')}
     </nav>`;
 
 export const mobileHomeShellHTML = `

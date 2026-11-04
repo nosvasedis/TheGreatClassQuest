@@ -1,4 +1,5 @@
 import { playSound } from '../audio.js';
+import { wireDock } from './dock.js';
 import { auth, signOut } from '../firebaseAuth.js';
 import { walkOutThroughGate } from '../ui/authGate.js';
 import { getDeviceCacheChoice, clearLocalAppData } from '../utils/deviceCache.js';
@@ -33,6 +34,7 @@ function mirrorText(sourceSelector, targetId) {
 
 function wireSecretary() {
     document.getElementById('m-secretary-logout-btn')?.addEventListener('click', logout);
+    wireDock(document.getElementById('m-secretary-dock'));
     mirrorText('#secretary-screen [data-secretary-title]', 'm-secretary-title');
     mirrorText('#secretary-screen [data-school-name]', 'm-school-name');
 }

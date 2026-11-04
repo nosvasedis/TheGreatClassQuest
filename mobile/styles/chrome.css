@@ -709,56 +709,81 @@ body.night-mode .m-header__clouds {
 }
 
 /* ==========================================================================
-   Cloud dock (phone): the desktop's cloud bank, five clouds wide.
-   Each cloud is a masked span (.m-dock-cloud) in the tab's own colour and one
-   of the desktop cloud shapes. Labels always show; the open tab lifts and
-   glows. The dock sits on a soft horizon band. No infinite animations here,
-   so it stays smooth on slow phones.
+   Sky island dock (phone). Not the desktop clouds: a floating glass island
+   with a gilded thread on top (like the header trim). One coloured gem
+   (.m-dock-ind, placed by mobile/dock.js) glides under the open tab and takes
+   its colour; the icon on it turns white. Award Stars, the thing a teacher does
+   most on a phone, is a raised gold star coin in the middle. No infinite
+   animations, so it stays smooth on slow phones.
    ========================================================================== */
 .m-dock {
+    --dock-h: 4.05rem;
+    --dock-gap: calc(0.55rem + var(--m-safe-bottom, env(safe-area-inset-bottom, 0px)));
     position: relative;
     z-index: 50;
     flex-shrink: 0;
     display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: end;
     gap: 0;
     margin: 0;
-    padding: 1.1rem 0.6rem calc(0.3rem + var(--m-safe-bottom, env(safe-area-inset-bottom, 0px)));
-    background: linear-gradient(to bottom,
-        rgba(224, 242, 254, 0) 0%,
-        rgba(224, 242, 254, 0.78) 42%,
-        rgba(240, 249, 255, 0.96) 100%);
+    padding: 1.3rem 0.95rem var(--dock-gap);
+    /* A whisper of sky under the island so content fades as it scrolls beneath. */
+    background: linear-gradient(to bottom, rgba(240, 249, 255, 0) 0%, rgba(240, 249, 255, 0.5) 55%, rgba(240, 249, 255, 0.82) 100%);
     border: 0;
     box-shadow: none;
-    transition: background 1s ease;
 }
 
-/* Gilded horizon line the clouds rest on */
+/* The island */
 .m-dock::before {
     content: '';
     position: absolute;
-    left: 6%;
-    right: 6%;
-    bottom: calc(0.5rem + var(--m-safe-bottom, env(safe-area-inset-bottom, 0px)));
-    height: 1.5px;
-    background: linear-gradient(90deg, rgba(253, 230, 138, 0), rgba(253, 224, 120, 0.9) 30%, rgba(255, 255, 255, 0.95) 50%, rgba(253, 224, 120, 0.9) 70%, rgba(253, 230, 138, 0));
-    box-shadow: 0 0 6px rgba(255, 236, 170, 0.7);
-    pointer-events: none;
+    left: 0.7rem;
+    right: 0.7rem;
+    bottom: var(--dock-gap);
+    height: var(--dock-h);
     z-index: 0;
+    pointer-events: none;
+    border-radius: 1.6rem;
+    background:
+        radial-gradient(120% 140% at 50% -40%, rgba(186, 230, 253, 0.55), rgba(186, 230, 253, 0) 60%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(241, 247, 255, 0.9));
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
+    backdrop-filter: blur(16px) saturate(1.4);
+    border: 1px solid rgba(255, 255, 255, 0.95);
+    box-shadow:
+        0 16px 30px -16px rgba(15, 40, 90, 0.5),
+        0 2px 6px rgba(15, 40, 90, 0.08),
+        inset 0 -2px 0 rgba(148, 180, 220, 0.18);
+}
+
+/* Gilded thread along the island's top edge */
+.m-dock::after {
+    content: '';
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    bottom: calc(var(--dock-gap) + var(--dock-h) - 1px);
+    height: 1.5px;
+    z-index: 0;
+    pointer-events: none;
+    background: linear-gradient(90deg, rgba(253, 230, 138, 0), rgba(251, 211, 98, 0.95) 28%, #fff7d6 50%, rgba(251, 211, 98, 0.95) 72%, rgba(253, 230, 138, 0));
+    box-shadow: 0 0 6px rgba(253, 224, 120, 0.7);
 }
 
 body.night-mode .m-dock {
-    background: linear-gradient(to bottom,
-        rgba(49, 46, 129, 0) 0%,
-        rgba(49, 46, 129, 0.35) 38%,
-        rgba(30, 27, 75, 0.62) 100%);
+    background: linear-gradient(to bottom, rgba(30, 27, 75, 0) 0%, rgba(30, 27, 75, 0.4) 55%, rgba(17, 15, 50, 0.7) 100%);
 }
 
-.m-dock--teacher,
-.m-dock--secretary {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+body.night-mode .m-dock::before {
+    background:
+        radial-gradient(120% 140% at 50% -40%, rgba(129, 140, 248, 0.35), rgba(129, 140, 248, 0) 60%),
+        linear-gradient(180deg, rgba(42, 38, 102, 0.9), rgba(26, 23, 70, 0.9));
+    border-color: rgba(165, 180, 252, 0.28);
+    box-shadow: 0 16px 30px -14px rgba(2, 6, 23, 0.8), inset 0 1px 0 rgba(199, 210, 254, 0.18);
 }
 
-/* The dock floats over the page so content scrolls softly under the horizon. */
+/* The dock floats over the page so content scrolls softly beneath it. */
 body.gcq-mobile #app-screen:not(.hidden),
 body.gcq-mobile #secretary-screen:not(.hidden) {
     position: relative;
@@ -773,8 +798,8 @@ body.gcq-mobile #m-secretary-dock {
     pointer-events: none;
 }
 
-body.gcq-mobile #m-teacher-dock > *,
-body.gcq-mobile #m-secretary-dock > * {
+body.gcq-mobile #m-teacher-dock > .m-dock-btn,
+body.gcq-mobile #m-secretary-dock > .m-dock-btn {
     pointer-events: auto;
 }
 
@@ -784,71 +809,98 @@ body.gcq-mobile .role-main {
     scroll-padding-bottom: var(--m-dock-height, 5.4rem);
 }
 
+/* The gliding gem behind the open tab's icon */
+.m-dock-ind {
+    position: absolute;
+    left: 0;
+    top: var(--ind-top, 1.7rem);
+    z-index: 1;
+    width: var(--ind-w, 3.2rem);
+    height: var(--ind-h, 2.05rem);
+    border-radius: 999px;
+    pointer-events: none;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0) 58%) var(--ind-from, #06b6d4);
+    box-shadow:
+        0 7px 14px -7px var(--ind-from, #06b6d4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6),
+        inset 0 -2px 0 rgba(15, 23, 42, 0.12);
+    transform: translateX(calc(var(--ind-x, -100px) - 50%)) scale(1);
+    opacity: 0;
+}
+
+.m-dock--placed .m-dock-ind {
+    opacity: 1;
+    transition:
+        transform 0.5s cubic-bezier(0.34, 1.36, 0.64, 1),
+        background-color 0.35s ease,
+        box-shadow 0.35s ease,
+        opacity 0.25s ease;
+}
+
+.m-dock--placed.m-dock--no-ind .m-dock-ind {
+    opacity: 0;
+    transform: translateX(calc(var(--ind-x, -100px) - 50%)) scale(0.55);
+}
+
 body.gcq-mobile .m-dock .m-dock-btn {
-    --cloud-ink: color-mix(in srgb, var(--nav-from, #0ea5e9) 58%, #0f172a);
-    --cloud-ink-soft: color-mix(in srgb, var(--nav-from, #0ea5e9) 70%, rgba(15, 23, 42, 0.35));
-    --cloud-pearl: color-mix(in srgb, var(--nav-to, #bae6fd) 22%, #ffffff);
     position: relative;
-    height: 4.35rem;
-    min-height: 4.35rem;
-    margin: 0 -0.24rem;
-    padding: 0 0.1rem 0.42rem !important;
+    z-index: 2;
+    height: var(--dock-h);
+    min-height: var(--dock-h);
+    margin: 0;
+    padding: 0.36rem 0.1rem 0 !important;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: flex-start;
+    gap: 0.34rem;
     background: none !important;
     border: 0 !important;
-    border-radius: 0 !important;
+    border-radius: 1.2rem !important;
     box-shadow: none !important;
     opacity: 1;
     overflow: visible;
-    color: #fff !important;
-    transform: translateY(0.12rem) scale(0.97);
-    filter: drop-shadow(0 3px 4px rgba(15, 40, 90, 0.2));
-    transition:
-        transform 0.32s var(--m-spring),
-        filter 0.25s ease !important;
+    color: #6b7d97 !important;
+    text-shadow: none;
+    transform: none;
+    filter: none;
+    /* The desktop gem "pop" (styles/nav.css nav-pop) would shrink the whole tab on every switch. */
+    animation: none !important;
 }
-
-.m-dock .m-dock-btn:nth-child(odd) { z-index: 2; }
-.m-dock .m-dock-btn:nth-child(even) { z-index: 1; }
-.m-dock .m-dock-btn.active { z-index: 3; }
 
 body.gcq-mobile .m-dock .m-dock-btn::before {
     display: none;
 }
 
-.m-dock-cloud {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    background:
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.14) 16%, rgba(255, 255, 255, 0) 30%),
-        radial-gradient(ellipse 22% 16% at 40% 16%, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0) 75%),
-        radial-gradient(ellipse 24% 22% at 16% 60%, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 70%),
-        linear-gradient(to top, rgba(15, 23, 42, 0.26) 0%, rgba(15, 23, 42, 0.07) 18%, rgba(15, 23, 42, 0) 34%),
-        linear-gradient(to top, var(--nav-from, #7dd3fc), var(--nav-to, #bae6fd));
-    -webkit-mask: var(--cloud-shape) center / 100% 100% no-repeat;
-    mask: var(--cloud-shape) center / 100% 100% no-repeat;
+.m-dock-icon {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 3.2rem;
+    height: 2.05rem;
+    flex-shrink: 0;
 }
 
 body.gcq-mobile .m-dock .m-dock-btn .icon {
     position: relative;
     z-index: 1;
-    margin-bottom: 0.3rem;
-    font-size: 1.26rem;
+    margin: 0;
+    font-size: 1.16rem;
     line-height: 1;
-    color: #fff;
-    background: linear-gradient(to bottom, #ffffff 30%, var(--cloud-pearl) 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: color-mix(in srgb, var(--nav-from, #64748b) 45%, #64748b);
+    background: none;
+    -webkit-text-fill-color: currentColor;
     text-shadow: none;
-    filter: drop-shadow(0 1.5px 0 var(--cloud-ink)) drop-shadow(0 2px 3px rgba(15, 23, 42, 0.2));
+    filter: none;
     transform: none;
-    transition: transform 0.32s var(--m-spring);
+    animation: none;
+    transition: color 0.3s ease, transform 0.4s var(--m-spring);
+}
+
+body.gcq-mobile .m-dock .m-dock-btn.active .icon {
+    color: #fff;
+    transform: scale(1.05);
+    filter: drop-shadow(0 1px 0 rgba(15, 23, 42, 0.22));
 }
 
 body.gcq-mobile .m-dock .m-dock-btn .text {
@@ -863,102 +915,172 @@ body.gcq-mobile .m-dock .m-dock-btn .text {
     white-space: nowrap;
     text-overflow: ellipsis;
     font-family: 'Fredoka', 'Fredoka One', 'Trebuchet MS', system-ui, sans-serif;
-    font-size: 0.66rem;
+    flex-shrink: 0;
+    font-size: 0.64rem;
     font-weight: 600;
     line-height: 1.1;
-    letter-spacing: 0.015em;
-    color: #fff;
+    letter-spacing: 0.02em;
+    color: #6b7d97;
     text-align: center;
-    -webkit-line-clamp: unset;
-    text-shadow:
-        0 1.5px 0 var(--cloud-ink),
-        1px 0.5px 0 var(--cloud-ink-soft),
-        -1px 0.5px 0 var(--cloud-ink-soft),
-        0 -0.5px 0 var(--cloud-ink-soft),
-        0 2px 5px rgba(15, 23, 42, 0.3);
+    text-shadow: none;
+    transition: color 0.3s ease;
 }
 
-body.gcq-mobile .m-dock .m-dock-btn.active {
-    transform: translateY(-0.3rem) scale(1.04);
-    filter:
-        drop-shadow(0 0 1.5px #fff)
-        drop-shadow(0 0 8px rgba(255, 255, 255, 0.9))
-        drop-shadow(0 5px 5px rgba(15, 40, 90, 0.25));
+body.gcq-mobile .m-dock .m-dock-btn.active .text {
+    color: color-mix(in srgb, var(--nav-from, #0ea5e9) 62%, #0f172a);
+    font-weight: 700;
 }
 
-body.gcq-mobile .m-dock .m-dock-btn.active .icon {
-    transform: translateY(-3px) scale(1.1);
-    animation: m-dock-icon-bounce 0.45s var(--m-spring);
+/* Chosen: the icon hops onto its gem (mobile/dock.js adds .m-dock-btn--hop). */
+body.gcq-mobile .m-dock .m-dock-btn--hop .icon {
+    animation: m-dock-hop 0.55s var(--m-spring);
 }
 
-body.gcq-mobile .m-dock .m-dock-btn:active {
-    transform: translateY(0.1rem) scale(0.93) !important;
+@keyframes m-dock-hop {
+    0% { transform: scale(0.75); }
+    45% { transform: translateY(-5px) scale(1.2) rotate(-6deg); }
+    75% { transform: translateY(1px) scale(1) rotate(2deg); }
+    100% { transform: scale(1.05); }
 }
 
-@keyframes m-dock-icon-bounce {
-    0% { transform: scale(0.85); }
-    55% { transform: translateY(-5px) scale(1.2); }
-    100% { transform: translateY(-3px) scale(1.1); }
+/* --- Award coin: raised in the middle of the island --- */
+body.gcq-mobile .m-dock .m-dock-btn--coin {
+    justify-content: flex-end;
+    padding: 0 0.1rem 0.46rem !important;
 }
 
-body.night-mode .m-dock .m-dock-btn {
-    filter: drop-shadow(0 3px 4px rgba(2, 6, 23, 0.45)) brightness(0.92);
+.m-dock-coin {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 3.45rem;
+    height: 3.45rem;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at 34% 28%, #fffbe6 0%, #fde68a 26%, #fbbf24 55%, #f59e0b 78%, #d97706 100%);
+    border: 3px solid #fff;
+    box-shadow:
+        0 9px 16px -7px rgba(217, 119, 6, 0.7),
+        0 0 0 1px rgba(217, 119, 6, 0.28),
+        inset 0 -3px 0 rgba(180, 83, 9, 0.35),
+        inset 0 2px 0 rgba(255, 255, 255, 0.75);
+    transition: box-shadow 0.35s ease, transform 0.4s var(--m-spring);
 }
 
-body.night-mode .m-dock .m-dock-btn.active {
-    filter:
-        drop-shadow(0 0 1.5px rgba(224, 231, 255, 0.95))
-        drop-shadow(0 0 9px rgba(165, 180, 252, 0.65))
-        drop-shadow(0 5px 5px rgba(2, 6, 23, 0.45));
+body.gcq-mobile .m-dock .m-dock-btn--coin .icon,
+body.gcq-mobile .m-dock .m-dock-btn--coin.active .icon {
+    font-size: 1.4rem;
+    color: #fff;
+    filter: drop-shadow(0 1.5px 0 #b45309) drop-shadow(0 2px 3px rgba(146, 64, 14, 0.35));
+    transform: none;
 }
 
-/* Locked (plan) tabs: a grey cloud with the tier tag on its shoulder. */
+/* Open: a ring of sunlight round the coin */
+body.gcq-mobile .m-dock .m-dock-btn--coin.active .m-dock-coin {
+    box-shadow:
+        0 0 0 4px rgba(253, 224, 71, 0.45),
+        0 0 18px rgba(251, 191, 36, 0.75),
+        0 9px 16px -7px rgba(217, 119, 6, 0.7),
+        inset 0 -3px 0 rgba(180, 83, 9, 0.35),
+        inset 0 2px 0 rgba(255, 255, 255, 0.75);
+}
+
+body.gcq-mobile .m-dock .m-dock-btn--coin.active .text {
+    color: #b45309;
+}
+
+.m-dock-coin::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 2px solid rgba(253, 224, 71, 0.9);
+    opacity: 0;
+    pointer-events: none;
+}
+
+body.gcq-mobile .m-dock .m-dock-btn--coin.m-dock-btn--hop .m-dock-coin {
+    animation: m-dock-coin-turn 0.6s var(--m-spring);
+}
+
+body.gcq-mobile .m-dock .m-dock-btn--coin.m-dock-btn--hop .m-dock-coin::after {
+    animation: m-dock-coin-ring 0.6s ease-out;
+}
+
+body.gcq-mobile .m-dock .m-dock-btn--coin.m-dock-btn--hop .icon {
+    animation: m-dock-star-spin 0.6s var(--m-spring);
+}
+
+@keyframes m-dock-coin-turn {
+    0% { transform: scale(0.88); }
+    50% { transform: translateY(-4px) scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+@keyframes m-dock-coin-ring {
+    0% { opacity: 0.95; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.6); }
+}
+
+@keyframes m-dock-star-spin {
+    0% { transform: rotate(-72deg) scale(0.7); }
+    100% { transform: rotate(0) scale(1); }
+}
+
+/* Night */
+body.night-mode .m-dock .m-dock-btn .icon { color: #a5b4fc; }
+body.night-mode .m-dock .m-dock-btn .text { color: #c7d2fe; }
+body.night-mode .m-dock .m-dock-btn.active .icon { color: #fff; }
+body.night-mode .m-dock .m-dock-btn.active .text { color: color-mix(in srgb, var(--nav-to, #a5b4fc) 55%, #ffffff); }
+body.night-mode .m-dock .m-dock-btn--coin .icon { color: #fff; }
+body.night-mode .m-dock-coin { border-color: #312e81; }
+
+/* Locked (plan) tabs: faded, with the tier tag on the icon's shoulder. */
 body.gcq-mobile .m-dock .m-dock-btn.nav-button-locked {
-    --nav-from: #94a3b8;
-    --nav-to: #cbd5e1;
-    opacity: 0.85;
+    opacity: 0.55;
+    filter: grayscale(1);
 }
 
 body.gcq-mobile .m-dock .m-dock-btn.nav-button-locked::after {
-    top: 0.3rem;
-    right: 0.45rem;
-    z-index: 2;
+    top: 0.15rem;
+    right: 0.2rem;
+    z-index: 3;
 }
 
-/* More: three dots ride on the cloud while it carries another tab's name. */
+/* More: three dots ride on the gem while it carries another tab's name. */
 .m-dock-more-dots {
     display: none;
     position: absolute;
-    top: 1.05rem;
-    right: 0.7rem;
+    top: -0.2rem;
+    right: 0.15rem;
     z-index: 2;
     gap: 2px;
-    padding: 3px 4px;
+    padding: 2.5px 3.5px;
     border-radius: 999px;
-    background: var(--cloud-ink);
-    box-shadow: 0 0 0 1.5px #fff;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.25);
 }
 
 .m-dock-more-dots i {
     width: 3.5px;
     height: 3.5px;
     border-radius: 999px;
-    background: #fff;
+    background: var(--nav-from, #6366f1);
 }
 
 .m-dock-btn--carrying .m-dock-more-dots {
     display: inline-flex;
 }
 
-body.gcq-mobile #m-more-btn[aria-expanded="true"] {
-    transform: translateY(-0.3rem) scale(1.04);
+body.gcq-mobile #m-more-btn[aria-expanded="true"] .icon {
+    transform: rotate(45deg) scale(1.08);
 }
 
 /* Neutralize the desktop nav-button hover treatment on touch. */
 body.gcq-mobile .m-dock-btn:hover:not(.active) .icon,
 body.gcq-mobile .m-more-item:hover .icon {
-    transform: none !important;
-    animation: none !important;
+    animation: none;
 }
 
 body.gcq-mobile .m-dock-btn:hover .text,
@@ -973,20 +1095,20 @@ body.gcq-mobile #app-screen.award-sky-active #m-teacher-dock {
 }
 
 @media (max-width: 374px) {
-    body.gcq-mobile .m-dock .m-dock-btn .text {
-        font-size: 0.6rem;
+    .m-dock {
+        padding-left: 0.8rem;
+        padding-right: 0.8rem;
     }
 
-    body.gcq-mobile .m-dock .m-dock-btn .icon {
-        font-size: 1.2rem;
+    body.gcq-mobile .m-dock .m-dock-btn .text {
+        font-size: 0.58rem;
+    }
+
+    .m-dock-icon,
+    .m-dock-ind {
+        width: 2.8rem;
     }
 }
-
-.m-dock .m-dock-btn:nth-child(1) { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='14' y='40' width='92' height='40' rx='14'/%3E%3Ccircle cx='18' cy='53' r='17'/%3E%3Ccircle cx='33' cy='40' r='17'/%3E%3Ccircle cx='60' cy='29' r='24'/%3E%3Ccircle cx='87' cy='40' r='17'/%3E%3Ccircle cx='102' cy='53' r='17'/%3E%3C/g%3E%3C/svg%3E"); }
-.m-dock .m-dock-btn:nth-child(2) { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='14' y='42' width='92' height='38' rx='14'/%3E%3Ccircle cx='18' cy='53' r='17'/%3E%3Ccircle cx='30' cy='42' r='16'/%3E%3Ccircle cx='48' cy='34' r='16'/%3E%3Ccircle cx='62' cy='30' r='22'/%3E%3Ccircle cx='86' cy='36' r='18'/%3E%3Ccircle cx='102' cy='53' r='17'/%3E%3C/g%3E%3C/svg%3E"); }
-.m-dock .m-dock-btn:nth-child(3) { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='14' y='40' width='92' height='40' rx='14'/%3E%3Ccircle cx='18' cy='53' r='17'/%3E%3Ccircle cx='34' cy='42' r='16'/%3E%3Ccircle cx='60' cy='29' r='24'/%3E%3Ccircle cx='86' cy='39' r='18'/%3E%3Ccircle cx='76' cy='13' r='11'/%3E%3Ccircle cx='102' cy='53' r='17'/%3E%3C/g%3E%3C/svg%3E"); }
-.m-dock .m-dock-btn:nth-child(4) { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='14' y='38' width='92' height='42' rx='14'/%3E%3Ccircle cx='18' cy='53' r='17'/%3E%3Ccircle cx='34' cy='33' r='19'/%3E%3Ccircle cx='60' cy='30' r='22'/%3E%3Ccircle cx='86' cy='33' r='19'/%3E%3Ccircle cx='102' cy='53' r='17'/%3E%3C/g%3E%3C/svg%3E"); }
-.m-dock .m-dock-btn:nth-child(5) { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='14' y='42' width='92' height='38' rx='14'/%3E%3Ccircle cx='18' cy='53' r='17'/%3E%3Ccircle cx='30' cy='45' r='14'/%3E%3Ccircle cx='46' cy='35' r='16'/%3E%3Ccircle cx='61' cy='29' r='23'/%3E%3Ccircle cx='88' cy='40' r='17'/%3E%3Ccircle cx='102' cy='53' r='17'/%3E%3C/g%3E%3C/svg%3E"); }
 
 /* ==========================================================================
    Sheets: a cloud-white page that slides up from the dock, a sky wash at the
@@ -1150,7 +1272,7 @@ body.gcq-mobile #m-options-subtab-sheet.m-sheet--closing {
     flex-direction: column;
 }
 
-/* --- More: a grid of cloud tiles -------------------------------------- */
+/* --- More: a grid of tiles, each with a glossy gem in its tab's colour --- */
 .m-sheet__list.m-more-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1187,29 +1309,33 @@ body.gcq-mobile .m-more-item.nav-button::before {
 
 .m-more-item__medal {
     position: relative;
-    width: 3.5rem;
-    height: 2.35rem;
+    width: 2.7rem;
+    height: 2.7rem;
     flex-shrink: 0;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    padding-bottom: 0.3rem;
-    filter: drop-shadow(0 3px 3px rgba(15, 40, 90, 0.18));
+    display: grid;
+    place-items: center;
+    border-radius: 0.95rem;
+    background:
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0) 55%),
+        linear-gradient(145deg, var(--nav-to, #7dd3fc), var(--nav-from, #0ea5e9));
+    box-shadow:
+        0 6px 12px -6px var(--nav-from, #0ea5e9),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6),
+        inset 0 -2px 0 rgba(15, 23, 42, 0.14);
+    margin-bottom: 0.15rem;
 }
 
 body.gcq-mobile .m-more-item .icon {
     position: relative;
     z-index: 1;
     width: auto;
-    font-size: 1.15rem;
+    font-size: 1.12rem;
     line-height: 1;
     color: #fff;
-    background: linear-gradient(to bottom, #ffffff 30%, var(--cloud-pearl) 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    background: none;
+    -webkit-text-fill-color: currentColor;
     text-shadow: none;
-    filter: drop-shadow(0 1.5px 0 var(--cloud-ink));
+    filter: drop-shadow(0 1px 0 rgba(15, 23, 42, 0.25));
     transform: none;
     transition: transform 0.4s var(--m-spring);
 }
@@ -1252,7 +1378,7 @@ body.gcq-mobile .m-more-item.nav-button.active .m-more-item__hint::before {
 }
 
 body.gcq-mobile .m-more-item:active .icon {
-    animation: m-dock-icon-bounce 0.4s var(--m-spring);
+    animation: m-dock-hop 0.45s var(--m-spring);
 }
 
 body.gcq-mobile .m-more-item.nav-button.nav-button-locked {
@@ -1272,15 +1398,6 @@ body.gcq-mobile .m-more-item.nav-button.nav-button-locked::after {
     background: linear-gradient(135deg, #64748b, #94a3b8);
 }
 
-.m-more-item[data-tab="shop-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='14' y='38' width='92' height='42' rx='14'/%3E%3Ccircle cx='18' cy='53' r='17'/%3E%3Ccircle cx='32' cy='35' r='20'/%3E%3Ccircle cx='60' cy='30' r='23'/%3E%3Ccircle cx='90' cy='43' r='15'/%3E%3Ccircle cx='102' cy='53' r='17'/%3E%3C/g%3E%3C/svg%3E"); }
-.m-more-item[data-tab="guilds-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='14' y='38' width='92' height='42' rx='14'/%3E%3Ccircle cx='18' cy='53' r='17'/%3E%3Ccircle cx='30' cy='43' r='15'/%3E%3Ccircle cx='60' cy='30' r='23'/%3E%3Ccircle cx='88' cy='35' r='20'/%3E%3Ccircle cx='102' cy='53' r='17'/%3E%3C/g%3E%3C/svg%3E"); }
-.m-more-item[data-tab="adventure-log-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='14' y='44' width='92' height='36' rx='14'/%3E%3Ccircle cx='18' cy='53' r='17'/%3E%3Ccircle cx='24' cy='45' r='13'/%3E%3Ccircle cx='40' cy='37' r='15'/%3E%3Ccircle cx='60' cy='30' r='23'/%3E%3Ccircle cx='80' cy='37' r='15'/%3E%3Ccircle cx='96' cy='45' r='13'/%3E%3Ccircle cx='102' cy='53' r='17'/%3E%3C/g%3E%3C/svg%3E"); }
-.m-more-item[data-tab="scholars-scroll-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='14' y='40' width='92' height='40' rx='14'/%3E%3Ccircle cx='18' cy='53' r='17'/%3E%3Ccircle cx='33' cy='41' r='17'/%3E%3Ccircle cx='60' cy='30' r='23'/%3E%3Ccircle cx='87' cy='41' r='16'/%3E%3Ccircle cx='44' cy='17' r='10'/%3E%3Ccircle cx='102' cy='53' r='17'/%3E%3C/g%3E%3C/svg%3E"); }
-.m-more-item[data-tab="calendar-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='14' y='38' width='92' height='42' rx='14'/%3E%3Ccircle cx='18' cy='53' r='17'/%3E%3Ccircle cx='27' cy='41' r='15'/%3E%3Ccircle cx='43' cy='32' r='14'/%3E%3Ccircle cx='60' cy='30' r='23'/%3E%3Ccircle cx='77' cy='32' r='14'/%3E%3Ccircle cx='93' cy='41' r='15'/%3E%3Ccircle cx='102' cy='53' r='17'/%3E%3C/g%3E%3C/svg%3E"); }
-.m-more-item[data-tab="reward-ideas-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='14' y='42' width='92' height='38' rx='14'/%3E%3Ccircle cx='18' cy='53' r='17'/%3E%3Ccircle cx='30' cy='45' r='14'/%3E%3Ccircle cx='46' cy='35' r='16'/%3E%3Ccircle cx='61' cy='29' r='23'/%3E%3Ccircle cx='88' cy='40' r='17'/%3E%3Ccircle cx='102' cy='53' r='17'/%3E%3C/g%3E%3C/svg%3E"); }
-.m-more-item[data-tab="manage-students-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='14' y='40' width='92' height='40' rx='14'/%3E%3Ccircle cx='18' cy='53' r='17'/%3E%3Ccircle cx='34' cy='42' r='16'/%3E%3Ccircle cx='60' cy='29' r='24'/%3E%3Ccircle cx='86' cy='39' r='18'/%3E%3Ccircle cx='76' cy='13' r='11'/%3E%3Ccircle cx='102' cy='53' r='17'/%3E%3C/g%3E%3C/svg%3E"); }
-.m-more-item[data-tab="options-tab"] { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='14' y='40' width='92' height='40' rx='14'/%3E%3Ccircle cx='18' cy='53' r='17'/%3E%3Ccircle cx='33' cy='40' r='17'/%3E%3Ccircle cx='60' cy='29' r='24'/%3E%3Ccircle cx='87' cy='40' r='17'/%3E%3Ccircle cx='102' cy='53' r='17'/%3E%3C/g%3E%3C/svg%3E"); }
-#m-quest-remote-item { --cloud-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70' preserveAspectRatio='none'%3E%3Cg fill='%23000'%3E%3Crect x='14' y='41' width='92' height='39' rx='14'/%3E%3Ccircle cx='18' cy='53' r='17'/%3E%3Ccircle cx='36' cy='38' r='18'/%3E%3Ccircle cx='58' cy='30' r='22'/%3E%3Ccircle cx='82' cy='35' r='16'/%3E%3Ccircle cx='68' cy='13' r='9'/%3E%3Ccircle cx='102' cy='53' r='17'/%3E%3C/g%3E%3C/svg%3E"); }
 
 .m-sheet__footer {
     display: grid;

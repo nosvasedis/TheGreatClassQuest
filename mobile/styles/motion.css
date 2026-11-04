@@ -319,6 +319,10 @@ body.gcq-mobile #m-secretary-dock {
     body.gcq-mobile #m-teacher-dock,
     body.gcq-mobile #m-secretary-dock,
     .m-dock-btn.active .icon,
+    .m-dock-btn--hop .icon,
+    .m-dock-btn--hop .m-dock-coin,
+    .m-dock-btn--hop .m-dock-coin::after,
+    .m-dock-ind,
     .m-home-pop,
     .m-home-stat__icon {
         animation: none !important;

@@ -685,46 +685,65 @@
     box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.55);
 }
 
-/* ── Actions ── */
+/* ── Actions: three raised doors (Hero Stats · Scholar's Folio · Skill Tree) ── */
 .hs-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.55rem;
+    display: grid;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    gap: 0.6rem;
     margin: 1.1rem 1.25rem 0;
 }
 .hs-btn {
-    flex: 1 1 0;
-    min-width: 8.5rem;
-    display: inline-flex;
+    --hs-b1: #7dd3fc;
+    --hs-b2: #0284c7;
+    --hs-edge: #075985;
+    position: relative;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.7rem 1rem;
+    gap: 0.35rem;
+    padding: 0.65rem 0.45rem 0.7rem;
     border: 0;
-    border-radius: 9999px;
-    font-weight: 700;
-    font-size: 0.92rem;
+    border-radius: 1.1rem;
+    text-align: center;
     color: #fff;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 48%),
+        linear-gradient(160deg, var(--hs-b1), var(--hs-b2));
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.55),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.12),
+        0 4px 0 var(--hs-edge),
+        0 10px 18px -8px var(--hs-edge);
     cursor: pointer;
-    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
-.hs-btn:hover { transform: translateY(-1px); filter: brightness(1.07); }
-.hs-btn:active { transform: translateY(3px); }
-.hs-btn--sky {
-    background: linear-gradient(180deg, #38bdf8, #0284c7);
-    box-shadow: 0 4px 0 #075985, 0 8px 18px rgba(14, 165, 233, 0.25);
+.hs-btn:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 -2px 0 rgba(0, 0, 0, 0.12), 0 6px 0 var(--hs-edge), 0 14px 22px -10px var(--hs-edge); }
+.hs-btn:active { transform: translateY(3px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 0 var(--hs-edge); }
+.hs-btn__icon {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 2.35rem;
+    height: 2.35rem;
+    border-radius: 50%;
+    font-size: 0.95rem;
+    color: var(--hs-edge);
+    background: radial-gradient(circle at 35% 30%, #fff, #e8f1ff 70%);
+    box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.18);
 }
-.hs-btn--sky:active { box-shadow: 0 1px 0 #075985; }
-.hs-btn--violet {
-    background: linear-gradient(180deg, #a78bfa, #7c3aed);
-    box-shadow: 0 4px 0 #5b21b6, 0 8px 18px rgba(124, 58, 237, 0.3);
-}
-.hs-btn--violet:active { box-shadow: 0 1px 0 #5b21b6; }
+.hs-btn__text { display: flex; flex-direction: column; align-items: center; min-width: 0; max-width: 100%; line-height: 1.15; }
+.hs-btn__text b { font-size: 0.92rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.18); }
+.hs-btn__text small { font-size: 0.7rem; font-weight: 600; opacity: 0.88; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hs-btn--scroll { --hs-b1: #fcd34d; --hs-b2: #d97706; --hs-edge: #92400e; }
+.hs-btn--violet { --hs-b1: #c4b5fd; --hs-b2: #7c3aed; --hs-edge: #5b21b6; }
 .hs-btn--violet.is-levelup {
-    background: linear-gradient(180deg, #e879f9, #9333ea);
+    --hs-b1: #f0abfc;
+    --hs-b2: #9333ea;
     animation: level-up-badge-pulse 1.8s ease-in-out infinite;
 }
-.hs-btn--violet.is-levelup i { animation: hs-bob 1.2s ease-in-out infinite; }
+.hs-btn--violet.is-levelup .hs-btn__icon i { animation: hs-bob 1.2s ease-in-out infinite; }
 
 .hs-card :is(button, [tabindex]):focus-visible {
     outline: 3px solid #fcd34d;
@@ -760,12 +779,15 @@
     .hs-pocket { grid-template-columns: repeat(auto-fill, minmax(3.1rem, 1fr)); margin: 0.3rem 0.55rem 0; padding: 0.5rem; gap: 0.45rem; }
     .hs-satchel-head { gap: 0.5rem; padding: 0.55rem 0.6rem 0.35rem; }
     .hs-open { padding: 0.35rem 0.65rem; }
-    .hs-btn { min-width: 0; }
+    .hs-actions { gap: 0.45rem; }
+    .hs-btn { gap: 0.3rem; padding: 0.55rem 0.35rem 0.6rem; }
+    .hs-btn__text b { font-size: 0.8rem; }
+    .hs-btn__text small { font-size: 0.62rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .hs-aura, .hs-runes, .hs-aurora, .hs-star, .hs-shooting, .hs-pennant, .hs-familiar, .hs-today, .hs-medal::after,
-    .hs-path-fill, .hs-spell-art, .hs-tile.is-ready::before, .hs-btn--violet.is-levelup, .hs-btn--violet.is-levelup i { animation: none; }
+    .hs-path-fill, .hs-spell-art, .hs-tile.is-ready::before, .hs-btn--violet.is-levelup, .hs-btn--violet.is-levelup .hs-btn__icon i { animation: none; }
     .hero-stage.active :is(.hs-id, .hs-medals, .hs-path, .hs-spells, .hs-satchel, .hs-actions), .hero-stage.active .hs-pocket > li { animation: none; }
     .hero-stage .hs-flyer, .hs-card, .hs-path-fill { transition-duration: 0.01ms; }
     .hs-shooting { display: none; }

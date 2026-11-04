@@ -166,23 +166,52 @@
 }
 .hx-pathline span { margin-right: 0.3rem; }
 .hx-pathline b { color: #fff; }
-.hx-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.6rem; }
+.hx-tags { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.7rem; }
+/* Raised enamel badges: a coin for the picture, a small kicker over the name. */
 .hx-tag {
+    --hx-t1: #fffaf0;
+    --hx-t2: #efe0bd;
+    --hx-tedge: #b89a5e;
+    --hx-tink: #3b2f1e;
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-    padding: 0.22rem 0.65rem 0.22rem 0.5rem;
+    gap: 0.45rem;
+    padding: 0.22rem 0.8rem 0.26rem 0.24rem;
     border-radius: 999px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #fff;
-    background: rgba(255, 255, 255, 0.16);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.24);
+    color: var(--hx-tink);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 55%),
+        linear-gradient(180deg, var(--hx-t1), var(--hx-t2));
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.08),
+        0 3px 0 var(--hx-tedge),
+        0 7px 12px -6px rgba(0, 0, 0, 0.45);
 }
-.hx-tag img { width: 1.1rem; height: 1.1rem; object-fit: contain; }
-.hx-tag--guild { background: color-mix(in srgb, var(--hx-guild) 45%, rgba(255, 255, 255, 0.12)); }
-.hx-tag--gold { color: #422c03; background: linear-gradient(180deg, #fef3c7, #fcd34d); box-shadow: none; }
-.hx-tag--rose { color: #831843; background: #fce7f3; box-shadow: none; }
+.hx-tag__coin {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 1.9rem;
+    height: 1.9rem;
+    border-radius: 50%;
+    font-size: 1.05rem;
+    line-height: 1;
+    background: radial-gradient(circle at 35% 30%, #fff, #f6ecd8 75%);
+    box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+.hx-tag__coin img { width: 1.35rem; height: 1.35rem; object-fit: contain; }
+.hx-tag__text { display: flex; flex-direction: column; line-height: 1.1; font-size: 0.86rem; font-weight: 700; white-space: nowrap; }
+.hx-tag__text small { font-size: 0.56rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.62; }
+.hx-tag--guild {
+    --hx-t1: color-mix(in srgb, var(--hx-guild) 55%, #fff);
+    --hx-t2: var(--hx-guild);
+    --hx-tedge: color-mix(in srgb, var(--hx-guild) 60%, #000);
+    --hx-tink: #fff;
+}
+.hx-tag--guild .hx-tag__text { text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3); }
+.hx-tag--gold { --hx-t1: #fff3c4; --hx-t2: #f6b93b; --hx-tedge: #a8640b; --hx-tink: #4a2f02; }
+.hx-tag--rose { --hx-t1: #ffe4f1; --hx-t2: #f472b6; --hx-tedge: #9d174d; --hx-tink: #500724; }
 
 /* Wax seal: the hero's place in the class this month. */
 .hx-seal {
@@ -666,25 +695,6 @@
 .hx-meter { display: block; height: 0.45rem; margin-top: 0.45rem; border-radius: 999px; background: #efe6d2; overflow: hidden; }
 .hx-meter span { display: block; height: 100%; border-radius: inherit; background: var(--hx-fam, var(--hx-accent)); }
 
-.hx-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    margin-top: 0.7rem;
-    padding: 0.35rem 0.8rem;
-    border: 0;
-    border-radius: 999px;
-    font: inherit;
-    font-size: 0.82rem;
-    font-weight: 700;
-    color: var(--hx-accent);
-    background: color-mix(in srgb, var(--hx-accent) 10%, #fff);
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hx-accent) 25%, transparent);
-    cursor: pointer;
-}
-.hx-card__head .hx-link { margin-top: 0; }
-.hx-link:hover { background: color-mix(in srgb, var(--hx-accent) 16%, #fff); }
-
 /* ── Scholar's Scroll ── */
 .hx-trials__body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 1rem; align-items: center; }
 .hx-facts { display: flex; flex-wrap: wrap; gap: 0.5rem; }
@@ -736,7 +746,6 @@
     background: #f5eddb;
     box-shadow: 0 -1px 0 var(--hx-rule);
 }
-.hx-foot__gap { flex: 1; }
 .hx-btn {
     display: inline-flex;
     align-items: center;
@@ -755,8 +764,6 @@
 .hx-btn:hover { transform: translateY(-1px); }
 .hx-btn:focus-visible { outline: 3px solid color-mix(in srgb, var(--hx-accent) 45%, transparent); outline-offset: 2px; }
 .hx-btn--ghost { color: var(--hx-ink); background: #fffdf8; box-shadow: inset 0 0 0 1px #e2d5b9; }
-.hx-btn--satchel { color: #fff7ea; background: linear-gradient(180deg, #a5673a, #7a4523); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 6px 14px -8px #7a4523; }
-.hx-btn--star { color: #4a2f02; background: linear-gradient(180deg, #fde68a, #f5b82e); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 8px 18px -8px #d97706; }
 
 /* ── Phones and narrow windows ── */
 @media (max-width: 860px) {
@@ -769,7 +776,6 @@
     .hx-shell { max-height: calc(100dvh - 0.8rem); border-radius: 1.3rem; overflow-y: auto; overscroll-behavior: contain; }
     .hx-body { flex: none; overflow: visible; }
     .hx-foot { position: sticky; bottom: 0; z-index: 3; flex-wrap: nowrap; padding-bottom: calc(0.7rem + env(safe-area-inset-bottom, 0px)); }
-    .hx-btn__extra { display: none; }
     .hx-head {
         grid-template-columns: auto minmax(0, 1fr);
         gap: 0.8rem;
@@ -788,8 +794,10 @@
     .hx-seal b { font-size: 1.35rem; }
     .hx-seal span { display: none; }
     .hx-close { top: 0.7rem; right: 0.7rem; width: 2.2rem; height: 2.2rem; }
-    .hx-tags { margin-top: 0.45rem; }
-    .hx-tag { font-size: 0.74rem; }
+    .hx-tags { margin-top: 0.5rem; gap: 0.4rem; }
+    .hx-tag { padding-right: 0.65rem; }
+    .hx-tag__coin { width: 1.6rem; height: 1.6rem; font-size: 0.9rem; }
+    .hx-tag__text { font-size: 0.76rem; }
     .hx-body { padding: 1rem 0.8rem 1rem; gap: 0.8rem; }
     .hx-card { padding: 0.85rem 0.85rem 0.95rem; }
     .hx-vitals { gap: 0.55rem; }
@@ -805,9 +813,8 @@
     .hx-rose-wrap { grid-template-columns: minmax(0, 9.5rem) minmax(0, 1fr); gap: 0.6rem; }
     .hx-rose__legend li { font-size: 0.82rem; padding-right: 0.35rem; }
     .hx-stone span { font-size: 0.62rem; }
-    .hx-foot { padding-left: 0.8rem; padding-right: 0.8rem; padding-top: 0.7rem; gap: 0.45rem; }
-    .hx-foot .hx-btn { flex: 1 1 0; min-width: 0; padding: 0.5rem 0.6rem; font-size: 0.9rem; white-space: nowrap; }
-    .hx-foot__gap { display: none; }
+    .hx-foot { padding-left: 0.8rem; padding-right: 0.8rem; padding-top: 0.7rem; }
+    .hx-foot .hx-btn { flex: 1 1 auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {

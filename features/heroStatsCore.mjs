@@ -56,6 +56,16 @@ export function buildYearMonths({ start = null, end = null, today = new Date(), 
     return { months, max, best: months.find((m) => m.best) || null, yearSum, average };
 }
 
+/**
+ * A hero with no star yet this month still holds last month's stars in the live counter
+ * (the archive is written only when their next star arrives). Fill that month from the counter
+ * when the archive has no page for it.
+ */
+export function withCarriedMonth(history = {}, staleMonth = '', counterStars = 0) {
+    if (!/^\d{4}-\d{2}$/.test(String(staleMonth || '')) || history[staleMonth] !== undefined) return history;
+    return { ...history, [staleMonth]: round1(counterStars) };
+}
+
 /** Bar height in % for a month (a small stub for 0 so the column still reads as a month). */
 export function monthBarPercent(stars, max) {
     if (stars === null || stars === undefined) return 0;

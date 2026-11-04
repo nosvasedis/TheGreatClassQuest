@@ -122,6 +122,7 @@ async function buildStageView(studentId) {
         guild: guildDef ? { name: guildDef.name, emoji: guildDef.emoji, primary: guildDef.primary } : null,
         pendingSkillChoice: !!scoreData.pendingSkillChoice,
         hasFamiliar: !!scoreData.familiar,
+        showFolio: canUseFeature('scholarScroll'),
         ...(await buildStageBody(studentId)),
     };
 }
@@ -366,6 +367,7 @@ async function openHeroStage(avatar, studentId) {
             else if (action === 'vault') closeThen(() => import('../modals/index.js').then((m) => m.openTrophyRoomModal(studentId)));
             else if (action === 'stats') closeThen(() => openHeroView(studentId));
             else if (action === 'skills') closeThen(() => openSkillTreeModal(studentId));
+            else if (action === 'folio') closeThen(() => import('../modals/studentAnalytics.js').then((m) => m.openStudentAnalyticsModal(studentId)));
             else if (action === 'familiar') closeThen(() => openFamiliarStatsOverlay(studentId));
             return;
         }

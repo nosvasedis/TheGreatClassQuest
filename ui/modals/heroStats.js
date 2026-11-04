@@ -38,6 +38,7 @@ import {
     buildAttendance,
     buildLegend,
     buildSparkline,
+    withCarriedMonth,
 } from '../../features/heroStatsCore.mjs';
 
 const MODAL_ID = 'hero-stats-modal';
@@ -288,12 +289,17 @@ function renderHead(ctx) {
     const { hero, classData, guild, path, gentle, today, staleMonth } = ctx;
     const monthName = today.toLocaleDateString('en-GB', { month: 'long' });
     const emblem = guild ? getGuildEmblemUrl(ctx.student.guildId) : '';
+    const tag = (tone, coin, kicker, text, style = '') => `
+                    <span class="hx-tag hx-tag--${tone}"${style ? ` style="${style}"` : ''}>
+                        <span class="hx-tag__coin" aria-hidden="true">${coin}</span>
+                        <span class="hx-tag__text"><small>${kicker}</small>${text}</span>
+                    </span>`;
     const tags = [
-        `<span class="hx-tag"><span aria-hidden="true">${esc(classData.logo || '📚')}</span>${esc(classData.name || 'Class')}</span>`,
-        guild ? `<span class="hx-tag hx-tag--guild" style="--hx-guild:${esc(guild.primary)}">${emblem ? `<img src="${esc(emblem)}" alt="">` : `<span aria-hidden="true">${esc(guild.emoji || '🛡️')}</span>`}${esc(guild.name)}</span>` : '',
-        hero.isHero ? '<span class="hx-tag hx-tag--gold"><span aria-hidden="true">👑</span>Latest Hero of the Day</span>' : '',
-        hero.isBirthday ? '<span class="hx-tag hx-tag--rose"><span aria-hidden="true">🎂</span>Birthday today</span>' : '',
-        hero.isNameday ? '<span class="hx-tag hx-tag--rose"><span aria-hidden="true">🫒</span>Name day today</span>' : '',
+        tag('class', esc(classData.logo || '📚'), 'Class', esc(classData.name || 'Class')),
+        guild ? tag('guild', emblem ? `<img src="${esc(emblem)}" alt="">` : esc(guild.emoji || '🛡️'), 'Guild', esc(guild.name), `--hx-guild:${esc(guild.primary)}`) : '',
+        hero.isHero ? tag('gold', '👑', 'Honour', 'Latest Hero of the Day') : '',
+        hero.isBirthday ? tag('rose', '🎂', 'Today', 'Birthday') : '',
+        hero.isNameday ? tag('rose', '🫒', 'Today', 'Name day') : '',
     ].join('');
     const pathLine = path
         ? `<p class="hx-pathline"><span aria-hidden="true">${esc(path.icon || '')}</span>${path.level > 0 ? `<b>${esc(path.title)}</b> · ` : ''}${esc(path.name)} path${path.level > 0 ? '' : ' · first level ahead'}</p>`
@@ -527,7 +533,7 @@ function renderAttendance(ctx) {
 }
 
 function renderBoons(ctx) {
-    const { boon, month, today, isMine } = ctx;
+    const { boon, month, today } = ctx;
     const st = boon.status;
     const opens = st.opensOn.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     let teacher = '';
@@ -545,7 +551,6 @@ function renderBoons(ctx) {
                 <li class="${st.state === 'received' ? 'is-gold' : ''}"><i class="fas fa-gift" aria-hidden="true"></i><span>${teacher}</span></li>
                 ${peers}
             </ul>
-            ${st.state === 'open' && isMine ? '<button type="button" class="hx-link" data-hx-action="boon"><i class="fas fa-gift" aria-hidden="true"></i> Give the Teacher Boon</button>' : ''}
         </section>`;
 }
 
@@ -573,11 +578,7 @@ function renderCompanion(ctx) {
 function renderTrials(ctx) {
     const t = ctx.trials;
     if (!t) return '';
-    const head = `
-        <div class="hx-card__head">
-            <h3 class="hx-card__title"><i class="fas fa-feather" aria-hidden="true"></i> Scholar’s Scroll · last 3 months</h3>
-            <button type="button" class="hx-link" data-hx-folio><i class="fas fa-book-open" aria-hidden="true"></i> Scholar’s Folio</button>
-        </div>`;
+    const head = '<h3 class="hx-card__title"><i class="fas fa-feather" aria-hidden="true"></i> Scholar’s Scroll · last 3 months</h3>';
     if (!t.count) return `<section class="hx-card hx-trials">${head}<p class="hx-muted">No trials logged for ${esc(ctx.hero.firstName)} in the last 3 months.</p></section>`;
     const s = t.spark;
     const chart = s.dots.length > 1
@@ -607,13 +608,12 @@ function renderTrials(ctx) {
         </section>`;
 }
 
-function renderFoot(ctx, { fromRoster }) {
+/** Only from the class roster: a way back to it (the banner's × closes everywhere). */
+function renderFoot({ fromRoster }) {
+    if (!fromRoster) return '';
     return `
         <footer class="hx-foot">
-            <button type="button" class="hx-btn hx-btn--ghost" data-hx-close>${fromRoster ? '<i class="fas fa-arrow-left" aria-hidden="true"></i> Back to roster' : 'Close'}</button>
-            <span class="hx-foot__gap"></span>
-            ${ctx.isMine ? `<button type="button" class="hx-btn hx-btn--satchel" data-hx-action="satchel"><i class="fas fa-briefcase" aria-hidden="true"></i><span><span class="hx-btn__extra">Open </span>Satchel</span></button>` : ''}
-            ${ctx.isMine ? `<button type="button" class="hx-btn hx-btn--star" data-hx-action="award"><i class="fas fa-star" aria-hidden="true"></i><span>Award<span class="hx-btn__extra"> Stars</span></span></button>` : ''}
+            <button type="button" class="hx-btn hx-btn--ghost" data-hx-close><i class="fas fa-arrow-left" aria-hidden="true"></i> Back to roster</button>
         </footer>`;
 }
 
@@ -636,7 +636,7 @@ function renderAll(ctx, opts) {
             ${side.length ? `<div class="hx-grid hx-grid--minis">${side.join('')}</div>` : ''}
             ${renderTrials(ctx)}
         </div>
-        ${renderFoot(ctx, opts)}`;
+        ${renderFoot(opts)}`;
 }
 
 // ─── Shell + wiring ───────────────────────────────────────────────────────────
@@ -662,7 +662,7 @@ export function isHeroStatsOpen() {
 /**
  * Open one hero's stats.
  * @param {string} studentId
- * @param {{ fromRoster?: boolean, onAward?: (classId:string)=>void, onBoon?: (classId:string)=>void }} [opts]
+ * @param {{ fromRoster?: boolean }} [opts]
  * @returns {Promise<boolean>} false when the hero or their class cannot be found
  */
 export async function openHeroStatsModal(studentId, opts = {}) {
@@ -695,45 +695,19 @@ export async function openHeroStatsModal(studentId, opts = {}) {
                     : 'The first stars are still ahead';
         }
     };
-    fetchYearHistory(studentId).then(fillYear).catch((err) => {
+    // No star yet this month: last month still sits in the live counter, not in the archive.
+    fetchYearHistory(studentId).then((history) => fillYear(withCarriedMonth(history, ctx.staleMonth, ctx.score.monthlyStars))).catch((err) => {
         console.warn('Hero stats: month history unavailable:', err);
         // Without the archive the current month still shows; past months stay unknown, never 0.
         fillYear({}, 'failed');
     });
 
     const close = () => { session?.dispose(); hideModal(MODAL_ID); };
-    const runAction = (action) => {
-        const classId = ctx.classData.id;
-        close();
-        if (action === 'award') {
-            if (opts.onAward) return opts.onAward(classId);
-            state.setGlobalSelectedClass(classId, true);
-            import('../tabs/index.js').then((tabs) => tabs.showTab('award-stars-tab'));
-        } else if (action === 'boon') {
-            if (opts.onBoon) return opts.onBoon(classId);
-            state.setGlobalSelectedClass(classId, true);
-            import('./teacherBoon.js').then((m) => m.openTeacherBoonModal());
-        } else if (action === 'satchel') {
-            import('./trophyRoom.js').then((m) => m.openTrophyRoomModal(studentId));
-        }
-        return undefined;
-    };
-
     const onClick = (event) => {
-        if (event.target === modal) return close();
-        if (event.target.closest('[data-hx-close]')) return close();
-        if (event.target.closest('[data-hx-folio]')) {
-            // The Folio sits above this modal (z-200); closing it returns here.
-            import('./studentAnalytics.js').then((m) => m.openStudentAnalyticsModal(studentId, event.target.closest('[data-hx-folio]')));
-            return undefined;
-        }
-        const action = event.target.closest('[data-hx-action]')?.dataset.hxAction;
-        if (action && ctx.isMine) runAction(action);
-        return undefined;
+        if (event.target === modal || event.target.closest('[data-hx-close]')) close();
     };
     const onKey = (event) => {
         if (event.key !== 'Escape' || modal.classList.contains('hidden')) return;
-        if (document.querySelector('#student-analytics-modal:not(.hidden)')) return;
         event.stopPropagation();
         close();
     };

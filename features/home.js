@@ -1065,12 +1065,7 @@ async function openScheduleClassRoster(classId) {
                 state.setGlobalSelectedClass(id, true);
                 tabs.showTab('award-stars-tab');
             },
-            onEditClass: (id) => modals.openEditClassModal(id),
-            onTeacherBoon: (id) => {
-                state.setGlobalSelectedClass(id, true);
-                renderHomeTab();
-                modals.openTeacherBoonModal();
-            }
+            onEditClass: (id) => modals.openEditClassModal(id)
         });
     } catch (error) {
         console.error('Class roster unavailable:', error);

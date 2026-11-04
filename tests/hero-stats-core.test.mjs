@@ -8,6 +8,7 @@ import {
     buildAttendance,
     buildLegend,
     buildSparkline,
+    withCarriedMonth,
 } from '../features/heroStatsCore.mjs';
 
 test('year row runs Sep to Jun with archived months, the live month and months ahead', () => {
@@ -39,6 +40,13 @@ test('past months stay unknown while loading, so nothing claims a zero yet', () 
     assert.equal(year.months[0].stars, null);
     assert.equal(year.best.key, '2026-11');
     assert.equal(year.average, null);
+});
+
+test('a hero with no star yet this month keeps last month from the live counter', () => {
+    // Absent all November: October was never archived, the counter still holds it.
+    assert.deepEqual(withCarriedMonth({ '2026-09': 7 }, '2026-10', 18.5), { '2026-09': 7, '2026-10': 18.5 });
+    assert.deepEqual(withCarriedMonth({ '2026-10': 18.5 }, '2026-10', 3), { '2026-10': 18.5 }, 'an archived page wins');
+    assert.deepEqual(withCarriedMonth({ a: 1 }, '', 5), { a: 1 });
 });
 
 test('bars: a stub for zero, scaled otherwise, none for months ahead', () => {
@@ -97,9 +105,12 @@ test('Hero Stage opens Hero stats, and the roster no longer carries the old hero
     assert.match(avatar, /import\('\.\.\/modals\/heroStats\.js'\)/);
     const roster = readFileSync(new URL('../ui/modals/classRoster.js', import.meta.url), 'utf8');
     assert.doesNotMatch(roster, /renderHeroDetail|loadChart/);
+    const view = readFileSync(new URL('../ui/core/heroStageView.mjs', import.meta.url), 'utf8');
+    assert.match(view, /stageActionHtml\('folio'/, 'Scholar\'s Folio sits beside Hero Stats and Skill Tree');
     assert.match(roster, /openHeroStatsModal\(heroId/);
     const modal = readFileSync(new URL('../ui/modals/heroStats.js', import.meta.url), 'utf8');
     assert.match(modal, /import\('\.\.\/\.\.\/styles\/hero_stats\.css'\)/, 'styles load with the modal');
+    assert.doesNotMatch(modal, /data-hx-folio|data-hx-action|Award Stars|Open Satchel/, 'stats only: no action buttons');
     const startup = readFileSync(new URL('../style.css', import.meta.url), 'utf8');
     assert.doesNotMatch(startup, /hero_stats\.css/, 'not in the startup stylesheet');
 });

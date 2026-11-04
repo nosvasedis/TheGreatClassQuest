@@ -22,6 +22,14 @@ export function formatStageNumber(value) {
 
 export const STAGE_TILE_LIMIT = 7;
 
+/** One of the three book-like doors at the foot of the Hero Stage. */
+function stageActionHtml(action, tone, icon, title, hint) {
+    return `<button type="button" class="hs-btn hs-btn--${tone}" data-hs-action="${action}">
+                    <span class="hs-btn__icon" aria-hidden="true"><i class="fas ${icon}"></i></span>
+                    <span class="hs-btn__text"><b>${escStage(title)}</b><small>${escStage(hint)}</small></span>
+                </button>`;
+}
+
 /**
  * Tiles for the Satchel peek: every relic stack first (ready to use), then the newest treasures.
  * `readyCharms` holds inventory indices whose treasure charm is awake. Returns { tiles, more }.
@@ -162,12 +170,12 @@ export function renderHeroStageBodyHtml({ stats = {}, path = null, effects = [],
  * @param {{ student: {id:string,name:string}, classLabel?: string,
  *   path?: {icon:string,name:string,title:string,level:number,color?:string,progress?:object}|null,
  *   guild?: {name:string,emoji?:string,primary:string}|null,
- *   pendingSkillChoice?: boolean, hasFamiliar?: boolean, showSkillTree?: boolean,
+ *   pendingSkillChoice?: boolean, hasFamiliar?: boolean, showSkillTree?: boolean, showFolio?: boolean,
  *   stats: {monthlyStars:number,totalStars:number,gold:number,todayStars?:number}, effects?: Array,
  *   satchel: {tiles:Array,more:number}, total: number, ready?: number }} view
  */
 export function renderHeroStageHtml(view) {
-    const { student, classLabel = '', path = null, guild = null, pendingSkillChoice = false, hasFamiliar = false, showSkillTree = true } = view;
+    const { student, classLabel = '', path = null, guild = null, pendingSkillChoice = false, hasFamiliar = false, showSkillTree = true, showFolio = false } = view;
     const firstName = String(student.name || 'Hero').trim().split(/\s+/)[0] || 'Hero';
     const titleId = `hs-name-${escStage(student.id)}`;
 
@@ -212,9 +220,10 @@ export function renderHeroStageHtml(view) {
                 ${renderHeroStageBodyHtml({ ...view, firstName })}
             </div>
             <footer class="hs-actions">
-                <button type="button" class="hs-btn hs-btn--sky" data-hs-action="stats"><i class="fas fa-chart-line" aria-hidden="true"></i><span>Hero stats</span></button>
-                ${showSkillTree ? `<button type="button" class="hs-btn hs-btn--violet${pendingSkillChoice ? ' is-levelup' : ''}" data-hs-action="skills">
-                    <i class="fas ${pendingSkillChoice ? 'fa-arrow-up' : 'fa-sitemap'}" aria-hidden="true"></i><span>${pendingSkillChoice ? 'Level up! Pick a skill' : 'Skill Tree'}</span></button>` : ''}
+                ${stageActionHtml('stats', 'sky', 'fa-chart-line', 'Hero Stats', 'The year in stars')}
+                ${showFolio ? stageActionHtml('folio', 'scroll', 'fa-book-open', 'Scholar\u2019s Folio', 'Trials and marks') : ''}
+                ${showSkillTree ? stageActionHtml('skills', `violet${pendingSkillChoice ? ' is-levelup' : ''}`, pendingSkillChoice ? 'fa-arrow-up' : 'fa-sitemap',
+                    'Skill Tree', pendingSkillChoice ? 'Level up! Pick a skill' : 'Path and skills') : ''}
             </footer>
         </div>`;
 }

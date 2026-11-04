@@ -346,7 +346,7 @@ let session = null;
  * Open the roster peek for a class on the school schedule. Tapping a hero opens their
  * Hero stats (ui/modals/heroStats.js) above the roster; closing it comes back here.
  * @param {string} classId
- * @param {{ onEnterClass?: (id:string)=>void, onAwardStars?: (id:string)=>void, onEditClass?: (id:string)=>void, onTeacherBoon?: (id:string)=>void }} [hooks]
+ * @param {{ onEnterClass?: (id:string)=>void, onAwardStars?: (id:string)=>void, onEditClass?: (id:string)=>void }} [hooks]
  */
 export function openClassRosterModal(classId, hooks = {}) {
     const classData = (state.get('allSchoolClasses') || []).find((c) => c.id === classId);
@@ -385,14 +385,8 @@ export function openClassRosterModal(classId, hooks = {}) {
         heroStats ||= import('./heroStats.js');
         return heroStats;
     };
-    // An action taken inside Hero stats leaves the roster too.
-    const leaveWith = (hook) => (id) => { close(); hook?.(id); };
     const showHero = (heroId) => loadHeroStats()
-        .then((m) => m.openHeroStatsModal(heroId, {
-            fromRoster: true,
-            onAward: leaveWith(hooks.onAwardStars),
-            onBoon: leaveWith(hooks.onTeacherBoon)
-        }))
+        .then((m) => m.openHeroStatsModal(heroId, { fromRoster: true }))
         .catch((error) => console.error('Hero stats unavailable:', error));
 
     const onClick = (event) => {

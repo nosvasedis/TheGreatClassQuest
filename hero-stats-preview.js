@@ -36,6 +36,7 @@ const students = [
     { id: 'eleni', name: 'Eleni Dimitriou', classId: 'c1', avatar: '' },
     { id: 'maria', name: 'Maria Papadaki', classId: 'c1', guildId: 'owl_wisdom', avatar: face('#bbf7d0', '#16a34a') },
     { id: 'tiny', name: 'Giorgos Alexiou', classId: 'c2', avatar: face('#bae6fd', '#0369a1') },
+    { id: 'zisimos', name: 'Zisimos Dimakopoulos', classId: 'c1', heroClass: 'Guardian', guildId: 'dragon_flame', avatar: face('#fed7aa', '#c2410c') },
 ];
 const scores = [
     {
@@ -48,6 +49,8 @@ const scores = [
     { id: 'eleni', monthlyStars: 0, totalStars: 0, gold: 0, inventory: [] },
     { id: 'maria', monthlyStars: 12, totalStars: 40, gold: 50, inventory: [] },
     { id: 'tiny', monthlyStars: 3, totalStars: 11, gold: 9, inventory: [] },
+    // Absent all November: October's 18.5 still sits in the counter, never archived.
+    { id: 'zisimos', monthlyStars: 18.5, lastMonthlyResetDate: '2026-10-01', totalStars: 30, gold: 44, heroLevel: 1, starsByReason: { respect: 22 }, inventory: [] },
 ];
 const log = (id, studentId, back, reason, stars, note = '') => ({ id, studentId, classId: 'c1', reason, stars, date: dayKey(back), note, createdAt: stamp(back) });
 const logs = [
@@ -82,9 +85,10 @@ primeHeroStatsHistory('nikos', { '2026-09': 8, '2026-10': 17.5 });
 primeHeroStatsHistory('valentina', { '2026-09': 9, '2026-10': 13 });
 primeHeroStatsHistory('tiny', { '2026-09': 3, '2026-10': 5 });
 primeHeroStatsHistory('eleni', {});
+primeHeroStatsHistory('zisimos', { '2026-09': 11.5 });
 primeHeroStatsHistory('maria', { '2026-09': 14, '2026-10': 11 });
 
-document.getElementById('pv-toolbar').innerHTML = ['?hero=nikos', '?hero=valentina', '?hero=eleni', '?hero=tiny', '?hero=nikos&roster=1', '?hero=valentina&boon=1']
+document.getElementById('pv-toolbar').innerHTML = ['?hero=nikos', '?hero=valentina', '?hero=eleni', '?hero=tiny', '?hero=nikos&roster=1', '?hero=zisimos']
     .map((q) => `<a href="${q}">${q.slice(1)}</a>`).join('');
 
 const hero = params.get('hero') || 'nikos';

@@ -69,20 +69,31 @@ test('a class with no weekly days keeps the usual goal', () => {
 test('from December 2026 the weekday a class meets on no longer changes its stars per lesson', () => {
     // March 2027: 31 days, five Mondays, Tuesdays and Wednesdays; four of the rest. No holidays used.
     const mar = new Date(2027, 2, 1);
-    const mon = { id: 'm', scheduleDays: ['1'] };
-    const thu = { id: 't', scheduleDays: ['4'] };
-    assert.equal(getMonthlyLessonBalanceForDate(mon, [], [], mar).ran, 5);
-    assert.equal(getMonthlyLessonBalanceForDate(thu, [], [], mar).ran, 4);
+    const mon = { id: 'm', scheduleDays: ['1', '3'] };
+    const thu = { id: 't', scheduleDays: ['4', '5'] };
+    assert.equal(getMonthlyLessonBalanceForDate(mon, [], [], mar).ran, 10);
+    assert.equal(getMonthlyLessonBalanceForDate(thu, [], [], mar).ran, 8);
     const gMon = calculateMonthlyClassGoalForDate(mon, 10, [], [], mar);
     const gThu = calculateMonthlyClassGoalForDate(thu, 10, [], [], mar);
-    assert.ok(gMon > gThu, 'five lessons ask for more stars than four');
-    assert.ok(Math.abs(gMon / 5 - gThu / 4) <= 1, 'the same stars per lesson');
+    assert.ok(gMon > gThu, 'ten lessons ask for more stars than eight');
+    assert.ok(Math.abs(gMon / 10 - gThu / 8) <= 1, 'the same stars per lesson');
     // An extra (make-up) lesson with nothing lost now counts as a lesson too.
-    const extra = [{ classId: 't', type: 'one-time', date: '05-03-2027' }];
-    assert.equal(getMonthlyLessonBalanceForDate(thu, [], extra, mar).ran, 5);
+    const extra = [{ classId: 't', type: 'one-time', date: '06-03-2027' }];
+    assert.equal(getMonthlyLessonBalanceForDate(thu, [], extra, mar).ran, 9);
     // The bounds: never below 60% or above 120% of the usual goal.
     const closed = [{ start: '2027-03-01', end: '2027-03-31', name: 'Closed' }];
     assert.equal(getMonthlyGoalModifierForDate(mon, closed, [], mar), 0.6);
     // Months already played keep their goals.
     assert.equal(getMonthlyGoalModifierForDate(tueThu, ranges, [], OCT), 1);
+});
+
+test('from December 2026 a goal follows lessons per week: two is the usual goal', () => {
+    const apr = new Date(2027, 3, 1); // 30 days, no holidays used
+    const once = { id: 'o', scheduleDays: ['2'] };
+    const twice = { id: 'w', scheduleDays: ['2', '4'] };
+    const thrice = { id: 'h', scheduleDays: ['1', '3', '5'] };
+    const per = (c) => calculateMonthlyClassGoalForDate(c, 10, [], [], apr) / getMonthlyLessonBalanceForDate(c, [], [], apr).ran;
+    assert.ok(Math.abs(per(once) - per(twice)) <= 1, 'once a week: same stars per lesson as twice');
+    assert.ok(Math.abs(per(thrice) - per(twice)) <= 1, 'three times a week: the same too');
+    assert.ok(calculateMonthlyClassGoalForDate(once, 10, [], [], apr) < calculateMonthlyClassGoalForDate(twice, 10, [], [], apr) * 0.6);
 });

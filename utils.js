@@ -995,13 +995,15 @@ export function calculateMonthlyDaysLostForDate(classData, schoolHolidayRanges, 
 export const FAIR_LESSON_GOALS_FROM = '2026-12';
 const FAIR_GOAL_MIN = 0.6;
 const FAIR_GOAL_MAX = 1.2;
+export const STANDARD_LESSONS_PER_WEEK = 2;
 
 /**
  * How much of the usual monthly goal the class needs, always half in June.
  * From FAIR_LESSON_GOALS_FROM: the lessons that run that month (its own lesson days, minus
  * holidays and cancellations, plus make-ups) over an average month of its rotation
  * (lessons per week × days in month ÷ 7), between 0.6 and 1.2, so every class needs the same
- * stars per lesson whichever weekday it meets on.
+ * stars per lesson whichever weekday it meets on; then scaled by its lessons per week against
+ * the standard two (one a week: half the goal, three a week: one and a half).
  * Before: the share of its own lessons that still run (never below 0.6, never above 1).
  */
 export function getMonthlyGoalModifierForDate(classData, schoolHolidayRanges, allScheduleOverrides, date = new Date()) {
@@ -1014,8 +1016,11 @@ export function getMonthlyGoalModifierForDate(classData, schoolHolidayRanges, al
         const daysInMonth = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0).getDate();
         const average = (weekly * daysInMonth) / 7;
         if (!(average > 0)) return 1;
-        const share = Math.round((ran / average) * 1000) / 1000;
-        return Math.max(FAIR_GOAL_MIN, Math.min(FAIR_GOAL_MAX, share));
+        const share = Math.max(FAIR_GOAL_MIN, Math.min(FAIR_GOAL_MAX, ran / average));
+        // The usual goal is made for two lessons a week (most classes): a class that meets once
+        // a week needs half of it, three times a week one and a half, so stars per lesson match.
+        const perWeek = Math.min(5, weekly) / STANDARD_LESSONS_PER_WEEK;
+        return Math.round(share * perWeek * 1000) / 1000;
     }
     if (!lost) return 1;
     return Math.max(0.6, Math.min(1.0, (scheduled - lost) / scheduled));

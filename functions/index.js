@@ -744,7 +744,8 @@ function assessmentScoreLabel(item) {
   return item.scoreQualitative || `${item.scoreNumeric || 0}${item.maxScore ? ` / ${item.maxScore}` : ''}`;
 }
 
-// ---- What the class game holds for a family to see (Satchel, familiar, class diary) ----
+// ---- What the class game holds for a family to see (Satchel, familiar) ----
+// The class diary is never sent to families: it names other children.
 
 function familyText(value, max) {
   const text = String(value ?? '').replace(/\s+/g, ' ').trim();
@@ -785,47 +786,13 @@ function familyFamiliar(familiar) {
   return pick;
 }
 
-// The class's latest diary pages: what the lesson was about, in the class's own story.
-async function getClassDiary(classId, studentId) {
-  if (!classId) return [];
-  try {
-    const snap = await db.collection(`${dataRoot()}/adventure_logs`)
-      .where('classId', '==', classId)
-      .orderBy('createdAt', 'desc')
-      .limit(6)
-      .get();
-    return snap.docs
-      .map((docSnap) => docSnap.data() || {})
-      .filter((log) => String(log.text || '').trim())
-      .slice(0, 3)
-      .map((log) => ({
-        date: toIsoDateKey(log.date) || '',
-        title: familyText(log.title, 90),
-        text: familyText(log.text, 900),
-        imageUrl: familyImageUrl(log.imageUrl),
-        hero: familyText(log.hero, 60),
-        isHero: Boolean(studentId && log.heroStudentId === studentId),
-        totalStars: Number(log.totalStars || 0),
-        learned: (Array.isArray(log.learnedToday?.items) ? log.learnedToday.items : [])
-          .map((item) => familyText(item?.label, 80)).filter(Boolean).slice(0, 5),
-        words: (Array.isArray(log.learnedToday?.words) ? log.learnedToday.words : [])
-          .map((word) => familyText(word, 30)).filter(Boolean).slice(0, 12)
-      }));
-  } catch (error) {
-    console.warn('Family diary skipped:', error?.message || error);
-    return [];
-  }
-}
-
 async function buildParentSnapshot(studentId, extra = {}) {
   // Everything except the class is read at once; the class waits only for the student record.
   const studentPromise = getStudent(studentId);
   const classPromise = studentPromise.then((student) => db.doc(`${dataRoot()}/classes/${student.classId}`).get());
-  const diaryPromise = studentPromise.then((student) => getClassDiary(student.classId, studentId));
-  const [student, classSnap, classDiary, score, assessments, attendanceSummary, awardLogs, starsHistory, parentLink, schoolSettings, homeworkCount, previousSnap] = await Promise.all([
+  const [student, classSnap, score, assessments, attendanceSummary, awardLogs, starsHistory, parentLink, schoolSettings, homeworkCount, previousSnap] = await Promise.all([
     studentPromise,
     classPromise,
-    diaryPromise,
     getScore(studentId),
     getRecentAssessments(studentId),
     getAttendanceSummary(studentId),
@@ -880,7 +847,6 @@ async function buildParentSnapshot(studentId, extra = {}) {
       : 0,
     familiar: familyFamiliar(score.familiar),
     satchel: familySatchel(score.inventory),
-    classDiary,
     attendanceSummary,
     latestGrade: latestGrade
       ? {

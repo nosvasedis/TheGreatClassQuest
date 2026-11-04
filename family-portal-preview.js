@@ -75,18 +75,6 @@ const snapshot = empty ? {
             { name: 'Owl Feather Quill', icon: '🪶', description: 'Writes in silver ink.', tier: 'epic', acquiredAt: day(-22).toISOString() },
             { name: 'Kept promise', icon: '🔥', description: 'An Ember Oath kept.', kind: 'keepsake', acquiredAt: day(-30).toISOString() },
             { name: 'Lucky Clover', icon: '🍀', description: '', tier: 'common', acquiredAt: day(-34).toISOString() }
-        ],
-        classDiary: [
-            {
-                date: iso(-1), title: 'The Owls Cross the Misty Bridge',
-                text: 'Today the Owls practised the past simple with a treasure hunt around the classroom. Everyone found a clue, and Maria read the final riddle out loud. The class earned 14 stars together and the Quiet Dragon slept all lesson long.',
-                imageUrl: '', hero: 'Maria Papadopoulou', isHero: true, totalStars: 14,
-                learned: ['Past simple: regular verbs', 'Unit 3 reading: "The Lost Map"'], words: ['bridge', 'riddle', 'whisper', 'treasure']
-            },
-            {
-                date: iso(-5), title: 'A Storm of Questions', text: 'The Owls asked and answered questions with "Did you…?" in a fast team game.',
-                imageUrl: '', hero: 'Nikos', isHero: false, totalStars: 11, learned: ['Questions with "Did you…?"'], words: ['storm', 'thunder']
-            }
         ]
     })
 };

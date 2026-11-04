@@ -29,7 +29,6 @@ import {
 } from './helpers.js';
 import { tr, isGreek, countWord, STAR_WORDS } from './i18n.js';
 import { renderFortnight } from './calendar.js';
-import { renderClassDiary } from './diary.js';
 import { renderInstallCard } from './phone.js';
 
 function formatStars(value) {
@@ -289,6 +288,39 @@ function renderMoments(snapshot, name) {
         </article>`;
 }
 
+/** Three big, plainly named doors for the things families come to do most. */
+function renderQuickActions() {
+    const actions = [
+        { attrs: 'data-parent-tab-link="homework"', icon: 'fa-book-open', tone: 'amber', label: tr('See homework', 'Δείτε την εργασία') },
+        { attrs: 'data-parent-compose="question"', icon: 'fa-pen-nib', tone: 'sky', label: tr('Write to the school', 'Γράψτε στο σχολείο') },
+        { attrs: 'data-parent-compose="absence"', icon: 'fa-bed', tone: 'rose', label: tr('Report an absence', 'Δηλώστε απουσία') }
+    ];
+    return `
+        <nav class="fp-quick fp-rise" style="--fp-delay:1" aria-label="${tr('What would you like to do?', 'Τι θα θέλατε να κάνετε;')}">
+            ${actions.map((action) => `
+                <button type="button" class="fp-quick__btn fp-quick__btn--${action.tone}" ${action.attrs}>
+                    <span class="fp-quick__icon" aria-hidden="true"><i class="fas ${action.icon}"></i></span>
+                    <span class="fp-quick__label">${escapeHtml(action.label)}</span>
+                </button>`).join('')}
+        </nav>`;
+}
+
+/** A plain-words guide to the four tabs, folded away until someone needs it. */
+function renderHowTo() {
+    const rows = [
+        ['fa-house', tr('<strong>Home</strong> shows this week: stars, the next lesson and any news.', '<strong>Αρχική</strong>: η εβδομάδα με μια ματιά, αστέρια, επόμενο μάθημα και νέα.')],
+        ['fa-book-open', tr('<strong>Homework</strong> shows what to do before the next lesson.', '<strong>Εργασίες</strong>: τι πρέπει να γίνει πριν από το επόμενο μάθημα.')],
+        ['fa-seedling', tr('<strong>Progress</strong> shows stars by month, test results and attendance.', '<strong>Πρόοδος</strong>: αστέρια ανά μήνα, βαθμοί και παρουσίες.')],
+        ['fa-envelope', tr('<strong>Messages</strong> is where you write to the school and read replies.', '<strong>Μηνύματα</strong>: γράφετε στο σχολείο και διαβάζετε τις απαντήσεις.')],
+        ['fa-rotate', tr('New things arrive by themselves. To check now, tap <i class="fas fa-rotate" aria-hidden="true"></i> at the top or pull the page down.', 'Τα νέα έρχονται μόνα τους. Για έλεγχο τώρα, πατήστε <i class="fas fa-rotate" aria-hidden="true"></i> επάνω ή τραβήξτε τη σελίδα προς τα κάτω.')]
+    ];
+    return `
+        <details class="fp-howto fp-rise" style="--fp-delay:6">
+            <summary><i class="fas fa-circle-question" aria-hidden="true"></i> ${tr('How to use this page', 'Πώς χρησιμοποιείται η σελίδα')}</summary>
+            <ul>${rows.map(([icon, text]) => `<li><span class="fp-howto__icon" aria-hidden="true"><i class="fas ${icon}"></i></span><span>${text}</span></li>`).join('')}</ul>
+        </details>`;
+}
+
 export function renderParentHome() {
     const snapshot = getSnapshot();
     const name = firstName(snapshot.studentName);
@@ -314,16 +346,17 @@ export function renderParentHome() {
                 <p class="fp-hello__summary">${escapeHtml(buildSummary(snapshot, name, lesson, parts?.test))}</p>
                 ${renderNews(snapshot, homework)}
             </article>
+            ${renderQuickActions()}
             <div class="fp-duo fp-rise" style="--fp-delay:1">
                 ${renderNextLessonTile(lesson)}
                 ${renderSecondTile(homework, parts)}
             </div>
             ${renderFortnight()}
             ${renderStarJar(snapshot, name)}
-            ${renderClassDiary()}
             ${renderLetter(snapshot)}
             ${renderMoments(snapshot, name)}
             ${renderInstallCard()}
+            ${renderHowTo()}
         </div>`;
 }
 

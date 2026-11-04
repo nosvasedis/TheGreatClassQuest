@@ -165,3 +165,40 @@ export function wireKeyboardRoom(screen) {
         }, 60);
     });
 }
+
+/** A friendly "are you sure?" sheet before logging out. Resolves true to log out. */
+export function confirmLogout() {
+    const screen = document.getElementById('parent-screen') || document.body;
+    screen.querySelector('.fp-sheet')?.remove();
+    return new Promise((resolve) => {
+        const sheet = document.createElement('div');
+        sheet.className = 'fp-sheet';
+        sheet.setAttribute('role', 'dialog');
+        sheet.setAttribute('aria-modal', 'true');
+        sheet.setAttribute('aria-labelledby', 'fp-sheet-title');
+        sheet.innerHTML = `
+            <div class="fp-sheet__card">
+                <span class="fp-sheet__icon" aria-hidden="true"><i class="fas fa-door-open"></i></span>
+                <h2 class="fp-sheet__title" id="fp-sheet-title">${tr('Log out?', 'Αποσύνδεση;')}</h2>
+                <p class="fp-sheet__text">${tr('You will need your email and password to come back in.', 'Για να ξαναμπείτε θα χρειαστείτε το email και τον κωδικό σας.')}</p>
+                <div class="fp-sheet__actions">
+                    <button type="button" class="fp-btn fp-btn--primary" data-sheet-stay>${tr('Stay here', 'Μένω εδώ')}</button>
+                    <button type="button" class="fp-btn fp-btn--soft" data-sheet-leave><i class="fas fa-arrow-right-from-bracket" aria-hidden="true"></i> ${tr('Log out', 'Αποσύνδεση')}</button>
+                </div>
+            </div>`;
+        const close = (answer) => {
+            document.removeEventListener('keydown', onKey);
+            sheet.classList.add('is-closing');
+            setTimeout(() => sheet.remove(), 180);
+            resolve(answer);
+        };
+        const onKey = (event) => { if (event.key === 'Escape') close(false); };
+        sheet.addEventListener('click', (event) => {
+            if (event.target.closest('[data-sheet-leave]')) close(true);
+            else if (event.target.closest('[data-sheet-stay]') || event.target === sheet) close(false);
+        });
+        document.addEventListener('keydown', onKey);
+        screen.appendChild(sheet);
+        sheet.querySelector('[data-sheet-stay]')?.focus();
+    });
+}

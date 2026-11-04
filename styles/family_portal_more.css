@@ -1,4 +1,4 @@
-/* Family Portal, part two: the fortnight ribbon, the class diary page, treasures (familiar + Satchel),
+/* Family Portal, part two: the fortnight ribbon, treasures (familiar + Satchel),
    the keep-on-your-phone card, pull to refresh and phone fit. Loaded with the portal, never at start-up. */
 
 /* ---------- Header on phones: the school's name instead of a cut-off "Family Portal" ---------- */
@@ -16,22 +16,14 @@
 .fp-fortnight { padding-bottom: 0.9rem; }
 
 .fp-days {
+    /* Both weeks in view at once: seven columns, two rows, nothing to swipe. */
     list-style: none;
-    margin: 0.85rem -1.1rem 0;
-    padding: 0.2rem 1.1rem 0.5rem;
+    margin: 0.85rem 0 0;
+    padding: 0;
     display: grid;
-    grid-auto-flow: column;
-    /* A week fits across the card; the second week is one swipe away. */
-    grid-auto-columns: max(2.75rem, calc((100% - 2.4rem) / 7));
-    gap: 0.4rem;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scroll-snap-type: x proximity;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-    mask-image: linear-gradient(90deg, #000 calc(100% - 1.1rem), transparent);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.35rem;
 }
-.fp-days::-webkit-scrollbar { display: none; }
 .fp-days:focus-visible { outline: 3px solid var(--fp-terracotta); outline-offset: -3px; border-radius: 0.8rem; }
 
 .fp-day {
@@ -44,7 +36,8 @@
     background: #fbf5ec;
     border: 1.5px solid transparent;
     color: var(--fp-ink-soft);
-    min-height: 4.6rem;
+    min-height: 4.3rem;
+    min-width: 0;
 }
 .fp-day__name { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; }
 .fp-day__num { font-family: var(--gcq-font-display); font-weight: 600; font-size: 1.2rem; line-height: 1.1; color: var(--fp-ink); }
@@ -72,8 +65,9 @@
     color: var(--fp-ink-soft);
 }
 .fp-days__key i { margin-right: 0.15rem; }
-.fp-days__key span:nth-child(1) i { color: var(--fp-sage); }
-.fp-days__key span:nth-child(2) i { color: var(--fp-violet); }
+.fp-days__key .fa-bell { color: var(--fp-sage); }
+.fp-days__key .fa-pen-clip { color: var(--fp-violet); }
+.fp-days__key-today { display: inline-block; width: 0.8rem; height: 0.8rem; margin-right: 0.15rem; border-radius: 0.25rem; border: 2px solid var(--fp-terracotta); vertical-align: -0.1rem; }
 .fp-days__key-dot {
     display: inline-block;
     width: 0.7rem;
@@ -107,107 +101,6 @@
     white-space: nowrap;
 }
 .fp-holiday__line { font-size: 0.82rem; color: #8a6430; }
-
-/* ---------- From the class diary ---------- */
-
-.fp-diary {
-    overflow: hidden;
-    background:
-        linear-gradient(90deg, transparent 2.1rem, rgba(207, 101, 61, 0.16) 2.1rem, rgba(207, 101, 61, 0.16) calc(2.1rem + 1px), transparent calc(2.1rem + 1px)),
-        var(--fp-paper);
-    padding-left: 2.9rem;
-}
-.fp-diary__ribbon {
-    position: absolute;
-    top: -0.2rem;
-    right: 1.2rem;
-    width: 1.1rem;
-    height: 2.6rem;
-    background: var(--fp-terracotta);
-    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
-}
-.fp-diary__crown {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin: 0.35rem 0 0.6rem;
-    padding: 0.5rem 0.75rem;
-    border-radius: 0.8rem;
-    background: linear-gradient(90deg, #fff1c9, #fde7b5);
-    color: #7a4d0c;
-    font-weight: 700;
-    font-size: 0.88rem;
-}
-.fp-diary__crown span:first-child { font-size: 1.3rem; }
-.fp-diary__picture {
-    margin: 0.5rem 0 0.7rem;
-    border-radius: 0.9rem;
-    overflow: hidden;
-    background: #f3e7d6;
-    aspect-ratio: 4 / 3;
-    box-shadow: 0 4px 12px rgba(90, 50, 30, 0.15);
-    transform: rotate(-0.6deg);
-}
-.fp-diary__picture img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.fp-diary__date { margin: 0.2rem 0 0; font-size: 0.75rem; font-weight: 700; color: var(--fp-ink-soft); }
-.fp-diary__title {
-    margin: 0.15rem 0 0.35rem;
-    font-family: var(--gcq-font-display);
-    font-weight: 600;
-    font-size: 1.2rem;
-    line-height: 1.2;
-    color: var(--fp-ink);
-}
-.fp-diary__text {
-    margin: 0;
-    font-family: var(--gcq-font-serif);
-    font-size: 0.98rem;
-    line-height: 1.6;
-    color: #4d3a2f;
-}
-.fp-diary__learned,
-.fp-diary__words { margin-top: 0.8rem; }
-.fp-diary__label {
-    margin: 0 0 0.35rem;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--fp-sage);
-}
-.fp-diary__label i { margin-right: 0.2rem; }
-.fp-diary__learned ul { margin: 0; padding-left: 1.1rem; display: grid; gap: 0.2rem; font-size: 0.9rem; }
-.fp-diary__learned li::marker { color: var(--fp-sage); }
-.fp-diary__chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0; }
-.fp-word {
-    padding: 0.25rem 0.6rem;
-    border-radius: 0.5rem;
-    background: var(--fp-sky-soft);
-    color: #2c5f86;
-    font-weight: 700;
-    font-size: 0.85rem;
-    border-bottom: 2px solid #bcd8ee;
-}
-.fp-diary__tip {
-    margin: 0.85rem 0 0;
-    padding-top: 0.7rem;
-    border-top: 1px dashed var(--fp-line);
-    font-size: 0.82rem;
-    color: var(--fp-ink-soft);
-}
-.fp-diary__tip i { margin-right: 0.25rem; color: var(--fp-terracotta); }
-.fp-diary__earlier { margin-top: 0.6rem; }
-.fp-diary__earlier summary {
-    cursor: pointer;
-    font-weight: 700;
-    font-size: 0.85rem;
-    color: var(--fp-terracotta-deep);
-    padding: 0.4rem 0;
-}
-.fp-diary__page { padding-top: 0.7rem; margin-top: 0.5rem; border-top: 1px dashed var(--fp-line); }
-.fp-diary__page .fp-diary__title { font-size: 1.05rem; }
-.fp-diary__page .fp-diary__text { font-size: 0.92rem; }
 
 /* ---------- Treasures: the familiar and the Satchel ---------- */
 
@@ -426,8 +319,8 @@
 @media (max-width: 359px) {
     .fp-main { padding-left: max(0.65rem, env(safe-area-inset-left, 0px)); padding-right: max(0.65rem, env(safe-area-inset-right, 0px)); }
     .fp-card { padding: 0.95rem 0.9rem 1rem; }
-    .fp-days { margin-left: -0.9rem; margin-right: -0.9rem; padding-left: 0.9rem; padding-right: 0.9rem; }
-    .fp-diary { padding-left: 2.4rem; background-position: -0.5rem 0, 0 0; }
+    .fp-days { gap: 0.25rem; }
+    .fp-day__num { font-size: 1.05rem; }
     .fp-familiar { grid-template-columns: 5rem minmax(0, 1fr); gap: 0.7rem; }
     .fp-familiar__stage { width: 5rem; height: 5rem; }
     .fp-header__row { gap: 0.6rem; }
@@ -442,10 +335,9 @@
     .fp-satchel__grid { grid-template-columns: repeat(auto-fill, minmax(5.6rem, 1fr)); }
 }
 @media (min-width: 960px) {
-    /* Left: the week, the diary and the teacher's note. Right: the jar, then star moments beside them. */
+    /* Left: the week and the teacher's note. Right: the jar, then star moments beside them. */
     .fp-home > .fp-fortnight { grid-column: 1; grid-row: 3; }
-    .fp-home > .fp-diary { grid-column: 1; grid-row: 4; }
-    .fp-home > .fp-letter { grid-column: 1; grid-row: 5; }
+    .fp-home > .fp-letter { grid-column: 1; grid-row: 4; }
     .fp-home > .fp-card.fp-moments-card.fp-rise { grid-column: 2; grid-row: 3 / span 3; align-self: start; }
     .fp-home > .fp-install { grid-column: 2; grid-row: 6; }
     .fp-progress > .fp-treasures { grid-column: 1 / -1; }
@@ -464,10 +356,139 @@
     .fp-home { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
     .fp-progress { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-.fp-fortnight, .fp-diary, .fp-treasures { min-width: 0; }
+.fp-fortnight, .fp-treasures { min-width: 0; }
 .fp-btn.hidden { display: none; }
 .fp-nowrap { white-space: nowrap; }
 .fp-day.is-lesson .fp-day__num,
 .fp-day.is-test .fp-day__num { color: var(--fp-ink); }
 /* Narrow phones: the guild shows as its emblem only, so the class name stays whole. */
 @media (max-width: 439px) { .fp-header__sub .fp-sub-guild { display: none; } }
+
+/* ---------- Easy for everyone ---------- */
+
+/* Three big doors on Home for what families come to do. */
+.fp-quick {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.55rem;
+}
+.fp-quick__btn {
+    display: grid;
+    justify-items: center;
+    align-content: start;
+    gap: 0.45rem;
+    min-height: 6rem;
+    padding: 0.85rem 0.4rem 0.75rem;
+    border-radius: 1.1rem;
+    border: 1px solid var(--fp-line);
+    background: var(--fp-paper);
+    box-shadow: var(--fp-shadow);
+    color: var(--fp-ink);
+    font: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: transform 0.15s ease;
+}
+.fp-quick__btn:active { transform: scale(0.97); }
+.fp-quick__btn:focus-visible { outline: 3px solid var(--fp-terracotta); outline-offset: 2px; }
+.fp-quick__icon {
+    width: 2.9rem;
+    height: 2.9rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 1.2rem;
+}
+.fp-quick__btn--amber .fp-quick__icon { background: var(--fp-amber-soft); color: #a8700f; }
+.fp-quick__btn--sky .fp-quick__icon { background: var(--fp-sky-soft); color: var(--fp-sky); }
+.fp-quick__btn--rose .fp-quick__icon { background: var(--fp-rose-soft); color: var(--fp-rose); }
+.fp-quick__label { font-size: 0.86rem; font-weight: 700; line-height: 1.2; text-align: center; }
+
+/* "How to use this page", folded until needed. */
+.fp-howto {
+    border-radius: var(--fp-radius);
+    border: 1px solid var(--fp-line);
+    background: var(--fp-paper);
+    padding: 0 1rem;
+}
+.fp-howto summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 3.2rem;
+    font-weight: 700;
+    color: var(--fp-terracotta-deep);
+}
+.fp-howto summary::-webkit-details-marker { display: none; }
+.fp-howto summary::after { content: '\f078'; font: 900 0.75rem 'Font Awesome 7 Free', 'Font Awesome 6 Free'; margin-left: auto; transition: transform 0.2s ease; }
+.fp-howto[open] summary::after { transform: rotate(180deg); }
+.fp-howto ul { list-style: none; margin: 0; padding: 0 0 1rem; display: grid; gap: 0.7rem; }
+.fp-howto li { display: grid; grid-template-columns: 2.2rem minmax(0, 1fr); gap: 0.6rem; align-items: start; font-size: 0.92rem; line-height: 1.45; }
+.fp-howto__icon { width: 2.2rem; height: 2.2rem; display: grid; place-items: center; border-radius: 0.7rem; background: #f6ebdc; color: var(--fp-terracotta-deep); }
+
+/* Ask before logging out. */
+.fp-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: grid;
+    place-items: end center;
+    padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+    background: rgba(63, 45, 36, 0.45);
+    animation: fp-sheet-fade 0.18s ease both;
+}
+.fp-sheet.is-closing { animation: fp-sheet-fade 0.18s ease reverse both; }
+.fp-sheet__card {
+    width: min(100%, 26rem);
+    padding: 1.4rem 1.2rem 1.2rem;
+    border-radius: 1.5rem;
+    background: var(--fp-paper);
+    text-align: center;
+    box-shadow: 0 18px 40px rgba(40, 20, 10, 0.3);
+    animation: fp-sheet-up 0.25s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+.fp-sheet__icon { display: inline-grid; place-items: center; width: 3.2rem; height: 3.2rem; border-radius: 50%; background: var(--fp-terracotta-soft); color: var(--fp-terracotta-deep); font-size: 1.3rem; }
+.fp-sheet__title { margin: 0.6rem 0 0.3rem; font-family: var(--gcq-font-display); font-weight: 600; font-size: 1.4rem; color: var(--fp-ink); }
+.fp-sheet__text { margin: 0 0 1.1rem; color: var(--fp-ink-soft); font-size: 0.95rem; }
+.fp-sheet__actions { display: grid; gap: 0.55rem; }
+.fp-sheet__actions .fp-btn { min-height: 3.1rem; font-size: 1rem; }
+@keyframes fp-sheet-fade { from { opacity: 0; } }
+@keyframes fp-sheet-up { from { transform: translateY(30px); } }
+@media (min-width: 640px) { .fp-sheet { place-items: center; } }
+
+/* Readable sizes: nothing a family needs to read is tiny. */
+.fp-kicker { font-size: 0.76rem; }
+.fp-nav__label { font-size: 0.8rem; }
+.fp-tile__kicker { font-size: 0.72rem; }
+.fp-tile__meta, .fp-moment__when, .fp-days__key { font-size: 0.8rem; }
+.fp-day__name { font-size: 0.66rem; }
+.fp-item__name { font-size: 0.76rem; }
+.fp-header__actions .fp-icon-btn, .fp-lang { min-width: 2.75rem; min-height: 2.75rem; }
+
+@media (max-width: 359px) {
+    .fp-quick { gap: 0.4rem; }
+    .fp-quick__btn { min-height: 5.4rem; padding: 0.7rem 0.25rem 0.6rem; }
+    .fp-quick__icon { width: 2.5rem; height: 2.5rem; font-size: 1.05rem; }
+    .fp-quick__label { font-size: 0.78rem; }
+    .fp-nav__label { font-size: 0.72rem; }
+}
+@media (min-width: 960px) {
+    .fp-home > .fp-quick { grid-column: 1; grid-row: 2; }
+    .fp-home > .fp-duo { grid-row: 3; }
+    .fp-home > .fp-fortnight { grid-row: 4; }
+    .fp-home > .fp-letter { grid-row: 5; }
+    .fp-home > .fp-card.fp-moments-card.fp-rise { grid-row: 3 / span 3; }
+    .fp-home > .fp-jar-card { grid-row: 1 / span 2; }
+    .fp-home > .fp-howto { grid-column: 2; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .fp-sheet, .fp-sheet__card, .fp-sheet.is-closing { animation: none; }
+}
+/* The smallest phones: news arrives by itself (and by pulling down), so the refresh button
+   gives its room to the child's name and class. */
+@media (max-width: 359px) {
+    #parent-refresh-btn { display: none; }
+    .fp-header__actions { gap: 0.3rem; }
+}

@@ -11,7 +11,7 @@ import { getLang, setLang, tr } from './parent/i18n.js';
 import '../styles/family_portal_lang.css';
 import '../styles/family_portal_more.css';
 import { showTreasureDetail, hydrateTreasures } from './parent/treasures.js';
-import { handleInstallClick, wirePullToRefresh, wireKeyboardRoom } from './parent/phone.js';
+import { handleInstallClick, wirePullToRefresh, wireKeyboardRoom, confirmLogout } from './parent/phone.js';
 import {
     familyTopics,
     markThreadSeen,
@@ -190,7 +190,10 @@ export function wireParentPortalListeners({ onLogout, onRefresh, onSelectThread 
     if (listenersWired) return;
     listenersWired = true;
 
-    document.getElementById('parent-logout-btn')?.addEventListener('click', () => onLogout?.());
+    // Logging out by accident means finding the password again, so the portal asks first.
+    document.getElementById('parent-logout-btn')?.addEventListener('click', async () => {
+        if (await confirmLogout()) onLogout?.();
+    });
     document.getElementById('parent-lang-btn')?.addEventListener('click', switchLanguage);
     const checkForNews = async () => {
         const button = document.getElementById('parent-refresh-btn');

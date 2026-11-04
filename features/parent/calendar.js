@@ -111,7 +111,7 @@ export function renderFortnight() {
                 <span class="fp-pill fp-pill--quiet">${escapeHtml(firstMonth === lastMonth ? firstMonth : `${firstMonth}–${lastMonth}`)}</span>
             </div>
             ${renderHolidayNotice()}
-            <ol class="fp-days" tabindex="0" aria-label="${tr('Day by day', 'Μέρα με τη μέρα')}">
+            <ol class="fp-days" aria-label="${tr('Day by day', 'Μέρα με τη μέρα')}">
                 ${cells.map((cell) => {
                     const classes = ['fp-day'];
                     if (cell.offset === 0) classes.push('is-today');
@@ -121,7 +121,7 @@ export function renderFortnight() {
                     if ([0, 6].includes(cell.date.getDay())) classes.push('is-weekend');
                     return `
                         <li class="${classes.join(' ')}" aria-label="${escapeHtml(cellLabel(cell, snapshot))}">
-                            <span class="fp-day__name" aria-hidden="true">${cell.offset === 0 ? tr('Today', 'Σήμ.') : WEEKDAY_LETTERS[lang][cell.date.getDay()]}</span>
+                            <span class="fp-day__name" aria-hidden="true">${WEEKDAY_LETTERS[lang][cell.date.getDay()]}</span>
                             <span class="fp-day__num" aria-hidden="true">${cell.date.getDate()}</span>
                             <span class="fp-day__mark" aria-hidden="true">${cell.closed
                                 ? `<span class="fp-day__emoji">${escapeHtml(cell.holidayIcon)}</span>`
@@ -131,6 +131,7 @@ export function renderFortnight() {
                 }).join('')}
             </ol>
             <p class="fp-days__key" aria-hidden="true">
+                <span><span class="fp-days__key-today"></span> ${tr('Today', 'Σήμερα')}</span>
                 <span><i class="fas fa-bell"></i> ${tr('Lesson', 'Μάθημα')}${snapshot.timeStart ? ` ${escapeHtml(snapshot.timeStart)}` : ''}</span>
                 <span><i class="fas fa-pen-clip"></i> ${tr('Test', 'Διαγώνισμα')}</span>
                 <span><span class="fp-days__key-dot"></span> ${tr('Holiday', 'Αργία')}</span>

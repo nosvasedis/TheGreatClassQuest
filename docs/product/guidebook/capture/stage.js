@@ -2,6 +2,7 @@ import '../../../../styles/ceremony_arena.css';
 import '../../../../styles/ceremony_garden.css';
 // Feature sheets that load with their modules in the app (no longer in style.css).
 import '../../../../styles/fortunes_wheel.css';
+import '../../../../styles/hero_board.css';
 import '../../../../styles/league_archive.css';
 import '../../../../styles/trial_history.css';
 import '../../../../styles/move_student.css';

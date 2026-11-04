@@ -747,6 +747,21 @@ function syncHeroStandingsSwitches() {
 
 let _heroRenderSeq = 0;
 
+// The board's styles load with the tab, not at startup.
+let _heroBoardStyles = null;
+let _heroBoardStylesReady = false;
+function ensureHeroBoardStyles() {
+    if (!_heroBoardStyles) {
+        _heroBoardStyles = import('../../styles/hero_board.css')
+            .then(() => { _heroBoardStylesReady = true; })
+            .catch((err) => {
+                _heroBoardStyles = null;
+                console.warn('Hero board styles failed to load:', err);
+            });
+    }
+    return _heroBoardStyles;
+}
+
 async function clearHeroStandingsList(list, html, seq) {
     if (list.dataset.hcsBoard === '' && list.__hcsHtml === html && !list.classList.contains('hcs-list--leaving')) return;
     beginStandingsLeave(list);
@@ -780,6 +795,10 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
     if (!list) return;
     // Renders can overlap (a tap, then live data): only the newest one draws.
     const seq = ++_heroRenderSeq;
+    if (!_heroBoardStylesReady) {
+        await ensureHeroBoardStyles();
+        if (seq !== _heroRenderSeq) return;
+    }
     bindHeroSealControls(list);
     if (freshVisit) _heroPeeked.clear();
 

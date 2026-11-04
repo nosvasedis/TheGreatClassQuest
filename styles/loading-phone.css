@@ -1,0 +1,665 @@
+/* --- PHONE LOADING SCENE --------------------------------------------------
+   templates/loadingPhone.js builds it below 1024px (the phone shell's
+   breakpoint), with the role it expects and the time of day on the root:
+     data-pls-role   teacher · parent · secretary · none
+     data-pls-mood   day · golden · night
+     .pls-rich       full motion · .pls-lite idle motion off (weak Androids,
+                    data saver) · .pls-still reduced motion
+   One painted gradient, one SVG horizon, Lumi in her halo. Only transform
+   and opacity animate: no filters, blurs or animated shadows, so even a
+   weak phone keeps it on the compositor while the app boots. */
+
+#loading-screen.gcq-loading-phone {
+    /* Teacher by day: the Quest's blue sky and green hills */
+    --pls-s1: #3f7fdf; --pls-s2: #7db8f2; --pls-s3: #d8efff;
+    --pls-glow: rgba(255, 240, 180, 0.85);
+    --pls-ink: #ffffff; --pls-soft: rgba(255, 255, 255, 0.9);
+    --pls-ink-shadow: 0 2px 10px rgba(22, 52, 120, 0.35);
+    --pls-g1: #7fb99b; --pls-g2: #56996f; --pls-g3: #2f6b4f;
+    --pls-wall: #fffaf0; --pls-roof: #c96b4a; --pls-door: #3b4a7a; --pls-win: #4b5d8f;
+    --pls-accent: #fbbf24; --pls-badge: #6d4bd8;
+    --pls-card: rgba(19, 55, 110, 0.5); --pls-card-ink: #f4f8ff; --pls-card-line: rgba(255, 255, 255, 0.22);
+    --pls-track: rgba(255, 255, 255, 0.28); --pls-fill: #ffd54a;
+    --pls-chip: rgba(255, 255, 255, 0.2); --pls-chip-ink: #ffffff;
+    --pls-stars: 0;
+    --pls-land: clamp(110px, 21vh, 190px);
+    --pls-display: 'Fredoka One', 'Fredoka', 'Open Sans', system-ui, sans-serif;
+
+    display: block;
+    overflow: hidden;
+    color: var(--pls-ink);
+    background: linear-gradient(180deg, var(--pls-s1) 0%, var(--pls-s2) 52%, var(--pls-s3) 100%);
+    contain: layout paint style;
+    -webkit-tap-highlight-color: transparent;
+}
+
+#loading-screen.gcq-loading-phone[data-pls-mood="golden"] {
+    --pls-s1: #5a4fc4; --pls-s2: #d88aa6; --pls-s3: #ffd39a;
+    --pls-glow: rgba(255, 214, 150, 0.85);
+    --pls-ink-shadow: 0 2px 12px rgba(70, 30, 90, 0.4);
+    --pls-g1: #8a6fa8; --pls-g2: #5f4f8c; --pls-g3: #3d3468;
+    --pls-win: #ffd27a; --pls-door: #2f2660;
+    --pls-card: rgba(52, 30, 92, 0.5);
+    --pls-stars: 0.35;
+}
+
+#loading-screen.gcq-loading-phone[data-pls-mood="night"] {
+    --pls-s1: #120d38; --pls-s2: #2c2170; --pls-s3: #5e45a8;
+    --pls-glow: rgba(255, 220, 140, 0.6);
+    --pls-ink: #fff8e6; --pls-soft: rgba(237, 233, 254, 0.86);
+    --pls-ink-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
+    --pls-g1: #3a2f78; --pls-g2: #261d58; --pls-g3: #160f38;
+    --pls-wall: #4a3f7a; --pls-roof: #6b4370; --pls-door: #120c30; --pls-win: #ffd27a;
+    --pls-card: rgba(14, 10, 44, 0.55); --pls-card-line: rgba(221, 214, 254, 0.18);
+    --pls-stars: 1;
+}
+
+/* Families: the portal's linen, terracotta and sage, a little town at home */
+#loading-screen.gcq-loading-phone[data-pls-role="parent"] {
+    --pls-s1: #ffd9b0; --pls-s2: #ffe7cc; --pls-s3: #fff6ea;
+    --pls-glow: rgba(255, 196, 140, 0.8);
+    --pls-ink: #3f2d24; --pls-soft: #7a6557; --pls-ink-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+    --pls-g1: #b9d3a8; --pls-g2: #8db57e; --pls-g3: #5f9160;
+    --pls-wall: #fffcf6; --pls-roof: #cf653d; --pls-door: #a94c28; --pls-win: #f3d6a4;
+    --pls-accent: #cf653d; --pls-badge: #cf5b70;
+    --pls-card: rgba(255, 252, 246, 0.82); --pls-card-ink: #5b463a; --pls-card-line: #ecdcc5;
+    --pls-track: rgba(169, 76, 40, 0.16); --pls-fill: #cf653d;
+    --pls-chip: rgba(255, 252, 246, 0.85); --pls-chip-ink: #3f2d24;
+}
+
+#loading-screen.gcq-loading-phone[data-pls-role="parent"][data-pls-mood="golden"] {
+    --pls-s1: #f4a37c; --pls-s2: #fbc69a; --pls-s3: #ffe8cf;
+    --pls-ink: #4a2a1c; --pls-soft: #6e4a38;
+    --pls-g1: #b7a77e; --pls-g2: #8f8a5e; --pls-g3: #5f6a46;
+    --pls-win: #ffd27a;
+}
+
+#loading-screen.gcq-loading-phone[data-pls-role="parent"][data-pls-mood="night"] {
+    --pls-s1: #1f1a3d; --pls-s2: #3e2f5e; --pls-s3: #84566a;
+    --pls-glow: rgba(255, 190, 120, 0.55);
+    --pls-ink: #fff4e6; --pls-soft: rgba(255, 233, 214, 0.85); --pls-ink-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+    --pls-g1: #3f3558; --pls-g2: #2c2542; --pls-g3: #1c172e;
+    --pls-wall: #5b4a66; --pls-roof: #8e4a3a; --pls-door: #2a1d2c; --pls-win: #ffcf7a;
+    --pls-card: rgba(31, 24, 52, 0.62); --pls-card-ink: #fbe9da; --pls-card-line: rgba(255, 220, 190, 0.18);
+    --pls-track: rgba(255, 220, 190, 0.2); --pls-fill: #f0a066;
+    --pls-chip: rgba(255, 240, 225, 0.14); --pls-chip-ink: #fff4e6;
+}
+
+/* The School Office: bright sky, manila and ink blue, the school itself */
+#loading-screen.gcq-loading-phone[data-pls-role="secretary"] {
+    --pls-s1: #2aa9e8; --pls-s2: #8fd4f8; --pls-s3: #eef8ff;
+    --pls-glow: rgba(255, 246, 210, 0.9);
+    --pls-ink: #1e3a5f; --pls-soft: #334e70; --pls-ink-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+    --pls-g1: #c4e4c0; --pls-g2: #96c995; --pls-g3: #4f7f62;
+    --pls-wall: #fffdf8; --pls-roof: #efd9a4; --pls-door: #1e3a5f; --pls-win: #9cc3e6;
+    --pls-accent: #2563eb; --pls-badge: #d97706;
+    --pls-card: rgba(255, 253, 248, 0.85); --pls-card-ink: #334e70; --pls-card-line: #d9bd7e;
+    --pls-track: rgba(30, 58, 95, 0.14); --pls-fill: #2563eb;
+    --pls-chip: rgba(255, 253, 248, 0.88); --pls-chip-ink: #1e3a5f;
+}
+
+#loading-screen.gcq-loading-phone[data-pls-role="secretary"][data-pls-mood="golden"] {
+    --pls-s1: #5b7fc9; --pls-s2: #e6a77e; --pls-s3: #ffe2b8;
+    --pls-ink: #1e3a5f;
+    --pls-g1: #b6b98c; --pls-g2: #8c9a6a; --pls-g3: #4f5f46;
+    --pls-win: #ffd98a;
+}
+
+#loading-screen.gcq-loading-phone[data-pls-role="secretary"][data-pls-mood="night"] {
+    --pls-s1: #0c1a34; --pls-s2: #1e3a5f; --pls-s3: #3e6290;
+    --pls-glow: rgba(255, 226, 160, 0.55);
+    --pls-ink: #f8f3e3; --pls-soft: rgba(226, 236, 250, 0.85); --pls-ink-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+    --pls-g1: #2a4466; --pls-g2: #1c324f; --pls-g3: #101f36;
+    --pls-wall: #36557e; --pls-roof: #4c6a93; --pls-door: #0c1a34; --pls-win: #ffd98a;
+    --pls-card: rgba(10, 22, 44, 0.6); --pls-card-ink: #e6eef9; --pls-card-line: rgba(217, 189, 126, 0.3);
+    --pls-track: rgba(226, 236, 250, 0.18); --pls-fill: #ffd98a;
+    --pls-chip: rgba(226, 236, 250, 0.12); --pls-chip-ink: #f8f3e3;
+}
+
+/* ── Sky and land ─────────────────────────────────────────── */
+
+.gcq-loading-phone .pls-sky,
+.gcq-loading-phone .pls-land,
+.gcq-loading-phone .pls-daylight {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.gcq-loading-phone .pls-glow {
+    position: absolute;
+    left: 50%;
+    top: 34%;
+    width: 120vmin;
+    height: 120vmin;
+    margin: -60vmin 0 0 -60vmin;
+    background: radial-gradient(circle, var(--pls-glow) 0%, transparent 50%);
+    opacity: 0.4;
+}
+
+.gcq-loading-phone .pls-stars {
+    position: absolute;
+    inset: 0 0 40% 0;
+    opacity: var(--pls-stars);
+    fill: #fff;
+}
+
+.gcq-loading-phone .pls-stars svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.gcq-loading-phone .pls-land {
+    top: auto;
+    height: var(--pls-land);
+}
+
+.gcq-loading-phone .pls-land__svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.gcq-loading-phone .pls-g1 { fill: var(--pls-g1); }
+.gcq-loading-phone .pls-g2 { fill: var(--pls-g2); }
+.gcq-loading-phone .pls-g3 { fill: var(--pls-g3); }
+.gcq-loading-phone .pls-wall { fill: var(--pls-wall); }
+.gcq-loading-phone .pls-roof { fill: var(--pls-roof); }
+.gcq-loading-phone .pls-win { fill: var(--pls-win); }
+.gcq-loading-phone .pls-accent { fill: var(--pls-accent); }
+.gcq-loading-phone .pls-door { fill: var(--pls-door); stroke: var(--pls-door); }
+
+/* ── The stage ────────────────────────────────────────────── */
+
+.gcq-loading-phone .pls-stage {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding:
+        max(1.25rem, env(safe-area-inset-top))
+        max(1.25rem, env(safe-area-inset-right))
+        calc(var(--pls-land) * 0.35 + 4rem)
+        max(1.25rem, env(safe-area-inset-left));
+    text-align: center;
+}
+
+.gcq-loading-phone .pls-brand {
+    margin: 0 0 1.1rem;
+    font: 400 0.82rem/1 var(--pls-display);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--pls-soft);
+}
+
+.gcq-loading-phone .pls-emblem {
+    position: relative;
+    width: clamp(6.5rem, 30vw, 8.5rem);
+    aspect-ratio: 1;
+    margin-bottom: 1rem;
+}
+
+.gcq-loading-phone .pls-halo {
+    position: absolute;
+    inset: -30%;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--pls-glow) 0%, transparent 66%);
+}
+
+.gcq-loading-phone .pls-orbit {
+    position: absolute;
+    inset: -12%;
+    border-radius: 50%;
+    border: 1.5px solid var(--pls-track);
+}
+
+.gcq-loading-phone .pls-orbit i {
+    position: absolute;
+    inset: 0;
+}
+
+.gcq-loading-phone .pls-orbit i::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    width: 7px;
+    height: 7px;
+    margin-left: -3.5px;
+    border-radius: 50%;
+    background: var(--pls-fill);
+}
+
+.gcq-loading-phone .pls-orbit i:nth-child(2) { transform: rotate(120deg); }
+.gcq-loading-phone .pls-orbit i:nth-child(3) { transform: rotate(240deg); }
+.gcq-loading-phone .pls-orbit i:nth-child(3)::before { width: 5px; height: 5px; margin-left: -2.5px; top: -3px; }
+
+.gcq-loading-phone .pls-lumi,
+.gcq-loading-phone .pls-lumi__hop {
+    position: absolute;
+    inset: 0;
+    display: block;
+}
+
+.gcq-loading-phone .pls-lumi__svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.gcq-loading-phone .pls-lumi__cheer { opacity: 0; }
+
+.gcq-loading-phone.pls-welcomed .pls-lumi__cheer,
+.gcq-loading-phone.loading-screen-exit .pls-lumi__cheer { opacity: 1; }
+
+.gcq-loading-phone.pls-welcomed .pls-lumi__smile,
+.gcq-loading-phone.loading-screen-exit .pls-lumi__smile { opacity: 0; }
+
+.gcq-loading-phone .pls-badge {
+    position: absolute;
+    right: -2%;
+    bottom: 4%;
+    display: grid;
+    place-items: center;
+    width: 32%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    border: 2.5px solid #fff;
+    background: var(--pls-badge);
+    color: #fff;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
+}
+
+.gcq-loading-phone .pls-badge:empty { display: none; }
+
+.gcq-loading-phone .pls-badge svg {
+    width: 62%;
+    height: 62%;
+}
+
+.gcq-loading-phone .pls-title {
+    max-width: 17ch;
+    margin: 0;
+    font: 400 clamp(1.55rem, 7.4vw, 2.15rem)/1.12 var(--pls-display);
+    color: var(--pls-ink);
+    text-shadow: var(--pls-ink-shadow);
+    text-wrap: balance;
+}
+
+/* Fredoka has no Greek letters: Greek lines use Open Sans, bold */
+.gcq-loading-phone[lang="el"] .pls-title {
+    font-family: 'Fredoka', 'Open Sans', system-ui, sans-serif;
+    font-weight: 700;
+    font-size: clamp(1.4rem, 6.6vw, 1.9rem);
+}
+
+.gcq-loading-phone .pls-swap {
+    display: inline-block;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.gcq-loading-phone .pls-swap.is-out {
+    opacity: 0;
+    transform: translateY(4px);
+}
+
+/* The line under the title and the Welcome share one cell, so nothing jumps */
+.gcq-loading-phone .pls-cell {
+    display: grid;
+    place-items: start center;
+    min-height: 6.3rem;
+    width: 100%;
+    margin-top: 0.5rem;
+}
+
+.gcq-loading-phone .pls-sub,
+.gcq-loading-phone .pls-welcome {
+    grid-area: 1 / 1;
+    margin: 0;
+    transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gcq-loading-phone .pls-sub {
+    max-width: 22rem;
+    font: 600 0.95rem/1.4 'Fredoka', 'Open Sans', system-ui, sans-serif;
+    color: var(--pls-soft);
+}
+
+.gcq-loading-phone .pls-welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    opacity: 0;
+    transform: translateY(8px);
+}
+
+.gcq-loading-phone.pls-welcomed .pls-sub {
+    opacity: 0;
+    transform: translateY(-6px);
+}
+
+.gcq-loading-phone.pls-welcomed .pls-welcome {
+    opacity: 1;
+    transform: none;
+}
+
+.gcq-loading-phone .pls-school {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 100%;
+    margin: 0;
+    padding: 0.3rem 1.2rem 0.4rem;
+    border-radius: 0.9rem;
+    background: var(--pls-chip);
+    border: 1px solid var(--pls-card-line);
+    color: var(--pls-chip-ink);
+}
+
+.gcq-loading-phone .pls-school__eyebrow {
+    font: 700 0.62rem/1.3 'Fredoka', 'Open Sans', system-ui, sans-serif;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    opacity: 0.75;
+}
+
+.gcq-loading-phone .pls-school__name {
+    max-width: 100%;
+    overflow: hidden;
+    font: 400 1.02rem/1.25 var(--pls-display);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gcq-loading-phone .pls-school[hidden],
+.gcq-loading-phone .pls-person[hidden] {
+    display: none;
+}
+
+.gcq-loading-phone .pls-school:not([hidden]) {
+    animation: pls-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.gcq-loading-phone .pls-person {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    max-width: 100%;
+    margin: 0;
+    font: 600 0.9rem/1.2 'Fredoka', 'Open Sans', system-ui, sans-serif;
+    color: var(--pls-soft);
+}
+
+.gcq-loading-phone .pls-person__crest {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 50%;
+    background: var(--pls-fill);
+    color: #fff;
+    font: 400 0.85rem/1 var(--pls-display);
+}
+
+.gcq-loading-phone .pls-person__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ── Progress: three steps that fill as the app gets ready ─── */
+
+.gcq-loading-phone .pls-progress {
+    width: min(15rem, 72vw);
+    margin-top: 0.6rem;
+}
+
+.gcq-loading-phone .pls-steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem;
+}
+
+.gcq-loading-phone .pls-steps__seg {
+    position: relative;
+    height: 5px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--pls-track);
+}
+
+.gcq-loading-phone .pls-steps__fill {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--pls-fill);
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gcq-loading-phone .pls-steps__seg.is-on .pls-steps__fill { transform: none; }
+
+.gcq-loading-phone .pls-status {
+    margin: 0.55rem 0 0;
+    min-height: 1.3em;
+    font: 600 0.8rem/1.3 'Fredoka', 'Open Sans', system-ui, sans-serif;
+    color: var(--pls-soft);
+}
+
+/* ── Tip, pinned above the bottom safe area ───────────────── */
+
+.gcq-loading-phone .pls-tip {
+    position: absolute;
+    left: max(1rem, env(safe-area-inset-left));
+    right: max(1rem, env(safe-area-inset-right));
+    bottom: calc(max(0.9rem, env(safe-area-inset-bottom)) + 0.4rem);
+    display: grid;
+    place-items: center;
+    max-width: 22rem;
+    min-height: 3.2rem;
+    margin: 0 auto;
+    padding: 0.5rem 0.95rem;
+    border-radius: 1rem;
+    border: 1px solid var(--pls-card-line);
+    background: var(--pls-card);
+}
+
+.gcq-loading-phone .pls-tip__text {
+    margin: 0;
+    font: 500 0.8rem/1.4 'Fredoka', 'Open Sans', system-ui, sans-serif;
+    color: var(--pls-card-ink);
+    text-align: center;
+    transition: opacity 0.36s ease;
+}
+
+.gcq-loading-phone .pls-tip__text:empty { display: none; }
+.gcq-loading-phone .pls-tip:has(.pls-tip__text:empty) { visibility: hidden; }
+.gcq-loading-phone .pls-tip__text.is-out { opacity: 0; }
+
+/* ── Arriving: words wait for the storybook font, then rise once ── */
+
+.gcq-loading-phone .pls-brand,
+.gcq-loading-phone .pls-title,
+.gcq-loading-phone .pls-cell,
+.gcq-loading-phone .pls-progress,
+.gcq-loading-phone .pls-tip {
+    opacity: 0;
+}
+
+.gcq-loading-phone.pls-ready .pls-brand,
+.gcq-loading-phone.pls-ready .pls-title,
+.gcq-loading-phone.pls-ready .pls-cell,
+.gcq-loading-phone.pls-ready .pls-progress,
+.gcq-loading-phone.pls-ready .pls-tip {
+    animation: pls-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.gcq-loading-phone.pls-ready .pls-title { animation-delay: 60ms; }
+.gcq-loading-phone.pls-ready .pls-cell { animation-delay: 130ms; }
+.gcq-loading-phone.pls-ready .pls-progress { animation-delay: 190ms; }
+.gcq-loading-phone.pls-ready .pls-tip { animation-delay: 260ms; }
+
+.gcq-loading-phone .pls-emblem { animation: pls-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.gcq-loading-phone .pls-land { animation: pls-land 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes pls-rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes pls-pop {
+    from { opacity: 0; transform: scale(0.6); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes pls-land {
+    from { transform: translateY(14%); }
+    to { transform: none; }
+}
+
+/* ── Idle motion (full motion only) ───────────────────────── */
+
+.gcq-loading-phone.pls-rich .pls-lumi {
+    animation: pls-float 3.2s ease-in-out infinite alternate;
+}
+
+.gcq-loading-phone.pls-rich .pls-halo {
+    animation: pls-breathe 2.8s ease-in-out infinite alternate;
+}
+
+.gcq-loading-phone.pls-rich .pls-orbit {
+    animation: pls-spin 16s linear infinite;
+}
+
+.gcq-loading-phone.pls-rich .pls-stars__a { animation: pls-twinkle 3.4s ease-in-out infinite alternate; }
+.gcq-loading-phone.pls-rich .pls-stars__b { animation: pls-twinkle 4.1s ease-in-out -2s infinite alternate; }
+
+.gcq-loading-phone.pls-rich .pls-steps__seg.is-now .pls-steps__fill {
+    transform: scaleX(0.35);
+    animation: pls-wait 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes pls-float {
+    from { transform: translateY(3px) rotate(-3deg); }
+    to { transform: translateY(-6px) rotate(3deg); }
+}
+
+@keyframes pls-breathe {
+    from { opacity: 0.65; transform: scale(0.94); }
+    to { opacity: 1; transform: scale(1.04); }
+}
+
+@keyframes pls-spin {
+    to { transform: rotate(1turn); }
+}
+
+@keyframes pls-twinkle {
+    from { opacity: 0.35; }
+    to { opacity: 1; }
+}
+
+@keyframes pls-wait {
+    from { opacity: 0.35; }
+    to { opacity: 0.8; }
+}
+
+/* The Welcome: Lumi gives a happy hop */
+.gcq-loading-phone.pls-welcomed:not(.pls-still) .pls-lumi__hop {
+    animation: pls-hop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes pls-hop {
+    0% { transform: none; }
+    40% { transform: translateY(-12%) scale(1.08); }
+    100% { transform: none; }
+}
+
+/* ── Gate arrival and the hand-over ───────────────────────── */
+
+.gcq-loading-phone .pls-daylight {
+    z-index: 5;
+    opacity: 0;
+    background: linear-gradient(180deg, #e9f6ff 0%, #f7fbff 55%, #f2fdf3 100%);
+}
+
+#loading-screen.gcq-loading-phone.loading-screen-from-gate .pls-daylight {
+    animation: pls-daylight 1.4s cubic-bezier(0.3, 0, 0.2, 1) both;
+}
+
+@keyframes pls-daylight {
+    0%, 15% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* Lumi lifts off as the scene fades into the app (beats styles/loading.css's film melt) */
+#loading-screen.gcq-loading-phone.loading-screen-exit {
+    animation: pls-out 0.48s ease 0.12s forwards;
+}
+
+#loading-screen.gcq-loading-phone.loading-screen-exit .pls-emblem {
+    animation: pls-lift 0.55s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+}
+
+@keyframes pls-out {
+    to { opacity: 0; }
+}
+
+@keyframes pls-lift {
+    to { opacity: 0; transform: translateY(-38vh) scale(0.55); }
+}
+
+/* ── Weak phones and reduced motion ───────────────────────── */
+
+.gcq-loading-phone.pls-lite .pls-orbit i,
+.gcq-loading-phone.pls-still .pls-orbit i {
+    display: none;
+}
+
+.gcq-loading-phone.pls-still .pls-emblem,
+.gcq-loading-phone.pls-still .pls-land,
+.gcq-loading-phone.pls-still.pls-ready .pls-brand,
+.gcq-loading-phone.pls-still.pls-ready .pls-title,
+.gcq-loading-phone.pls-still.pls-ready .pls-cell,
+.gcq-loading-phone.pls-still.pls-ready .pls-progress,
+.gcq-loading-phone.pls-still.pls-ready .pls-tip {
+    animation: none;
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #loading-screen.gcq-loading-phone.loading-screen-exit .pls-emblem {
+        animation: none !important;
+    }
+}
+
+/* ── Short screens (landscape phones) ─────────────────────── */
+
+@media (max-height: 540px) {
+    #loading-screen.gcq-loading-phone { --pls-land: 0px; }
+
+    .gcq-loading-phone .pls-land { display: none; }
+    .gcq-loading-phone .pls-stage { padding-bottom: 4.4rem; }
+    .gcq-loading-phone .pls-brand { display: none; }
+    .gcq-loading-phone .pls-emblem { width: 4.4rem; margin-bottom: 0.5rem; }
+    .gcq-loading-phone .pls-title { max-width: none; font-size: 1.4rem; }
+    .gcq-loading-phone .pls-cell { min-height: 4.4rem; margin-top: 0.3rem; }
+    .gcq-loading-phone .pls-welcome { gap: 0.3rem; }
+    .gcq-loading-phone .pls-school { padding: 0.15rem 1rem 0.25rem; }
+    .gcq-loading-phone .pls-tip { bottom: max(0.5rem, env(safe-area-inset-bottom)); min-height: 2.5rem; max-width: 30rem; }
+}
+
+/* Very small phones (320px wide) */
+@media (max-width: 359px) {
+    .gcq-loading-phone .pls-emblem { width: 5.6rem; }
+    .gcq-loading-phone .pls-sub { font-size: 0.88rem; }
+}
+
+.gcq-loading-phone.pls-still .pls-school:not([hidden]) { animation: none; }

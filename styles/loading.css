@@ -1,6 +1,7 @@
 /* --- THE LOADING SCENE: TWILIGHT OVER THE QUEST HILLS -------------------
    The stage in front of it (Lumi, the words, the constellation, the woosh)
-   lives in styles/loading2.css; phones are fitted in styles/loading-mobile.css.
+   lives in styles/loading2.css. Phones get their own light scene instead
+   (templates/loadingPhone.js, styles/loading-phone.css).
    Markup and timing: templates/loading.js.
 
    The house lights go down: the light page dims into a twilight sky, the

@@ -5,11 +5,13 @@
 //   film=full|short (force a cut)  shot=1 (hide the toolbar)  ready=<ms> (when the app is ready)
 //   header=0 (plain next screen, no app header: Lumi leaves by the top corner)
 //   sky=dawn|day|golden|twilight|night  wx=<WMO weather code, e.g. 0 clear, 3 grey, 45 fog, 63 rain, 73 snow, 95 storm>
+// Below 1024px wide it shows the phone scene (templates/loadingPhone.js): role= also picks the scene
+// before sign-in (guess= overrides it), lang=el shows families' Greek, low=1 the weak-phone tier.
 // The hand-over is the app's own (templates/loading.js#playLoadingExit); window.__pvLog
 // records when each step happened, for headless timing checks.
 import { headerHTML } from './templates/app/header.js';
 import { startPixieDust } from './ui/headerClock.js';
-import { loadingHTML, initLoadingAtmosphere, initLoadingTips, markLoadingStage, stageLoadingPersonalization, playLoadingExit, reopenLoadingScreen, setLoadingFilmCut } from './templates/loading.js';
+import { getLoadingHTML, initLoadingAtmosphere, initLoadingTips, markLoadingStage, stageLoadingPersonalization, playLoadingExit, reopenLoadingScreen, setLoadingFilmCut } from './templates/loading.js';
 
 const params = new URLSearchParams(location.search);
 const opts = {
@@ -35,7 +37,7 @@ if (params.get('header') !== '0') {
     next.innerHTML = `<div class="gcq-sky-atmosphere relative">${headerHTML}</div>`;
     startPixieDust();
 }
-document.getElementById('app-root').innerHTML = loadingHTML;
+document.getElementById('app-root').innerHTML = getLoadingHTML();
 initLoadingAtmosphere();
 initLoadingTips();
 const screen = document.getElementById('loading-screen');

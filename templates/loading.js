@@ -1,6 +1,10 @@
 import { detectLowPowerTier as sharedLowPowerTier } from '../utils/devicePerformance.mjs';
 import { paintLoadingSky } from './loadingSky.js';
 import { createTipDeck } from './loadingTips.mjs';
+import {
+    wantsPhoneLoading, isPhoneLoading, phoneLoadingHTML, initPhoneLoading, phoneMarkStage,
+    phoneStagePersonalization, phoneLoadingExit, phoneReopen, phoneRevealEta,
+} from './loadingPhone.js';
 // templates/loading.js
 //
 // The loading screen is a short film starring Lumi, the app's guiding star.
@@ -24,6 +28,9 @@ import { createTipDeck } from './loadingTips.mjs';
 //             to the header, landing where its little Lumi starts her trip
 //             round the title and becoming her (flyLumiHome). Where that Lumi
 //             is not shown (phones), she swoops off past the top corner.
+//
+// Phones and small tablets get a light scene of their own instead
+// (templates/loadingPhone.js); every export below hands over to it there.
 //
 // Every move is a transform or an opacity change, so the compositor keeps it
 // smooth while the app boots on the main thread. Weak machines get a smaller
@@ -99,6 +106,7 @@ function applyFilmCut(cut) {
 
 /** Dev previews: force a cut ('full' or 'short'). */
 export function setLoadingFilmCut(cut) {
+    if (isPhoneLoading()) return;
     applyFilmCut(cut);
     scheduleLumiTricks();
 }
@@ -441,6 +449,11 @@ export const loadingHTML = `
     </div>
 `;
 
+/** The loading screen for this device: the film, or the phone scene. */
+export function getLoadingHTML() {
+    return wantsPhoneLoading() ? phoneLoadingHTML() : loadingHTML;
+}
+
 // ── Device hints ─────────────────────────────────────────────────────
 
 function detectLowPowerTier() {
@@ -507,6 +520,7 @@ function stopTipRotation() {
 
 /** Start cycling through tips in the loading screen. Call once after injectHTML(). */
 export function initLoadingTips() {
+    if (isPhoneLoading()) return; // the phone scene deals its own (initPhoneLoading)
     const tipEl = document.getElementById('loading-tip');
     if (!tipEl) return;
     stopTipRotation();
@@ -594,6 +608,7 @@ function buildMotes({ mobile, lowPower }) {
  * first paint, so a phone never sees the desktop scene first.
  */
 export function initLoadingAtmosphere() {
+    if (isPhoneLoading()) { initPhoneLoading(); return; }
     const loadingScreen = document.getElementById('loading-screen');
     const lowPower = detectLowPowerTier();
     const mobile = isMobileLoadingViewport();
@@ -732,6 +747,7 @@ function castNextStar() {
  * quiet: light it at once, without Lumi's cast (used when the screen reopens).
  */
 export function markLoadingStage(step, { quiet = false } = {}) {
+    if (isPhoneLoading()) { phoneMarkStage(step); return; }
     const next = Math.min(3, Math.max(_loadingStep, step));
     if (next === _loadingStep) return;
     _loadingStep = next;
@@ -778,6 +794,7 @@ function buildPersonalizedCopy(name, role) {
  * The account has loaded by now, so the second star lights.
  */
 export function stageLoadingPersonalization(name, role) {
+    if (isPhoneLoading()) { phoneStagePersonalization(name, role); return; }
     _stagedPersonalization = buildPersonalizedCopy(name, role);
     markLoadingStage(2);
 }
@@ -1350,6 +1367,7 @@ function later(ms, fn) {
 
 /** Milliseconds until the scene starts melting into the next screen (0 once it has). */
 export function loadingRevealEta() {
+    if (isPhoneLoading()) return phoneRevealEta();
     if (!_revealAt) return 0;
     return Math.max(0, Math.round(_revealAt - performance.now()));
 }
@@ -1363,6 +1381,7 @@ export function loadingRevealEta() {
  */
 export function playLoadingExit(loadingScreen, { schoolName = '', dayPart = '', onHidden } = {}) {
     if (!loadingScreen) return 0;
+    if (isPhoneLoading()) return phoneLoadingExit(loadingScreen, { schoolName, dayPart, onHidden });
     clearExitTimers();
     if (loadingScreen.classList.contains('hidden')) {
         // Already out of sight (e.g. signing out): nothing to play.
@@ -1445,6 +1464,7 @@ let fromGateTimer = 0;
 export function reopenLoadingScreen({ fromGate = false } = {}) {
     const loadingScreen = document.getElementById('loading-screen');
     if (!loadingScreen) return;
+    if (isPhoneLoading()) { phoneReopen({ fromGate }); return; }
     clearExitTimers();
     _revealAt = 0;
     loadingScreen.dataset.exiting = '';

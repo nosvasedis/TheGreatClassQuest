@@ -156,6 +156,31 @@ export const LOADING_TIPS = Object.freeze([
     'Today is a fresh page in your class story.',
 ]);
 
+// The phone loading screen deals from the deck that fits who is signing in
+// (templates/loadingPhone.js). Families read theirs in English or Greek.
+export const FAMILY_LOADING_TIPS = Object.freeze([
+    ['Homework shows this week’s notes from class, all in one place.', 'Στις Εργασίες βρίσκετε τις σημειώσεις της εβδομάδας από την τάξη.'],
+    ['Put a test straight into your phone’s calendar with “Add to calendar”.', 'Βάλτε ένα διαγώνισμα στο ημερολόγιο του κινητού με το «Στο ημερολόγιο».'],
+    ['Progress shows your child’s stars month by month.', 'Η Πρόοδος δείχνει τα αστέρια του παιδιού σας μήνα με τον μήνα.'],
+    ['You can write to the School Office from Messages, even an absence note.', 'Από τα Μηνύματα γράφετε στη Γραμματεία, ακόμη και για μια απουσία.'],
+    ['Ask which virtue earned today’s star. Children love to tell the story.', 'Ρωτήστε για ποια αρετή πήρε το αστέρι. Τα παιδιά λατρεύουν να το λένε.'],
+    ['Stars are earned in class for Teamwork, Creativity, Respect and Focus.', 'Τα αστέρια κερδίζονται για Ομαδικότητα, Δημιουργικότητα, Σεβασμό, Προσοχή.'],
+    ['Home marks everything that is new since your last visit.', 'Η Αρχική σημειώνει ό,τι νέο υπάρχει από την τελευταία σας επίσκεψη.'],
+    ['A note from the teacher waits for you on Home, like a letter.', 'Ένα σημείωμα του δασκάλου σας περιμένει στην Αρχική, σαν γράμμα.'],
+    ['The portal speaks English or Ελληνικά: use the language switch.', 'Η πύλη μιλά Ελληνικά ή English: αλλάξτε τη γλώσσα με τον διακόπτη.'],
+]);
+
+export const OFFICE_LOADING_TIPS = Object.freeze([
+    'Family Logins can create every missing parent login for a class at once.',
+    'Print login slips for a whole class from Family Logins.',
+    'Messages from families arrive in the School Office.',
+    'Open a new class first, then enrol its students in Students & Classes.',
+    'A student who leaves keeps their records and can be brought back later.',
+    'Office notes on a student’s passport stay private to the office.',
+    'Families can sign in from the QR poster, in English or Greek.',
+    'The Grades board shows each class’s test results as colour-coded slips.',
+]);
+
 const DECK_STORAGE_KEY = 'gcq-loading-tip-deck';
 
 function shuffled(count, random) {
@@ -167,9 +192,9 @@ function shuffled(count, random) {
     return order;
 }
 
-function readSavedDeck(storage, count) {
+function readSavedDeck(storage, count, key) {
     try {
-        const raw = storage && storage.getItem(DECK_STORAGE_KEY);
+        const raw = storage && storage.getItem(key);
         if (!raw) return null;
         const saved = JSON.parse(raw);
         if (!saved || saved.count !== count || !Array.isArray(saved.order)) return null;
@@ -180,9 +205,9 @@ function readSavedDeck(storage, count) {
     }
 }
 
-function saveDeck(storage, count, order, last) {
+function saveDeck(storage, count, order, last, key) {
     try {
-        if (storage) storage.setItem(DECK_STORAGE_KEY, JSON.stringify({ count, order, last }));
+        if (storage) storage.setItem(key, JSON.stringify({ count, order, last }));
     } catch {
         /* private window or blocked storage: the deck just restarts next visit */
     }
@@ -193,9 +218,9 @@ function saveDeck(storage, count, order, last) {
  * shown. The rest of the deck is remembered between visits, so reopening the
  * app carries on where the last loading screen left off.
  */
-export function createTipDeck({ tips = LOADING_TIPS, storage, random = Math.random } = {}) {
+export function createTipDeck({ tips = LOADING_TIPS, storage, random = Math.random, storageKey = DECK_STORAGE_KEY } = {}) {
     const count = tips.length;
-    const saved = readSavedDeck(storage, count);
+    const saved = readSavedDeck(storage, count, storageKey);
     let order = saved ? saved.order : [];
     let last = saved && Number.isInteger(saved.last) ? saved.last : -1;
 
@@ -208,7 +233,7 @@ export function createTipDeck({ tips = LOADING_TIPS, storage, random = Math.rand
                 if (count > 1 && order[0] === last) order.push(order.shift());
             }
             last = order.shift();
-            saveDeck(storage, count, order, last);
+            saveDeck(storage, count, order, last, storageKey);
             return tips[last];
         },
     };

@@ -170,8 +170,8 @@
 /* 33. Loading status pill, personalized greeting banner + sparkle burst, tip styles */
 @import url('./styles/loading2.css');
 
-/* 33a. Phone loading scene (.gcq-loading-mobile): ships with style.css so it is ready before first paint */
-@import url('./styles/loading-mobile.css');
+/* 33a. Phone loading scene (.gcq-loading-phone, templates/loadingPhone.js): ships with style.css so it is ready before first paint */
+@import url('./styles/loading-phone.css');
 
 /* 34. Weather effects: stormy/rainy/snowy/cloudy header/wallpaper overlays, night-mode body */
 @import url('./styles/weather_effects.css');

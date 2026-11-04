@@ -379,19 +379,6 @@
     100% { opacity: 0; }
 }
 
-/* Phones: a smaller sun, out of the title's way */
-#loading-screen.gcq-loading-mobile .ls-sun {
-    width: 44px;
-    top: max(5%, env(safe-area-inset-top));
-    left: 6%;
-}
-
-#loading-screen.gcq-loading-mobile[data-ls-light="golden"] .ls-sun,
-#loading-screen.gcq-loading-mobile[data-ls-light="dawn"] .ls-sun {
-    top: auto;
-    bottom: calc(var(--land-h) * 0.9);
-}
-
 @media (prefers-reduced-motion: reduce) {
     .ls-sun,
     .ls-fall__run,

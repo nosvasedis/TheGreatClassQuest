@@ -3065,3 +3065,645 @@ body.projector-mode .hcs-row {
 }
 
 .hcs-legend-title i { font-size: 0.65rem; color: #92400e; }
+
+/* ==========================================================================
+   The Starlit Arena (2026-11 redesign)
+   The podium is a night stage: a quiet starfield, a spotlight on each place,
+   carved pedestals with a medallion numeral, and every hero standing in a
+   pool of light. Rows are clean cards with chips that carry their icon in a
+   coloured bead. Nothing here animates filters or big blurs: motion is
+   transform and opacity only, and low-power machines (.hcs-list--lite) get
+   a still stage.
+   ========================================================================== */
+
+/* ─── Stage ──────────────────────────────────────────────────────────────── */
+
+.hcs-podium {
+    padding-top: 3rem;
+    border-radius: 1.75rem;
+    background:
+        radial-gradient(ellipse 70% 38% at 50% 100%, rgba(251, 191, 36, 0.26), transparent 72%),
+        radial-gradient(ellipse 85% 55% at 50% -12%, rgba(196, 181, 253, 0.42), transparent 70%),
+        radial-gradient(ellipse 40% 30% at 12% 30%, rgba(236, 72, 153, 0.16), transparent 70%),
+        radial-gradient(ellipse 40% 30% at 88% 26%, rgba(56, 189, 248, 0.14), transparent 70%),
+        linear-gradient(180deg, #17133d 0%, #2a1f6b 42%, #45208f 78%, #5b21b6 100%);
+    box-shadow:
+        0 0 0 1.5px rgba(253, 230, 138, 0.75),
+        0 0 0 5px rgba(255, 255, 255, 0.7),
+        0 0 0 6px rgba(124, 58, 237, 0.22),
+        0 28px 50px -24px rgba(30, 16, 80, 0.75);
+}
+
+/* A quiet starfield instead of the damask */
+.hcs-podium::before {
+    background-image:
+        radial-gradient(1.2px 1.2px at 12% 18%, rgba(255, 255, 255, 0.9), transparent 60%),
+        radial-gradient(1px 1px at 28% 62%, rgba(255, 255, 255, 0.7), transparent 60%),
+        radial-gradient(1.4px 1.4px at 47% 9%, rgba(254, 240, 138, 0.9), transparent 60%),
+        radial-gradient(1px 1px at 63% 41%, rgba(255, 255, 255, 0.65), transparent 60%),
+        radial-gradient(1.3px 1.3px at 81% 14%, rgba(255, 255, 255, 0.85), transparent 60%),
+        radial-gradient(1px 1px at 92% 57%, rgba(221, 214, 254, 0.8), transparent 60%),
+        radial-gradient(1px 1px at 6% 47%, rgba(221, 214, 254, 0.7), transparent 60%),
+        radial-gradient(1.2px 1.2px at 37% 33%, rgba(255, 255, 255, 0.6), transparent 60%);
+    background-size: 340px 240px;
+    background-position: 0 0;
+    opacity: 0.85;
+}
+
+/* Floor: a polished strip the pedestals stand on */
+.hcs-podium::after {
+    height: 10px;
+    border-radius: 0 0 1.75rem 1.75rem;
+    background:
+        linear-gradient(90deg, transparent 4%, rgba(253, 230, 138, 0.9) 50%, transparent 96%) top / 100% 2px no-repeat,
+        linear-gradient(180deg, rgba(76, 29, 149, 0.6), rgba(30, 16, 80, 0.85));
+}
+
+.hcs-podium__valance {
+    display: none;
+}
+
+/* The turning rays become one still glow behind the winner */
+.hcs-podium__rays {
+    top: 40%;
+    width: 640px;
+    height: 640px;
+    margin: -320px 0 0 -320px;
+    background: radial-gradient(circle, rgba(253, 230, 138, 0.22) 0, rgba(253, 230, 138, 0.08) 30%, transparent 60%);
+    -webkit-mask-image: none;
+    mask-image: none;
+    animation: none;
+}
+
+.hcs-podium__motes i {
+    width: 4px;
+    height: 4px;
+    background: #fff7d6;
+    box-shadow: 0 0 6px 1px rgba(253, 224, 71, 0.5);
+}
+
+.hcs-podium__motes i:nth-child(odd) {
+    background: #e9d5ff;
+    box-shadow: 0 0 6px 1px rgba(196, 181, 253, 0.55);
+}
+
+/* ─── Spotlights: a cone of light falls on every place ──────────────────── */
+
+.hcs-spot {
+    position: relative;
+}
+
+.hcs-spot::before {
+    content: '';
+    position: absolute;
+    left: -18%;
+    right: -18%;
+    top: -3rem;
+    bottom: var(--ped-h);
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--metal-3) 28%, transparent) 14%, color-mix(in srgb, var(--metal-1) 8%, transparent) 50%, color-mix(in srgb, var(--metal-1) 22%, transparent) 100%);
+    clip-path: polygon(43% 0, 57% 0, 100% 100%, 0 100%);
+    -webkit-mask-image: linear-gradient(90deg, transparent 4%, #000 34%, #000 66%, transparent 96%);
+    mask-image: linear-gradient(90deg, transparent 4%, #000 34%, #000 66%, transparent 96%);
+    opacity: 0.75;
+}
+
+.hcs-spot--gold::before {
+    opacity: 1;
+}
+
+.hcs-podium--tiers .hcs-spot::before {
+    display: none;
+}
+
+/* A pool of light where each hero stands */
+.hcs-figure::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -0.35rem;
+    z-index: -1;
+    width: min(9rem, 92%);
+    height: 1.1rem;
+    translate: -50% 0;
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, color-mix(in srgb, var(--metal-1) 75%, transparent) 0%, color-mix(in srgb, var(--metal-2) 30%, transparent) 45%, transparent 72%);
+}
+
+/* ─── The winner: a slow sunburst behind the portrait ───────────────────── */
+
+.hcs-spot--gold .hcs-figure:not(.hcs-figure--packed) .hcs-figure__portrait::after {
+    content: '';
+    position: absolute;
+    inset: -42%;
+    z-index: -1;
+    border-radius: 50%;
+    pointer-events: none;
+    background: repeating-conic-gradient(from 0deg, rgba(253, 230, 138, 0.38) 0deg 6deg, transparent 6deg 18deg);
+    -webkit-mask-image: radial-gradient(circle, #000 30%, transparent 70%);
+    mask-image: radial-gradient(circle, #000 30%, transparent 70%);
+    animation: hcs-spin 48s linear infinite;
+}
+
+.hcs-figure__ring {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.55), 0 0 18px 1px var(--metal-glow);
+}
+
+.hcs-figure__crown i {
+    filter: drop-shadow(0 2px 0 rgba(120, 53, 15, 0.55));
+}
+
+.hcs-figure__crown::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 55%;
+    width: 2.6rem;
+    height: 1.4rem;
+    translate: -50% -50%;
+    z-index: -1;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(253, 224, 71, 0.55), transparent 70%);
+}
+
+.hcs-figure__crown {
+    position: relative;
+}
+
+/* Name and rank title as a tidy plate */
+.hcs-figure__name {
+    letter-spacing: 0.01em;
+    text-shadow: 0 1px 0 rgba(30, 16, 80, 0.6), 0 3px 10px rgba(0, 0, 0, 0.45);
+}
+
+.hcs-spot--gold .hcs-figure__name {
+    color: #fff7d1;
+}
+
+.hcs-figure .hcs-line {
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+
+/* Stars on a jewel pill with a metal rim */
+.hcs-figure__stars {
+    border: 1.5px solid transparent;
+    background:
+        linear-gradient(180deg, rgba(30, 16, 80, 0.82), rgba(46, 16, 101, 0.7)) padding-box,
+        linear-gradient(180deg, var(--metal-3), var(--metal-2)) border-box;
+    box-shadow: 0 6px 14px -8px rgba(0, 0, 0, 0.7), 0 0 14px -4px var(--metal-glow);
+}
+
+.hcs-figure__star {
+    color: var(--metal-1);
+    filter: none;
+    text-shadow: 0 0 8px var(--metal-glow);
+}
+
+.hcs-figure__lead {
+    padding: 0.12rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(253, 230, 138, 0.14);
+    box-shadow: inset 0 0 0 1px rgba(253, 230, 138, 0.35);
+}
+
+/* ─── Pedestals: carved blocks with a medallion numeral ─────────────────── */
+
+.hcs-pedestal {
+    padding-top: 0.7rem;
+    border-radius: 0.55rem 0.55rem 0 0;
+    background:
+        linear-gradient(90deg, rgba(0, 0, 0, 0.16), transparent 14%, transparent 86%, rgba(0, 0, 0, 0.2)),
+        repeating-linear-gradient(180deg, transparent 0 1.45rem, rgba(255, 255, 255, 0.08) 1.45rem 1.55rem, rgba(0, 0, 0, 0.06) 1.55rem 1.65rem),
+        linear-gradient(180deg, var(--ped-1), var(--ped-2) 48%, var(--ped-3));
+    box-shadow:
+        inset 0 -26px 30px -18px rgba(0, 0, 0, 0.42),
+        0 -2px 26px -8px var(--metal-glow);
+}
+
+/* The top face in perspective, so the block reads as solid */
+.hcs-pedestal__cap {
+    height: 12px;
+    background: linear-gradient(180deg, #fff, var(--metal-3) 30%, var(--metal-1));
+    clip-path: polygon(0 100%, 3% 0, 97% 0, 100% 100%);
+    box-shadow: none;
+}
+
+.hcs-pedestal__cap::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -3px;
+    height: 3px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.22), transparent);
+}
+
+.hcs-pedestal__num {
+    display: grid;
+    place-items: center;
+    width: clamp(2.6rem, 6vw, 3.5rem);
+    aspect-ratio: 1;
+    margin-top: 0.25rem;
+    border-radius: 50%;
+    font-size: clamp(1.5rem, 3.6vw, 2.2rem);
+    opacity: 1;
+    color: var(--ped-ink);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+    background:
+        radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.85), transparent 45%),
+        radial-gradient(circle, var(--metal-3) 0, var(--metal-1) 58%, var(--metal-2) 100%);
+    box-shadow:
+        0 0 0 2px color-mix(in srgb, var(--ped-3) 55%, transparent),
+        0 0 0 4px color-mix(in srgb, var(--metal-3) 60%, transparent),
+        inset 0 -3px 6px rgba(0, 0, 0, 0.2),
+        0 4px 10px -4px rgba(0, 0, 0, 0.5);
+}
+
+.hcs-spot--gold .hcs-pedestal__num {
+    width: clamp(2.9rem, 6.6vw, 3.9rem);
+    font-size: clamp(1.7rem, 4vw, 2.5rem);
+}
+
+.hcs-spot--bronze .hcs-pedestal__num {
+    width: clamp(2.3rem, 5vw, 2.8rem);
+    margin-top: 0;
+    font-size: clamp(1.3rem, 3vw, 1.8rem);
+}
+
+.hcs-pedestal__tag {
+    margin-top: 0.35rem;
+    color: color-mix(in srgb, var(--ped-ink) 85%, #fff);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.hcs-podium--tiers .hcs-pedestal__num {
+    width: 2.4rem;
+    font-size: 1.35rem;
+    margin: 0;
+}
+
+/* ─── Rows: clean cards ─────────────────────────────────────────────────── */
+
+.hcs-ranks {
+    gap: 0.6rem;
+}
+
+.hcs-row {
+    border-radius: 1.25rem;
+    background:
+        radial-gradient(ellipse 30% 120% at 0% 50%, color-mix(in srgb, var(--hcs-accent) 14%, transparent), transparent 70%),
+        linear-gradient(180deg, #fff, #fdfcff);
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--hcs-accent) 22%, #e9e5f5),
+        0 1px 0 rgba(255, 255, 255, 1) inset,
+        0 10px 22px -16px rgba(46, 16, 101, 0.45);
+}
+
+.hcs-row::before {
+    top: 0.7rem;
+    bottom: 0.7rem;
+    width: 4px;
+    border-radius: 0 6px 6px 0;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--hcs-accent) 55%, #fff), var(--hcs-accent), color-mix(in srgb, var(--hcs-accent) 55%, #fff));
+}
+
+.hcs-row:hover {
+    box-shadow:
+        0 0 0 1.5px color-mix(in srgb, var(--hcs-accent) 55%, #c4b5fd),
+        0 1px 0 rgba(255, 255, 255, 1) inset,
+        0 16px 26px -16px color-mix(in srgb, var(--hcs-accent) 55%, rgba(46, 16, 101, 0.6));
+}
+
+.hcs-row--next {
+    background:
+        radial-gradient(ellipse 30% 120% at 0% 50%, rgba(251, 146, 60, 0.18), transparent 70%),
+        linear-gradient(180deg, #fffaf4, #fff);
+    box-shadow:
+        0 0 0 1.5px #fdba74,
+        0 1px 0 rgba(255, 255, 255, 1) inset,
+        0 10px 22px -16px rgba(194, 65, 12, 0.5);
+}
+
+.hcs-row__name {
+    color: #2e1065;
+}
+
+/* The star count sits on a warm tally pill */
+.hcs-row__stars {
+    gap: 0.3rem;
+    padding: 0.2rem 0.75rem 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 1.55rem;
+    color: #3b0764;
+    background: linear-gradient(180deg, #fffdf3, #fef3c7);
+    box-shadow: inset 0 0 0 1px #fde68a, 0 4px 10px -8px rgba(180, 83, 9, 0.6);
+}
+
+.hcs-row__stars i {
+    color: #f59e0b;
+    text-shadow: 0 1px 0 #c2410c;
+}
+
+.hcs-row--next .hcs-row__stars {
+    background: linear-gradient(180deg, #fff7ed, #ffedd5);
+    box-shadow: inset 0 0 0 1px #fdba74, 0 4px 10px -8px rgba(194, 65, 12, 0.6);
+}
+
+/* The road: a slim gem track in the hero's guild colours */
+.hcs-road__track {
+    height: 7px;
+    background: linear-gradient(180deg, #ece8f7, #f6f4fc);
+    box-shadow: inset 0 1px 2px rgba(46, 16, 101, 0.16), 0 0 0 1px rgba(255, 255, 255, 0.9);
+}
+
+.hcs-road__fill {
+    background: linear-gradient(90deg, color-mix(in srgb, var(--hcs-accent) 45%, #fff), var(--hcs-accent) 65%, color-mix(in srgb, var(--hcs-accent) 50%, #fbbf24));
+    box-shadow: 0 0 8px -2px color-mix(in srgb, var(--hcs-accent) 70%, transparent);
+}
+
+.hcs-road__flag {
+    width: 3px;
+    margin-left: -1.5px;
+    background: linear-gradient(180deg, #fb923c, #c2410c);
+}
+
+/* ─── Chips: one shape everywhere, the icon in a coloured bead ──────────── */
+
+.hcs-trait,
+.hcs-badge--top,
+.hcs-row__gap {
+    gap: 0.3rem;
+    height: 1.45rem;
+    padding: 0 0.6rem 0 0.16rem;
+    border-radius: 999px;
+    background: #fff;
+}
+
+.hcs-trait {
+    color: color-mix(in srgb, var(--t) 72%, #1e1b4b);
+    background: linear-gradient(180deg, #fff, var(--t-bg));
+    box-shadow: inset 0 0 0 1px var(--t-line), 0 2px 5px -3px color-mix(in srgb, var(--t) 60%, transparent);
+}
+
+.hcs-trait i,
+.hcs-badge i,
+.hcs-row__gap i {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 1.13rem;
+    height: 1.13rem;
+    border-radius: 50%;
+    font-size: 0.58rem;
+    opacity: 1;
+}
+
+.hcs-trait i {
+    color: #fff;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--t) 70%, #fff), var(--t));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.hcs-badge {
+    height: 1.45rem;
+    padding: 0 0.6rem 0 0.16rem;
+}
+
+.hcs-badge--champion i {
+    color: var(--badge);
+    background: #fff;
+}
+
+.hcs-badge--top {
+    background: linear-gradient(180deg, #fffdf3, #fef3c7);
+    box-shadow: inset 0 0 0 1px #fcd34d, 0 2px 5px -3px rgba(217, 119, 6, 0.6);
+}
+
+.hcs-badge--top i {
+    color: #fff;
+    background: linear-gradient(180deg, #fbbf24, #d97706);
+}
+
+.hcs-row__gap {
+    height: 1.35rem;
+    font-size: 0.68rem;
+    color: #5b21b6;
+    background: linear-gradient(180deg, #fff, #f5f3ff);
+    box-shadow: inset 0 0 0 1px #e4dcfd;
+}
+
+.hcs-row__gap i {
+    width: 1rem;
+    height: 1rem;
+    font-size: 0.52rem;
+    color: #fff;
+    background: #8b5cf6;
+}
+
+.hcs-row__gap--podium {
+    color: #9a3412;
+    background: linear-gradient(180deg, #fff, #fff1e6);
+    box-shadow: inset 0 0 0 1px #fed7aa;
+}
+
+.hcs-row__gap--podium i {
+    background: #ea580c;
+}
+
+.hcs-row__gap--tie {
+    color: #475569;
+    background: linear-gradient(180deg, #fff, #f8fafc);
+    box-shadow: inset 0 0 0 1px #e2e8f0;
+}
+
+.hcs-row__gap--tie i {
+    background: #94a3b8;
+}
+
+/* Podium chips sit on the night stage */
+.hcs-figure .hcs-trait,
+.hcs-figure .hcs-badge--top {
+    background: rgba(255, 255, 255, 0.94);
+}
+
+/* ─── The familiar's nest is a button with its own card ─────────────────── */
+
+.hcs-pet,
+.hcs-pet .hero-challenge-familiar-chip {
+    pointer-events: auto;
+}
+
+.hcs-pet {
+    cursor: pointer;
+    transition: box-shadow 0.2s ease;
+}
+
+.hcs-pet:hover,
+.hcs-pet:focus-within {
+    z-index: 8;
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--hcs-accent, #8b5cf6), 0 6px 14px -4px rgba(46, 16, 101, 0.55);
+}
+
+.hcs-pet .familiar-container:focus-visible {
+    outline: none;
+}
+
+/* ─── Entrance: pedestals rise, light falls, heroes land ───────────────── */
+
+.hcs-list--enter .hcs-spot::before {
+    animation: hcs-light-in 0.9s ease-out both;
+    animation-delay: calc(0ms - var(--hcs-skip, 0ms) + var(--hcs-d, 0) * 110ms + 420ms);
+}
+
+.hcs-list--enter .hcs-pedestal__num {
+    animation: hcs-pin-pop 0.55s cubic-bezier(0.34, 1.6, 0.64, 1) both;
+    animation-delay: calc(0ms - var(--hcs-skip, 0ms) + var(--hcs-d, 0) * 110ms + 520ms);
+}
+
+.hcs-list--enter .hcs-figure::after {
+    animation: hcs-pool-in 0.7s ease-out both;
+    animation-delay: calc(0ms - var(--hcs-skip, 0ms) + var(--hcs-d, 0) * 110ms + 500ms + min(var(--k, 0), 10) * 70ms);
+}
+
+@keyframes hcs-figure-rise {
+    0% { opacity: 0; translate: 0 -26px; scale: 0.92; }
+    55% { opacity: 1; translate: 0 4px; scale: 1.02; }
+    78% { translate: 0 -2px; scale: 0.995; }
+    100% { opacity: 1; translate: 0 0; scale: 1; }
+}
+
+@keyframes hcs-rise-in {
+    from { opacity: 0; translate: -12px 10px; }
+    to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes hcs-light-in {
+    from { opacity: 0; }
+}
+
+@keyframes hcs-pool-in {
+    from { opacity: 0; scale: 0.4 1; }
+}
+
+/* ─── A class picked in the header glows once ───────────────────────────── */
+
+.hcs-section--picked .hcs-section__head {
+    animation: hcs-picked 1.5s ease-out;
+}
+
+@keyframes hcs-picked {
+    0% { scale: 1; }
+    18% { scale: 1.05; box-shadow: 0 0 0 3px #fbbf24, 0 0 0 9px rgba(251, 191, 36, 0.28), 0 14px 30px -14px rgba(180, 83, 9, 0.6); }
+    100% { scale: 1; }
+}
+
+/* ─── Switching boards: a small compass turns while the next board comes ── */
+
+.hcs-list--leaving::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 2.5rem;
+    z-index: 2;
+    width: 2.6rem;
+    height: 2.6rem;
+    margin-left: -1.3rem;
+    border-radius: 50%;
+    border: 3px solid rgba(196, 181, 253, 0.45);
+    border-top-color: #8b5cf6;
+    border-right-color: #fbbf24;
+    opacity: 0;
+    animation: hcs-wait-show 0.3s ease-out 0.28s forwards, hcs-spin 0.9s linear infinite;
+}
+
+@keyframes hcs-wait-show {
+    to { opacity: 1; }
+}
+
+/* ─── Weak machines and calm motion ─────────────────────────────────────── */
+
+.hcs-list--lite .hcs-spot--gold .hcs-figure__portrait::after,
+.hcs-list--lite .hcs-spot::before,
+.hcs-list--lite .hcs-figure::after {
+    animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hcs-spot--gold .hcs-figure__portrait::after,
+    .hcs-section--picked .hcs-section__head {
+        animation: none !important;
+    }
+    .hcs-list--leaving::before {
+        animation: hcs-wait-show 0.3s ease-out 0.28s forwards;
+    }
+}
+
+/* ─── Phones ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 639px) {
+    .hcs-podium {
+        padding-top: 2.5rem;
+        border-radius: 1.4rem;
+    }
+
+    .hcs-spot::before {
+        top: -2.5rem;
+        left: -8%;
+        right: -8%;
+    }
+
+    .hcs-pedestal {
+        padding-top: 0.5rem;
+    }
+
+    .hcs-pedestal__num,
+    .hcs-spot--gold .hcs-pedestal__num {
+        width: 2.1rem;
+        font-size: 1.2rem;
+        margin-top: 0.1rem;
+    }
+
+    .hcs-spot--gold .hcs-pedestal__num {
+        width: 2.5rem;
+        font-size: 1.45rem;
+    }
+
+    .hcs-spot--bronze .hcs-pedestal__num {
+        width: 1.8rem;
+        font-size: 1rem;
+    }
+
+    .hcs-row__stars {
+        font-size: 1.25rem;
+        padding: 0.15rem 0.55rem 0.15rem 0.45rem;
+    }
+
+    .hcs-row__gap {
+        height: auto;
+        min-height: 1.2rem;
+        max-width: 6.2rem;
+        padding: 0.16rem 0.5rem;
+        border-radius: 0.7rem;
+        font-size: 0.58rem;
+    }
+
+    .hcs-row__gap i {
+        display: none;
+    }
+
+    .hcs-trait,
+    .hcs-badge {
+        height: 1.3rem;
+        padding-right: 0.5rem;
+    }
+
+    .hcs-trait i,
+    .hcs-badge i {
+        width: 1rem;
+        height: 1rem;
+        font-size: 0.5rem;
+    }
+}

@@ -790,7 +790,44 @@ function heroBoardKey(league, now = new Date()) {
     ].join('|');
 }
 
-export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
+// Last month's Prodigies come from a fetch the first time; the board never
+// waits long for it. When it lands late, the board redraws with the crowns.
+let _prodigyPending = null;
+async function reigningProdigiesQuickly() {
+    const fetch = getReigningProdigies();
+    const late = Symbol('late');
+    const first = await Promise.race([fetch, new Promise((resolve) => setTimeout(() => resolve(late), 140))]);
+    if (first !== late) return first;
+    if (!_prodigyPending) {
+        _prodigyPending = fetch
+            .then(() => {
+                const tab = document.getElementById('student-leaderboard-tab');
+                if (tab && !tab.classList.contains('hidden')) renderStudentLeaderboardTab();
+            })
+            .catch(() => {})
+            .finally(() => { _prodigyPending = null; });
+    }
+    return {};
+}
+
+/** A header class pick: bring that class's standings into view with a soft glow. */
+function spotlightPickedClass(list) {
+    const classId = state.get('globalSelectedClassId');
+    if (!classId) return;
+    const sectionEl = [...list.querySelectorAll('[data-hcs-section]')].find((el) => el.dataset.hcsSection === classId);
+    if (!sectionEl) return;
+    sectionEl.classList.remove('hcs-section--picked');
+    void sectionEl.offsetWidth;
+    sectionEl.classList.add('hcs-section--picked');
+    setTimeout(() => sectionEl.classList.remove('hcs-section--picked'), 1600);
+    const rect = sectionEl.getBoundingClientRect();
+    const offscreen = rect.top > window.innerHeight * 0.7 || rect.bottom < 80;
+    if (offscreen) {
+        sectionEl.scrollIntoView({ behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+    }
+}
+
+export async function renderStudentLeaderboardTab({ freshVisit = false, classChange = false } = {}) {
     const list = document.getElementById('student-leaderboard-list');
     if (!list) return;
     // Renders can overlap (a tap, then live data): only the newest one draws.
@@ -849,10 +886,23 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
     });
 
     // 1. HELPER: Calculate Stats & Tie-Breakers
+    // One pass over the logs instead of one per hero.
+    const logsByStudent = new Map();
+    (allLogs || []).forEach((log) => {
+        const bucket = logsByStudent.get(log.studentId);
+        if (bucket) bucket.push(log);
+        else logsByStudent.set(log.studentId, [log]);
+    });
+    const scoresByStudent = new Map();
+    (allScores || []).forEach((sc) => {
+        const bucket = scoresByStudent.get(sc.studentId);
+        if (bucket) bucket.push(sc);
+        else scoresByStudent.set(sc.studentId, [sc]);
+    });
     const getStudentStats = (studentId) => {
-        const studentLogs = allLogs.filter(log => log.studentId === studentId);
+        const studentLogs = logsByStudent.get(studentId) || [];
         const now = new Date();
-        const { logs: monthlyLogs, scores: monthlyScores } = heroMonthRecords(studentId, { allLogs, allScores, now });
+        const { logs: monthlyLogs, scores: monthlyScores } = heroMonthRecords(studentId, { allLogs: studentLogs, allScores: scoresByStudent.get(studentId) || [], now });
 
         // A. Weekly Stars (Monday to Friday)
         const dayOfWeek = now.getDay(); // 0 (Sun) to 6 (Sat)
@@ -931,7 +981,7 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
             };
         });
     // --- REIGNING PRODIGY (previous month's winners, with co-prodigy/tie support) ---
-    const prodigyByClass = await getReigningProdigies();
+    const prodigyByClass = await reigningProdigiesQuickly();
     if (seq !== _heroRenderSeq) return;
 
     // --- RENDER HELPERS ---
@@ -1149,7 +1199,10 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
     const boardSignature = partSignatures.join('');
     const sameBoard = list.dataset.hcsBoard === boardKey;
     const leaving = list.classList.contains('hcs-list--leaving');
-    if (!freshVisit && sameBoard && !leaving && list.__hcsHtml === boardSignature) return;
+    if (!freshVisit && sameBoard && !leaving && list.__hcsHtml === boardSignature) {
+        if (classChange) spotlightPickedClass(list);
+        return;
+    }
 
     // A new board: wait for the old one to fade and the new portraits to load.
     if (!sameBoard || leaving) {
@@ -1183,6 +1236,7 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
             const fresh = tpl.content.firstElementChild;
             if (fresh) list.children[i].replaceWith(fresh);
         });
+        if (classChange) spotlightPickedClass(list);
         return;
     }
 
@@ -1193,4 +1247,5 @@ export async function renderStudentLeaderboardTab({ freshVisit = false } = {}) {
     if (moved) playStandingsChanges(list, sections);
     else if (freshVisit || !sameBoard || leaving) playStandingsEntrance(list);
     else if (!resumeStandingsEntrance(list)) list.classList.add('hcs-list--settled');
+    if (classChange) spotlightPickedClass(list);
 }

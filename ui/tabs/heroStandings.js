@@ -179,9 +179,13 @@ function portraitHtml(e, { large = false } = {}) {
     const emblem = e.heroClass
         ? heroEmblemHtml(e.heroClass)
         : (e.heroIcon ? `<span class="hcs-emblem hcs-emblem--plain" aria-hidden="true"><span class="hcs-emblem__icon">${e.heroIcon}</span></span>` : '');
+    // One guild tooltip: the crest's. The badge inside keeps its picture but
+    // drops its own title, so hovering never shows two different cards.
     const crest = e.guildBadgeHtml
-        ? `<span class="hcs-crest" title="${escapeStandingsHtml(e.guildName ? `Guild: ${e.guildName}` : 'Guild')}">${e.guildBadgeHtml}</span>`
+        ? `<span class="hcs-crest" title="${escapeStandingsHtml(e.guildName ? `Guild: ${e.guildName}` : 'Guild')}">${String(e.guildBadgeHtml).replace(/\stitle="[^"]*"/g, '')}</span>`
         : '';
+    // The familiar's nest is its own button: a tap opens the Den, a hover shows
+    // the familiar's card (features/familiars.js).
     const familiar = e.familiarHtml ? `<span class="hcs-pet">${e.familiarHtml}</span>` : '';
     const ring = large
         ? '<span class="hcs-figure__ring" aria-hidden="true"></span>'

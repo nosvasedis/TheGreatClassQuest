@@ -267,7 +267,9 @@ export async function applyTabPrimaryRefresh(tabId, opts = {}) {
     // A header class change is not a fresh visit: the map rolls up to the general
     // view, unrolls for another league, or glides to the new class in place.
     if (tabId === 'class-leaderboard-tab') await renderClassLeaderboardTab({ freshVisit: !opts.classChange });
-    if (tabId === 'student-leaderboard-tab') await renderStudentLeaderboardTab({ freshVisit: true });
+    // Picking a class in the header keeps the board up: it only changes when
+    // the league does (the old board fades while the new one is drawn).
+    if (tabId === 'student-leaderboard-tab') await renderStudentLeaderboardTab({ freshVisit: !opts.classChange, classChange: Boolean(opts.classChange) });
     if (tabId === 'guilds-tab') await renderGuildsTab();
     if (tabId === 'manage-students-tab') renderManageStudentsTab();
     if (tabId === 'options-tab') {

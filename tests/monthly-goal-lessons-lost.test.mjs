@@ -4,7 +4,8 @@ import {
     calculateMonthlyDaysLostForDate,
     calculateMonthlyClassGoalForDate,
     getMonthlyLessonBalanceForDate,
-    getMonthlyGoalModifierForDate
+    getMonthlyGoalModifierForDate,
+    setSchoolLessonRhythm
 } from '../utils.js';
 import { buildSchoolCalendar } from '../utils/schoolCalendar.mjs';
 
@@ -96,4 +97,21 @@ test('from December 2026 a goal follows lessons per week: two is the usual goal'
     assert.ok(Math.abs(per(once) - per(twice)) <= 1, 'once a week: same stars per lesson as twice');
     assert.ok(Math.abs(per(thrice) - per(twice)) <= 1, 'three times a week: the same too');
     assert.ok(calculateMonthlyClassGoalForDate(once, 10, [], [], apr) < calculateMonthlyClassGoalForDate(twice, 10, [], [], apr) * 0.6);
+});
+
+test('each school sets its own usual lessons a week', () => {
+    const apr = new Date(2027, 3, 1);
+    const thrice = { id: 'h', scheduleDays: ['1', '3', '5'] };
+    const twice = { id: 'w', scheduleDays: ['2', '4'] };
+    try {
+        assert.equal(setSchoolLessonRhythm([thrice, thrice, twice]), 3);
+        // In a three-a-week school, a three-a-week class gets the usual goal, a twice-a-week one two thirds.
+        const g3 = calculateMonthlyClassGoalForDate(thrice, 10, [], [], apr);
+        const g2 = calculateMonthlyClassGoalForDate(twice, 10, [], [], apr);
+        assert.ok(Math.abs(g3 - 180) <= 8, `usual goal, got ${g3}`);
+        assert.ok(Math.abs(g2 / g3 - 2 / 3) < 0.06);
+        assert.equal(setSchoolLessonRhythm([]), 2, 'no classes yet: two');
+    } finally {
+        setSchoolLessonRhythm([]);
+    }
 });

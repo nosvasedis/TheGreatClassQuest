@@ -1,4 +1,4 @@
-import { getTodayDateString, getClassesOnDay, findLessonClassWithGrace } from "./utils.js";
+import { getTodayDateString, getClassesOnDay, findLessonClassWithGrace, setSchoolLessonRhythm } from "./utils.js";
 import {
     getDefaultSchoolYearState,
     getDefaultSchoolYears,
@@ -390,6 +390,7 @@ export function setAllTeachersClasses(classes) {
 }
 export function setAllSchoolClasses(classes) {
     state.allSchoolClasses = withSafeNames(classes);
+    setSchoolLessonRhythm(state.allSchoolClasses);
     _notify("allSchoolClasses");
 }
 export function setAllStudents(students) {

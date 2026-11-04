@@ -568,6 +568,8 @@
 .role-list-row__avatar--violet { background: linear-gradient(135deg, #a78bfa, #7c3aed); }
 .role-list-row__avatar--emerald { background: linear-gradient(135deg, #34d399, #059669); }
 .role-list-row__avatar--amber { background: linear-gradient(135deg, #fbbf24, #d97706); }
+.role-list-row__avatar--rose { background: linear-gradient(135deg, #fb7185, #e11d48); }
+.role-list-row__avatar--indigo { background: linear-gradient(135deg, #818cf8, #4f46e5); }
 
 .role-list-row__body { flex: 1; min-width: 0; }
 

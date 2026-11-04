@@ -1,4 +1,5 @@
 import '../styles/secretary_office.css';
+import '../styles/secretary_office_phone.css';
 import * as state from '../state.js';
 import * as modals from '../ui/modals/index.js';
 import { db, doc, setDoc, writeBatch } from '../firebase.js';
@@ -156,6 +157,7 @@ export function renderSecretaryTab(tabKey) {
         return;
     }
     wireAssessmentEditorsForTab(resolved);
+    revealActiveChips(section);
     if (resolved === 'admin' && document.getElementById('secretary-school-name-form')) {
         initializeSchoolLocationOptionsUi();
         renderHolidayList();
@@ -166,6 +168,30 @@ export function renderSecretaryTab(tabKey) {
         target?.focus({ preventScroll: true });
         if (caret && typeof target?.setSelectionRange === 'function') target.setSelectionRange(caret[0], caret[1]);
     }
+}
+
+// On a phone the class views and Admin sections are a sideways chip strip: bring the open
+// one into sight after a render, and drop the edge fade once the strip is scrolled to its end.
+const CHIP_STRIPS = '.pulse-nav, .office-tabs';
+function markStripEnd(strip) {
+    strip.classList.toggle('is-scrolled', strip.scrollLeft > 4);
+    strip.classList.toggle('is-scrolled-end', strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 4);
+}
+function revealActiveChips(section) {
+    section.querySelectorAll(CHIP_STRIPS).forEach((strip) => {
+        const active = strip.querySelector('.is-active');
+        if (active && strip.scrollWidth > strip.clientWidth) {
+            const offset = active.getBoundingClientRect().left - strip.getBoundingClientRect().left;
+            strip.scrollLeft = Math.max(0, strip.scrollLeft + offset - (strip.clientWidth - active.offsetWidth) / 2);
+        }
+        markStripEnd(strip);
+    });
+}
+if (typeof document !== 'undefined') {
+    document.addEventListener('scroll', (event) => {
+        const strip = event.target;
+        if (strip instanceof Element && strip.matches(CHIP_STRIPS) && strip.closest('#secretary-screen')) markStripEnd(strip);
+    }, { capture: true, passive: true });
 }
 
 // Typing in a search box must not rebuild the whole tab: that replays the panel's

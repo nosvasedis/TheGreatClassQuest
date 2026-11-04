@@ -103,3 +103,38 @@ export function setupCloudDock() {
 
     scheduleSleep(IDLE_MS + 1500);
 }
+
+const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+/**
+ * The moment a cloud is chosen: it squashes and springs back, a ring of light and a few mist puffs
+ * spill out of it and tiny stars rise. A locked cloud only shakes its head. Returns the sound to play.
+ * Transform/opacity animations only (styles/nav.css, .nav-button--chosen / --nope / .nav-burst).
+ */
+export function chooseCloud(btn) {
+    const clouds = [...btn.parentNode.querySelectorAll('.nav-button[data-tab]')];
+    const index = Math.max(0, clouds.indexOf(btn));
+    const restart = (cls, ms) => {
+        btn.classList.remove(cls);
+        void btn.offsetWidth;
+        btn.classList.add(cls);
+        clearTimeout(btn._cloudFx);
+        btn._cloudFx = setTimeout(() => btn.classList.remove(cls), ms);
+    };
+    if (btn.classList.contains('nav-button-locked')) {
+        restart('nav-button--nope', 520);
+        return 'cloud_nope';
+    }
+    const again = btn.classList.contains('active');
+    restart('nav-button--chosen', 900);
+    if (!again && !reducedMotion()) {
+        btn.querySelector('.nav-burst')?.remove();
+        const burst = document.createElement('span');
+        burst.className = 'nav-burst';
+        burst.setAttribute('aria-hidden', 'true');
+        burst.innerHTML = '<b></b><b></b><b></b><b></b><b></b><i></i><i></i><i></i><i></i>';
+        btn.appendChild(burst);
+        setTimeout(() => burst.remove(), 1100);
+    }
+    return `cloud_${index}`;
+}

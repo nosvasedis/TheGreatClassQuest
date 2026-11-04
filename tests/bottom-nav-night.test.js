@@ -63,3 +63,15 @@ test('each cloud carries its own description tip, never a "requires" title', asy
   assert.match(read('ui/questTipsCard.js'), /\['cloud', '#bottom-nav-bar'\]/);
   assert.match(read('styles/quest_tips.css'), /\.qtip--cloud\s*\{/);
 });
+
+test('choosing a cloud springs it, spills a burst and rings its own chime', () => {
+  const dock = read('ui/core/cloudDock.js');
+  assert.match(dock, /export function chooseCloud\(btn\)/);
+  assert.match(dock, /'cloud_nope'/);
+  assert.match(read('ui/core/listeners.js'), /playSound\(chooseCloud\(target\)\)/);
+  assert.match(read('audio.js'), /sound\.startsWith\('cloud_'\)/);
+  const css = read('styles/nav.css');
+  assert.match(css, /#bottom-nav-bar \.nav-button--chosen \.nav-cloud\s*\{/);
+  assert.match(css, /@keyframes nav-cloud-jelly/);
+  assert.match(css, /#bottom-nav-bar \.nav-burst\s*\{/);
+});

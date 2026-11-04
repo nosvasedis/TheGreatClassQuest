@@ -206,7 +206,8 @@ export function playSound(sound) {
     if (!soundsReady || !audioRunning()) return;
     const sounds = getSounds(sound === 'award_3' ? 3 : 2);
     const composedAward = typeof sound === 'string' && (sound.startsWith('award_') || sound.startsWith('virtue_')) && sounds.award_bell;
-    if (!sounds[sound] && !composedAward) return;
+    const cloudPick = typeof sound === 'string' && sound.startsWith('cloud_') && sounds.pluck;
+    if (!sounds[sound] && !composedAward && !cloudPick) return;
     
     // 1. Get current audio context time
     const now = Tone.now();
@@ -262,6 +263,19 @@ export function playSound(sound) {
         else if (sound === 'confirm') sounds.confirm.triggerAttackRelease('E4', '8n', playTime);
         else if (sound === 'writing') sounds.writing.triggerAttackRelease('4n', playTime);
         else if (sound === 'magic_chime') sounds.magic_chime.triggerAttackRelease('C7', '8n', playTime);
+        else if (cloudPick) {
+            // Bottom nav clouds: each cloud rings its own soft two-note chime on one pentatonic scale
+            // (cloud_0 … cloud_9, left to right); cloud_nope is a low, gentle "not yet".
+            const scale = ['C5', 'D5', 'E5', 'G5', 'A5', 'C6', 'D6', 'E6', 'G6', 'A6', 'C7', 'D7'];
+            if (sound === 'cloud_nope') {
+                sounds.pluck.triggerAttackRelease('E4', '16n', playTime, 0.3);
+                sounds.pluck.triggerAttackRelease('C4', '8n', playTime + 0.09, 0.26);
+            } else {
+                const i = Math.max(0, Math.min(9, parseInt(sound.slice(6), 10) || 0));
+                sounds.pluck.triggerAttackRelease(scale[i], '16n', playTime, 0.32);
+                sounds.pluck.triggerAttackRelease(scale[i + 2], '8n', playTime + 0.075, 0.24);
+            }
+        }
         else if (sound === 'cash') {
             sounds.cash.triggerAttackRelease(["B5", "E6"], "16n", playTime);
             sounds.cash.triggerAttackRelease(["C6", "G6"], "16n", playTime + 0.05);

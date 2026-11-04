@@ -30,7 +30,7 @@ import { triggerAwardEffects, playVirtuePick } from '../awardFx.js';
 import { confirmAwardPending, markAwardPending, runAwardWriteInOrder, settleAwardPending } from '../../features/awardPending.mjs';
 import { confirmAttendancePending, markAttendancePending, settleAttendancePending, withPendingAttendance } from '../../features/attendancePending.mjs';
 import { updateShopStudentDisplay, isShopSeasonLive } from './shop.js';
-import { setupCloudDock } from './cloudDock.js';
+import { setupCloudDock, chooseCloud } from './cloudDock.js';
 import { confirmWord, handleWordInputChange, updateStudentCardAttendanceState } from './misc.js';
 import {
     handleAddClass,
@@ -96,7 +96,7 @@ export function setupUIListeners() {
     document.getElementById('bottom-nav-bar').addEventListener('click', (e) => {
         const target = e.target.closest('.nav-button');
         if (target) {
-            playSound('click');
+            playSound(chooseCloud(target));
             tabs.showTab(target.dataset.tab);
         }
     });

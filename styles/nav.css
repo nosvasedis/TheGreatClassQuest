@@ -310,6 +310,8 @@ body.night-mode:not(.projector-mode) #bottom-nav-bar::before {
 #bottom-nav-bar .nav-button:focus-visible { z-index: 10; }
 
 #bottom-nav-bar .nav-button.active {
+    /* The old gem "pop" would fight the cloud's own jelly spring (.nav-button--chosen). */
+    animation: none;
     box-shadow: none;
     filter:
         drop-shadow(0 0 1.5px #fff)
@@ -445,6 +447,137 @@ body.night-mode:not(.projector-mode) #bottom-nav-bar::before {
 }
 
 #bottom-nav-bar .nav-button.nav-button-locked .nav-glints { display: none; }
+
+/* Choosing a cloud. Press: the cloud squashes like a cushion. Chosen (ui/core/cloudDock.js
+   chooseCloud): it springs back in a little jelly wobble, the icon hops, the name pops in, and a ring
+   of light, five mist puffs and four tiny stars spill out (.nav-burst, removed after a second).
+   A locked cloud shakes its head instead. Individual scale/translate properties, so the slow
+   breathing (transform) keeps going underneath. */
+#bottom-nav-bar .nav-button:active .nav-cloud {
+    scale: 1.07 0.88;
+    transition: scale 110ms ease-out;
+}
+
+#bottom-nav-bar .nav-button--chosen .nav-cloud {
+    animation: cloud-breathe var(--cloud-breath) ease-in-out infinite, nav-cloud-jelly 820ms cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+
+#bottom-nav-bar .nav-button--chosen .icon {
+    animation: nav-icon-hop 720ms cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+
+#bottom-nav-bar .nav-button--chosen .text {
+    animation: nav-label-pop 520ms cubic-bezier(0.34, 1.56, 0.64, 1) 80ms both;
+}
+
+#bottom-nav-bar .nav-button--nope .nav-cloud {
+    animation: cloud-breathe var(--cloud-breath) ease-in-out infinite, nav-cloud-nope 480ms ease-in-out;
+}
+
+@keyframes nav-cloud-jelly {
+    0% { scale: 1.08 0.86; }
+    30% { scale: 0.95 1.12; }
+    55% { scale: 1.04 0.96; }
+    78% { scale: 0.99 1.02; }
+    100% { scale: 1 1; }
+}
+
+@keyframes nav-icon-hop {
+    0% { transform: translateY(-0.2rem) scale(0.6); }
+    40% { transform: translateY(-1.05rem) scale(0.78) rotate(-8deg); }
+    70% { transform: translateY(-0.38rem) scale(0.63) rotate(3deg); }
+    100% { transform: translateY(-0.5rem) scale(0.65); }
+}
+
+@keyframes nav-label-pop {
+    0% { opacity: 0; transform: translateY(5px) scale(0.8); }
+    60% { opacity: 1; transform: translateY(-1px) scale(1.08); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes nav-cloud-nope {
+    0%, 100% { translate: 0 0; }
+    20% { translate: -5px 0; }
+    45% { translate: 5px 0; }
+    70% { translate: -3px 0; }
+    88% { translate: 2px 0; }
+}
+
+#bottom-nav-bar .nav-burst {
+    position: absolute;
+    left: 50%;
+    top: 40%;
+    z-index: 3;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+#bottom-nav-bar .nav-burst::before {
+    content: '';
+    position: absolute;
+    left: -2.4rem;
+    top: -1.3rem;
+    width: 4.8rem;
+    height: 2.6rem;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.8), inset 0 0 8px rgba(255, 255, 255, 0.6);
+    animation: nav-burst-ring 700ms cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+}
+
+#bottom-nav-bar .nav-burst b,
+#bottom-nav-bar .nav-burst i {
+    position: absolute;
+    left: 0;
+    top: 0;
+    opacity: 0;
+}
+
+#bottom-nav-bar .nav-burst b {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 42% 40%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.55) 40%, rgba(255, 255, 255, 0) 70%);
+    animation: nav-burst-puff 900ms cubic-bezier(0.15, 0.7, 0.3, 1) forwards;
+}
+
+#bottom-nav-bar .nav-burst i {
+    width: 9px;
+    height: 9px;
+    background: #fff7c2;
+    clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+    animation: nav-burst-fly 950ms cubic-bezier(0.2, 0.6, 0.35, 1) forwards;
+}
+
+#bottom-nav-bar .nav-burst b:nth-child(1) { --x: -3.4rem; --y: 0.6rem;  --s: 1.6; }
+#bottom-nav-bar .nav-burst b:nth-child(2) { --x: -2rem;   --y: -1.6rem; --s: 1.2; animation-delay: 40ms; }
+#bottom-nav-bar .nav-burst b:nth-child(3) { --x: 0.2rem;  --y: -2.3rem; --s: 1;   animation-delay: 70ms; }
+#bottom-nav-bar .nav-burst b:nth-child(4) { --x: 2.1rem;  --y: -1.5rem; --s: 1.3; animation-delay: 30ms; }
+#bottom-nav-bar .nav-burst b:nth-child(5) { --x: 3.5rem;  --y: 0.5rem;  --s: 1.7; }
+#bottom-nav-bar .nav-burst i:nth-child(6) { --x: -1.4rem; --y: -3rem;   --r: -120deg; animation-delay: 90ms; }
+#bottom-nav-bar .nav-burst i:nth-child(7) { --x: 1.1rem;  --y: -3.6rem; --r: 150deg;  animation-delay: 150ms; }
+#bottom-nav-bar .nav-burst i:nth-child(8) { --x: -0.3rem; --y: -4.3rem; --r: 90deg;   animation-delay: 210ms; width: 6px; height: 6px; }
+#bottom-nav-bar .nav-burst i:nth-child(9) { --x: 2.4rem;  --y: -2.6rem; --r: -90deg;  animation-delay: 120ms; width: 7px; height: 7px; }
+
+@keyframes nav-burst-ring {
+    0% { opacity: 0.95; transform: scale(0.35); }
+    100% { opacity: 0; transform: scale(1.9); }
+}
+
+@keyframes nav-burst-puff {
+    0% { opacity: 0.7; transform: translate(-50%, -50%) scale(0.4); }
+    30% { opacity: 0.75; }
+    100% { opacity: 0; transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(var(--s, 1)); }
+}
+
+@keyframes nav-burst-fly {
+    0% { opacity: 0.95; transform: translate(-50%, -50%) scale(0.3) rotate(0deg); }
+    25% { opacity: 1; }
+    100% { opacity: 0; transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(var(--s, 1)) rotate(var(--r, 0deg)); }
+}
+
+body.night-mode:not(.projector-mode) #bottom-nav-bar .nav-burst i { background: #e0e7ff; }
 
 /* The plan pill on a locked cloud sits on the cloud's shoulder, like a little tag. */
 #bottom-nav-bar .nav-button.nav-button-locked::after {
@@ -603,8 +736,15 @@ body:not(.gcq-mobile) #app-screen > main {
     }
 
     #bottom-nav-bar .nav-button .nav-glints::before,
-    #bottom-nav-bar .nav-button .nav-glints::after {
+    #bottom-nav-bar .nav-button .nav-glints::after,
+    #bottom-nav-bar .nav-button--chosen .icon,
+    #bottom-nav-bar .nav-button--chosen .text {
         animation: none !important;
+    }
+
+    #bottom-nav-bar .nav-button--chosen .nav-cloud,
+    #bottom-nav-bar .nav-button--nope .nav-cloud {
+        animation: none;
     }
 
     #bottom-nav-bar .nav-button,

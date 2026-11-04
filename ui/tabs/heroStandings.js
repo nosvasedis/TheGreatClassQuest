@@ -314,7 +314,7 @@ function podiumFigureHtml(e, group, entries, k, packed) {
 function pedestalTagHtml(group) {
     const n = group.heroes.length;
     if (n > 1) {
-        return `<span class="hcs-pedestal__tag" title="Same stars and the same tie-breakers">Tied for ${ordinal(group.rank)}<b> · ${heroCount(n)}</b></span>`;
+        return `<span class="hcs-pedestal__tag hcs-pedestal__tag--tie" title="Same stars and the same tie-breakers"><span class="hcs-pedestal__tag-text">Tied for ${ordinal(group.rank)}<b> · ${heroCount(n)}</b></span></span>`;
     }
     return `<span class="hcs-pedestal__tag hcs-pedestal__tag--solo">${ordinal(group.rank)} place</span>`;
 }
@@ -360,8 +360,8 @@ function podiumHtml(spots, metric) {
                     <span class="hcs-pedestal__seal">
                         <span class="hcs-pedestal__wreath"></span>
                         <span class="hcs-pedestal__num font-title">${group.rank}</span>
+                        ${pedestalTagHtml(group)}
                     </span>
-                    ${pedestalTagHtml(group)}
                     <span class="hcs-pedestal__base"></span>
                 </div>
             </div>`;
@@ -487,6 +487,24 @@ function rowHtml(e, above, { firstBelowPodium = false, leaderScore = 0, podiumFl
 }
 
 /**
+ * One figure on the class banner: a number over its label (heroes, stars,
+ * classes, heroes shining). fact: { icon, value, label, tone, share, title }
+ * (value may hold <small>); a plain HTML string still works.
+ */
+function sectionStatHtml(fact) {
+    if (typeof fact === 'string') return `<span class="hcs-stat"><span class="hcs-stat__value">${fact}</span></span>`;
+    const share = Number.isFinite(fact.share)
+        ? `<span class="hcs-stat__bar" aria-hidden="true"><span style="--share:${Math.max(0, Math.min(1, fact.share)).toFixed(3)}"></span></span>`
+        : '';
+    const title = fact.title ? ` title="${escapeStandingsHtml(fact.title)}"` : '';
+    return `<span class="hcs-stat hcs-stat--${escapeStandingsHtml(fact.tone || 'violet')}"${title}>
+            <span class="hcs-stat__value"><i class="fas ${escapeStandingsHtml(fact.icon || 'fa-star')}" aria-hidden="true"></i>${fact.value}</span>
+            <span class="hcs-stat__label">${escapeStandingsHtml(fact.label || '')}</span>
+            ${share}
+        </span>`;
+}
+
+/**
  * The banner's right side: who wears the crown right now, by how much, or
  * that the race hasn't started. Never drawn on a sealed board.
  */
@@ -590,13 +608,21 @@ export function renderStandingsSectionHtml(section, { monthName = '', metric = '
     const mine = section.live
         ? '<span class="hcs-section__mine hcs-section__mine--live"><span class="hcs-section__live-dot" aria-hidden="true"></span>In session now</span>'
         : (section.mine ? '<span class="hcs-section__mine"><i class="fas fa-chalkboard-teacher" aria-hidden="true"></i>Your class</span>' : '');
-    const facts = (section.facts || []).map((f) => `<span class="hcs-section__fact">${f}</span>`).join('');
+    const facts = (section.facts || []).map(sectionStatHtml).join('');
     const logo = section.logo
         ? `<span class="hcs-section__crest" aria-hidden="true"><span class="hcs-section__wreath"></span><span class="hcs-section__logo">${section.logo}</span></span>`
         : '<span class="hcs-section__crest hcs-section__crest--league" aria-hidden="true"><span class="hcs-section__wreath"></span><i class="fas fa-globe"></i></span>';
     const sealed = section.seal === 'sealed';
+    const shiningCount = entries.filter((e) => e.score > 0).length;
     const shining = metric === 'monthly' && entries.length
-        ? `<span class="hcs-section__fact hcs-section__fact--shine" title="Heroes with at least one star in ${escapeStandingsHtml(monthName)}"><i class="fas fa-sun" aria-hidden="true"></i>${entries.filter((e) => e.score > 0).length} of ${entries.length} shining</span>`
+        ? sectionStatHtml({
+            icon: 'fa-sun',
+            tone: 'sun',
+            value: `${shiningCount}<small>/${entries.length}</small>`,
+            label: 'shining',
+            share: shiningCount / entries.length,
+            title: `${shiningCount} of ${entries.length} heroes have stars in ${monthName}`
+        })
         : '';
     const leader = section.seal ? '' : sectionLeaderHtml(spots, entries, metric, monthName);
     const sealNote = section.seal
@@ -734,6 +760,71 @@ export function resumeStandingsEntrance(list) {
     list.style.setProperty('--hcs-skip', `${Math.round(elapsed)}ms`);
     list.classList.add('hcs-list--enter');
     return true;
+}
+
+// --- Quiet updates ------------------------------------------------------------
+//
+// Live data lands often (a star, last month's Prodigies, the first scores of
+// the day). Instead of redrawing a section, the fresh markup is laid over the
+// nodes already there: same-shaped elements keep their identity and only
+// their changed attributes and text are written.
+
+function morphNode(from, to) {
+    if (from.nodeType !== to.nodeType || from.nodeName !== to.nodeName) {
+        from.replaceWith(to);
+        return;
+    }
+    if (from.nodeType === 3 || from.nodeType === 8) {
+        if (from.nodeValue !== to.nodeValue) from.nodeValue = to.nodeValue;
+        return;
+    }
+    if (from.nodeType !== 1) return;
+    for (const { name, value } of [...to.attributes]) {
+        if (from.getAttribute(name) !== value) from.setAttribute(name, value);
+    }
+    for (const { name } of [...from.attributes]) {
+        if (!to.hasAttribute(name)) from.removeAttribute(name);
+    }
+    morphChildren(from, to);
+}
+
+function morphChildren(from, to) {
+    const next = [...to.childNodes];
+    const now = [...from.childNodes];
+    next.forEach((child, i) => {
+        if (i < now.length) morphNode(now[i], child);
+        else from.appendChild(child);
+    });
+    for (let i = next.length; i < now.length; i++) now[i].remove();
+}
+
+function standingsKey(el) {
+    if (!el || el.nodeType !== 1) return '';
+    if (el.dataset.hcsSection) return `s:${el.dataset.hcsSection}`;
+    return el.className ? `c:${String(el.className).split(' ')[0]}` : '';
+}
+
+/** Lays fresh board markup over the list, keyed by section. */
+export function morphStandingsList(list, html) {
+    const tpl = document.createElement('template');
+    tpl.innerHTML = html;
+    const fresh = [...tpl.content.children];
+    const old = new Map();
+    [...list.children].forEach((el) => old.set(standingsKey(el), el));
+    fresh.forEach((el, i) => {
+        const key = standingsKey(el);
+        const match = key ? old.get(key) : null;
+        let node = el;
+        if (match) {
+            old.delete(key);
+            morphNode(match, el);
+            node = match.isConnected ? match : el;
+        }
+        const at = list.children[i];
+        if (at !== node) list.insertBefore(node, at || null);
+    });
+    old.forEach((el) => el.remove());
+    while (list.children.length > fresh.length) list.lastElementChild.remove();
 }
 
 // --- Switching boards (another league, class/league view, month/all-time) -----

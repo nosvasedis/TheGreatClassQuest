@@ -184,13 +184,13 @@ const HC_EARLIER = { maria: 17, alex: 18, nikos: 14, eleni: 7, sofia: 9, yannis:
 const HC_EARLIER_ORDER = ['alex', 'maria', 'nikos', 'sofia', 'eleni', 'dimitra', 'yannis'];
 
 function hcSections(view) {
-  const star = (n) => `<i class="fas fa-star" aria-hidden="true"></i>${n} stars in August`;
+  const star = (n) => ({ icon: 'fa-star', tone: 'gold', value: String(n), label: 'stars in August' });
   if (view === 'league') {
     const all = HC_CLASSES.flatMap((c) => c.heroes.map((h) => ({ ...h, className: c.title, classLogo: c.logo })));
     all.sort((a, b) => b.stars - a.stars || a.name.localeCompare(b.name));
     return [{
       id: 'league:Junior', title: 'Junior League', logo: '', mine: false,
-      facts: [`<i class="fas fa-users" aria-hidden="true"></i>${all.length} heroes`, '<i class="fas fa-flag" aria-hidden="true"></i>2 classes', star(all.reduce((n, h) => n + h.stars, 0))],
+      facts: [{ icon: 'fa-users', value: String(all.length), label: 'heroes' }, { icon: 'fa-flag', tone: 'sky', value: '2', label: 'classes' }, star(all.reduce((n, h) => n + h.stars, 0))],
       entries: all.map((h, i) => hcEntry(h, i + 1, true))
     }];
   }
@@ -199,7 +199,7 @@ function hcSections(view) {
     let lastRank = 0;
     return {
       id: c.id, title: c.title, logo: c.logo, mine: c.mine,
-      facts: [`<i class="fas fa-users" aria-hidden="true"></i>${heroes.length} heroes`, star(heroes.reduce((n, h) => n + h.stars, 0))],
+      facts: [{ icon: 'fa-users', value: String(heroes.length), label: 'heroes' }, star(heroes.reduce((n, h) => n + h.stars, 0))],
       entries: heroes.map((h, i) => {
         lastRank = i > 0 && heroes[i - 1].stars === h.stars && lastRank > 3 ? lastRank : i + 1;
         return hcEntry({ ...h, className: c.title, classLogo: c.logo }, lastRank, false);

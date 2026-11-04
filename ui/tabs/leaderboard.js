@@ -37,6 +37,7 @@ import {
     beginStandingsLeave,
     awaitStandingsLeave,
     finishStandingsLeave,
+    morphStandingsList,
     playUnseal,
     readStandingsSnapshot,
     renderHeroRoleBadgesHtml,
@@ -1101,8 +1102,13 @@ export async function renderStudentLeaderboardTab({ freshVisit = false, classCha
     ).map((s) => toEntry(s, s.rank, opts));
 
     const sumStars = (students) => students.reduce((sum, s) => sum + (Number(s.score) || 0), 0);
-    const starFact = (n) => `<i class="fas fa-star" aria-hidden="true"></i>${formatStandingsStars(n)} ${starMetric === 'monthly' ? `star${n === 1 ? '' : 's'} in ${escapeLeaderboardHtml(monthName)}` : `star${n === 1 ? '' : 's'} all-time`}`;
-    const heroFact = (n) => `<i class="fas fa-users" aria-hidden="true"></i>${n} hero${n === 1 ? '' : 'es'}`;
+    const starFact = (n) => ({
+        icon: 'fa-star',
+        tone: 'gold',
+        value: formatStandingsStars(n),
+        label: starMetric === 'monthly' ? `star${n === 1 ? '' : 's'} in ${monthName}` : `star${n === 1 ? '' : 's'} all-time`
+    });
+    const heroFact = (n) => ({ icon: 'fa-users', tone: 'violet', value: String(n), label: `hero${n === 1 ? '' : 'es'}` });
 
     // A class's last lesson of the month: its standings stay sealed so the
     // Ceremony at the next lesson keeps its surprise (the teacher can peek).
@@ -1127,7 +1133,7 @@ export async function renderStudentLeaderboardTab({ freshVisit = false, classCha
             seal: sealFor(leagueSectionId, myFinale || (ownsNoneHere && finaleClassIds.size > 0)),
             title: `${league} League`,
             logo: '',
-            facts: [heroFact(studentsInLeague.length), `<i class="fas fa-flag" aria-hidden="true"></i>${classesInLeague.length} class${classesInLeague.length === 1 ? '' : 'es'}`, starFact(sumStars(studentsInLeague))],
+            facts: [heroFact(studentsInLeague.length), { icon: 'fa-flag', tone: 'sky', value: String(classesInLeague.length), label: `class${classesInLeague.length === 1 ? '' : 'es'}` }, starFact(sumStars(studentsInLeague))],
             mine: false,
             entries
         });
@@ -1222,20 +1228,15 @@ export async function renderStudentLeaderboardTab({ freshVisit = false, classCha
     // (A star landing mid-entrance just updates; the board is still rising.)
     const entering = Boolean(list.__hcsEnterAt) && performance.now() - list.__hcsEnterAt < 2600;
     if (sameBoard && !freshVisit && !leaving && (!moved || entering)) {
-        const resumed = resumeStandingsEntrance(list);
-        list.className = `hcs-list${lite}${resumed ? ' hcs-list--enter' : ''}`;
-        const patchable = previousParts && previousParts.length === parts.length && list.children.length === parts.length;
-        if (!patchable) {
-            list.innerHTML = outputHtml;
-            return;
+        // The nodes already on screen stay where they are: only the text,
+        // attributes and pieces that changed are touched, so nothing flashes,
+        // no portrait reloads and an entrance still playing just carries on.
+        if (!entering) {
+            list.__hcsEnterAt = 0;
+            list.style.removeProperty('--hcs-skip');
+            list.className = `hcs-list${lite}${list.classList.contains('hcs-list--settled') ? ' hcs-list--settled' : ''}`;
         }
-        parts.forEach((html, i) => {
-            if (previousParts[i] === partSignatures[i]) return;
-            const tpl = document.createElement('template');
-            tpl.innerHTML = html;
-            const fresh = tpl.content.firstElementChild;
-            if (fresh) list.children[i].replaceWith(fresh);
-        });
+        morphStandingsList(list, outputHtml);
         if (classChange) spotlightPickedClass(list);
         return;
     }

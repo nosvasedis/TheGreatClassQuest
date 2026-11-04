@@ -4240,3 +4240,216 @@ body.projector-mode .hcs-row {
         margin-left: 0;
     }
 }
+
+/* ==========================================================================
+   Round 3 (2026-11-04): banner figures instead of chips, and the tie ribbon
+   ========================================================================== */
+
+/* "Your class" / "In session now": a small engraved tag, no pill */
+.hcs-section__kicker .hcs-section__mine {
+    gap: 0.35rem;
+    padding: 0;
+    border-radius: 0;
+    font-family: var(--gcq-font-display);
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #b45309;
+    background: none;
+    box-shadow: none;
+}
+
+.hcs-section__kicker .hcs-section__mine::after {
+    content: '';
+    width: 1.6rem;
+    height: 1px;
+    background: linear-gradient(90deg, currentColor, transparent);
+    opacity: 0.6;
+}
+
+.hcs-section__kicker .hcs-section__mine i {
+    color: #f59e0b;
+}
+
+.hcs-section__kicker .hcs-section__mine--live {
+    color: #047857;
+}
+
+/* The figures: a number over its label, split by fine gold rules */
+.hcs-section__facts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 0.35rem 0;
+    margin-top: 0.4rem;
+}
+
+.hcs-stat {
+    --st: #7c3aed;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    padding: 0 0.95rem;
+    line-height: 1.05;
+}
+
+.hcs-stat:first-child {
+    padding-left: 0.1rem;
+}
+
+.hcs-stat + .hcs-stat::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 12%;
+    bottom: 12%;
+    width: 1px;
+    background: linear-gradient(180deg, transparent, #e9c46a 30%, #e9c46a 70%, transparent);
+}
+
+.hcs-stat__value {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.32rem;
+    font-family: var(--gcq-font-title);
+    font-size: 1.25rem;
+    color: #3b0764;
+    white-space: nowrap;
+}
+
+.hcs-stat__value i {
+    align-self: center;
+    font-size: 0.72em;
+    color: var(--st);
+}
+
+.hcs-stat__value small {
+    margin-left: -0.25rem;
+    font-size: 0.68em;
+    color: #8b7bb5;
+}
+
+.hcs-stat__label {
+    margin-top: 0.12rem;
+    font-family: var(--gcq-font-display);
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: #8a7bb0;
+    white-space: nowrap;
+}
+
+.hcs-stat--gold { --st: #f59e0b; }
+.hcs-stat--sky { --st: #0ea5e9; }
+.hcs-stat--sun { --st: #f59e0b; }
+
+.hcs-stat__bar {
+    display: block;
+    width: 100%;
+    height: 3px;
+    margin-top: 0.22rem;
+    border-radius: 3px;
+    background: #f3eefc;
+    overflow: hidden;
+}
+
+.hcs-stat__bar > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #fde68a, #f59e0b);
+    transform: scaleX(var(--share, 0));
+    transform-origin: left;
+    transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ─── The tie ribbon draped over the medallion ──────────────────────────── */
+
+.hcs-pedestal__tag--tie {
+    position: absolute;
+    left: 50%;
+    bottom: -0.15rem;
+    z-index: 3;
+    display: block;
+    margin: 0;
+    padding: 0;
+    translate: -50% 0;
+    filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.35));
+}
+
+.hcs-pedestal__tag--tie .hcs-pedestal__tag-text {
+    position: relative;
+    display: block;
+    padding: 0.22rem 1.05rem 0.26rem;
+    font-family: var(--gcq-font-title);
+    font-size: 0.82rem;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+    text-transform: none;
+    white-space: nowrap;
+    color: #fff;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--ped-3) 75%, #fff) 0%, var(--ped-3) 55%, color-mix(in srgb, var(--ped-3) 70%, #000) 100%);
+    clip-path: polygon(0 0, 100% 0, calc(100% - 0.5rem) 50%, 100% 100%, 0 100%, 0.5rem 50%);
+}
+
+.hcs-spot--gold .hcs-pedestal__tag--tie .hcs-pedestal__tag-text {
+    background: linear-gradient(180deg, #a855f7, #6d28d9 55%, #4c1d95);
+}
+
+.hcs-pedestal__tag--tie b {
+    display: none;
+}
+
+/* Tiers and stacked phones: the tag sits beside the number, whole */
+.hcs-podium--tiers .hcs-pedestal__seal {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.hcs-podium--tiers .hcs-pedestal__tag--tie {
+    position: static;
+    translate: none;
+}
+
+.hcs-podium--tiers .hcs-pedestal__tag--tie b {
+    display: inline;
+    font-weight: 400;
+    opacity: 0.85;
+}
+
+@media (max-width: 639px) {
+    .hcs-podium--wide .hcs-pedestal__seal {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .hcs-podium--wide .hcs-pedestal__tag--tie {
+        position: static;
+        translate: none;
+    }
+
+    .hcs-pedestal__tag--tie .hcs-pedestal__tag-text {
+        padding: 0.18rem 0.8rem 0.2rem;
+        font-size: 0.68rem;
+    }
+
+    .hcs-stat {
+        padding: 0 0.6rem;
+    }
+
+    .hcs-stat__value {
+        font-size: 1.05rem;
+    }
+
+    .hcs-stat__label {
+        font-size: 0.52rem;
+    }
+}

@@ -3590,14 +3590,25 @@ body.projector-mode .hcs-row {
 
 /* ─── A class picked in the header glows once ───────────────────────────── */
 
-.hcs-section--picked .hcs-section__head {
+/* The glow is its own layer: animating the banner itself would swap out its
+   entrance animation, and when the glow ended the banner replayed its rise
+   (the flash after a header class change). */
+.hcs-section--picked .hcs-section__head::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: 0 0 0 3px #fbbf24, 0 0 0 10px rgba(251, 191, 36, 0.3), 0 0 32px 6px rgba(251, 191, 36, 0.45);
+    opacity: 0;
     animation: hcs-picked 1.5s ease-out;
 }
 
 @keyframes hcs-picked {
-    0% { scale: 1; }
-    18% { scale: 1.05; box-shadow: 0 0 0 3px #fbbf24, 0 0 0 9px rgba(251, 191, 36, 0.28), 0 14px 30px -14px rgba(180, 83, 9, 0.6); }
-    100% { scale: 1; }
+    0% { opacity: 0; }
+    18% { opacity: 1; }
+    100% { opacity: 0; }
 }
 
 /* ─── Switching boards: a small compass turns while the next board comes ── */
@@ -3633,7 +3644,7 @@ body.projector-mode .hcs-row {
 
 @media (prefers-reduced-motion: reduce) {
     .hcs-spot--gold .hcs-figure__portrait::after,
-    .hcs-section--picked .hcs-section__head {
+    .hcs-section--picked .hcs-section__head::after {
         animation: none !important;
     }
     .hcs-list--leaving::before {

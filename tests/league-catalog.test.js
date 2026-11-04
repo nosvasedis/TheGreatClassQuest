@@ -91,24 +91,30 @@ test('league picker is themed, grouped by age stage, repeatable, and silent', as
   const { QUEST_LEAGUE_DEFINITIONS } = await import('../constants.js');
   const picker = read('ui/modals/base.js');
   const pickerFunction = picker.slice(
-    picker.indexOf('export function showLeaguePicker'),
+    picker.indexOf('export async function showLeaguePicker'),
     picker.indexOf('export function showLogoPicker'),
   );
   assert.match(pickerFunction, /QUEST_LEAGUE_DEFINITIONS/);
-  assert.match(pickerFunction, /LEAGUE_PICKER_STAGES/);
-  assert.match(pickerFunction, /ageCategory === stage\.key/);
+  assert.match(pickerFunction, /renderLeaguePickerHtml/);
   assert.match(pickerFunction, /leaguePickerFollowHtml/);
   assert.match(pickerFunction, /is-selected/);
-  const cardFunction = picker.slice(
-    picker.indexOf('function leaguePickerCardHtml'),
-    picker.indexOf('export function showLeaguePicker'),
+  // The picker's styles load lazily, before it opens.
+  assert.match(pickerFunction, /await loadLeagueControlStyles\(\)/);
+
+  const view = read('ui/modals/leaguePickerView.mjs');
+  const renderFunction = view.slice(view.indexOf('export function renderLeaguePickerHtml'));
+  assert.match(renderFunction, /LEAGUE_PICKER_STAGES/);
+  assert.match(renderFunction, /ageCategory === stage\.key/);
+  const cardFunction = view.slice(
+    view.indexOf('export function leaguePickerCardHtml'),
+    view.indexOf('export function renderLeaguePickerHtml'),
   );
   assert.match(cardFunction, /league-picker-option--\$\{definition\.pickerTheme\}/);
-  assert.match(cardFunction, /league-picker-option__watermark/);
+  assert.match(cardFunction, /lp-pennant__cloth/);
   assert.match(cardFunction, /is-current/);
-  const followFunction = picker.slice(
-    picker.indexOf('function leaguePickerFollowHtml'),
-    picker.indexOf('function leaguePickerCardHtml'),
+  const followFunction = view.slice(
+    view.indexOf('export function leaguePickerFollowHtml'),
+    view.indexOf('export function leaguePickerCardHtml'),
   );
   assert.match(followFunction, /league-match-active-btn/);
   // Every league lands in exactly one stage.
@@ -117,7 +123,7 @@ test('league picker is themed, grouped by age stage, repeatable, and silent', as
     assert.ok(stageKeys.includes(definition.ageCategory), `${definition.name} has a picker stage`);
   }
   const unlockIndex = pickerFunction.indexOf("list.classList.remove('is-selecting')");
-  const rebuildIndex = pickerFunction.indexOf("list.innerHTML = chunks.join('')");
+  const rebuildIndex = pickerFunction.indexOf('list.innerHTML = renderLeaguePickerHtml(');
   assert.ok(unlockIndex >= 0, 'reopening must clear the prior selection lock');
   assert.ok(unlockIndex < rebuildIndex, 'the prior selection lock must clear before rebuilding buttons');
   assert.doesNotMatch(pickerFunction, /playSound/);
@@ -134,7 +140,7 @@ test('league picker is themed, grouped by age stage, repeatable, and silent', as
   ]) {
     assert.match(css, new RegExp(`league-picker-option--${theme}\\s*\\{`));
   }
-  assert.match(css, /prefers-reduced-motion: reduce/);
+  assert.match(read('styles/league_controls.css'), /prefers-reduced-motion: reduce/);
 });
 
 test('Quiz of the Week has an explicit curriculum for every league', () => {

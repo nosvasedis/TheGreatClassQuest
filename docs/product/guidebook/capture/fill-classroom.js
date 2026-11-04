@@ -265,7 +265,7 @@ export function showTeamQuest() {
   if (month) month.textContent = 'August';
   const leagueBtn = document.getElementById('leaderboard-league-picker-btn');
   if (leagueBtn) {
-    const span = leagueBtn.querySelector('span');
+    const span = leagueBtn.querySelector('.league-bar__pick-name');
     if (span) span.textContent = 'Junior';
   }
   const list = document.getElementById('class-leaderboard-list');

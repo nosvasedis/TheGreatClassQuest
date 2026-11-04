@@ -20,48 +20,32 @@ export const leaderboardTabHTML = `
                         <p class="tab-sign__tagline">Race against other classes in your league toward the finish line!</p>
                     </header>
 
-                    <!-- Quest Month Banner -->
-                    <div id="current-month-quest-title" class="quest-month-banner mb-4">
-                        <!-- Floating watermark icons -->
-                        <div class="quest-banner-watermarks" aria-hidden="true">
-                            <i class="fas fa-star qbw-icon" style="left:6%;top:20%;font-size:2rem;--qbw-duration:8.8s;--qbw-delay:-1.8s;--qbw-drift-x:7px;--qbw-drift-y:11px;--qbw-tilt:3deg;"></i>
-                            <i class="fas fa-shield-alt qbw-icon" style="left:18%;top:58%;font-size:2.6rem;--qbw-duration:10.2s;--qbw-delay:-3.7s;--qbw-drift-x:8px;--qbw-drift-y:12px;--qbw-tilt:4deg;--qbw-pulse-duration:6.6s;"></i>
-                            <i class="fas fa-route qbw-icon" style="left:39%;top:24%;font-size:2rem;--qbw-duration:11.4s;--qbw-delay:-2.4s;--qbw-drift-x:9px;--qbw-drift-y:10px;--qbw-tilt:2deg;"></i>
-                            <i class="fas fa-flag-checkered qbw-icon" style="right:16%;top:53%;font-size:2.35rem;--qbw-duration:9.6s;--qbw-delay:-4.1s;--qbw-drift-x:7px;--qbw-drift-y:9px;--qbw-tilt:3.5deg;"></i>
-                            <i class="fas fa-star qbw-icon" style="right:6%;top:15%;font-size:1.7rem;--qbw-duration:10.8s;--qbw-delay:-5.3s;--qbw-drift-x:6px;--qbw-drift-y:8px;--qbw-tilt:2.5deg;--qbw-pulse-duration:7.4s;"></i>
+                    <!-- This month's race: a race banner strung between two poles -->
+                    <div id="current-month-quest-title" class="lgc-race">
+                        <span class="lgc-race__pole lgc-race__pole--start" aria-hidden="true"><span class="lgc-race__flag"></span></span>
+                        <div class="lgc-race__cloth">
+                            <span class="lgc-race__bunting" aria-hidden="true"></span>
+                            <span class="lgc-race__tag"><i class="fas fa-route" aria-hidden="true"></i>This month's race</span>
+                            <span class="lgc-race__month"><span id="quest-month-name">February</span></span>
+                            <span class="lgc-race__checker" aria-hidden="true"></span>
                         </div>
-                        <!-- Flanking emblems -->
-                        <div class="quest-banner-side">
-                            <i class="fas fa-star" style="font-size:1.3rem;"></i>
-                            <i class="fas fa-route" style="font-size:1rem;"></i>
-                        </div>
-                        <div class="quest-banner-center">
-                            <span class="quest-banner-kicker" aria-hidden="true">This month's race</span>
-                            <span class="quest-banner-month"><span id="quest-month-name">February</span></span>
-                        </div>
-                        <div class="quest-banner-side">
-                            <i class="fas fa-flag-checkered" style="font-size:1rem;"></i>
-                            <i class="fas fa-star" style="font-size:1.3rem;"></i>
-                        </div>
+                        <span class="lgc-race__pole lgc-race__pole--finish" aria-hidden="true"><span class="lgc-race__flag"></span></span>
                     </div>
 
                     <!-- Quest League bar -->
                     <div class="league-bar league-bar--quest" role="group" aria-label="Quest League">
-                        <div class="league-bar__league">
+                        <button type="button" id="leaderboard-league-picker-btn" class="league-bar__plate bubbly-button" title="Choose a Quest League">
                             <span class="league-bar__emblem" aria-hidden="true"><i class="fas fa-shield-halved"></i></span>
-                            <div class="league-bar__league-copy">
+                            <span class="league-bar__league-copy">
                                 <span class="league-bar__kicker">Quest League</span>
-                                <button type="button" id="leaderboard-league-picker-btn" class="league-bar__pick bubbly-button" title="Choose a Quest League">
-                                    <span class="league-bar__pick-name">Select a League</span>
-                                    <i class="fas fa-chevron-down league-bar__pick-caret" aria-hidden="true"></i>
-                                </button>
-                            </div>
-                        </div>
+                                <span class="league-bar__pick"><span class="league-bar__pick-name">Select a League</span><i class="fas fa-chevron-down league-bar__pick-caret" aria-hidden="true"></i></span>
+                            </span>
+                        </button>
                         <button type="button" id="leaderboard-league-match-btn" title="Show the league for your selected class" class="hidden league-bar__match bubbly-button">
-                            <i class="fas fa-magic" aria-hidden="true"></i><span>Active class</span>
+                            <i class="fas fa-rotate-left" aria-hidden="true"></i><span>My class</span>
                         </button>
                         <button type="button" id="class-history-btn" class="league-bar__history bubbly-button" title="Past months">
-                            <i class="fas fa-history" aria-hidden="true"></i><span>History</span>
+                            <i class="fas fa-clock-rotate-left" aria-hidden="true"></i><span>Past races</span>
                         </button>
                     </div>
 
@@ -88,45 +72,28 @@ export const leaderboardTabHTML = `
                         <p class="tab-sign__tagline">Rise through the ranks and become a legend!</p>
                     </header>
 
-                    <!-- Hero Month Banner -->
-                    <div id="current-month-hero-title" class="hero-month-banner mb-4">
-                        <!-- Floating watermark icons -->
-                        <div class="quest-banner-watermarks" aria-hidden="true">
-                            <i class="fas fa-star qbw-icon" style="left:6%;top:20%;font-size:2rem;--qbw-duration:8.8s;--qbw-delay:-1.8s;--qbw-drift-x:7px;--qbw-drift-y:11px;--qbw-tilt:3deg;"></i>
-                            <i class="fas fa-user-shield qbw-icon" style="left:18%;top:58%;font-size:2.6rem;--qbw-duration:10.2s;--qbw-delay:-3.7s;--qbw-drift-x:8px;--qbw-drift-y:12px;--qbw-tilt:4deg;--qbw-pulse-duration:6.6s;"></i>
-                            <i class="fas fa-crown qbw-icon" style="left:39%;top:24%;font-size:2rem;--qbw-duration:11.4s;--qbw-delay:-2.4s;--qbw-drift-x:9px;--qbw-drift-y:10px;--qbw-tilt:2deg;"></i>
-                            <i class="fas fa-medal qbw-icon" style="right:16%;top:53%;font-size:2.35rem;--qbw-duration:9.6s;--qbw-delay:-4.1s;--qbw-drift-x:7px;--qbw-drift-y:9px;--qbw-tilt:3.5deg;"></i>
-                            <i class="fas fa-star qbw-icon" style="right:6%;top:15%;font-size:1.7rem;--qbw-duration:10.8s;--qbw-delay:-5.3s;--qbw-drift-x:6px;--qbw-drift-y:8px;--qbw-tilt:2.5deg;--qbw-pulse-duration:7.4s;"></i>
+                    <!-- This month's challenge: a royal plaque between two laurels -->
+                    <div id="current-month-hero-title" class="lgc-crown">
+                        <svg class="lgc-crown__laurel" viewBox="0 0 60 100" aria-hidden="true" focusable="false"><path class="lgc-crown__stem" d="M44 94 C 18 78, 10 50, 26 8"/><g class="lgc-crown__leaves"><ellipse cx="38" cy="82" rx="9" ry="4" transform="rotate(-28 38 82)"/><ellipse cx="22" cy="74" rx="9" ry="4" transform="rotate(40 22 74)"/><ellipse cx="29" cy="66" rx="9" ry="4" transform="rotate(-48 29 66)"/><ellipse cx="13" cy="56" rx="9" ry="4" transform="rotate(58 13 56)"/><ellipse cx="22" cy="48" rx="9" ry="4" transform="rotate(-62 22 48)"/><ellipse cx="11" cy="37" rx="8.5" ry="3.8" transform="rotate(72 11 37)"/><ellipse cx="22" cy="30" rx="8.5" ry="3.8" transform="rotate(-72 22 30)"/><ellipse cx="17" cy="18" rx="8" ry="3.6" transform="rotate(84 17 18)"/><ellipse cx="27" cy="9" rx="7" ry="3.4" transform="rotate(-80 27 9)"/></g></svg>
+                        <div class="lgc-crown__plaque">
+                            <span class="lgc-crown__jewel" aria-hidden="true"><i class="fas fa-crown"></i></span>
+                            <span class="lgc-crown__kicker">This month's challenge</span>
+                            <span class="lgc-crown__month"><span id="hero-month-name">February</span></span>
                         </div>
-                        <!-- Flanking emblems -->
-                        <div class="quest-banner-side">
-                            <i class="fas fa-star" style="font-size:1.3rem;"></i>
-                            <i class="fas fa-user-shield" style="font-size:1rem;"></i>
-                        </div>
-                        <div class="quest-banner-center">
-                            <span class="quest-banner-kicker" aria-hidden="true">This month's challenge</span>
-                            <span class="quest-banner-month"><span id="hero-month-name">February</span></span>
-                        </div>
-                        <div class="quest-banner-side">
-                            <i class="fas fa-medal" style="font-size:1rem;"></i>
-                            <i class="fas fa-star" style="font-size:1.3rem;"></i>
-                        </div>
+                        <svg class="lgc-crown__laurel lgc-crown__laurel--r" viewBox="0 0 60 100" aria-hidden="true" focusable="false"><path class="lgc-crown__stem" d="M44 94 C 18 78, 10 50, 26 8"/><g class="lgc-crown__leaves"><ellipse cx="38" cy="82" rx="9" ry="4" transform="rotate(-28 38 82)"/><ellipse cx="22" cy="74" rx="9" ry="4" transform="rotate(40 22 74)"/><ellipse cx="29" cy="66" rx="9" ry="4" transform="rotate(-48 29 66)"/><ellipse cx="13" cy="56" rx="9" ry="4" transform="rotate(58 13 56)"/><ellipse cx="22" cy="48" rx="9" ry="4" transform="rotate(-62 22 48)"/><ellipse cx="11" cy="37" rx="8.5" ry="3.8" transform="rotate(72 11 37)"/><ellipse cx="22" cy="30" rx="8.5" ry="3.8" transform="rotate(-72 22 30)"/><ellipse cx="17" cy="18" rx="8" ry="3.6" transform="rotate(84 17 18)"/><ellipse cx="27" cy="9" rx="7" ry="3.4" transform="rotate(-80 27 9)"/></g></svg>
                     </div>
 
                     <!-- Quest League bar -->
                     <div class="league-bar league-bar--hero" role="group" aria-label="Quest League">
-                        <div class="league-bar__league">
+                        <button type="button" id="student-leaderboard-league-picker-btn" class="league-bar__plate bubbly-button" title="Choose a Quest League">
                             <span class="league-bar__emblem" aria-hidden="true"><i class="fas fa-shield-halved"></i></span>
-                            <div class="league-bar__league-copy">
+                            <span class="league-bar__league-copy">
                                 <span class="league-bar__kicker">Quest League</span>
-                                <button type="button" id="student-leaderboard-league-picker-btn" class="league-bar__pick bubbly-button" title="Choose a Quest League">
-                                    <span class="league-bar__pick-name">Select a League</span>
-                                    <i class="fas fa-chevron-down league-bar__pick-caret" aria-hidden="true"></i>
-                                </button>
-                            </div>
-                        </div>
+                                <span class="league-bar__pick"><span class="league-bar__pick-name">Select a League</span><i class="fas fa-chevron-down league-bar__pick-caret" aria-hidden="true"></i></span>
+                            </span>
+                        </button>
                         <button type="button" id="student-leaderboard-league-match-btn" title="Show the league for your selected class" class="hidden league-bar__match bubbly-button">
-                            <i class="fas fa-magic" aria-hidden="true"></i><span>Active class</span>
+                            <i class="fas fa-rotate-left" aria-hidden="true"></i><span>My class</span>
                         </button>
                         <div id="student-view-switcher" class="league-bar__switches">
                             <div class="league-seg" role="group" aria-label="Who to rank" style="--seg-i:0">
@@ -141,7 +108,7 @@ export const leaderboardTabHTML = `
                             </div>
                         </div>
                         <button type="button" id="student-history-btn" class="league-bar__history bubbly-button" title="Past months">
-                            <i class="fas fa-history" aria-hidden="true"></i><span>History</span>
+                            <i class="fas fa-clock-rotate-left" aria-hidden="true"></i><span>Past months</span>
                         </button>
                     </div>
 
@@ -153,15 +120,15 @@ export const leaderboardTabHTML = `
                                 <span class="hc-hall__title">Hall of Prodigies</span>
                                 <span class="hc-hall__sub">A crown for every month</span>
                             </span>
-                            <i class="fas fa-chevron-right hc-hall__go" aria-hidden="true"></i>
+                            <span class="hc-hall__go" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
                         </button>
-                        <button type="button" id="open-trophy-room-btn" class="hc-hall hc-hall--trophy" disabled>
+                        <button type="button" id="open-trophy-room-btn" class="hc-hall hc-hall--satchel" disabled>
                             <span class="hc-hall__medal" aria-hidden="true"><i class="fas fa-bag-shopping"></i></span>
                             <span class="hc-hall__text">
                                 <span class="hc-hall__title">Satchels</span>
                                 <span class="hc-hall__sub">Every hero's relics and treasures</span>
                             </span>
-                            <i class="fas fa-chevron-right hc-hall__go" aria-hidden="true"></i>
+                            <span class="hc-hall__go" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
                         </button>
                     </nav>
                 </div>

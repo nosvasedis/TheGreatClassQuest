@@ -41,6 +41,7 @@ import { renderAccessCenterUi, wireAccessCenterEvents } from '../../features/acc
 import { renderMarketManagerUi, wireMarketManagerEvents } from '../core/marketManager.js';
 import { renderQuizOptionsUi } from './quizSetup.js';
 import { NAV_TABS, navTipText } from '../../templates/app/nav.js';
+import { loadLeagueControlStyles, prefetchLeagueControlStyles } from '../leagueControlsStyles.js';
 
 export { renderQuizOptionsUi };
 
@@ -473,6 +474,8 @@ export async function showOptionsSubtab(key) {
     button.click();
 }
 
+let leagueStylesPrefetched = false;
+
 export async function showTab(tabName) {
     // Teacher App tabs never open for a secretary: the School Office is their whole app.
     if (state.get('currentUserRole') === 'secretary') return;
@@ -503,6 +506,15 @@ export async function showTab(tabName) {
     }
 
     localStorage.setItem('quest_last_active_tab', tabId);
+
+    // Team Quest / Hero's Challenge controls style themselves from a lazy sheet:
+    // wait for it so the tab never shows unstyled; warm it up from any other tab.
+    if (tabId === 'class-leaderboard-tab' || tabId === 'student-leaderboard-tab') {
+        await loadLeagueControlStyles();
+    } else if (!leagueStylesPrefetched) {
+        leagueStylesPrefetched = true;
+        prefetchLeagueControlStyles();
+    }
 
     syncAwardImmersiveSky(tabId);
 

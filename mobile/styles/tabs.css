@@ -554,26 +554,7 @@ body.gcq-mobile #manage-students-tab #student-list {
     background: #fff;
 }
 
-/* 2. Month Banners (Quest & Hero) */
-body.gcq-mobile .quest-month-banner,
-body.gcq-mobile .hero-month-banner {
-    padding: 0.55rem 0.85rem !important;
-    border-radius: 1.25rem !important;
-    margin-bottom: 0.85rem !important;
-}
-
-body.gcq-mobile .quest-banner-watermarks {
-    display: none !important; /* Hide background watermark clutter on phone */
-}
-
-body.gcq-mobile .quest-banner-center {
-    font-size: 1.15rem !important;
-    letter-spacing: 0.02em !important;
-}
-
-body.gcq-mobile .quest-banner-side {
-    gap: 0.35rem !important;
-}
+/* 2. The month banners style themselves for phones (styles/league_controls.css). */
 
 /* 3. The Quest League bar styles itself for phones (styles/hero_standings.css). */
 

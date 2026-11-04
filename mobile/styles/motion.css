@@ -341,14 +341,14 @@ body.gcq-mobile.gcq-lite :is(
     .wx-cloud, .m-header__bead, .m-class-pill__eyebrow,
     .day-ring__halo, .greeting-emblem__face, .m-home-quest__shine, .m-home-stat__icon,
     .aw-roll__ring, .student-cloud-card, .aw-boon__heart,
-    .quest-banner-center, .tq-mobile-race__glow, .tq-mobile-race-card__marker,
+    .lgc-race__flag, .tq-mobile-race__glow, .tq-mobile-race-card__marker,
     .mm-sign, .mm-ware__emoji, .mm-till__face,
     .tg-sign__pennant, .mc-slot__pulse, .floating-icon
 ),
 body.gcq-mobile.gcq-lite .tab-sign *,
 body.gcq-mobile.gcq-lite [class*="day-ring__"],
 body.gcq-mobile.gcq-lite .m-class-pill__eyebrow::before,
-body.gcq-mobile.gcq-lite :is(.hero-month-banner, .quest-month-banner, .tq-mobile-race-card__fill)::after,
+body.gcq-mobile.gcq-lite :is(.lgc-crown__plaque, .tq-mobile-race-card__fill)::after,
 body.gcq-mobile.gcq-lite :is(.award-immersive-stars, .award-immersive-sun)::before,
 body.gcq-mobile.gcq-lite :is(.award-immersive-stars, .award-immersive-sun)::after {
     animation: none !important;

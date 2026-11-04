@@ -630,8 +630,11 @@ export function updateAllLeagueSelectors() {
             const peekTag = peeking
                 ? '<span class="league-bar__peek" title="Peeking at another league"><span class="league-bar__peek-lens" aria-hidden="true"><i class="fas fa-eye"></i></span><span class="league-bar__peek-word">Peeking</span></span>'
                 : '';
-            btn.innerHTML = `<span class="league-bar__pick-name">${label}</span>${peekTag}<i class="fas fa-chevron-down league-bar__pick-caret" aria-hidden="true"></i>`;
+            // The plate keeps its emblem and kicker; only the league line changes.
+            const line = btn.querySelector('.league-bar__pick') || btn;
+            line.innerHTML = `<span class="league-bar__pick-name">${label}</span>${peekTag}<i class="fas fa-chevron-down league-bar__pick-caret" aria-hidden="true"></i>`;
             btn.classList.toggle('is-unset', !effective);
+            btn.classList.toggle('is-peeking', peeking);
         }
     });
     ['leaderboard-league-match-btn', 'student-leaderboard-league-match-btn'].forEach(mid => {

@@ -1,0 +1,1739 @@
+/* ==========================================================================
+   Team Quest + Hero's Challenge controls, and the Quest League picker.
+   Markup: templates/app/tabs/leaderboard.js, templates/modals/base.js,
+   ui/modals/leaguePickerView.mjs. Loaded lazily (ui/leagueControlsStyles.js)
+   before either tab or the picker first shows, so it stays off the startup CSS.
+
+   Each tab dresses its controls as what the tab is:
+   - Team Quest is a race: a race banner on two poles, a stitched map-legend bar.
+   - Hero's Challenge is a royal hall: a velvet plaque between laurels, a velvet
+     bar with gold switches, a marble Hall of Prodigies and a leather Satchel.
+   - The picker is a gallery of league pennants hanging from four stage rods.
+
+   Light on weak machines: only transforms and opacity move, a handful of loops
+   at most, nothing blurs, and .lgc-lite / body.gcq-lite / reduced motion stop
+   every loop.
+   ========================================================================== */
+
+/* ─── Team Quest: this month's race banner ──────────────────────────────── */
+
+.lgc-race {
+    --race-cloth-a: #c2410c;
+    --race-cloth-b: #ea580c;
+    --race-cloth-c: #f59e0b;
+    --race-cream: #fff7e6;
+    --race-ink: #7c2d12;
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    width: min(100%, 53rem);
+    margin: 0.4rem auto 1.4rem;
+    padding: 1.35rem 1.5rem 0;
+}
+
+.lgc-race__pole {
+    position: relative;
+    flex: 0 0 auto;
+    width: 0.62rem;
+    margin-top: -1.35rem;
+    margin-bottom: -0.45rem;
+    border-radius: 0.4rem;
+    background: linear-gradient(90deg, #7c4a21 0%, #b77a43 40%, #8a5426 75%, #5b3416 100%);
+    box-shadow: 0 6px 10px -4px rgba(67, 34, 8, 0.55);
+    z-index: 1;
+}
+
+/* the gold knob on top of each pole */
+.lgc-race__pole::before {
+    content: '';
+    position: absolute;
+    top: -0.42rem;
+    left: 50%;
+    width: 0.9rem;
+    height: 0.9rem;
+    margin-left: -0.45rem;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff3c4, #f6c445 45%, #a16207);
+    box-shadow: 0 2px 3px rgba(67, 34, 8, 0.4);
+}
+
+/* a small flag on each pole: green for the start, chequered for the finish */
+.lgc-race__flag {
+    position: absolute;
+    top: 0.15rem;
+    width: 1.7rem;
+    height: 1.15rem;
+    border-radius: 0 0.2rem 0.2rem 0;
+    background: linear-gradient(135deg, #22c55e, #15803d);
+    box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.15);
+    transform-origin: 0 50%;
+    animation: lgc-flag-wave 2.8s ease-in-out infinite;
+}
+
+.lgc-race__pole--start .lgc-race__flag {
+    right: 100%;
+    border-radius: 0.2rem 0 0 0.2rem;
+    transform-origin: 100% 50%;
+    animation-delay: -1.2s;
+}
+
+.lgc-race__pole--finish .lgc-race__flag {
+    left: 100%;
+    background: repeating-conic-gradient(#1f1307 0 25%, #fffaf0 0 50%) 0 0 / 0.58rem 0.58rem;
+    box-shadow: 0 0 0 1px rgba(31, 19, 7, 0.4);
+}
+
+@keyframes lgc-flag-wave {
+    0%, 100% { transform: skewY(0deg) scaleX(1); }
+    50% { transform: skewY(-7deg) scaleX(0.9); }
+}
+
+.lgc-race__cloth {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    padding: 1.15rem 1.5rem 1.3rem;
+    color: var(--race-cream);
+    background:
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.045) 0 2px, transparent 2px 6px),
+        radial-gradient(ellipse 70% 120% at 50% 0%, rgba(255, 237, 213, 0.32), transparent 70%),
+        linear-gradient(180deg, var(--race-cloth-b) 0%, var(--race-cloth-a) 100%);
+    box-shadow:
+        inset 0 2px 0 rgba(255, 255, 255, 0.25),
+        inset 0 -14px 18px -14px rgba(67, 20, 7, 0.55),
+        0 14px 24px -14px rgba(124, 45, 18, 0.7);
+}
+
+/* the cloth is tied to the poles with a rope at each corner */
+.lgc-race__cloth::before,
+.lgc-race__cloth::after {
+    content: '';
+    position: absolute;
+    top: 0.5rem;
+    width: 0.55rem;
+    height: calc(100% - 1rem);
+    background: repeating-linear-gradient(180deg, #f8e3b5 0 3px, #c79a52 3px 5px);
+    opacity: 0.85;
+}
+
+.lgc-race__cloth::before { left: -0.15rem; }
+.lgc-race__cloth::after { right: -0.15rem; }
+
+/* bunting along the top: cream, teal and gold pennants on a string */
+.lgc-race__bunting {
+    position: absolute;
+    left: 0.5rem;
+    right: 0.5rem;
+    top: 0;
+    height: 0.75rem;
+    background:
+        linear-gradient(#5b3416, #5b3416) 0 0 / 100% 2px no-repeat,
+        conic-gradient(from -40deg at 50% 100%, #fff7e6 0 80deg, transparent 80deg) 0 2px / 1.2rem 0.62rem repeat-x,
+        conic-gradient(from -40deg at 50% 100%, #14b8a6 0 80deg, transparent 80deg) 1.2rem 2px / 3.6rem 0.62rem repeat-x,
+        conic-gradient(from -40deg at 50% 100%, #facc15 0 80deg, transparent 80deg) 2.4rem 2px / 3.6rem 0.62rem repeat-x;
+    -webkit-mask: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+    mask: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+
+.lgc-race__tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.15rem;
+    padding: 0.2rem 0.75rem;
+    border-radius: 999px;
+    font-family: var(--gcq-font-display);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--race-ink);
+    background: linear-gradient(180deg, #fffaf0, #fde6b8);
+    box-shadow: 0 2px 0 rgba(124, 45, 18, 0.45), inset 0 0 0 1px rgba(124, 45, 18, 0.15);
+}
+
+.lgc-race__tag i {
+    font-size: 0.72rem;
+    color: #0f766e;
+}
+
+.lgc-race__month {
+    font-family: var(--gcq-font-title);
+    font-size: clamp(1.7rem, 4.2vw, 2.7rem);
+    line-height: 1.05;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--race-cream);
+    text-shadow:
+        0 3px 0 #7c2d12,
+        0 5px 10px rgba(67, 20, 7, 0.35);
+}
+
+/* the chequered finish-line hem */
+.lgc-race__checker {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 0.6rem;
+    background: repeating-conic-gradient(#2b1708 0 25%, #fff7e6 0 50%) 0 0 / 0.6rem 0.6rem;
+    opacity: 0.9;
+}
+
+/* ─── Hero's Challenge: this month's royal plaque ───────────────────────── */
+
+.lgc-crown {
+    --crown-gold: #fcd34d;
+    --crown-gold-deep: #b45309;
+    --crown-velvet: #3b0764;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    width: min(100%, 46rem);
+    margin: 1.1rem auto 1.4rem;
+}
+
+.lgc-crown__laurel {
+    flex: 0 0 auto;
+    width: 3.3rem;
+    height: 5.8rem;
+    overflow: visible;
+    filter: drop-shadow(0 2px 1px rgba(120, 53, 15, 0.35));
+}
+
+.lgc-crown__laurel--r {
+    transform: scaleX(-1);
+}
+
+.lgc-crown__stem {
+    fill: none;
+    stroke: #b7791f;
+    stroke-width: 3;
+    stroke-linecap: round;
+}
+
+.lgc-crown__leaves ellipse {
+    fill: #e9b949;
+    stroke: #a16207;
+    stroke-width: 0.8;
+}
+
+.lgc-crown__plaque {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 1.15rem 2rem 0.95rem;
+    border-radius: 1.4rem;
+    overflow: hidden;
+    color: #fef3c7;
+    background:
+        radial-gradient(ellipse 60% 90% at 50% 0%, rgba(192, 132, 252, 0.45), transparent 70%),
+        radial-gradient(ellipse 120% 100% at 50% 120%, rgba(30, 6, 54, 0.7), transparent 60%),
+        linear-gradient(180deg, #5b21b6 0%, var(--crown-velvet) 100%);
+    box-shadow:
+        inset 0 0 0 2px var(--crown-gold),
+        inset 0 0 0 4px #3b0764,
+        inset 0 0 0 5px rgba(252, 211, 77, 0.55),
+        0 0 0 1px rgba(146, 64, 14, 0.4),
+        0 14px 26px -14px rgba(59, 7, 100, 0.85);
+}
+
+/* a slow glint crosses the plaque now and then */
+.lgc-crown__plaque::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 30%;
+    background: linear-gradient(100deg, transparent, rgba(255, 244, 214, 0.2), transparent);
+    transform: translateX(-120%) skewX(-18deg);
+    animation: lgc-crown-glint 9s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes lgc-crown-glint {
+    0%, 70% { transform: translateX(-120%) skewX(-18deg); }
+    100% { transform: translateX(420%) skewX(-18deg); }
+}
+
+.lgc-crown__jewel {
+    position: absolute;
+    top: 0.35rem;
+    left: 50%;
+    display: grid;
+    place-items: center;
+    width: 1.7rem;
+    height: 1.1rem;
+    margin-left: -0.85rem;
+    font-size: 0.85rem;
+    color: var(--crown-gold);
+    filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.45));
+}
+
+.lgc-crown__kicker {
+    margin-top: 0.55rem;
+    font-family: var(--gcq-font-rune);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: rgba(254, 243, 199, 0.82);
+}
+
+.lgc-crown__month {
+    font-family: var(--gcq-font-rune);
+    font-size: clamp(1.6rem, 4vw, 2.5rem);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: linear-gradient(180deg, #fffbeb 0%, #fde68a 45%, #f59e0b 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 2px 0 rgba(30, 6, 54, 0.85));
+}
+
+/* ─── Quest League bar (both tabs) ──────────────────────────────────────── */
+
+.league-bar {
+    --lb-ink: #7c2d12;
+    --lb-ink-soft: #9a3412;
+    --lb-accent: #ea580c;
+    --lb-rim: #e2a65a;
+    --lb-tray: linear-gradient(180deg, #fffaf0, #fdecc8);
+    --lb-plate: linear-gradient(180deg, #ffffff, #fff7e6);
+    --lb-plate-rim: rgba(180, 83, 9, 0.35);
+    --lb-coin: radial-gradient(circle at 35% 28%, #5eead4, #0d9488 55%, #115e59);
+    --lb-coin-ink: #f0fdfa;
+    --lb-coin-rim: #f6c445;
+    --lb-btn: #fffdf7;
+    --lb-btn-ink: #9a3412;
+    --lb-btn-rim: rgba(180, 83, 9, 0.38);
+    --lb-btn-hover: #fff3dc;
+    --lb-focus: #0d9488;
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem 0.7rem;
+    width: fit-content;
+    max-width: 100%;
+    margin: 0 auto 1.9rem;
+    padding: 0.5rem;
+    border-radius: 1.4rem;
+    font-family: var(--gcq-font-display);
+    background: var(--lb-tray);
+    box-shadow:
+        0 0 0 1.5px var(--lb-rim),
+        0 14px 26px -18px rgba(124, 45, 18, 0.7);
+}
+
+/* Team Quest: a map legend, stitched round the edge */
+.league-bar--quest::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border-radius: 1.15rem;
+    border: 1.5px dashed rgba(180, 83, 9, 0.3);
+    pointer-events: none;
+}
+
+/* Hero's Challenge: plum velvet with a gold rim */
+.league-bar--hero {
+    --lb-ink: #3b0764;
+    --lb-ink-soft: #6b21a8;
+    --lb-accent: #7c3aed;
+    --lb-rim: #e9b949;
+    --lb-tray:
+        radial-gradient(ellipse 80% 120% at 50% 0%, rgba(167, 139, 250, 0.35), transparent 70%),
+        linear-gradient(180deg, #4c1d95, #2e1065);
+    --lb-plate: linear-gradient(180deg, #fffdf5, #fdf1d6);
+    --lb-plate-rim: rgba(233, 185, 73, 0.9);
+    --lb-coin: radial-gradient(circle at 35% 28%, #c4b5fd, #7c3aed 55%, #4c1d95);
+    --lb-coin-ink: #fef3c7;
+    --lb-coin-rim: #f6c445;
+    --lb-btn: rgba(255, 255, 255, 0.08);
+    --lb-btn-ink: #fde68a;
+    --lb-btn-rim: rgba(253, 230, 138, 0.5);
+    --lb-btn-hover: rgba(255, 255, 255, 0.16);
+    --lb-focus: #fde68a;
+    box-shadow:
+        0 0 0 1.5px var(--lb-rim),
+        0 0 0 4px rgba(76, 29, 149, 0.18),
+        0 16px 28px -16px rgba(46, 16, 101, 0.85);
+}
+
+/* The league plate: one big button (emblem, kicker, league name, caret) */
+.league-bar__plate {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 0;
+    max-width: 100%;
+    padding: 0.32rem 0.75rem 0.32rem 0.32rem;
+    border: 0;
+    border-radius: 999px;
+    text-align: left;
+    color: var(--lb-ink);
+    background: var(--lb-plate);
+    box-shadow:
+        inset 0 0 0 1.5px var(--lb-plate-rim),
+        0 3px 0 color-mix(in srgb, var(--lb-plate-rim) 70%, transparent),
+        0 8px 14px -10px rgba(67, 20, 7, 0.6);
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.league-bar__plate:hover {
+    transform: translateY(-1px);
+    box-shadow:
+        inset 0 0 0 1.5px var(--lb-plate-rim),
+        0 4px 0 color-mix(in srgb, var(--lb-plate-rim) 70%, transparent),
+        0 12px 18px -10px rgba(67, 20, 7, 0.6);
+}
+
+.league-bar__plate:active {
+    transform: translateY(2px);
+    box-shadow:
+        inset 0 0 0 1.5px var(--lb-plate-rim),
+        0 1px 0 color-mix(in srgb, var(--lb-plate-rim) 70%, transparent);
+}
+
+.league-bar__emblem {
+    flex: 0 0 auto;
+    width: 2.45rem;
+    height: 2.45rem;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 1rem;
+    color: var(--lb-coin-ink);
+    background: var(--lb-coin);
+    box-shadow: 0 0 0 2px var(--lb-coin-rim), inset 0 -3px 5px rgba(0, 0, 0, 0.22), inset 0 2px 2px rgba(255, 255, 255, 0.35);
+}
+
+.league-bar__emblem i {
+    filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.3));
+    transition: transform 0.3s ease;
+}
+
+.league-bar__plate:hover .league-bar__emblem i {
+    transform: rotate(-10deg) scale(1.08);
+}
+
+.league-bar__league-copy {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1;
+}
+
+.league-bar__kicker {
+    margin: 0 0 0.2rem;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--lb-ink-soft);
+    opacity: 0.85;
+}
+
+.league-bar--hero .league-bar__kicker {
+    font-family: var(--gcq-font-rune);
+    letter-spacing: 0.14em;
+}
+
+.league-bar__pick {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+    font-family: var(--gcq-font-title);
+    font-size: 1.2rem;
+    line-height: 1.1;
+}
+
+.league-bar__pick-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.league-bar__pick-caret {
+    flex: 0 0 auto;
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 0.6rem;
+    color: #fff;
+    background: var(--lb-accent);
+    box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.2);
+    transition: transform 0.25s ease;
+}
+
+.league-bar__plate:hover .league-bar__pick-caret {
+    transform: translateY(2px);
+}
+
+.league-bar__plate.is-unset .league-bar__pick-name {
+    color: var(--lb-accent);
+    animation: lgc-beckon 2.4s ease-in-out infinite;
+}
+
+@keyframes lgc-beckon {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+}
+
+/* Peeking at another league: a spyglass tag in the plate's own colours */
+.league-bar__peek {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.14rem 0.5rem 0.14rem 0.14rem;
+    border-radius: 999px;
+    font-family: var(--gcq-font-display);
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    color: var(--lb-ink-soft);
+    background: color-mix(in srgb, var(--lb-accent) 12%, white);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lb-accent) 35%, transparent);
+    animation: lgc-pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.league-bar__peek-lens {
+    display: grid;
+    place-items: center;
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 50%;
+    font-size: 0.54rem;
+    color: #fff;
+    background: var(--lb-accent);
+}
+
+.league-bar__peek-lens i {
+    animation: lgc-blink 4.5s ease-in-out infinite;
+}
+
+@keyframes lgc-pop-in {
+    from { opacity: 0; transform: scale(0.6); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes lgc-blink {
+    0%, 44%, 50%, 100% { transform: scaleY(1); }
+    47% { transform: scaleY(0.1); }
+}
+
+/* Plain bar buttons: My class (while peeking) and Past races / Past months */
+.league-bar__match,
+.league-bar__history {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    min-height: 2.5rem;
+    padding: 0 1rem;
+    border-radius: 999px;
+    border: 0;
+    font-family: var(--gcq-font-display);
+    font-size: 0.86rem;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--lb-btn-ink);
+    background: var(--lb-btn);
+    box-shadow: inset 0 0 0 1.5px var(--lb-btn-rim);
+    cursor: pointer;
+    transition: background-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.league-bar__match i,
+.league-bar__history i {
+    font-size: 0.8rem;
+}
+
+.league-bar__history:hover,
+.league-bar__match:hover {
+    background: var(--lb-btn-hover);
+    transform: translateY(-1px);
+}
+
+.league-bar__history:active,
+.league-bar__match:active {
+    transform: translateY(1px);
+}
+
+.league-bar__history:hover i {
+    animation: lgc-rewind 0.6s ease;
+}
+
+@keyframes lgc-rewind {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(-360deg); }
+}
+
+/* "My class": a green way home, in both tabs */
+.league-bar__match {
+    color: #065f46;
+    background: linear-gradient(180deg, #ecfdf5, #d1fae5);
+    box-shadow: inset 0 0 0 1.5px #6ee7b7, 0 3px 0 #34d399;
+    animation: lgc-pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.league-bar__match:hover {
+    background: linear-gradient(180deg, #f0fdf4, #bbf7d0);
+}
+
+.league-bar__match.hidden {
+    display: none;
+}
+
+.league-bar__plate:focus-visible,
+.league-bar__match:focus-visible,
+.league-bar__history:focus-visible,
+.league-seg__btn:focus-visible {
+    outline: 2.5px solid var(--lb-focus);
+    outline-offset: 2px;
+}
+
+/* Hero's Challenge switches: dark velvet tracks with a gold thumb */
+.league-bar__switches {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.league-seg {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 3px;
+    border-radius: 999px;
+    background: rgba(18, 4, 38, 0.45);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35), 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.league-seg__thumb {
+    position: absolute;
+    top: 3px;
+    bottom: 3px;
+    left: 3px;
+    width: calc(50% - 3px);
+    border-radius: 999px;
+    background: linear-gradient(180deg, #fef3c7 0%, #fcd34d 45%, #f59e0b 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -2px 0 rgba(146, 64, 14, 0.35), 0 3px 8px -2px rgba(0, 0, 0, 0.45);
+    transform: translateX(calc(var(--seg-i, 0) * 100%));
+    transition: transform 0.42s cubic-bezier(0.3, 1.35, 0.5, 1);
+}
+
+.league-seg__btn {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.38rem;
+    min-height: 2.15rem;
+    padding: 0 0.95rem;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    font-family: var(--gcq-font-display);
+    font-size: 0.84rem;
+    font-weight: 600;
+    white-space: nowrap;
+    color: rgba(237, 233, 254, 0.82);
+    cursor: pointer;
+    transition: color 0.25s ease;
+}
+
+.league-seg__btn i {
+    font-size: 0.74rem;
+    opacity: 0.9;
+}
+
+.league-seg__btn:not(.is-active):hover {
+    color: #fff;
+}
+
+.league-seg__btn.is-active {
+    color: #3b0764;
+}
+
+/* ─── Class halls: Hall of Prodigies (marble + gold) and Satchels (leather) ─ */
+
+.hc-halls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.9rem;
+    max-width: 42rem;
+    margin: -0.5rem auto 2rem;
+    padding: 0 1rem;
+}
+
+.hc-hall {
+    --hall-ink: #3b0764;
+    --hall-sub: #6b4f8a;
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.8rem;
+    min-height: 4.1rem;
+    padding: 0.55rem 0.85rem 0.55rem 0.6rem;
+    border: 0;
+    border-radius: 1.2rem;
+    text-align: left;
+    font-family: var(--gcq-font-display);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* marble with a gold frame and a little arch for the crown */
+.hc-hall--prodigy {
+    background:
+        radial-gradient(ellipse 50% 80% at 12% 50%, rgba(250, 204, 21, 0.18), transparent 70%),
+        linear-gradient(115deg, transparent 40%, rgba(203, 213, 225, 0.35) 46%, transparent 52%),
+        linear-gradient(160deg, #ffffff 0%, #f6f3fb 55%, #ece6f6 100%);
+    box-shadow:
+        inset 0 0 0 1.5px #e9b949,
+        inset 0 0 0 4px #fffdf5,
+        inset 0 0 0 5px rgba(233, 185, 73, 0.45),
+        0 4px 0 #d9a63a,
+        0 14px 22px -14px rgba(76, 29, 149, 0.6);
+}
+
+/* stitched brown leather with a brass buckle */
+.hc-hall--satchel {
+    --hall-ink: #fff3dc;
+    --hall-sub: rgba(255, 237, 206, 0.82);
+    background:
+        radial-gradient(ellipse 70% 120% at 30% 0%, rgba(255, 214, 160, 0.3), transparent 60%),
+        repeating-linear-gradient(35deg, rgba(0, 0, 0, 0.035) 0 2px, transparent 2px 5px),
+        linear-gradient(180deg, #a0612f 0%, #7a4220 60%, #5e3016 100%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 228, 190, 0.45),
+        0 4px 0 #43200b,
+        0 14px 22px -14px rgba(67, 32, 11, 0.85);
+}
+
+.hc-hall--satchel::before {
+    content: '';
+    position: absolute;
+    inset: 5px;
+    border-radius: 0.9rem;
+    border: 1.5px dashed rgba(255, 222, 173, 0.55);
+    pointer-events: none;
+}
+
+.hc-hall:hover:not(:disabled) {
+    transform: translateY(-2px);
+}
+
+.hc-hall:active:not(:disabled) {
+    transform: translateY(3px);
+}
+
+.hc-hall--prodigy:active:not(:disabled) {
+    box-shadow:
+        inset 0 0 0 1.5px #e9b949,
+        inset 0 0 0 4px #fffdf5,
+        inset 0 0 0 5px rgba(233, 185, 73, 0.45),
+        0 1px 0 #d9a63a;
+}
+
+.hc-hall--satchel:active:not(:disabled) {
+    box-shadow: inset 0 1px 0 rgba(255, 228, 190, 0.45), 0 1px 0 #43200b;
+}
+
+.hc-hall:focus-visible {
+    outline: 3px solid #fbbf24;
+    outline-offset: 3px;
+}
+
+.hc-hall:disabled {
+    cursor: not-allowed;
+    filter: grayscale(0.5);
+    opacity: 0.6;
+}
+
+.hc-hall__medal {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 2.9rem;
+    height: 2.9rem;
+    font-size: 1.1rem;
+    transition: transform 0.25s ease;
+}
+
+/* the crown sits in a gilded arch */
+.hc-hall--prodigy .hc-hall__medal {
+    border-radius: 1.45rem 1.45rem 0.5rem 0.5rem;
+    color: #fde68a;
+    background: radial-gradient(circle at 50% 30%, #7c3aed, #4c1d95 75%);
+    box-shadow: 0 0 0 2px #e9b949, 0 0 0 4px #fffdf5, 0 0 0 5px rgba(233, 185, 73, 0.5), inset 0 -3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.hc-hall--prodigy .hc-hall__medal i {
+    filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.4));
+}
+
+/* a brass buckle */
+.hc-hall--satchel .hc-hall__medal {
+    border-radius: 0.8rem;
+    color: #5e3016;
+    background: radial-gradient(circle at 35% 28%, #fff1c2, #f2c25b 45%, #b7791f);
+    box-shadow: 0 0 0 2px #5e3016, inset 0 -3px 4px rgba(120, 53, 15, 0.4), inset 0 2px 2px rgba(255, 255, 255, 0.6);
+}
+
+.hc-hall:hover:not(:disabled) .hc-hall__medal {
+    transform: rotate(-6deg) scale(1.06);
+}
+
+.hc-hall__text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+.hc-hall__title {
+    font-family: var(--gcq-font-title);
+    font-size: 1.08rem;
+    line-height: 1.15;
+    color: var(--hall-ink);
+}
+
+.hc-hall--satchel .hc-hall__title {
+    text-shadow: 0 1px 0 rgba(67, 32, 11, 0.6);
+}
+
+.hc-hall__sub {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--hall-sub);
+}
+
+.hc-hall__go {
+    display: grid;
+    place-items: center;
+    width: 1.7rem;
+    height: 1.7rem;
+    border-radius: 50%;
+    font-size: 0.7rem;
+    transition: transform 0.2s ease;
+}
+
+.hc-hall--prodigy .hc-hall__go {
+    color: #6b21a8;
+    background: #f3e8ff;
+    box-shadow: inset 0 0 0 1px rgba(124, 58, 237, 0.25);
+}
+
+.hc-hall--satchel .hc-hall__go {
+    color: #fff3dc;
+    background: rgba(0, 0, 0, 0.2);
+    box-shadow: inset 0 0 0 1px rgba(255, 222, 173, 0.35);
+}
+
+.hc-hall:hover:not(:disabled) .hc-hall__go {
+    transform: translateX(3px);
+}
+
+/* ─── Phones and narrow screens ─────────────────────────────────────────── */
+
+@media (max-width: 639px) {
+    .lgc-race {
+        margin-bottom: 1.1rem;
+        padding: 1.1rem 1.1rem 0;
+    }
+    .lgc-race__cloth {
+        padding: 0.95rem 0.9rem 1.1rem;
+    }
+    .lgc-race__flag {
+        width: 1.25rem;
+        height: 0.9rem;
+    }
+    .lgc-race__tag {
+        font-size: 0.58rem;
+        letter-spacing: 0.12em;
+    }
+    .lgc-crown {
+        gap: 0.15rem;
+        margin-top: 0.6rem;
+    }
+    .lgc-crown__laurel {
+        width: 1.7rem;
+        height: 3.2rem;
+    }
+    .lgc-crown__plaque {
+        padding: 1rem 0.9rem 0.8rem;
+        border-radius: 1.1rem;
+    }
+    .lgc-crown__kicker {
+        font-size: 0.56rem;
+        letter-spacing: 0.16em;
+    }
+    .league-bar {
+        width: 100%;
+        padding: 0.55rem;
+        gap: 0.5rem;
+    }
+    .league-bar__plate {
+        flex: 1 1 100%;
+    }
+    .league-bar__pick {
+        flex: 1 1 auto;
+        justify-content: space-between;
+    }
+    .league-bar__league-copy {
+        flex: 1 1 auto;
+    }
+    .league-bar__switches {
+        width: 100%;
+    }
+    .league-seg {
+        flex: 1 1 100%;
+    }
+    .league-seg__btn {
+        padding: 0 0.5rem;
+        font-size: 0.78rem;
+    }
+    .league-bar__history,
+    .league-bar__match {
+        flex: 1 1 0;
+    }
+    .league-bar__peek {
+        padding: 0.12rem;
+    }
+    .league-bar__peek-word {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+    }
+    .hc-halls {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.7rem;
+        margin-top: -0.7rem;
+    }
+}
+
+body.gcq-mobile .lgc-race__month { font-size: 1.45rem; }
+body.gcq-mobile .lgc-crown__month { font-size: 1.35rem; }
+
+/* ─── Quest League picker: a gallery of league pennants ─────────────────── */
+
+.lp-backdrop {
+    background: rgba(17, 12, 38, 0.66);
+}
+
+.lp-shell {
+    position: relative;
+    border-radius: 1.6rem;
+    background: #fbf5e8;
+    box-shadow:
+        0 0 0 2px #e9b949,
+        0 0 0 6px #2e1065,
+        0 0 0 7.5px rgba(233, 185, 73, 0.6),
+        0 30px 70px -20px rgba(10, 5, 30, 0.75);
+}
+
+.lp-head {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.15rem 4.5rem 1.15rem 1.4rem;
+    color: #fef3c7;
+    background:
+        radial-gradient(circle at 18% 30%, rgba(255, 255, 255, 0.5) 0 1px, transparent 1.5px) 0 0 / 46px 38px,
+        radial-gradient(circle at 70% 70%, rgba(255, 255, 255, 0.35) 0 1px, transparent 1.5px) 0 0 / 61px 44px,
+        radial-gradient(ellipse 60% 140% at 10% 0%, rgba(124, 58, 237, 0.6), transparent 70%),
+        linear-gradient(180deg, #2e1065 0%, #1e1b4b 100%);
+    border-bottom: 2px solid #e9b949;
+}
+
+/* scalloped gold hem below the header */
+.lp-head__banner {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -9px;
+    height: 9px;
+    pointer-events: none;
+    background: radial-gradient(circle at 9px 0, #e9b949 0 6px, transparent 6.5px) 0 0 / 18px 9px repeat-x;
+    z-index: 2;
+}
+
+.lp-head__crest {
+    position: relative;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 3.3rem;
+    height: 3.3rem;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 28%, #fff4c4, #f6c445 45%, #a16207);
+    box-shadow: 0 0 0 3px #2e1065, 0 0 0 4.5px #e9b949, 0 6px 14px rgba(0, 0, 0, 0.4);
+}
+
+.lp-head__shield {
+    font-size: 1.4rem;
+    color: #3b0764;
+}
+
+.lp-head__crown {
+    position: absolute;
+    top: -0.75rem;
+    left: 50%;
+    margin-left: -0.5rem;
+    font-size: 1rem;
+    color: #fcd34d;
+    filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.5));
+}
+
+.lp-head__titles {
+    min-width: 0;
+}
+
+.lp-head__kicker {
+    margin: 0 0 0.15rem;
+    font-family: var(--gcq-font-rune);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #fcd34d;
+}
+
+.lp-head__title {
+    margin: 0;
+    font-size: clamp(1.45rem, 3vw, 1.95rem);
+    line-height: 1.1;
+    color: #fffbeb;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.lp-head__sub {
+    margin: 0.2rem 0 0;
+    font-family: var(--gcq-font-display);
+    font-size: 0.86rem;
+    font-weight: 500;
+    color: rgba(237, 233, 254, 0.85);
+}
+
+.lp-close {
+    position: absolute;
+    top: 50%;
+    right: 1.1rem;
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    margin-top: -1.25rem;
+    border-radius: 50%;
+    border: 0;
+    color: #3b0764;
+    font-size: 1.05rem;
+    background: radial-gradient(circle at 35% 28%, #fff4c4, #f6c445 50%, #b7791f);
+    box-shadow: 0 3px 0 #92400e, 0 6px 12px rgba(0, 0, 0, 0.35);
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.lp-close:hover {
+    transform: rotate(90deg);
+}
+
+.lp-close:active {
+    transform: translateY(2px);
+}
+
+.lp-close:focus-visible {
+    outline: 3px solid #fde68a;
+    outline-offset: 3px;
+}
+
+.lp-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    padding: 1.6rem 1.4rem 1.5rem;
+    background:
+        radial-gradient(ellipse 70% 50% at 50% 0%, rgba(255, 255, 255, 0.85), transparent 70%),
+        linear-gradient(180deg, #fbf5e8, #f5ead2);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(146, 64, 14, 0.35) transparent;
+}
+
+/* Active class ticket: one tap back to its league */
+.lp-follow {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.55rem 0.6rem 0.55rem 0.55rem;
+    border-radius: 1.1rem;
+    background: #ffffff;
+    box-shadow:
+        inset 0 0 0 1.5px rgba(13, 148, 136, 0.35),
+        0 3px 0 rgba(13, 148, 136, 0.25),
+        0 10px 18px -14px rgba(15, 118, 110, 0.7);
+    animation: lp-rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.lp-follow.is-peeking {
+    box-shadow:
+        inset 0 0 0 1.5px rgba(217, 119, 6, 0.45),
+        0 3px 0 rgba(217, 119, 6, 0.3),
+        0 10px 18px -14px rgba(180, 83, 9, 0.7);
+}
+
+.lp-follow__logo {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 2.8rem;
+    height: 2.8rem;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    background: #f0fdfa;
+    box-shadow: inset 0 0 0 2px #5eead4;
+    overflow: hidden;
+}
+
+.lp-follow__logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.lp-follow__logo--icon {
+    font-size: 1.05rem;
+    color: #0f766e;
+}
+
+.is-peeking .lp-follow__logo {
+    background: #fffbeb;
+    box-shadow: inset 0 0 0 2px #fcd34d;
+}
+
+.lp-follow__copy {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+    min-width: 0;
+    line-height: 1.15;
+}
+
+.lp-follow__kicker {
+    font-family: var(--gcq-font-display);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #0f766e;
+}
+
+.is-peeking .lp-follow__kicker {
+    color: #b45309;
+}
+
+.lp-follow__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 1.08rem;
+    color: #134e4a;
+}
+
+.is-peeking .lp-follow__name {
+    color: #78350f;
+}
+
+.lp-follow__league {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: var(--gcq-font-display);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #115e59;
+}
+
+.is-peeking .lp-follow__league {
+    color: #92400e;
+}
+
+.lp-follow__league > i {
+    font-size: 0.7rem;
+    opacity: 0.8;
+}
+
+.lp-follow__peek {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-left: 0.25rem;
+    padding: 0.12rem 0.5rem 0.12rem 0.12rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #92400e;
+    background: #fef3c7;
+    box-shadow: inset 0 0 0 1px rgba(217, 119, 6, 0.35);
+}
+
+.lp-follow__peek-lens {
+    display: grid;
+    place-items: center;
+    width: 1.05rem;
+    height: 1.05rem;
+    border-radius: 50%;
+    font-size: 0.52rem;
+    color: #fff;
+    background: #d97706;
+}
+
+.lp-follow__state,
+.lp-follow__btn {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 2.4rem;
+    padding: 0 1rem;
+    border-radius: 999px;
+    font-family: var(--gcq-font-display);
+    font-size: 0.84rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.lp-follow__state {
+    color: #0f766e;
+    background: #ccfbf1;
+}
+
+.lp-follow__btn {
+    border: 0;
+    color: #fff;
+    background: linear-gradient(180deg, #14b8a6, #0d9488);
+    box-shadow: 0 3px 0 #115e59, inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.lp-follow__btn:hover {
+    transform: translateY(-1px);
+}
+
+.lp-follow__btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #115e59;
+}
+
+.lp-follow__btn:focus-visible {
+    outline: 3px solid #0d9488;
+    outline-offset: 2px;
+}
+
+/* The four stages of the journey, each a rod with its leagues hanging below */
+.lp-gallery {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 2fr) minmax(0, 2fr) minmax(0, 2fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+.lp-stage {
+    --stage-ink: #7c2d12;
+    --stage-chip: #fff7ed;
+    min-width: 0;
+    animation: lp-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(var(--stage-i, 0) * 60ms);
+}
+
+.lp-stage--early { --stage-ink: #075985; --stage-chip: #e0f2fe; }
+.lp-stage--junior { --stage-ink: #3f6212; --stage-chip: #ecfccb; }
+.lp-stage--mid { --stage-ink: #92400e; --stage-chip: #fef3c7; }
+.lp-stage--senior { --stage-ink: #4c1d95; --stage-chip: #ede9fe; }
+
+.lp-stage__label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    min-height: 2.4rem;
+    margin-bottom: 0.5rem;
+    text-align: left;
+}
+
+.lp-stage__step {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 1.55rem;
+    height: 1.55rem;
+    border-radius: 50%;
+    font-family: var(--gcq-font-title);
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: #fff;
+    background: var(--stage-ink);
+    box-shadow: 0 0 0 2px #fbf5e8, 0 0 0 3.5px color-mix(in srgb, var(--stage-ink) 40%, transparent);
+}
+
+.lp-stage__copy {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.1;
+}
+
+.lp-stage__title {
+    font-size: 0.98rem;
+    color: var(--stage-ink);
+}
+
+.lp-stage__ages {
+    font-family: var(--gcq-font-display);
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--stage-ink) 70%, #78716c);
+}
+
+/* the stage's rod */
+.lp-stage__rod {
+    position: relative;
+    display: block;
+    height: 0.55rem;
+    margin: 0 0.2rem;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #e2b469 0%, #a8742f 55%, #7a4f1c 100%);
+    box-shadow: 0 2px 3px rgba(67, 34, 8, 0.35);
+    z-index: 1;
+}
+
+.lp-stage__rod::before,
+.lp-stage__rod::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 0.85rem;
+    height: 0.85rem;
+    margin-top: -0.425rem;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff3c4, #f6c445 45%, #a16207);
+    box-shadow: 0 1px 2px rgba(67, 34, 8, 0.4);
+}
+
+.lp-stage__rod::before { left: -0.3rem; }
+.lp-stage__rod::after { right: -0.3rem; }
+
+.lp-stage__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    grid-auto-flow: column;
+    position: relative;
+    z-index: 2;
+    gap: 0.6rem;
+    padding: 0 0.45rem;
+    margin-top: 0;
+}
+
+/* ─── A league pennant ─── */
+.league-picker-option.lp-pennant {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 0;
+    padding: 0 0 0.5rem;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    isolation: isolate;
+    transform-origin: 50% 0;
+    animation: lp-hang 0.55s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+    animation-delay: calc(120ms + var(--league-order, 0) * 45ms);
+    transition: transform 0.25s cubic-bezier(0.34, 1.4, 0.64, 1), opacity 0.2s ease;
+}
+
+/* two cloth loops wrap round the rod */
+.lp-pennant__rings {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 18%;
+    height: 0.55rem;
+    margin-top: -0.55rem;
+}
+
+.lp-pennant__rings::before,
+.lp-pennant__rings::after {
+    content: '';
+    width: 0.7rem;
+    height: 1.1rem;
+    border-radius: 0.3rem 0.3rem 0 0;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--league-border) 70%, black), var(--league-border));
+    box-shadow: inset 0 2px 1px rgba(255, 255, 255, 0.35);
+}
+
+.lp-pennant__cloth {
+    position: relative;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    min-height: 11.5rem;
+    padding: 0.85rem 0.45rem 2.1rem;
+    text-align: center;
+    color: var(--league-ink);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.55), transparent 35%),
+        linear-gradient(180deg, var(--league-start), var(--league-end));
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 1.3rem), 0 100%);
+    transition: filter 0.2s ease;
+}
+
+/* a darker hem down each side and a stitched line along the top */
+.lp-pennant__cloth::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(90deg, color-mix(in srgb, var(--league-border) 55%, transparent) 0 4px, transparent 4px calc(100% - 4px), color-mix(in srgb, var(--league-border) 55%, transparent) calc(100% - 4px)),
+        linear-gradient(180deg, var(--league-border) 0 4px, transparent 4px);
+    pointer-events: none;
+}
+
+/* the same shape, a shade darker, just below: the cloth's thickness */
+.lp-pennant__shadow {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0.5rem;
+    background: color-mix(in srgb, var(--league-border) 70%, #1c1917);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 1.3rem), 0 100%);
+    transform: translateY(4px);
+    opacity: 0.45;
+    z-index: -1;
+    transition: transform 0.25s ease, opacity 0.2s ease;
+}
+
+.lp-pennant__icon {
+    display: grid;
+    place-items: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    margin: 0.2rem 0 0.1rem;
+    border-radius: 50%;
+    font-size: 1.05rem;
+    color: #fff;
+    background: radial-gradient(circle at 35% 28%, color-mix(in srgb, var(--league-border) 55%, white), var(--league-border) 55%, color-mix(in srgb, var(--league-border) 60%, black));
+    box-shadow: 0 0 0 2.5px #fff, 0 0 0 4px color-mix(in srgb, var(--league-border) 45%, transparent), 0 4px 8px -3px var(--league-border);
+    transition: transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.lp-pennant__icon i {
+    filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.25));
+}
+
+.league-picker-option__label {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    font-family: var(--gcq-font-title);
+    font-size: 1.22rem;
+    line-height: 1.1;
+    color: var(--league-ink);
+}
+
+.league-picker-option__age {
+    font-family: var(--gcq-font-display);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--league-ink) 75%, transparent);
+}
+
+.lp-card__meta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: auto;
+}
+
+.lp-card__count,
+.lp-card__mine {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.16rem 0.55rem;
+    border-radius: 999px;
+    font-family: var(--gcq-font-display);
+    font-size: 0.7rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.lp-card__count {
+    color: var(--league-ink);
+    background: rgba(255, 255, 255, 0.78);
+}
+
+.lp-card__count i {
+    font-size: 0.6rem;
+    opacity: 0.75;
+}
+
+.lp-card__count--none {
+    font-style: italic;
+    opacity: 0.8;
+}
+
+.lp-card__mine {
+    color: #78350f;
+    background: linear-gradient(180deg, #fef3c7, #fcd34d);
+    box-shadow: inset 0 0 0 1px rgba(180, 83, 9, 0.3);
+}
+
+.lp-card__mine i {
+    font-size: 0.6rem;
+    color: #b45309;
+}
+
+/* "Watching": a gold tag pinned to the rod over the league on screen */
+.lp-card__now {
+    position: absolute;
+    top: -0.95rem;
+    left: 50%;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.14rem 0.5rem;
+    border-radius: 999px;
+    font-family: var(--gcq-font-display);
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: #3b0764;
+    background: linear-gradient(180deg, #fef3c7, #fbbf24);
+    box-shadow: 0 2px 0 #b45309, 0 4px 8px -2px rgba(0, 0, 0, 0.3);
+    transform: translateX(-50%);
+}
+
+.league-picker-option.is-current .lp-pennant__shadow {
+    left: -4px;
+    right: -4px;
+    top: -2px;
+    background: #f59e0b;
+    opacity: 1;
+    transform: translateY(5px);
+}
+
+/* No classes race here yet: still selectable, just quieter */
+.league-picker-option.is-empty .lp-pennant__cloth {
+    filter: saturate(0.35);
+    opacity: 0.8;
+}
+
+/* hover: the pennant swings a little on its rings */
+.league-picker-option.lp-pennant:hover {
+    transform: rotate(-2.5deg);
+}
+
+.league-picker-option.lp-pennant:hover .lp-pennant__icon,
+.league-picker-option.lp-pennant:focus-visible .lp-pennant__icon {
+    transform: translateY(-2px) scale(1.1);
+}
+
+.league-picker-option.is-empty:hover .lp-pennant__cloth,
+.league-picker-option.is-empty:focus-visible .lp-pennant__cloth {
+    filter: none;
+    opacity: 1;
+}
+
+.league-picker-option.lp-pennant:focus-visible {
+    outline: none;
+}
+
+.league-picker-option.lp-pennant:focus-visible .lp-pennant__shadow {
+    left: -4px;
+    right: -4px;
+    top: -2px;
+    background: var(--league-border);
+    opacity: 1;
+}
+
+/* choosing: the others fade back, the chosen one swings and lifts */
+#league-picker-list.is-selecting .league-picker-option:not(.is-selected),
+#league-picker-list.is-selecting .lp-follow {
+    opacity: 0.35;
+    pointer-events: none;
+}
+
+.league-picker-option.lp-pennant.is-selected {
+    animation: lp-chosen 0.42s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+
+@keyframes lp-rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes lp-hang {
+    0% { opacity: 0; transform: translateY(-14px) rotate(4deg); }
+    60% { opacity: 1; transform: translateY(2px) rotate(-1.5deg); }
+    100% { opacity: 1; transform: none; }
+}
+
+@keyframes lp-chosen {
+    0% { transform: none; }
+    35% { transform: rotate(-5deg) scale(0.97); }
+    70% { transform: rotate(3deg) translateY(-6px) scale(1.06); }
+    100% { transform: translateY(-4px) scale(1.04); }
+}
+
+/* Tablets: two stages per row */
+@media (max-width: 1023px) {
+    .lp-gallery {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1.2rem 1rem;
+    }
+}
+
+/* Phones: one stage per row, its pennants side by side */
+@media (max-width: 559px) {
+    .lp-head {
+        gap: 0.75rem;
+        padding: 1rem 3.6rem 1rem 1rem;
+    }
+    .lp-head__crest {
+        width: 2.7rem;
+        height: 2.7rem;
+    }
+    .lp-head__shield { font-size: 1.15rem; }
+    .lp-head__sub { font-size: 0.76rem; }
+    .lp-close {
+        right: 0.75rem;
+        width: 2.3rem;
+        height: 2.3rem;
+        margin-top: -1.15rem;
+    }
+    .lp-body {
+        gap: 1rem;
+        padding: 1.3rem 0.8rem 1rem;
+    }
+    .lp-gallery {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 1.1rem;
+    }
+    .lp-stage__grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-auto-flow: row;
+    }
+    .lp-pennant__cloth {
+        min-height: 8.6rem;
+        padding: 0.6rem 0.4rem 1.8rem;
+    }
+    .lp-pennant__icon {
+        width: 2.2rem;
+        height: 2.2rem;
+        font-size: 0.9rem;
+    }
+    .league-picker-option__label { font-size: 1.15rem; }
+    .lp-follow { flex-wrap: wrap; }
+    .lp-follow__copy { flex-basis: calc(100% - 3.8rem); }
+    .lp-follow__state,
+    .lp-follow__btn { margin-left: 3.6rem; }
+}
+
+/* ─── Calm motion ───────────────────────────────────────────────────────── */
+
+/* weak laptops (ui/leagueControlsStyles.js), weak phones (body.gcq-lite), reduced motion */
+.lgc-lite .lgc-race__flag,
+.lgc-lite .lgc-crown__plaque::after,
+.lgc-lite .league-bar__peek-lens i,
+body.gcq-lite .lgc-race__flag,
+body.gcq-lite .lgc-crown__plaque::after,
+body.gcq-lite .league-bar__peek-lens i {
+    animation: none;
+}
+
+body.gcq-lite .lgc-crown__plaque::after,
+.lgc-lite .lgc-crown__plaque::after {
+    display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lgc-race__flag,
+    .lgc-crown__plaque::after,
+    .league-bar__plate.is-unset .league-bar__pick-name,
+    .league-bar__peek,
+    .league-bar__peek-lens i,
+    .league-bar__match,
+    .league-bar__history:hover i,
+    .lp-follow,
+    .lp-stage,
+    .league-picker-option.lp-pennant,
+    .league-picker-option.lp-pennant.is-selected {
+        animation: none !important;
+    }
+    .lgc-crown__plaque::after { display: none; }
+    .league-seg__thumb { transition: none; }
+    .league-bar__plate,
+    .league-bar__history,
+    .league-bar__match,
+    .hc-hall,
+    .hc-hall__medal,
+    .hc-hall__go,
+    .league-picker-option.lp-pennant,
+    .lp-pennant__icon,
+    .lp-close {
+        transition: none;
+    }
+    .league-picker-option.lp-pennant:hover,
+    .league-picker-option.lp-pennant:focus-visible,
+    .lp-close:hover {
+        transform: none;
+    }
+}

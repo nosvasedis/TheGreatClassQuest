@@ -71,9 +71,7 @@
 /* 10b. Sky Theater — header date/time flybys & cameos */
 @import url('./styles/sky_theater.css');
 
-/* 11. Student leaderboard card float, absence styles, welcome-back-btn */
-@import url('./styles/leaderboard.css');
-@import url('./styles/hero_standings.css');
+/* 11. Team Quest / Hero's Challenge controls + league picker: styles/league_controls.css (lazy, ui/leagueControlsStyles.js) */
 @import url('./styles/hero_logs.css');
 /* styles/league_archive.css loads with the module that draws it (lazy, not first paint) */
 

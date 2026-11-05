@@ -2514,3 +2514,154 @@
 @media (prefers-reduced-motion: reduce) {
     .fw-result-inking span { animation: none; opacity: 0.7; }
 }
+
+/* ── Opening: "waking" → "awaken" (driven by openFortunesWheel) ──────────
+   While waking, the relic's frame is there but its contents are hidden
+   (a soft light gathers in its heart); the ceremony is laid out underneath.
+   Awaken reveals it in one movement: the lamps light around the ring, the
+   wheel winds into place out of that light, the panels rise in turn.
+   Opacity and transform only, so it stays on the compositor. Every awaken
+   animation ends on the element's own resting style. */
+
+.fw-waking {
+    position: absolute;
+    inset: 22%;
+    z-index: 1;
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(circle, rgba(255, 244, 214, 0.55) 0%, rgba(251, 191, 36, 0.22) 38%, transparent 70%);
+    opacity: 0;
+}
+
+#fortunes-wheel-modal .fw-card--waking :is(.fw-stage-top, .fw-canvas-wrap, .fw-dormant, .fw-stage-caption, .fw-controls-section > *) {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease-out;
+}
+
+#fortunes-wheel-modal .fw-card--waking .fw-marquee__bulb {
+    opacity: 0.2;
+    transition: opacity 0.22s ease-out;
+}
+
+#fortunes-wheel-modal .fw-card--waking .fw-waking {
+    opacity: 0.5;
+    transition: opacity 0.3s ease-out;
+    animation: fw-waking-gather 1.6s ease-in-out infinite alternate;
+}
+
+/* Opening from a hidden modal: no fade-out, just start concealed */
+#fortunes-wheel-modal .fw-card--waking-instant :is(.fw-stage-top, .fw-canvas-wrap, .fw-dormant, .fw-stage-caption, .fw-controls-section > *, .fw-marquee__bulb, .fw-waking) {
+    transition: none;
+}
+
+@keyframes fw-waking-gather {
+    from { opacity: 0.3; transform: scale(0.8); }
+    to { opacity: 0.75; transform: scale(1.05); }
+}
+
+/* The light in the relic's heart blooms outward as the wheel arrives */
+#fortunes-wheel-modal .fw-card--awaken .fw-waking {
+    animation: fw-awake-bloom 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes fw-awake-bloom {
+    0% { opacity: 0.75; transform: scale(1); }
+    35% { opacity: 0.9; transform: scale(1.5); }
+    100% { opacity: 0; transform: scale(2.1); }
+}
+
+/* Lamps light one by one, clockwise from the pointer */
+#fortunes-wheel-modal .fw-card--awaken .fw-marquee__bulb {
+    animation: fw-awake-lamp 0.5s ease-out both;
+    animation-delay: calc(80ms + var(--i) * 26ms);
+}
+
+@keyframes fw-awake-lamp {
+    0% { opacity: 0.2; }
+    45% { opacity: 1; }
+    100% { opacity: 1; }
+}
+
+/* The wheel winds into place */
+#fortunes-wheel-modal .fw-card--awaken .fw-canvas-wrap {
+    will-change: transform, opacity;
+    animation: fw-awake-wheel 1.05s cubic-bezier(0.16, 1, 0.3, 1) 60ms both;
+}
+
+@keyframes fw-awake-wheel {
+    0% { opacity: 0; transform: scale(0.84) rotate(-40deg); }
+    45% { opacity: 1; }
+    100% { opacity: 1; transform: none; }
+}
+
+/* A sealed or recharging relic settles in without turning */
+#fortunes-wheel-modal .fw-card--awaken .fw-dormant {
+    animation: fw-awake-settle 0.7s cubic-bezier(0.16, 1, 0.3, 1) 60ms both;
+}
+
+@keyframes fw-awake-settle {
+    0% { opacity: 0; transform: scale(0.92); }
+    100% { opacity: 1; transform: none; }
+}
+
+#fortunes-wheel-modal .fw-card--awaken .fw-stage-top {
+    animation: fw-awake-drop 0.55s cubic-bezier(0.22, 1, 0.36, 1) 120ms both;
+}
+
+@keyframes fw-awake-drop {
+    0% { opacity: 0; transform: translateY(-12px); }
+    100% { opacity: 1; transform: none; }
+}
+
+#fortunes-wheel-modal .fw-card--awaken :is(.fw-controls-section > *, .fw-stage-caption) {
+    animation: fw-awake-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: 180ms;
+}
+
+#fortunes-wheel-modal .fw-card--awaken .fw-controls-section > :nth-child(2) { animation-delay: 240ms; }
+#fortunes-wheel-modal .fw-card--awaken .fw-controls-section > :nth-child(3) { animation-delay: 300ms; }
+#fortunes-wheel-modal .fw-card--awaken .fw-controls-section > :nth-child(4) { animation-delay: 360ms; }
+#fortunes-wheel-modal .fw-card--awaken .fw-controls-section > :nth-child(n + 5) { animation-delay: 420ms; }
+#fortunes-wheel-modal .fw-card--awaken .fw-stage-caption { animation-delay: 480ms; }
+
+@keyframes fw-awake-rise {
+    0% { opacity: 0; transform: translateY(14px); }
+    100% { opacity: 1; transform: none; }
+}
+
+/* Weak laptops: the same reveal as plain, quick fades (no turning, no lamp chase) */
+#fortunes-wheel-modal.fw--lite .fw-card--waking .fw-waking {
+    animation: none;
+}
+
+#fortunes-wheel-modal.fw--lite .fw-card--awaken :is(.fw-canvas-wrap, .fw-dormant, .fw-stage-top, .fw-controls-section > *, .fw-stage-caption, .fw-marquee__bulb, .fw-waking) {
+    will-change: auto;
+    animation: fw-awake-fade 0.36s ease-out both;
+    animation-delay: 0ms;
+}
+
+#fortunes-wheel-modal.fw--lite .fw-card--awaken :is(.fw-controls-section > *, .fw-stage-caption) {
+    animation-delay: 90ms;
+}
+
+#fortunes-wheel-modal.fw--lite .fw-card--awaken .fw-waking {
+    animation-name: fw-awake-fade-out;
+}
+
+@keyframes fw-awake-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fw-awake-fade-out {
+    from { opacity: 0.5; }
+    to { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #fortunes-wheel-modal .fw-card--waking :is(.fw-stage-top, .fw-canvas-wrap, .fw-dormant, .fw-stage-caption, .fw-controls-section > *, .fw-marquee__bulb, .fw-waking) {
+        transition: none;
+        animation: none;
+    }
+}

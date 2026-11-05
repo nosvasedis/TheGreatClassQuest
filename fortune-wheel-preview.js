@@ -78,7 +78,7 @@ Object.assign(wheelIo, {
     },
     bounty: async () => {},
     questCheck: async () => {},
-    hasSpun: async () => false,
+    hasSpun: async () => { await new Promise((r) => setTimeout(r, Number(params.get('latency') || 0))); return false; },
     save: async (classId, results) => { window.__wheelSaved = results; console.log('[wheel preview] saved', results); },
     availability: { allowed: true, code: 'ready', title: 'The wheel is awake', message: 'This is the class\'s final lesson before the weekend. The ceremonial spin may begin now.', meta: 'Preview: nothing is saved.' },
 });
@@ -108,4 +108,7 @@ document.getElementById('fw-close-btn').addEventListener('click', () => closeFor
 const groups = { omens: catalog.filter((w) => w.rarity === 'omen'), envoy: catalog.filter((w) => w.rarity === 'envoy'), new: catalog.filter((w) => ['genies_wish', 'lucky_clover', 'castle_feast', 'gift_exchange', 'golden_tide', 'rainbow_bridge', 'artifact_rain', 'rain_cloud'].includes(w.id)) };
 document.getElementById('pv-toolbar').innerHTML = ['<a href="?">random</a>', '<a href="?omen=1">omen on every wheel</a>',
     ...Object.values(groups).flat().map((w) => `<a href="?wedge=${w.id}&order=${w.rarity === 'envoy' ? 'phoenix_rising,dragon_flame,grizzly_might,owl_wisdom' : 'dragon_flame,phoenix_rising,grizzly_might,owl_wisdom'}">${w.emoji} ${w.label}</a>`)].join('');
-openFortunesWheel();
+// ?manual=1 waits for window.__openWheel() (the way a teacher opens it from a settled page)
+window.__openWheel = openFortunesWheel;
+window.__closeWheel = closeFortunesWheel;
+if (!params.has('manual')) openFortunesWheel();

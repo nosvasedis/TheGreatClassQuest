@@ -23,7 +23,7 @@ export const fortunesWheelModalHTML = `
 
         <div class="fw-backdrop"></div>
 
-        <div class="fw-card pop-in" data-phase="idle">
+        <div class="fw-card pop-in fw-card--waking fw-card--waking-instant" data-phase="idle">
             <button id="fw-close-btn" type="button" class="fw-btn fw-btn--close" aria-label="Close Fortune's Wheel">
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -79,6 +79,7 @@ export const fortunesWheelModalHTML = `
                                 <div class="fw-stage-ring fw-stage-ring--outer" aria-hidden="true"></div>
                                 <div class="fw-marquee" aria-hidden="true">${MARQUEE_BULBS}</div>
                                 <div class="fw-stage-ring fw-stage-ring--inner" aria-hidden="true"></div>
+                                <div class="fw-waking" aria-hidden="true"></div>
                                 <div class="fw-dormant" aria-hidden="true">
                                     <div class="fw-dormant__wheel"></div>
                                     <div class="fw-dormant__chain fw-dormant__chain--a"></div>

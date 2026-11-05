@@ -41,6 +41,42 @@ export const wheelIo = {
     availability: null,
 };
 
+// "Has this class spun this week?" is one Firestore read. The Guilds tab asks it to label the
+// wheel's button, so the answer is kept for a minute: the wheel then opens already knowing it
+// (no empty "awaiting" card that swaps to the ceremony a moment later). A new entry in the
+// class's wheel log, or a save from this modal, drops the old answer.
+const SPUN_CACHE_MS = 60000;
+const _spunCache = new Map();
+const _spunKey = () => (state.get('fortuneWheelLog') || []).length;
+
+function _spunEntry(classId) {
+    const entry = _spunCache.get(classId);
+    if (!entry || entry.key !== _spunKey() || Date.now() - entry.at > SPUN_CACHE_MS) return null;
+    return entry;
+}
+
+/** The cached answer when it is known and fresh, otherwise undefined. */
+function _peekHasSpun(classId) {
+    const entry = _spunEntry(classId);
+    return entry && 'value' in entry ? entry.value : undefined;
+}
+
+function _hasSpunCached(classId) {
+    const entry = _spunEntry(classId);
+    if (entry) return entry.promise;
+    const fresh = { key: _spunKey(), at: Date.now() };
+    fresh.promise = Promise.resolve()
+        .then(() => wheelIo.hasSpun(classId))
+        .then((value) => { fresh.value = Boolean(value); return fresh.value; },
+            (err) => { if (_spunCache.get(classId) === fresh) _spunCache.delete(classId); throw err; });
+    _spunCache.set(classId, fresh);
+    return fresh.promise;
+}
+
+function _rememberSpun(classId) {
+    if (classId) _spunCache.set(classId, { key: _spunKey(), at: Date.now(), value: true, promise: Promise.resolve(true) });
+}
+
 /** Compute relative luminance from a hex color for text contrast decisions */
 function _luminance(hex) {
     const c = String(hex || '').replace('#', '');
@@ -1075,7 +1111,7 @@ export function spinWheel(segmentCount) {
  */
 export async function canSpinThisWeek(classId) {
     if (!classId) return false;
-    const alreadySpun = await wheelIo.hasSpun(classId);
+    const alreadySpun = await _hasSpunCached(classId);
     if (alreadySpun) return false;
 
     const availability = evaluateWheelAvailability(classId, {
@@ -1944,28 +1980,40 @@ export function getWheelState() { return _wheelState; }
 /**
  * Open the Fortune's Wheel modal. Uses the header (global) class only.
  * Always opens — shows a locked/unavailable state when conditions aren't met.
+ *
+ * The opening is one motion: the card rises with its contents concealed ("waking": an empty
+ * relic with a soft light gathering in its heart), the ceremony is laid out underneath before
+ * the first frame whenever the answer is already known, and then everything "awakens" together:
+ * the lamps light around the ring, the wheel winds into place, the panels rise in turn. Nothing
+ * is shown that is later swapped out, and the heavy work (audio, grammar questions) waits until
+ * the motion is over, so weak laptops don't stutter through it.
  */
 export async function openFortunesWheel() {
     const modal = document.getElementById('fortunes-wheel-modal');
     if (!modal) return;
+    const card = modal.querySelector('.fw-card');
 
     _wireWheelResize();
     modal.classList.toggle('fw--lite', _isLite());
-    // Clear the last ceremony's leftovers before the card animates in. The idle
-    // phase hides the roster panel until the availability check settles.
+    const seq = ++_openSeq;
+    // Clear the last ceremony's leftovers (still concealed) before the card animates in.
+    _beginWaking(card, { instant: true });
     _setCardPhase('idle');
     _hideResultReveal();
     document.getElementById('fw-summary')?.classList.add('hidden');
     showAnimatedModal('fortunes-wheel-modal');
-    // Wake the audio once the card has landed, so the first spin starts without a stall.
-    setTimeout(() => { ensureAudioReady().then(() => warmWheelAudio()).catch(quietly('features/fortunesWheel.js')); }, 700);
+    const openedAt = performance.now();
 
-    const resolvedClassId = state.get('globalSelectedClassId') || '';
-    const allClasses = state.get('allTeachersClasses') || [];
-    const selectedClass = allClasses.find(c => c.id === resolvedClassId) || null;
-    const resolvedLeague = selectedClass?.questLevel || state.get('globalSelectedLeague') || 'B';
-
-    await _evaluateAndRender(resolvedClassId || null, resolvedLeague);
+    const { classId, leagueLevel } = _headerClass();
+    // Lays the ceremony out now (same task as the card's first frame); waits only when the
+    // weekly spin check has to go to Firestore.
+    await _evaluateAndRender(classId, leagueLevel);
+    if (seq !== _openSeq) return;
+    await _imagesSettled(card, 400);
+    if (seq !== _openSeq) return;
+    // Let the card start rising before its contents awaken, so the two read as one movement.
+    const lead = Math.max(0, AWAKEN_LEAD_MS - (performance.now() - openedAt));
+    setTimeout(() => _awaken(card, seq), lead);
 }
 
 /**
@@ -1978,11 +2026,82 @@ export async function refreshFortunesWheelModalFromGlobalClass() {
     if (['spinning', 'staging', 'applying'].includes(_wheelState.phase)) return;
     if ((_wheelState.results?.length || 0) > 0) return;
 
-    const resolvedClassId = state.get('globalSelectedClassId') || '';
-    const allClasses = state.get('allTeachersClasses') || [];
-    const selectedClass = allClasses.find(c => c.id === resolvedClassId) || null;
-    const resolvedLeague = selectedClass?.questLevel || state.get('globalSelectedLeague') || 'B';
-    await _evaluateAndRender(resolvedClassId || null, resolvedLeague);
+    const card = modal.querySelector('.fw-card');
+    const seq = ++_openSeq;
+    // Fade the old class's ceremony out, lay the new one out unseen, then awaken it.
+    _beginWaking(card);
+    await new Promise((resolve) => setTimeout(resolve, _reducedMotion() ? 0 : CONCEAL_MS));
+    if (seq !== _openSeq) return;
+    const { classId, leagueLevel } = _headerClass();
+    await _evaluateAndRender(classId, leagueLevel);
+    if (seq !== _openSeq) return;
+    await _imagesSettled(card, 400);
+    if (seq !== _openSeq) return;
+    _awaken(card, seq);
+}
+
+// ── Opening motion ───────────────────────────────────────────────────────────
+
+const AWAKEN_LEAD_MS = 140;   // card rise → contents awaken
+const CONCEAL_MS = 220;       // matches the waking fade in fortunes_wheel.css
+let _openSeq = 0;
+let _afterAwakenTimer = null;
+
+function _reducedMotion() {
+    try { return Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches); } catch (_) { return false; }
+}
+
+function _headerClass() {
+    const classId = state.get('globalSelectedClassId') || '';
+    const selectedClass = (state.get('allTeachersClasses') || []).find(c => c.id === classId) || null;
+    return { classId: classId || null, leagueLevel: selectedClass?.questLevel || state.get('globalSelectedLeague') || 'B' };
+}
+
+/** Conceal the card's contents (instantly while the modal is still hidden, or with a short fade). */
+function _beginWaking(card, { instant = false } = {}) {
+    if (!card) return;
+    clearTimeout(card._fwAwakeTimer);
+    clearTimeout(_afterAwakenTimer);
+    card.classList.remove('fw-card--awaken');
+    card.classList.toggle('fw-card--waking-instant', instant);
+    card.classList.add('fw-card--waking');
+}
+
+/** Wait (briefly) for the crests and portraits on show, so none of them pops in after the reveal. */
+function _imagesSettled(card, capMs) {
+    if (!card) return Promise.resolve();
+    const pending = [...card.querySelectorAll('.fw-stage-top img, .fw-canvas-wrap img, .fw-guild-members-panel img')]
+        .filter((img) => img.getAttribute('src') && !img.complete);
+    if (!pending.length) return Promise.resolve();
+    const decoded = Promise.all(pending.map((img) => (typeof img.decode === 'function' ? img.decode() : Promise.resolve()).catch(() => {})));
+    return Promise.race([decoded, new Promise((resolve) => setTimeout(resolve, capMs))]);
+}
+
+/** Reveal the laid-out ceremony; afterwards, do the deferred heavy work. */
+function _awaken(card, seq) {
+    if (!card || seq !== _openSeq) return;
+    const lite = card.closest('#fortunes-wheel-modal')?.classList.contains('fw--lite');
+    card.classList.remove('fw-card--waking', 'fw-card--waking-instant');
+    const settleMs = _reducedMotion() ? 0 : (lite ? 760 : 1500);
+    if (settleMs) {
+        card.classList.add('fw-card--awaken');
+        clearTimeout(card._fwAwakeTimer);
+        // Every awaken animation ends on the element's own resting style, so dropping the
+        // class afterwards changes nothing on screen.
+        card._fwAwakeTimer = setTimeout(() => card.classList.remove('fw-card--awaken'), settleMs);
+    }
+    clearTimeout(_afterAwakenTimer);
+    _afterAwakenTimer = setTimeout(() => _whenIdle(() => {
+        if (seq !== _openSeq) return;
+        // Wake the audio once the relic has settled, so the first spin starts without a stall.
+        ensureAudioReady().then(() => warmWheelAudio()).catch(quietly('features/fortunesWheel.js'));
+        if (_wheelState.active && !_wheelState.forgeRiddles) _loadForgeRiddles(_wheelState.classId, _wheelState.leagueLevel);
+    }), settleMs);
+}
+
+function _whenIdle(fn) {
+    if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(() => fn(), { timeout: 900 });
+    else setTimeout(fn, 60);
 }
 
 function _wireWheelResize() {
@@ -1996,24 +2115,33 @@ function _wireWheelResize() {
 
 /**
  * Core availability check + render. Called when the modal opens.
+ * Renders straight away (synchronously) with what is known; when the weekly spin check isn't
+ * cached it lays out the ceremony as if the wheel were free, waits for the answer, and only
+ * re-renders (still concealed) if the class turns out to have spun already.
  */
 async function _evaluateAndRender(classId, leagueLevel) {
-    const allSchoolClasses = state.get('allSchoolClasses') || [];
-    const allScheduleOverrides = state.get('allScheduleOverrides') || [];
-    const schoolHolidayRanges = state.get('schoolHolidayRanges') || [];
+    const known = classId ? _peekHasSpun(classId) : false;
+    _applyAvailability(classId, leagueLevel, known === undefined ? false : known);
+    if (known !== undefined) return;
 
     let alreadySpun = false;
     try {
-        alreadySpun = classId ? await wheelIo.hasSpun(classId) : false;
+        alreadySpun = await _hasSpunCached(classId);
     } catch (err) {
         console.warn('Wheel availability check failed:', err);
     }
+    if (!alreadySpun) return;
+    // Still the same untouched ceremony? Then show the recharging seal instead.
+    if (_wheelState.classId !== classId || _wheelState.phase !== 'ready' || _wheelState.results.length) return;
+    _applyAvailability(classId, leagueLevel, true);
+}
 
+function _applyAvailability(classId, leagueLevel, alreadySpun) {
     const availability = wheelIo.availability || evaluateWheelAvailability(classId, {
         now: new Date(),
-        allSchoolClasses,
-        allScheduleOverrides,
-        schoolHolidayRanges,
+        allSchoolClasses: state.get('allSchoolClasses') || [],
+        allScheduleOverrides: state.get('allScheduleOverrides') || [],
+        schoolHolidayRanges: state.get('schoolHolidayRanges') || [],
         classEndDates: state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {},
         alreadySpun,
     });
@@ -2039,9 +2167,7 @@ async function _evaluateAndRender(classId, leagueLevel) {
         rotationAngle: 0,
     };
 
-    _loadForgeRiddles(classId, leagueLevel);
-
-    // Generate first guild's segments
+    // Generate first guild's segments (the grammar questions load once the opening has settled)
     invalidateWheelCache();
     _prepareGuildWheel();
     _renderWheelPhase();
@@ -2447,6 +2573,7 @@ export async function closeFortunesWheel() {
         try {
             // Firestore refuses undefined fields; the JSON round trip drops them.
             await wheelIo.save(_wheelState.classId, JSON.parse(JSON.stringify(_wheelState.results)));
+            _rememberSpun(_wheelState.classId);
         } catch (err) {
             console.error('Failed to save wheel results:', err);
         }

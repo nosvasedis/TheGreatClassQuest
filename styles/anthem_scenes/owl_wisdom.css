@@ -112,3 +112,11 @@
 .avs-owl .ow-ring__spin { transform-origin: center; animation: ow-spin 40s linear infinite; }
 .avs-owl .ow-ring-star { transform-origin: center; animation: ow-twinkle 1.2s ease-in-out infinite alternate; animation-delay: calc(var(--i) * -0.15s); filter: drop-shadow(0 0 8px #bfdbfe); }
 .av--lite .avs-owl .ow-ring-star, .av--lite .avs-owl .ow-guide-star { filter: none; }
+
+/* The town and tower keep their small lights; the pennant flutters */
+.avs-owl .ow-citylight { animation: ow-citylight 5s ease-in-out infinite; animation-delay: calc(var(--i) * -0.9s); }
+@keyframes ow-citylight { 0%, 100% { opacity: 0.9; } 50% { opacity: 0.45; } }
+.avs-owl .ow-flag { transform-origin: 0% 50%; animation: ow-flag 1.6s ease-in-out infinite alternate; }
+@keyframes ow-flag { from { transform: skewY(-4deg) scaleX(0.94); } to { transform: skewY(5deg) scaleX(1.04); } }
+.avs-owl .ow-window-glow { opacity: 0.55; transition: opacity 1s; }
+.cue-lead .avs-owl .ow-window-glow { opacity: 1; }

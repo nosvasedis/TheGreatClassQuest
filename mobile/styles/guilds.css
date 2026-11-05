@@ -109,8 +109,7 @@ body.gcq-mobile .guild-lore-card {
 /* The phone shell gives every tab button a 2.5rem touch height; the "?" chip is a
    small inline stud and the close stud is already sized. */
 body.gcq-mobile .guild-lore-power-hint,
-body.gcq-mobile .guild-lore-close,
-body.gcq-mobile .guild-anthem-close {
+body.gcq-mobile .guild-lore-close {
     min-height: 0 !important;
 }
 

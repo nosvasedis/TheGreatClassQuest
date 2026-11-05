@@ -3,7 +3,7 @@
 // candle lights and a lantern path leads to the tower. In the chorus the owl spreads its wings and flies,
 // guided by a beam of starlight; it hoots the clouds away and a constellation draws an owl across the sky.
 import '../../../styles/anthem_scenes/owl_wisdom.css';
-import { seeded, times, f, svgOpen, starField, risingParticles } from '../sceneKit.js';
+import { seeded, times, f, svgOpen, starField, risingParticles, cloudPath } from '../sceneKit.js';
 
 // Line / word indices follow GUILDS.owl_wisdom.anthemLyrics.
 export const cues = [
@@ -40,57 +40,110 @@ const LANTERNS = Array.from({ length: 7 }, (_, i) => {
 });
 
 function owl() {
-    const chevrons = times(3, r => times(3, c => `<path d="M${-18 + c * 18 - 6} ${-74 + r * 18} q6 6 12 0" stroke="#1e3a8a" stroke-width="2.4" fill="none" stroke-linecap="round" opacity="0.55"/>`));
+    const o = 'stroke="#0b1440" stroke-width="3" stroke-linejoin="round"';
+    const scallops = times(3, r => times(4 - (r % 2), c => {
+        const x = -27 + c * 18 + (r % 2 ? 9 : 0);
+        const y = -84 + r * 17;
+        return `<path d="M${x - 7} ${y} q7 8 14 0" stroke="#1e3a8a" stroke-width="2.4" fill="none" stroke-linecap="round" opacity="0.5"/>`;
+    }));
+    const wing = side => {
+        const k = side === 'l' ? -1 : 1;
+        const p = (pts) => pts.map(([x, y]) => `${f(x * k)} ${f(y)}`).join(' ');
+        return `<path d="M${p([[0, 0]])} C${p([[30, 8], [50, 52], [42, 106]])} C${p([[34, 98], [30, 102], [24, 92]])} C${p([[18, 98], [14, 96], [10, 84]])} C${p([[6, 88], [2, 84], [0, 70]])} Z" fill="url(#ow-wing)" ${o}/>
+            <path d="M${p([[6, 20]])} C${p([[24, 30], [34, 56], [34, 82]])}" stroke="#93c5fd" stroke-width="2" fill="none" opacity="0.35"/>`;
+    };
     return `
     <g class="ow-path avs-mover"><g class="ow-bob avs-mover">
-        <g transform="translate(-44 -104)"><path class="ow-wing ow-wing--l" d="M0 0 C-30 10 -48 52 -40 104 C-24 86 -12 62 0 40 Z" fill="url(#ow-wing)"/></g>
-        <g transform="translate(44 -104)"><path class="ow-wing ow-wing--r" d="M0 0 C30 10 48 52 40 104 C24 86 12 62 0 40 Z" fill="url(#ow-wing)"/></g>
-        <ellipse cx="0" cy="-70" rx="52" ry="66" fill="url(#ow-body)"/>
-        <ellipse cx="0" cy="-56" rx="34" ry="46" fill="#bfdbfe"/>
-        ${chevrons}
-        <path d="M-44 -170 L-34 -196 L-18 -172 Z M44 -170 L34 -196 L18 -172 Z" style="fill:var(--g1)"/>
-        <ellipse cx="0" cy="-144" rx="52" ry="42" fill="url(#ow-body)"/>
-        <circle cx="-21" cy="-142" r="22" fill="#dbeafe"/><circle cx="21" cy="-142" r="22" fill="#dbeafe"/>
+        <ellipse cx="0" cy="4" rx="46" ry="7" fill="#000" opacity="0.3"/>
+        <g transform="translate(-44 -104)"><g class="ow-wing ow-wing--l">${wing('l')}</g></g>
+        <g transform="translate(44 -104)"><g class="ow-wing ow-wing--r">${wing('r')}</g></g>
+        <path d="M-52 -70 C-52 -116 -30 -136 0 -136 C30 -136 52 -116 52 -70 C52 -24 30 -2 0 -2 C-30 -2 -52 -24 -52 -70 Z" fill="url(#ow-body)" ${o}/>
+        <ellipse cx="0" cy="-56" rx="34" ry="46" fill="url(#ow-chest)"/>
+        ${scallops}
+        <path d="M-50 -168 L-40 -204 L-20 -176 Z M50 -168 L40 -204 L20 -176 Z" style="fill:var(--g1)" ${o}/>
+        <path d="M-54 -140 C-54 -170 -30 -188 0 -188 C30 -188 54 -170 54 -140 C54 -112 30 -100 0 -100 C-30 -100 -54 -112 -54 -140 Z" fill="url(#ow-body)" ${o}/>
+        <path d="M0 -122 C-10 -110 -40 -112 -44 -138 C-46 -160 -24 -168 0 -152 C24 -168 46 -160 44 -138 C40 -112 10 -110 0 -122 Z" fill="#dbeafe"/>
         <g class="ow-eyes">
-            <circle cx="-21" cy="-142" r="13" fill="#fbbf24"/><circle cx="21" cy="-142" r="13" fill="#fbbf24"/>
-            <circle class="ow-pupil" cx="-21" cy="-141" r="6.5" fill="#0b1020"/><circle class="ow-pupil" cx="21" cy="-141" r="6.5" fill="#0b1020"/>
-            <circle cx="-18" cy="-145" r="2.6" fill="#fff"/><circle cx="24" cy="-145" r="2.6" fill="#fff"/>
+            <circle cx="-21" cy="-142" r="14" fill="#fbbf24" stroke="#b45309" stroke-width="2"/><circle cx="21" cy="-142" r="14" fill="#fbbf24" stroke="#b45309" stroke-width="2"/>
+            <circle class="ow-pupil" cx="-21" cy="-141" r="7" fill="#0b1020"/><circle class="ow-pupil" cx="21" cy="-141" r="7" fill="#0b1020"/>
+            <circle cx="-17" cy="-146" r="3" fill="#fff"/><circle cx="25" cy="-146" r="3" fill="#fff"/>
         </g>
-        <g class="ow-lids"><ellipse cx="-21" cy="-142" rx="15" ry="14" style="fill:var(--g1)"/><ellipse cx="21" cy="-142" rx="15" ry="14" style="fill:var(--g1)"/>
-            <path d="M-34 -140 q13 6 26 0 M8 -140 q13 6 26 0" stroke="#bfdbfe" stroke-width="2" fill="none"/></g>
-        <path d="M-7 -130 L7 -130 L0 -116 Z" fill="#f59e0b"/>
-        <path d="M-22 -2 l-6 6 M-16 -2 l0 8 M-10 -2 l6 6 M10 -2 l-6 6 M16 -2 l0 8 M22 -2 l6 6" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round"/>
+        <g class="ow-lids"><ellipse cx="-21" cy="-142" rx="16" ry="15" style="fill:var(--g1)"/><ellipse cx="21" cy="-142" rx="16" ry="15" style="fill:var(--g1)"/>
+            <path d="M-35 -140 q14 7 28 0 M7 -140 q14 7 28 0" stroke="#bfdbfe" stroke-width="2.4" fill="none" stroke-linecap="round"/></g>
+        <path d="M-7 -128 L7 -128 L0 -112 Z" fill="#f59e0b" stroke="#92400e" stroke-width="1.6" stroke-linejoin="round"/>
+        <path d="M-22 -2 l-6 7 M-16 -2 l0 9 M-10 -2 l6 7 M10 -2 l-6 7 M16 -2 l0 9 M22 -2 l6 7" stroke="#f59e0b" stroke-width="4" stroke-linecap="round"/>
     </g></g>`;
 }
 
 function book() {
     return `
     <g transform="translate(600 600)">
-        <path d="M-96 -4 L0 6 L96 -4 L96 -14 L0 -4 L-96 -14 Z" fill="#3b2a1a"/>
-        <path d="M0 -4 C-30 -16 -70 -20 -92 -14 L-92 -60 C-70 -66 -30 -62 0 -50 Z" fill="#fef3c7"/>
-        <path d="M0 -4 C30 -16 70 -20 92 -14 L92 -60 C70 -66 30 -62 0 -50 Z" fill="#fde68a"/>
-        <path class="ow-flip" d="M0 -4 C30 -16 70 -20 92 -14 L92 -60 C70 -66 30 -62 0 -50 Z" fill="#fffbeb"/>
+        <path d="M-104 0 L0 10 L104 0 L104 -10 L0 0 L-104 -10 Z" style="fill:var(--g1)" stroke="#0b1440" stroke-width="2"/>
+        <path d="M-100 -6 L0 4 L100 -6 L100 -12 L0 -2 L-100 -12 Z" fill="#e7d9b0"/>
+        <path d="M0 -4 C-30 -16 -70 -20 -94 -14 L-94 -62 C-70 -68 -30 -64 0 -52 Z" fill="#fef3c7" stroke="#b08850" stroke-width="1.5"/>
+        <path d="M0 -4 C30 -16 70 -20 94 -14 L94 -62 C70 -68 30 -64 0 -52 Z" fill="#fde68a" stroke="#b08850" stroke-width="1.5"/>
+        <path class="ow-flip" d="M0 -4 C30 -16 70 -20 94 -14 L94 -62 C70 -68 30 -64 0 -52 Z" fill="#fffbeb" stroke="#b08850" stroke-width="1.5"/>
         ${times(4, i => `<path d="M-80 ${-24 - i * 8} q36 -4 70 4 M14 ${-26 - i * 8} q36 -8 66 -4" stroke="#b45309" stroke-width="1.4" fill="none" opacity="0.45"/>`)}
+        <path d="M30 -2 L34 30 L38 22 L42 30 L42 -4 Z" fill="#dc2626"/>
     </g>`;
+}
+
+function shelf() {
+    // a stack of books and an inkwell with a quill on the parapet
+    const books = [[-70, 20, '#7c2d12'], [-66, 16, '#1e40af'], [-72, 18, '#065f46'], [-62, 14, '#6d28d9']];
+    let y = 600;
+    const stack = books.map(([w, h, c], i) => {
+        y -= h;
+        const x = 380 + (i % 2 ? 6 : -4);
+        return `<rect x="${x + w / 2}" y="${y}" width="${-w}" height="${h}" rx="3" fill="${c}" stroke="#0b1440" stroke-width="2"/><rect x="${x + w / 2 + 6}" y="${y + 4}" width="${-w - 12}" height="3" fill="#fde68a" opacity="0.6"/>`;
+    }).join('');
+    return `${stack}
+        <g transform="translate(1170 600)">
+            <path d="M-20 0 C-24 -18 -14 -28 -10 -30 L10 -30 C14 -28 24 -18 20 0 Z" fill="#1e293b" stroke="#0b1440" stroke-width="2"/>
+            <ellipse cx="0" cy="-30" rx="11" ry="3" fill="#0f172a"/>
+            <path d="M2 -30 C14 -70 30 -100 56 -126 C44 -96 32 -66 6 -30 Z" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5"/>
+            <path d="M4 -30 L48 -118" stroke="#94a3b8" stroke-width="1.5"/>
+        </g>`;
 }
 
 function candle() {
     return `
     <g transform="translate(1000 600)">
-        <ellipse class="ow-candle-glow" cx="0" cy="-74" rx="90" ry="90" fill="url(#ow-warm)"/>
-        <rect x="-14" y="-60" width="28" height="60" rx="4" fill="#f1f5f9"/>
-        <path d="M-14 -56 q7 10 0 18" stroke="#e2e8f0" stroke-width="3" fill="none"/>
-        <rect x="-26" y="-4" width="52" height="8" rx="3" fill="#a16207"/>
+        <ellipse class="ow-candle-glow" cx="0" cy="-74" rx="110" ry="110" fill="url(#ow-warm)"/>
+        <rect x="-14" y="-60" width="28" height="60" rx="4" fill="url(#ow-wax)"/>
+        <path d="M-14 -56 q0 14 4 18 q4 -4 4 -16 Z M6 -58 q0 20 4 24 q3 -6 4 -24 Z" fill="#fff"/>
+        <path d="M-30 -2 C-30 -8 30 -8 30 -2 L24 6 L-24 6 Z" fill="#b45309" stroke="#78350f" stroke-width="2"/>
+        <path d="M30 -4 C44 -6 46 8 32 8" stroke="#b45309" stroke-width="4" fill="none"/>
         <path d="M0 -60 v-8" stroke="#334155" stroke-width="2"/>
-        <g class="ow-flame"><path class="ow-flame__inner" d="M0 -66 C-10 -74 -8 -92 0 -104 C8 -92 10 -74 0 -66 Z" fill="url(#ow-fire)"/></g>
+        <g class="ow-flame"><path class="ow-flame__inner" d="M0 -66 C-10 -74 -8 -92 0 -104 C8 -92 10 -74 0 -66 Z" fill="url(#ow-fire)"/><path class="ow-flame__inner" d="M0 -68 C-4 -72 -4 -80 0 -88 C4 -80 4 -72 0 -68 Z" fill="#fff"/></g>
     </g>`;
 }
 
 function clouds(side) {
     const sign = side === 'l' ? -1 : 1;
     const cx = 800 + sign * 260;
-    return `<g class="ow-cloud ow-cloud--${side} avs-mover">${[[0, 0, 170, 60], [-120, 20, 120, 46], [120, 16, 130, 50], [40, -36, 110, 50]].map(([x, y, rx, ry]) =>
-        `<ellipse cx="${cx + x}" cy="${170 + y}" rx="${rx}" ry="${ry}" fill="#1e2a52"/>`).join('')}</g>`;
+    return `<g class="ow-cloud ow-cloud--${side} avs-mover">
+        <path d="${cloudPath(cx - 200, 200, [[0, 0, 60], [80, -30, 80], [180, -40, 90], [280, -16, 70], [360, 4, 50]], 40)}" fill="#18214a"/>
+        <path d="${cloudPath(cx - 160, 160, [[0, 0, 40], [70, -24, 56], [150, -10, 46]], 20)}" fill="#25305e"/>
+    </g>`;
+}
+
+function skyline() {
+    const roofs = [[60, 560, 90, 70], [170, 540, 70, 110], [260, 566, 110, 60], [1150, 556, 90, 80], [1520, 546, 80, 90]];
+    const buildings = roofs.map(([x, y, w, h]) => `<path d="M${x} ${y + h} V${y} L${x + w / 2} ${y - w * 0.45} L${x + w} ${y} V${y + h} Z"/>`).join('');
+    const spires = '<path d="M196 540 V470 L206 430 L216 470 V540 Z M1192 556 V500 L1200 470 L1208 500 V556 Z"/>';
+    const lights = roofs.map(([x, y, w], i) => `<rect class="ow-citylight" style="--i:${i}" x="${x + w * 0.3}" y="${y + 14}" width="8" height="12" rx="2" fill="#fcd34d"/><rect class="ow-citylight" style="--i:${i + 3}" x="${x + w * 0.6}" y="${y + 30}" width="8" height="12" rx="2" fill="#fcd34d"/>`).join('');
+    return `<g fill="#0c1640">${buildings}${spires}</g><g opacity="0.85">${lights}</g>`;
+}
+
+function balustrade() {
+    const baluster = x => `<path d="M${x - 9} 676 h18 v-6 c-6 -6 -6 -14 0 -22 c6 -8 4 -18 -3 -24 h-12 c-7 6 -9 16 -3 24 c6 8 6 16 0 22 Z"/>`;
+    return `
+        <rect x="-10" y="600" width="1620" height="320" fill="url(#ow-stone)"/>
+        <g fill="#18245a">${times(26, i => baluster(i * 64 + 26))}</g>
+        <rect x="-10" y="676" width="1620" height="18" fill="#1e2a62"/>
+        <rect x="-10" y="590" width="1620" height="18" rx="4" fill="#2a3a7a"/>
+        <rect x="-10" y="590" width="1620" height="4" fill="#6b83c9" opacity="0.6"/>`;
 }
 
 export function render({ lite = false } = {}) {
@@ -103,26 +156,35 @@ export function render({ lite = false } = {}) {
     const sparkle = (x, y, r, cls = '', i = 0) => `<g transform="translate(${f(x)} ${f(y)})"><path class="${cls}" style="--i:${i}" d="M0 ${-r} L${f(r * 0.25)} ${f(-r * 0.25)} L${r} 0 L${f(r * 0.25)} ${f(r * 0.25)} L0 ${r} L${f(-r * 0.25)} ${f(r * 0.25)} L${-r} 0 L${f(-r * 0.25)} ${f(-r * 0.25)} Z" fill="#f8fafc"/></g>`;
     return `${svgOpen('avs-owl')}
     <defs>
-        <linearGradient id="ow-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#040823"/><stop offset="0.6" stop-color="#0f1d52"/><stop offset="1" stop-color="#1d3a8a"/></linearGradient>
-        <radialGradient id="ow-moon" cx="0.42" cy="0.4" r="0.7"><stop offset="0" stop-color="#ffffff"/><stop offset="0.7" stop-color="#dbeafe"/><stop offset="1" stop-color="#93c5fd"/></radialGradient>
+        <linearGradient id="ow-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#030620"/><stop offset="0.55" stop-color="#0c1a4e"/><stop offset="1" stop-color="#1f3f94"/></linearGradient>
+        <radialGradient id="ow-milky"><stop offset="0" stop-color="#c7d2fe" stop-opacity="0.2"/><stop offset="0.6" stop-color="#a5b4fc" stop-opacity="0.08"/><stop offset="1" stop-color="#a5b4fc" stop-opacity="0"/></radialGradient>
+        <radialGradient id="ow-moon" cx="0.42" cy="0.4" r="0.7"><stop offset="0" stop-color="#ffffff"/><stop offset="0.7" stop-color="#e0ecff"/><stop offset="1" stop-color="#9cc3fb"/></radialGradient>
         <radialGradient id="ow-halo"><stop offset="0" stop-color="#bfdbfe" stop-opacity="0.55"/><stop offset="1" stop-color="#60a5fa" stop-opacity="0"/></radialGradient>
         <radialGradient id="ow-warm"><stop offset="0" stop-color="#fcd34d" stop-opacity="0.55"/><stop offset="1" stop-color="#f59e0b" stop-opacity="0"/></radialGradient>
-        <linearGradient id="ow-beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e0f2fe" stop-opacity="0.75"/><stop offset="1" stop-color="#e0f2fe" stop-opacity="0"/></linearGradient>
+        <linearGradient id="ow-beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e0f2fe" stop-opacity="0.7"/><stop offset="1" stop-color="#e0f2fe" stop-opacity="0"/></linearGradient>
         <linearGradient id="ow-fire" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#fff7d6"/><stop offset="0.5" stop-color="#fbbf24"/><stop offset="1" stop-color="#f97316"/></linearGradient>
-        <linearGradient id="ow-body" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b82f6"/><stop offset="1" stop-color="#1e3a8a"/></linearGradient>
+        <linearGradient id="ow-body" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4f8ff7"/><stop offset="1" stop-color="#1e3a8a"/></linearGradient>
+        <linearGradient id="ow-chest" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dbeafe"/><stop offset="1" stop-color="#a5c8fb"/></linearGradient>
         <linearGradient id="ow-wing" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#172554"/></linearGradient>
+        <linearGradient id="ow-wax" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#e2e8f0"/><stop offset="0.4" stop-color="#fff"/><stop offset="1" stop-color="#cbd5e1"/></linearGradient>
+        <linearGradient id="ow-stone" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#101a48"/><stop offset="1" stop-color="#060b26"/></linearGradient>
+        <linearGradient id="ow-towerwall" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#22306a"/><stop offset="0.6" stop-color="#121c4c"/><stop offset="1" stop-color="#0a1238"/></linearGradient>
+        <linearGradient id="ow-roof" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4338ca"/><stop offset="1" stop-color="#1e1b4b"/></linearGradient>
     </defs>
     <rect width="1600" height="900" fill="url(#ow-sky)"/>
-    <g class="ow-stars">${starField(rand, lite ? 40 : 90, { bottom: 560, color: '#e0e7ff' })}</g>
+    <ellipse cx="820" cy="300" rx="1000" ry="140" transform="rotate(-18 820 300)" fill="url(#ow-milky)"/>
+    <g class="ow-stars">${starField(rand, lite ? 40 : 100, { bottom: 560, color: '#e0e7ff' })}</g>
     <g class="ow-map">${mapLines}${MAP_STARS.map(([x, y], i) => sparkle(x, y, 9, 'ow-map-star', i)).join('')}</g>
     <g transform="translate(1020 200)" class="ow-constellation">${owlLines}${OWL_STARS.map(([x, y], i) => sparkle(x, y, 8, 'ow-const-star', i)).join('')}
         <circle cx="-22" cy="-62" r="5" fill="#fde68a"/><circle cx="22" cy="-62" r="5" fill="#fde68a"/></g>
     <g transform="translate(330 190)">
-        <circle class="ow-halo av-pulse" r="190" fill="url(#ow-halo)"/>
+        <circle class="ow-halo av-pulse" r="210" fill="url(#ow-halo)"/>
+        <circle r="140" fill="none" stroke="#dbeafe" stroke-width="1.5" opacity="0.25"/>
         <circle r="98" fill="url(#ow-moon)"/>
-        <circle cx="-30" cy="24" r="14" fill="#bfdbfe" opacity="0.6"/><circle cx="28" cy="-30" r="10" fill="#bfdbfe" opacity="0.5"/>
+        <circle cx="-30" cy="24" r="15" fill="#bcd4f6" opacity="0.6"/><circle cx="28" cy="-30" r="10" fill="#bcd4f6" opacity="0.5"/><circle cx="40" cy="30" r="7" fill="#bcd4f6" opacity="0.5"/><circle cx="-44" cy="-20" r="6" fill="#bcd4f6" opacity="0.5"/>
         <path class="ow-keyhole" d="M0 -40 a22 22 0 0 1 12 40 L22 46 L-22 46 L-12 0 A22 22 0 0 1 0 -40 Z" fill="#0b1440"/>
     </g>
+    ${skyline()}
     <path class="ow-moonbeam" d="M290 240 L370 240 L900 612 L470 612 Z" fill="url(#ow-beam)"/>
     <g class="ow-guide">
         <path d="M770 90 L830 90 L880 520 L720 520 Z" fill="url(#ow-beam)"/>
@@ -130,22 +192,25 @@ export function render({ lite = false } = {}) {
     </g>
     ${clouds('l')}${clouds('r')}
     <g class="ow-tower">
-        <path d="M1316 230 L1425 84 L1534 230 Z" fill="#1e1b4b"/>
-        <rect x="1340" y="226" width="170" height="420" fill="#0d1440"/>
-        ${times(7, i => `<path d="M1340 ${270 + i * 50} h170" stroke="#1e2a5a" stroke-width="2"/>`)}
+        <rect x="1340" y="226" width="170" height="420" fill="url(#ow-towerwall)"/>
+        ${times(8, i => `<path d="M1340 ${262 + i * 46} h170" stroke="#0a1238" stroke-width="2.5"/>${times(3, c => `<path d="M${1340 + ((i % 2) ? 28 : 56) + c * 56} ${262 + i * 46} v-46" stroke="#0a1238" stroke-width="2.5"/>`)}`)}
+        <path d="M1324 236 h202 v-14 h-202 Z" fill="#1e2a62"/>
+        <path d="M1310 230 L1425 70 L1540 230 Z" fill="url(#ow-roof)" stroke="#0b1440" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M1425 70 L1380 230 M1425 70 L1470 230" stroke="#6366f1" stroke-width="2" opacity="0.4"/>
+        <path d="M1425 70 V30" stroke="#cbd5e1" stroke-width="3"/>
+        <path class="ow-flag" d="M1427 30 C1450 24 1462 40 1486 34 L1482 52 C1460 58 1448 42 1427 48 Z" style="fill:var(--g2)"/>
+        <ellipse class="ow-window-glow" cx="1425" cy="350" rx="90" ry="90" fill="url(#ow-warm)"/>
         <path class="ow-window av-bar-pulse" d="M1400 380 v-60 a25 25 0 0 1 50 0 v60 Z" fill="#fde68a" style="--flash:0.5"/>
-        <path d="M1400 380 v-60 a25 25 0 0 1 50 0 v60 Z" fill="#fbbf24" opacity="0.55"/>
+        <path d="M1400 380 v-60 a25 25 0 0 1 50 0 v60 Z" fill="#fbbf24" opacity="0.6" stroke="#0b1440" stroke-width="4"/>
         <path d="M1425 296 v84 M1400 340 h50" stroke="#92400e" stroke-width="3"/>
+        <path d="M1388 386 h74 v8 h-74 Z" fill="#2a3a7a"/>
     </g>
-    <g class="ow-lanterns">${LANTERNS.map(([x, y], i) => `<g transform="translate(${f(x)} ${f(y)})"><g class="ow-lantern" style="--i:${i}"><circle r="22" fill="url(#ow-warm)"/><circle r="6" fill="#fde68a"/></g></g>`).join('')}</g>
-    <g class="ow-ledge">
-        <rect x="-10" y="600" width="1620" height="320" fill="#0a1030"/>
-        <rect x="-10" y="594" width="1620" height="14" fill="#1e2a5a"/>
-        ${times(26, i => `<rect x="${i * 64 + 14}" y="610" width="22" height="70" rx="8" fill="#141d48"/>`)}
-    </g>
-    <ellipse class="ow-desk-glow" cx="800" cy="600" rx="420" ry="120" fill="url(#ow-warm)"/>
+    <g class="ow-lanterns">${LANTERNS.map(([x, y], i) => `<g transform="translate(${f(x)} ${f(y)})"><g class="ow-lantern" style="--i:${i}"><circle r="26" fill="url(#ow-warm)"/><path d="M-6 -8 h12 l2 14 h-16 Z" fill="#fde68a" stroke="#92400e" stroke-width="1.5"/><path d="M-4 -8 v-4 h8 v4" stroke="#92400e" stroke-width="1.5" fill="none"/></g></g>`).join('')}</g>
+    <g class="ow-ledge">${balustrade()}</g>
+    <ellipse class="ow-desk-glow" cx="800" cy="600" rx="440" ry="130" fill="url(#ow-warm)"/>
+    ${shelf()}
     ${book()}
-    <g class="ow-questions">${times(6, i => `<g transform="translate(${600 + (i - 2.5) * 34} 540)"><text class="ow-q" style="--i:${i}" text-anchor="middle" font-family="Fredoka One, Fredoka, sans-serif" font-size="${28 + (i % 3) * 8}" fill="#bfdbfe">?</text></g>`)}</g>
+    <g class="ow-questions">${times(6, i => `<g transform="translate(${600 + (i - 2.5) * 34} 540)"><text class="ow-q" style="--i:${i}" text-anchor="middle" font-family="Fredoka One, Fredoka, sans-serif" font-size="${28 + (i % 3) * 8}" fill="#bfdbfe" stroke="#1e3a8a" stroke-width="3" paint-order="stroke">?</text></g>`)}</g>
     ${candle()}
     <g class="ow-motes">${risingParticles(rand, lite ? 10 : 26, { className: 'avs-rise ow-mote', colors: ['#e0f2fe', '#fde68a'], minR: 1.2, maxR: 3, minDur: 7, maxDur: 12, drift: 40 })}</g>
     <g transform="translate(1250 230)" class="ow-hoots">${times(3, i => `<circle class="ow-hoot" style="--i:${i}" r="34" fill="none" stroke="#bfdbfe" stroke-width="4"/>`)}</g>

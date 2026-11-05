@@ -20,14 +20,17 @@
 /* The mountain, its roots and its strength */
 .avs-grizzly .gr-roots { opacity: 0; transition: opacity 1.4s; filter: drop-shadow(0 0 6px #fbbf24); }
 .cue-roots .avs-grizzly .gr-roots { opacity: 1; }
+.cue-river .avs-grizzly .gr-roots { opacity: 0.35; }
+.cue-chorus .avs-grizzly .gr-roots { opacity: 0.7; }
 .avs-grizzly .gr-roots path { animation: gr-glow 2.4s ease-in-out infinite; }
 .av--lite .avs-grizzly .gr-roots { filter: none; }
 @keyframes gr-glow { 50% { opacity: 0.35; } }
-.avs-grizzly .gr-rim { opacity: 0; transition: opacity 1.2s; filter: drop-shadow(0 0 10px #fde68a); }
-.cue-mountain .avs-grizzly .gr-rim { opacity: 0.55; }
-.cue-strength .avs-grizzly .gr-rim { opacity: 1; }
-.cue-river .avs-grizzly .gr-rim { opacity: 0.2; }
-.cue-through .avs-grizzly .gr-rim { opacity: 1; }
+.avs-grizzly .gr-rim { opacity: 0.04; transition: opacity 1.4s; }
+.cue-mountain .avs-grizzly .gr-rim { opacity: 0.14; }
+.cue-strength .avs-grizzly .gr-rim { opacity: 0.26; }
+.cue-river .avs-grizzly .gr-rim { opacity: 0.1; }
+.cue-chorus .avs-grizzly .gr-rim { opacity: 0.2; }
+.cue-through .avs-grizzly .gr-rim { opacity: 0.32; }
 
 /* Songs in the trees */
 .avs-grizzly .gr-note { opacity: 0; }
@@ -124,4 +127,23 @@
 .av-stage.is-finale .avs-grizzly .gr-paw { opacity: 1; animation: gr-stamp 0.45s cubic-bezier(.2, 1.4, .4, 1) both; animation-delay: calc(var(--i) * 0.12s); }
 @keyframes gr-stamp { from { opacity: 0; transform: scale(2.2); } to { opacity: 1; transform: none; } }
 .avs-grizzly .gr-pawring { transform-origin: center; animation: gr-spin 36s linear infinite; }
-.av--lite .avs-grizzly .gr-paw, .av--lite .avs-grizzly .gr-rim { filter: none; }
+.av--lite .avs-grizzly .gr-paw { filter: none; }
+
+/* Night lights: aurora, moon and fireflies give way to the dawn */
+.avs-grizzly .gr-aurora { opacity: 0.85; transition: opacity 3s; }
+.cue-chorus .avs-grizzly .gr-aurora { opacity: 0; }
+.avs-grizzly .gr-aurora__band { animation: gr-aurora 9s ease-in-out infinite alternate; }
+.avs-grizzly .gr-aurora__band--b { animation-duration: 12s; animation-direction: alternate-reverse; }
+@keyframes gr-aurora { from { transform: translateX(-60px) skewX(-4deg); } to { transform: translateX(60px) skewX(4deg); } }
+.avs-grizzly .gr-moon { transition: opacity 3s, transform 4s ease-in; }
+.cue-chorus .avs-grizzly .gr-moon { opacity: 0; transform: translateY(140px); }
+.avs-grizzly .gr-fireflies { transition: opacity 2s; }
+.cue-winter .avs-grizzly .gr-fireflies { opacity: 0; }
+.cue-hold .avs-grizzly .gr-fireflies { opacity: 1; }
+.cue-pullback .avs-grizzly .gr-fireflies { opacity: 0; }
+.avs-grizzly .gr-firefly { animation-name: gr-firefly; }
+@keyframes gr-firefly {
+    0% { transform: translate(0, 0); opacity: 0; }
+    20% { opacity: 1; } 40% { opacity: 0.3; } 60% { opacity: 1; }
+    100% { transform: translate(var(--dx, 0px), -360px); opacity: 0; }
+}

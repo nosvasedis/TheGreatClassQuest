@@ -1,4 +1,4 @@
-// /ui/tabs/guilds.js — Guild Hall: month banners, the Crown Race, lore overlay, guild sounds, anthem modal
+// /ui/tabs/guilds.js — Guild Hall: month banners, the Crown Race, lore overlay, guild sounds, anthem music video
 
 import { quietly } from '../../utils/runtimeMetrics.js';
 import { getCrownRoadKeys, getGuildLeaderboardData } from '../../features/guildScoring.js';
@@ -147,99 +147,11 @@ function playGuildSound(guildId) {
     } catch (_) { }
 }
 
-// ─── Anthem audio ─────────────────────────────────────────────────────────────
-const _anthemCache = {};
-let _currentAnthemId = null;
-let _fadeTimer = null;
-let _endFadeScheduled = false;
-let _endFadeCleanup = null;
-const FADE_BEFORE_END = 1.5; // seconds before track end to start auto-fade
-
-function _cancelFade() {
-    if (_fadeTimer !== null) { clearInterval(_fadeTimer); _fadeTimer = null; }
-}
-
-function _teardownEndFade() {
-    if (_endFadeCleanup) { _endFadeCleanup(); _endFadeCleanup = null; }
-    _endFadeScheduled = false;
-}
-
-function _setupEndFade(audio) {
-    _teardownEndFade();
-
-    function onTimeUpdate() {
-        if (_endFadeScheduled) return;
-        const dur = audio.duration;
-        if (!dur || dur === Infinity) return;
-        const remaining = dur - audio.currentTime;
-        if (remaining > 0 && remaining <= FADE_BEFORE_END) {
-            _endFadeScheduled = true;
-            fadeOutAndStopAnthem(remaining * 1000);
-        }
-    }
-
-    function onEnded() {
-        // Fires if the fade didn't fully pause before the browser raised 'ended'
-        _teardownEndFade();
-        _cancelFade();
-        _currentAnthemId = null;
-        try { audio.volume = 0.80; audio.currentTime = 0; } catch (_) { }
-    }
-
-    audio.addEventListener('timeupdate', onTimeUpdate);
-    audio.addEventListener('ended', onEnded);
-    _endFadeCleanup = () => {
-        audio.removeEventListener('timeupdate', onTimeUpdate);
-        audio.removeEventListener('ended', onEnded);
-    };
-}
-
-function playGuildAnthem(guildId) {
-    _cancelFade();
-    _teardownEndFade();
-    const guild = getGuildById(guildId);
-    if (!guild?.anthem) return;
-    try {
-        if (!_anthemCache[guildId]) {
-            _anthemCache[guildId] = new Audio(guild.anthem);
-        }
-        const audio = _anthemCache[guildId];
-        audio.loop = false; // play once; restart only on re-open
-        audio.volume = 0.80;
-        audio.currentTime = 0;
-        _currentAnthemId = guildId;
-        _setupEndFade(audio);
-        audio.play().catch(quietly('ui/tabs/guilds.js'));
-    } catch (_) { }
-}
-
-function fadeOutAndStopAnthem(duration = 1400) {
-    _cancelFade();
-    const id = _currentAnthemId;
-    _currentAnthemId = null; // stop karaoke updates immediately
-    if (!id || !_anthemCache[id]) return;
-    const audio = _anthemCache[id];
-    const steps = 28;
-    const tick = duration / steps;
-    const startV = audio.volume;
-    let step = 0;
-    _fadeTimer = setInterval(() => {
-        step++;
-        audio.volume = Math.max(0, startV * (1 - step / steps));
-        if (step >= steps) {
-            _cancelFade();
-            try { audio.pause(); audio.currentTime = 0; } catch (_) { }
-            audio.volume = 0.80; // restore for next play
-        }
-    }, tick);
-}
-
-// ─── Banner & anthem open / close choreography ───────────────────────────────
+// ─── Banner open / close choreography ───────────────────────────────
 // `<prefix>--opening` / `<prefix>--closing` on the overlay drive the keyframes in styles/guilds.css;
 // the overlay is hidden only once the closing animation has played out.
 const _overlayCloseTimers = new WeakMap();
 const LORE_CLOSE_MS = 720;
-const ANTHEM_CLOSE_MS = 520;
 
 function _playOverlayOpen(overlay, prefix) {
     clearTimeout(_overlayCloseTimers.get(overlay));
@@ -259,219 +171,25 @@ function _playOverlayClose(overlay, prefix, duration) {
     }, reduceMotion ? 180 : duration));
 }
 
-// ─── Karaoke sync ─────────────────────────────────────────────────────────────
-let _karaokeCleanup = null;
-const ANTHEM_LAST_LINE_SECONDS = 4.4; // how long the final line is sung (no next line to measure from)
-const KARAOKE_LEAD_SECONDS = 0.08;    // light a line a hair early so eyes reach it as the voice does
-
-function ensureAnthemOverlayRoot() {
-    const overlay = document.getElementById('guild-anthem-overlay');
-    if (!overlay || overlay.parentElement === document.body) return overlay;
-    document.body.appendChild(overlay);
-    return overlay;
-}
-
-function _setAnthemStatus(text) {
-    const el = document.getElementById('guild-anthem-now-playing-text');
-    if (el && el.textContent !== text) el.textContent = text;
-}
-
-function _setAnthemProgress(fraction) {
-    const fill = document.getElementById('guild-anthem-progress-fill');
-    if (fill) fill.style.transform = `scaleX(${Math.max(0, Math.min(1, fraction || 0))})`;
-}
-
-/** Glide the lyric panel (not the page) so the sung line sits a little above centre. */
-function _centerLyricLine(lyricsEl, line, smooth = true) {
-    if (!lyricsEl || !line || lyricsEl.scrollHeight <= lyricsEl.clientHeight + 1) return;
-    const boxRect = lyricsEl.getBoundingClientRect();
-    const lineRect = line.getBoundingClientRect();
-    const target = lyricsEl.scrollTop + (lineRect.top - boxRect.top) - (lyricsEl.clientHeight * 0.4 - lineRect.height / 2);
-    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    lyricsEl.scrollTo({ top: Math.max(0, target), behavior: smooth && !reduceMotion ? 'smooth' : 'auto' });
-}
-
-function startKaraokeSync(guildId) {
-    stopKaraokeSync();
-    const audio = _anthemCache[guildId];
-    const lyricsEl = document.getElementById('guild-anthem-lyrics');
-    if (!audio || !lyricsEl) return;
-
-    const lines = Array.from(lyricsEl.querySelectorAll('.guild-anthem-line[data-time]'));
-    if (!lines.length) return;
-    const times = lines.map(line => parseFloat(line.dataset.time) || 0);
-    const sections = Array.from(lyricsEl.children);
-
-    let lastActiveIdx = -2;
-    let rafId = 0;
-    let finished = false;
-
-    function paint(activeIdx, ct) {
-        lines.forEach((line, i) => {
-            const active = i === activeIdx;
-            if (active) {
-                // Start the gold sweep where the song actually is (re-opens / late frames)
-                line.style.setProperty('--line-offset', `${-Math.max(0, ct - times[i]).toFixed(2)}s`);
-            }
-            line.classList.toggle('karaoke-active', active);
-            line.classList.toggle('karaoke-past', i < activeIdx);
-            line.classList.toggle('karaoke-upcoming', i > activeIdx);
-            line.classList.toggle('karaoke-next', i === activeIdx + 1);
-        });
-        const activeLine = lines[activeIdx];
-        const singingSection = activeLine?.closest('.guild-anthem-verse, .guild-anthem-chorus') || null;
-        sections.forEach(section => section.classList.toggle('is-singing', section === singingSection));
-        if (activeIdx < 0) {
-            _setAnthemStatus('Get ready to sing…');
-            _centerLyricLine(lyricsEl, lines[0], false);
-        } else {
-            _setAnthemStatus(`Sing the ${singingSection?.dataset.section || 'song'}!`);
-            _centerLyricLine(lyricsEl, activeLine);
-        }
-    }
-
-    function update() {
-        if (!_currentAnthemId) {
-            // The anthem has faded out (or the alcove was closed): the last line stays lit as the curtain call
-            if (!finished) {
-                finished = true;
-                _setAnthemStatus('Bravo! 🎉');
-                _setAnthemProgress(1);
-            }
-            rafId = 0;
-            return;
-        }
-        const ct = audio.currentTime;
-        const lead = ct + KARAOKE_LEAD_SECONDS;
-        let activeIdx = -1;
-        for (let i = 0; i < times.length; i++) {
-            if (lead >= times[i]) activeIdx = i;
-        }
-        if (activeIdx !== lastActiveIdx) {
-            lastActiveIdx = activeIdx;
-            paint(activeIdx, ct);
-        }
-        if (audio.duration && Number.isFinite(audio.duration)) _setAnthemProgress(ct / audio.duration);
-        rafId = requestAnimationFrame(update);
-    }
-
-    // Frame-accurate while visible; timeupdate keeps it honest if frames are throttled
-    function onTimeUpdate() { if (!rafId && !finished) update(); }
-    audio.addEventListener('timeupdate', onTimeUpdate);
-    rafId = requestAnimationFrame(update);
-
-    _karaokeCleanup = () => {
-        audio.removeEventListener('timeupdate', onTimeUpdate);
-        if (rafId) cancelAnimationFrame(rafId);
-        rafId = 0;
-    };
-}
-
-function stopKaraokeSync() {
-    if (_karaokeCleanup) { _karaokeCleanup(); _karaokeCleanup = null; }
-    // reset all line states
-    document.querySelectorAll('.guild-anthem-line').forEach(l => {
-        l.classList.remove('karaoke-active', 'karaoke-past', 'karaoke-upcoming', 'karaoke-next');
-        l.style.removeProperty('--line-offset');
-    });
-    document.querySelectorAll('#guild-anthem-lyrics .is-singing').forEach(s => s.classList.remove('is-singing'));
-}
-
-// ─── Anthem modal ─────────────────────────────────────────────────────────────
-let _alcoveGuildId = null;
-
-function openAnthemModal(guildId) {
-    const overlay = ensureAnthemOverlayRoot();
-    if (!overlay || !fillGuildAnthemCard(guildId)) return;
-
-    _alcoveGuildId = guildId;
-    _playOverlayOpen(overlay, 'guild-anthem-overlay');
-    playGuildAnthem(guildId);
-    startKaraokeSync(guildId);
-}
-
-/**
- * Dress the anthem alcove for a guild: colours, crest, title and the lyric sheet.
- * Exported so the guidebook capture renders the real alcove. Returns false when the card is missing.
- */
-export function fillGuildAnthemCard(guildId) {
-    const card = document.getElementById('guild-anthem-card');
-    if (!card) return false;
-
-    const guild = getGuildById(guildId);
-    const primary = guild?.primary || '#7c3aed';
-    const secondary = guild?.secondary || '#a78bfa';
-    const glow = guild?.glow || primary;
-
-    card.style.setProperty('--anthem-primary', primary);
-    card.style.setProperty('--anthem-secondary', secondary);
-    card.style.setProperty('--anthem-glow', glow);
-    const emblemUrl = getGuildEmblemUrl(guildId);
-    card.style.setProperty('--anthem-emblem', emblemUrl ? `url("${emblemUrl}")` : 'none');
-
-    const titleEl = document.getElementById('guild-anthem-title');
-    if (titleEl) titleEl.textContent = `${guild?.name || guildId} Anthem`;
-
-    const lyricsEl = document.getElementById('guild-anthem-lyrics');
-    if (lyricsEl && guild?.anthemLyrics) {
-        // Each line knows how long it is sung (until the next line starts), so the
-        // gold ink can sweep across it in time with the singers.
-        const times = guild.anthemLyrics.flatMap(section => section.lines.map(line => Number(line.time) || 0));
-        let lineIdx = 0;
-        lyricsEl.innerHTML = guild.anthemLyrics.map(section => {
-            const sectionClass = section.type === 'chorus' ? 'guild-anthem-chorus' : 'guild-anthem-verse';
-            const label = section.type === 'chorus' ? '🎶 Chorus' : '🎵 Verse';
-            return `
-                <div class="${sectionClass}" data-section="${section.type === 'chorus' ? 'Chorus' : 'Verse'}">
-                    <span class="guild-anthem-section-label">${label}</span>
-                    ${section.lines.map(line => {
-                const i = lineIdx++;
-                const next = times[i + 1];
-                const dur = Math.min(6, Math.max(1.2, (next ?? times[i] + ANTHEM_LAST_LINE_SECONDS) - times[i]));
-                return `<p class="guild-anthem-line karaoke-upcoming" data-time="${times[i]}" style="--line-dur:${dur.toFixed(2)}s"><span class="guild-anthem-line__text"><span class="guild-anthem-line__ink">${_escapeHtml(line.text)}</span></span></p>`;
-            }).join('')}
-                </div>`;
-        }).join('');
-        lyricsEl.scrollTop = 0;
-    }
-    _setAnthemStatus('Now Playing…');
-    _setAnthemProgress(0);
-    return true;
-}
-
-function closeAnthemModal() {
-    stopKaraokeSync();
-    _teardownEndFade();
-    fadeOutAndStopAnthem();
-    _playOverlayClose(document.getElementById('guild-anthem-overlay'), 'guild-anthem-overlay', ANTHEM_CLOSE_MS);
-}
-
-/** The alcove's song fades out and the full-screen music video (lazy chunk) takes over from the start. */
-function openAnthemMusicVideo() {
-    const guildId = _alcoveGuildId;
-    if (!guildId) return;
-    closeAnthemModal();
-    const opener = document.querySelector(`[data-anthem-guild="${guildId}"]`);
+// ─── Anthem music video ──────────────────────────────────────────────────────
+// The music note on each banner opens the full-screen karaoke music video (lazy chunk), which grows
+// out of the note itself. The old anthem alcove was retired in its favour.
+let _anthemVideoOpening = false;
+function openAnthemMusicVideo(guildId, opener) {
+    if (_anthemVideoOpening) return;
+    _anthemVideoOpening = true;
+    opener?.classList.add('is-launching');
     import('../modals/anthemVideo.js')
         .then(m => m.openAnthemVideo(guildId, { opener }))
-        .catch(quietly('ui/tabs/guilds.js'));
-}
-
-function wireAnthemListeners() {
-    const overlay = ensureAnthemOverlayRoot();
-    if (!overlay || overlay._anthemWired) return;
-    overlay._anthemWired = true;
-
-    document.getElementById('guild-anthem-close')?.addEventListener('click', closeAnthemModal);
-    document.getElementById('guild-anthem-overlay-bg')?.addEventListener('click', closeAnthemModal);
-    document.getElementById('guild-anthem-video-btn')?.addEventListener('click', openAnthemMusicVideo);
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') closeAnthemModal();
-    });
+        .catch(quietly('ui/tabs/guilds.js'))
+        .finally(() => {
+            _anthemVideoOpening = false;
+            opener?.classList.remove('is-launching');
+        });
 }
 
 // ─── Lore overlay ────────────────────────────────────────────────────────────
-// Lives on <body> (like the anthem overlay) so the banner hangs above the app header and nav
+// Lives on <body> so the banner hangs above the app header and nav
 // instead of inside the tab's stacking context, where they clipped its rod and crest.
 function ensureLoreOverlayRoot() {
     const overlay = document.getElementById('guild-lore-overlay');
@@ -772,7 +490,7 @@ function _bannerShellHtml(guildId, i, seasonLive) {
                     <div class="gh-banner__crest" data-guild-id="${guildId}" role="button" tabindex="0" aria-label="Unfurl the ${_escapeHtml(name)} banner">
                         <span class="gh-banner__crown" aria-hidden="true">👑</span>
                         ${_emblemBadge(guildId, name, 'gh-banner__emblem')}
-                        <button type="button" class="gh-banner__anthem" data-anthem-guild="${guildId}" aria-label="Play the ${_escapeHtml(name)} anthem"><i class="fas fa-music" aria-hidden="true"></i></button>
+                        <button type="button" class="gh-banner__anthem" data-anthem-guild="${guildId}" aria-label="Watch the ${_escapeHtml(name)} anthem music video"><i class="fas fa-music" aria-hidden="true"></i></button>
                     </div>
                     <h3 class="gh-banner__name">${_escapeHtml(name)}</h3>
                     <div class="gh-vial" aria-hidden="true">
@@ -1401,7 +1119,7 @@ function _wireHall(hall) {
         const spot = t.closest('[data-top-heroes-guild]');
         if (spot) { e.stopPropagation(); openGuildHeroesModal(spot.dataset.topHeroesGuild); return; }
         const anthem = t.closest('[data-anthem-guild]');
-        if (anthem) { e.stopPropagation(); openAnthemModal(anthem.dataset.anthemGuild); return; }
+        if (anthem) { e.stopPropagation(); openAnthemMusicVideo(anthem.dataset.anthemGuild, anthem); return; }
         if (t.closest('#guild-stats-expand-toggle')) {
             const btn = t.closest('#guild-stats-expand-toggle');
             if (!btn.disabled && isGuildSeasonLive()) _toggleStats(hall);
@@ -1430,7 +1148,6 @@ export function renderGuildsTab({ reason = 'open' } = {}) {
 
     _ensurePowerExplainerOverlay();
     wireGuildLoreListeners();
-    wireAnthemListeners();
 
     const model = _hallModel();
     const sig = `${model.seasonLive ? 'live' : 'frozen'}|${model.roadKeys.join(',')}|${model.liveKey}`;

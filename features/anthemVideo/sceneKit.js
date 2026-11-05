@@ -60,3 +60,27 @@ export function risingParticles(rand, count, { className = 'avs-rise', yStart = 
         return `<g transform="translate(${f(x)} ${f(yStart)})"><circle class="${className}" r="${f(r, 2)}" fill="${color}" style="--dx:${f(dx)}px;animation-duration:${f(dur, 2)}s;animation-delay:-${f(delay, 2)}s"/></g>`;
     });
 }
+
+/**
+ * A soft cloud made of overlapping round puffs (one path, so it paints in one go).
+ * `puffs` are [dx, dy, r] relative to (x, y); the base is flattened at y + flat.
+ */
+export function cloudPath(x, y, puffs, flat = 0) {
+    const circles = puffs.map(([dx, dy, r]) => {
+        const cx = x + dx;
+        const cy = y + dy;
+        return `M${f(cx - r)} ${f(cy)} a${f(r)} ${f(r)} 0 1 0 ${f(r * 2)} 0 a${f(r)} ${f(r)} 0 1 0 ${f(-r * 2)} 0 Z`;
+    }).join(' ');
+    if (!flat) return circles;
+    const xs = puffs.map(([dx, , r]) => [x + dx - r, x + dx + r]).flat();
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    return `${circles} M${f(minX + 10)} ${f(y)} V${f(y + flat)} H${f(maxX - 10)} V${f(y)} Z`;
+}
+
+/** A tiered pine (three stacked skirts and a trunk). */
+export function pineTree(x, y, h, color) {
+    const w = h * 0.46;
+    const tier = (top, bottom, half) => `M${f(x)} ${f(top)} L${f(x + half)} ${f(bottom)} Q${f(x)} ${f(bottom - h * 0.05)} ${f(x - half)} ${f(bottom)} Z`;
+    return `<path d="${tier(y - h, y - h * 0.58, w * 0.5)} ${tier(y - h * 0.8, y - h * 0.3, w * 0.75)} ${tier(y - h * 0.56, y - h * 0.06, w)} M${f(x - h * 0.03)} ${f(y - h * 0.1)} h${f(h * 0.06)} v${f(h * 0.12)} h${f(-h * 0.06)} Z" fill="${color}"/>`;
+}

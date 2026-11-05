@@ -482,6 +482,8 @@
 }
 .gh-banner__anthem:hover { transform: scale(1.18); background: var(--g1); color: #fff; }
 .gh-banner__anthem:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+/* pressed: the note swells and glows while the music video's iris opens out of it */
+.gh-banner__anthem.is-launching { transform: scale(1.3); background: var(--g1); color: #fff; box-shadow: 0 0 0 4px rgba(253, 230, 138, 0.45), 0 0 18px var(--g1); }
 
 .gh-banner__name {
     margin: 0.55rem 0 0.75rem;

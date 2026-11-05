@@ -83,8 +83,8 @@
 .av-stage.is-finale .avs-phoenix .ph-path { transform: translate(800px, 118px) scale(0.55); transition-duration: 1.4s; }
 .avs-phoenix .ph-bob { animation: ph-bob 1s ease-in-out infinite; }
 @keyframes ph-bob { 50% { transform: translateY(-8px); } }
-.avs-phoenix .ph-wing--l { transform-origin: 100% 78%; animation: ph-flap-l 0.5s ease-in-out infinite alternate; }
-.avs-phoenix .ph-wing--r { transform-origin: 0% 78%; animation: ph-flap-r 0.5s ease-in-out infinite alternate; }
+.avs-phoenix .ph-wing { transform-box: view-box; transform-origin: 0 0; animation: ph-flap-l 0.5s ease-in-out infinite alternate; }
+.avs-phoenix .ph-wing--r { animation-name: ph-flap-r; }
 @keyframes ph-flap-l { from { transform: rotate(-18deg); } to { transform: rotate(14deg); } }
 @keyframes ph-flap-r { from { transform: rotate(18deg); } to { transform: rotate(-14deg); } }
 .avs-phoenix .ph-tail { transform-origin: 50% 0%; animation: ph-tail 1.2s ease-in-out infinite alternate; }
@@ -122,3 +122,18 @@
 .av-stage.is-finale .avs-phoenix .ph-ring { opacity: 1; transform: none; }
 .avs-phoenix .ph-ring__spin { transform-origin: center; animation: ph-spin 18s linear infinite; }
 .avs-phoenix .ph-feather { transform-origin: 50% 100%; animation: ph-flick 0.42s ease-in-out infinite alternate; animation-delay: calc(var(--i) * -0.05s); }
+
+/* Feathered plumes sway one after another; a soft aura breathes around the bird */
+.avs-phoenix .ph-plume { transform-origin: 50% 0%; animation: ph-plume 1.4s ease-in-out infinite alternate; animation-delay: calc(var(--i) * -0.3s); }
+@keyframes ph-plume { from { transform: rotate(-4deg); } to { transform: rotate(5deg); } }
+.avs-phoenix .ph-aura { transform-origin: center; opacity: 0.6; animation: ph-ember 1.2s ease-in-out infinite alternate; }
+.cue-golden .avs-phoenix .ph-aura { opacity: 1; }
+.avs-phoenix .ph-crest { transform-origin: 50% 100%; animation: ph-plume 0.9s ease-in-out infinite alternate; }
+.avs-phoenix .ph-nest-glow { opacity: 0.25; transform-origin: center; transition: opacity 1s; }
+.cue-ember .avs-phoenix .ph-nest-glow { opacity: 0.45; }
+.cue-begin .avs-phoenix .ph-nest-glow { opacity: 0.8; }
+.avs-phoenix .ph-rim { opacity: 0; transition: opacity 2.4s; }
+.cue-morning .avs-phoenix .ph-rim { opacity: 0.35; }
+.cue-golden .avs-phoenix .ph-rim { opacity: 0.8; }
+.avs-phoenix .ph-cloud > path:first-child { animation: ph-drift 18s ease-in-out infinite alternate; }
+@keyframes ph-drift { to { transform: translateX(40px); } }

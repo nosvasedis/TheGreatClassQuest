@@ -98,33 +98,5 @@ export const guildsTabHTML = `
                     </div>
                 </div>
 
-                <!-- Guild Anthem Modal (shown on note button click) -->
-                <div id="guild-anthem-overlay" class="guild-anthem-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="guild-anthem-title">
-                    <div class="guild-anthem-overlay-bg" id="guild-anthem-overlay-bg"></div>
-                    <div class="guild-anthem-card" id="guild-anthem-card">
-                        <button class="guild-anthem-close" id="guild-anthem-close" aria-label="Close"><i class="fas fa-xmark" aria-hidden="true"></i></button>
-                        <div class="guild-anthem-header" id="guild-anthem-header">
-                            <div class="guild-anthem-arch" aria-hidden="true">
-                                <span class="guild-anthem-torch guild-anthem-torch--l"><span class="guild-anthem-torch__flame"></span></span>
-                                <span class="guild-anthem-crest"></span>
-                                <span class="guild-anthem-torch guild-anthem-torch--r"><span class="guild-anthem-torch__flame"></span></span>
-                            </div>
-                            <div class="guild-anthem-note-icon" aria-hidden="true">🎵</div>
-                            <h3 class="guild-anthem-title font-title" id="guild-anthem-title"></h3>
-                            <p class="guild-anthem-subtitle">Sing along with your guild!</p>
-                        </div>
-                        <div class="guild-anthem-player" id="guild-anthem-player">
-                            <div class="guild-anthem-now-playing" id="guild-anthem-now-playing">
-                                <span class="guild-anthem-note-anim">♪</span>
-                                <span class="guild-anthem-eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-                                <span class="guild-anthem-now-playing-text" id="guild-anthem-now-playing-text">Now Playing…</span>
-                                <span class="guild-anthem-note-anim" style="animation-delay:0.4s">♫</span>
-                            </div>
-                            <div class="guild-anthem-progress" aria-hidden="true"><span class="guild-anthem-progress__fill" id="guild-anthem-progress-fill"></span></div>
-                            <button type="button" class="guild-anthem-video-btn" id="guild-anthem-video-btn"><i class="fas fa-clapperboard" aria-hidden="true"></i> Watch the music video</button>
-                        </div>
-                        <div class="guild-anthem-lyrics" id="guild-anthem-lyrics"></div>
-                    </div>
-                </div>
             </div>
 `;

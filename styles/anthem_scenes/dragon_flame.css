@@ -118,3 +118,15 @@
 @keyframes dr-spin { to { transform: rotate(360deg); } }
 .avs-dragon .dr-ring__flame { transform-origin: 50% 100%; animation: dr-flicker 0.38s ease-in-out infinite alternate; filter: drop-shadow(0 0 8px #ff7a1a); }
 .av--lite .avs-dragon .dr-ring__flame { filter: none; }
+
+/* Smoke from the crater and slow clouds */
+.avs-dragon .dr-smoke { opacity: 0; animation: dr-smoke 8s linear infinite; }
+@keyframes dr-smoke {
+    0% { opacity: 0; transform: translate(0, 0) scale(0.5); }
+    15% { opacity: 0.85; }
+    100% { opacity: 0; transform: translate(-120px, -380px) scale(2.6); }
+}
+.avs-dragon .dr-cloud { animation: dr-drift 26s ease-in-out infinite alternate; }
+.avs-dragon .dr-cloud--b { animation-duration: 34s; animation-direction: alternate-reverse; }
+@keyframes dr-drift { to { transform: translateX(70px); } }
+.av--lite .avs-dragon .dr-smoke:nth-child(n+4) { display: none; }

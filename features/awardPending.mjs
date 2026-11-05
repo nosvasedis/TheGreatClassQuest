@@ -108,8 +108,19 @@ export function runAwardWriteInOrder(studentId, task) {
     const run = previous.catch(() => {}).then(task);
     const tail = run.catch(() => {});
     queues.set(key, tail);
-    tail.then(() => { if (queues.get(key) === tail) queues.delete(key); });
+    noteSaveInFlight(1);
+    tail.then(() => {
+        noteSaveInFlight(-1);
+        if (queues.get(key) === tail) queues.delete(key);
+    });
     return run;
+}
+
+// The stale-build reload in bootstrap.js reads this count and waits for it to reach 0,
+// so a reload onto a new deploy never drops a star save that is still running.
+function noteSaveInFlight(delta) {
+    if (typeof globalThis === 'undefined') return;
+    globalThis.__GCQ_SAVES_IN_FLIGHT__ = Math.max(0, (Number(globalThis.__GCQ_SAVES_IN_FLIGHT__) || 0) + delta);
 }
 
 const RETRYABLE_CODES = new Set(['aborted', 'unavailable', 'deadline-exceeded', 'resource-exhausted', 'failed-precondition', 'internal']);

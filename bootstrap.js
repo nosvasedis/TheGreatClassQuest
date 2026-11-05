@@ -59,7 +59,31 @@ function showStaleBuildReload() {
     });
 }
 
+// Star and attendance saves still running (features/awardPending.mjs keeps the count).
+function savesInFlight() {
+    return Number(window.__GCQ_SAVES_IN_FLIGHT__) || 0;
+}
+
+let staleReloadWaiting = false;
 function recoverFromStaleBuild() {
+    // A reload now would drop the saves still on their way to the database: wait for them
+    // (up to half a minute), then recover.
+    if (savesInFlight() > 0) {
+        if (staleReloadWaiting) return;
+        staleReloadWaiting = true;
+        const startedAt = Date.now();
+        const waitForSaves = () => {
+            if (savesInFlight() > 0 && Date.now() - startedAt < 30000) {
+                setTimeout(waitForSaves, 400);
+                return;
+            }
+            staleReloadWaiting = false;
+            if (savesInFlight() > 0) { showStaleBuildReload(); return; }
+            recoverFromStaleBuild();
+        };
+        setTimeout(waitForSaves, 400);
+        return;
+    }
     let alreadyTried = false;
     try {
         alreadyTried = sessionStorage.getItem(STALE_RELOAD_KEY) === window.__GCQ_BUILD_ID__;

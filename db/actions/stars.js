@@ -110,13 +110,6 @@ async function writeStudentStarsForToday(
             ),
         );
     }
-    maintenanceTasks.push(
-        import("../maintenance.js")
-            .then(({ cleanupPreviousDayStarsOnce }) =>
-                cleanupPreviousDayStarsOnce(state.get("currentUserId"), today),
-            )
-            .catch((error) => console.warn("Daily scratch cleanup deferred:", error)),
-    );
     await Promise.all(maintenanceTasks);
 
     let finalStarValue = starValue;
@@ -506,6 +499,16 @@ async function writeStudentStarsForToday(
                     .catch((e) => console.warn("Hero bonus moment failed:", e));
             }, Math.max(200, 1150 - sinceTap));
         }
+
+        // Clearing yesterday's scratch rows waits until today's stars are safely saved.
+        // It lives in its own small chunk: on a tab left open over a deploy that chunk can be
+        // gone, and the stale-build recovery may reload the page, which must never take an
+        // award still in flight with it (Bunnies, 03-11-2026: archives saved, awards lost).
+        import("../maintenance.js")
+            .then(({ cleanupPreviousDayStarsOnce }) =>
+                cleanupPreviousDayStarsOnce(state.get("currentUserId"), today),
+            )
+            .catch((error) => console.warn("Daily scratch cleanup deferred:", error));
 
         // --- Side Effects (After Transaction) ---
         if (studentClassId && difference > 0) {

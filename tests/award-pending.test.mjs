@@ -143,3 +143,25 @@ test('live listeners patch the award clouds instead of wiping them', () => {
     assert.match(ui, /saveAwardWithOptimisticCloud\(studentId, starValue, reason\)/);
     assert.match(ui, /saveAwardWithOptimisticCloud\(studentId, 0, null\)/);
 });
+
+test('saves in flight are counted so a stale-build reload can wait for them', async () => {
+    globalThis.__GCQ_SAVES_IN_FLIGHT__ = 0;
+    let release;
+    const run = runAwardWriteInOrder('inflight-1', () => new Promise((resolve) => { release = resolve; }));
+    assert.equal(globalThis.__GCQ_SAVES_IN_FLIGHT__, 1);
+    const failing = runAwardWriteInOrder('inflight-2', () => Promise.reject(new Error('nope')));
+    assert.equal(globalThis.__GCQ_SAVES_IN_FLIGHT__, 2);
+    await failing.catch(() => {});
+    await new Promise((r) => setTimeout(r, 0));
+    assert.equal(globalThis.__GCQ_SAVES_IN_FLIGHT__, 1);
+    release({ stars: 1 });
+    await run;
+    await new Promise((r) => setTimeout(r, 0));
+    assert.equal(globalThis.__GCQ_SAVES_IN_FLIGHT__, 0);
+});
+
+test('the daily scratch cleanup runs only after the award transaction, never before it', () => {
+    const src = fs.readFileSync(new URL('../db/actions/stars.js', import.meta.url), 'utf8');
+    const body = src.slice(src.indexOf('async function writeStudentStarsForToday'));
+    assert.ok(body.indexOf('cleanupPreviousDayStarsOnce') > body.indexOf('await withWriteRetries(() => runTransaction'));
+});

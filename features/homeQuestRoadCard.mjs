@@ -7,6 +7,16 @@ import { escapeHtml as esc } from '../utils/html.mjs';
 import { QUEST_MAP_ZONES, getQuestMapZoneForProgressPercent } from './questMapZones.mjs';
 import { describeQuestStanding, BEYOND_MARKS } from './teamQuestStanding.mjs';
 
+// The Team Quest map's own realm badges and Portal (the same art as the map and the realm banner).
+const atlas = (file) => new URL(`../assets/team-quest-map/living-atlas/${file}`, import.meta.url).href;
+const REALM_BADGES = {
+    bronze: atlas('badge-bronze.webp'),
+    silver: atlas('badge-silver.webp'),
+    gold: atlas('badge-gold.webp'),
+    crystal: atlas('badge-crystal.webp')
+};
+const PORTAL_ART = { open: atlas('portal-vortex.webp'), veiled: atlas('portal-vortex-veiled.webp') };
+
 const ROAD_START = 60;   // viewBox x where 0% sits
 const ROAD_END = 940;    // viewBox x where the goal flag sits
 
@@ -67,20 +77,13 @@ function wayPath(toX = WAY_END) {
     return `M ${pts.map(([x, y]) => `${x} ${y.toFixed(2)}`).join(' L ')}`;
 }
 
-const PORTAL_SVG = `<svg viewBox="0 0 48 56" aria-hidden="true" focusable="false">
-    <path class="qroad__portal-glow" d="M24 4 C38 4 44 16 44 28 L44 54 L4 54 L4 28 C4 16 10 4 24 4 Z"/>
-    <path class="qroad__portal-stone" d="M24 2 C40 2 47 15 47 28 L47 55 L38 55 L38 28 C38 19 33 11 24 11 C15 11 10 19 10 28 L10 55 L1 55 L1 28 C1 15 8 2 24 2 Z"/>
-    <path class="qroad__portal-door" d="M24 11 C33 11 38 19 38 28 L38 55 L10 55 L10 28 C10 19 15 11 24 11 Z"/>
-    <path class="qroad__portal-swirl" d="M24 22 C30 22 32 28 28 31 C25 33 21 31 22 28 C23 26 26 26 26 28"/>
-    <path class="qroad__portal-gem" d="M24 0 L28 5 L24 10 L20 5 Z"/>
-</svg>`;
-
 function realmChip(st, zone) {
     const chip = (icon, small, label) => `<span class="qroad__realm qroad__realm--${esc(st.place)}"><small>${small}</small><span class="qroad__realm-icon" aria-hidden="true">${icon}</span>${esc(label)}</span>`;
-    if (st.place === 'road') return chip(zone.icon, 'Now in', zone.label);
+    const art = (src) => `<img src="${src}" alt="" draggable="false" decoding="async">`;
+    if (st.place === 'road') return chip(art(REALM_BADGES[zone.id]), 'Now in', zone.label);
     if (st.place === 'sealed') return chip('<i class="fas fa-lock"></i>', 'Waiting', 'At the sealed Portal');
-    if (st.place === 'gate') return chip('<i class="fas fa-door-open"></i>', 'Ready', 'At the open Portal');
-    if (st.place === 'inside') return chip('<i class="fas fa-hurricane"></i>', 'Now', 'Inside the Portal');
+    if (st.place === 'gate') return chip(art(PORTAL_ART.open), 'Ready', 'At the open Portal');
+    if (st.place === 'inside') return chip(art(PORTAL_ART.open), 'Now', 'Inside the Portal');
     if (st.place === 'palace') return chip('<i class="fas fa-sun"></i>', 'Home at', 'The Celestial Palace');
     return chip(`<i class="fas ${esc(st.mark?.icon || 'fa-star')}"></i>`, 'Crystal Sky', st.mark ? st.mark.label : 'The Starward Way');
 }
@@ -88,7 +91,9 @@ function realmChip(st, zone) {
 function nextLineHtml(st, road) {
     const n = st.next;
     if (st.place === 'road') {
-        const target = road.next ? `${road.next.icon} ${esc(road.next.label)}` : '<i class="fas fa-dungeon"></i> the Crystal Portal';
+        const target = road.next
+            ? `<img class="qroad__next-badge" src="${REALM_BADGES[road.next.id]}" alt="" draggable="false" decoding="async">${esc(road.next.label)}`
+            : `<img class="qroad__next-badge" src="${PORTAL_ART.veiled}" alt="" draggable="false" decoding="async">the Crystal Portal`;
         return `<span class="qroad__next"><b>${formatStars(road.toGo)} ★</b> to ${target}</span>`;
     }
     if (st.place === 'sealed') return `<span class="qroad__next qroad__next--sealed"><i class="fas fa-lock"></i>Goal reached! ${esc(n?.label || 'The Portal is sealed')}</span>`;
@@ -103,7 +108,7 @@ function landSceneHtml(st, road, logo) {
     const waypoints = QUEST_MAP_ZONES.map((z) => {
         const pt = questRoadPoint(z.minPercent);
         const reached = road.percent >= z.minPercent;
-        return `<span class="qroad__stop${reached ? ' is-reached' : ''}" data-zone="${esc(z.id)}" style="left:${pt.x / 10}%;top:${pt.y}%;--qs:${z.minPercent / 100}" title="${esc(z.label)} (from ${z.minPercent}%)"><span aria-hidden="true">${z.icon}</span></span>`;
+        return `<span class="qroad__stop${reached ? ' is-reached' : ''}" data-zone="${esc(z.id)}" style="left:${pt.x / 10}%;top:${pt.y}%;--qs:${z.minPercent / 100}" title="${esc(z.label)} (from ${z.minPercent}%)"><img src="${REALM_BADGES[z.id]}" alt="" draggable="false" decoding="async" loading="lazy"></span>`;
     }).join('');
     const gate = questRoadPoint(100);
     const portalState = st.place === 'sealed' ? 'sealed' : st.place === 'gate' ? 'open' : 'ahead';
@@ -120,7 +125,7 @@ function landSceneHtml(st, road, logo) {
                     ${road.percent > 0 ? `<path class="qroad__trail" d="${roadPath(here.x)}" vector-effect="non-scaling-stroke"/>` : ''}
                 </svg>
                 ${waypoints}
-                <span class="qroad__portal qroad__portal--${portalState}" style="left:${gate.x / 10}%;top:${gate.y}%" title="${portalTitle}" aria-hidden="true">${PORTAL_SVG}${portalState === 'sealed' ? '<span class="qroad__portal-lock"><i class="fas fa-lock"></i></span>' : ''}</span>
+                <span class="qroad__portal qroad__portal--${portalState}" style="left:${gate.x / 10}%;top:${gate.y}%" title="${portalTitle}" aria-hidden="true"><img class="qroad__vortex" src="${portalState === 'open' ? PORTAL_ART.open : PORTAL_ART.veiled}" alt="" draggable="false" decoding="async" loading="lazy">${portalState === 'sealed' ? '<span class="qroad__portal-lock"><i class="fas fa-lock"></i></span>' : ''}</span>
                 <span class="qroad__token" style="left:${here.x / 10}%;top:${here.y}%" aria-hidden="true"><span class="qroad__token-pin">${esc(logo || '📚')}</span></span>
             </div>`;
 }
@@ -151,7 +156,7 @@ function skySceneHtml(st, logo) {
                 </svg>
                 ${stones.join('')}
                 ${marks}
-                <span class="qroad__portal qroad__portal--below" style="left:${foot.x / 10 - 4}%;top:${foot.y + 6}%" title="The Crystal Portal, crossed this month" aria-hidden="true">${PORTAL_SVG}</span>
+                <span class="qroad__portal qroad__portal--below" style="left:${foot.x / 10 - 4}%;top:${foot.y + 6}%" title="The Crystal Portal, crossed this month" aria-hidden="true"><img class="qroad__vortex" src="${PORTAL_ART.open}" alt="" draggable="false" decoding="async" loading="lazy"></span>
                 <span class="qroad__token" style="left:${here.x / 10}%;top:${here.y}%" aria-hidden="true"><span class="qroad__token-pin">${esc(logo || '📚')}</span></span>
             </div>`;
 }

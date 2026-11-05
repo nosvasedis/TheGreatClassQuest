@@ -214,56 +214,39 @@
     filter: drop-shadow(0 0 3px rgba(251, 191, 36, 0.8));
 }
 
-/* Realm stops along the road */
+/* Realm stops along the road: the map's own realm badges */
 .qroad__stop {
     position: absolute;
-    translate: -50% -50%;
-    width: 1.75rem;
-    height: 1.75rem;
-    display: grid;
-    place-items: center;
-    border-radius: 50%;
-    font-size: 0.9rem;
-    line-height: 1;
-    background: #fff;
-    border: 2px solid #e2e8f0;
-    box-shadow: 0 3px 8px -2px rgba(15, 23, 42, 0.3);
-    filter: grayscale(0.85);
-    opacity: 0.8;
+    translate: -50% -58%;
+    width: 2.5rem;
+    height: 2.5rem;
     z-index: 2;
+    filter: grayscale(0.35) drop-shadow(0 3px 4px rgba(15, 23, 42, 0.25));
+    opacity: 0.82;
+    transition: filter 0.3s ease, transform 0.3s ease;
 }
-.qroad__stop.is-reached { filter: none; opacity: 1; }
-.qroad__stop.is-reached[data-zone="bronze"]  { border-color: #d6a468; }
-.qroad__stop.is-reached[data-zone="silver"]  { border-color: #94a3b8; }
-.qroad__stop.is-reached[data-zone="gold"]    { border-color: #f59e0b; box-shadow: 0 3px 10px -2px rgba(245, 158, 11, 0.6); }
-.qroad__stop.is-reached[data-zone="crystal"] { border-color: #a855f7; box-shadow: 0 3px 10px -2px rgba(168, 85, 247, 0.6); }
+.qroad__stop img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.qroad__stop.is-reached { opacity: 1; filter: drop-shadow(0 4px 6px rgba(15, 23, 42, 0.3)); }
+.qroad__stop.is-reached[data-zone="gold"] { filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.8)); }
+.qroad__stop.is-reached[data-zone="crystal"] { filter: drop-shadow(0 0 7px rgba(192, 132, 252, 0.85)); }
+.qroad__stop:hover { transform: scale(1.18); }
 
 /* The Crystal Portal at the end of the road (this month's goal) */
 .qroad__portal {
     position: absolute;
-    translate: -50% -88%;
-    width: 2.3rem;
-    height: 2.7rem;
+    translate: -50% -62%;
+    width: 2.9rem;
+    height: 2.9rem;
     z-index: 2;
-    filter: drop-shadow(0 3px 4px rgba(76, 29, 149, 0.35));
 }
-.qroad__portal svg { width: 100%; height: 100%; overflow: visible; }
-.qroad__portal-stone { fill: #c4b5fd; stroke: #7c3aed; stroke-width: 1.4; }
-.qroad__portal-door { fill: #4c1d95; }
-.qroad__portal-swirl { fill: none; stroke: #c4b5fd; stroke-width: 2; stroke-linecap: round; opacity: 0.55; }
-.qroad__portal-gem { fill: #e879f9; stroke: #fff; stroke-width: 1; }
-.qroad__portal-glow { fill: #e9d5ff; opacity: 0; }
-.qroad__portal--ahead { opacity: 0.92; }
-.qroad__portal--open .qroad__portal-door { fill: #a855f7; }
-.qroad__portal--open .qroad__portal-swirl { stroke: #fff; opacity: 1; transform-box: fill-box; transform-origin: 50% 50%; animation: qroad-swirl 3s linear infinite; }
-.qroad__portal--open .qroad__portal-glow { opacity: 0.85; filter: blur(4px); animation: qroad-glow 2.4s ease-in-out infinite; }
-.qroad__portal--open { filter: drop-shadow(0 0 8px rgba(192, 132, 252, 0.95)); }
-.qroad__portal--sealed .qroad__portal-stone { fill: #ddd6fe; }
-.qroad__portal--sealed .qroad__portal-door { fill: #312e81; }
+.qroad__vortex { width: 100%; height: 100%; object-fit: contain; display: block; }
+.qroad__portal--ahead .qroad__vortex { opacity: 0.75; filter: saturate(0.7); }
+.qroad__portal--sealed .qroad__vortex { filter: saturate(0.5) brightness(0.9); }
+.qroad__portal--open .qroad__vortex { filter: drop-shadow(0 0 8px rgba(192, 132, 252, 0.95)); animation: qroad-swirl 9s linear infinite; }
 .qroad__portal-lock {
     position: absolute;
     left: 50%;
-    top: 58%;
+    top: 50%;
     translate: -50% -50%;
     display: grid;
     place-items: center;
@@ -359,7 +342,6 @@
     50%      { transform: translateY(-3px); }
 }
 @keyframes qroad-swirl { to { transform: rotate(360deg); } }
-@keyframes qroad-glow { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
 @keyframes qroad-twinkle { 0%, 100% { transform: scale(0.7); opacity: 0.35; } 50% { transform: scale(1.15); opacity: 1; } }
 @keyframes qroad-drift {
     from { transform: translateX(0); }
@@ -382,6 +364,8 @@
 
 /* --- Realm badge, per place ------------------------------------------------ */
 .qroad__realm-icon { display: inline-grid; place-items: center; }
+.qroad__realm-icon img { width: 1.35rem; height: 1.35rem; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.25)); }
+.qroad__next-badge { display: inline-block; width: 1.25rem; height: 1.25rem; margin: 0 0.2rem 0 0.1rem; vertical-align: -0.32rem; object-fit: contain; }
 .qroad__realm--sealed, .qroad__realm--gate, .qroad__realm--inside {
     color: #5b21b6;
     background: linear-gradient(135deg, #f5f3ff, #ede9fe);
@@ -486,29 +470,33 @@
 }
 .qroad__stone.is-reached { background: #fde68a; box-shadow: 0 0 6px #fde68a; }
 .qroad__mark {
+    --mk-a: #e0e7ff; --mk-b: #6366f1; --mk-ink: #fff;
     position: absolute;
     translate: -50% -50%;
     display: grid;
     place-items: center;
-    width: 1.7rem;
-    height: 1.7rem;
+    width: 1.75rem;
+    height: 1.75rem;
     border-radius: 50%;
-    font-size: 0.7rem;
-    color: #c4b5fd;
-    background: #2e1065;
-    border: 2px solid rgba(196, 181, 253, 0.6);
+    font-size: 0.72rem;
+    color: var(--mk-ink);
+    background: radial-gradient(circle at 35% 30%, var(--mk-a), var(--mk-b) 78%);
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--mk-b) 55%, transparent), 0 4px 8px rgba(15, 10, 40, 0.45), inset 0 -3px 5px rgba(0, 0, 0, 0.2);
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+    filter: saturate(0.8) brightness(0.88);
+    opacity: 0.9;
     z-index: 2;
 }
-.qroad__mark.is-reached {
-    color: #78350f;
-    background: radial-gradient(circle at 35% 30%, #fffbeb, #fbbf24);
-    border-color: #fff;
-    box-shadow: 0 0 12px rgba(253, 230, 138, 0.9);
-}
-.qroad__mark--crown, .qroad__mark--palace { width: 2.1rem; height: 2.1rem; font-size: 0.85rem; }
-.qroad__portal--below { translate: -50% -100%; width: 2rem; height: 2.4rem; z-index: 1; filter: drop-shadow(0 0 10px rgba(240, 171, 252, 0.9)); }
-.qroad__portal--below .qroad__portal-door { fill: #f0abfc; }
-.qroad__portal--below .qroad__portal-swirl { stroke: #fff; opacity: 1; }
+.qroad__mark.is-reached { filter: none; opacity: 1; box-shadow: 0 0 0 2px color-mix(in srgb, var(--mk-b) 55%, transparent), 0 0 14px color-mix(in srgb, var(--mk-a) 80%, transparent), inset 0 -3px 5px rgba(0, 0, 0, 0.18); }
+.qroad__mark--moonstep { --mk-a: #e0f2fe; --mk-b: #6366f1; }
+.qroad__mark--comet    { --mk-a: #fed7aa; --mk-b: #ea580c; }
+.qroad__mark--crown    { --mk-a: #fef08a; --mk-b: #d97706; --mk-ink: #fff7d6; }
+.qroad__mark--aurora   { --mk-a: #a7f3d0; --mk-b: #0d9488; background: conic-gradient(from 200deg, #f472b6, #a78bfa, #38bdf8, #34d399, #facc15, #f472b6); }
+.qroad__mark--palace   { --mk-a: #fff7d6; --mk-b: #f59e0b; --mk-ink: #fff; }
+.qroad__mark--crown, .qroad__mark--palace { width: 2.15rem; height: 2.15rem; font-size: 0.88rem; }
+.qroad__portal--below { translate: -50% -80%; width: 2.6rem; height: 2.6rem; z-index: 1; }
+.qroad__portal--below .qroad__vortex { filter: drop-shadow(0 0 10px rgba(240, 171, 252, 0.9)); animation: qroad-swirl 9s linear infinite; }
 .qroad--sky .qroad__token-pin { background: linear-gradient(135deg, #ffffff, #fae8ff); box-shadow: 0 0 16px rgba(240, 171, 252, 0.8); }
 .qroad--sky .qroad__token::after { background: rgba(253, 230, 138, 0.45); }
 .home-fade .qroad__mark { animation: qroad-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; animation-delay: calc(0.3s + var(--qs, 0) * 1s); }

@@ -819,7 +819,11 @@ export function handleStarManagerStudentSelect() {
     if (studentId) {
         logFormElements.forEach(el => el.disabled = false);
         overrideFormElements.forEach(el => el.disabled = false);
-        document.getElementById('star-manager-date').value = utils.getLocalIsoDateString();
+        // Keep the date the teacher already picked: back-filling a past lesson for a whole
+        // class means switching student after student, and a silent jump back to today
+        // filed those stars under the wrong day. Only an empty date starts at today.
+        const dateInput = document.getElementById('star-manager-date');
+        if (!dateInput.value) dateInput.value = utils.getLocalIsoDateString();
 
         const scoreData = state.get('allStudentScores').find(s => s.id === studentId) || {};
         const todayData = state.get('todaysStars')[studentId] || {};

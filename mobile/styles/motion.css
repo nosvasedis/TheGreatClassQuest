@@ -6,7 +6,7 @@ body.gcq-mobile .m-class-pill,
 body.gcq-mobile .m-dock-btn,
 body.gcq-mobile .m-more-item,
 body.gcq-mobile .m-class-option,
-body.gcq-mobile .m-home-action,
+body.gcq-mobile .m-hact,
 body.gcq-mobile .m-sheet__close {
     transition:
         transform 0.22s var(--m-spring),
@@ -24,7 +24,7 @@ body.gcq-mobile .m-class-pill:active,
 body.gcq-mobile .m-dock-btn:active,
 body.gcq-mobile .m-more-item:active,
 body.gcq-mobile .m-class-option:active,
-body.gcq-mobile .m-home-action:active,
+body.gcq-mobile .m-hact:active,
 body.gcq-mobile .m-sheet__close:active {
     transform: scale(var(--m-press-scale));
     filter: brightness(0.97);
@@ -278,14 +278,12 @@ body.gcq-mobile #m-secretary-dock {
     body.gcq-mobile .m-dock-btn,
     body.gcq-mobile .m-more-item,
     body.gcq-mobile .m-class-option,
-    body.gcq-mobile .m-home-action,
+    body.gcq-mobile .m-hact,
     body.gcq-mobile .m-sheet__close,
     body.gcq-mobile .m-sheet__panel,
     body.gcq-mobile .m-sheet__backdrop,
-    body.gcq-mobile .m-home-quest__fill,
-    body.gcq-mobile .m-home-chronicle__chev,
-    body.gcq-mobile .m-home-schedule-row,
-    body.gcq-mobile .m-home-chronicle {
+    body.gcq-mobile .m-tl__card,
+    body.gcq-mobile .m-hpage {
         transition-duration: 1ms !important;
         animation: none !important;
     }
@@ -297,7 +295,7 @@ body.gcq-mobile #m-secretary-dock {
     body.gcq-mobile .m-dock-btn:active,
     body.gcq-mobile .m-more-item:active,
     body.gcq-mobile .m-class-option:active,
-    body.gcq-mobile .m-home-action:active {
+    body.gcq-mobile .m-hact:active {
         transform: none !important;
         filter: none !important;
     }
@@ -308,7 +306,7 @@ body.gcq-mobile #m-secretary-dock {
     }
 
     .m-ripple,
-    .m-home-quest__shine,
+    .m-tl__dot,
     .m-class-pill--follow::after,
     body.gcq-mobile .app-tab.active,
     body.gcq-mobile [data-secretary-section]:not(.hidden),
@@ -323,8 +321,7 @@ body.gcq-mobile #m-secretary-dock {
     .m-dock-btn--hop .m-dock-coin,
     .m-dock-btn--hop .m-dock-coin::after,
     .m-dock-ind,
-    .m-home-pop,
-    .m-home-stat__icon {
+    .m-home-pop {
         animation: none !important;
         animation-delay: 0ms !important;
     }
@@ -339,7 +336,8 @@ body.gcq-mobile #m-secretary-dock {
    ========================================================================== */
 body.gcq-mobile.gcq-lite :is(
     .wx-cloud, .m-header__bead, .m-class-pill__eyebrow,
-    .day-ring__halo, .greeting-emblem__face, .m-home-quest__shine, .m-home-stat__icon,
+    .day-ring__halo, .greeting-emblem__face, .m-tl__dot, .m-tl__badge--now i,
+    .home-party__hero, .home-party__crest--compass i, .qroad__cloud, .qroad__flag, .qroad__token-pin,
     .aw-roll__ring, .student-cloud-card, .aw-boon__heart,
     .lgc-race__flag, .tq-mobile-race__glow, .tq-mobile-race-card__marker,
     .mm-sign, .mm-ware__emoji, .mm-till__face,

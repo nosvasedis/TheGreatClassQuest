@@ -63,7 +63,7 @@ function wirePressFeedback() {
         '.m-dock-btn',
         '.m-more-item',
         '.m-class-option',
-        '.m-home-action',
+        '.m-hact',
         '.m-sheet__close'
     ].join(',');
 

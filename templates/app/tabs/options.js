@@ -74,73 +74,8 @@ export const optionsTabHTML = `
                                 </header>
 
                                 <div class="ts-tools">
-                                    <article class="ts-card ts-tools__wide" data-ts-card="stars">
-                                        <header class="ts-card__head">
-                                            <span class="ts-card__icon" aria-hidden="true"><i class="fas fa-star"></i></span>
-                                            <div>
-                                                <h3 class="font-title ts-card__title">Student Star Manager</h3>
-                                                <p class="ts-card__hint">Add historical awards or manually override current student scores.</p>
-                                            </div>
-                                        </header>
-                                        <div id="star-manager-form" class="ts-card__body">
-                                            <label class="ts-field">
-                                                <span class="ts-label">Student</span>
-                                                <select id="star-manager-student-select" class="ts-input">
-                                                    <option value="">Loading students...</option>
-                                                </select>
-                                            </label>
-                                            <div class="ts-split">
-                                                <div class="ts-slip" data-ts-card="award">
-                                                    <h4 class="ts-slip__title"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i> Add Historical Award</h4>
-                                                    <p class="ts-slip__hint">Writes a dated entry in the log, as if it were awarded that day.</p>
-                                                    <div class="ts-row ts-row--2">
-                                                        <label class="ts-field" for="star-manager-date">
-                                                            <span class="ts-label">Award date</span>
-                                                            <input type="date" id="star-manager-date" class="ts-input" disabled>
-                                                        </label>
-                                                        <label class="ts-field" for="star-manager-stars-to-add">
-                                                            <span class="ts-label">Stars to add</span>
-                                                            <input type="number" id="star-manager-stars-to-add" class="ts-input" min="0.5" step="0.5" max="10" value="1" disabled>
-                                                        </label>
-                                                    </div>
-                                                    <label class="ts-field" for="star-manager-reason">
-                                                        <span class="ts-label">Reason</span>
-                                                        <select id="star-manager-reason" class="ts-input" disabled>
-                                                            <option value="teamwork">Teamwork</option>
-                                                            <option value="creativity">Creativity</option>
-                                                            <option value="respect">Respect</option>
-                                                            <option value="focus">Focus/Effort</option>
-                                                            <option value="welcome_back">Welcome Back Bonus</option>
-                                                            <option value="correction">Manual Correction</option>
-                                                        </select>
-                                                    </label>
-                                                    <button id="star-manager-add-btn" class="ts-btn bubbly-button" disabled>
-                                                        <i class="fas fa-plus-circle"></i> Add Stars to Log
-                                                    </button>
-                                                </div>
-                                                <div class="ts-slip" data-ts-card="override">
-                                                    <h4 class="ts-slip__title"><i class="fas fa-sliders" aria-hidden="true"></i> Direct Score Override</h4>
-                                                    <p class="ts-slip__hint">Manually set the star counters. This does NOT create a log entry.</p>
-                                                    <div id="star-override-form" class="ts-row ts-row--3">
-                                                        <label class="ts-field" for="override-today-stars">
-                                                            <span class="ts-label">Today</span>
-                                                            <input type="number" id="override-today-stars" class="ts-input ts-input--num" min="0" value="0" disabled>
-                                                        </label>
-                                                        <label class="ts-field" for="override-monthly-stars">
-                                                            <span class="ts-label">Monthly</span>
-                                                            <input type="number" id="override-monthly-stars" class="ts-input ts-input--num" min="0" value="0" disabled>
-                                                        </label>
-                                                        <label class="ts-field" for="override-total-stars">
-                                                            <span class="ts-label">Total</span>
-                                                            <input type="number" id="override-total-stars" class="ts-input ts-input--num" min="0" value="0" disabled>
-                                                        </label>
-                                                    </div>
-                                                    <button id="star-manager-override-btn" class="ts-btn bubbly-button" disabled>
-                                                        <i class="fas fa-wrench"></i> Set Student Scores
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
+                                    <article class="ts-tools__wide sm" id="star-manager-root" data-ts-card="stars" aria-label="Student Star Manager">
+                                        <p class="sm-loading"><i class="fas fa-star fa-spin" aria-hidden="true"></i> Opening the star chart…</p>
                                     </article>
 
                                     <article class="ts-card" data-ts-card="gold">

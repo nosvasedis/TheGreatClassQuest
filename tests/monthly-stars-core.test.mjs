@@ -70,6 +70,7 @@ test('Star Manager scenario: stars added after the rollover are counted by Team 
 test('every write that adds this month\'s stars goes through the monthly rollover', () => {
     const writers = [
         'db/actions/stars.js',
+        'db/actions/starManagerWrites.js',
         'db/actions/economy.js',
         'db/actions/showdownStars.js',
         'db/actions/quizOfTheWeek.js',
@@ -91,13 +92,15 @@ test('every write that adds this month\'s stars goes through the monthly rollove
 
 test('Star Manager rows are tagged and never adopted as the day\'s Award Stars row', () => {
     const stars = read('db/actions/stars.js');
-    const add = stars.slice(stars.indexOf('export async function handleAddStarsManually'), stars.indexOf('export async function handleSetStudentScores'));
+    const writes = read('db/actions/starManagerWrites.js');
+    const add = writes.slice(writes.indexOf('async function addMissedStarsForStudent'), writes.indexOf('export async function addMissedStars'));
     assert.match(add, /source: STAR_MANAGER_SOURCE/);
-    assert.match(add, /monthlyStarsChange\(transaction, studentId, scoreData, starsToAdd\)/);
-    assert.match(add, /can't be in the future/);
-    assert.doesNotMatch(add, /new Date\(date\)/, 'YYYY-MM-DD must be parsed as a local date');
+    assert.match(add, /monthlyStarsChange\(transaction, studentId, scoreData, stars\)/);
+    assert.doesNotMatch(add, /today_stars/, 'a Star Manager row never makes a today_stars record');
+    assert.match(read('features/starManager.js'), /validateAwardDate\(/);
     assert.match(stars, /!isBonusOnlyAwardLog\(l\) &&\n\s*!isStarManagerAwardLog\(l\) &&/);
-    const override = stars.slice(stars.indexOf('export async function handleSetStudentScores'));
-    assert.match(override, /rollMonthlyStars\(transaction, studentId, scoreDoc\.data\(\)\)/);
-    assert.match(override, /\.\.\.monthStamp,\n\s*monthlyStars: monthlyStarsVal/);
+    const override = writes.slice(writes.indexOf('export async function setStudentStarCounts'));
+    assert.match(override, /rollMonthlyStars\(transaction, studentId, scoreData\)/);
+    assert.match(override, /\.\.\.monthStamp,\n\s*monthlyStars: values\.monthly/);
+    assert.match(override, /throw new StarCountsChangedError\(\)/, 'a stale form never overwrites fresh stars');
 });

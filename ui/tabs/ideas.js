@@ -1,5 +1,4 @@
 // /ui/tabs/ideas.js
-import * as state from '../../state.js';
 import * as storyWeaver from '../../features/storyWeaver.js';
 import { renderTrainingGrounds } from '../../features/trainingGrounds.js';
 
@@ -8,49 +7,23 @@ export function renderIdeasTabSelects() {
     renderTrainingGrounds();
 }
 
+/**
+ * Builds or refreshes the Student Star Manager (Settings › Student Tools). Its code and look
+ * load only when Student Tools is open, so the startup bundle stays small.
+ */
+let starManagerModule = null;
 export function renderStarManagerStudentSelect() {
-    const select = document.getElementById('star-manager-student-select');
-    if (!select) return;
-    const currentVal = select.value;
-    select.innerHTML = '<option value="">Select a student...</option>';
-
-    const allTeachersClasses = state.get('allTeachersClasses');
-    if (allTeachersClasses.length === 0) {
-        select.innerHTML = '<option value="">No students found in your classes</option>';
-        return;
-    }
-
-    const classesMap = allTeachersClasses.reduce((acc, c) => {
-        acc[c.id] = { name: c.name, students: [] };
-        return acc;
-    }, {});
-
-    const studentsInMyClasses = state.get('allStudents').filter(s => classesMap[s.classId]);
-
-    if (studentsInMyClasses.length === 0) {
-        select.innerHTML = '<option value="">No students found in your classes</option>';
-        return;
-    }
-
-    studentsInMyClasses.forEach(s => {
-        classesMap[s.classId].students.push(s);
-    });
-
-    const sortedClassIds = Object.keys(classesMap).sort((a, b) => classesMap[a].name.localeCompare(b.name));
-    sortedClassIds.forEach(classId => {
-        const classData = classesMap[classId];
-        if (classData.students.length > 0) {
-            const optgroup = document.createElement('optgroup');
-            optgroup.label = classData.name;
-            classData.students.sort((a, b) => a.name.localeCompare(b.name));
-            classData.students.forEach(s => {
-                const option = document.createElement('option');
-                option.value = s.id;
-                option.textContent = s.name;
-                optgroup.appendChild(option);
-            });
-            select.appendChild(optgroup);
-        }
-    });
-    select.value = currentVal;
+    const root = document.getElementById('star-manager-root');
+    if (!root) return;
+    const section = root.closest('[data-options-section]');
+    const optionsTab = document.getElementById('options-tab');
+    if (section?.classList.contains('hidden') || optionsTab?.classList.contains('hidden')) return;
+    starManagerModule = starManagerModule || import('../../features/starManager.js');
+    starManagerModule
+        .then((m) => m.mountStarManager(root))
+        .catch((error) => {
+            starManagerModule = null;
+            console.warn('Star Manager failed to load:', error);
+            root.innerHTML = '<p class="sm-loading">The Star Manager could not open. Check the connection and open Student Tools again.</p>';
+        });
 }

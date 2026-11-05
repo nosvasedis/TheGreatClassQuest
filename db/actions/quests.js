@@ -29,7 +29,6 @@ import { nextHeroOfDayWinWrite, getYearLegendContextFromState } from '../../util
 import { classUsesTests } from '../../features/assessmentConfig.js';
 import { PAGE_AWAITING, PAGE_WRITTEN, buildAwaitingPagePayload, isAwaitingAdventurePage } from '../../features/adventurePageCore.mjs';
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
-import { planMonthlyRollover } from '../../features/monthlyStarsCore.mjs';
 
 const ADVENTURE_LOG_AI_RETRY_DELAYS_MS = [30000, 90000, 240000];
 
@@ -798,43 +797,4 @@ async function _selectHeroOfTheDay(classId, presentStudents, classRef, classDocP
 
     const student = presentStudents.find(s => s.id === chosenId) || state.get('allStudents').find(s => s.id === chosenId);
     return { heroName: student?.name || 'The Class Team', heroStudentId: student?.id || null };
-}
-
-
-export function handleStarManagerStudentSelect() {
-    const studentId = document.getElementById('star-manager-student-select').value;
-    const logFormElements = [
-        document.getElementById('star-manager-date'),
-        document.getElementById('star-manager-stars-to-add'),
-        document.getElementById('star-manager-reason'),
-        document.getElementById('star-manager-add-btn')
-    ];
-    const overrideFormElements = [
-        document.getElementById('override-today-stars'),
-        document.getElementById('override-monthly-stars'),
-        document.getElementById('override-total-stars'),
-        document.getElementById('star-manager-override-btn')
-    ];
-
-    if (studentId) {
-        logFormElements.forEach(el => el.disabled = false);
-        overrideFormElements.forEach(el => el.disabled = false);
-        // Keep the date the teacher already picked: back-filling a past lesson for a whole
-        // class means switching student after student, and a silent jump back to today
-        // filed those stars under the wrong day. Only an empty date starts at today.
-        const dateInput = document.getElementById('star-manager-date');
-        if (!dateInput.value) dateInput.value = utils.getLocalIsoDateString();
-
-        const scoreData = state.get('allStudentScores').find(s => s.id === studentId) || {};
-        const todayData = state.get('todaysStars')[studentId] || {};
-
-        document.getElementById('override-today-stars').value = todayData.stars || 0;
-        // A counter still holding last month's stars reads as 0 for this month.
-        document.getElementById('override-monthly-stars').value = planMonthlyRollover(scoreData, utils.getStartOfMonthString()).base;
-        document.getElementById('override-total-stars').value = scoreData.totalStars || 0;
-
-    } else {
-        logFormElements.forEach(el => el.disabled = true);
-        overrideFormElements.forEach(el => { el.disabled = true; if (el.tagName === 'INPUT') el.value = 0; });
-    }
 }

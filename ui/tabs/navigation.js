@@ -644,6 +644,9 @@ export async function showTab(tabName) {
                 if (key === 'classes') {
                     renderManageClassesTab();
                 }
+                if (key === 'manage') {
+                    renderStarManagerStudentSelect();
+                }
                 if (key === 'assessments' && hasAssessmentAccess) {
                     renderAssessmentOptionsUi();
                 }

@@ -38,8 +38,6 @@ import {
     handleEditClass,
     handleSaveTeacherName,
     setStudentStarsForToday,
-    handleAddStarsManually,
-    handleSetStudentScores,
     handleDeleteAwardLog,
     saveAwardNote,
     saveAdventureLogNote,
@@ -49,7 +47,6 @@ import {
     handleBulkSaveTrial,
     handleSaveQuestAssignment,
     handleMarkAbsent,
-    handleStarManagerStudentSelect,
     handleAddQuestEvent,
     handleDeleteQuestEvent,
     handleAddOneTimeLesson,
@@ -954,9 +951,6 @@ export function setupUIListeners() {
 
     // Options Tab
     document.getElementById('save-teacher-name-btn').addEventListener('click', (e) => { e.preventDefault(); handleSaveTeacherName(); });
-    document.getElementById('star-manager-student-select').addEventListener('change', handleStarManagerStudentSelect);
-    document.getElementById('star-manager-add-btn').addEventListener('click', handleAddStarsManually);
-    document.getElementById('star-manager-override-btn').addEventListener('click', handleSetStudentScores);
     document.getElementById('familiar-maintenance-student-select').addEventListener('change', updateFamiliarOptionsState);
     document.getElementById('familiar-regenerate-btn').addEventListener('click', handleRegenerateFamiliarFromOptions);
 

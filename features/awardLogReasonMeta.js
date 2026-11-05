@@ -242,7 +242,15 @@ export function mergeMonthlyStarsFromArchivedHistoryAndAwardLogs(logTotalsByStud
     return merged;
 }
 
-/** Live school-wide total for the current month: sum of every student’s `monthlyStars` (Firestore truth). */
-export function sumLiveMonthlyStarsFromStudentScores(allStudentScores = []) {
-    return (allStudentScores || []).reduce((sum, doc) => sum + (Number(doc.monthlyStars) || 0), 0);
+/**
+ * Live school-wide total for the current month: sum of every student’s `monthlyStars`.
+ * `monthlyStars` is reset lazily by a hero's first award of a new month, so until then it
+ * still holds last month's total: those heroes count 0 (same rule as the Team Quest).
+ */
+export function sumLiveMonthlyStarsFromStudentScores(allStudentScores = [], now = new Date()) {
+    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    return (allStudentScores || []).reduce((sum, doc) => {
+        if (doc?.lastMonthlyResetDate && doc.lastMonthlyResetDate !== monthStart) return sum;
+        return sum + (Number(doc?.monthlyStars) || 0);
+    }, 0);
 }

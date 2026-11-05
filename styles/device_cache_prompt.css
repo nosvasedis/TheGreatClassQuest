@@ -1,0 +1,358 @@
+/*
+ * device_cache_prompt.css: the Lantern Keep (#gcq-device-cache-choice,
+ * ui/modals/deviceCachePrompt.js). A twilight band with a brass lantern over a
+ * warm card holding two big choices: "Only me" (amber, the lantern stays lit)
+ * and "Other people too" (calm teal, tidies up on sign-out).
+ * Loaded with the prompt, never with the first paint.
+ */
+
+.dcp-backdrop {
+    --dcp-night-a: #0f1a3d;
+    --dcp-night-b: #2a2468;
+    --dcp-night-c: #4c3a86;
+    --dcp-amber: #f59e0b;
+    --dcp-amber-deep: #b45309;
+    --dcp-amber-soft: #fff7e0;
+    --dcp-teal: #0f766e;
+    --dcp-teal-soft: #eefbf8;
+    --dcp-ink: #1e293b;
+    --dcp-muted: #5b6475;
+    position: fixed;
+    inset: 0;
+    z-index: 2200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background:
+        radial-gradient(60% 50% at 50% 30%, rgba(76, 58, 134, 0.35), transparent 70%),
+        rgba(8, 12, 32, 0.62);
+    opacity: 0;
+    transition: opacity 260ms ease-out;
+    font-family: var(--gcq-font-body);
+}
+.dcp-backdrop.is-open { opacity: 1; }
+.dcp-backdrop.is-closing { opacity: 0; transition-duration: 280ms; }
+
+/* ---------- The card ---------- */
+.dcp-card {
+    position: relative;
+    width: 100%;
+    max-width: 40rem;
+    margin: auto;
+    border-radius: 2rem;
+    overflow: hidden;
+    background: linear-gradient(180deg, #fffdf8 0%, #fdf8ee 100%);
+    box-shadow:
+        0 30px 80px -20px rgba(8, 12, 40, 0.65),
+        0 0 0 1px rgba(255, 255, 255, 0.6),
+        0 0 0 7px rgba(255, 255, 255, 0.12);
+    transform: translateY(18px) scale(0.96);
+    opacity: 0;
+    transition:
+        transform 420ms var(--gcq-ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)),
+        opacity 240ms ease-out;
+}
+.dcp-backdrop.is-open .dcp-card { transform: none; opacity: 1; }
+.dcp-backdrop.is-closing .dcp-card { transform: translateY(10px) scale(0.97); opacity: 0; transition-duration: 240ms; }
+.dcp-card.is-swapping > * { opacity: 0; transform: translateY(-6px); transition: opacity 180ms ease, transform 180ms ease; }
+.dcp-card[data-stage="done"] > * { animation: dcp-rise 360ms var(--gcq-ease-out, ease-out) both; }
+.dcp-card[data-stage="done"] { max-width: 26rem; transition: max-width 300ms ease; }
+
+/* ---------- Twilight band ---------- */
+.dcp-sky {
+    position: relative;
+    padding: 1.4rem 1.75rem 1.5rem;
+    text-align: center;
+    color: #fff;
+    background:
+        radial-gradient(40% 70% at 50% 18%, rgba(252, 211, 77, 0.32), transparent 70%),
+        linear-gradient(170deg, var(--dcp-night-a) 0%, var(--dcp-night-b) 58%, var(--dcp-night-c) 100%);
+    overflow: hidden;
+}
+.dcp-sky::after {
+    /* soft hills at the foot of the sky, melting into the card */
+    content: '';
+    position: absolute;
+    left: -5%;
+    right: -5%;
+    bottom: -1px;
+    height: 22px;
+    background: #fffdf8;
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+}
+.dcp-star {
+    position: absolute;
+    left: var(--x);
+    top: var(--y);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #fef3c7;
+    box-shadow: 0 0 8px 2px rgba(254, 243, 199, 0.55);
+    animation: dcp-twinkle 3.2s ease-in-out var(--d) infinite;
+}
+.dcp-lantern {
+    display: block;
+    width: 5.25rem;
+    height: auto;
+    margin: -0.4rem auto 0.25rem;
+    overflow: visible;
+    transform-origin: 50% 0;
+    animation: dcp-sway 5s ease-in-out infinite;
+}
+.dcp-lantern-halo { opacity: 0.55; animation: dcp-breathe 2.6s ease-in-out infinite; }
+.dcp-flame { transform-origin: 60px 96px; animation: dcp-flicker 1.6s ease-in-out infinite; }
+.dcp-bolt { transform-origin: 96px 44px; animation: dcp-zap 3.4s ease-in-out infinite; }
+
+.dcp-kicker {
+    position: relative;
+    display: inline-block;
+    margin: 0 0 0.4rem;
+    padding: 0.2rem 0.75rem;
+    border-radius: 999px;
+    font: 700 0.7rem/1.4 var(--gcq-font-display);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #fde68a;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(253, 230, 138, 0.3);
+}
+.dcp-title {
+    position: relative;
+    margin: 0;
+    font-family: var(--gcq-font-title);
+    font-size: clamp(1.45rem, 4.4vw, 1.9rem);
+    line-height: 1.15;
+    color: #fff;
+    text-shadow: 0 2px 14px rgba(252, 211, 77, 0.35);
+}
+.dcp-lede {
+    position: relative;
+    margin: 0.45rem auto 0.4rem;
+    max-width: 30rem;
+    font-size: 0.98rem;
+    line-height: 1.5;
+    color: rgba(226, 232, 255, 0.88);
+}
+
+/* ---------- Body + choices ---------- */
+.dcp-body { padding: 0.6rem 1.5rem 1.4rem; }
+.dcp-ask {
+    margin: 0 0 0.75rem;
+    text-align: center;
+    font: 600 1.05rem/1.3 var(--gcq-font-display);
+    color: var(--dcp-ink);
+}
+.dcp-choices {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.9rem;
+}
+.dcp-choice {
+    --c-accent: var(--dcp-teal);
+    --c-soft: var(--dcp-teal-soft);
+    --c-line: rgba(15, 118, 110, 0.28);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+    padding: 1.1rem 1.1rem 1rem;
+    text-align: left;
+    border-radius: 1.4rem;
+    border: 2px solid var(--c-line);
+    background: linear-gradient(180deg, #fff 0%, var(--c-soft) 100%);
+    color: var(--dcp-ink);
+    cursor: pointer;
+    box-shadow: 0 2px 0 var(--c-line), 0 10px 22px -16px rgba(15, 23, 42, 0.4);
+    transition: transform 200ms var(--gcq-ease-spring, ease), box-shadow 200ms ease, border-color 200ms ease;
+    -webkit-tap-highlight-color: transparent;
+}
+.dcp-choice[data-tone="home"] {
+    --c-accent: var(--dcp-amber-deep);
+    --c-soft: var(--dcp-amber-soft);
+    --c-line: rgba(245, 158, 11, 0.55);
+    box-shadow: 0 2px 0 var(--c-line), 0 14px 30px -14px rgba(245, 158, 11, 0.55);
+}
+@media (hover: hover) {
+    .dcp-choice:hover { transform: translateY(-3px); border-color: var(--c-accent); }
+}
+.dcp-choice:active { transform: translateY(1px) scale(0.99); }
+.dcp-choice:focus-visible {
+    outline: none;
+    border-color: var(--c-accent);
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.95), 0 0 0 7px var(--c-line), 0 10px 22px -12px rgba(15, 23, 42, 0.4);
+}
+.dcp-choice.is-picked { border-color: var(--c-accent); transform: scale(1.02); }
+
+.dcp-badge {
+    position: absolute;
+    top: -0.7rem;
+    right: 1rem;
+    padding: 0.15rem 0.65rem;
+    border-radius: 999px;
+    font: 700 0.68rem/1.5 var(--gcq-font-display);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #78350f;
+    background: linear-gradient(180deg, #fde68a, #fbbf24);
+    box-shadow: 0 3px 8px -3px rgba(180, 83, 9, 0.6);
+}
+.dcp-choice-icon {
+    display: grid;
+    place-items: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 1rem;
+    color: var(--c-accent);
+    background: #fff;
+    box-shadow: inset 0 0 0 1.5px var(--c-line);
+}
+.dcp-choice-icon svg { width: 2.1rem; height: 2.1rem; }
+.dcp-window { fill: #fcd34d; filter: drop-shadow(0 0 3px rgba(252, 211, 77, 0.9)); }
+.dcp-choice-title {
+    margin-top: 0.2rem;
+    font: 700 1.2rem/1.2 var(--gcq-font-display);
+    color: var(--c-accent);
+}
+.dcp-choice-who {
+    font-size: 0.86rem;
+    line-height: 1.45;
+    color: var(--dcp-muted);
+}
+.dcp-points {
+    margin: 0.3rem 0 0.2rem;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.25rem;
+}
+.dcp-points li {
+    position: relative;
+    padding-left: 1.4rem;
+    font-size: 0.86rem;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--dcp-ink);
+}
+.dcp-points li::before {
+    content: '';
+    position: absolute;
+    left: 0.1rem;
+    top: 0.2rem;
+    width: 0.85rem;
+    height: 0.85rem;
+    border-radius: 50%;
+    background:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4 8.3 2.6 2.5L12 5.4' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 100% no-repeat,
+        var(--c-accent);
+}
+.dcp-choice-cta {
+    margin-top: auto;
+    align-self: stretch;
+    padding: 0.7rem 0.9rem;
+    border-radius: 0.95rem;
+    text-align: center;
+    font: 700 0.98rem/1.2 var(--gcq-font-display);
+    color: var(--c-accent);
+    background: #fff;
+    border: 1.5px solid var(--c-line);
+}
+.dcp-choice[data-tone="home"] .dcp-choice-cta {
+    color: #fff;
+    border-color: transparent;
+    background: linear-gradient(180deg, #f59e0b, #d97706);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 3px 0 #b45309;
+}
+.dcp-choice > .dcp-points { margin-bottom: 0.65rem; }
+
+.dcp-safe {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0.45rem;
+    margin: 1.1rem 0 0;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--dcp-muted);
+}
+.dcp-safe svg { flex: none; width: 1.05rem; height: 1.05rem; margin-top: 0.05rem; color: #0f766e; }
+
+/* ---------- Confirmation ---------- */
+.dcp-sky--done { padding: 1.8rem 1.75rem 2rem; }
+.dcp-sky--done::after { display: none; }
+.dcp-card[data-choice="trusted"] .dcp-lantern { width: 6rem; }
+.dcp-card[data-choice="trusted"] .dcp-lantern-halo { opacity: 0.95; animation: dcp-light-up 900ms ease-out both, dcp-breathe 2.6s ease-in-out 900ms infinite; }
+.dcp-card[data-choice="shared"] .dcp-sky {
+    background:
+        radial-gradient(40% 70% at 50% 18%, rgba(94, 234, 212, 0.25), transparent 70%),
+        linear-gradient(170deg, #0f2e3d 0%, #134e4a 60%, #1d6b62 100%);
+}
+.dcp-done-door {
+    display: grid;
+    place-items: center;
+    width: 4.5rem;
+    height: 4.5rem;
+    margin: 0 auto 0.75rem;
+    border-radius: 1.4rem;
+    color: #99f6e4;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(153, 246, 228, 0.3);
+}
+.dcp-done-door svg { width: 2.8rem; height: 2.8rem; }
+.dcp-done-door .dcp-sparkle { animation: dcp-twinkle 1.4s ease-in-out infinite; transform-origin: 39px 18.5px; }
+
+/* ---------- Phone ---------- */
+@media (max-width: 560px) {
+    .dcp-backdrop { align-items: flex-end; padding: 0.75rem 0.6rem max(0.6rem, env(safe-area-inset-bottom)); }
+    .dcp-card { border-radius: 1.6rem; }
+    .dcp-sky { padding: 1rem 1.2rem 1.4rem; }
+    .dcp-lantern { width: 3.9rem; margin-top: -0.2rem; }
+    .dcp-lede { font-size: 0.92rem; }
+    .dcp-body { padding: 0.4rem 0.9rem 1rem; }
+    .dcp-ask { margin-bottom: 0.65rem; }
+    .dcp-choices { grid-template-columns: 1fr; gap: 0.85rem; }
+    .dcp-choice {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        column-gap: 0.8rem;
+        row-gap: 0.15rem;
+        padding: 0.95rem 0.95rem 0.9rem;
+    }
+    .dcp-choice-icon { grid-row: 1 / span 2; width: 2.8rem; height: 2.8rem; }
+    .dcp-choice-title { margin-top: 0; align-self: end; font-size: 1.1rem; }
+    .dcp-choice-who { grid-column: 2; }
+    .dcp-choice > .dcp-points, .dcp-choice-cta { grid-column: 1 / -1; }
+    .dcp-choice > .dcp-points { margin: 0.4rem 0 0.6rem; }
+    .dcp-safe { margin-top: 0.85rem; text-align: left; }
+    .dcp-card[data-stage="done"] { max-width: none; }
+}
+@media (max-height: 560px) and (orientation: landscape) {
+    .dcp-backdrop { align-items: flex-start; }
+    .dcp-lantern, .dcp-kicker { display: none; }
+}
+
+/* ---------- Motion ---------- */
+@keyframes dcp-twinkle { 0%, 100% { opacity: 0.35; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.15); } }
+@keyframes dcp-sway { 0%, 100% { transform: rotate(-2.5deg); } 50% { transform: rotate(2.5deg); } }
+@keyframes dcp-breathe { 0%, 100% { opacity: 0.5; } 50% { opacity: 0.8; } }
+@keyframes dcp-flicker { 0%, 100% { transform: scale(1, 1); } 30% { transform: scale(0.94, 1.06); } 60% { transform: scale(1.04, 0.96); } }
+@keyframes dcp-zap { 0%, 80%, 100% { opacity: 0.85; transform: scale(1); } 86% { opacity: 1; transform: scale(1.25) rotate(-6deg); } }
+@keyframes dcp-light-up { from { opacity: 0.1; transform: scale(0.6); } to { opacity: 0.95; transform: scale(1); } }
+@keyframes dcp-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+    .dcp-backdrop, .dcp-card { transition: none; }
+    .dcp-card, .dcp-backdrop.is-open .dcp-card { transform: none; }
+    .dcp-star, .dcp-lantern, .dcp-lantern-halo, .dcp-flame, .dcp-bolt, .dcp-done-door .dcp-sparkle,
+    .dcp-card[data-stage="done"] > * { animation: none !important; }
+}
+/* Weak phones (mobile/index.js marks them): no looping decoration. */
+body.gcq-lite .dcp-star,
+body.gcq-lite .dcp-lantern,
+body.gcq-lite .dcp-lantern-halo,
+body.gcq-lite .dcp-flame,
+body.gcq-lite .dcp-bolt { animation: none !important; }

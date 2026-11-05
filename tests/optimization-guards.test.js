@@ -123,7 +123,9 @@ test('authenticated home readiness cannot fail on optional decoration or browser
 
 test('device cache choice uses role-appropriate wording and never forces a disruptive reload', () => {
   const app = read('app.js');
-  const deviceCache = read('utils/deviceCache.js');
+  const deviceCache = read('utils/deviceCache.js') + read('ui/modals/deviceCachePrompt.js');
+  // The prompt UI is lazy-loaded so it never weighs on the startup bundle.
+  assert.match(read('utils/deviceCache.js'), /import\('\.\.\/ui\/modals\/deviceCachePrompt\.js'\)/);
   // Role-specific copy exists for every role this prompt can appear for.
   assert.match(deviceCache, /Keep this teacher device fast\?/);
   assert.match(deviceCache, /Yes — teacher device/);

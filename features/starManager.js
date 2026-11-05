@@ -36,6 +36,8 @@ import {
 import "../styles/star_manager.css";
 
 const REASONS = ["teamwork", "creativity", "respect", "focus", "welcome_back", "correction"];
+/** Same icons as the Award Stars virtue buttons, so a reason looks the same everywhere. */
+const REASON_ICONS = { teamwork: "fa-users", creativity: "fa-lightbulb", respect: "fa-hands-helping", focus: "fa-brain" };
 
 const ui = {
     root: null,
@@ -151,12 +153,11 @@ function dayLogsFor(key) {
 
 function shellHtml() {
     return `
-        <header class="sm-head">
-            <span class="sm-head__seal" aria-hidden="true"><i class="fas fa-star"></i></span>
-            <div class="sm-head__text">
-                <span class="sm-head__kicker">Star chart</span>
-                <h3 class="font-title sm-head__title">Student Star Manager</h3>
-                <p class="sm-head__hint">Mend a lesson when stars weren't given, or set one student's star counts.</p>
+        <header class="ts-card__head sm-head">
+            <span class="ts-card__icon" aria-hidden="true"><i class="fas fa-star"></i></span>
+            <div>
+                <h3 class="font-title ts-card__title">Student Star Manager</h3>
+                <p class="ts-card__hint">Mend a lesson when stars weren't given, or set one student's star counts.</p>
             </div>
         </header>
         <div class="sm-modes" role="tablist" aria-label="What do you need?">
@@ -241,8 +242,8 @@ function addPanelHtml() {
     }
 
     const reasonChips = REASONS.map((r) => `
-        <button type="button" class="sm-reason${r === ui.reason ? " is-on" : ""}" role="radio" aria-checked="${r === ui.reason}" data-sm-reason="${r}">
-            <i class="fas ${AWARD_LOG_REASON_ICONS[r] || "fa-star"}" aria-hidden="true"></i> ${esc(r === "welcome_back" ? "Welcome Back" : getAwardReasonLabel(r))}
+        <button type="button" class="sm-reason sm-reason--${r}${r === ui.reason ? " is-on" : ""}" role="radio" aria-checked="${r === ui.reason}" data-sm-reason="${r}">
+            <i class="fas ${REASON_ICONS[r] || AWARD_LOG_REASON_ICONS[r] || "fa-star"}" aria-hidden="true"></i> ${esc(r === "welcome_back" ? "Welcome Back" : getAwardReasonLabel(r))}
         </button>`).join("");
 
     const pills = students.length

@@ -74,7 +74,7 @@ export const optionsTabHTML = `
                                 </header>
 
                                 <div class="ts-tools">
-                                    <article class="ts-tools__wide sm" id="star-manager-root" data-ts-card="stars" aria-label="Student Star Manager">
+                                    <article class="ts-card ts-tools__wide sm" id="star-manager-root" data-ts-card="stars" aria-label="Student Star Manager">
                                         <p class="sm-loading"><i class="fas fa-star fa-spin" aria-hidden="true"></i> Opening the star chart…</p>
                                     </article>
 

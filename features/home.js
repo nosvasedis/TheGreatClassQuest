@@ -13,6 +13,7 @@ import * as tabs from '../ui/tabs/index.js';
 import * as modals from '../ui/modals/index.js';
 import { buildHomePartyCardHtml } from './homePartyCard.mjs';
 import { buildHomeQuestRoadCardHtml } from './homeQuestRoadCard.mjs';
+import { classPortalStatus } from './questPortal.js';
 import { normalizeChroniclerText } from './adventurePageCore.mjs';
 import { callGeminiApi } from '../api.js';
 import { canUseFeature } from '../utils/subscription.js';
@@ -582,7 +583,7 @@ function getGeneralDashboard(theme, spice) {
         </div>
         `,
         `
-        <div class="vibrant-card h-span-4 card-glass-white">
+        <div class="vibrant-card h-span-4 home-card home-card--tools">
             <div class="home-section-head">
                 <h3 class="home-section-title"><span class="home-section-title__icon home-section-title__icon--tools"><i class="fas fa-toolbox"></i></span>Global Tools</h3>
             </div>
@@ -590,7 +591,7 @@ function getGeneralDashboard(theme, spice) {
                 ${tools.map((t, i) => homeToolTileHtml(t, i, activeLeague)).join('')}
             </div>
         </div>
-        <div class="vibrant-card h-span-8 card-glass-white">
+        <div class="vibrant-card h-span-8 home-card home-card--schedule">
             <div class="home-section-head">
                 <h3 class="home-section-title"><span class="home-section-title__icon home-section-title__icon--schedule"><i class="fas fa-calendar-day"></i></span>School Schedule</h3>
                 ${todaysClassCount ? `
@@ -714,7 +715,7 @@ function getActiveDashboard(classData, theme, spice) {
     return getLayout(
         theme, getHomeBountyPillHtml(),
         `
-        ${buildHomeQuestRoadCardHtml({ stars: monthlyStarsWithBonus, goal, bonus: classBonus, logo: classData.logo || '📚' })}
+        ${buildHomeQuestRoadCardHtml({ stars: monthlyStarsWithBonus, goal, bonus: classBonus, logo: classData.logo || '📚', portal: questPortalFor(classData, students) })}
         
         ${buildHomePartyCardHtml({ students: partyHeroes, virtueStars, absentIds: absentTodayIds })}
         
@@ -728,7 +729,7 @@ function getActiveDashboard(classData, theme, spice) {
         </div>
         `,
         `
-        <div class="vibrant-card h-span-8 p-5 bg-gray-50/50 backdrop-blur-sm">
+        <div class="vibrant-card h-span-8 p-5 home-card home-card--chronicle">
             <h3 class="home-section-title mb-4"><span class="home-section-title__icon home-section-title__icon--chronicle"><i class="fas fa-history"></i></span>The Chronicle</h3>
             
             <div class="ch-deck" data-chronicle-deck>
@@ -738,7 +739,7 @@ function getActiveDashboard(classData, theme, spice) {
             </div>
         </div>
 
-        <div class="vibrant-card h-span-4 card-glass-white">
+        <div class="vibrant-card h-span-4 home-card home-card--tools">
             <div class="home-section-head">
                 <h3 class="home-section-title"><span class="home-section-title__icon home-section-title__icon--tools"><i class="fas fa-magic"></i></span>Class Actions</h3>
             </div>
@@ -748,6 +749,16 @@ function getActiveDashboard(classData, theme, spice) {
         </div>
         `
     );
+}
+
+/** The class's Portal this month, for the Quest card past 100% (never breaks Home). */
+function questPortalFor(classData, students) {
+    try {
+        return classPortalStatus(classData, { students });
+    } catch (error) {
+        console.warn('Home quest card: Portal status unavailable', error);
+        return null;
+    }
 }
 
 /** Badges under the greeting: school and teacher, then the class's month or today's lessons school-wide. */
@@ -764,7 +775,7 @@ function getGreetingChipsHtml(theme) {
         if (todays.length) {
             const myIds = new Set((state.get('allTeachersClasses') || []).map(c => c.id));
             const mine = todays.filter(c => myIds.has(c.id)).length;
-            todayChip = `<span class="greeting-chip greeting-chip--today" style="--ci:2"><i class="fas fa-school"></i>${todays.length} ${todays.length === 1 ? 'class' : 'classes'} today${mine ? `<small>${mine} yours</small>` : ''}</span>`;
+            todayChip = `<span class="greeting-chip greeting-chip--today" style="--ci:2"><span class="greeting-chip__icon" aria-hidden="true"><i class="fas fa-school"></i></span>${todays.length} ${todays.length === 1 ? 'class' : 'classes'} today${mine ? `<small>${mine} yours</small>` : ''}</span>`;
         }
     }
     return greetingBadgesHtml({ todayChip });

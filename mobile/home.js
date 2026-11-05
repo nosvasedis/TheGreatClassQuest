@@ -22,6 +22,7 @@ import {
 } from '../features/homeGreeting.js';
 import { getCuratedDailyQuote, isCuratedDailyQuote } from '../utils/dailyQuote.mjs';
 import { buildHomeQuestRoadCardHtml } from '../features/homeQuestRoadCard.mjs';
+import { classPortalStatus } from '../features/questPortal.js';
 import { buildHomePartyCardHtml } from '../features/homePartyCard.mjs';
 import { describeLessonTimeline } from './homeTimeline.mjs';
 
@@ -165,7 +166,7 @@ function todayChipHtml() {
     if (!todays.length) return '';
     const myIds = new Set((state.get('allTeachersClasses') || []).map((c) => c.id));
     const mine = todays.filter((c) => myIds.has(c.id)).length;
-    return `<span class="greeting-chip greeting-chip--today" style="--ci:2"><i class="fas fa-school"></i>${todays.length} ${todays.length === 1 ? 'class' : 'classes'} today${mine ? `<small>${mine} yours</small>` : ''}</span>`;
+    return `<span class="greeting-chip greeting-chip--today" style="--ci:2"><span class="greeting-chip__icon" aria-hidden="true"><i class="fas fa-school"></i></span>${todays.length} ${todays.length === 1 ? 'class' : 'classes'} today${mine ? `<small>${mine} yours</small>` : ''}</span>`;
 }
 
 /**
@@ -345,6 +346,16 @@ function monthVirtueStars(classId) {
     return virtueStars;
 }
 
+/** The class's Portal this month, for the Quest card past 100% (never breaks Home). */
+function questPortalFor(classData, students) {
+    try {
+        return classPortalStatus(classData, { students });
+    } catch (error) {
+        console.warn('Home quest card: Portal status unavailable', error);
+        return null;
+    }
+}
+
 function renderClassView(classData) {
     const greeting = getGreeting();
     const students = (state.get('allStudents') || []).filter((s) => s.classId === classData.id);
@@ -368,7 +379,7 @@ function renderClassView(classData) {
         ${heroHtml(greeting, classData.logo || '✨', greetingBadgesHtml({ nudge: classNudge(monthlyStars, goal) }), getTodayReminders(classData.id))}
 
         <div class="m-home-slot m-home-slot--road card-appear-m" style="--stagger:1">
-            ${buildHomeQuestRoadCardHtml({ stars: monthlyStars, goal, bonus: classBonus, logo: classData.logo || '📚' })}
+            ${buildHomeQuestRoadCardHtml({ stars: monthlyStars, goal, bonus: classBonus, logo: classData.logo || '📚', portal: questPortalFor(classData, students) })}
         </div>
 
         <div class="m-home-slot m-home-slot--party card-appear-m" style="--stagger:2">

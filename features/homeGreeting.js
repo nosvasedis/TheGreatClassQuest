@@ -68,11 +68,11 @@ export function greetingBadgesHtml({ nudge = null, todayChip = '' } = {}) {
     const school = state.get('schoolName') || DEFAULT_SCHOOL_NAME;
     const teacher = state.get('currentTeacherName') || 'Quest Master';
     const badges = [
-        `<span class="greeting-chip greeting-chip--school" style="--ci:0"><i class="fas fa-university" aria-hidden="true"></i><span data-school-name>${escapeHtml(school)}</span></span>`,
+        `<span class="greeting-chip greeting-chip--school" style="--ci:0"><span class="greeting-chip__icon" aria-hidden="true"><i class="fas fa-university"></i></span><span data-school-name>${escapeHtml(school)}</span></span>`,
         `<span class="greeting-chip greeting-chip--teacher" style="--ci:1" title="Teacher"><span class="greeting-chip__crest" aria-hidden="true">${escapeHtml(nameInitial(teacher))}</span><span class="greeting-chip__name">${escapeHtml(teacher)}</span></span>`
     ];
     if (nudge) {
-        badges.push(`<span class="greeting-chip greeting-chip--quest greeting-chip--quest-${nudge.tone}" style="--ci:2"><i class="fas ${nudge.icon}" aria-hidden="true"></i>${escapeHtml(nudge.text)}</span>`);
+        badges.push(`<span class="greeting-chip greeting-chip--quest greeting-chip--quest-${nudge.tone}" style="--ci:2"><span class="greeting-chip__icon" aria-hidden="true"><i class="fas ${nudge.icon}"></i></span>${escapeHtml(nudge.text)}</span>`);
     } else if (todayChip) {
         badges.push(todayChip);
     }

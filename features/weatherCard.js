@@ -23,30 +23,40 @@ export function getClockHandAngles(date = new Date()) {
     return { h: secs / 120, m: secs / 10, s: secs * 6 };
 }
 
-/** Small glassy analogue clock that lives on the weather card. */
+let clockSeq = 0;
+
+/** Small analogue clock on the weather card: a white enamel face in a gold bezel. */
 export function getWeatherClockHtml(now = new Date()) {
     const { h, m, s } = getClockHandAngles(now);
+    const id = `wclk-${++clockSeq}`;
     const ticks = Array.from({ length: 12 }, (_, i) => {
         const major = i % 3 === 0;
-        return `<line class="weather-clock__tick${major ? ' is-major' : ''}" x1="32" y1="${major ? 6.5 : 7.5}" x2="32" y2="${major ? 12 : 10.5}" transform="rotate(${i * 30} 32 32)"/>`;
+        return major
+            ? `<circle class="weather-clock__dot" cx="32" cy="10.2" r="2.1" transform="rotate(${i * 30} 32 32)"/>`
+            : `<line class="weather-clock__tick" x1="32" y1="9" x2="32" y2="11.6" transform="rotate(${i * 30} 32 32)"/>`;
     }).join('');
     return `
         <svg class="weather-clock" viewBox="0 0 64 64" role="img" aria-label="Time ${formatClockTime(now)}" data-home-clock>
             <defs>
-                <radialGradient id="weather-clock-face" cx="34%" cy="28%" r="80%">
-                    <stop offset="0" stop-color="#fff" stop-opacity="0.55"/>
-                    <stop offset="0.6" stop-color="#fff" stop-opacity="0.18"/>
-                    <stop offset="1" stop-color="#fff" stop-opacity="0.08"/>
+                <linearGradient id="${id}-bezel" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="var(--wc-bezel-1, #fde047)"/>
+                    <stop offset="0.55" stop-color="var(--wc-bezel-2, #f59e0b)"/>
+                    <stop offset="1" stop-color="var(--wc-bezel-3, #ea580c)"/>
+                </linearGradient>
+                <radialGradient id="${id}-face" cx="38%" cy="30%" r="78%">
+                    <stop offset="0" stop-color="#ffffff"/>
+                    <stop offset="0.75" stop-color="var(--wc-face-2, #fff7ed)"/>
+                    <stop offset="1" stop-color="var(--wc-face-3, #ffedd5)"/>
                 </radialGradient>
             </defs>
-            <circle class="weather-clock__halo" cx="32" cy="32" r="31"/>
-            <circle class="weather-clock__face" cx="32" cy="32" r="28" fill="url(#weather-clock-face)"/>
-            <path class="weather-clock__gloss" d="M12 24 A22 22 0 0 1 40 10.5 A26 26 0 0 0 12 24 Z"/>
+            <circle class="weather-clock__bezel" cx="32" cy="32" r="30.5" fill="url(#${id}-bezel)"/>
+            <circle class="weather-clock__face" cx="32" cy="32" r="26" fill="url(#${id}-face)"/>
+            <path class="weather-clock__gloss" d="M13 25 A20 20 0 0 1 38 12.6 A24 24 0 0 0 13 25 Z"/>
             ${ticks}
-            <g class="weather-clock__hand weather-clock__hand--h" data-clock-hand="h" style="transform: rotate(${h}deg)"><line x1="32" y1="35" x2="32" y2="19"/></g>
-            <g class="weather-clock__hand weather-clock__hand--m" data-clock-hand="m" style="transform: rotate(${m}deg)"><line x1="32" y1="36" x2="32" y2="11.5"/></g>
-            <g class="weather-clock__hand weather-clock__hand--s" data-clock-hand="s" style="transform: rotate(${s}deg)"><line x1="32" y1="39" x2="32" y2="9"/><circle cx="32" cy="9" r="1.6"/></g>
-            <circle class="weather-clock__pin" cx="32" cy="32" r="2.7"/>
+            <g class="weather-clock__hand weather-clock__hand--h" data-clock-hand="h" style="transform: rotate(${h}deg)"><line x1="32" y1="35" x2="32" y2="19.5"/></g>
+            <g class="weather-clock__hand weather-clock__hand--m" data-clock-hand="m" style="transform: rotate(${m}deg)"><line x1="32" y1="36" x2="32" y2="12.5"/></g>
+            <g class="weather-clock__hand weather-clock__hand--s" data-clock-hand="s" style="transform: rotate(${s}deg)"><line x1="32" y1="39" x2="32" y2="10.5"/><circle cx="32" cy="10.5" r="1.7"/></g>
+            <circle class="weather-clock__pin" cx="32" cy="32" r="2.8"/>
             <circle class="weather-clock__pin-dot" cx="32" cy="32" r="1.1"/>
         </svg>`;
 }
@@ -64,12 +74,12 @@ export function compassFrom(degrees) {
 function metaChipsHtml(theme, reading) {
     const chips = [];
     if (theme.hi != null && theme.lo != null) {
-        chips.push(`<span class="weather-chip"><i class="fas fa-temperature-arrow-up"></i>${theme.hi}°<span class="weather-chip__sep">/</span><i class="fas fa-temperature-arrow-down"></i>${theme.lo}°</span>`);
+        chips.push(`<span class="weather-chip weather-chip--temp" title="Today's high and low"><span class="weather-chip__hi"><i class="fas fa-temperature-arrow-up"></i>${theme.hi}°</span><span class="weather-chip__lo"><i class="fas fa-temperature-arrow-down"></i>${theme.lo}°</span></span>`);
     }
     const wind = reading?.windSpeed == null ? NaN : Number(reading.windSpeed);
     if (Number.isFinite(wind)) {
         const from = compassFrom(reading.windDirection);
-        chips.push(`<span class="weather-chip weather-chip--wind" title="Wind${from ? ` from the ${from}` : ''}"><i class="fas fa-wind"></i>${Math.round(wind)}<small>km/h</small></span>`);
+        chips.push(`<span class="weather-chip weather-chip--wind" title="Wind${from ? ` from the ${from}` : ''}"><span class="weather-chip__icon"><i class="fas fa-wind"></i></span>${Math.round(wind)}<small>km/h</small></span>`);
     }
     return chips.join('');
 }
@@ -88,7 +98,8 @@ export function hoursStripHtml(reading, sun = {}) {
             } catch (_) { /* Invalid stored timezone: keep the usable local label. */ }
         }
         const pop = Number.isFinite(h.pop) && h.pop >= 20 ? `<span class="wx-hour__pop">${h.pop}%</span>` : '';
-        return `<div class="wx-hour" title="${label}: ${Number.isFinite(h.temp) ? `${h.temp}°` : ''}"><span class="wx-hour__t">${label}</span><span class="wx-hour__g">${weatherGlyphSvg(scene, { moonPhase: moonPhase(t.getTime()) })}</span><span class="wx-hour__deg">${Number.isFinite(h.temp) ? `${h.temp}°` : '–'}</span>${pop}</div>`;
+        const warmth = !Number.isFinite(h.temp) ? 'mild' : h.temp < 8 ? 'cold' : h.temp < 16 ? 'cool' : h.temp < 25 ? 'mild' : 'hot';
+        return `<div class="wx-hour wx-hour--${warmth}${scene.isNight ? ' wx-hour--night' : ''}" title="${label}: ${Number.isFinite(h.temp) ? `${h.temp}°` : ''}"><span class="wx-hour__t">${label}</span><span class="wx-hour__g">${weatherGlyphSvg(scene, { moonPhase: moonPhase(t.getTime()) })}</span><span class="wx-hour__deg">${Number.isFinite(h.temp) ? `${h.temp}°` : '–'}</span>${pop}</div>`;
     }).join('')}</div>`;
 }
 

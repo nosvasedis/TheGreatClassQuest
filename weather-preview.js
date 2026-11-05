@@ -131,11 +131,11 @@ function render() {
     const part = resolveDayPart(sun.now, sun.sunrise, sun.sunset);
     const g = composeHomeGreeting({ mode: state.cls ? 'class' : 'general', className: state.cls, young: state.young, part, scene, reading, now });
     const nudge = state.cls ? questNudge({ monthStars: state.stars, goal: state.goal, now }) : null;
-    const badges = `<span class="greeting-chip greeting-chip--school" style="--ci:0"><i class="fas fa-university"></i><span data-school-name>Rentis English School</span></span>`
+    const badges = `<span class="greeting-chip greeting-chip--school" style="--ci:0"><span class="greeting-chip__icon"><i class="fas fa-university"></i></span><span data-school-name>Rentis English School</span></span>`
         + `<span class="greeting-chip greeting-chip--teacher" style="--ci:1"><span class="greeting-chip__crest">N</span><span class="greeting-chip__name">Nasos</span></span>`
         + (nudge
-            ? `<span class="greeting-chip greeting-chip--quest greeting-chip--quest-${nudge.tone}" style="--ci:2"><i class="fas ${nudge.icon}"></i>${nudge.text}</span>`
-            : '<span class="greeting-chip greeting-chip--today" style="--ci:2"><i class="fas fa-school"></i>4 classes today<small>2 yours</small></span>');
+            ? `<span class="greeting-chip greeting-chip--quest greeting-chip--quest-${nudge.tone}" style="--ci:2"><span class="greeting-chip__icon"><i class="fas ${nudge.icon}"></i></span>${nudge.text}</span>`
+            : '<span class="greeting-chip greeting-chip--today" style="--ci:2"><span class="greeting-chip__icon"><i class="fas fa-school"></i></span>4 classes today<small>2 yours</small></span>');
     const words = `data-greeting-key="${g.key}"`;
     const greetingHtml = `
         <div class="vibrant-card h-span-8 greeting-panel greeting-panel--${part}" ${words}>

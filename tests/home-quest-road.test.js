@@ -20,9 +20,35 @@ test('past the last realm the line counts down to the goal, then says it is reac
   assert.equal(near.next, undefined);
   assert.equal(near.toGo, 8);
   const done = buildHomeQuestRoadCardHtml({ stars: 141, goal: 138, bonus: 3 });
-  assert.match(done, /Goal reached this month!/);
-  assert.match(done, />100<small>%/);
+  assert.match(done, /Goal reached! Step through the Portal/);
+  assert.match(done, />102<small>%/);
   assert.match(done, /incl\. \+3 Pathfinder/);
+  assert.match(done, /\+3 past the goal/);
+});
+
+test('a full road waits at the Portal: sealed shows what still sleeps', async () => {
+  const { buildHomeQuestRoadCardHtml } = await load();
+  const sealed = buildHomeQuestRoadCardHtml({ stars: 140, goal: 138, portal: { open: false, completed: false, state: 'sealed', runes: [{ id: 'focus', met: false }] } });
+  assert.match(sealed, /data-place="sealed"/);
+  assert.match(sealed, /At the sealed Portal/);
+  assert.match(sealed, /1 rune still sleeps/);
+  assert.match(sealed, /qroad__portal--sealed/);
+  assert.ok(!sealed.includes('qroad--sky'));
+});
+
+test('through the Portal the card climbs the Starward Way to the next named stone', async () => {
+  const { buildHomeQuestRoadCardHtml } = await load();
+  const sky = buildHomeQuestRoadCardHtml({ stars: 160, goal: 128, portal: { open: true, completed: true } });
+  assert.match(sky, /qroad--sky/);
+  assert.match(sky, />125<small>%/);
+  assert.match(sky, /Comet’s Rest/);
+  assert.match(sky, /to <i class="fas fa-crown"><\/i>The Star Crown/);
+  const inside = buildHomeQuestRoadCardHtml({ stars: 128, goal: 128, portal: { open: true, completed: true } });
+  assert.match(inside, /data-place="inside"/);
+  assert.match(inside, /Inside the Portal/);
+  const palace = buildHomeQuestRoadCardHtml({ stars: 300, goal: 128, portal: { open: true, completed: true } });
+  assert.match(palace, /data-place="palace"/);
+  assert.match(palace, /Home at the top of the Crystal Sky/);
 });
 
 test('the percent never shows 100 before the goal is reached', async () => {

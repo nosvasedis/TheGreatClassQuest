@@ -337,7 +337,7 @@ body.gcq-mobile #m-secretary-dock {
 body.gcq-mobile.gcq-lite :is(
     .wx-cloud, .m-header__bead, .m-class-pill__eyebrow,
     .day-ring__halo, .greeting-emblem__face, .m-tl__dot, .m-tl__badge--now i,
-    .home-party__hero, .home-party__crest--compass i, .qroad__cloud, .qroad__flag, .qroad__token-pin,
+    .home-party__hero, .home-party__crest--compass i, .qroad__cloud, .qroad__token-pin, .qroad__portal *, .qroad__sky-hint i, .qroad__stars-field i,
     .aw-roll__ring, .student-cloud-card, .aw-boon__heart,
     .lgc-race__flag, .tq-mobile-race__glow, .tq-mobile-race-card__marker,
     .mm-sign, .mm-ware__emoji, .mm-till__face,

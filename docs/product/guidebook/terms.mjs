@@ -837,8 +837,8 @@ export const TERMS = [
     names: { en: 'Guild banner', el: 'Guild banner' },
     aliases: ['guild banner', 'crest', 'guild lore'],
     def: {
-      en: 'The guild’s hanging banner that unfurls when you tap its emblem in Guild Hall: crest, motto, traits, Crowns and this Chapter’s Glory. The music-note button sings the anthem in a torch-lit alcove.',
-      el: 'Το κρεμαστό λάβαρο του guild που ξετυλίγεται όταν πατάς το έμβλημά του στο Guild Hall: θυρεός, σύνθημα, χαρακτηριστικά, Crowns και το Glory του Chapter. Το κουμπί με τη νότα παίζει τον ύμνο σε μια κόγχη με πυρσούς.'
+      en: 'The guild’s hanging banner that unfurls when you tap its emblem in Guild Hall: crest, motto, traits, Crowns and this Chapter’s Glory. The music-note button sings the anthem in a torch-lit alcove, and Watch the music video plays it full screen as an animated karaoke music video.',
+      el: 'Το κρεμαστό λάβαρο του guild που ξετυλίγεται όταν πατάς το έμβλημά του στο Guild Hall: θυρεός, σύνθημα, χαρακτηριστικά, Crowns και το Glory του Chapter. Το κουμπί με τη νότα παίζει τον ύμνο σε μια κόγχη με πυρσούς και το Watch the music video τον παίζει σε πλήρη οθόνη ως κινούμενο karaoke μουσικό βίντεο.'
     },
     confuse: { en: 'Crown Race', el: 'Crown Race' }
   },

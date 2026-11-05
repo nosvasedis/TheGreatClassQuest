@@ -1,0 +1,127 @@
+/* styles/anthem_scenes/grizzly_might.css — the Grizzly Might music video (features/anthemVideo/scenes/grizzlyMight.js).
+   State comes from cue classes on .av-stage (cue-<name>, cumulative), data-section and .is-finale. */
+
+/* Night to dawn */
+.avs-grizzly .gr-dawn { opacity: 0; transition: opacity 3s ease; }
+.cue-roots .avs-grizzly .gr-dawn { opacity: 0.12; }
+.cue-chorus .avs-grizzly .gr-dawn { opacity: 0.55; }
+.cue-pullback .avs-grizzly .gr-dawn { opacity: 0.78; }
+.cue-through .avs-grizzly .gr-dawn { opacity: 1; }
+.avs-grizzly .gr-stars { transition: opacity 3s; }
+.cue-chorus .avs-grizzly .gr-stars { opacity: 0.2; }
+.cue-through .avs-grizzly .gr-stars { opacity: 0; }
+.avs-grizzly .gr-cold { opacity: 0; transition: opacity 1.6s; mix-blend-mode: soft-light; }
+.cue-winter .avs-grizzly .gr-cold { opacity: 0.45; }
+.cue-chorus .avs-grizzly .gr-cold { opacity: 0; }
+.avs-grizzly .gr-warmth { opacity: 0; transition: opacity 2s; }
+.cue-belong .avs-grizzly .gr-warmth { opacity: 0.3; }
+.av-stage.is-finale .avs-grizzly .gr-warmth { opacity: 0.5; }
+
+/* The mountain, its roots and its strength */
+.avs-grizzly .gr-roots { opacity: 0; transition: opacity 1.4s; filter: drop-shadow(0 0 6px #fbbf24); }
+.cue-roots .avs-grizzly .gr-roots { opacity: 1; }
+.avs-grizzly .gr-roots path { animation: gr-glow 2.4s ease-in-out infinite; }
+.av--lite .avs-grizzly .gr-roots { filter: none; }
+@keyframes gr-glow { 50% { opacity: 0.35; } }
+.avs-grizzly .gr-rim { opacity: 0; transition: opacity 1.2s; filter: drop-shadow(0 0 10px #fde68a); }
+.cue-mountain .avs-grizzly .gr-rim { opacity: 0.55; }
+.cue-strength .avs-grizzly .gr-rim { opacity: 1; }
+.cue-river .avs-grizzly .gr-rim { opacity: 0.2; }
+.cue-through .avs-grizzly .gr-rim { opacity: 1; }
+
+/* Songs in the trees */
+.avs-grizzly .gr-note { opacity: 0; }
+.cue-sings .avs-grizzly .gr-note--a,
+.cue-song .avs-grizzly .gr-note--b { animation: gr-note 2.8s ease-out both; animation-delay: calc(var(--i) * 0.18s); }
+@keyframes gr-note {
+    0% { opacity: 0; transform: translate(0, 12px) rotate(-8deg); }
+    20% { opacity: 1; }
+    100% { opacity: 0; transform: translate(18px, -130px) rotate(10deg); }
+}
+
+/* The smallest of things */
+.avs-grizzly .gr-sprout { transform: scale(0); transform-origin: 50% 100%; transition: transform 0.9s cubic-bezier(.2, 1.6, .4, 1); }
+.cue-smallest .avs-grizzly .gr-sprout { transform: none; }
+.avs-grizzly .gr-sparkle { opacity: 0; transform-origin: center; }
+.cue-things .avs-grizzly .gr-sparkle { animation: gr-sparkle 1.3s ease-out both; }
+.av-stage.is-finale .avs-grizzly .gr-sparkle { animation: gr-sparkle-b 1.6s ease-out infinite; }
+@keyframes gr-sparkle { 0% { opacity: 1; transform: scale(0.3) rotate(0); } 100% { opacity: 0; transform: scale(1.4) rotate(40deg); } }
+@keyframes gr-sparkle-b { 0% { opacity: 1; transform: scale(0.3) rotate(0); } 100% { opacity: 0; transform: scale(1.4) rotate(40deg); } }
+
+/* The river runs wild */
+.avs-grizzly .gr-river-wrap { opacity: 0; transition: opacity 1.2s; }
+.cue-river .avs-grizzly .gr-river-wrap { opacity: 1; }
+.avs-grizzly .gr-ripple { animation: gr-ripple 1.8s ease-in-out infinite; animation-delay: calc(var(--i) * -0.23s); }
+.cue-wild .avs-grizzly .gr-ripple { animation-duration: 0.8s; }
+.cue-chorus .avs-grizzly .gr-ripple { animation-duration: 1.8s; }
+@keyframes gr-ripple { 0% { transform: translateX(14px); opacity: 0; } 40% { opacity: 0.9; } 100% { transform: translateX(-34px); opacity: 0; } }
+.avs-grizzly .gr-splash { opacity: 0; }
+.cue-wild .avs-grizzly .gr-splash { animation: gr-splash 0.9s ease-out both; animation-delay: calc(var(--i) * 0.04s); }
+@keyframes gr-splash { 0% { opacity: 1; transform: rotate(var(--a)) translate(0, 0); } 100% { opacity: 0; transform: rotate(var(--a)) translate(0, -70px); } }
+
+/* Winter */
+.avs-grizzly .gr-snowfall { opacity: 0; transition: opacity 1.2s; }
+.cue-winter .avs-grizzly .gr-snowfall { opacity: 1; }
+.cue-chorus .avs-grizzly .gr-snowfall { opacity: 0; }
+.avs-grizzly .gr-snow { animation-name: gr-snow; }
+@keyframes gr-snow { 0% { transform: translate(0, 0); opacity: 0; } 8% { opacity: 1; } 100% { transform: translate(var(--dx, 0px), 1000px); opacity: 0.9; } }
+
+/* The sleuth: placed in world coordinates, walking between marks */
+.avs-grizzly .gr-bear { transition: transform 2.2s cubic-bezier(.45, 0, .25, 1); }
+.avs-grizzly .gr-bear--1 { transform: translate(-200px, 612px); }
+.avs-grizzly .gr-bear--2 { transform: translate(-330px, 616px) scale(0.62); }
+.avs-grizzly .gr-bear--3 { transform: translate(1900px, 610px) scale(0.95); }
+.avs-grizzly .gr-bear--4 { transform: translate(2050px, 610px) scale(1.1); }
+.avs-grizzly .gr-bear--5 { transform: translate(-360px, 610px) scale(1.05); }
+.cue-hold .avs-grizzly .gr-bear--1 { transform: translate(330px, 612px); }
+.cue-hold .avs-grizzly .gr-bear--2 { transform: translate(450px, 616px) scale(0.62); }
+.cue-other .avs-grizzly .gr-bear--2 { transform: translate(408px, 616px) scale(0.62); }
+.cue-chorus .avs-grizzly .gr-bear--1 { transform: translate(660px, 606px); }
+.cue-chorus .avs-grizzly .gr-bear--2 { transform: translate(800px, 612px) scale(0.62); }
+.cue-chorus .avs-grizzly .gr-bear--3 { transform: translate(950px, 606px) scale(0.95); }
+.cue-chorus .avs-grizzly .gr-bear--4 { transform: translate(1100px, 606px) scale(1.1); }
+.cue-chorus .avs-grizzly .gr-bear--5 { transform: translate(500px, 606px) scale(1.05); }
+.cue-shoulder1 .avs-grizzly .gr-bear--1 { transform: translate(680px, 606px); }
+.cue-shoulder1 .avs-grizzly .gr-bear--3 { transform: translate(925px, 606px) scale(0.95); }
+.cue-shoulder1 .avs-grizzly .gr-bear--4 { transform: translate(1060px, 606px) scale(1.1); }
+.cue-shoulder1 .avs-grizzly .gr-bear--5 { transform: translate(540px, 606px) scale(1.05); }
+.cue-shoulder2 .avs-grizzly .gr-bear--1 { transform: translate(698px, 606px); }
+.cue-shoulder2 .avs-grizzly .gr-bear--3 { transform: translate(902px, 606px) scale(0.95); }
+.cue-shoulder2 .avs-grizzly .gr-bear--4 { transform: translate(1022px, 606px) scale(1.1); }
+.cue-shoulder2 .avs-grizzly .gr-bear--5 { transform: translate(578px, 606px) scale(1.05); }
+.avs-grizzly .gr-bear__bob { transform-origin: 50% 100%; animation: gr-waddle 0.55s ease-in-out infinite alternate; }
+.avs-grizzly .gr-bear--2 .gr-bear__bob { animation-duration: 0.4s; }
+@keyframes gr-waddle { from { transform: rotate(-3deg); } to { transform: rotate(3deg); } }
+.av-stage[data-section="chorus"].beat-a .avs-grizzly .gr-bear__bob { animation: gr-hop-a 0.42s ease-out; }
+.av-stage[data-section="chorus"].beat-b .avs-grizzly .gr-bear__bob { animation: gr-hop-b 0.42s ease-out; }
+@keyframes gr-hop-a { 0% { transform: translateY(0); } 35% { transform: translateY(-12px) scaleY(1.03); } 100% { transform: none; } }
+@keyframes gr-hop-b { 0% { transform: translateY(0); } 35% { transform: translateY(-12px) scaleY(1.03); } 100% { transform: none; } }
+.avs-grizzly .gr-bear__head { transform-origin: 50% 100%; transition: transform 0.5s ease; }
+.cue-other:not(.cue-chorus) .avs-grizzly .gr-bear--1 .gr-bear__head { transform: rotate(12deg); }
+.cue-other:not(.cue-chorus) .avs-grizzly .gr-bear--2 .gr-bear__head { transform: rotate(-12deg); }
+.avs-grizzly .gr-bear__eyes { transform-origin: center; animation: gr-blink 4.2s infinite; }
+@keyframes gr-blink { 0%, 94%, 100% { transform: none; } 97% { transform: scaleY(0.1); } }
+
+/* Stand strong: a stomp that shakes the ground */
+.cue-strong .avs-grizzly .gr-shake { animation: gr-stomp 0.55s ease-out; }
+@keyframes gr-stomp { 0%, 100% { transform: none; } 20% { transform: translateY(9px); } 45% { transform: translateY(-5px); } 70% { transform: translateY(3px); } }
+.avs-grizzly .gr-puff { opacity: 0; transform-origin: center; }
+.cue-strong .avs-grizzly .gr-puff { animation: gr-puff 1s ease-out both; animation-delay: calc(var(--i) * 0.04s); }
+@keyframes gr-puff { 0% { opacity: 0.85; transform: scale(0.3); } 100% { opacity: 0; transform: scale(1.8, 1.3) translateY(-10px); } }
+
+/* Pull back to the whole mountain; the sun crests the peak */
+.avs-grizzly .gr-cam { transition: transform 3.2s ease-in-out; }
+.cue-pullback .avs-grizzly .gr-cam { transform: translate(136px, 60px) scale(0.83); }
+.avs-grizzly .gr-sun { opacity: 0; transform: translateY(260px); transition: transform 2.6s cubic-bezier(.2, .8, .2, 1), opacity 1.2s; }
+.cue-true .avs-grizzly .gr-sun { opacity: 0.6; transform: translateY(130px); }
+.cue-through .avs-grizzly .gr-sun { opacity: 1; transform: none; }
+.avs-grizzly .gr-rays { opacity: 0; transform-origin: center; transition: opacity 1.6s; animation: gr-spin 40s linear infinite; }
+.cue-through .avs-grizzly .gr-rays { opacity: 1; }
+@keyframes gr-spin { to { transform: rotate(360deg); } }
+
+/* Finale: a ring of golden paw prints stamped around the crest */
+.avs-grizzly .gr-paw { opacity: 0; transform-origin: center; filter: drop-shadow(0 0 6px #f59e0b); }
+.av-stage.is-finale .avs-grizzly .gr-paw { opacity: 1; animation: gr-stamp 0.45s cubic-bezier(.2, 1.4, .4, 1) both; animation-delay: calc(var(--i) * 0.12s); }
+@keyframes gr-stamp { from { opacity: 0; transform: scale(2.2); } to { opacity: 1; transform: none; } }
+.avs-grizzly .gr-pawring { transform-origin: center; animation: gr-spin 36s linear infinite; }
+.av--lite .avs-grizzly .gr-paw, .av--lite .avs-grizzly .gr-rim { filter: none; }

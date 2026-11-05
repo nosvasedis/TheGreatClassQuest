@@ -1,0 +1,140 @@
+<!doctype html>
+<!-- tools/anthem-video/tuner.html — dev-only tap tuner for the anthem music video word timings.
+     Run `npm run dev`, open /tools/anthem-video/tuner.html, pick a guild, press Start and tap Space on
+     every sung word (B on beats). Paste the JSON into features/anthemVideo/anthemWordTimings.js. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Anthem word-timing tuner</title>
+<style>
+    body { font: 15px/1.45 system-ui, sans-serif; background: #12101a; color: #eee; margin: 0; padding: 1.5rem; }
+    h1 { margin: 0 0 0.5rem; font-size: 1.3rem; }
+    .row { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; margin: 0.6rem 0; }
+    button, select { font: inherit; padding: 0.35rem 0.8rem; border-radius: 6px; border: 1px solid #555; background: #2a2635; color: #fff; cursor: pointer; }
+    #lyrics p { margin: 0.25rem 0; font-size: 1.25rem; }
+    #lyrics span { padding: 0 0.15em; border-radius: 4px; }
+    #lyrics span.done { color: #8fd18f; }
+    #lyrics span.next { background: #f7cf6a; color: #000; }
+    #lyrics span.now { background: #e9a43a; color: #000; }
+    textarea { width: 100%; height: 14rem; background: #0b0a10; color: #cde; border: 1px solid #444; border-radius: 6px; font: 13px/1.4 ui-monospace, monospace; }
+    .hint { color: #aaa; font-size: 0.9rem; }
+    #clock { font: 600 1.2rem ui-monospace, monospace; min-width: 6ch; }
+</style>
+</head>
+<body>
+<h1>Anthem word-timing tuner</h1>
+<p class="hint">Tap: Space on each word as it starts · B on beats (gives bpm + beatOffset) · Backspace undoes the last word · Esc stops. Preview plays the song with the current timings highlighted.</p>
+<div class="row">
+    <select id="guild"></select>
+    <select id="rate"><option value="1">1×</option><option value="0.75">0.75×</option><option value="0.5">0.5×</option></select>
+    <button id="start">Start tapping</button>
+    <button id="preview">Preview current timings</button>
+    <button id="stop">Stop</button>
+    <span id="clock">0.00</span>
+</div>
+<div id="lyrics"></div>
+<h2>JSON (paste into anthemWordTimings.js)</h2>
+<textarea id="out" spellcheck="false"></textarea>
+<script type="module">
+import { GUILDS, GUILD_IDS } from '/features/guilds.js';
+import { ANTHEM_VIDEO_TIMINGS } from '/features/anthemVideo/anthemWordTimings.js';
+import { buildWordTimeline, frameAt, validateWordTimings } from '/features/anthemVideo/anthemVideoCore.mjs';
+
+const $ = id => document.getElementById(id);
+GUILD_IDS.forEach(id => $('guild').append(new Option(GUILDS[id].name, id)));
+
+let audio = null; let mode = 'idle'; let taps = []; let beats = []; let raf = 0;
+let timeline = null; let flatWords = [];
+
+function setup() {
+    const id = $('guild').value;
+    const timing = ANTHEM_VIDEO_TIMINGS[id] || {};
+    timeline = buildWordTimeline(GUILDS[id].anthemLyrics, timing);
+    flatWords = timeline.lines.flatMap((l, li) => l.words.map((w, wi) => ({ li, wi, text: w.text })));
+    $('lyrics').innerHTML = timeline.lines.map((l, li) => `<p>${l.words.map((w, wi) => `<span data-k="${li}-${wi}">${w.text}</span>`).join(' ')}</p>`).join('');
+    showJson(timing);
+}
+
+function mark() {
+    document.querySelectorAll('#lyrics span').forEach(s => s.className = '');
+    flatWords.forEach((w, i) => {
+        const el = document.querySelector(`[data-k="${w.li}-${w.wi}"]`);
+        if (i < taps.length) el.className = 'done';
+        else if (i === taps.length) el.className = 'next';
+    });
+}
+
+function showJson(timing) {
+    const id = $('guild').value;
+    const problems = timing.words ? validateWordTimings(GUILDS[id].anthemLyrics, timing) : [];
+    const words = (timing.words || []).map(l => `            [${l.join(', ')}],`).join('\n');
+    $('out').value = `    ${id}: {\n        bpm: ${timing.bpm}, beatOffset: ${timing.beatOffset}, outroAt: ${timing.outroAt},\n        words: [\n${words}\n        ],\n    },` + (problems.length ? `\n// problems:\n// ${problems.join('\n// ')}` : '');
+}
+
+function play(newMode) {
+    stop();
+    mode = newMode;
+    audio = new Audio('/' + GUILDS[$('guild').value].anthem.replace(/^\.\//, ''));
+    audio.playbackRate = Number($('rate').value);
+    audio.preservesPitch = true;
+    audio.addEventListener('ended', finish);
+    audio.play();
+    tick();
+}
+
+function tick() {
+    if (!audio) return;
+    const t = audio.currentTime;
+    $('clock').textContent = t.toFixed(2);
+    if (mode === 'preview') {
+        const f = frameAt(timeline, t);
+        document.querySelectorAll('#lyrics span').forEach(s => s.className = '');
+        timeline.lines.forEach((l, li) => l.words.forEach((w, wi) => {
+            const el = document.querySelector(`[data-k="${li}-${wi}"]`);
+            if (li < f.lineIdx || (li === f.lineIdx && wi < f.wordIdx)) el.className = 'done';
+            if (li === f.lineIdx && wi === f.wordIdx) el.className = 'now';
+        }));
+    }
+    raf = requestAnimationFrame(tick);
+}
+
+function finish() {
+    if (mode === 'tap') {
+        const id = $('guild').value;
+        const old = ANTHEM_VIDEO_TIMINGS[id] || {};
+        const words = timeline.lines.map(l => []);
+        taps.forEach((t, i) => { if (flatWords[i]) words[flatWords[i].li].push(Math.round(t * 100) / 100); });
+        let bpm = old.bpm; let beatOffset = old.beatOffset;
+        if (beats.length >= 8) {
+            const gaps = beats.slice(1).map((b, i) => b - beats[i]).sort((a, b) => a - b);
+            const beat = gaps[Math.floor(gaps.length / 2)];
+            bpm = Math.round((60 / beat) * 10) / 10;
+            beatOffset = Math.round((((beats[0] % beat) + beat) % beat) * 100) / 100;
+        }
+        const last = timeline.lines.at(-1);
+        showJson({ bpm, beatOffset, outroAt: old.outroAt ?? Math.round(last.end * 100) / 100, words });
+    }
+    stop();
+}
+
+function stop() {
+    cancelAnimationFrame(raf);
+    if (audio) { audio.pause(); audio = null; }
+    mode = 'idle';
+}
+
+$('guild').addEventListener('change', () => { stop(); setup(); });
+$('start').addEventListener('click', () => { taps = []; beats = []; mark(); play('tap'); $('start').blur(); });
+$('preview').addEventListener('click', () => { setup(); play('preview'); $('preview').blur(); });
+$('stop').addEventListener('click', () => (mode === 'tap' ? finish() : stop()));
+document.addEventListener('keydown', e => {
+    if (!audio || mode !== 'tap') return;
+    if (e.key === ' ') { e.preventDefault(); taps.push(audio.currentTime); mark(); if (taps.length >= flatWords.length) finish(); }
+    else if (e.key === 'b' || e.key === 'B') beats.push(audio.currentTime);
+    else if (e.key === 'Backspace') { taps.pop(); mark(); }
+    else if (e.key === 'Escape') finish();
+});
+setup();
+</script>
+</body>
+</html>

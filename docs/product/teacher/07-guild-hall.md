@@ -24,6 +24,14 @@ Each has an emblem, a sound, and a **karaoke anthem**. Tap the crest on a guild�
 
 The small **music-note** button on the crest plays the anthem. It opens in a torch-lit alcove with the crest between two torches. Each anthem is a short cinematic song (about 40 seconds: one verse, then the chorus), sung by an adult lead singer with a full choir on the chorus, written to suit every age in the school. While it plays, the line being sung lights up and fills with gold from left to right, the next line is brighter so the class can read ahead, and the lyrics scroll on their own to keep the sung line in view. A thin gold bar under the plaque shows how far through the song you are, and the plaque says "Get ready to sing…", then "Sing the Verse!" / "Sing the Chorus!", then "Bravo!" at the end. Play the anthem when the room needs identity, not noise for its own sake.
 
+Under the progress bar, **Watch the music video** turns the anthem into a full-screen karaoke music video made for the projector. The alcove's song fades out and the video starts from the beginning. Every guild has its own animated story, drawn and moved entirely in code and timed to its song: a dragon hatches in a volcano and flies past a red moon for **Dragon Flame**; the bears gather on the mountain until the sun crests the peak for **Grizzly Might**; an owl keeps watch over a moonlit tower library and the constellations for **Owl Wisdom**; and an ember in a storm-soaked nest becomes the phoenix at dawn for **Phoenix Rising**. The scene changes with the lyrics and moves with the beat, and the chorus is the big moment.
+
+- **Before the singing:** the crest, the motto, "Get ready to sing!" and a short countdown to the first line.
+- **The karaoke bar:** the line being sung sits large at the bottom. Each **word** fills with gold as it is sung, and a little spark hops from word to word. The next line waits underneath so the class can read ahead, and a small chip in the corner says **Verse** or **Chorus**.
+- **The ending:** the crest settles in a glowing ring with **Bravo, [guild]!** and the motto, plus **Sing it again** and **Back to the Guild Hall**.
+- **Controls:** a seek bar, play/pause, restart, full screen and close. They tuck away after a few seconds without the mouse moving. On the keyboard: **Space** (or **K**) pauses, **R** restarts, **F** toggles full screen, the **arrow keys** skip 5 seconds and **Esc** closes.
+- **Slow computers and reduced motion:** on a low-power device the scene uses fewer particles and effects. With the computer's reduce-motion setting on, the scenes stay still while the karaoke words still light up in time.
+
 ## Guild Placement Quiz
 
 From **Teacher Settings → My Classes → Manage Students**, any student without a guild can take a **7-question**, story-style quiz. The hat on the roster opens it.
@@ -77,7 +85,7 @@ The Hall is one night-time great hall with three parts, top to bottom.
 - **The herald ribbon**, a slim line under the top bar with a green **Live** light. When Glory lands it calls the news in the guild’s colours: who took the lead, who climbed past whom, a Unity Seal won, or “+1.5 Glory per member” (a Wheel storm shows as “−0.6”). With nothing new it rests on a quiet line. If you come back to the tab after a while, the first line says **Since you last looked**
 - **Four guild banners**, always in the same order so every child finds their house in the same place. Each banner has:
   - its **place this month** as a medal in the corner (gold, silver, bronze, iron); the leader’s banner has a gold edge
-  - the crest (tap it for the full banner) and the **music-note** button for the anthem
+  - the crest (tap it for the full banner) and the **music-note** button for the anthem (and from there, its full-screen **music video**)
   - a **vial** that fills with **this Chapter’s Glory per member**, the number every guild is racing on, with the number under it. When stars land, a drop falls into the vial, the number rolls up and a small “+0.4” floats beside it (Glory taken by a storm darkens the vial and shows a violet “−0.4”). A guild that changes place flips its medal and shows a small arrow (▲ 2nd); a new leader gets a crown dropped on its crest
   - **“+3 👑 if the month ended now”**: the Crowns the guild would take today, Unity Seal included
   - the **Unity Seal** ring: how many members have earned their 6 Glory this month out of all the guild's members, and how many are needed (for example "20 of 26 ready · 21 needed"). The guild banner and the Guild Spotlight show the same three numbers. When the ring closes the seal turns gold: **Sealed! +1 Crown**

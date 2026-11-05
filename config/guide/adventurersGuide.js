@@ -138,9 +138,9 @@ export const GUIDE_CHAPTERS = {
                 {
                     id: 'guild-hall', icon: 'fa-shield-halved', name: 'Guild Hall', tier: 'pro',
                     where: 'Guild Hall tab', go: 'tab:guilds-tab',
-                    text: `Four houses race for the whole school year: Dragon Flame, Grizzly Might, Owl Wisdom and Phoenix Rising. Every star gives the house 2 Glory. Each month is a Chapter: the house whose members earn the most Glory each, on average, wins it, so a small busy house can beat a big one. Chapters pay Crowns (5, 3, 2, 1), plus one more for a house where at least 4 in 5 members earned 3 stars. Most Crowns in June wins the year. Tap an emblem for the house banner, or the note for its anthem.`,
+                    text: `Four houses race for the whole school year: Dragon Flame, Grizzly Might, Owl Wisdom and Phoenix Rising. Every star gives the house 2 Glory. Each month is a Chapter: the house whose members earn the most Glory each, on average, wins it, so a small busy house can beat a big one. Chapters pay Crowns (5, 3, 2, 1), plus one more for a house where at least 4 in 5 members earned 3 stars. Most Crowns in June wins the year. Tap an emblem for the house banner, or the note for its anthem, then Watch the music video to sing it full screen, word by word.`,
                     why: 'Belonging across ages. A student\'s guild is theirs for life.',
-                    keys: 'guilds houses glory crown race crowns chapter unity seal guild power dragon flame grizzly might owl wisdom phoenix rising anthem'
+                    keys: 'guilds houses glory crown race crowns chapter unity seal guild power dragon flame grizzly might owl wisdom phoenix rising anthem music video karaoke sing along'
                 },
                 {
                     id: 'fortunes-wheel', icon: 'fa-dharmachakra', name: "Fortune's Wheel", tier: 'pro',

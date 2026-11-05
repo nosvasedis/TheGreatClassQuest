@@ -121,6 +121,7 @@ export const guildsTabHTML = `
                                 <span class="guild-anthem-note-anim" style="animation-delay:0.4s">♫</span>
                             </div>
                             <div class="guild-anthem-progress" aria-hidden="true"><span class="guild-anthem-progress__fill" id="guild-anthem-progress-fill"></span></div>
+                            <button type="button" class="guild-anthem-video-btn" id="guild-anthem-video-btn"><i class="fas fa-clapperboard" aria-hidden="true"></i> Watch the music video</button>
                         </div>
                         <div class="guild-anthem-lyrics" id="guild-anthem-lyrics"></div>
                     </div>

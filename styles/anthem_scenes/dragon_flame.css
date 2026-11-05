@@ -1,0 +1,120 @@
+/* styles/anthem_scenes/dragon_flame.css — the Dragon Flame music video (features/anthemVideo/scenes/dragonFlame.js).
+   State comes from cue classes on .av-stage (cue-<name>, cumulative), data-section and .is-finale. */
+
+/* Sky, storm and light */
+.avs-dragon .dr-stars { opacity: 0.75; transition: opacity 1.2s; }
+.cue-night .avs-dragon .dr-stars { opacity: 1; }
+.avs-dragon .dr-moon-halo { --pulse: 1.1; }
+.avs-dragon .dr-flash, .avs-dragon .dr-bolt { opacity: 0; }
+.cue-thunder .avs-dragon .dr-flash { animation: dr-flash 0.9s ease-out; }
+.cue-thunder .avs-dragon .dr-bolt { animation: dr-bolt 0.9s ease-out; }
+@keyframes dr-flash { 0% { opacity: 0; } 10% { opacity: 0.5; } 20% { opacity: 0.08; } 32% { opacity: 0.38; } 100% { opacity: 0; } }
+@keyframes dr-bolt { 0%, 100% { opacity: 0; } 8%, 34% { opacity: 1; } 18% { opacity: 0.2; } }
+.avs-dragon .dr-lava { animation: dr-lava 2.2s ease-in-out infinite; }
+@keyframes dr-lava { 50% { opacity: 0.5; } }
+.avs-dragon .dr-warm { opacity: 0; transition: opacity 1.6s ease; }
+.av-stage[data-section="chorus"] .avs-dragon .dr-warm { opacity: 0.45; }
+.av-stage.is-finale .avs-dragon .dr-warm { opacity: 0.62; }
+.avs-dragon .dr-shadow { opacity: 0; transition: opacity 1.2s ease; }
+.cue-shadows .avs-dragon .dr-shadow { opacity: 0.55; }
+.cue-stand .avs-dragon .dr-shadow { opacity: 0; }
+.avs-dragon .dr-embers { opacity: 0.55; transition: opacity 1s; }
+.cue-embers .avs-dragon .dr-embers { opacity: 1; }
+.avs-dragon .dr-ember { animation-name: dr-ember; }
+@keyframes dr-ember {
+    0% { transform: translate(0, 0) scale(1); opacity: 0; }
+    12% { opacity: 1; }
+    70% { opacity: 0.9; }
+    100% { transform: translate(var(--dx, 0px), -760px) scale(0.4); opacity: 0; }
+}
+
+/* The spark that becomes a dragon */
+.avs-dragon .dr-spark {
+    opacity: 0; transform: translateY(40px) scale(0.3); transform-origin: center;
+    transition: transform 1.4s ease-out, opacity 0.6s;
+    filter: drop-shadow(0 0 12px #ffb347);
+}
+.cue-spark .avs-dragon .dr-spark { opacity: 1; transform: translateY(-24px) scale(1.2); }
+.cue-hatch .avs-dragon .dr-spark { opacity: 0; transform: translateY(-24px) scale(5); transition-duration: 0.5s; }
+
+/* Flight path: a world-placed mover, then a relative orbit, then a gentle bob */
+.avs-dragon .dr-path {
+    opacity: 0; transform: translate(800px, 440px) scale(0.08);
+    transition: transform 1.8s cubic-bezier(.45, 0, .2, 1), opacity 0.5s ease;
+}
+.cue-hatch .avs-dragon .dr-path { opacity: 1; transform: translate(800px, 400px) scale(0.5); }
+.cue-fly .avs-dragon .dr-path { transform: translate(560px, 290px) scale(0.78); }
+.cue-stand .avs-dragon .dr-path { transform: translate(320px, 548px) scale(0.92); }
+.cue-chorus .avs-dragon .dr-path { transform: translate(720px, 300px) scale(1.05); }
+.cue-bright .avs-dragon .dr-path { transform: translate(760px, 270px) scale(1.22); }
+.av-stage.is-finale .avs-dragon .dr-path { transform: translate(1270px, 170px) scale(0.6); }
+.cue-rise .avs-dragon .dr-orbit { animation: dr-orbit 3.6s ease-in-out both; }
+@keyframes dr-orbit {
+    0% { transform: translate(0, 0) scale(1); }
+    30% { transform: translate(330px, -150px) scale(0.75); }
+    55% { transform: translate(580px, -110px) scale(-0.6, 0.6); }
+    80% { transform: translate(330px, 30px) scale(-0.8, 0.8); }
+    100% { transform: translate(0, 0) scale(1); }
+}
+.avs-dragon .dr-bob { animation: dr-bob 2.4s ease-in-out infinite; }
+@keyframes dr-bob { 50% { transform: translateY(-10px); } }
+.cue-stand:not(.cue-chorus) .avs-dragon .dr-bob { animation-duration: 3.4s; }
+
+.avs-dragon .dr-wing { transform-origin: 100% 100%; animation: dr-flap 0.52s ease-in-out infinite alternate; }
+.avs-dragon .dr-wing--far { animation-delay: -0.1s; }
+@keyframes dr-flap { from { transform: rotate(-20deg); } to { transform: rotate(24deg) scaleY(0.72); } }
+.cue-stand:not(.cue-chorus) .avs-dragon .dr-wing { animation-duration: 1.5s; }
+.avs-dragon .dr-head { transform-origin: 0% 100%; transition: transform 0.3s ease; }
+.cue-roar:not(.cue-chorus) .avs-dragon .dr-head { transform: rotate(-14deg); }
+.avs-dragon .dr-heart { opacity: 0; transform-origin: center; transition: opacity 0.6s; filter: drop-shadow(0 0 10px #ffd36b); }
+.cue-heart .avs-dragon .dr-heart { opacity: 0.95; animation: dr-heart 0.5s ease-in-out infinite alternate; }
+@keyframes dr-heart { to { transform: scale(1.35); } }
+
+/* Fire breath: one-shot bursts restarted by each new cue's animation name */
+.avs-dragon .dr-breath { opacity: 0; transform: scaleX(0); transform-origin: 0% 50%; }
+.cue-chorus .avs-dragon .dr-breath { animation: dr-breath-a 1.7s ease-out both; }
+.cue-flame .avs-dragon .dr-breath { animation: dr-breath-b 1.9s ease-out both; }
+.cue-bright .avs-dragon .dr-breath { animation: dr-breath-c 2.2s ease-out both; }
+@keyframes dr-breath-a { 0% { opacity: 0; transform: scaleX(0) scaleY(0.4); } 15% { opacity: 1; transform: none; } 70% { opacity: 1; transform: scaleX(1.06); } 100% { opacity: 0; transform: scaleX(1.1) scaleY(1.2); } }
+@keyframes dr-breath-b { 0% { opacity: 0; transform: scaleX(0) scaleY(0.4); } 15% { opacity: 1; transform: none; } 70% { opacity: 1; transform: scaleX(1.06); } 100% { opacity: 0; transform: scaleX(1.1) scaleY(1.2); } }
+@keyframes dr-breath-c { 0% { opacity: 0; transform: scaleX(0) scaleY(0.4); } 15% { opacity: 1; transform: none; } 70% { opacity: 1; transform: scaleX(1.06); } 100% { opacity: 0; transform: scaleX(1.1) scaleY(1.2); } }
+
+/* The roar */
+.avs-dragon .dr-wave { opacity: 0; transform-origin: center; }
+.cue-roar .avs-dragon .dr-wave { animation: dr-wave 1.3s ease-out both; animation-delay: calc(var(--i) * 0.18s); }
+@keyframes dr-wave { from { opacity: 0.95; transform: scale(0.3); } to { opacity: 0; transform: scale(5); } }
+.cue-roar .avs-dragon .dr-cam { animation: dr-shake 0.6s linear; }
+@keyframes dr-shake {
+    0%, 100% { transform: translate(0, 0); }
+    15% { transform: translate(-10px, 6px); } 30% { transform: translate(9px, -6px); }
+    45% { transform: translate(-7px, -4px); } 60% { transform: translate(6px, 5px); } 80% { transform: translate(-3px, 2px); }
+}
+
+/* Torches on the walls light one by one */
+.avs-dragon .dr-torch {
+    opacity: 0; transform: scale(0.2); transform-origin: 50% 100%;
+    transition: transform 0.5s cubic-bezier(.2, 1.5, .4, 1), opacity 0.4s;
+    transition-delay: calc(var(--i) * 0.13s);
+}
+.cue-burn .avs-dragon .dr-torch { opacity: 1; transform: none; }
+.avs-dragon .dr-torch__flame { transform-origin: 50% 100%; animation: dr-flicker 0.32s ease-in-out infinite alternate; }
+.avs-dragon .dr-torch:nth-child(odd) .dr-torch__flame { animation-duration: 0.41s; }
+@keyframes dr-flicker { from { transform: scale(0.92, 1.06); } to { transform: scale(1.06, 0.9) skewX(4deg); } }
+.avs-dragon .dr-torch__glow { transform-origin: center; --pulse: 1.45; }
+.av-stage[data-section="chorus"].beat-a .avs-dragon .dr-torch__glow { animation: av-pulse-a 0.42s ease-out; }
+.av-stage[data-section="chorus"].beat-b .avs-dragon .dr-torch__glow { animation: av-pulse-b 0.42s ease-out; }
+
+/* Sky bursts on "ignite", and again through the finale */
+.avs-dragon .dr-burst { opacity: 0; transform: scale(0.2); transform-origin: center; }
+.cue-ignite .avs-dragon .dr-burst { animation: dr-burst-a 1.5s ease-out both; animation-delay: calc(var(--i) * 0.22s); }
+.av-stage.is-finale .avs-dragon .dr-burst { animation: dr-burst-b 1.8s ease-out infinite; animation-delay: calc(var(--i) * 0.45s); }
+@keyframes dr-burst-a { 0% { opacity: 1; transform: scale(0.2); } 100% { opacity: 0; transform: scale(1.7); } }
+@keyframes dr-burst-b { 0% { opacity: 1; transform: scale(0.2); } 100% { opacity: 0; transform: scale(1.7); } }
+
+/* Finale: a ring of flame around the crest */
+.avs-dragon .dr-ring { opacity: 0; transform: scale(0.5) rotate(-40deg); transform-origin: center; transition: opacity 0.8s, transform 1.4s cubic-bezier(.2, .9, .3, 1.1); }
+.av-stage.is-finale .avs-dragon .dr-ring { opacity: 1; transform: none; }
+.avs-dragon .dr-ring__spin { transform-origin: center; animation: dr-spin 14s linear infinite; }
+@keyframes dr-spin { to { transform: rotate(360deg); } }
+.avs-dragon .dr-ring__flame { transform-origin: 50% 100%; animation: dr-flicker 0.38s ease-in-out infinite alternate; filter: drop-shadow(0 0 8px #ff7a1a); }
+.av--lite .avs-dragon .dr-ring__flame { filter: none; }

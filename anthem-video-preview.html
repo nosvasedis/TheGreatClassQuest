@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Guild anthem music video preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Fredoka+One&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    html, body { margin: 0; min-height: 100%; background: #1b1530; font-family: 'Fredoka', sans-serif; color: #fff; }
+    .pv-bar { padding: 2rem; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .pv-bar button { padding: 8px 14px; border-radius: 10px; border: 1px solid #a78bfa; background: #2d2450; color: #fff; cursor: pointer; font: inherit; }
+    .pv-hint { padding: 0 2rem; color: #c4b5fd; }
+  </style>
+</head>
+<body>
+  <div class="pv-bar">
+    <button data-guild="dragon_flame">Dragon Flame</button>
+    <button data-guild="grizzly_might">Grizzly Might</button>
+    <button data-guild="owl_wisdom">Owl Wisdom</button>
+    <button data-guild="phoenix_rising">Phoenix Rising</button>
+  </div>
+  <p class="pv-hint">Add <code>?guild=owl_wisdom&amp;t=20&amp;hold=1</code> to open straight at a moment (hold pauses there). <code>&amp;lite=1</code> forces the lite tier.</p>
+  <script type="module" src="/anthem-video-preview.js"></script>
+</body>
+</html>

@@ -378,10 +378,13 @@ function stopKaraokeSync() {
 }
 
 // ─── Anthem modal ─────────────────────────────────────────────────────────────
+let _alcoveGuildId = null;
+
 function openAnthemModal(guildId) {
     const overlay = ensureAnthemOverlayRoot();
     if (!overlay || !fillGuildAnthemCard(guildId)) return;
 
+    _alcoveGuildId = guildId;
     _playOverlayOpen(overlay, 'guild-anthem-overlay');
     playGuildAnthem(guildId);
     startKaraokeSync(guildId);
@@ -443,6 +446,17 @@ function closeAnthemModal() {
     _playOverlayClose(document.getElementById('guild-anthem-overlay'), 'guild-anthem-overlay', ANTHEM_CLOSE_MS);
 }
 
+/** The alcove's song fades out and the full-screen music video (lazy chunk) takes over from the start. */
+function openAnthemMusicVideo() {
+    const guildId = _alcoveGuildId;
+    if (!guildId) return;
+    closeAnthemModal();
+    const opener = document.querySelector(`[data-anthem-guild="${guildId}"]`);
+    import('../modals/anthemVideo.js')
+        .then(m => m.openAnthemVideo(guildId, { opener }))
+        .catch(quietly('ui/tabs/guilds.js'));
+}
+
 function wireAnthemListeners() {
     const overlay = ensureAnthemOverlayRoot();
     if (!overlay || overlay._anthemWired) return;
@@ -450,6 +464,7 @@ function wireAnthemListeners() {
 
     document.getElementById('guild-anthem-close')?.addEventListener('click', closeAnthemModal);
     document.getElementById('guild-anthem-overlay-bg')?.addEventListener('click', closeAnthemModal);
+    document.getElementById('guild-anthem-video-btn')?.addEventListener('click', openAnthemMusicVideo);
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') closeAnthemModal();
     });

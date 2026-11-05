@@ -573,6 +573,27 @@
     background: linear-gradient(90deg, #fde68a, color-mix(in srgb, var(--anthem-glow, #f59e0b) 80%, #f59e0b));
     box-shadow: 0 0 8px color-mix(in srgb, var(--anthem-glow, #f59e0b) 70%, transparent);
 }
+/* Opens the full-screen music video (ui/modals/anthemVideo.js) */
+.guild-anthem-video-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding: 0.45rem 1.1rem;
+    border-radius: 9999px;
+    border: 1px solid color-mix(in srgb, var(--anthem-gold, #f2c46d) 70%, transparent);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--anthem-primary, #7c3aed) 85%, #000), color-mix(in srgb, var(--anthem-secondary, #a78bfa) 70%, #000));
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.85rem;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    box-shadow: 0 0 14px color-mix(in srgb, var(--anthem-glow, #f59e0b) 45%, transparent);
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+.guild-anthem-video-btn:hover { transform: translateY(-1px); box-shadow: 0 0 22px color-mix(in srgb, var(--anthem-glow, #f59e0b) 70%, transparent); }
+.guild-anthem-video-btn:active { transform: scale(0.97); }
+.guild-anthem-video-btn:focus-visible { outline: 3px solid var(--anthem-gold, #f2c46d); outline-offset: 2px; }
 
 /* Lyrics: the only part of the alcove that scrolls, so the crest and the
    plaque stay put while the song glides past. The sung line is kept a little

@@ -1,0 +1,124 @@
+/* styles/anthem_scenes/phoenix_rising.css — the Phoenix Rising music video (features/anthemVideo/scenes/phoenixRising.js).
+   State comes from cue classes on .av-stage (cue-<name>, cumulative), data-section and .is-finale. */
+
+/* The storm */
+.avs-phoenix .ph-rainfall { opacity: 0.55; transition: opacity 1s; }
+.cue-storm .avs-phoenix .ph-rainfall { opacity: 1; }
+.cue-know .avs-phoenix .ph-rainfall { opacity: 0.7; }
+.cue-break .avs-phoenix .ph-rainfall { opacity: 0; }
+.avs-phoenix .ph-rain { animation: ph-rain 0.8s linear infinite; }
+@keyframes ph-rain { from { transform: translate(0, 0); } to { transform: translate(-120px, 1100px); } }
+.avs-phoenix .ph-cloud { transition: transform 2.2s ease, opacity 1.6s; }
+.cue-break .avs-phoenix .ph-cloud { opacity: 0; }
+.cue-break .avs-phoenix .ph-cloud--l { transform: translateX(-900px); }
+.cue-break .avs-phoenix .ph-cloud--r { transform: translateX(900px); }
+.avs-phoenix .ph-flash, .avs-phoenix .ph-bolt { opacity: 0; }
+.cue-storm .avs-phoenix .ph-flash { animation: ph-flash-a 0.9s ease-out; }
+.cue-storm2 .avs-phoenix .ph-flash { animation: ph-flash-b 0.9s ease-out; }
+.cue-storm .avs-phoenix .ph-bolt--1 { animation: ph-bolt 0.9s ease-out; }
+.cue-storm2 .avs-phoenix .ph-bolt--2 { animation: ph-bolt 0.9s ease-out; }
+@keyframes ph-flash-a { 0% { opacity: 0; } 10% { opacity: 0.45; } 22% { opacity: 0.06; } 34% { opacity: 0.32; } 100% { opacity: 0; } }
+@keyframes ph-flash-b { 0% { opacity: 0; } 10% { opacity: 0.45; } 22% { opacity: 0.06; } 34% { opacity: 0.32; } 100% { opacity: 0; } }
+@keyframes ph-bolt { 0%, 100% { opacity: 0; } 8%, 36% { opacity: 1; } 20% { opacity: 0.2; } }
+
+/* When the sky falls in pieces */
+.avs-phoenix .ph-shard { opacity: 0; transform-origin: center; }
+.cue-falls .avs-phoenix .ph-shard { animation: ph-shard 1.9s ease-in both; animation-delay: calc(var(--i) * 0.12s); }
+@keyframes ph-shard {
+    0% { opacity: 0; transform: translate(0, 0) rotate(0); }
+    10% { opacity: 0.9; }
+    100% { opacity: 0; transform: translate(-40px, 720px) rotate(220deg); }
+}
+
+/* The nest fire burns low, an ember survives, and it begins again */
+.avs-phoenix .ph-nest-fire { transform-origin: 50% 100%; transition: transform 1s cubic-bezier(.3, 1.3, .4, 1); }
+.cue-low .avs-phoenix .ph-nest-fire { transform: scale(0.3); }
+.cue-begin .avs-phoenix .ph-nest-fire { transform: scale(1.05); }
+.cue-chorus .avs-phoenix .ph-nest-fire { transform: scale(1.35); }
+.avs-phoenix .ph-flick { transform-origin: 50% 100%; animation: ph-flick 0.34s ease-in-out infinite alternate; }
+@keyframes ph-flick { from { transform: scale(0.92, 1.06); } to { transform: scale(1.06, 0.9) skewX(4deg); } }
+.avs-phoenix .ph-ember { opacity: 0; transform-origin: center; transition: opacity 0.6s; filter: drop-shadow(0 0 10px #fde68a); }
+.cue-ember .avs-phoenix .ph-ember { opacity: 1; animation: ph-ember 0.6s ease-in-out infinite alternate; }
+.cue-chorus .avs-phoenix .ph-ember { opacity: 0; }
+@keyframes ph-ember { to { transform: scale(1.35); } }
+.avs-phoenix .ph-ember-ring { opacity: 0; transform-origin: center; }
+.cue-know .avs-phoenix .ph-ember-ring { animation: ph-ring-out 1.3s ease-out both; }
+@keyframes ph-ring-out { from { opacity: 1; transform: scale(0.6); } to { opacity: 0; transform: scale(5); } }
+.avs-phoenix .ph-loop { opacity: 0; transform-origin: center; }
+.cue-time1 .avs-phoenix .ph-loop--1 { animation: ph-loop 1.4s ease-out both; }
+.cue-time2 .avs-phoenix .ph-loop--2 { animation: ph-loop 1.4s ease-out both; }
+@keyframes ph-loop { from { opacity: 1; transform: scale(0.3); } to { opacity: 0; transform: scale(4.5); } }
+.avs-phoenix .ph-ashes { opacity: 0; transition: opacity 1s; }
+.cue-ash .avs-phoenix .ph-ashes { opacity: 1; }
+.cue-chorus .avs-phoenix .ph-ashes { opacity: 0; }
+.avs-phoenix .ph-ash { animation-name: ph-ash; }
+@keyframes ph-ash { 0% { transform: translate(0, 0); opacity: 0; } 15% { opacity: 0.9; } 100% { transform: translate(var(--dx, 0px), -460px); opacity: 0; } }
+.avs-phoenix .ph-sparks { opacity: 0; transition: opacity 1s; }
+.cue-chorus .avs-phoenix .ph-sparks { opacity: 1; }
+
+/* The morning climbs */
+.avs-phoenix .ph-dawn { opacity: 0; transition: opacity 2.4s; }
+.cue-morning .avs-phoenix .ph-dawn { opacity: 0.5; }
+.cue-chorus .avs-phoenix .ph-dawn { opacity: 0.7; }
+.cue-golden .avs-phoenix .ph-dawn { opacity: 1; }
+.avs-phoenix .ph-sun { transform: translateY(240px); transition: transform 2.4s cubic-bezier(.3, .8, .3, 1); }
+.cue-climb .avs-phoenix .ph-sun { transform: translateY(20px); }
+.cue-golden .avs-phoenix .ph-sun { transform: translateY(-160px); }
+.av-stage.is-finale .avs-phoenix .ph-sun { transform: translateY(-280px); }
+.avs-phoenix .ph-rays { opacity: 0; transform-origin: center; transition: opacity 1.4s; animation: ph-spin 30s linear infinite; }
+.cue-golden .avs-phoenix .ph-rays { opacity: 0.85; }
+@keyframes ph-spin { to { transform: rotate(360deg); } }
+
+/* The phoenix: rises from the nest and bounces with the words */
+.avs-phoenix .ph-path { opacity: 0; transform: translate(800px, 490px) scale(0.1); transition: transform 0.75s cubic-bezier(.3, 1.25, .45, 1), opacity 0.6s; }
+.cue-chorus .avs-phoenix .ph-path { opacity: 1; transform: translate(800px, 380px) scale(0.8); }
+.cue-down1 .avs-phoenix .ph-path { transform: translate(800px, 470px) scale(0.72); }
+.cue-rise1 .avs-phoenix .ph-path { transform: translate(800px, 300px) scale(0.85); }
+.cue-eight .avs-phoenix .ph-path { transform: translate(800px, 240px) scale(0.95); }
+.cue-phoenix .avs-phoenix .ph-path { transform: translate(600px, 230px) scale(0.9); transition-duration: 1.2s; }
+.cue-soar .avs-phoenix .ph-path { transform: translate(1000px, 200px) scale(1); }
+.cue-down2 .avs-phoenix .ph-path { transform: translate(800px, 410px) scale(0.8); transition-duration: 0.75s; }
+.cue-rise2 .avs-phoenix .ph-path { transform: translate(800px, 270px) scale(0.95); }
+.cue-more .avs-phoenix .ph-path { transform: translate(800px, 210px) scale(1.1); }
+.av-stage.is-finale .avs-phoenix .ph-path { transform: translate(800px, 118px) scale(0.55); transition-duration: 1.4s; }
+.avs-phoenix .ph-bob { animation: ph-bob 1s ease-in-out infinite; }
+@keyframes ph-bob { 50% { transform: translateY(-8px); } }
+.avs-phoenix .ph-wing--l { transform-origin: 100% 78%; animation: ph-flap-l 0.5s ease-in-out infinite alternate; }
+.avs-phoenix .ph-wing--r { transform-origin: 0% 78%; animation: ph-flap-r 0.5s ease-in-out infinite alternate; }
+@keyframes ph-flap-l { from { transform: rotate(-18deg); } to { transform: rotate(14deg); } }
+@keyframes ph-flap-r { from { transform: rotate(18deg); } to { transform: rotate(-14deg); } }
+.avs-phoenix .ph-tail { transform-origin: 50% 0%; animation: ph-tail 1.2s ease-in-out infinite alternate; }
+@keyframes ph-tail { from { transform: rotate(-5deg); } to { transform: rotate(5deg) skewX(4deg); } }
+.avs-phoenix .ph-gold { opacity: 0; transition: opacity 1s; }
+.cue-golden .avs-phoenix .ph-gold { opacity: 1; }
+.avs-phoenix .ph-heart { opacity: 0.35; transform-origin: center; transition: opacity 0.6s; filter: drop-shadow(0 0 10px #fde68a); }
+.cue-hope .avs-phoenix .ph-heart { opacity: 1; animation: ph-ember 0.5s ease-in-out infinite alternate; }
+.cue-flame .avs-phoenix .ph-tail { filter: drop-shadow(0 0 14px #fb923c); }
+.av--lite .avs-phoenix .ph-heart, .av--lite .avs-phoenix .ph-ember, .av--lite .avs-phoenix .ph-tail { filter: none !important; }
+
+/* Fall down seven, rise up eight */
+.avs-phoenix .ph-num { opacity: 0; transform-origin: center; }
+.cue-seven1 .avs-phoenix .ph-num--7a, .cue-seven2 .avs-phoenix .ph-num--7b { animation: ph-seven 1.6s ease-in both; }
+.cue-eight .avs-phoenix .ph-num--8a, .cue-more .avs-phoenix .ph-num--8b { animation: ph-eight 2.1s cubic-bezier(.2, .9, .3, 1.2) both; }
+@keyframes ph-seven {
+    0% { opacity: 0; transform: translateY(-200px); }
+    20% { opacity: 1; transform: translateY(-150px); }
+    100% { opacity: 0; transform: translateY(240px) rotate(24deg); }
+}
+@keyframes ph-eight {
+    0% { opacity: 0; transform: translateY(240px) scale(0.6); }
+    40% { opacity: 1; transform: translateY(0) scale(1.15); }
+    75% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-70px) scale(1.05); }
+}
+
+/* Hope is a flame that no storm can break */
+.avs-phoenix .ph-shield__ring { opacity: 0; transform-origin: center; }
+.cue-storm2 .avs-phoenix .ph-shield__ring { animation: ph-shield 1.1s ease-out both; animation-delay: calc(var(--i) * 0.18s); }
+@keyframes ph-shield { from { opacity: 1; transform: scale(0.8); } to { opacity: 0; transform: scale(2); } }
+
+/* Finale: a ring of fire feathers around the crest, the sun behind it */
+.avs-phoenix .ph-ring { opacity: 0; transform: scale(0.5); transform-origin: center; transition: opacity 0.8s, transform 1.3s cubic-bezier(.2, .9, .3, 1.1); }
+.av-stage.is-finale .avs-phoenix .ph-ring { opacity: 1; transform: none; }
+.avs-phoenix .ph-ring__spin { transform-origin: center; animation: ph-spin 18s linear infinite; }
+.avs-phoenix .ph-feather { transform-origin: 50% 100%; animation: ph-flick 0.42s ease-in-out infinite alternate; animation-delay: calc(var(--i) * -0.05s); }

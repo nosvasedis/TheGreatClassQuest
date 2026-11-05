@@ -42,7 +42,7 @@ Use these names exactly, in the classroom and when you talk to parents. Mixing t
 | **Tailwind** | Catch-up for guilds behind in stars per member this year: up to +30% on every Glory they earn (Breeze, Strong wind, Gale). Closes about two thirds of the gap, never all of it | Bonus stars |
 | **Guild Glory** | Ledger from stars (2 Glory per star) plus Wheel / Quiz / artifacts | Gold |
 | **Fortune’s Wheel** | Weekly ritual, last lesson of the week: each guild spins its own celestial wheel in turn. Treasure, drama twists, quick English trials and small storms: Glory for (or from) each guildmate in the class, plus perks. A storm never takes stars or artifacts | Quiz of the Week |
-| **Guild banner** | The guild’s hanging banner that unfurls when you tap its emblem in Guild Hall; the anthem plays in a torch-lit alcove | Crown Race explainer |
+| **Guild banner** | The guild’s hanging banner that unfurls when you tap its emblem in Guild Hall; the anthem plays in a torch-lit alcove, which can open the guild's full-screen karaoke **music video** | Crown Race explainer |
 | **Fortune Ledger** | This school year’s Fortune’s Wheel outcomes on Guild Hall. Last year’s spins stay in last year. | Adventure Log |
 | **Grand Guild Ceremony** | End-of-year house crowning | Ceremony of the Month |
 | **Guild Champion** | Top earner **inside one guild** this month | Prodigy of the Month |

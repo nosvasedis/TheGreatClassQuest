@@ -105,7 +105,7 @@ The teacher **bottom bar has ten tabs**. **My Classes** and roster tools live un
 | **Team Quest** | Class vs class **League Map** (Bronze Meadows → Silver Peaks → Golden Citadel → Crystal Realm), monthly goal (holidays/cancellations), start of **Ceremony of the Month**. |
 | **Hero's Challenge** | Student ranks (**By Class / Global**, Monthly / Total). **Trophy Room**, Hero Stats, **Hall of Prodigies**, certificates. Guild *badges* appear on rows; guild *ranking* is Guild Hall. |
 | **Mystic Market** | Own tab. Spend Gold on **Legendary Artifacts**, Elite **seasonal** stock, Elite **Festival Stall**, Elite **Familiar** eggs. |
-| **Guild Hall** | Year-long houses ranked by **Crowns** in the Crown Race. Champions, lore, anthems, **Fortune's Wheel**, **Fortune Ledger**, Magical Analytics, **Grand Guild Ceremony**. **Pro.** |
+| **Guild Hall** | Year-long houses ranked by **Crowns** in the Crown Race. Champions, lore, anthems with full-screen karaoke music videos, **Fortune's Wheel**, **Fortune Ledger**, Magical Analytics, **Grand Guild Ceremony**. **Pro.** |
 | **Award Stars** | Clouds; Teamwork, Creativity, Respect, Focus (1–3 stars); Welcome Back; **Hero's Boon**; **Teacher Boon**. |
 | **Adventure Log** | **Crown Today's Hero**, then write today's page: **Auto** (AI + image, Elite) or **Manual** (Pro). Records **What we learned today** automatically (quiz, story, quests, trials, homework). FABs: **Quest Assignment** (recognises the book, unit and pages), **Attendance Chronicle**. **Gather at the Campfire** (Pro) lights up after the crowning. **Hall of Heroes** = Hero of the Day legends (not Prodigies). |
 | **Scholar's Scroll** | Tests, dictations, Starfall, make-ups, charts. **Pro.** |

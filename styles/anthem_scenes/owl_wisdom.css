@@ -1,0 +1,114 @@
+/* styles/anthem_scenes/owl_wisdom.css — the Owl Wisdom music video (features/anthemVideo/scenes/owlWisdom.js).
+   State comes from cue classes on .av-stage (cue-<name>, cumulative), data-section and .is-finale. */
+
+/* The night sky */
+.avs-owl .ow-stars { transition: opacity 1.2s; }
+.cue-hush .avs-owl .ow-stars { opacity: 0.5; }
+.cue-stars .avs-owl .ow-stars { opacity: 1; }
+.cue-darkness .avs-owl .ow-stars { opacity: 0.3; }
+.cue-knowledge .avs-owl .ow-stars { opacity: 1; }
+.avs-owl .ow-halo { --pulse: 1.08; }
+.avs-owl .ow-moonbeam { opacity: 0; transition: opacity 1.4s; }
+.cue-moonlight .avs-owl .ow-moonbeam { opacity: 0.45; }
+.cue-chorus .avs-owl .ow-moonbeam { opacity: 0.12; }
+.avs-owl .ow-keyhole { opacity: 0; transform: scale(0.4); transform-origin: center; transition: opacity 0.8s, transform 0.8s cubic-bezier(.2, 1.4, .4, 1); }
+.cue-key .avs-owl .ow-keyhole { opacity: 0.85; transform: none; }
+.cue-chorus .avs-owl .ow-keyhole { opacity: 0; }
+
+/* The stars become a map */
+.avs-owl .ow-map-star { opacity: 0; transform-origin: center; transform: scale(0.3); transition: opacity 0.5s, transform 0.6s cubic-bezier(.2, 1.6, .4, 1); transition-delay: calc(var(--i) * 0.08s); }
+.cue-stars .avs-owl .ow-map-star { opacity: 1; transform: none; }
+.avs-owl .ow-map-line { opacity: 0; transition: opacity 0.4s; transition-delay: calc(var(--i) * 0.14s); }
+.cue-map .avs-owl .ow-map-line { opacity: 0.9; }
+.cue-chorus .avs-owl .ow-map { opacity: 0.35; transition: opacity 1.5s; }
+.cue-show .avs-owl .ow-map { opacity: 0; }
+
+/* Questions, lanterns, a page and a candle */
+.avs-owl .ow-q { opacity: 0; }
+.cue-questions .avs-owl .ow-q { animation: ow-q 3.2s ease-out both; animation-delay: calc(var(--i) * 0.22s); }
+@keyframes ow-q {
+    0% { opacity: 0; transform: translate(0, 0) rotate(0); }
+    15% { opacity: 1; }
+    50% { transform: translate(18px, -110px) rotate(10deg); }
+    100% { opacity: 0; transform: translate(-10px, -230px) rotate(-8deg); }
+}
+.avs-owl .ow-lantern { opacity: 0; transform: scale(0.3); transform-origin: center; transition: opacity 0.5s, transform 0.6s cubic-bezier(.2, 1.6, .4, 1); transition-delay: calc(var(--i) * 0.16s); }
+.cue-lead .avs-owl .ow-lantern { opacity: 1; transform: none; }
+.cue-way .avs-owl .ow-lantern { transform: scale(1.4); }
+.avs-owl .ow-flip { transform-origin: 0% 50%; }
+.cue-page .avs-owl .ow-flip { animation: ow-flip 1.1s ease-in-out both; }
+@keyframes ow-flip { from { transform: none; } to { transform: scaleX(-1); } }
+.avs-owl .ow-flame { transform: scale(0); transform-origin: 50% 100%; transition: transform 0.6s cubic-bezier(.2, 1.6, .4, 1); }
+.cue-candle .avs-owl .ow-flame { transform: none; }
+.avs-owl .ow-flame__inner { transform-origin: 50% 100%; animation: ow-flicker 0.36s ease-in-out infinite alternate; }
+@keyframes ow-flicker { from { transform: scale(0.92, 1.06); } to { transform: scale(1.06, 0.92) skewX(3deg); } }
+.avs-owl .ow-candle-glow { opacity: 0; transition: opacity 0.8s; }
+.cue-candle .avs-owl .ow-candle-glow { opacity: 1; }
+.avs-owl .ow-desk-glow { opacity: 0; transition: opacity 1.2s; }
+.cue-need .avs-owl .ow-desk-glow { opacity: 0.8; }
+.cue-chorus .avs-owl .ow-desk-glow { opacity: 0.45; }
+.avs-owl .ow-mote { animation-name: ow-mote; }
+@keyframes ow-mote { 0% { transform: translate(0, 0); opacity: 0; } 20% { opacity: 0.7; } 100% { transform: translate(var(--dx, 0px), -600px); opacity: 0; } }
+
+/* The owl: wakes, spreads its wings, flies the night and lands again */
+.avs-owl .ow-path { transform: translate(800px, 596px) scale(0.95); transition: transform 1.9s cubic-bezier(.45, 0, .2, 1); }
+.cue-wings .avs-owl .ow-path { transform: translate(800px, 330px) scale(0.85); }
+.cue-light .avs-owl .ow-path { transform: translate(800px, 300px) scale(0.9); }
+.cue-ask .avs-owl .ow-path { transform: translate(1250px, 330px) scale(0.7); }
+.cue-knowledge .avs-owl .ow-path { transform: translate(800px, 300px) scale(0.9); }
+.cue-way .avs-owl .ow-path { transform: translate(800px, 596px) scale(0.95); }
+.av-stage.is-finale .avs-owl .ow-path { transform: translate(1190px, 596px) scale(0.7); }
+.avs-owl .ow-bob { animation: ow-bob 3s ease-in-out infinite; }
+@keyframes ow-bob { 50% { transform: translateY(-4px); } }
+.cue-wings .avs-owl .ow-bob { animation: ow-fly 0.72s ease-in-out infinite; }
+.cue-way .avs-owl .ow-bob { animation: ow-bob 3s ease-in-out infinite; }
+@keyframes ow-fly { 50% { transform: translateY(-12px); } }
+.avs-owl .ow-wing { transition: transform 0.6s cubic-bezier(.2, 1.3, .4, 1); }
+.avs-owl .ow-wing--l { transform-origin: 100% 0%; }
+.avs-owl .ow-wing--r { transform-origin: 0% 0%; }
+.cue-chorus .avs-owl .ow-wing--l { transform: rotate(72deg); }
+.cue-chorus .avs-owl .ow-wing--r { transform: rotate(-72deg); }
+.cue-wings .avs-owl .ow-wing--l { animation: ow-flap-l 0.36s ease-in-out infinite alternate; }
+.cue-wings .avs-owl .ow-wing--r { animation: ow-flap-r 0.36s ease-in-out infinite alternate; }
+.cue-way .avs-owl .ow-wing--l,
+.cue-way .avs-owl .ow-wing--r { animation: none; transform: none; }
+@keyframes ow-flap-l { from { transform: rotate(48deg); } to { transform: rotate(104deg); } }
+@keyframes ow-flap-r { from { transform: rotate(-48deg); } to { transform: rotate(-104deg); } }
+.avs-owl .ow-lids { transform-origin: 50% 0%; transition: transform 0.35s ease; }
+.cue-see .avs-owl .ow-lids { transform: scaleY(0); animation: ow-blink 5s 1s infinite; }
+@keyframes ow-blink { 0%, 95%, 100% { transform: scaleY(0); } 97% { transform: none; } }
+
+/* Guided by light */
+.avs-owl .ow-guide { opacity: 0; transition: opacity 1s; }
+.cue-guided .avs-owl .ow-guide { opacity: 0.6; }
+.cue-light .avs-owl .ow-guide { opacity: 1; }
+.cue-ask .avs-owl .ow-guide { opacity: 0; }
+.avs-owl .ow-guide-star { transform-origin: center; animation: ow-spin 6s linear infinite; filter: drop-shadow(0 0 14px #e0f2fe); }
+@keyframes ow-spin { to { transform: rotate(360deg); } }
+
+/* Darkness rolls in; the owl hoots it away */
+.avs-owl .ow-cloud { opacity: 0; transition: transform 2s ease, opacity 1.2s; }
+.avs-owl .ow-cloud--l { transform: translateX(-900px); }
+.avs-owl .ow-cloud--r { transform: translateX(900px); }
+.cue-darkness .avs-owl .ow-cloud { opacity: 0.95; transform: none; }
+.cue-knowledge .avs-owl .ow-cloud { opacity: 0; }
+.cue-knowledge .avs-owl .ow-cloud--l { transform: translateX(-1000px); }
+.cue-knowledge .avs-owl .ow-cloud--r { transform: translateX(1000px); }
+.avs-owl .ow-hoot { opacity: 0; transform-origin: center; }
+.cue-say .avs-owl .ow-hoot { animation: ow-hoot 1.2s ease-out both; animation-delay: calc(var(--i) * 0.2s); }
+@keyframes ow-hoot { from { opacity: 0.95; transform: scale(0.4); } to { opacity: 0; transform: scale(4); } }
+
+/* A constellation draws an owl */
+.avs-owl .ow-constellation { opacity: 0; transition: opacity 1s; }
+.cue-show .avs-owl .ow-constellation { opacity: 1; }
+.avs-owl .ow-const-line { opacity: 0; transition: opacity 0.35s; transition-delay: calc(var(--i) * 0.12s); }
+.cue-show .avs-owl .ow-const-line { opacity: 0.85; }
+.avs-owl .ow-const-star { transform-origin: center; animation: ow-twinkle 1.6s ease-in-out infinite alternate; animation-delay: calc(var(--i) * -0.2s); }
+@keyframes ow-twinkle { from { opacity: 0.6; transform: scale(0.8); } to { opacity: 1; transform: scale(1.15); } }
+
+/* Finale: a ring of stars around the crest */
+.avs-owl .ow-ring { opacity: 0; transform: scale(0.6); transform-origin: center; transition: opacity 0.8s, transform 1.3s cubic-bezier(.2, .9, .3, 1.1); }
+.av-stage.is-finale .avs-owl .ow-ring { opacity: 1; transform: none; }
+.avs-owl .ow-ring__spin { transform-origin: center; animation: ow-spin 40s linear infinite; }
+.avs-owl .ow-ring-star { transform-origin: center; animation: ow-twinkle 1.2s ease-in-out infinite alternate; animation-delay: calc(var(--i) * -0.15s); filter: drop-shadow(0 0 8px #bfdbfe); }
+.av--lite .avs-owl .ow-ring-star, .av--lite .avs-owl .ow-guide-star { filter: none; }

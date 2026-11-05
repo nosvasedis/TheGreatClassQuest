@@ -1,24 +1,17 @@
 /* styles/anthem_scenes/phoenix_rising.css — the Phoenix Rising music video (features/anthemVideo/scenes/phoenixRising.js).
    State comes from cue classes on .av-stage (cue-<name>, cumulative), data-section and .is-finale. */
 
-/* The storm */
-.avs-phoenix .ph-rainfall { opacity: 0.55; transition: opacity 1s; }
-.cue-storm .avs-phoenix .ph-rainfall { opacity: 1; }
-.cue-know .avs-phoenix .ph-rainfall { opacity: 0.7; }
-.cue-break .avs-phoenix .ph-rainfall { opacity: 0; }
-.avs-phoenix .ph-rain { animation: ph-rain 0.8s linear infinite; }
-@keyframes ph-rain { from { transform: translate(0, 0); } to { transform: translate(-120px, 1100px); } }
-.avs-phoenix .ph-cloud { transition: transform 2.2s ease, opacity 1.6s; }
-.cue-break .avs-phoenix .ph-cloud { opacity: 0; }
-.cue-break .avs-phoenix .ph-cloud--l { transform: translateX(-900px); }
-.cue-break .avs-phoenix .ph-cloud--r { transform: translateX(900px); }
-.avs-phoenix .ph-flash, .avs-phoenix .ph-bolt { opacity: 0; }
-.cue-storm .avs-phoenix .ph-flash { animation: ph-flash-a 0.9s ease-out; }
-.cue-storm2 .avs-phoenix .ph-flash { animation: ph-flash-b 0.9s ease-out; }
+/* The storm. Rain is drawn on the particle canvas; the lightning flash is the player's flash overlay.
+   Cloud banks are whole layers: `translate` slides them away (composited) while `transform` drifts them. */
+.av--phoenix_rising .avl--cloudl > svg, .av--phoenix_rising .avl--cloudr > svg { transition: translate 2.4s cubic-bezier(.3, 0, .2, 1), opacity 1.8s; animation: ph-drift 16s ease-in-out infinite alternate; will-change: transform; }
+.av--phoenix_rising .avl--cloudr > svg { animation-delay: -8s; }
+@keyframes ph-drift { to { transform: translate3d(2.5%, 0, 0); } }
+.cue-break .avl--cloudl > svg { translate: -75% -8%; opacity: 0; }
+.cue-break .avl--cloudr > svg { translate: 75% -8%; opacity: 0; }
+.av--lite .avl--cloudl > svg, .av--lite .avl--cloudr > svg { animation: none; }
+.avs-phoenix .ph-bolt { opacity: 0; }
 .cue-storm .avs-phoenix .ph-bolt--1 { animation: ph-bolt 0.9s ease-out; }
 .cue-storm2 .avs-phoenix .ph-bolt--2 { animation: ph-bolt 0.9s ease-out; }
-@keyframes ph-flash-a { 0% { opacity: 0; } 10% { opacity: 0.45; } 22% { opacity: 0.06; } 34% { opacity: 0.32; } 100% { opacity: 0; } }
-@keyframes ph-flash-b { 0% { opacity: 0; } 10% { opacity: 0.45; } 22% { opacity: 0.06; } 34% { opacity: 0.32; } 100% { opacity: 0; } }
 @keyframes ph-bolt { 0%, 100% { opacity: 0; } 8%, 36% { opacity: 1; } 20% { opacity: 0.2; } }
 
 /* When the sky falls in pieces */
@@ -37,7 +30,7 @@
 .cue-chorus .avs-phoenix .ph-nest-fire { transform: scale(1.35); }
 .avs-phoenix .ph-flick { transform-origin: 50% 100%; animation: ph-flick 0.34s ease-in-out infinite alternate; }
 @keyframes ph-flick { from { transform: scale(0.92, 1.06); } to { transform: scale(1.06, 0.9) skewX(4deg); } }
-.avs-phoenix .ph-ember { opacity: 0; transform-origin: center; transition: opacity 0.6s; filter: drop-shadow(0 0 10px #fde68a); }
+.avs-phoenix .ph-ember { opacity: 0; transform-box: fill-box; transform-origin: center; transition: opacity 0.6s; }
 .cue-ember .avs-phoenix .ph-ember { opacity: 1; animation: ph-ember 0.6s ease-in-out infinite alternate; }
 .cue-chorus .avs-phoenix .ph-ember { opacity: 0; }
 @keyframes ph-ember { to { transform: scale(1.35); } }
@@ -48,26 +41,23 @@
 .cue-time1 .avs-phoenix .ph-loop--1 { animation: ph-loop 1.4s ease-out both; }
 .cue-time2 .avs-phoenix .ph-loop--2 { animation: ph-loop 1.4s ease-out both; }
 @keyframes ph-loop { from { opacity: 1; transform: scale(0.3); } to { opacity: 0; transform: scale(4.5); } }
-.avs-phoenix .ph-ashes { opacity: 0; transition: opacity 1s; }
-.cue-ash .avs-phoenix .ph-ashes { opacity: 1; }
-.cue-chorus .avs-phoenix .ph-ashes { opacity: 0; }
-.avs-phoenix .ph-ash { animation-name: ph-ash; }
-@keyframes ph-ash { 0% { transform: translate(0, 0); opacity: 0; } 15% { opacity: 0.9; } 100% { transform: translate(var(--dx, 0px), -460px); opacity: 0; } }
-.avs-phoenix .ph-sparks { opacity: 0; transition: opacity 1s; }
-.cue-chorus .avs-phoenix .ph-sparks { opacity: 1; }
 
-/* The morning climbs */
-.avs-phoenix .ph-dawn { opacity: 0; transition: opacity 2.4s; }
-.cue-morning .avs-phoenix .ph-dawn { opacity: 0.5; }
-.cue-chorus .avs-phoenix .ph-dawn { opacity: 0.7; }
-.cue-golden .avs-phoenix .ph-dawn { opacity: 1; }
-.avs-phoenix .ph-sun { transform: translateY(240px); transition: transform 2.4s cubic-bezier(.3, .8, .3, 1); }
-.cue-climb .avs-phoenix .ph-sun { transform: translateY(20px); }
-.cue-golden .avs-phoenix .ph-sun { transform: translateY(-160px); }
-.av-stage.is-finale .avs-phoenix .ph-sun { transform: translateY(-280px); }
-.avs-phoenix .ph-rays { opacity: 0; transform-origin: center; transition: opacity 1.4s; animation: ph-spin 30s linear infinite; }
+/* The morning climbs: the dawn is an HTML wash, the sun layer rises whole (composited) */
+.av--phoenix_rising .ph-dawn { background: linear-gradient(to top, #fdba74 0%, #f472b6 38%, rgba(124, 58, 237, 0) 75%); opacity: 0; transition: opacity 2.4s; }
+.cue-morning .ph-dawn { opacity: 0.45; }
+.cue-chorus .ph-dawn { opacity: 0.65; }
+.cue-golden .ph-dawn { opacity: 0.95; }
+.av--phoenix_rising .avl--sun > svg { translate: 0 30%; transition: translate 2.6s cubic-bezier(.3, .8, .3, 1); will-change: translate; }
+.cue-climb .avl--sun > svg { translate: 0 4%; }
+.cue-golden .avl--sun > svg { translate: 0 -16%; }
+.av-stage.is-finale .avl--sun > svg { translate: 0 -30%; }
+.avs-phoenix .ph-rays { opacity: 0; transition: opacity 1.4s; }
 .cue-golden .avs-phoenix .ph-rays { opacity: 0.85; }
-@keyframes ph-spin { to { transform: rotate(360deg); } }
+.av--phoenix_rising .ph-goldwash { background: radial-gradient(ellipse 80% 70% at 50% 40%, rgba(253, 230, 138, 0.45), rgba(251, 146, 60, 0) 70%); mix-blend-mode: screen; opacity: 0; transition: opacity 1.6s; }
+.cue-break .ph-goldwash { opacity: 0.4; }
+.cue-golden .ph-goldwash { opacity: 0.6; }
+.av-stage.is-finale .ph-goldwash { opacity: 0.5; }
+.av--lite .ph-goldwash { mix-blend-mode: normal; opacity: 0 !important; }
 
 /* The phoenix: rises from the nest and bounces with the words */
 .avs-phoenix .ph-path { opacity: 0; transform: translate(800px, 490px) scale(0.1); transition: transform 0.75s cubic-bezier(.3, 1.25, .45, 1), opacity 0.6s; }
@@ -91,10 +81,8 @@
 @keyframes ph-tail { from { transform: rotate(-5deg); } to { transform: rotate(5deg) skewX(4deg); } }
 .avs-phoenix .ph-gold { opacity: 0; transition: opacity 1s; }
 .cue-golden .avs-phoenix .ph-gold { opacity: 1; }
-.avs-phoenix .ph-heart { opacity: 0.35; transform-origin: center; transition: opacity 0.6s; filter: drop-shadow(0 0 10px #fde68a); }
+.avs-phoenix .ph-heart { opacity: 0.35; transform-box: fill-box; transform-origin: center; transition: opacity 0.6s; }
 .cue-hope .avs-phoenix .ph-heart { opacity: 1; animation: ph-ember 0.5s ease-in-out infinite alternate; }
-.cue-flame .avs-phoenix .ph-tail { filter: drop-shadow(0 0 14px #fb923c); }
-.av--lite .avs-phoenix .ph-heart, .av--lite .avs-phoenix .ph-ember, .av--lite .avs-phoenix .ph-tail { filter: none !important; }
 
 /* Fall down seven, rise up eight */
 .avs-phoenix .ph-num { opacity: 0; transform-origin: center; }
@@ -120,7 +108,6 @@
 /* Finale: a ring of fire feathers around the crest, the sun behind it */
 .avs-phoenix .ph-ring { opacity: 0; transform: scale(0.5); transform-origin: center; transition: opacity 0.8s, transform 1.3s cubic-bezier(.2, .9, .3, 1.1); }
 .av-stage.is-finale .avs-phoenix .ph-ring { opacity: 1; transform: none; }
-.avs-phoenix .ph-ring__spin { transform-origin: center; animation: ph-spin 18s linear infinite; }
 .avs-phoenix .ph-feather { transform-origin: 50% 100%; animation: ph-flick 0.42s ease-in-out infinite alternate; animation-delay: calc(var(--i) * -0.05s); }
 
 /* Feathered plumes sway one after another; a soft aura breathes around the bird */
@@ -135,5 +122,4 @@
 .avs-phoenix .ph-rim { opacity: 0; transition: opacity 2.4s; }
 .cue-morning .avs-phoenix .ph-rim { opacity: 0.35; }
 .cue-golden .avs-phoenix .ph-rim { opacity: 0.8; }
-.avs-phoenix .ph-cloud > path:first-child { animation: ph-drift 18s ease-in-out infinite alternate; }
-@keyframes ph-drift { to { transform: translateX(40px); } }
+

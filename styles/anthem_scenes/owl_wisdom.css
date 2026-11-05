@@ -1,16 +1,20 @@
 /* styles/anthem_scenes/owl_wisdom.css — the Owl Wisdom music video (features/anthemVideo/scenes/owlWisdom.js).
    State comes from cue classes on .av-stage (cue-<name>, cumulative), data-section and .is-finale. */
 
-/* The night sky */
-.avs-owl .ow-stars { transition: opacity 1.2s; }
-.cue-hush .avs-owl .ow-stars { opacity: 0.5; }
-.cue-stars .avs-owl .ow-stars { opacity: 1; }
-.cue-darkness .avs-owl .ow-stars { opacity: 0.3; }
-.cue-knowledge .avs-owl .ow-stars { opacity: 1; }
+/* The night sky. Stars are drawn on the particle canvas; whole layers fade by opacity (GPU, no repaint). */
 .avs-owl .ow-halo { --pulse: 1.08; }
-.avs-owl .ow-moonbeam { opacity: 0; transition: opacity 1.4s; }
-.cue-moonlight .avs-owl .ow-moonbeam { opacity: 0.45; }
-.cue-chorus .avs-owl .ow-moonbeam { opacity: 0.12; }
+.av--owl_wisdom .avl--beam { opacity: 0; transition: opacity 1.4s; }
+.cue-moonlight .avl--beam { opacity: 0.5; }
+.cue-chorus .avl--beam { opacity: 0.12; }
+.av--owl_wisdom .ow-dark { background: radial-gradient(ellipse 90% 80% at 70% 30%, rgba(2, 4, 20, 0.25), rgba(2, 4, 20, 0.85)); opacity: 0; transition: opacity 1.4s ease; }
+.cue-darkness .ow-dark { opacity: 0.7; }
+.cue-knowledge .ow-dark { opacity: 0; }
+.av--owl_wisdom .ow-glow { background: radial-gradient(ellipse 70% 60% at 50% 45%, rgba(191, 219, 254, 0.4), rgba(147, 197, 253, 0) 70%); mix-blend-mode: screen; opacity: 0; transition: opacity 1.6s ease; }
+.cue-light .ow-glow { opacity: 0.45; }
+.cue-ask .ow-glow { opacity: 0; }
+.cue-knowledge .ow-glow { opacity: 0.6; }
+.av-stage.is-finale .ow-glow { opacity: 0.4; }
+.av--lite .ow-glow { mix-blend-mode: normal; }
 .avs-owl .ow-keyhole { opacity: 0; transform: scale(0.4); transform-origin: center; transition: opacity 0.8s, transform 0.8s cubic-bezier(.2, 1.4, .4, 1); }
 .cue-key .avs-owl .ow-keyhole { opacity: 0.85; transform: none; }
 .cue-chorus .avs-owl .ow-keyhole { opacity: 0; }
@@ -47,8 +51,6 @@
 .avs-owl .ow-desk-glow { opacity: 0; transition: opacity 1.2s; }
 .cue-need .avs-owl .ow-desk-glow { opacity: 0.8; }
 .cue-chorus .avs-owl .ow-desk-glow { opacity: 0.45; }
-.avs-owl .ow-mote { animation-name: ow-mote; }
-@keyframes ow-mote { 0% { transform: translate(0, 0); opacity: 0; } 20% { opacity: 0.7; } 100% { transform: translate(var(--dx, 0px), -600px); opacity: 0; } }
 
 /* The owl: wakes, spreads its wings, flies the night and lands again */
 .avs-owl .ow-path { transform: translate(800px, 596px) scale(0.95); transition: transform 1.9s cubic-bezier(.45, 0, .2, 1); }
@@ -79,21 +81,24 @@
 @keyframes ow-blink { 0%, 95%, 100% { transform: scaleY(0); } 97% { transform: none; } }
 
 /* Guided by light */
-.avs-owl .ow-guide { opacity: 0; transition: opacity 1s; }
-.cue-guided .avs-owl .ow-guide { opacity: 0.6; }
-.cue-light .avs-owl .ow-guide { opacity: 1; }
-.cue-ask .avs-owl .ow-guide { opacity: 0; }
-.avs-owl .ow-guide-star { transform-origin: center; animation: ow-spin 6s linear infinite; filter: drop-shadow(0 0 14px #e0f2fe); }
+.av--owl_wisdom .avl--guide { opacity: 0; transition: opacity 1s; }
+.cue-guided .avl--guide { opacity: 0.6; }
+.cue-light .avl--guide { opacity: 1; }
+.cue-ask .avl--guide { opacity: 0; }
+.avs-owl .ow-guide-star { transform-box: fill-box; transform-origin: center; animation: ow-spin 6s linear infinite; }
 @keyframes ow-spin { to { transform: rotate(360deg); } }
 
 /* Darkness rolls in; the owl hoots it away */
-.avs-owl .ow-cloud { opacity: 0; transition: transform 2s ease, opacity 1.2s; }
-.avs-owl .ow-cloud--l { transform: translateX(-900px); }
-.avs-owl .ow-cloud--r { transform: translateX(900px); }
-.cue-darkness .avs-owl .ow-cloud { opacity: 0.95; transform: none; }
-.cue-knowledge .avs-owl .ow-cloud { opacity: 0; }
-.cue-knowledge .avs-owl .ow-cloud--l { transform: translateX(-1000px); }
-.cue-knowledge .avs-owl .ow-cloud--r { transform: translateX(1000px); }
+/* each cloud bank is its own layer: the svg slides in whole, composited */
+.av--owl_wisdom .avl--cloudl, .av--owl_wisdom .avl--cloudr { opacity: 0; transition: opacity 1.2s; }
+.av--owl_wisdom .avl--cloudl > svg, .av--owl_wisdom .avl--cloudr > svg { transition: transform 2.2s cubic-bezier(.3, 0, .2, 1); will-change: transform; }
+.av--owl_wisdom .avl--cloudl > svg { transform: translate3d(-70%, 0, 0); }
+.av--owl_wisdom .avl--cloudr > svg { transform: translate3d(70%, 0, 0); }
+.cue-darkness .avl--cloudl, .cue-darkness .avl--cloudr { opacity: 0.97; }
+.cue-darkness .avl--cloudl > svg, .cue-darkness .avl--cloudr > svg { transform: none; }
+.cue-knowledge .avl--cloudl, .cue-knowledge .avl--cloudr { opacity: 0; transition-duration: 1.6s; }
+.cue-knowledge .avl--cloudl > svg { transform: translate3d(-80%, -6%, 0); transition-duration: 1.4s; }
+.cue-knowledge .avl--cloudr > svg { transform: translate3d(80%, -6%, 0); transition-duration: 1.4s; }
 .avs-owl .ow-hoot { opacity: 0; transform-origin: center; }
 .cue-say .avs-owl .ow-hoot { animation: ow-hoot 1.2s ease-out both; animation-delay: calc(var(--i) * 0.2s); }
 @keyframes ow-hoot { from { opacity: 0.95; transform: scale(0.4); } to { opacity: 0; transform: scale(4); } }
@@ -109,9 +114,7 @@
 /* Finale: a ring of stars around the crest */
 .avs-owl .ow-ring { opacity: 0; transform: scale(0.6); transform-origin: center; transition: opacity 0.8s, transform 1.3s cubic-bezier(.2, .9, .3, 1.1); }
 .av-stage.is-finale .avs-owl .ow-ring { opacity: 1; transform: none; }
-.avs-owl .ow-ring__spin { transform-origin: center; animation: ow-spin 40s linear infinite; }
-.avs-owl .ow-ring-star { transform-origin: center; animation: ow-twinkle 1.2s ease-in-out infinite alternate; animation-delay: calc(var(--i) * -0.15s); filter: drop-shadow(0 0 8px #bfdbfe); }
-.av--lite .avs-owl .ow-ring-star, .av--lite .avs-owl .ow-guide-star { filter: none; }
+.avs-owl .ow-ring-star { transform-box: fill-box; transform-origin: center; animation: ow-twinkle 1.2s ease-in-out infinite alternate; animation-delay: calc(var(--i) * -0.15s); }
 
 /* The town and tower keep their small lights; the pennant flutters */
 .avs-owl .ow-citylight { animation: ow-citylight 5s ease-in-out infinite; animation-delay: calc(var(--i) * -0.9s); }

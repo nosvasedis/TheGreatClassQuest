@@ -8,6 +8,7 @@ import { getGuildById, getGuildEmblemUrl } from '../../features/guilds.js';
 import { getAnthemTiming } from '../../features/anthemVideo/anthemWordTimings.js';
 import { buildWordTimeline, frameAt, resolveCues, cuesReached, beatPhase } from '../../features/anthemVideo/anthemVideoCore.mjs';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
+import { createFx } from '../../features/anthemVideo/fxCanvas.js';
 
 const SCENES = {
     dragon_flame: () => import('../../features/anthemVideo/scenes/dragonFlame.js'),
@@ -22,6 +23,8 @@ const SPARK_HOP_PX = 26;
 const SEEK_JUMP_SECONDS = 0.6;
 const OPEN_MS = 1250;
 const CLOSE_MS = 640;
+const NEXT_SCALE = 0.52; // the line waiting below is drawn at this size, then grows into place
+const LINE_LEAVE_MS = 900;
 
 let _session = null;
 
@@ -61,7 +64,10 @@ function shellHtml(guild, timeline) {
             ${notes}
         </div>
         <div class="av-stage" data-section="intro" data-phase="intro">
-            <div class="av-scene" aria-hidden="true"></div>
+            <div class="av-scene" aria-hidden="true">
+                <div class="av-shaker"><div class="av-layers"></div><canvas class="av-fx"></canvas></div>
+                <div class="av-flash"></div>
+            </div>
             <div class="av-curtain" aria-hidden="true"></div>
             <div class="av-vignette" aria-hidden="true"></div>
             <header class="av-top">
@@ -100,8 +106,7 @@ function shellHtml(guild, timeline) {
                 </div>
             </div>
             <div class="av-karaoke" aria-hidden="true">
-                <div class="av-line av-line--current"></div>
-                <div class="av-line av-line--next"></div>
+                <div class="av-reel"></div>
             </div>
             <aside class="av-sheet" aria-label="All the words">
                 <p class="av-sheet__title">All the words</p>
@@ -184,8 +189,11 @@ export async function openAnthemVideo(guildId, { opener = document.activeElement
     const stage = $('.av-stage');
     const els = {
         scene: $('.av-scene'),
-        current: $('.av-line--current'),
-        next: $('.av-line--next'),
+        reel: $('.av-reel'),
+        layers: $('.av-layers'),
+        shaker: $('.av-shaker'),
+        fx: $('.av-fx'),
+        flash: $('.av-flash'),
         chip: $('.av-section-chip__text'),
         countdown: $('.av-countdown'),
         countNum: $('.av-countdown__num'),
@@ -209,6 +217,7 @@ export async function openAnthemVideo(guildId, { opener = document.activeElement
         guildId, root, stage, audio, opener, timeline, lite, still,
         cues: [], reached: new Set(), rafId: 0, lastT: -1, lineIdx: -2, wordIdx: -2, beat: -2, phase: '', countdown: -1,
         wordCenters: [], lastCT: -1, lastPerf: 0, idleTimer: 0, ended: false, cleanups: [() => clearTimeout(openTimer)],
+        lineEls: new Map(), scene: null, layers: [], camera: [], camTarget: null, fx: null, lastPerfFrame: 0,
     };
     _session = session;
 
@@ -216,35 +225,88 @@ export async function openAnthemVideo(guildId, { opener = document.activeElement
     SCENES[guildId]?.().then(mod => {
         if (_session !== session) return;
         const scene = mod.default || mod.scene;
-        els.scene.innerHTML = scene.render({ guild, lite });
+        els.layers.innerHTML = scene.render({ guild, lite });
+        session.scene = scene;
         session.cues = resolveCues(scene.cues, timeline);
-        session.reached.clear();
+        // a 'finale' cue lets scenes move the camera and burst when the song's outro begins
+        session.cues.push({ name: 'finale', at: timing.outroAt ?? timeline.end });
+        session.cues.sort((a, b) => a.at - b.at);
+        const cueAt = new Map(session.cues.map(c => [c.name, c.at]));
+        // camera marks in song order; 'start' is where each video opens
+        session.camera = (scene.camera || [])
+            .map(c => ({ ...c, at: c.cue === 'start' ? -1 : (cueAt.get(c.cue) ?? Infinity) }))
+            .filter(c => Number.isFinite(c.at)).sort((a, b) => a.at - b.at);
+        session.layers = Array.from(els.layers.querySelectorAll('.avl')).map(el => ({ el, d: Number(el.dataset.d ?? 1), anim: null }));
+        session.fx = createFx(els.fx, scene.fx || {}, { lite, still });
+        session.fx.resize();
+        session.reached = new Set();
+        Array.from(stage.classList).filter(c => c.startsWith('cue-')).forEach(c => stage.classList.remove(c));
+        session.camTarget = null;
         session.settleNext = true;
         stage.classList.add('av-stage--scene-ready');
     }).catch(err => console.warn('Anthem video scene failed to load:', err));
 
     function measureLine() {
-        const words = Array.from(els.current.querySelectorAll('.av-word'));
+        const cur = session.lineEls.get(session.lineIdx);
+        const words = cur ? Array.from(cur.querySelectorAll('.av-word')) : [];
         const top = words[0]?.offsetTop || 0;
         session.wordCenters = words.map(w => ({ x: w.offsetLeft + w.offsetWidth / 2, y: w.offsetTop - top }));
         session.wordEls = words;
+        const next = session.lineEls.get(session.lineIdx + 1);
+        els.reel.style.setProperty('--nh', `${next ? Math.round(next.offsetHeight * NEXT_SCALE + 4) : 0}px`);
     }
 
-    function setLine(idx) {
-        const lines = timeline.lines;
-        els.current.innerHTML = lineHtml(lines[idx]) + '<span class="av-spark" aria-hidden="true"></span>';
-        els.next.innerHTML = lineHtml(lines[idx + 1]);
-        els.current.dataset.section = lines[idx]?.section || '';
-        els.current.classList.remove('av-line--enter');
-        void els.current.offsetWidth;
-        els.current.classList.add('av-line--enter');
-        session.spark = els.current.querySelector('.av-spark');
+    function lineEl(i) {
+        const line = timeline.lines[i];
+        if (!line) return null;
+        let el = session.lineEls.get(i);
+        if (!el) {
+            el = document.createElement('div');
+            el.className = 'av-line is-queued';
+            el.dataset.section = line.section;
+            el.innerHTML = lineHtml(line);
+            els.reel.appendChild(el);
+            session.lineEls.set(i, el);
+            void el.offsetWidth; // start from the queued place so it can glide in
+        }
+        return el;
+    }
+
+    /**
+     * The lyric reel: the sung line rises away while the line waiting below grows up into its place.
+     * After a seek everything is simply put where it belongs.
+     */
+    function setLine(idx, smooth) {
+        const prev = session.lineIdx;
+        session.lineIdx = idx;
+        els.reel.classList.toggle('av-reel--instant', !smooth);
+        if (!smooth) {
+            for (const [i, el] of session.lineEls) { if (i !== idx && i !== idx + 1) { el.remove(); session.lineEls.delete(i); } }
+        }
+        const cur = lineEl(idx);
+        lineEl(idx + 1);
+        for (const [i, el] of session.lineEls) {
+            const state = i === idx ? 'is-current' : i === idx + 1 ? 'is-next' : i < idx ? 'is-leaving' : 'is-queued';
+            if (!el.classList.contains(state)) {
+                el.classList.remove('is-current', 'is-next', 'is-leaving', 'is-queued');
+                el.classList.add(state);
+            }
+            if (state === 'is-leaving' && !el._leaving) {
+                el._leaving = setTimeout(() => { el.remove(); if (session.lineEls.get(i) === el) session.lineEls.delete(i); }, smooth ? LINE_LEAVE_MS : 0);
+            }
+        }
+        if (cur) {
+            if (!session.spark) { session.spark = document.createElement('span'); session.spark.className = 'av-spark'; }
+            cur.appendChild(session.spark);
+        }
+        if (!smooth) requestAnimationFrame(() => els.reel.classList.remove('av-reel--instant'));
         measureLine();
         els.sheetLines.forEach((el, i) => {
             el.classList.toggle('is-now', i === idx);
             el.classList.toggle('is-sung', i < idx);
         });
         if (stage.classList.contains('av--sheet')) centerSheetLine(true);
+        return prev;
     }
 
     function centerSheetLine(smooth) {
@@ -283,11 +345,68 @@ export async function openAnthemVideo(guildId, { opener = document.activeElement
         });
     }
 
-    function syncCues(t) {
+    function syncCues(t, jumped) {
         const now = new Set(cuesReached(session.cues, t));
+        const fresh = [];
         for (const name of session.reached) if (!now.has(name)) stage.classList.remove(`cue-${name}`);
-        for (const name of now) if (!session.reached.has(name)) stage.classList.add(`cue-${name}`);
+        for (const name of now) if (!session.reached.has(name)) { stage.classList.add(`cue-${name}`); fresh.push(name); }
         session.reached = now;
+        if (!jumped && !session.settleNext && !audio.paused) fresh.forEach(fireMoment);
+        syncCamera(jumped || session.settleNext);
+        session.fx?.setState(now, session.phase);
+    }
+
+    /** One-shot moments on a cue: the camera shakes, light flashes, sparks burst. */
+    function fireMoment(name) {
+        const scene = session.scene;
+        if (!scene || session.still) return;
+        session.fx?.burst(name);
+        const shake = scene.shakes?.[name];
+        if (shake) {
+            const k = shake;
+            els.shaker.animate([
+                { transform: 'none' }, { transform: `translate3d(${-k}px, ${k * 0.6}px, 0)` }, { transform: `translate3d(${k * 0.9}px, ${-k * 0.6}px, 0)` },
+                { transform: `translate3d(${-k * 0.6}px, ${-k * 0.4}px, 0)` }, { transform: `translate3d(${k * 0.4}px, ${k * 0.4}px, 0)` }, { transform: 'none' },
+            ], { duration: 620, easing: 'ease-out' });
+        }
+        const flash = scene.flashes?.[name];
+        if (flash) {
+            els.flash.style.background = flash;
+            els.flash.animate([{ opacity: 0 }, { opacity: 0.75, offset: 0.08 }, { opacity: 0.15, offset: 0.25 }, { opacity: 0.5, offset: 0.36 }, { opacity: 0 }], { duration: 1000, easing: 'ease-out' });
+        }
+    }
+
+    function camTransform(cam, d) {
+        const z = 1 + ((cam.z ?? 1) - 1) * d;
+        return `translate3d(${((cam.x || 0) * d).toFixed(3)}%, ${((cam.y || 0) * d).toFixed(3)}%, 0) scale(${z.toFixed(4)})`;
+    }
+
+    /** The camera: every layer moves by its depth (far hills barely, the foreground most), on the GPU. */
+    function syncCamera(instant) {
+        if (!session.camera.length) return;
+        let target = session.camera[0];
+        for (const c of session.camera) if (c.cue === 'start' || session.reached.has(c.cue)) target = c;
+        if (target === session.camTarget && !instant) return;
+        if (target === session.camTarget && instant && !session.camMoving) return;
+        session.camTarget = target;
+        session.camMoving = !instant;
+        for (const layer of session.layers) {
+            const to = camTransform(target, layer.d);
+            if (instant || session.still) {
+                layer.anim?.cancel();
+                layer.anim = null;
+                layer.el.style.transform = to;
+                continue;
+            }
+            const from = getComputedStyle(layer.el).transform;
+            layer.anim?.cancel();
+            layer.el.style.transform = to;
+            layer.anim = layer.el.animate([{ transform: from === 'none' ? 'translate3d(0,0,0)' : from }, { transform: to }], {
+                duration: (target.dur ?? 2.4) * 1000,
+                easing: target.ease || 'cubic-bezier(.45, 0, .2, 1)',
+            });
+            if (audio.paused) layer.anim.pause();
+        }
     }
 
     function syncBeat(t) {
@@ -353,11 +472,11 @@ export async function openAnthemVideo(guildId, { opener = document.activeElement
             if (f.countdown > 0) { void els.countdown.offsetWidth; els.countdown.classList.add('is-tick'); }
         }
 
+        const jumped = session.lastT >= 0 && Math.abs(t - session.lastT) > SEEK_JUMP_SECONDS;
         const lineIdx = Math.max(0, f.lineIdx);
         if (lineIdx !== session.lineIdx) {
-            session.lineIdx = lineIdx;
             session.wordIdx = -2;
-            setLine(lineIdx);
+            setLine(lineIdx, !jumped && lineIdx === session.lineIdx + 1 && !session.still);
             stage.dataset.line = String(lineIdx);
         }
         const singing = f.phase !== 'intro';
@@ -382,10 +501,13 @@ export async function openAnthemVideo(guildId, { opener = document.activeElement
             session.spark.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
         }
 
-        syncCues(t);
+        syncCues(t, jumped);
         syncBeat(t);
-        const jumped = session.lastT >= 0 && Math.abs(t - session.lastT) > SEEK_JUMP_SECONDS;
-        if (jumped || (session.settleNext && t > SEEK_JUMP_SECONDS)) settleAfterJump();
+        if (jumped || (session.settleNext && t > SEEK_JUMP_SECONDS)) { settleAfterJump(); session.fx?.clear(); }
+        const nowMs = performance.now();
+        const dt = session.lastPerfFrame ? (nowMs - session.lastPerfFrame) / 1000 : 0;
+        session.lastPerfFrame = nowMs;
+        session.fx?.tick(dt, audio.paused);
         session.settleNext = false;
         session.lastT = t;
 
@@ -406,6 +528,7 @@ export async function openAnthemVideo(guildId, { opener = document.activeElement
         els.toggle.setAttribute('aria-label', paused ? 'Play' : 'Pause');
         els.toggle.innerHTML = `<i class="fas fa-${paused ? 'play' : 'pause'}" aria-hidden="true"></i>`;
         els.toggle.classList.toggle('is-paused', paused);
+        session.layers.forEach(l => { if (l.anim && l.anim.playState !== 'finished') { if (paused) l.anim.pause(); else l.anim.play(); } });
         if (paused) showControls(true);
     }
 
@@ -501,7 +624,7 @@ export async function openAnthemVideo(guildId, { opener = document.activeElement
         else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
     }
     const onMove = () => showControls();
-    const onResize = () => measureLine();
+    const onResize = () => { measureLine(); session.fx?.resize(); };
     const onEnded = () => {
         session.ended = true;
         stage.classList.add('is-ended');
@@ -512,7 +635,7 @@ export async function openAnthemVideo(guildId, { opener = document.activeElement
         const fs = document.fullscreenElement === root;
         const btn = root.querySelector('[data-av="fullscreen"]');
         if (btn) btn.innerHTML = `<i class="fas fa-${fs ? 'compress' : 'expand'}" aria-hidden="true"></i>`;
-        requestAnimationFrame(measureLine);
+        requestAnimationFrame(() => { measureLine(); session.fx?.resize(); });
     };
 
     root.addEventListener('click', onClick);
@@ -551,6 +674,7 @@ export function closeAnthemVideo({ immediate = false } = {}) {
     if (!session) return;
     _session = null;
     cancelAnimationFrame(session.rafId);
+    session.fx?.destroy();
     clearTimeout(session.idleTimer);
     session.cleanups.forEach(fn => fn());
     if (document.fullscreenElement === session.root) document.exitFullscreen?.().catch(() => {});

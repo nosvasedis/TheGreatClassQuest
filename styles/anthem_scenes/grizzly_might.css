@@ -1,28 +1,25 @@
 /* styles/anthem_scenes/grizzly_might.css — the Grizzly Might music video (features/anthemVideo/scenes/grizzlyMight.js).
    State comes from cue classes on .av-stage (cue-<name>, cumulative), data-section and .is-finale. */
 
-/* Night to dawn */
-.avs-grizzly .gr-dawn { opacity: 0; transition: opacity 3s ease; }
-.cue-roots .avs-grizzly .gr-dawn { opacity: 0.12; }
-.cue-chorus .avs-grizzly .gr-dawn { opacity: 0.55; }
-.cue-pullback .avs-grizzly .gr-dawn { opacity: 0.78; }
-.cue-through .avs-grizzly .gr-dawn { opacity: 1; }
-.avs-grizzly .gr-stars { transition: opacity 3s; }
-.cue-chorus .avs-grizzly .gr-stars { opacity: 0.2; }
-.cue-through .avs-grizzly .gr-stars { opacity: 0; }
-.avs-grizzly .gr-cold { opacity: 0; transition: opacity 1.6s; mix-blend-mode: soft-light; }
-.cue-winter .avs-grizzly .gr-cold { opacity: 0.45; }
-.cue-chorus .avs-grizzly .gr-cold { opacity: 0; }
-.avs-grizzly .gr-warmth { opacity: 0; transition: opacity 2s; }
-.cue-belong .avs-grizzly .gr-warmth { opacity: 0.3; }
-.av-stage.is-finale .avs-grizzly .gr-warmth { opacity: 0.5; }
+/* Night to dawn: plain washes, so their slow fades run on the GPU */
+.av--grizzly_might .gr-dawn { background: linear-gradient(180deg, #3b6fb6 0%, #9a8fc6 30%, #f6a65a 52%, #ffd58a 70%, #ffd58a 100%); opacity: 0; transition: opacity 3s ease; }
+.cue-roots .gr-dawn { opacity: 0.1; }
+.cue-chorus .gr-dawn { opacity: 0.55; }
+.cue-pullback .gr-dawn { opacity: 0.8; }
+.cue-through .gr-dawn { opacity: 1; }
+.av--grizzly_might .gr-cold { background: linear-gradient(180deg, rgba(147, 197, 253, 0.35), rgba(191, 219, 254, 0.18)); opacity: 0; transition: opacity 1.6s; }
+.cue-winter .gr-cold { opacity: 1; }
+.cue-chorus .gr-cold { opacity: 0; }
+.av--grizzly_might .gr-warmth { background: radial-gradient(ellipse 70% 60% at 50% 20%, rgba(253, 230, 138, 0.6), rgba(245, 158, 11, 0) 75%); opacity: 0; transition: opacity 2s; }
+.cue-belong .gr-warmth { opacity: 0.5; }
+.cue-through .gr-warmth { opacity: 0.8; }
+.av-stage.is-finale .gr-warmth { opacity: 0.9; }
 
 /* The mountain, its roots and its strength */
 .avs-grizzly .gr-roots { opacity: 0; transition: opacity 1.4s; filter: drop-shadow(0 0 6px #fbbf24); }
 .cue-roots .avs-grizzly .gr-roots { opacity: 1; }
 .cue-river .avs-grizzly .gr-roots { opacity: 0.35; }
 .cue-chorus .avs-grizzly .gr-roots { opacity: 0.7; }
-.avs-grizzly .gr-roots path { animation: gr-glow 2.4s ease-in-out infinite; }
 .av--lite .avs-grizzly .gr-roots { filter: none; }
 @keyframes gr-glow { 50% { opacity: 0.35; } }
 .avs-grizzly .gr-rim { opacity: 0.04; transition: opacity 1.4s; }
@@ -62,13 +59,6 @@
 .cue-wild .avs-grizzly .gr-splash { animation: gr-splash 0.9s ease-out both; animation-delay: calc(var(--i) * 0.04s); }
 @keyframes gr-splash { 0% { opacity: 1; transform: rotate(var(--a)) translate(0, 0); } 100% { opacity: 0; transform: rotate(var(--a)) translate(0, -70px); } }
 
-/* Winter */
-.avs-grizzly .gr-snowfall { opacity: 0; transition: opacity 1.2s; }
-.cue-winter .avs-grizzly .gr-snowfall { opacity: 1; }
-.cue-chorus .avs-grizzly .gr-snowfall { opacity: 0; }
-.avs-grizzly .gr-snow { animation-name: gr-snow; }
-@keyframes gr-snow { 0% { transform: translate(0, 0); opacity: 0; } 8% { opacity: 1; } 100% { transform: translate(var(--dx, 0px), 1000px); opacity: 0.9; } }
-
 /* The sleuth: placed in world coordinates, walking between marks */
 .avs-grizzly .gr-bear { transition: transform 2.2s cubic-bezier(.45, 0, .25, 1); }
 .avs-grizzly .gr-bear--1 { transform: translate(-200px, 612px); }
@@ -76,9 +66,9 @@
 .avs-grizzly .gr-bear--3 { transform: translate(1900px, 610px) scale(0.95); }
 .avs-grizzly .gr-bear--4 { transform: translate(2050px, 610px) scale(1.1); }
 .avs-grizzly .gr-bear--5 { transform: translate(-360px, 610px) scale(1.05); }
-.cue-hold .avs-grizzly .gr-bear--1 { transform: translate(330px, 612px); }
-.cue-hold .avs-grizzly .gr-bear--2 { transform: translate(450px, 616px) scale(0.62); }
-.cue-other .avs-grizzly .gr-bear--2 { transform: translate(408px, 616px) scale(0.62); }
+.cue-hold .avs-grizzly .gr-bear--1 { transform: translate(560px, 612px); }
+.cue-hold .avs-grizzly .gr-bear--2 { transform: translate(680px, 616px) scale(0.62); }
+.cue-other .avs-grizzly .gr-bear--2 { transform: translate(638px, 616px) scale(0.62); }
 .cue-chorus .avs-grizzly .gr-bear--1 { transform: translate(660px, 606px); }
 .cue-chorus .avs-grizzly .gr-bear--2 { transform: translate(800px, 612px) scale(0.62); }
 .cue-chorus .avs-grizzly .gr-bear--3 { transform: translate(950px, 606px) scale(0.95); }
@@ -105,20 +95,13 @@
 .avs-grizzly .gr-bear__eyes { transform-origin: center; animation: gr-blink 4.2s infinite; }
 @keyframes gr-blink { 0%, 94%, 100% { transform: none; } 97% { transform: scaleY(0.1); } }
 
-/* Stand strong: a stomp that shakes the ground */
-.cue-strong .avs-grizzly .gr-shake { animation: gr-stomp 0.55s ease-out; }
-@keyframes gr-stomp { 0%, 100% { transform: none; } 20% { transform: translateY(9px); } 45% { transform: translateY(-5px); } 70% { transform: translateY(3px); } }
-.avs-grizzly .gr-puff { opacity: 0; transform-origin: center; }
-.cue-strong .avs-grizzly .gr-puff { animation: gr-puff 1s ease-out both; animation-delay: calc(var(--i) * 0.04s); }
-@keyframes gr-puff { 0% { opacity: 0.85; transform: scale(0.3); } 100% { opacity: 0; transform: scale(1.8, 1.3) translateY(-10px); } }
+
 
 /* Pull back to the whole mountain; the sun crests the peak */
-.avs-grizzly .gr-cam { transition: transform 3.2s ease-in-out; }
-.cue-pullback .avs-grizzly .gr-cam { transform: translate(136px, 60px) scale(0.83); }
 .avs-grizzly .gr-sun { opacity: 0; transform: translateY(260px); transition: transform 2.6s cubic-bezier(.2, .8, .2, 1), opacity 1.2s; }
 .cue-true .avs-grizzly .gr-sun { opacity: 0.6; transform: translateY(130px); }
 .cue-through .avs-grizzly .gr-sun { opacity: 1; transform: none; }
-.avs-grizzly .gr-rays { opacity: 0; transform-origin: center; transition: opacity 1.6s; animation: gr-spin 40s linear infinite; }
+.avs-grizzly .gr-rays { opacity: 0; transform-origin: center; transition: opacity 1.6s; }
 .cue-through .avs-grizzly .gr-rays { opacity: 1; }
 @keyframes gr-spin { to { transform: rotate(360deg); } }
 
@@ -132,18 +115,9 @@
 /* Night lights: aurora, moon and fireflies give way to the dawn */
 .avs-grizzly .gr-aurora { opacity: 0.85; transition: opacity 3s; }
 .cue-chorus .avs-grizzly .gr-aurora { opacity: 0; }
-.avs-grizzly .gr-aurora__band { animation: gr-aurora 9s ease-in-out infinite alternate; }
-.avs-grizzly .gr-aurora__band--b { animation-duration: 12s; animation-direction: alternate-reverse; }
-@keyframes gr-aurora { from { transform: translateX(-60px) skewX(-4deg); } to { transform: translateX(60px) skewX(4deg); } }
+/* the whole aurora sheet sways as one GPU layer (no repaint) */
+.avl--aurora > svg { animation: gr-aurora 10s ease-in-out infinite alternate; will-change: transform; }
+.av--lite .avl--aurora > svg { animation: none; }
+@keyframes gr-aurora { from { transform: translate3d(-3%, 0, 0) scaleY(0.94); } to { transform: translate3d(3%, -1%, 0) scaleY(1.06); } }
 .avs-grizzly .gr-moon { transition: opacity 3s, transform 4s ease-in; }
 .cue-chorus .avs-grizzly .gr-moon { opacity: 0; transform: translateY(140px); }
-.avs-grizzly .gr-fireflies { transition: opacity 2s; }
-.cue-winter .avs-grizzly .gr-fireflies { opacity: 0; }
-.cue-hold .avs-grizzly .gr-fireflies { opacity: 1; }
-.cue-pullback .avs-grizzly .gr-fireflies { opacity: 0; }
-.avs-grizzly .gr-firefly { animation-name: gr-firefly; }
-@keyframes gr-firefly {
-    0% { transform: translate(0, 0); opacity: 0; }
-    20% { opacity: 1; } 40% { opacity: 0.3; } 60% { opacity: 1; }
-    100% { transform: translate(var(--dx, 0px), -360px); opacity: 0; }
-}

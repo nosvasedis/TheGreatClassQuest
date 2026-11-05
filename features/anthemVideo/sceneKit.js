@@ -84,3 +84,16 @@ export function pineTree(x, y, h, color) {
     const tier = (top, bottom, half) => `M${f(x)} ${f(top)} L${f(x + half)} ${f(bottom)} Q${f(x)} ${f(bottom - h * 0.05)} ${f(x - half)} ${f(bottom)} Z`;
     return `<path d="${tier(y - h, y - h * 0.58, w * 0.5)} ${tier(y - h * 0.8, y - h * 0.3, w * 0.75)} ${tier(y - h * 0.56, y - h * 0.06, w)} M${f(x - h * 0.03)} ${f(y - h * 0.1)} h${f(h * 0.06)} v${f(h * 0.12)} h${f(-h * 0.06)} Z" fill="${color}"/>`;
 }
+
+/**
+ * One depth layer of a scene: its own SVG on its own GPU layer. `d` is the depth the camera uses
+ * (0 = pinned to the screen, 0.1 = far sky, 1 = the action, >1 = foreground that sweeps past).
+ */
+export function layer(scene, name, d, inner) {
+    return `<div class="avl avl--${name}" data-d="${d}">${svgOpen(scene)}${inner}</svg></div>`;
+}
+
+/** A full-screen wash (light, shadow, dawn) as a plain element: its fades run on the GPU, not in the SVG. */
+export function wash(className, d = 0) {
+    return `<div class="avl avw ${className}" data-d="${d}"></div>`;
+}

@@ -2,7 +2,7 @@
 // a spark from the embers becomes a young dragon that learns to fly, stands tall, roars, then lights
 // every torch on the walls, circles the moon and ends in a ring of flame around the crest.
 import '../../../styles/anthem_scenes/dragon_flame.css';
-import { seeded, times, f, svgOpen, starField, risingParticles, cloudPath } from '../sceneKit.js';
+import { times, f, cloudPath, layer, wash } from '../sceneKit.js';
 
 // Line / word indices follow GUILDS.dragon_flame.anthemLyrics.
 export const cues = [
@@ -128,14 +128,55 @@ function flameRing(lite) {
     });
 }
 
-function smoke(lite) {
-    return times(lite ? 4 : 7, i => `<g transform="translate(${800 + (i % 2 ? 14 : -10)} 420)"><circle class="dr-smoke" style="--i:${i};animation-delay:-${f(i * 1.15, 2)}s" r="${34 + (i % 3) * 10}" fill="url(#dr-smoke)"/></g>`);
-}
+// The camera follows the story: close on the crater, up with the young dragon, onto the crag where it
+// stands, a snap back on the roar, wide for the chorus, then in for the last "burn bright".
+export const camera = [
+    { cue: 'start', x: 0, y: 4, z: 1.3 },
+    { cue: 'spark', x: 0, y: 7, z: 1.42, dur: 3 },
+    { cue: 'hatch', x: 0, y: 6, z: 1.22, dur: 1.4, ease: 'cubic-bezier(.2, .8, .2, 1)' },
+    { cue: 'fly', x: 7, y: 10, z: 1.14, dur: 2 },
+    { cue: 'shadows', x: 14, y: -1, z: 1.24, dur: 2.6 },
+    { cue: 'stand', x: 22, y: -8, z: 1.42, dur: 1.3, ease: 'cubic-bezier(.2, .9, .3, 1)' },
+    { cue: 'heart', x: 24, y: -10, z: 1.55, dur: 1.4 },
+    { cue: 'roar', x: 4, y: 0, z: 1.06, dur: 0.55, ease: 'cubic-bezier(.1, .9, .2, 1)' },
+    { cue: 'chorus', x: 0, y: 2, z: 1.0, dur: 1.1, ease: 'cubic-bezier(.16, 1, .3, 1)' },
+    { cue: 'flame', x: -3, y: 6, z: 1.12, dur: 1.6 },
+    { cue: 'night', x: 0, y: 0, z: 0.96, dur: 1.4 },
+    { cue: 'ignite', x: 0, y: 2, z: 1.06, dur: 0.5, ease: 'cubic-bezier(.1, .9, .2, 1)' },
+    { cue: 'bright', x: -2, y: 7, z: 1.16, dur: 1.4 },
+    { cue: 'finale', x: 0, y: 0, z: 1.0, dur: 1.6 },
+];
+export const shakes = { thunder: 6, roar: 16, chorus: 7, ignite: 10, finale: 6 };
+export const flashes = {
+    thunder: 'radial-gradient(circle at 85% 15%, #fff6d8, rgba(255, 220, 160, 0.4) 40%, transparent 75%)',
+    roar: 'radial-gradient(circle at 30% 55%, #ffd36b, rgba(255, 110, 30, 0.45) 45%, transparent 80%)',
+    chorus: 'radial-gradient(circle at 50% 50%, #ffcf7a, rgba(255, 80, 20, 0.35) 55%, transparent 85%)',
+    ignite: 'radial-gradient(circle at 50% 30%, #fff1c2, rgba(255, 120, 40, 0.4) 50%, transparent 85%)',
+};
+const FIRE = ['#ffb347', '#ffd36b', '#ff7a1a', '#fff1a8'];
+export const fx = {
+    stars: { count: 70, bottom: 430, color: '#ffe0c4', fade: { chorus: 0.55, night: 1, finale: 0.7 } },
+    emitters: [
+        { type: 'rise', x: [200, 1400], y: [910, 930], rate: 9, size: [1.4, 3.6], life: [4, 7.5], speed: [70, 140], spread: 0.35, sway: 26, colors: FIRE, boost: { embers: 1.6, chorus: 2.8, finale: 3.4 } },
+        { type: 'rise', x: [770, 830], y: [426, 440], rate: 5, size: [1.4, 3.4], life: [1.2, 2.4], speed: [90, 220], spread: 0.55, gravity: 90, colors: FIRE, on: 'embers', boost: { chorus: 2.2 } },
+        { type: 'rise', kind: 'flake', x: [780, 820], y: [420, 430], rate: 1.6, size: [16, 30], life: [6, 9], speed: [30, 55], spread: 0.25, sway: 18, wind: -14, colors: ['#3b1418', '#4a1c1c'] },
+    ],
+    bursts: [
+        { cue: 'spark', at: [800, 424], count: 26, colors: FIRE, size: [1.5, 3.5], speed: [60, 170], life: [0.7, 1.5], drag: 1.2, gravity: 60 },
+        { cue: 'hatch', at: [800, 400], count: 46, colors: FIRE, size: [1.5, 4], speed: [120, 320], life: [0.6, 1.4], drag: 1.6 },
+        { cue: 'roar', at: [470, 500], count: 60, colors: FIRE, size: [1.8, 4.6], speed: [180, 460], life: [0.6, 1.4], drag: 1.4, angle: -0.2, spread: 0.6 },
+        { cue: 'chorus', at: [800, 432], count: 80, colors: FIRE, size: [1.8, 5], speed: [260, 620], life: [1, 2.2], drag: 0.6, gravity: 380, angle: -Math.PI / 2, spread: 0.6 },
+        { cue: 'flame', at: [900, 240], count: 46, colors: FIRE, size: [1.6, 4.2], speed: [200, 520], life: [0.5, 1.2], drag: 1.6, angle: 0, spread: 0.35 },
+        { cue: 'ignite', at: [380, 190], count: 34, colors: ['#fde68a', '#fff1a8', '#ffb347'], size: [1.4, 3.4], speed: [120, 300], life: [0.8, 1.6], drag: 1.2, gravity: 80 },
+        { cue: 'ignite', at: [1120, 250], count: 34, colors: ['#fde68a', '#fff1a8', '#ffb347'], size: [1.4, 3.4], speed: [120, 300], life: [0.8, 1.6], drag: 1.2, gravity: 80 },
+        { cue: 'bright', at: [990, 240], count: 56, colors: FIRE, size: [1.8, 4.6], speed: [220, 560], life: [0.6, 1.3], drag: 1.6, angle: 0, spread: 0.4 },
+        { cue: 'finale', at: [800, 360], count: 110, colors: FIRE, size: [1.6, 4.4], speed: [160, 520], life: [0.9, 2], drag: 1.1 },
+    ],
+};
 
 export function render({ lite = false } = {}) {
-    const rand = seeded(7);
-    return `${svgOpen('avs-dragon')}
-    <defs>
+    const S = 'avs-dragon';
+    const defs = `<defs>
         <linearGradient id="dr-sky" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stop-color="#0d0208"/><stop offset="0.45" stop-color="#2c0712"/><stop offset="0.75" stop-color="#5c1414"/><stop offset="1" stop-color="#a1361a"/>
         </linearGradient>
@@ -144,8 +185,6 @@ export function render({ lite = false } = {}) {
             <stop offset="0" stop-color="#ffe9c4"/><stop offset="0.5" stop-color="#ffa45c"/><stop offset="0.9" stop-color="#d9452b"/><stop offset="1" stop-color="#b3301f"/>
         </radialGradient>
         <radialGradient id="dr-glow"><stop offset="0" stop-color="#ffc061" stop-opacity="0.95"/><stop offset="0.45" stop-color="#ff7a1f" stop-opacity="0.35"/><stop offset="1" stop-color="#ff5a1f" stop-opacity="0"/></radialGradient>
-        <radialGradient id="dr-smoke"><stop offset="0" stop-color="#5a2a26" stop-opacity="0.7"/><stop offset="1" stop-color="#2a0c0e" stop-opacity="0"/></radialGradient>
-        <radialGradient id="dr-warm" cx="0.5" cy="0.75" r="0.75"><stop offset="0" stop-color="#ff7a1a" stop-opacity="0.8"/><stop offset="1" stop-color="#ff3d00" stop-opacity="0"/></radialGradient>
         <linearGradient id="dr-fire" x1="0" y1="1" x2="1" y2="0">
             <stop offset="0" stop-color="#fff1a8"/><stop offset="0.35" stop-color="#ffb02e"/><stop offset="0.8" stop-color="#f4511e"/><stop offset="1" stop-color="#b91c1c"/>
         </linearGradient>
@@ -158,15 +197,13 @@ export function render({ lite = false } = {}) {
         <linearGradient id="dr-stone" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a0d10"/><stop offset="1" stop-color="#0e0306"/></linearGradient>
         <linearGradient id="dr-ridge1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a1a1c"/><stop offset="1" stop-color="#2a0a10"/></linearGradient>
         <linearGradient id="dr-ridge2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a0c14"/><stop offset="1" stop-color="#1a050a"/></linearGradient>
-    </defs>
-    <g class="dr-cam">
-        <rect width="1600" height="900" fill="url(#dr-sky)"/>
-        <rect y="300" width="1600" height="420" fill="url(#dr-horizon)"/>
-        <g class="dr-stars">${starField(rand, lite ? 26 : 60, { bottom: 420, color: '#ffe8d0' })}</g>
-        <rect class="dr-flash" width="1600" height="900" fill="#fff3d6"/>
+    </defs>`;
+    const sky = `${defs}
+        <rect x="-500" y="-400" width="2600" height="1700" fill="url(#dr-sky)"/>
+        <rect x="-500" y="300" width="2600" height="460" fill="url(#dr-horizon)"/>
         <path class="dr-bolt" d="M1360 30 L1316 150 L1348 150 L1290 300 L1384 128 L1346 128 L1396 30 Z" fill="#fff6d0"/>
         <g transform="translate(1200 200)">
-            <circle class="dr-moon-halo av-pulse" r="220" fill="url(#dr-glow)" opacity="0.4"/>
+            <circle class="dr-moon-halo av-pulse" r="230" fill="url(#dr-glow)" opacity="0.4"/>
             <circle r="104" fill="url(#dr-moon)"/>
             <path d="M62 -84 A104 104 0 0 1 62 84 A120 120 0 0 0 62 -84 Z" fill="#7a1a10" opacity="0.35"/>
             <circle cx="-34" cy="-24" r="17" fill="#d9583a" opacity="0.45"/><circle cx="30" cy="30" r="24" fill="#d9583a" opacity="0.35"/><circle cx="16" cy="-50" r="9" fill="#d9583a" opacity="0.45"/><circle cx="-48" cy="36" r="8" fill="#d9583a" opacity="0.4"/>
@@ -175,12 +212,15 @@ export function render({ lite = false } = {}) {
         <g class="dr-clouds" fill="#3b0c14" opacity="0.85">
             <path class="dr-cloud" d="${cloudPath(260, 150, [[0, 0, 40], [50, -14, 52], [110, -4, 42], [160, 6, 30]], 20)}"/>
             <path class="dr-cloud dr-cloud--b" d="${cloudPath(980, 250, [[0, 0, 30], [44, -12, 42], [96, -2, 36], [140, 8, 24]], 16)}"/>
+            <path class="dr-cloud" d="${cloudPath(-180, 280, [[0, 0, 34], [50, -10, 46], [100, 0, 32]], 14)}"/>
         </g>
-        <path d="M0 540 L90 470 L170 500 L290 420 L400 500 L520 456 L600 500 L700 480 L800 530 L930 470 L1050 520 L1150 440 L1280 510 L1400 456 L1500 500 L1600 470 L1600 900 L0 900 Z" fill="url(#dr-ridge1)"/>
-        <path d="M0 610 L140 560 L260 590 L380 548 L520 600 L1080 600 L1200 556 L1330 590 L1460 552 L1600 586 L1600 900 L0 900 Z" fill="url(#dr-ridge2)"/>
-        <g class="dr-smokes">${smoke(lite)}</g>
+        <g class="dr-bursts">${bursts()}</g>`;
+    const far = `
+        <path d="M-500 540 L-300 500 L-160 520 L0 540 L90 470 L170 500 L290 420 L400 500 L520 456 L600 500 L700 480 L800 530 L930 470 L1050 520 L1150 440 L1280 510 L1400 456 L1500 500 L1600 470 L1760 500 L1900 450 L2100 520 L2100 1200 L-500 1200 Z" fill="url(#dr-ridge1)"/>
+        <path d="M-500 620 L-260 580 L0 610 L140 560 L260 590 L380 548 L520 600 L1080 600 L1200 556 L1330 590 L1460 552 L1600 586 L1800 560 L2100 610 L2100 1200 L-500 1200 Z" fill="url(#dr-ridge2)"/>`;
+    const volcano = `
         <g class="dr-volcano">
-            <path d="M380 750 L672 462 Q748 420 800 434 Q852 420 928 462 L1220 750 Z" fill="url(#dr-cone)"/>
+            <path d="M330 790 L672 462 Q748 420 800 434 Q852 420 928 462 L1270 790 Z" fill="url(#dr-cone)"/>
             <path d="M672 462 Q748 420 800 434 L760 520 L700 600 L560 690 L470 750 L380 750 Z" fill="#ff5a1f" opacity="0.08"/>
             <path d="M680 462 Q748 424 800 438 Q852 424 920 462" stroke="#ff9a3d" stroke-width="4" fill="none" opacity="0.7" stroke-linecap="round"/>
             <ellipse class="dr-crater av-bar-pulse" cx="800" cy="436" rx="150" ry="60" fill="url(#dr-glow)" style="--flash:0.95"/>
@@ -193,24 +233,29 @@ export function render({ lite = false } = {}) {
                 <path class="dr-lava" style="animation-delay:-0.8s" d="M818 444 C832 476 822 506 852 540 C880 572 872 610 910 650 C936 680 946 716 968 752" stroke="url(#dr-lava)" stroke-width="4.5" fill="none" stroke-linecap="round"/>
             </g>
         </g>
-        <rect class="dr-warm" width="1600" height="900" fill="url(#dr-warm)"/>
-        <rect class="dr-shadow" width="1600" height="900" fill="#050003"/>
-        <circle class="dr-spark" cx="800" cy="420" r="10" fill="#fff1a8"/>
-        <g class="dr-bursts">${bursts()}</g>
-        <g class="dr-wall">
-            ${wall()}
-            ${torches(lite)}
-        </g>
-        <path d="M0 900 L0 616 C40 604 80 600 120 598 L170 604 L214 590 L282 594 C330 594 380 600 420 618 L470 660 L540 900 Z" fill="#12040a"/>
-        <path d="M0 616 C40 604 80 600 120 598 L170 604 L214 590 L282 594 C330 594 380 600 420 618" stroke="#ff7a2a" stroke-width="3" fill="none" opacity="0.45" stroke-linecap="round"/>
+        <circle class="dr-spark" cx="800" cy="420" r="10" fill="#fff1a8"/>`;
+    const wallLayer = `<g class="dr-wall">${wall()}${torches(lite)}</g>
+        <path d="M1600 666 H2100 V1200 H1600 Z" fill="url(#dr-stone)"/>`;
+    const hero = `
         <g transform="translate(442 484)" class="dr-waves">
             ${times(3, i => `<circle class="dr-wave" style="--i:${i}" r="40" fill="none" stroke="#ffd36b" stroke-width="6"/>`)}
         </g>
+        <path d="M-500 1200 L-500 616 L0 616 C40 604 80 600 120 598 L170 604 L214 590 L282 594 C330 594 380 600 420 618 L470 660 L560 1200 Z" fill="#12040a"/>
+        <path d="M0 616 C40 604 80 600 120 598 L170 604 L214 590 L282 594 C330 594 380 600 420 618" stroke="#ff7a2a" stroke-width="3" fill="none" opacity="0.45" stroke-linecap="round"/>
         ${dragon()}
-        <g class="dr-embers">${risingParticles(rand, lite ? 14 : 36, { className: 'avs-rise dr-ember', colors: ['#ffb347', '#ffd36b', '#ff7a1a', '#fff1a8'], minR: 1.6, maxR: 4.2 })}</g>
-        <g transform="translate(800 360)"><g class="dr-ring"><g class="dr-ring__spin">${flameRing(lite)}</g></g></g>
-    </g>
-    </svg>`;
+        <g transform="translate(800 360)"><g class="dr-ring"><g class="dr-ring__spin">${flameRing(lite)}</g></g></g>`;
+    const fg = `<path d="M-500 1200 L-500 830 C-200 800 0 840 200 820 C400 800 500 860 700 880 L760 1200 Z M1100 1200 L1160 860 C1300 830 1500 850 1700 820 C1900 800 2000 830 2100 840 L2100 1200 Z" fill="#070104"/>
+        <path d="M-500 830 C-200 800 0 840 200 820 C400 800 500 860 700 880 M1160 860 C1300 830 1500 850 1700 820" stroke="#ff7a2a" stroke-width="2.5" fill="none" opacity="0.35"/>`;
+    return [
+        layer(S, 'sky', 0.08, sky),
+        layer(S, 'far', 0.3, far),
+        layer(S, 'volcano', 0.55, volcano),
+        wash('dr-warm', 0),
+        layer(S, 'wall', 0.85, wallLayer),
+        wash('dr-shadow', 0),
+        layer(S, 'hero', 1, hero),
+        layer(S, 'fg', 1.3, fg),
+    ].join('');
 }
 
-export default { cues, render };
+export default { cues, render, camera, shakes, flashes, fx };

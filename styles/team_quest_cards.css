@@ -644,6 +644,8 @@
 .tqc-pill--next b { font-weight: 800; }
 .tqc-pill--next.is-complete { background: linear-gradient(135deg, #f0b323, #d97706); }
 .tqc-pill--race i { color: #9b6a35; }
+.tqc-pill--sky { color: #ffe9a8; border-color: rgba(255, 224, 138, 0.35); background: linear-gradient(90deg, #3a2f86, #1d1a4a); }
+.tqc-pill--sky b { color: #fff; font-weight: 800; }
 .tqc-pill--bonus { color: #725016; border-color: rgba(225, 170, 51, 0.4); background: linear-gradient(90deg, #fff8d9, #ffedaa); }
 .tqc-pill--holiday { color: #b4541a; border-color: rgba(234, 120, 50, 0.3); background: #fff3e6; }
 

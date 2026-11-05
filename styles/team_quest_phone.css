@@ -1,0 +1,864 @@
+/* styles/team_quest_phone.css
+   Team Quest on phones and small tablets (ui/tabs/teamQuestPhone.js), loaded on demand.
+   The look: a trail from the meadows by day to the Crystal Sky by night. The summit
+   panel's realm ladder runs from green land to starry sky; each race card wears its
+   realm's colour, and a party past its goal gets a night-sky card whose trail climbs
+   the Starward Way. Cheap to draw: no backdrop-filter, no blur, motion only on
+   transform/opacity, and nothing loops on weak phones (body.gcq-lite) or with
+   reduced motion. */
+
+.tqp {
+    --tqp-ink: #2b2140;
+    --tqp-soft: #6b6280;
+    --tqp-paper: #fffdf7;
+    --tqp-line: rgba(76, 58, 120, 0.12);
+    --tqp-bronze: #7aa83a;
+    --tqp-silver: #5a92c4;
+    --tqp-gold: #e2a21b;
+    --tqp-crystal: #9a6ce0;
+    --tqp-portal: #7c4dff;
+    --tqp-night: #1d1a4a;
+    --tqp-night-2: #322a78;
+    --tqp-star: #ffe08a;
+    --tqp-accent: var(--tqp-bronze);
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    margin: 0 auto;
+    max-width: 60rem;
+    color: var(--tqp-ink);
+    font-family: inherit;
+}
+
+/* ── Summit: the league at a glance ─────────────────────────────────────── */
+
+.tqp-summit {
+    position: relative;
+    overflow: hidden;
+    padding: 0.95rem 0.85rem 0.85rem;
+    border-radius: 1.4rem;
+    background:
+        radial-gradient(120% 70% at 100% 0%, rgba(124, 77, 255, 0.14), transparent 60%),
+        linear-gradient(180deg, #fffaf0 0%, #fbf5ff 100%);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.9) inset,
+        0 0 0 1px rgba(124, 77, 255, 0.12),
+        0 10px 24px -14px rgba(49, 31, 102, 0.45);
+}
+
+.tqp-summit__stars {
+    position: absolute;
+    inset: 0 0 auto 45%;
+    height: 4.5rem;
+    pointer-events: none;
+    background:
+        radial-gradient(1.5px 1.5px at 20% 30%, rgba(124, 77, 255, 0.55), transparent 70%),
+        radial-gradient(1.5px 1.5px at 55% 18%, rgba(226, 162, 27, 0.6), transparent 70%),
+        radial-gradient(2px 2px at 78% 52%, rgba(124, 77, 255, 0.45), transparent 70%),
+        radial-gradient(1.5px 1.5px at 92% 22%, rgba(226, 162, 27, 0.55), transparent 70%);
+}
+
+.tqp-summit__top {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+}
+
+.tqp-summit__title {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.tqp-summit__title small {
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #8a5a12;
+}
+
+body.gcq-mobile .app-tab .tqp-summit__title h3,
+.tqp-summit__title h3 {
+    margin: 0.1rem 0 0;
+    font-family: 'Fredoka One', 'Fredoka', system-ui, sans-serif;
+    font-size: 1.28rem !important;
+    line-height: 1.15 !important;
+    color: var(--tqp-ink);
+}
+
+.tqp-summit__title em {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.2rem;
+    font-style: normal;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--tqp-soft);
+}
+
+.tqp-summit__title em i { color: var(--tqp-gold); }
+
+.tqp-summit__book {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 2.6rem;
+    padding: 0 0.85rem;
+    border: 0;
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: 0.8rem;
+    color: #fff;
+    background: linear-gradient(180deg, #8b5cf6, #6d3fe0);
+    box-shadow: 0 2px 0 #4c2bb0, 0 6px 14px -6px rgba(76, 43, 176, 0.7);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.tqp-summit__book:active { transform: translateY(1px); box-shadow: 0 1px 0 #4c2bb0; }
+
+/* The ladder: six stations, meadow green by day to the starry sky by night. */
+.tqp-ladder {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    margin: 0.85rem 0 0;
+    padding: 0.6rem 0.2rem 0.45rem;
+    list-style: none;
+    border-radius: 1rem;
+    background: linear-gradient(90deg, #e9f6d8 0%, #e1effb 30%, #fdf1cf 50%, #efe4fd 66%, #3a2f86 84%, #1d1a4a 100%);
+    box-shadow: inset 0 0 0 1px rgba(43, 33, 64, 0.08);
+}
+
+.tqp-ladder::before {
+    /* the road joining the stations */
+    content: '';
+    position: absolute;
+    left: 8%;
+    right: 8%;
+    top: calc(0.6rem + 1.05rem);
+    height: 3px;
+    border-radius: 3px;
+    background: repeating-linear-gradient(90deg, rgba(43, 33, 64, 0.28) 0 6px, transparent 6px 11px);
+}
+
+.tqp-ladder__stop {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.tqp-ladder__badge {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 3px 8px -3px rgba(29, 26, 74, 0.5);
+    filter: grayscale(0.85) opacity(0.55);
+    transition: filter 0.3s ease;
+}
+
+.tqp-ladder__stop.is-lit .tqp-ladder__badge { filter: none; }
+
+.tqp-ladder__badge img {
+    width: 125%;
+    height: 125%;
+    max-width: none;
+    object-fit: contain;
+}
+
+.tqp-ladder__stop--portal .tqp-ladder__badge img { width: 100%; height: 100%; border-radius: 50%; }
+
+.tqp-ladder__stop--sky .tqp-ladder__badge {
+    color: var(--tqp-star);
+    background: radial-gradient(circle at 50% 40%, #4b3fb0, var(--tqp-night));
+    box-shadow: 0 0 0 2px rgba(255, 224, 138, 0.55), 0 0 12px rgba(255, 224, 138, 0.35);
+}
+
+.tqp-ladder__stop--sky.is-veiled .tqp-ladder__badge { filter: none; opacity: 0.72; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35); }
+
+.tqp-ladder__badge b {
+    position: absolute;
+    top: -0.35rem;
+    right: -0.45rem;
+    min-width: 1.15rem;
+    height: 1.15rem;
+    padding: 0 0.25rem;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    font-size: 0.66rem;
+    font-weight: 900;
+    line-height: 1;
+    color: #fff;
+    background: #e2491b;
+    box-shadow: 0 0 0 2px #fff;
+}
+
+.tqp-ladder__name {
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    color: rgba(43, 33, 64, 0.78);
+    white-space: nowrap;
+}
+
+.tqp-ladder__stop--sky .tqp-ladder__name { color: #fff3c4; }
+
+.tqp-ladder__crests {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0 1px;
+    max-width: 100%;
+    min-height: 0.95rem;
+    font-size: 0.72rem;
+    line-height: 1.1;
+}
+
+.tqp-ladder__crests i { font-style: normal; }
+
+.tqp-summit__note {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.45rem;
+    margin: 0.65rem 0.15rem 0;
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.35;
+    color: var(--tqp-soft);
+}
+
+.tqp-summit__note i { margin-top: 0.15rem; color: var(--tqp-portal); }
+
+/* The jump to the active class. */
+.tqp-mine {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    width: 100%;
+    margin-top: 0.7rem;
+    padding: 0.55rem 0.75rem 0.55rem 0.55rem;
+    border: 0;
+    border-radius: 1rem;
+    text-align: left;
+    color: var(--tqp-ink);
+    background: linear-gradient(90deg, #fff3cf, #fffaf0);
+    box-shadow: inset 0 0 0 1.5px rgba(226, 162, 27, 0.55);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.tqp-mine__logo {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 0.8rem;
+    font-size: 1.35rem;
+    background: #fff;
+    box-shadow: 0 2px 6px -2px rgba(138, 90, 18, 0.45);
+}
+
+.tqp-mine__copy { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+.tqp-mine__copy small { font-size: 0.64rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #8a5a12; }
+.tqp-mine__copy strong { font-size: 0.95rem; font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
+.tqp-mine__copy em { font-style: normal; font-size: 0.76rem; font-weight: 700; color: var(--tqp-soft); }
+.tqp-mine__copy em b { color: #8a5a12; }
+.tqp-mine__go { flex: 0 0 auto; color: #b07a17; }
+
+/* ── Race cards ─────────────────────────────────────────────────────────── */
+
+.tqp-list {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.7rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.tqp-card {
+    --tqp-accent: var(--tqp-bronze);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem 0.8rem 0.55rem 0.95rem;
+    border-radius: 1.15rem;
+    background: var(--tqp-paper);
+    box-shadow:
+        inset 4px 0 0 var(--tqp-accent),
+        0 0 0 1px var(--tqp-line),
+        0 6px 16px -12px rgba(43, 33, 64, 0.55);
+    cursor: pointer;
+    scroll-margin: 6rem 0 7rem;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.tqp-card--silver { --tqp-accent: var(--tqp-silver); }
+.tqp-card--gold { --tqp-accent: var(--tqp-gold); }
+.tqp-card--crystal { --tqp-accent: var(--tqp-crystal); }
+.tqp-card--portal { --tqp-accent: var(--tqp-portal); }
+
+.tqp-card:active { transform: scale(0.992); }
+
+.tqp-card.is-mine {
+    box-shadow:
+        inset 4px 0 0 var(--tqp-accent),
+        0 0 0 2px #f2b632,
+        0 8px 20px -10px rgba(226, 162, 27, 0.6);
+}
+
+.tqp-card.is-flash { animation: tqp-flash 1.4s ease; }
+
+.tqp-card__head {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+.tqp-rank {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 1.9rem;
+    height: 1.9rem;
+    border-radius: 50%;
+    font-size: 0.85rem;
+    font-weight: 900;
+    color: #4b4560;
+    background: radial-gradient(circle at 35% 30%, #fbfaff, #d9d6e6 70%);
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.8), 0 0 0 1.5px #b9b4cc;
+}
+
+.tqp-rank--gold { color: #7a4b00; background: radial-gradient(circle at 35% 30%, #fff6c8, #f4c443 70%); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.7), 0 0 0 1.5px #d39a1a; }
+.tqp-rank--silver { color: #3d4b5c; background: radial-gradient(circle at 35% 30%, #ffffff, #c9d3df 70%); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.7), 0 0 0 1.5px #98a6b8; }
+.tqp-rank--bronze { color: #5c2f10; background: radial-gradient(circle at 35% 30%, #ffe2c4, #d99359 70%); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6), 0 0 0 1.5px #b56d33; }
+
+.tqp-rank i {
+    position: absolute;
+    top: -0.62rem;
+    font-size: 0.66rem;
+    color: #e2a21b;
+    filter: drop-shadow(0 1px 0 #fff);
+}
+
+.tqp-card__logo {
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.85rem;
+    font-size: 1.45rem;
+    line-height: 1;
+    background: color-mix(in srgb, var(--tqp-accent) 14%, #fff);
+    box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tqp-accent) 35%, transparent);
+}
+
+.tqp-card__who { display: flex; flex-direction: column; gap: 0.12rem; min-width: 0; }
+
+.tqp-card__who strong {
+    font-size: 0.98rem;
+    font-weight: 800;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+
+.tqp-card__realm {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    min-width: 0;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: color-mix(in srgb, var(--tqp-accent) 70%, #2b2140);
+}
+
+.tqp-card__realm img { width: 1.1rem; height: 1.1rem; flex: 0 0 auto; object-fit: contain; }
+.tqp-card__realm i { flex: 0 0 auto; font-size: 0.72rem; }
+.tqp-card__realm span { overflow-wrap: anywhere; line-height: 1.2; }
+
+.tqp-card__pct {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+}
+
+.tqp-card__pct b {
+    font-family: 'Fredoka One', 'Fredoka', system-ui, sans-serif;
+    font-size: 1.45rem;
+    line-height: 1;
+    color: color-mix(in srgb, var(--tqp-accent) 75%, #2b2140);
+    font-variant-numeric: tabular-nums;
+}
+
+.tqp-card__pct b small { font-size: 0.7em; margin-left: 1px; }
+.tqp-card__pct em { margin-top: 0.15rem; font-style: normal; font-size: 0.62rem; font-weight: 800; color: var(--tqp-soft); white-space: nowrap; }
+
+/* ── The trail ──────────────────────────────────────────────────────────── */
+
+.tqp-track {
+    position: relative;
+    height: 1.7rem;
+    margin: 0.1rem 0.35rem 0 0.1rem;
+}
+
+.tqp-track__realms,
+.tqp-track__sky {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 0.6rem;
+    margin-top: -0.3rem;
+    display: flex;
+    overflow: hidden;
+    border-radius: 999px;
+    box-shadow: inset 0 1px 2px rgba(43, 33, 64, 0.18);
+}
+
+.tqp-track__realms i { display: block; height: 100%; opacity: 0.28; }
+.tqp-track__realms .r-bronze { flex: 30; background: var(--tqp-bronze); }
+.tqp-track__realms .r-silver { flex: 30; background: var(--tqp-silver); }
+.tqp-track__realms .r-gold { flex: 25; background: var(--tqp-gold); }
+.tqp-track__realms .r-crystal { flex: 15; background: var(--tqp-crystal); }
+
+.tqp-track__fill {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    height: 0.6rem;
+    margin-top: -0.3rem;
+    width: var(--tqp-track);
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--tqp-bronze) 0%, var(--tqp-silver) 35%, var(--tqp-gold) 68%, var(--tqp-crystal) 100%);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+    transform-origin: left center;
+}
+
+.tqp-track--land .tqp-track__fill {
+    /* the fill shows only the colours of the realms it crossed */
+    background: linear-gradient(90deg, var(--tqp-bronze), var(--tqp-accent));
+}
+
+.tqp-track__stop {
+    position: absolute;
+    top: 50%;
+    width: 0.55rem;
+    height: 0.55rem;
+    margin: -0.275rem 0 0 -0.275rem;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 0 1.5px rgba(43, 33, 64, 0.35);
+}
+
+.tqp-track__stop.is-reached { box-shadow: 0 0 0 1.5px #fff, 0 0 0 3px var(--tqp-accent); }
+
+.tqp-track__gate {
+    position: absolute;
+    right: -0.7rem;
+    top: 50%;
+    width: 1.5rem;
+    height: 1.5rem;
+    margin-top: -0.75rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    overflow: hidden;
+    font-size: 0.7rem;
+    color: #fff;
+    background: #ece6fb;
+    box-shadow: 0 0 0 2px #fff, 0 2px 6px -1px rgba(76, 43, 176, 0.5);
+    filter: grayscale(0.6);
+}
+
+.tqp-track__gate img { width: 100%; height: 100%; object-fit: cover; }
+.tqp-track__gate.is-reached { filter: none; }
+.tqp-card--sealed .tqp-track__gate { background: linear-gradient(180deg, #8b7fb0, #5b4f86); filter: none; }
+
+.tqp-track__marker {
+    position: absolute;
+    top: 50%;
+    left: clamp(0.85rem, var(--tqp-track), calc(100% - 1.9rem));
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    margin: -0.875rem 0 0 -0.875rem;
+    border-radius: 50%;
+    font-size: 0.95rem;
+    line-height: 1;
+    background: #fff;
+    box-shadow: 0 0 0 2px var(--tqp-accent), 0 3px 8px -2px rgba(43, 33, 64, 0.45);
+}
+
+.tqp-card--sealed .tqp-track__marker,
+.tqp-card--gate .tqp-track__marker { left: calc(100% - 1.6rem); }
+
+/* Sky trail: night band, the Portal at the start, the Way's named stones along it. */
+.tqp-track__sky {
+    background:
+        radial-gradient(1px 1px at 12% 40%, #fff, transparent 70%),
+        radial-gradient(1px 1px at 37% 65%, #fff, transparent 70%),
+        radial-gradient(1px 1px at 63% 35%, #fff, transparent 70%),
+        radial-gradient(1px 1px at 86% 60%, #fff, transparent 70%),
+        linear-gradient(90deg, #4630a8, #241e63);
+    box-shadow: inset 0 0 0 1px rgba(255, 224, 138, 0.25);
+}
+
+.tqp-track--sky .tqp-track__fill {
+    background: linear-gradient(90deg, #c4b5fd, var(--tqp-star));
+    box-shadow: 0 0 8px rgba(255, 224, 138, 0.55);
+}
+
+.tqp-track__origin {
+    position: absolute;
+    left: -0.55rem;
+    top: 50%;
+    width: 1.3rem;
+    height: 1.3rem;
+    margin-top: -0.65rem;
+    border-radius: 50%;
+    overflow: hidden;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85);
+}
+
+.tqp-track__origin img { width: 100%; height: 100%; object-fit: cover; }
+
+.tqp-track__stone {
+    position: absolute;
+    top: 50%;
+    width: 1.2rem;
+    height: 1.2rem;
+    margin: -0.6rem 0 0 -0.6rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 0.55rem;
+    color: rgba(255, 255, 255, 0.55);
+    background: #2d2672;
+    box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.35);
+}
+
+.tqp-track__stone--palace { margin-left: -0.9rem; }
+
+.tqp-track__stone.is-reached {
+    color: #5b3b00;
+    background: radial-gradient(circle at 40% 35%, #fff7d1, var(--tqp-star));
+    box-shadow: 0 0 0 1.5px #fff, 0 0 8px rgba(255, 224, 138, 0.8);
+}
+
+.tqp-track--sky .tqp-track__marker {
+    left: clamp(1.45rem, var(--tqp-track), calc(100% - 0.85rem));
+    box-shadow: 0 0 0 2px var(--tqp-star), 0 0 12px rgba(255, 224, 138, 0.7);
+}
+
+/* ── Facts and actions ──────────────────────────────────────────────────── */
+
+.tqp-card__facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.tqp-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    min-height: 1.65rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--tqp-ink);
+    background: rgba(43, 33, 64, 0.06);
+}
+
+.tqp-chip i { font-size: 0.7rem; }
+.tqp-chip small { font-size: 0.72rem; color: var(--tqp-soft); font-weight: 700; }
+.tqp-chip--stars i { color: var(--tqp-gold); }
+.tqp-chip--stars b { font-weight: 900; }
+.tqp-chip--next { background: color-mix(in srgb, var(--tqp-accent) 13%, #fff); color: color-mix(in srgb, var(--tqp-accent) 55%, #2b2140); }
+.tqp-chip--next b { font-weight: 900; }
+.tqp-chip--next.is-locked { background: #ece8f6; color: #4b3f78; }
+.tqp-chip--next.is-open { background: #ede5ff; color: #5b30d6; }
+.tqp-chip--week { background: #fff0e3; color: #b54708; }
+.tqp-chip--week i { color: #f97316; }
+.tqp-chip--bonus { background: #e6f6ef; color: #0f7a4e; }
+
+.tqp-card__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: -0.2rem;
+}
+
+.tqp-card__race {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 0.35rem;
+    min-width: 0;
+    font-size: 0.74rem;
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--tqp-soft);
+}
+
+.tqp-card__race i { margin-top: 0.15rem; font-size: 0.66rem; }
+
+.tqp-card__open {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    min-height: 2rem;
+    padding: 0 0.3rem 0 0.6rem;
+    border: 0;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: color-mix(in srgb, var(--tqp-accent) 65%, #2b2140);
+    background: transparent;
+    cursor: pointer;
+}
+
+.tqp-card__open i { font-size: 0.65rem; }
+
+.tqp-card__btns { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 0.3rem; }
+
+.tqp-card__story {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 2rem;
+    padding: 0 0.7rem;
+    border: 0;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #3b2a8a;
+    background: #efeaff;
+    cursor: pointer;
+}
+
+.tqp-card__story i { font-size: 0.6rem; }
+
+.tqp-card__acts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.tqp-act {
+    flex: 1 1 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 2.5rem;
+    padding: 0 0.85rem;
+    border: 0;
+    border-radius: 0.85rem;
+    font-size: 0.8rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.tqp-act--guardian { color: #fff; background: linear-gradient(180deg, #6d4bd1, #4c2fa8); box-shadow: 0 2px 0 #35207a; }
+
+/* ── Waiting at the Portal ──────────────────────────────────────────────── */
+
+.tqp-card--sealed,
+.tqp-card--gate {
+    background: linear-gradient(180deg, #faf7ff, #f3edff);
+}
+
+.tqp-card--gate .tqp-track__gate { box-shadow: 0 0 0 2px #fff, 0 0 12px rgba(124, 77, 255, 0.7); }
+
+/* ── Up in the Crystal Sky ──────────────────────────────────────────────── */
+
+.tqp-card--sky,
+.tqp-card--palace,
+.tqp-card--inside {
+    --tqp-accent: var(--tqp-star);
+    --tqp-ink: #f6f3ff;
+    --tqp-soft: #c9c2f0;
+    color: var(--tqp-ink);
+    background:
+        radial-gradient(1.5px 1.5px at 8% 22%, rgba(255, 255, 255, 0.9), transparent 70%),
+        radial-gradient(1px 1px at 28% 12%, rgba(255, 255, 255, 0.8), transparent 70%),
+        radial-gradient(1.5px 1.5px at 47% 30%, rgba(255, 224, 138, 0.9), transparent 70%),
+        radial-gradient(1px 1px at 66% 10%, rgba(255, 255, 255, 0.8), transparent 70%),
+        radial-gradient(1.5px 1.5px at 83% 26%, rgba(255, 255, 255, 0.85), transparent 70%),
+        radial-gradient(120% 90% at 100% 0%, rgba(147, 112, 255, 0.45), transparent 60%),
+        linear-gradient(170deg, var(--tqp-night-2), var(--tqp-night));
+    box-shadow:
+        inset 4px 0 0 var(--tqp-star),
+        0 0 0 1px rgba(255, 224, 138, 0.25),
+        0 10px 22px -12px rgba(29, 26, 74, 0.8);
+}
+
+.tqp-card--inside { --tqp-accent: #c4b5fd; }
+
+.tqp-card--palace {
+    background:
+        radial-gradient(1.5px 1.5px at 12% 20%, rgba(255, 255, 255, 0.9), transparent 70%),
+        radial-gradient(1.5px 1.5px at 40% 12%, rgba(255, 255, 255, 0.85), transparent 70%),
+        radial-gradient(1.5px 1.5px at 70% 24%, rgba(255, 255, 255, 0.85), transparent 70%),
+        radial-gradient(110% 90% at 100% 0%, rgba(255, 200, 87, 0.55), transparent 60%),
+        linear-gradient(170deg, #4a2f8f, #24185c);
+}
+
+.tqp-card--sky .tqp-card__logo,
+.tqp-card--palace .tqp-card__logo,
+.tqp-card--inside .tqp-card__logo {
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: inset 0 0 0 1.5px rgba(255, 224, 138, 0.5);
+}
+
+.tqp-card--sky .tqp-card__realm,
+.tqp-card--palace .tqp-card__realm,
+.tqp-card--inside .tqp-card__realm { color: #ffe9a8; }
+
+.tqp-card--sky .tqp-card__pct b,
+.tqp-card--palace .tqp-card__pct b,
+.tqp-card--inside .tqp-card__pct b {
+    color: var(--tqp-star);
+    text-shadow: 0 0 12px rgba(255, 224, 138, 0.45);
+}
+
+.tqp-card--sky .tqp-chip,
+.tqp-card--palace .tqp-chip,
+.tqp-card--inside .tqp-chip { background: rgba(255, 255, 255, 0.1); color: #f6f3ff; }
+
+.tqp-card--sky .tqp-chip--next,
+.tqp-card--palace .tqp-chip--next,
+.tqp-card--inside .tqp-chip--next { background: rgba(255, 224, 138, 0.16); color: #ffe9a8; }
+
+.tqp-card--sky .tqp-chip--week,
+.tqp-card--palace .tqp-chip--week,
+.tqp-card--inside .tqp-chip--week { color: #fed7aa; }
+
+.tqp-card--sky .tqp-card__open,
+.tqp-card--palace .tqp-card__open,
+.tqp-card--inside .tqp-card__open { color: #ffe9a8; }
+
+.tqp-card--sky .tqp-card__story,
+.tqp-card--palace .tqp-card__story,
+.tqp-card--inside .tqp-card__story { color: #fff; background: rgba(255, 255, 255, 0.12); box-shadow: inset 0 0 0 1.5px rgba(255, 224, 138, 0.45); }
+
+.tqp-card--sky.is-mine,
+.tqp-card--palace.is-mine,
+.tqp-card--inside.is-mine {
+    box-shadow: inset 4px 0 0 var(--tqp-star), 0 0 0 2px #f2b632, 0 10px 22px -10px rgba(29, 26, 74, 0.8);
+}
+
+/* A slow twinkle over the night cards (never on weak phones). */
+.tqp-card--sky::after,
+.tqp-card--palace::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background:
+        radial-gradient(2px 2px at 18% 34%, #fff, transparent 70%),
+        radial-gradient(2px 2px at 58% 18%, #ffe08a, transparent 70%),
+        radial-gradient(2px 2px at 91% 40%, #fff, transparent 70%);
+    opacity: 0;
+    animation: tqp-twinkle 3.6s ease-in-out infinite alternate;
+}
+
+/* ── Entrance ───────────────────────────────────────────────────────────── */
+
+.tqp.is-entering .tqp-summit { animation: tqp-rise 0.45s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+.tqp.is-entering .tqp-card { animation: tqp-rise 0.45s cubic-bezier(0.2, 0.8, 0.3, 1) both; animation-delay: calc(80ms + var(--tqp-i, 0) * 55ms); }
+.tqp.is-entering .tqp-track__fill { animation: tqp-grow 0.9s cubic-bezier(0.2, 0.8, 0.3, 1) both; animation-delay: calc(200ms + var(--tqp-i, 0) * 55ms); }
+.tqp.is-entering .tqp-card--sky::after,
+.tqp.is-entering .tqp-card--palace::after { animation-delay: 1.2s; }
+
+@keyframes tqp-rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes tqp-grow {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+}
+
+@keyframes tqp-twinkle {
+    from { opacity: 0; }
+    to { opacity: 0.9; }
+}
+
+@keyframes tqp-flash {
+    0%, 100% { outline: 0 solid transparent; }
+    30% { outline: 3px solid rgba(124, 77, 255, 0.55); outline-offset: 2px; }
+}
+
+body.gcq-lite .tqp *,
+body.gcq-lite .tqp *::after { animation: none !important; }
+body.gcq-lite .tqp-card--sky::after,
+body.gcq-lite .tqp-card--palace::after { opacity: 0.6; }
+
+@media (prefers-reduced-motion: reduce) {
+    .tqp *,
+    .tqp *::after { animation: none !important; transition: none !important; }
+    .tqp-card--sky::after,
+    .tqp-card--palace::after { opacity: 0.6; }
+}
+
+/* ── Sizes ──────────────────────────────────────────────────────────────── */
+
+/* Small phones (320 to 360 wide): a little tighter, nothing cut. */
+@media (max-width: 360px) {
+    .tqp-summit { padding: 0.8rem 0.65rem 0.7rem; }
+    .tqp-summit__book span { display: none; }
+    .tqp-summit__book { width: 2.6rem; padding: 0; justify-content: center; }
+    .tqp-ladder__badge { width: 1.8rem; height: 1.8rem; }
+    .tqp-ladder::before { top: calc(0.6rem + 0.9rem); }
+    .tqp-ladder__name { font-size: 0.54rem; }
+    .tqp-card { padding: 0.7rem 0.65rem 0.6rem 0.8rem; }
+    .tqp-card__head { gap: 0.45rem; }
+    .tqp-card__logo { width: 2.2rem; height: 2.2rem; font-size: 1.25rem; }
+    .tqp-card__pct b { font-size: 1.25rem; }
+    .tqp-rank { width: 1.7rem; height: 1.7rem; font-size: 0.78rem; }
+}
+
+/* Tablets in the compact view: two columns of cards, a roomier ladder. */
+@media (min-width: 700px) {
+    .tqp-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tqp-summit { padding: 1.1rem 1.2rem 1rem; }
+    .tqp-ladder__badge { width: 2.6rem; height: 2.6rem; }
+    .tqp-ladder::before { top: calc(0.6rem + 1.3rem); }
+    .tqp-ladder__name { font-size: 0.72rem; }
+    .tqp-ladder__crests { font-size: 0.9rem; }
+    .tqp-mine { max-width: 28rem; }
+}
+
+/* Landscape phones: two columns too, the summit less tall. */
+@media (orientation: landscape) and (max-height: 520px) {
+    .tqp-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tqp-summit__note { display: none; }
+}

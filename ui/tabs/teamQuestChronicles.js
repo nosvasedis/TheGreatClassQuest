@@ -14,6 +14,7 @@ import {
 import { REALM_STOPS, journalMonth, realmMonthKey } from '../../features/realmMomentsCore.mjs';
 import { rankForLevel, portalStatusLine } from '../../features/questRanksCore.mjs';
 import { rankCrestSvg, renderRuneMarks } from '../../features/questRankCrest.mjs';
+import { describeQuestStanding } from '../../features/teamQuestStanding.mjs';
 
 const asset = (name) => new URL(`../../assets/team-quest-map/living-atlas/${name}`, import.meta.url).href;
 
@@ -22,6 +23,7 @@ export const CHRONICLE_ASSETS = {
     silver: asset('badge-silver.webp'),
     gold: asset('badge-gold.webp'),
     crystal: asset('badge-crystal.webp'),
+    portal: asset('portal-vortex.webp'),
     tokenGold: asset('token-gold.webp'),
     tokenSilver: asset('token-silver.webp'),
     tokenBronze: asset('token-bronze.webp'),
@@ -145,6 +147,10 @@ function renderCard(entry, index, { gap, activeClassId, open, showFind }) {
     const goal = Number(entry.goals?.diamond) || 0;
     const zone = getQuestMapZoneForProgressPercent(pct);
     const next = getQuestNextStop(pct, stars, goal);
+    // Past 100% the month goes on: through the Portal and up the Starward Way.
+    const standing = describeQuestStanding(entry);
+    const zoneBadge = CHRONICLE_ASSETS[standing.realm.id] || CHRONICLE_ASSETS.portal;
+    const zoneLabel = standing.place === 'sky' ? `Crystal Sky · ${standing.realm.label}` : standing.realm.label;
     const skill = skillInfo(entry.topSkill);
     const weekly = Number(entry.weeklyStars) || 0;
     const adventures = Number(entry.adventureCount) || 0;
@@ -176,7 +182,7 @@ function renderCard(entry, index, { gap, activeClassId, open, showFind }) {
                 <span class="tqc-card__who">
                     <strong class="tqc-card__name">${esc(entry.name || 'Class')}</strong>
                     <span class="tqc-card__meta">
-                        <span class="tqc-zone"><img src="${CHRONICLE_ASSETS[zone.id]}" alt="" aria-hidden="true" draggable="false" loading="lazy" decoding="async">${zone.label}</span>
+                        <span class="tqc-zone"><img src="${zoneBadge}" alt="" aria-hidden="true" draggable="false" loading="lazy" decoding="async">${esc(zoneLabel)}</span>
                         <span class="qr-chip qr-chip--${questRank.id}" title="Quest Level ${level}">${rankCrestSvg(level, { className: 'qr-chip__crest' })}<span>${esc(questRank.title)}</span><b>Lv ${level}</b></span>
                         ${isMine ? '<span class="tqc-you"><i class="fas fa-flag" aria-hidden="true"></i>Active class</span>' : ''}
                     </span>
@@ -194,8 +200,9 @@ function renderCard(entry, index, { gap, activeClassId, open, showFind }) {
                     <div class="tqc-card__pills">
                         <span class="tqc-pill tqc-pill--next${next.complete && !sealed ? ' is-complete' : ''}${sealed ? ' is-sealed' : ''}">
                             <i class="fas ${sealed ? 'fa-lock' : next.complete ? 'fa-trophy' : 'fa-location-dot'}" aria-hidden="true"></i>
-                            ${sealed ? `Stars full · ${esc(portalStatusLine(portal))}` : next.complete ? 'Quest complete — the portal is open!' : `<b>${next.starsNeeded}★</b> to ${esc(next.label)}`}
+                            ${sealed ? `Stars full · ${esc(portalStatusLine(portal))}` : next.complete ? (standing.phase === 'sky' ? 'Through the Portal' : 'Quest complete — the portal is open!') : `<b>${next.starsNeeded}★</b> to ${esc(next.label)}`}
                         </span>
+                        ${standing.phase === 'sky' ? `<span class="tqc-pill tqc-pill--sky"><i class="fas ${standing.place === 'palace' ? 'fa-sun' : 'fa-star'}" aria-hidden="true"></i><span>${standing.next ? `+${standing.over}% on the Starward Way · <b>${standing.next.starsNeeded}★</b> to ${esc(standing.next.label)}` : `Home in the Celestial Palace · ${Math.floor(rawPct)}%`}</span></span>` : ''}
                         ${portal?.runes?.length ? `<span class="tqc-pill tqc-pill--runes" title="Portal runes of this rank">${renderRuneMarks(portal)} ${portal.runesLit} of ${portal.runes.length} runes lit</span>` : ''}
                         ${raceLine ? `<span class="tqc-pill tqc-pill--race"><i class="fas fa-flag-checkered" aria-hidden="true"></i>${esc(raceLine)}</span>` : ''}
                         ${entry.classQuestBonus > 0 ? `<span class="tqc-pill tqc-pill--bonus"><i class="fas fa-compass" aria-hidden="true"></i>+${formatQuestStars(entry.classQuestBonus)} Pathfinder</span>` : ''}
@@ -256,7 +263,8 @@ export function renderQuestChroniclesHtml(entries = [], {
     leagueName = '',
     activeClassId = null,
     openIds = new Set(),
-    showFind = true
+    showFind = true,
+    backLabel = 'Back to the map'
 } = {}) {
     const gaps = describeQuestRaceGaps(entries);
     const totalStars = entries.reduce((sum, entry) => sum + (Number(entry.currentMonthlyStars) || 0), 0);
@@ -283,7 +291,7 @@ export function renderQuestChroniclesHtml(entries = [], {
                     <p>Field notes from every party on the road</p>
                 </div>
                 <button type="button" class="tqc-head__close" data-chronicles-close>
-                    <i class="fas fa-map" aria-hidden="true"></i><span>Back to the map</span>
+                    <i class="fas ${backLabel === 'Back to the map' ? 'fa-map' : 'fa-flag-checkered'}" aria-hidden="true"></i><span>${esc(backLabel)}</span>
                 </button>
             </div>
             <ul class="tqc-head__facts">

@@ -950,6 +950,43 @@
 body.gcq-mobile .lgc-race__month { font-size: 1.45rem; }
 body.gcq-mobile .lgc-crown__month { font-size: 1.35rem; }
 
+/* Team Quest on phones: sign, race banner and league bar take half the height,
+   so the race itself starts in the first screen. */
+body.gcq-mobile #class-leaderboard-tab > .max-w-7xl > .px-4 {
+    padding-right: 0.15rem !important;
+    padding-left: 0.15rem !important;
+}
+body.gcq-mobile #class-leaderboard-tab .tab-sign { margin-bottom: 0.35rem; }
+body.gcq-mobile #class-leaderboard-tab .tab-sign p.tab-sign__tagline { display: none; }
+/* the race card's summit names the month, so the banner rests on phones */
+body.gcq-mobile #class-leaderboard-tab .lgc-race { display: none; }
+body.gcq-mobile #class-leaderboard-tab .league-bar {
+    flex-wrap: nowrap;
+    align-items: stretch;
+    margin-bottom: 0.85rem;
+    padding: 0.4rem;
+    gap: 0.4rem;
+}
+body.gcq-mobile #class-leaderboard-tab .league-bar__plate { flex: 1 1 auto; min-width: 0; }
+body.gcq-mobile #class-leaderboard-tab .league-bar__pick-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+body.gcq-mobile #class-leaderboard-tab .league-bar__history,
+body.gcq-mobile #class-leaderboard-tab .league-bar__match {
+    flex: 0 0 auto;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.15rem;
+    min-width: 3.6rem;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.66rem;
+    line-height: 1.1;
+}
+@media (max-width: 359px) {
+    body.gcq-mobile #class-leaderboard-tab .league-bar__history span,
+    body.gcq-mobile #class-leaderboard-tab .league-bar__match span { display: none; }
+    body.gcq-mobile #class-leaderboard-tab .league-bar__history,
+    body.gcq-mobile #class-leaderboard-tab .league-bar__match { min-width: 2.9rem; }
+}
+
 /* ─── Quest League picker: a gallery of league pennants ─────────────────── */
 
 .lp-backdrop {

@@ -87,7 +87,7 @@
 /* Fall down seven, rise up eight */
 .avs-phoenix .ph-num { opacity: 0; transform-origin: center; }
 .cue-seven1 .avs-phoenix .ph-num--7a, .cue-seven2 .avs-phoenix .ph-num--7b { animation: ph-seven 1.6s ease-in both; }
-.cue-eight .avs-phoenix .ph-num--8a, .cue-more .avs-phoenix .ph-num--8b { animation: ph-eight 2.1s cubic-bezier(.2, .9, .3, 1.2) both; }
+.cue-eight .avs-phoenix .ph-num--8a { animation: ph-eight 2.1s cubic-bezier(.2, .9, .3, 1.2) both; }
 @keyframes ph-seven {
     0% { opacity: 0; transform: translateY(-200px); }
     20% { opacity: 1; transform: translateY(-150px); }

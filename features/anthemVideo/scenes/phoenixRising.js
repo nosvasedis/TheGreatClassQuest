@@ -180,7 +180,7 @@ export const fx = {
         { cue: 'hope', at: [800, 236], count: 30, colors: GOLD, size: [1.4, 3.2], speed: [100, 260], life: [0.7, 1.4], drag: 1.4 },
         { cue: 'break', at: [800, 260], count: 90, colors: [...GOLD, '#f9a8d4'], size: [1.6, 4.2], speed: [220, 620], life: [0.9, 2], drag: 1.1 },
         { cue: 'golden', at: [800, 300], count: 60, colors: GOLD, size: [1.4, 4], speed: [160, 480], life: [0.9, 1.8], drag: 1.2 },
-        { cue: 'more', at: [1120, 290], count: 50, colors: GOLD, size: [1.4, 3.8], speed: [160, 420], life: [0.7, 1.5], drag: 1.3 },
+        { cue: 'more', at: [800, 220], count: 50, colors: GOLD, size: [1.4, 3.8], speed: [160, 420], life: [0.7, 1.5], drag: 1.3 },
         { cue: 'finale', at: [800, 300], count: 110, colors: [...FIRE, ...GOLD], size: [1.6, 4.4], speed: [160, 520], life: [0.9, 2], drag: 1.1 },
     ],
 };
@@ -242,7 +242,7 @@ export function render({ lite = false } = {}) {
         </g>`;
     const numerals = `<g transform="translate(0 330)">
         ${numeral('7', 480, 'ph-num--7a')}${numeral('8', 1120, 'ph-num--8a')}
-        ${numeral('7', 480, 'ph-num--7b')}${numeral('8', 1120, 'ph-num--8b')}
+        ${numeral('7', 480, 'ph-num--7b')}
     </g>`;
     const hero = `
         <g transform="translate(800 240)" class="ph-shield">${times(2, i => `<circle class="ph-shield__ring" style="--i:${i}" r="120" fill="none" stroke="#fde68a" stroke-width="6"/>`)}</g>

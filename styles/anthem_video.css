@@ -23,35 +23,36 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-/* ── Open & close: the iris ───────────────────────────── */
-.av--opening { animation: av-iris-open 0.95s cubic-bezier(.7, 0, .18, 1) both; }
-.av--closing { animation: av-iris-close 0.62s cubic-bezier(.6, 0, .4, 1) both; pointer-events: none; }
-@keyframes av-iris-open {
-    from { clip-path: circle(0px at var(--ox, 50%) var(--oy, 50%)); }
-    to { clip-path: circle(var(--or, 150vmax) at var(--ox, 50%) var(--oy, 50%)); }
-}
-@keyframes av-iris-close {
-    from { clip-path: circle(var(--or, 150vmax) at var(--ox, 50%) var(--oy, 50%)); }
-    to { clip-path: circle(0px at var(--ox, 50%) var(--oy, 50%)); }
-}
+/* ── Open & close: the portal ─────────────────────────── */
+/* A gold disk and rim grow out of the pressed note (JS runs them with WAAPI: transform + opacity only,
+   so nothing repaints), the stage appears under the disk once it covers the screen, then the disk
+   dissolves. Closing runs it backwards. No clip-path: animating that redrew the whole video each frame. */
+.av--opening, .av--closing { background: transparent; }
+.av--closing { pointer-events: none; }
+.av--opening .av-stage { animation: av-stage-in 1.25s linear both; }
+.av--closing .av-stage { animation: av-stage-out 0.82s linear both; }
+@keyframes av-stage-in { 0%, 43% { opacity: 0; } 44%, 100% { opacity: 1; } }
+@keyframes av-stage-out { 0% { opacity: 1; transform: none; } 27% { opacity: 1; transform: scale(0.975); } 28%, 100% { opacity: 0; transform: scale(0.975); } }
 
-.av-portal { position: absolute; inset: 0; z-index: 5; pointer-events: none; display: none; }
+.av-portal { position: absolute; inset: 0; z-index: 5; pointer-events: none; display: none; overflow: hidden; }
 .av--opening .av-portal, .av--closing .av-portal { display: block; }
-/* a gold rim rides the iris edge (same timing curve), so the circle reads as a portal opening */
-.av-portal__ring {
-    position: absolute; left: var(--ox, 50%); top: var(--oy, 50%);
-    width: 0; height: 0; transform: translate(-50%, -50%); border-radius: 50%;
-    border: 3px solid var(--gold);
-    box-shadow: 0 0 16px 2px var(--gold), 0 0 36px var(--glow), inset 0 0 16px var(--gold);
-    opacity: 0;
+.av-portal__disk, .av-portal__ring {
+    position: absolute;
+    left: calc(var(--ox, 50vw) - var(--or, 150vmax)); top: calc(var(--oy, 50vh) - var(--or, 150vmax));
+    width: calc(var(--or, 150vmax) * 2); height: calc(var(--or, 150vmax) * 2);
+    border-radius: 50%; transform: scale(0); opacity: 0; will-change: transform, opacity;
 }
-.av--opening .av-portal__ring { animation: av-ring-out 0.95s cubic-bezier(.7, 0, .18, 1) both; }
-.av--opening .av-portal__ring--2 { animation: av-ring-pulse 0.7s 0.05s ease-out both; border-color: var(--g2); }
-.av--closing .av-portal__ring { animation: av-ring-in 0.62s cubic-bezier(.6, 0, .4, 1) both; }
-.av--closing .av-portal__ring--2 { display: none; }
-@keyframes av-ring-out { 0% { opacity: 1; width: 0; height: 0; } 75% { opacity: 1; } 100% { opacity: 0; width: calc(var(--or, 150vmax) * 2); height: calc(var(--or, 150vmax) * 2); } }
-@keyframes av-ring-in { 0% { opacity: 0; width: calc(var(--or, 150vmax) * 2); height: calc(var(--or, 150vmax) * 2); } 25% { opacity: 1; } 100% { opacity: 1; width: 0; height: 0; } }
-@keyframes av-ring-pulse { 0% { opacity: 0.9; width: 2.6rem; height: 2.6rem; } 100% { opacity: 0; width: 14rem; height: 14rem; } }
+.av-portal__disk {
+    background: radial-gradient(circle closest-side, var(--gold-hi) 0, color-mix(in srgb, var(--g2) 85%, #fff) 9%, var(--g1) 34%, color-mix(in srgb, var(--g1) 45%, #05030a) 74%, #0a0612 97%, color-mix(in srgb, var(--gold) 60%, #0a0612) 100%);
+}
+/* the rim is drawn at full size and scaled, so it is fine near the note and bold as it sweeps out */
+.av-portal__ring { border: 12px solid var(--gold); box-shadow: inset 0 0 40px 6px var(--gold), inset 0 0 90px var(--glow); }
+.av-portal__pulse {
+    position: absolute; left: var(--ox, 50%); top: var(--oy, 50%); width: 14rem; height: 14rem; margin: -7rem 0 0 -7rem;
+    border-radius: 50%; border: 6px solid var(--g2); opacity: 0; transform: scale(0.18);
+}
+.av--opening .av-portal__pulse { animation: av-ring-pulse 0.7s 0.05s ease-out both; }
+@keyframes av-ring-pulse { 0% { opacity: 0.9; transform: scale(0.18); } 100% { opacity: 0; transform: scale(1); } }
 .av-portal__note {
     position: absolute; left: var(--ox, 50%); top: var(--oy, 50%);
     font-size: 2rem; line-height: 1; margin: -1rem 0 0 -0.6rem;
@@ -79,17 +80,14 @@
 .av--opening .av-controls { animation: av-lift 0.8s 0.55s var(--ease-out) both; }
 .av--opening .av-intro__arch { animation: av-pop 0.9s 0.38s var(--ease-spring) both; }
 .av--opening .av-karaoke { animation: av-fade 0.8s 0.7s ease both; }
-.av--closing .av-stage { animation: av-dim 0.62s ease-in both; }
 @keyframes av-drop { from { opacity: 0; transform: translateY(-1.6rem); } to { opacity: 1; transform: none; } }
 @keyframes av-lift { from { opacity: 0; transform: translateY(1.6rem); } to { opacity: 1; transform: none; } }
 @keyframes av-pop { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: none; } }
 @keyframes av-fade { from { opacity: 0; } }
-@keyframes av-dim { to { filter: brightness(1.5) saturate(1.2); transform: scale(0.96); } }
 
 /* weak machines: the same iris with fewer flying notes and no extra glow */
 .av--lite .av-portal__note:nth-child(even) { display: none; }
-.av--lite .av-portal__ring { box-shadow: 0 0 10px var(--gold); }
-.av--lite.av--closing .av-stage { animation: none; }
+.av--lite .av-portal__ring { box-shadow: inset 0 0 24px var(--gold); }
 
 /* ── Stage ─────────────────────────────────────────────── */
 .av-stage { position: absolute; inset: 0; overflow: hidden; }

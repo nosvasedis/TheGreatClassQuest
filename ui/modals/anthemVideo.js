@@ -10,6 +10,19 @@ import { buildWordTimeline, frameAt, resolveCues, cuesReached, beatPhase } from 
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 import { createFx } from '../../features/anthemVideo/fxCanvas.js';
 
+const SCENE_WAIT_MS = 1500;
+const _sceneCache = new Map();
+/** The guild's scene module (cached), resolving to the scene object or null. */
+function loadScene(guildId) {
+    if (!_sceneCache.has(guildId)) {
+        const p = (SCENES[guildId]?.() || Promise.resolve(null))
+            .then(mod => (mod ? (mod.default || mod.scene) : null))
+            .catch(err => { _sceneCache.delete(guildId); throw err; });
+        _sceneCache.set(guildId, p);
+    }
+    return _sceneCache.get(guildId);
+}
+
 const SCENES = {
     dragon_flame: () => import('../../features/anthemVideo/scenes/dragonFlame.js'),
     grizzly_might: () => import('../../features/anthemVideo/scenes/grizzlyMight.js'),
@@ -22,7 +35,7 @@ const CONTROLS_IDLE_MS = 2600;
 const SPARK_HOP_PX = 26;
 const SEEK_JUMP_SECONDS = 0.6;
 const OPEN_MS = 1250;
-const CLOSE_MS = 640;
+const CLOSE_MS = 820;
 const NEXT_SCALE = 0.52; // the line waiting below is drawn at this size, then grows into place
 const LINE_LEAVE_MS = 900;
 
@@ -59,8 +72,9 @@ function shellHtml(guild, timeline) {
         </div>`).join('');
     return `
         <div class="av-portal" aria-hidden="true">
+            <span class="av-portal__disk"></span>
             <span class="av-portal__ring"></span>
-            <span class="av-portal__ring av-portal__ring--2"></span>
+            <span class="av-portal__pulse"></span>
             ${notes}
         </div>
         <div class="av-stage" data-section="intro" data-phase="intro">
@@ -153,7 +167,52 @@ function setOrigin(root, opener) {
     root.style.setProperty('--oy', `${Math.round(y)}px`);
     // the iris must reach the farthest corner
     const far = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
-    root.style.setProperty('--or', `${Math.ceil(far + 40)}px`);
+    const r = Math.ceil(far + 40);
+    root.style.setProperty('--or', `${r}px`);
+    // the circle starts the size of the note (about 22px across its radius)
+    root._portalStart = Math.max(0.004, 22 / r);
+}
+
+/**
+ * The portal: a gold disk and rim grow from the note to fill the screen, then dissolve into the video
+ * (closing runs it backwards). Only transform and opacity animate, so it stays on the GPU and never
+ * redraws the page or the scene underneath. The stage appears/disappears while the disk covers it.
+ */
+function runPortal(root, opening) {
+    const s0 = root._portalStart || 0.02;
+    const disk = root.querySelector('.av-portal__disk');
+    const ring = root.querySelector('.av-portal__ring');
+    const grow = 'cubic-bezier(.65, 0, .25, 1)';
+    // closing: the circle leaves the screen corners quickly, then settles gently onto the note
+    const shrink = 'cubic-bezier(.25, .55, .3, 1)';
+    const small = `scale(${s0})`;
+    if (opening) {
+        disk?.animate([
+            { transform: small, opacity: 1, easing: grow },
+            { transform: 'scale(1)', opacity: 1, offset: 0.44 },
+            { transform: 'scale(1)', opacity: 1, offset: 0.5, easing: 'ease-out' },
+            { transform: 'scale(1.03)', opacity: 0 },
+        ], { duration: OPEN_MS, fill: 'both' });
+        ring?.animate([
+            { transform: small, opacity: 1, easing: grow },
+            { transform: 'scale(1)', opacity: 0.9, offset: 0.44, easing: 'ease-out' },
+            { transform: 'scale(1.05)', opacity: 0, offset: 0.62 },
+            { transform: 'scale(1.05)', opacity: 0 },
+        ], { duration: OPEN_MS, fill: 'both' });
+    } else {
+        disk?.animate([
+            { transform: 'scale(1)', opacity: 0, easing: 'ease-in' },
+            { transform: 'scale(1)', opacity: 1, offset: 0.28, easing: shrink },
+            { transform: small, opacity: 1, offset: 0.94 },
+            { transform: small, opacity: 0 },
+        ], { duration: CLOSE_MS, fill: 'both' });
+        ring?.animate([
+            { transform: 'scale(1)', opacity: 0 },
+            { transform: 'scale(1)', opacity: 1, offset: 0.28, easing: shrink },
+            { transform: small, opacity: 1, offset: 0.94 },
+            { transform: small, opacity: 0 },
+        ], { duration: CLOSE_MS, fill: 'both' });
+    }
 }
 
 function formatTime(sec) {
@@ -166,6 +225,12 @@ export async function openAnthemVideo(guildId, { opener = document.activeElement
     const guild = getGuildById(guildId);
     if (!guild?.anthem || !guild.anthemLyrics) return false;
     closeAnthemVideo({ immediate: true });
+
+    // Fetch the scene before the iris opens, so the artwork is already in place on the first frame
+    // (popping it in mid-animation flashed and redrew the whole screen). A slow network still opens
+    // after a moment, and the scene then fades in on its own.
+    const scenePromise = loadScene(guildId);
+    const early = await Promise.race([scenePromise, new Promise(r => setTimeout(() => r(null), SCENE_WAIT_MS))]);
 
     const lite = typeof forceLite === 'boolean' ? forceLite : isLite();
     const still = prefersReducedMotion();
@@ -207,6 +272,7 @@ export async function openAnthemVideo(guildId, { opener = document.activeElement
         sheetScroll: $('.av-sheet__scroll'),
         sheetLines: Array.from(root.querySelectorAll('.av-sheet__line')),
     };
+    if (!still) runPortal(root, true);
     const openTimer = setTimeout(() => root.classList.remove('av--opening'), still ? 0 : OPEN_MS);
 
     const audio = new Audio(guild.anthem);
@@ -222,9 +288,8 @@ export async function openAnthemVideo(guildId, { opener = document.activeElement
     _session = session;
 
     // The scene is a separate chunk per guild; the karaoke runs even if it is still on its way.
-    SCENES[guildId]?.().then(mod => {
-        if (_session !== session) return;
-        const scene = mod.default || mod.scene;
+    function mountScene(scene) {
+        if (_session !== session || !scene || session.scene) return;
         els.layers.innerHTML = scene.render({ guild, lite });
         session.scene = scene;
         session.cues = resolveCues(scene.cues, timeline);
@@ -241,10 +306,15 @@ export async function openAnthemVideo(guildId, { opener = document.activeElement
         session.fx.resize();
         session.reached = new Set();
         Array.from(stage.classList).filter(c => c.startsWith('cue-')).forEach(c => stage.classList.remove(c));
-        session.camTarget = null;
         session.settleNext = true;
+        // first camera mark straight away, so nothing jumps on the first frame
+        session.camTarget = session.camera[0] || null;
+        if (session.camTarget) for (const layer of session.layers) layer.el.style.transform = camTransform(session.camTarget, layer.d);
+        session.fx.setState(session.reached, session.phase || 'intro');
         stage.classList.add('av-stage--scene-ready');
-    }).catch(err => console.warn('Anthem video scene failed to load:', err));
+    }
+    if (early) mountScene(early);
+    else scenePromise.then(mountScene).catch(err => console.warn('Anthem video scene failed to load:', err));
 
     function measureLine() {
         const cur = session.lineEls.get(session.lineIdx);
@@ -351,9 +421,9 @@ export async function openAnthemVideo(guildId, { opener = document.activeElement
         for (const name of session.reached) if (!now.has(name)) stage.classList.remove(`cue-${name}`);
         for (const name of now) if (!session.reached.has(name)) { stage.classList.add(`cue-${name}`); fresh.push(name); }
         session.reached = now;
-        if (!jumped && !session.settleNext && !audio.paused) fresh.forEach(fireMoment);
-        syncCamera(jumped || session.settleNext);
-        session.fx?.setState(now, session.phase);
+        if (!jumped && !session.settleNext && !audio.paused) fresh.forEach(name => safeFx(() => fireMoment(name)));
+        safeFx(() => syncCamera(jumped || session.settleNext));
+        safeFx(() => session.fx?.setState(now, session.phase));
     }
 
     /** One-shot moments on a cue: the camera shakes, light flashes, sparks burst. */
@@ -451,8 +521,18 @@ export async function openAnthemVideo(guildId, { opener = document.activeElement
         return ct + Math.min(0.25, (now - session.lastPerf) / 1000) * (audio.playbackRate || 1);
     }
 
+    // Effects are decoration: if one ever throws, the song, lyrics and controls must keep going.
+    let fxWarned = false;
+    function safeFx(fn) {
+        try { fn(); } catch (err) {
+            if (!fxWarned) { fxWarned = true; console.warn('[anthem video] effect skipped:', err); }
+        }
+    }
+
     function frame() {
         if (_session !== session) return;
+        // schedule the next frame first, so a problem in this one can never freeze the video
+        session.rafId = requestAnimationFrame(frame);
         const t = songTime();
         const f = frameAt(timeline, t);
         const phase = f.phase === 'sing' ? f.section : f.phase;
@@ -503,11 +583,11 @@ export async function openAnthemVideo(guildId, { opener = document.activeElement
 
         syncCues(t, jumped);
         syncBeat(t);
-        if (jumped || (session.settleNext && t > SEEK_JUMP_SECONDS)) { settleAfterJump(); session.fx?.clear(); }
+        if (jumped || (session.settleNext && t > SEEK_JUMP_SECONDS)) { settleAfterJump(); safeFx(() => session.fx?.clear()); }
         const nowMs = performance.now();
         const dt = session.lastPerfFrame ? (nowMs - session.lastPerfFrame) / 1000 : 0;
         session.lastPerfFrame = nowMs;
-        session.fx?.tick(dt, audio.paused);
+        safeFx(() => session.fx?.tick(dt, audio.paused));
         session.settleNext = false;
         session.lastT = t;
 
@@ -519,8 +599,6 @@ export async function openAnthemVideo(guildId, { opener = document.activeElement
         if (els.progress.getAttribute('aria-valuenow') !== pct) els.progress.setAttribute('aria-valuenow', pct);
         const label = formatTime(t);
         if (els.time.textContent !== label) els.time.textContent = label;
-
-        session.rafId = requestAnimationFrame(frame);
     }
 
     function setPausedUi(paused) {
@@ -694,6 +772,7 @@ export function closeAnthemVideo({ immediate = false } = {}) {
         setOrigin(root, session.opener);
         root.classList.remove('av--opening');
         root.classList.add('av--closing');
+        runPortal(root, false);
         setTimeout(() => root.remove(), CLOSE_MS);
     }
     try { session.opener?.focus?.({ preventScroll: true }); } catch (_) { /* opener may be gone */ }

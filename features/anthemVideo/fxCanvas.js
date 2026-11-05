@@ -10,6 +10,14 @@ const WORLD_H = 900;
 function rand(a, b) { return a + Math.random() * (b - a); }
 function pick(list) { return Array.isArray(list) ? list[(Math.random() * list.length) | 0] : list; }
 
+/** '#rgb' / '#rrggbb' → '#rrggbb' so alpha suffixes like '66' stay valid; anything else falls back to white. */
+function hex6(color) {
+    const c = String(color || '').trim();
+    if (/^#[0-9a-f]{6}$/i.test(c)) return c;
+    if (/^#[0-9a-f]{3}$/i.test(c)) return `#${c[1]}${c[1]}${c[2]}${c[2]}${c[3]}${c[3]}`;
+    return '#ffffff';
+}
+
 /** A soft round glow sprite in one colour (white-hot core fading to transparent). */
 function makeSprite(color, size = 64, core = 0.18) {
     const c = document.createElement('canvas');
@@ -63,7 +71,10 @@ export function createFx(canvas, spec = {}, { lite = false, still = false } = {}
 
     function sprite(color, kind) {
         const key = `${kind}:${color}`;
-        if (!sprites.has(key)) sprites.set(key, kind === 'flake' ? makeFlake(color) : makeSprite(color));
+        if (!sprites.has(key)) {
+            const c = hex6(color);
+            sprites.set(key, kind === 'flake' ? makeFlake(c) : makeSprite(c));
+        }
         return sprites.get(key);
     }
 

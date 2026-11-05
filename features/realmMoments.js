@@ -3,26 +3,16 @@
 // the Crystal Realm for the first time this month, it stamps the class's Map Journal and plays
 // a short banner over whatever is on screen (the projector included). Realms found already
 // reached when the app opens are stamped quietly (`late`), so the diary never claims them.
-// Rules live in realmMomentsCore.mjs; the banner's CSS loads with this chunk only.
+// Rules live in realmMomentsCore.mjs; the banner (realmBanner.js) loads only when it plays.
 import { quietly } from '../utils/runtimeMetrics.js';
-import { escapeHtml as esc } from '../utils/html.mjs';
-import '../styles/realm_moments.css';
 import * as state from '../state.js';
 import * as utils from '../utils.js';
 import { db, doc, updateDoc } from '../firebase.js';
-import { detectLowPowerTier } from '../utils/devicePerformance.mjs';
-import { buildRealmStamp, getRealmStop, realmMonthKey, unstampedRealms } from './realmMomentsCore.mjs';
+import { buildRealmStamp, realmMonthKey, unstampedRealms } from './realmMomentsCore.mjs';
 import { dataPath } from '../utils/tenant.mjs';
 
 const SETTLE_MS = 6000;
 const DEBOUNCE_MS = 1200;
-const BANNER_MS = 3200;
-
-const BADGES = {
-    silver: new URL('../assets/team-quest-map/living-atlas/badge-silver.webp', import.meta.url).href,
-    gold: new URL('../assets/team-quest-map/living-atlas/badge-gold.webp', import.meta.url).href,
-    crystal: new URL('../assets/team-quest-map/living-atlas/badge-crystal.webp', import.meta.url).href
-};
 
 let started = false;
 let armedAt = 0;
@@ -93,7 +83,7 @@ function evaluate() {
         // The banner plays only once the stamp is saved (a closed school year cannot be stamped).
         updateDoc(doc(db, dataPath('classes'), classData.id), patch).then(() => {
             if (!live.length) return;
-            queue.push({ classData, realmId: live[live.length - 1] });
+            queue.push({ classData, realmId: live[live.length - 1], pct });
             playNext();
         }, (error) => {
             // A refused write (closed school year) is not retried; anything else tries again later.
@@ -121,46 +111,20 @@ export function startRealmMoments() {
 }
 
 // ─── The banner ──────────────────────────────────────────────────────────────
+// The banner and its CSS live in realmBanner.js, fetched only when a class arrives somewhere.
 
-export function realmBannerHtml(classData, realmId, { lite = false } = {}) {
-    const stop = getRealmStop(realmId);
-    if (!stop) return '';
-    const sparks = lite ? '' : Array.from({ length: 8 }, (_, i) => `<i class="rm-banner__spark" style="--i:${i}"></i>`).join('');
-    return `
-        <div class="rm-banner rm-banner--${stop.id}${lite ? ' rm-banner--lite' : ''}" role="status" aria-live="polite">
-            <span class="rm-banner__rays" aria-hidden="true"></span>
-            <span class="rm-banner__ribbon" aria-hidden="true"></span>
-            <span class="rm-banner__badge-wrap" aria-hidden="true">
-                <img class="rm-banner__badge" src="${BADGES[stop.id]}" alt="" draggable="false" decoding="async">
-                ${sparks}
-            </span>
-            <span class="rm-banner__copy">
-                <small><span class="rm-banner__logo">${esc(classData?.logo || '📚')}</span>${esc(classData?.name || 'Our class')} has reached</small>
-                <strong class="font-title">${esc(stop.label)}</strong>
-                <em>${esc(stop.cheer)}</em>
-            </span>
-            <span class="rm-banner__stamp" aria-hidden="true"><b>${stop.icon}</b><span>Map Journal</span></span>
-        </div>`;
-}
-
-/** Shows one banner now (also used by the preview page). Resolves when it has gone. */
-export function showRealmBanner(classData, realmId) {
-    return new Promise((resolve) => {
-        const lite = detectLowPowerTier();
-        const host = document.createElement('div');
-        host.className = 'rm-host';
-        host.innerHTML = realmBannerHtml(classData, realmId, { lite });
-        document.body.appendChild(host);
-        import('../audio.js').then(({ playSound }) => playSound(realmId === 'crystal' ? 'hero_fanfare' : 'star3')).catch(quietly('features/realmMoments.js'));
-        setTimeout(() => { host.remove(); resolve(); }, BANNER_MS);
-    });
+/** Shows one banner now. Resolves when it has gone. */
+export function showRealmBanner(classData, realmId, opts = {}) {
+    return import('./realmBanner.js')
+        .then(({ showRealmBanner: show }) => show(classData, realmId, opts))
+        .catch(quietly('features/realmMoments.js'));
 }
 
 async function playNext() {
     if (showing || !queue.length) return;
     showing = true;
-    const { classData, realmId } = queue.shift();
-    try { await showRealmBanner(classData, realmId); } finally {
+    const { classData, realmId, pct } = queue.shift();
+    try { await showRealmBanner(classData, realmId, { pct }); } finally {
         showing = false;
         if (queue.length) setTimeout(playNext, 250);
     }

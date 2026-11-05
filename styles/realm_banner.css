@@ -1,0 +1,712 @@
+/* Team Quest realm arrival banner (features/realmBanner.js), loaded lazily with it.
+   Every element's resting style is its final look; the animations only play the way in, so the
+   lite tier and reduced motion (animation: none) show the finished card with a plain fade.
+   Motion moves transform and opacity only. */
+
+.rb-host {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    pointer-events: none;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: clamp(12px, 6vh, 64px) 12px 0;
+}
+
+.rb-banner {
+    --rb-sky-a: #0f2a4a;
+    --rb-sky-b: #3b6ea8;
+    --rb-sky-c: #cfe8ff;
+    --rb-far: #6a8fb8;
+    --rb-near: #2c4a6e;
+    --rb-paper-a: #f4f9ff;
+    --rb-paper-b: #dbeafe;
+    --rb-ink: #0c2d4d;
+    --rb-edge: #93c5fd;
+    --rb-glow: rgba(186, 230, 253, 0.95);
+    --rb-title: linear-gradient(180deg, #1e3a5f 0%, #5b84b1 52%, #1e3a5f 100%);
+    --rb-mote: #ffffff;
+    --rb-life: 7000ms;
+    position: relative;
+    pointer-events: auto;
+    cursor: pointer;
+    display: grid;
+    grid-template-columns: minmax(236px, 33%) 1fr;
+    width: min(860px, 100%);
+    min-height: 196px;
+    border-radius: 28px;
+    overflow: hidden;
+    background: linear-gradient(140deg, var(--rb-paper-a), var(--rb-paper-b));
+    border: 2px solid var(--rb-edge);
+    box-shadow:
+        0 30px 70px -18px rgba(15, 23, 42, 0.55),
+        0 0 0 6px rgba(255, 255, 255, 0.35),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+    color: var(--rb-ink);
+    font-family: var(--gcq-font-display);
+    animation: rb-enter 0.75s cubic-bezier(0.2, 1.25, 0.35, 1) both;
+    outline: none;
+}
+
+.rb--gold {
+    --rb-sky-a: #6b210b;
+    --rb-sky-b: #e6800f;
+    --rb-sky-c: #fde9a6;
+    --rb-far: #b8621a;
+    --rb-near: #4a1f05;
+    --rb-paper-a: #fffbeb;
+    --rb-paper-b: #fde7a4;
+    --rb-ink: #5c2804;
+    --rb-edge: #f5b63c;
+    --rb-glow: rgba(254, 240, 138, 0.95);
+    --rb-title: linear-gradient(180deg, #8a3b06 0%, #e59a12 50%, #7a3205 100%);
+    --rb-mote: #fde047;
+}
+
+.rb--crystal {
+    --rb-sky-a: #120c3a;
+    --rb-sky-b: #4c1d95;
+    --rb-sky-c: #c4b5fd;
+    --rb-far: #5b3fa6;
+    --rb-near: #1f1450;
+    --rb-paper-a: #fdf8ff;
+    --rb-paper-b: #ead9ff;
+    --rb-ink: #36105e;
+    --rb-edge: #c49bff;
+    --rb-glow: rgba(233, 213, 255, 0.95);
+    --rb-title: linear-gradient(100deg, #6d28d9 0%, #c026d3 38%, #2563eb 70%, #7c3aed 100%);
+    --rb-mote: #f5d0fe;
+}
+
+@keyframes rb-enter {
+    0% { opacity: 0; transform: translateY(-48px) scale(0.86) rotateX(18deg); }
+    100% { opacity: 1; transform: none; }
+}
+
+.rb-banner.is-leaving {
+    animation: rb-leave 0.45s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+    pointer-events: none;
+}
+
+@keyframes rb-leave {
+    to { opacity: 0; transform: translateY(-28px) scale(0.95); }
+}
+
+/* ─── The vista (left) ───────────────────────────────────────────────────── */
+
+.rb-sky,
+.rb-vista {
+    grid-column: 1;
+    grid-row: 1;
+    position: relative;
+    overflow: hidden;
+}
+
+.rb-sky {
+    background:
+        radial-gradient(60% 55% at 50% 46%, var(--rb-glow), transparent 70%),
+        linear-gradient(180deg, var(--rb-sky-a) 0%, var(--rb-sky-b) 58%, var(--rb-sky-c) 100%);
+    clip-path: polygon(0 0, 100% 0, 88% 100%, 0 100%);
+}
+
+.rb-vista {
+    clip-path: polygon(0 0, 100% 0, 88% 100%, 0 100%);
+}
+
+.rb-glow {
+    position: absolute;
+    left: 38%;
+    top: 40%;
+    width: 230px;
+    height: 230px;
+    margin: -115px 0 0 -115px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--rb-glow) 0%, transparent 65%);
+    animation: rb-glow-in 0.9s 1.25s ease-out both, rb-breathe 3.2s 2.2s ease-in-out infinite;
+}
+
+@keyframes rb-glow-in {
+    from { opacity: 0; transform: scale(0.4); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes rb-breathe {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.12); opacity: 0.8; }
+}
+
+.rb-rays {
+    position: absolute;
+    left: 38%;
+    top: 40%;
+    width: 440px;
+    height: 440px;
+    margin: -220px 0 0 -220px;
+    border-radius: 50%;
+    background: repeating-conic-gradient(from 0deg, rgba(255, 255, 255, 0.42) 0 7deg, transparent 7deg 20deg);
+    -webkit-mask: radial-gradient(circle, #000 18%, transparent 68%);
+    mask: radial-gradient(circle, #000 18%, transparent 68%);
+    opacity: 0.8;
+    animation: rb-rays-in 0.8s 1.3s ease-out both, rb-spin 22s 1.3s linear infinite;
+}
+
+@keyframes rb-rays-in {
+    from { opacity: 0; }
+    to { opacity: 0.8; }
+}
+
+@keyframes rb-spin {
+    to { transform: rotate(360deg); }
+}
+
+.rb-scene {
+    position: absolute;
+    inset: auto 0 0 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.rb-far { fill: var(--rb-far); opacity: 0.85; animation: rb-rise 0.9s 0.1s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+.rb-near { fill: var(--rb-near); animation: rb-rise 0.9s 0.22s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+.rb-snow { fill: #f8fbff; animation: rb-rise 0.9s 0.22s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+
+.rb-road {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.85);
+    stroke-width: 2.5;
+    stroke-dasharray: 3 6;
+    stroke-linecap: round;
+    animation: rb-fade 0.6s 0.35s ease-out both;
+}
+
+@keyframes rb-rise {
+    from { opacity: 0; transform: translateY(46px); }
+}
+
+@keyframes rb-fade {
+    from { opacity: 0; }
+}
+
+/* Golden Citadel: towers rise, flags wave, the gates swing open as the class arrives. */
+.rb-keep { fill: #5e2806; animation: rb-rise 1s 0.16s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+.rb-flag { fill: #fde047; }
+.rb-light { fill: #fde68a; }
+.rb-window { fill: #fcd34d; opacity: 0.9; }
+.rb-gate { animation: rb-rise 1s 0.16s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+.rb-door {
+    fill: #2a1003;
+    transform-box: fill-box;
+    transform: scaleX(0.14);
+    animation: rb-door 0.7s 1.05s cubic-bezier(0.6, 0, 0.3, 1) both;
+}
+.rb-door--l { transform-origin: left center; }
+.rb-door--r { transform-origin: right center; }
+
+@keyframes rb-door {
+    from { transform: scaleX(1); }
+}
+
+/* Crystal Realm: spires grow out of the hills and catch the light. */
+.rb-spire { fill: rgba(237, 233, 254, 0.95); transform-box: fill-box; transform-origin: 50% 100%; animation: rb-grow 0.9s 0.3s cubic-bezier(0.2, 1.3, 0.4, 1) both; }
+.rb-spire--b { fill: rgba(196, 181, 253, 0.95); animation-delay: 0.45s; }
+.rb-spire--c { fill: rgba(167, 139, 250, 0.95); animation-delay: 0.6s; }
+.rb-facet { fill: rgba(129, 140, 248, 0.55); animation: rb-fade 0.6s 1s ease-out both; }
+
+@keyframes rb-grow {
+    from { opacity: 0; transform: scaleY(0.05); }
+}
+
+/* The badge bursts open when the class arrives. */
+.rb-badge-wrap {
+    position: absolute;
+    left: 38%;
+    top: 40%;
+    width: clamp(76px, 9vw, 96px);
+    height: clamp(76px, 9vw, 96px);
+    transform: translate(-50%, -50%);
+}
+
+.rb-badge {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 10px 16px rgba(15, 23, 42, 0.45));
+    animation: rb-badge 0.9s 1.25s cubic-bezier(0.3, 1.7, 0.5, 1) both, rb-bob 3.4s 2.3s ease-in-out infinite;
+}
+
+@keyframes rb-badge {
+    0% { opacity: 0; transform: scale(0.2) rotate(-35deg); }
+    60% { opacity: 1; }
+    100% { opacity: 1; transform: none; }
+}
+
+@keyframes rb-bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+.rb-ring {
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    border: 4px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 0 0 24px 6px var(--rb-glow);
+    opacity: 0;
+    animation: rb-ring 0.9s 1.25s ease-out both;
+}
+
+@keyframes rb-ring {
+    0% { opacity: 0; transform: scale(0.3); }
+    8% { opacity: 1; }
+    100% { opacity: 0; transform: scale(2.4); }
+}
+
+.rb-spark {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 9px;
+    height: 9px;
+    margin: -4.5px;
+    border-radius: 2px;
+    background: #fff;
+    box-shadow: 0 0 12px 3px var(--rb-glow);
+    opacity: 0;
+    transform: rotate(calc(var(--i) * 30deg)) translateY(-86px) rotate(45deg) scale(0.4);
+    animation: rb-spark 1.2s calc(1.28s + var(--i) * 0.025s) cubic-bezier(0.1, 0.8, 0.3, 1) both;
+}
+
+@keyframes rb-spark {
+    0% { opacity: 0; transform: rotate(calc(var(--i) * 30deg)) translateY(0) rotate(45deg) scale(0.6); }
+    25% { opacity: 1; }
+    100% { opacity: 0; transform: rotate(calc(var(--i) * 30deg)) translateY(-86px) rotate(45deg) scale(0.4); }
+}
+
+/* The class medallion flies along the road and settles on the badge. */
+.rb-flyer {
+    position: absolute;
+    left: 38%;
+    top: 40%;
+    width: 0;
+    height: 0;
+    transform: translate(34px, 36px) scale(0.6);
+    animation: rb-fly 1s 0.32s cubic-bezier(0.45, 0.05, 0.4, 1) both;
+    z-index: 2;
+}
+
+@keyframes rb-fly {
+    0% { opacity: 0; transform: translate(-150px, 70px) scale(0.75); }
+    10% { opacity: 1; }
+    82% { transform: translate(6px, 4px) scale(0.95); }
+    100% { opacity: 1; transform: translate(34px, 36px) scale(0.6); }
+}
+
+.rb-medal {
+    position: absolute;
+    left: -26px;
+    top: -26px;
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff, var(--rb-paper-b) 70%);
+    border: 3px solid var(--rb-edge);
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.35), 0 0 0 3px rgba(255, 255, 255, 0.7);
+    animation: rb-arc 1s 0.32s cubic-bezier(0.3, 0, 0.6, 1) both;
+}
+
+.rb-medal b { font-size: 28px; line-height: 1; }
+
+@keyframes rb-arc {
+    0% { transform: translateY(0); }
+    45% { transform: translateY(-46px); }
+    100% { transform: translateY(0); }
+}
+
+/* Weather: snow on the Peaks, gold dust over the Citadel, prism shards in the Crystal Realm. */
+.rb-weather { position: absolute; inset: 0; pointer-events: none; }
+
+.rb-mote {
+    position: absolute;
+    left: var(--x);
+    top: -10px;
+    width: var(--s);
+    height: var(--s);
+    border-radius: 50%;
+    background: var(--rb-mote);
+    opacity: 0;
+    animation: rb-snowfall var(--t) calc(0.9s + var(--d)) linear infinite;
+}
+
+@keyframes rb-snowfall {
+    0% { opacity: 0; transform: translate(0, 0); }
+    15% { opacity: 0.95; }
+    100% { opacity: 0; transform: translate(var(--w), 210px); }
+}
+
+.rb--gold .rb-mote {
+    top: auto;
+    bottom: -8px;
+    width: calc(var(--s) * 0.8);
+    height: calc(var(--s) * 0.8);
+    box-shadow: 0 0 8px 2px rgba(253, 224, 71, 0.8);
+    animation-name: rb-dust;
+}
+
+@keyframes rb-dust {
+    0% { opacity: 0; transform: translate(0, 0); }
+    20% { opacity: 1; }
+    100% { opacity: 0; transform: translate(var(--w), -180px); }
+}
+
+.rb--crystal .rb-mote {
+    top: auto;
+    bottom: 20%;
+    border-radius: 2px;
+    width: calc(var(--s) * 0.8);
+    height: calc(var(--s) * 1.6);
+    background: linear-gradient(180deg, #fff, var(--rb-mote));
+    box-shadow: 0 0 10px 2px rgba(216, 180, 254, 0.8);
+    animation-name: rb-shard;
+}
+
+@keyframes rb-shard {
+    0% { opacity: 0; transform: translate(0, 0) rotate(0deg) scale(0.4); }
+    30% { opacity: 1; transform: translate(calc(var(--w) * 0.4), -40px) rotate(60deg) scale(1); }
+    100% { opacity: 0; transform: translate(var(--w), -120px) rotate(200deg) scale(0.3); }
+}
+
+/* ─── The words (right) ──────────────────────────────────────────────────── */
+
+.rb-copy {
+    grid-column: 2;
+    grid-row: 1;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+    padding: 18px 108px 16px 14px;
+}
+
+.rb-banner::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, 0.7) 50%, transparent 62%);
+    transform: translateX(-130%);
+    animation: rb-sheen 1.5s 1.5s ease-out both;
+    pointer-events: none;
+}
+
+@keyframes rb-sheen {
+    to { transform: translateX(130%); }
+}
+
+.rb-kicker {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    font-size: clamp(0.82rem, 1.5vw, 1rem);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.85;
+    animation: rb-slide 0.6s 0.45s ease-out both;
+}
+
+.rb-logo { font-size: 1.15em; letter-spacing: 0; }
+.rb-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; max-width: 60%; }
+
+@keyframes rb-slide {
+    from { opacity: 0; transform: translateX(-18px); }
+}
+
+.rb-title {
+    display: block;
+    font-family: var(--gcq-font-rune);
+    font-weight: 700;
+    font-size: clamp(1.75rem, 3.7vw, 2.6rem);
+    line-height: 1.08;
+    letter-spacing: 0.01em;
+    padding: 2px 0 4px;
+    filter: drop-shadow(0 2px 0 rgba(255, 255, 255, 0.85)) drop-shadow(0 4px 10px rgba(15, 23, 42, 0.18));
+}
+
+.rb-word { display: inline-block; white-space: nowrap; }
+
+.rb-ch,
+.rb--lite .rb-title {
+    background: var(--rb-title);
+    background-size: 100% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+}
+
+.rb-ch {
+    display: inline-block;
+    animation: rb-letter 0.6s calc(1.35s + var(--k) * 0.045s) cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+
+@keyframes rb-letter {
+    from { opacity: 0; transform: translateY(0.7em) rotate(-10deg) scale(0.6); }
+}
+
+.rb-cheer {
+    font-style: normal;
+    font-weight: 600;
+    font-size: clamp(0.9rem, 1.6vw, 1.1rem);
+    animation: rb-slide 0.6s 2s ease-out both;
+}
+
+.rb-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    margin-top: 8px;
+}
+
+/* The month's road: Meadows → Peaks → Citadel → Crystal, filled to the new stop. */
+.rb-road-track {
+    position: relative;
+    flex: 1 1 230px;
+    max-width: 320px;
+    height: 40px;
+    animation: rb-fade 0.5s 2.1s ease-out both;
+}
+
+.rb-road-line {
+    position: absolute;
+    left: 24px;
+    right: 24px;
+    top: 10px;
+    height: 5px;
+    border-radius: 99px;
+    background: rgba(15, 23, 42, 0.12);
+    overflow: hidden;
+}
+
+.rb-road-fill {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #d6a25b, var(--rb-edge));
+    transform-origin: left center;
+    transform: scaleX(var(--to));
+    animation: rb-fill 0.9s 2.25s cubic-bezier(0.5, 0, 0.3, 1) both;
+}
+
+@keyframes rb-fill {
+    from { transform: scaleX(var(--from)); }
+}
+
+.rb-road-track ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    position: absolute;
+    left: 24px;
+    right: 24px;
+    top: 0;
+    height: 100%;
+}
+
+.rb-stop {
+    position: absolute;
+    left: var(--p);
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform: translateX(-50%);
+}
+
+.rb-stop b {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 13px;
+    line-height: 1;
+    background: #fff;
+    border: 2px solid rgba(15, 23, 42, 0.15);
+    filter: grayscale(1);
+    opacity: 0.55;
+}
+
+.rb-stop span {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.55;
+    margin-top: 1px;
+    white-space: nowrap;
+}
+
+.rb-stop.is-done b { filter: none; opacity: 1; border-color: #d6a25b; }
+.rb-stop.is-done span { opacity: 0.8; }
+
+.rb-stop.is-new b {
+    filter: none;
+    opacity: 1;
+    border-color: var(--rb-edge);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.9), 0 0 14px 4px var(--rb-glow);
+    animation: rb-stop 0.6s 3.05s cubic-bezier(0.3, 1.8, 0.5, 1) both;
+}
+
+.rb-stop.is-new span { opacity: 1; font-weight: 800; }
+
+@keyframes rb-stop {
+    from { transform: scale(0.3); filter: grayscale(1); opacity: 0.55; }
+}
+
+.rb-pct {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 11px;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid var(--rb-edge);
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+    animation: rb-pop 0.5s 3.2s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+
+.rb-pct i { color: #f59e0b; }
+
+@keyframes rb-pop {
+    from { opacity: 0; transform: scale(0.5); }
+}
+
+/* The Map Journal stamp lands last. */
+.rb-stamp {
+    position: absolute;
+    right: 24px;
+    top: 50%;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    width: 84px;
+    height: 84px;
+    margin-top: -42px;
+    border-radius: 50%;
+    border: 3px double var(--rb-ink);
+    color: var(--rb-ink);
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.6), transparent 70%);
+    text-align: center;
+    opacity: 0.8;
+    transform: rotate(-14deg);
+    animation: rb-stamp 0.42s 3.35s cubic-bezier(0.5, 0, 0.75, 0) both;
+}
+
+.rb-stamp b { font-size: 1.7rem; line-height: 1; }
+.rb-stamp span { font-size: 0.58rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 3px; }
+
+@keyframes rb-stamp {
+    from { opacity: 0; transform: rotate(-14deg) scale(2.3); }
+}
+
+.rb-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.7);
+    color: var(--rb-ink);
+    font-size: 0.85rem;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.rb-close:hover,
+.rb-close:focus-visible { opacity: 1; transform: scale(1.08); }
+
+.rb-timer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 4px;
+    background: var(--rb-edge);
+    opacity: 0.8;
+    transform-origin: left center;
+    animation: rb-timer var(--rb-life) linear both;
+}
+
+.rb-banner.is-held .rb-timer { animation-play-state: paused; opacity: 0.35; }
+
+@keyframes rb-timer {
+    from { transform: scaleX(1); }
+    to { transform: scaleX(0); }
+}
+
+/* ─── Phones: the vista becomes a band on top ─────────────────────────────── */
+
+@media (max-width: 620px) {
+    .rb-banner {
+        grid-template-columns: 1fr;
+        grid-template-rows: 128px auto;
+        min-height: 0;
+        border-radius: 24px;
+    }
+    .rb-sky,
+    .rb-vista { grid-column: 1; grid-row: 1; clip-path: none; }
+    .rb-copy { grid-column: 1; grid-row: 2; padding: 12px 16px 16px; }
+    .rb-glow, .rb-rays, .rb-badge-wrap, .rb-flyer { left: 44%; top: 42%; }
+    .rb-badge-wrap { width: 76px; height: 76px; }
+    .rb-stamp { top: 10px; right: auto; left: 12px; margin-top: 0; width: 64px; height: 64px; background: rgba(255, 255, 255, 0.82); }
+    .rb-stamp b { font-size: 1.25rem; }
+    .rb-stamp span { font-size: 0.48rem; }
+    .rb-close { background: rgba(255, 255, 255, 0.85); }
+    .rb-name { max-width: 58vw; }
+    .rb-road-track { max-width: none; }
+}
+
+/* ─── Weak laptops and reduced motion: the finished card, faded in ────────── */
+
+.rb--lite,
+.rb--lite *,
+.rb--lite::after {
+    animation: none !important;
+}
+
+.rb--lite {
+    animation: rb-fade-in 0.4s ease-out both !important;
+    box-shadow: 0 16px 36px -10px rgba(15, 23, 42, 0.5);
+}
+
+.rb--lite .rb-timer { animation: rb-timer var(--rb-life) linear both !important; }
+.rb--lite.is-held .rb-timer { animation-play-state: paused !important; }
+.rb--lite.is-leaving { animation: rb-fade-out 0.3s ease-in forwards !important; }
+.rb--lite::after { display: none; }
+
+@keyframes rb-fade-in { from { opacity: 0; } }
+@keyframes rb-fade-out { to { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+    .rb-banner *,
+    .rb-banner::after { animation: none !important; }
+    .rb-banner { animation: rb-fade-in 0.4s ease-out both; }
+    .rb-banner.is-leaving { animation: rb-fade-out 0.3s ease-in forwards; }
+    .rb-weather, .rb-rays, .rb-spark, .rb-banner::after { display: none; }
+    .rb-banner .rb-timer { animation: rb-timer var(--rb-life) linear both !important; }
+}

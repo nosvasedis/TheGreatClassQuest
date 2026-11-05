@@ -1418,6 +1418,33 @@ export function playPortalSfx(name, opts = {}) {
     }
 }
 
+// Team Quest realm arrival (features/realmBanner.js): a rising run while the class medallion
+// flies along the road, then the realm's own chord as the badge bursts open (~1.3s).
+const REALM_TUNES = {
+    silver: { run: ['E5', 'G#5', 'B5', 'E6'], chord: ['E4', 'B4', 'E5', 'G#5'], top: ['E7', 'B6'] },
+    gold: { run: ['D5', 'F#5', 'A5', 'D6'], chord: ['D4', 'A4', 'D5', 'F#5'], top: ['D7', 'A6', 'F#6'] },
+    crystal: { run: ['A5', 'C#6', 'E6', 'A6'], chord: ['A3', 'E4', 'A4', 'C#5', 'E5'], top: ['A7', 'E7', 'C#7'] }
+};
+
+export function playRealmSfx(realmId) {
+    if (!soundsReady || !audioRunning()) return;
+    const tune = REALM_TUNES[realmId] || REALM_TUNES.silver;
+    const sounds = getSounds(4);
+    const t = Tone.now() + 0.03;
+    const bell = (note, dur, at, vel) => sounds.award_bell.triggerAttackRelease(note, dur, t + at, vel);
+    try {
+        tune.run.forEach((n, i) => bell(n, '32n', 0.35 + i * 0.2, 0.22 + i * 0.07));
+        sounds.award_swell.triggerAttackRelease(realmId === 'crystal' ? 'A1' : 'D2', '4n', t + 1.28);
+        sounds.award_sparkle.triggerAttackRelease('4n', t + 1.28);
+        sounds.award_pad.triggerAttackRelease(tune.chord, 1.8, t + 1.28);
+        bell(tune.top, '8n', 1.3, 0.6);
+        // The stamp on the Map Journal.
+        bell(tune.run[0], '32n', 3.4, 0.3);
+    } catch (e) {
+        console.warn('Realm sound skipped:', e);
+    }
+}
+
 // The show's sounds are recorded once per page (features/quizShowSounds.js) and then only played
 // back: a buffer costs the audio thread almost nothing, so a weak laptop no longer crackles, plays
 // notes late or cuts out mid-show. A sound not recorded yet plays live once (the old band below)

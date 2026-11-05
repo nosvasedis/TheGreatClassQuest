@@ -180,7 +180,7 @@ export function showPortalBanner(story, classData) {
 }
 
 /** Waits for a realm banner on screen to finish, so two banners never overlap. */
-function realmBannerGone(maxMs = 5000) {
+function realmBannerGone(maxMs = 12000) {
     return new Promise((resolve) => {
         const start = Date.now();
         const check = () => {

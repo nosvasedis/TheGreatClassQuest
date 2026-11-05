@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Realm moments preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Fredoka+One&family=Cinzel:wght@600;700&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    html, body { margin: 0; min-height: 100%; }
+    body { background: linear-gradient(180deg, #e0f2fe 0%, #f0f9ff 40%, #fefce8 100%); font-family: 'Fredoka', sans-serif; }
+    .pv-fake { padding: 2rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: 1rem; }
+    .pv-fake div { height: 7rem; border-radius: 1rem; background: #fff; box-shadow: 0 4px 14px rgba(30,60,120,.12); }
+    .pv-bar { position: fixed; left: 12px; bottom: 12px; display: flex; flex-wrap: wrap; gap: 8px; z-index: 1; }
+    .pv-bar button { padding: 6px 12px; border-radius: 10px; border: 1px solid #38bdf8; background: #fff; cursor: pointer; font: inherit; }
+  </style>
+</head>
+<body>
+  <div class="pv-fake"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+  <div class="pv-bar">
+    <button id="pv-sound">Sound on</button>
+    <button data-realm="silver">Silver Peaks</button>
+    <button data-realm="gold">Golden Citadel</button>
+    <button data-realm="crystal">Crystal Realm</button>
+  </div>
+  <script type="module" src="/realm-moments-preview.js"></script>
+</body>
+</html>

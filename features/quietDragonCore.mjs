@@ -64,8 +64,8 @@ export function tuneBy(current, direction) {
 /**
  * The dragon's ears. `step(db, dt)` takes one reading (dBFS) and the seconds since the last one and
  * returns { mood, ratio, annoyance, woke } where mood is asleep | stirring | peeking | awake | settling,
- * ratio is the smoothed loudness (0 at the floor, 1 at the limit) and woke is true on the reading that
- * woke it. `held` (teacher speaking) freezes everything.
+ * ratio is the smoothed loudness (0 at the floor, 1 at the limit), woke is true on the reading that
+ * woke it and settle (0..1) is how far an awake dragon is towards lying back down. `held` (teacher speaking) freezes everything.
  */
 export function createDragonEars({ floor = -55, margin = 12, tune = 0 } = {}) {
     const ears = {
@@ -112,7 +112,9 @@ export function createDragonEars({ floor = -55, margin = 12, tune = 0 } = {}) {
             return ears.snapshot(false);
         },
         snapshot(woke) {
-            return { mood: ears.mood, ratio: ears.ratio, annoyance: ears.annoyance, woke, wakes: ears.wakes };
+            // settle: how far an awake dragon is towards lying back down (0..1), for the stage's countdown.
+            const settle = ears.mood === 'awake' ? Math.min(1, ears.quietFor / SETTLE_QUIET_S) : 0;
+            return { mood: ears.mood, ratio: ears.ratio, annoyance: ears.annoyance, woke, wakes: ears.wakes, settle };
         }
     };
     return ears;

@@ -90,3 +90,12 @@ test('gifts are cleaned and described', () => {
     assert.equal(describeGift({ hoard: { key: 'stars', amount: 0.5 }, treat: 'A game' }), '+½ star for every hero here + A game');
     assert.equal(describeGift({ hoard: { key: 'quest', amount: 2 } }), "+2 to the class's Team Quest");
 });
+
+test('an awake dragon reports how far it is towards settling', () => {
+    const ears = createDragonEars({ floor: -55, margin: 12 });
+    run(ears, -30, 5);
+    assert.equal(ears.mood, 'awake');
+    const halfway = run(ears, -55, 2);
+    assert.ok(halfway.settle > 0 && halfway.settle < 1);
+    assert.equal(run(ears, -55, 8).settle, 0);
+});

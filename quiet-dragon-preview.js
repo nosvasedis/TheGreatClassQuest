@@ -23,10 +23,12 @@ setTimeout(() => {
     if (view === 'calibrating') hooks.showCalibrating();
     else if (view === 'ending') { hooks.showMood('asleep'); hooks.showProgress(p); hooks.showEnding(); }
     else if (view === 'gift') hooks.showGift({ hoard: { key: params.get('hoard') || 'gold', amount: Number(params.get('amount') || 2) }, treat: params.get('treat') ?? 'A game at the end of the lesson' });
-    else if (view === 'held') { hooks.showMood('asleep'); hooks.showProgress(p, 0.1); hooks.hold(true); }
+    else if (view === 'held') { hooks.showMood('asleep'); hooks.showProgress(p, 0); hooks.hold(true); }
     else if (view !== 'setup') {
         const ratio = { asleep: 0.25, stirring: 0.7, peeking: 1.05, awake: 1.4 }[view] ?? 0.3;
         hooks.showMood(view);
         hooks.showProgress(p, ratio);
+        if (params.has('toast')) hooks.toast(params.get('toast') || 'A new treasure for the hoard!');
     }
+    if (['asleep', 'stirring', 'peeking', 'awake', 'held'].includes(view)) hooks.awakeUi();
 }, 300);

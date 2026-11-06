@@ -301,3 +301,14 @@
     .chx-embers i { animation: none; }
 }
 body.gcq-lite .chx-embers i { animation: none; }
+
+/* Phone Home writes its text in Open Sans and its numbers and titles in Fredoka (.m-hstat__num,
+   .m-hpage__kicker); the Chronicle's numbers, game names and row titles follow suit. */
+.m-hpage .chx-tally b,
+.m-hpage .chx-big,
+.m-hpage .chx-game__name,
+.m-hpage .chx-row__text b,
+.m-hpage .chx-fest b,
+.m-hpage .chx-names span {
+    font-family: 'Fredoka', 'Fredoka One', system-ui, sans-serif;
+}

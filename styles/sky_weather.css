@@ -984,7 +984,7 @@ html[data-wx-light="golden"] .wx-g-sun__rays { fill: #fdba74; }
 }
 
 /* Hourly strip: the next few hours of the school day. */
-/* Spans the whole card (under the glyph's side too) with the chips centred and evenly sized. */
+/* Spans the whole card (under the glyph's side too): the first tile starts on the same line as the clock, temperature and words; the last ends under the wind badge. */
 .wx-hours {
     display: flex;
     justify-content: center;
@@ -994,7 +994,6 @@ html[data-wx-light="golden"] .wx-g-sun__rays { fill: #fdba74; }
 }
 .wx-hour {
     flex: 1 1 0;
-    max-width: 4.9rem;
     display: flex;
     flex-direction: column;
     align-items: center;

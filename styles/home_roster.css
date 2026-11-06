@@ -1018,7 +1018,7 @@
     align-items: flex-start;
     text-align: left;
     gap: 0.15rem;
-    padding: 0.25rem 6rem 0.25rem 0.1rem;
+    padding: 0.25rem 6rem 0.25rem 0;
 }
 .weather-temp {
     font-size: clamp(3.3rem, 4.6vw, 4.5rem);

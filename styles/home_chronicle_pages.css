@@ -1,0 +1,303 @@
+/* ===================================================================
+   The Chronicle's newer pages (Home, desktop + phone): Training Grounds,
+   Starfall, Ember Oaths, Hero Seals, the Quiet Dragon, the Festival Stall.
+   Markup: features/homeChroniclePages.mjs (chx-*). Loaded with Home's code,
+   not the startup CSS. Page frame: home_chronicle.css / mobile/styles/home.css.
+   =================================================================== */
+
+/* ---------- Palettes (desktop page vars + phone --pg) ---------- */
+.ch-page--training, .m-hpage--training {
+    --ch-paper-a: #fffaf0; --ch-paper-b: #fde9c4;
+    --ch-accent: #d97706; --ch-accent-2: #fcd34d;
+    --ch-ink: #713f12; --ch-kicker: #b45309;
+    --ch-glow: rgba(217, 119, 6, 0.28);
+    --pg: #d97706; --pg-soft: #fffbeb;
+}
+.ch-page--oaths, .m-hpage--oaths {
+    --ch-paper-a: #fff6f1; --ch-paper-b: #ffdccb;
+    --ch-accent: #e0482a; --ch-accent-2: #fdba74;
+    --ch-ink: #7c2d12; --ch-kicker: #c2410c;
+    --ch-glow: rgba(224, 72, 42, 0.26);
+    --pg: #e0482a; --pg-soft: #fff7ed;
+}
+.ch-page--seals, .m-hpage--seals {
+    --ch-paper-a: #f9f5ff; --ch-paper-b: #e9dcff;
+    --ch-accent: #7c3aed; --ch-accent-2: #c4b5fd;
+    --ch-ink: #3b0764; --ch-kicker: #6d28d9;
+    --ch-glow: rgba(124, 58, 237, 0.26);
+    --pg: #7c3aed; --pg-soft: #f5f3ff;
+}
+.ch-page--dragon, .m-hpage--dragon {
+    --ch-paper-a: #f0f9ff; --ch-paper-b: #cfeafd;
+    --ch-accent: #0284c7; --ch-accent-2: #7dd3fc;
+    --ch-ink: #0c4a6e; --ch-kicker: #0369a1;
+    --ch-glow: rgba(2, 132, 199, 0.26);
+    --pg: #0284c7; --pg-soft: #f0f9ff;
+}
+.ch-page--festival, .m-hpage--festival {
+    --ch-paper-a: #fff4fa; --ch-paper-b: #fdd5ea;
+    --ch-accent: #db2777; --ch-accent-2: #f9a8d4;
+    --ch-ink: #831843; --ch-kicker: #be185d;
+    --ch-glow: rgba(219, 39, 119, 0.26);
+    --pg: #db2777; --pg-soft: #fdf2f8;
+}
+/* The Starfall page is a little night sky: it is the one that needs doing this lesson. */
+.ch-page--starfall, .m-hpage--starfall {
+    --ch-paper-a: #312e81; --ch-paper-b: #1e1b4b;
+    --ch-accent: #fbbf24; --ch-accent-2: #fde68a;
+    --ch-ink: #eef2ff; --ch-kicker: #fde68a;
+    --ch-glow: rgba(67, 56, 202, 0.45);
+    --pg: #4338ca; --pg-soft: #eef2ff;
+}
+.ch-page--starfall {
+    background:
+        radial-gradient(1.5px 1.5px at 18% 30%, #fff 50%, transparent 51%),
+        radial-gradient(1px 1px at 62% 18%, #fde68a 50%, transparent 51%),
+        radial-gradient(1.5px 1.5px at 84% 62%, #fff 50%, transparent 51%),
+        radial-gradient(1px 1px at 38% 78%, #c7d2fe 50%, transparent 51%),
+        radial-gradient(120% 90% at 100% 100%, #4c1d95 0%, transparent 60%),
+        linear-gradient(160deg, #3730a3 0%, #1e1b4b 100%);
+    border-color: rgba(253, 230, 138, 0.35);
+}
+.ch-page--starfall::before { display: none; }
+.ch-page--starfall .ch-page__badge { color: #1e1b4b; }
+.ch-page--starfall .ch-page__watermark { opacity: 0.14; }
+.ch-page--starfall.is-open .ch-page__foot { background: linear-gradient(to bottom, transparent, #272466 40%); }
+.ch-page--starfall .ch-page__open { color: #1e1b4b; }
+
+/* ---------- Rich pages: no line clamp, a fixed closed height ---------- */
+.ch-page--rich .ch-page__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+    max-height: 6.4rem;
+}
+.ch-page--rich.is-open .ch-page__body { max-height: none; display: flex; }
+.ch-page.is-empty .ch-page__body { opacity: 0.78; }
+.chx-more { display: none; }
+.ch-page.is-open .chx-more,
+.m-hpage.m-hpage--open .chx-more { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 0.35rem; }
+
+.chx-line {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    font-size: 0.82rem;
+    line-height: 1.4;
+}
+.ch-page.is-open .chx-line,
+.m-hpage--open .chx-line { -webkit-line-clamp: unset; line-clamp: unset; font-size: 0.95rem; }
+.chx-line b { font-weight: 700; }
+.chx-label {
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ch-kicker, var(--pg));
+}
+
+/* Big number line (Starfall, Quiet Dragon) */
+.chx-big { font-size: 0.95rem; font-weight: 600; line-height: 1.1; }
+.chx-big b {
+    font-size: 1.85rem;
+    font-weight: 700;
+    color: var(--ch-accent, var(--pg));
+    margin-right: 0.2rem;
+}
+
+/* ---------- Training Grounds: four game chips with knots ---------- */
+.chx-games {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.35rem;
+}
+.chx-game {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.12rem;
+    min-width: 0;
+    padding: 0.32rem 0.15rem 0.3rem;
+    border-radius: 0.8rem;
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid color-mix(in srgb, var(--gm, #d97706) 28%, white);
+    box-shadow: 0 3px 8px -6px var(--gm, #d97706);
+}
+.chx-game--story { --gm: #0891b2; }
+.chx-game--hoard { --gm: #d97706; }
+.chx-game--map { --gm: #059669; }
+.chx-game--council { --gm: #7c3aed; }
+.chx-game.is-new { filter: saturate(0.55); opacity: 0.8; }
+.chx-game__emoji { font-size: 1.15rem; line-height: 1; }
+.chx-game__name {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.66rem;
+    font-weight: 700;
+    color: color-mix(in srgb, var(--gm) 75%, #1f2937);
+}
+.chx-knots { display: inline-flex; gap: 0.2rem; flex-shrink: 0; }
+.chx-knots i {
+    width: 0.48rem;
+    height: 0.48rem;
+    border-radius: 50%;
+    border: 1.5px solid color-mix(in srgb, var(--gm, var(--ch-accent, #d97706)) 60%, white);
+    background: transparent;
+}
+.chx-knots i.is-tied {
+    background: var(--gm, var(--ch-accent, #d97706));
+    border-color: var(--gm, var(--ch-accent, #d97706));
+    box-shadow: 0 0 6px color-mix(in srgb, var(--gm, #d97706) 55%, transparent);
+}
+
+/* Rows (unfolded lists) */
+.chx-rows { display: flex; flex-direction: column; gap: 0.4rem; margin: 0; padding: 0; list-style: none; }
+.chx-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.45rem 0.65rem;
+    border-radius: 0.85rem;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid color-mix(in srgb, var(--ch-accent, var(--pg)) 14%, white);
+}
+.chx-row--story { --gm: #0891b2; }
+.chx-row--hoard { --gm: #d97706; }
+.chx-row--map { --gm: #059669; }
+.chx-row--council { --gm: #7c3aed; }
+.chx-row__emoji { font-size: 1.2rem; width: 1.6rem; text-align: center; flex-shrink: 0; }
+.chx-row__text { display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.25; }
+.chx-row__text b { font-size: 0.9rem; font-weight: 700; }
+.chx-row__text small { font-size: 0.75rem; opacity: 0.78; }
+.chx-story {
+    margin: 0;
+    padding: 0.6rem 0.8rem;
+    border-radius: 0.85rem;
+    background: rgba(255, 255, 255, 0.6);
+    border-left: 3px solid #0891b2;
+    font-family: var(--gcq-font-serif, Georgia, serif);
+    font-style: italic;
+    line-height: 1.5;
+}
+.chx-story span {
+    display: block;
+    font-family: 'Fredoka', system-ui, sans-serif;
+    font-style: normal;
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #0e7490;
+}
+.chx-story em { text-transform: none; letter-spacing: 0; font-size: 0.8rem; }
+
+/* ---------- Ember Oaths: three tallies ---------- */
+.chx-tallies { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.35rem; }
+.chx-tally {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.28rem 0.2rem;
+    border-radius: 0.8rem;
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid color-mix(in srgb, var(--ch-accent, var(--pg)) 18%, white);
+    line-height: 1.05;
+    min-width: 0;
+}
+.chx-tally b { font-size: 1.3rem; font-weight: 700; color: var(--ch-accent, var(--pg)); }
+.chx-tally small {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.75;
+}
+.chx-tally--ready.is-lit {
+    background: linear-gradient(150deg, #fff7ed, #fed7aa);
+    border-color: #fb923c;
+    box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.25), 0 6px 14px -8px #ea580c;
+}
+.chx-tally--kept b { color: #b45309; }
+.chx-embers { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0; }
+.chx-embers i {
+    width: 0.8rem;
+    height: 1.05rem;
+    border-radius: 50% 50% 45% 45% / 62% 62% 38% 38%;
+    background: radial-gradient(circle at 50% 70%, #fff5c8 0 22%, #fbbf24 40%, #ea580c 75%);
+    box-shadow: 0 0 8px rgba(251, 146, 60, 0.6);
+    animation: chx-flicker 1.8s ease-in-out infinite alternate;
+    animation-delay: calc(var(--i, 0) * -0.23s);
+}
+
+/* ---------- Hero Seals: wax medallions ---------- */
+.chx-seals { display: flex; gap: 0.4rem; }
+.chx-seal {
+    display: grid;
+    place-items: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    flex-shrink: 0;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 0.85rem;
+    background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--seal) 55%, white), var(--seal) 60%, color-mix(in srgb, var(--seal) 70%, black));
+    box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.2), 0 3px 8px -3px var(--seal);
+    border: 2px solid color-mix(in srgb, var(--seal) 40%, white);
+}
+.chx-seal--sm { width: 1.75rem; height: 1.75rem; font-size: 0.72rem; }
+
+/* ---------- Starfall names ---------- */
+.chx-names { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0; }
+.chx-names span {
+    padding: 0.22rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #1e1b4b;
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+}
+
+/* ---------- Festival ---------- */
+.chx-fest { display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
+.chx-fest__emoji {
+    display: grid;
+    place-items: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    flex-shrink: 0;
+    border-radius: 0.9rem;
+    font-size: 1.5rem;
+    background: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 4px 10px -6px var(--ch-glow, rgba(219, 39, 119, 0.4));
+}
+.chx-fest > span:last-child { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.chx-fest b { font-size: 1rem; font-weight: 700; }
+.chx-fest small { font-size: 0.75rem; font-weight: 600; opacity: 0.78; }
+
+/* ---------- Phone pages (mobile/home.js .m-hpage) ---------- */
+.m-hpage__text:has(.m-hpage__rich) { display: block; -webkit-line-clamp: unset; line-clamp: unset; overflow: visible; }
+.m-hpage__rich { display: flex; flex-direction: column; gap: 0.5rem; }
+.m-hpage .chx-more { display: none; }
+.m-hpage.is-empty .m-hpage__rich { font-style: normal; }
+.m-hpage .chx-games { margin-top: 0.15rem; }
+.m-hpage .chx-line { color: inherit; }
+.m-hpage--starfall .chx-big b { color: #4338ca; }
+
+@keyframes chx-flicker {
+    from { transform: scale(0.92) rotate(-3deg); filter: brightness(0.95); }
+    to { transform: scale(1.06) rotate(3deg); filter: brightness(1.12); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .chx-embers i { animation: none; }
+}
+body.gcq-lite .chx-embers i { animation: none; }

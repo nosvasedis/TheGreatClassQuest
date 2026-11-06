@@ -15,6 +15,7 @@ import { buildHomePartyCardHtml } from './homePartyCard.mjs';
 import { buildHomeQuestRoadCardHtml } from './homeQuestRoadCard.mjs';
 import { classPortalStatus } from './questPortal.js';
 import { normalizeChroniclerText } from './adventurePageCore.mjs';
+import { getChronicleExtraPages } from './homeChronicleContext.js';
 import { callGeminiApi } from '../api.js';
 import { canUseFeature } from '../utils/subscription.js';
 import { getHomeGlobalTools, getHomeClassActions, getClassToolCounts } from './homeGlobalTools.mjs';
@@ -471,24 +472,11 @@ function getSkeleton() {
     return `<div class="animate-pulse space-y-6 max-w-7xl mx-auto p-4"><div class="grid grid-cols-12 gap-6"><div class="h-48 bg-gray-200 rounded-3xl col-span-8"></div><div class="h-48 bg-gray-200 rounded-3xl col-span-4"></div></div><div class="grid grid-cols-12 gap-6"><div class="h-40 bg-gray-200 rounded-3xl col-span-4"></div><div class="h-40 bg-gray-200 rounded-3xl col-span-4"></div><div class="h-40 bg-gray-200 rounded-3xl col-span-4"></div></div></div>`;
 }
 
-function patchHomeChronicleStory(classId, story) {
-    if (state.get('globalSelectedClassId') !== classId) return;
-    const root = document.getElementById('home-dashboard-container');
-    if (!root) return;
-    const wordEl = root.querySelector('[data-home-story-word]');
-    const textEl = root.querySelector('[data-home-story-text]');
-    if (wordEl && story?.currentWord != null) {
-        wordEl.textContent = `Story: ${story.currentWord}`;
-    }
-    if (textEl && story?.currentSentence != null) {
-        textEl.textContent = `"...${story.currentSentence}..."`;
-    }
-}
-
 /** One Chronicle page (Home, class view). Tap unfolds it over the deck; the footer opens its tab. */
-function getChroniclePageHtml({ kind, index, icon, kicker, kickerAttr = '', body, bodyAttr = '', openTarget, openLabel }) {
+function getChroniclePageHtml({ kind, index, icon, kicker, kickerAttr = '', body, bodyAttr = '', openTarget = '', openAction = '', openLabel, rich = false, detail = '', empty = false }) {
+    const openAttr = openAction ? `data-ch-action="${openAction}"` : `data-ch-open="${openTarget}"`;
     return `
-                <article class="ch-page ch-page--${kind}" style="--ch-i:${index}" role="button" tabindex="0" aria-expanded="false">
+                <article class="ch-page ch-page--${kind}${rich ? ' ch-page--rich' : ''}${empty ? ' is-empty' : ''}" style="--ch-i:${index}" role="button" tabindex="0" aria-expanded="false">
                     <span class="ch-page__ribbon" aria-hidden="true"></span>
                     <i class="fas ${icon} ch-page__watermark" aria-hidden="true"></i>
                     <span class="ch-page__ink" aria-hidden="true"></span>
@@ -496,12 +484,21 @@ function getChroniclePageHtml({ kind, index, icon, kicker, kickerAttr = '', body
                         <span class="ch-page__badge"><i class="fas ${icon}"></i></span>
                         <span class="ch-page__kicker" ${kickerAttr}>${kicker}</span>
                     </header>
-                    <div class="ch-page__body" ${bodyAttr}>${body}</div>
+                    <div class="ch-page__body" ${bodyAttr}>${body}${detail ? `<div class="chx-more">${detail}</div>` : ''}</div>
                     <footer class="ch-page__foot">
                         <span class="ch-page__hint"><span class="ch-page__hint-more">Read</span><span class="ch-page__hint-less">Fold away</span><i class="fas fa-chevron-down"></i></span>
-                        <button type="button" class="ch-page__open" data-ch-open="${openTarget}" tabindex="-1">${openLabel} <i class="fas fa-arrow-right"></i></button>
+                        <button type="button" class="ch-page__open" ${openAttr} tabindex="-1">${openLabel} <i class="fas fa-arrow-right"></i></button>
                     </footer>
                 </article>`;
+}
+
+/** A Chronicle page from features/homeChroniclePages.mjs (Training Grounds and the bottom row). */
+function getChronicleExtraPageHtml(page, index) {
+    return getChroniclePageHtml({
+        kind: page.kind, index, icon: page.icon, kicker: escapeHtml(page.kicker),
+        body: page.summary, detail: page.detail, rich: true, empty: page.empty,
+        openTarget: page.open.tab || '', openAction: page.open.action || '', openLabel: escapeHtml(page.open.label)
+    });
 }
 
 /** One launcher tile for Global Tools / Class Actions (styles/home.css .gt-tile). */
@@ -633,13 +630,11 @@ function getActiveDashboard(classData, theme, spice) {
                 const currentData = state.get('currentStoryData');
                 currentData[classId] = docSnap.data();
                 state.setCurrentStoryData(currentData);
-                patchHomeChronicleStory(classId, docSnap.data());
+                if (state.get('globalSelectedClassId') === classId) renderHomeTab();
             }
         }).catch(quietly('features/home.js'));
     }
-    const story = state.get('currentStoryData')[classId];
-    const storyText = (story && story.currentSentence) ? `"...${story.currentSentence}..."` : "The story awaits its first chapter...";
-    const storyWord = (story && story.currentWord) ? story.currentWord : "Pending";
+    const chronicle = getChronicleExtraPages(classId, now);
 
     const lastAssignment = state.get('allQuestAssignments')
         .filter(a => a.classId === classId)
@@ -733,9 +728,10 @@ function getActiveDashboard(classData, theme, spice) {
             <h3 class="home-section-title mb-4"><span class="home-section-title__icon home-section-title__icon--chronicle"><i class="fas fa-history"></i></span>The Chronicle</h3>
             
             <div class="ch-deck" data-chronicle-deck>
-                ${getChroniclePageHtml({ kind: 'homework', index: 0, icon: 'fa-book', kicker: 'Homework', body: assignmentText, openTarget: 'adventure-log-tab', openLabel: 'Adventure Log' })}
-                ${getChroniclePageHtml({ kind: 'story', index: 1, icon: 'fa-feather-alt', kicker: `Story: ${storyWord}`, kickerAttr: 'data-home-story-word', body: storyText, bodyAttr: 'data-home-story-text', openTarget: 'reward-ideas-tab', openLabel: 'Story Weavers' })}
-                ${getChroniclePageHtml({ kind: 'log', index: 2, icon: 'fa-compass', kicker: lastLogDate || 'Adventure Log', body: lastLogText, openTarget: 'adventure-log-tab', openLabel: 'Adventure Log' })}
+                ${getChroniclePageHtml({ kind: 'homework', index: 0, icon: 'fa-book', kicker: 'Homework', body: assignmentText, openTarget: 'adventure-log-tab', openLabel: 'Adventure Log', empty: !lastAssignment && !scheduledTestStatus })}
+                ${chronicle.training ? getChronicleExtraPageHtml(chronicle.training, 1) : ''}
+                ${getChroniclePageHtml({ kind: 'log', index: 2, icon: 'fa-compass', kicker: lastLogDate || 'Adventure Log', body: lastLogText, openTarget: 'adventure-log-tab', openLabel: 'Adventure Log', empty: !logs.length })}
+                ${chronicle.lower.map((page, i) => getChronicleExtraPageHtml(page, 3 + i)).join('')}
             </div>
         </div>
 
@@ -978,6 +974,14 @@ function closeOpenChroniclePages(except = null) {
     });
 }
 
+/** The footer buttons of Chronicle pages that open a board instead of a tab. */
+function openChronicleAction(action) {
+    const classId = state.get('globalSelectedClassId');
+    if (action === 'oaths' && classId) import('../ui/modals/emberOaths.js').then(m => m.openOathBoard(classId)).catch(quietly('features/home.js'));
+    else if (action === 'quiet-dragon') import('../ui/modals/quietDragon.js').then(m => m.openQuietDragon({ from: 'home' })).catch(quietly('features/home.js'));
+    else if (action === 'roster' && classId) openScheduleClassRoster(classId);
+}
+
 let chronicleDocumentListenersBound = false;
 
 function wireChronicleDeck(deck) {
@@ -1019,7 +1023,8 @@ function wireChronicleDeck(deck) {
             if (openBtn) {
                 e.stopPropagation();
                 closeOpenChroniclePages();
-                tabs.showTab(openBtn.dataset.chOpen);
+                if (openBtn.dataset.chAction) openChronicleAction(openBtn.dataset.chAction);
+                else tabs.showTab(openBtn.dataset.chOpen);
                 return;
             }
             toggle();
@@ -1874,3 +1879,9 @@ function calculateMonthlyClassGoal(classData, studentCount) {
         state.get('allScheduleOverrides')
     );
 }
+
+// The Chronicle's Ember Oaths page arrives with the oaths listener, after Home's first draw.
+state.subscribe(['allEmberOaths'], () => {
+    const tab = document.getElementById('about-tab');
+    if (state.get('globalSelectedClassId') && tab && !tab.classList.contains('hidden') && !document.body.classList.contains('gcq-mobile')) renderHomeTab();
+});

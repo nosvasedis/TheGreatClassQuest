@@ -3,6 +3,7 @@ import * as state from '../state.js';
 import * as utils from '../utils.js';
 import { escapeHtml } from '../features/roles/shared.js';
 import { normalizeChroniclerText } from '../features/adventurePageCore.mjs';
+import { getChronicleExtraPages } from '../features/homeChronicleContext.js';
 import { sumLiveMonthlyStarsFromStudentScores, getAwardLogMonthlyStarCredit } from '../features/awardLogReasonMeta.js';
 import { getUpcomingScheduledAssessment } from '../features/assessmentConfig.js';
 import { playSound } from '../audio.js';
@@ -231,9 +232,8 @@ function timelineAside() {
     return n ? `${n} ${n === 1 ? 'lesson' : 'lessons'}` : '';
 }
 
-/** The Chronicle: homework, the class story and the last diary page, as pages to swipe. */
+/** The Chronicle: homework, Training Grounds, the last diary page and three live pages, to swipe. */
 function getChronicleHtml(classId) {
-    const story = state.get('currentStoryData')?.[classId];
     const lastAssignment = (state.get('allQuestAssignments') || [])
         .filter((a) => a.classId === classId)
         .sort((a, b) => (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0) - (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0))[0];
@@ -249,15 +249,23 @@ function getChronicleHtml(classId) {
         ? new Date(utils.parseDDMMYYYY(lastLog.date)).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })
         : '';
 
-    const page = ({ kind, icon, kicker, text, empty, extra = '', tab, tabLabel }) => `
+    const page = ({ kind, icon, kicker, text, empty, extra = '', tab = '', action = '', tabLabel }) => `
         <article class="m-hpage m-hpage--${kind}${empty ? ' is-empty' : ''}">
-            <button type="button" class="m-hpage__main" data-m-expand-target aria-label="${escapeHtml(kicker)}: show all">
+            <button type="button" class="m-hpage__main" data-m-expand-target aria-label="${escapeHtml(kicker.replace(/<[^>]+>/g, ''))}: show all">
                 <span class="m-hpage__kicker"><span class="m-hpage__icon" aria-hidden="true"><i class="fas ${icon}"></i></span>${kicker}</span>
                 <span class="m-hpage__text">${text}</span>
                 ${extra}
             </button>
-            <button type="button" class="m-hpage__open" data-m-quick-tab="${tab}">${tabLabel}<i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+            <button type="button" class="m-hpage__open" ${action ? `data-m-chronicle-action="${action}"` : `data-m-quick-tab="${tab}"`}>${tabLabel}<i class="fas fa-arrow-right" aria-hidden="true"></i></button>
         </article>`;
+    // Training Grounds and the three live pages: same facts as desktop Home.
+    const richPage = (p) => p && page({
+        kind: p.kind, icon: p.icon, kicker: escapeHtml(p.kicker), empty: p.empty,
+        text: `<span class="m-hpage__rich">${p.summary}</span>`,
+        extra: p.detail ? `<span class="chx-more">${p.detail}</span>` : '',
+        tab: p.open.tab || '', action: p.open.action || '', tabLabel: escapeHtml(p.open.label)
+    });
+    const { training, lower } = getChronicleExtraPages(classId);
 
     return [
         page({
@@ -265,17 +273,14 @@ function getChronicleHtml(classId) {
             text: escapeHtml(lastAssignment ? lastAssignment.text : 'No homework set yet.'),
             empty: !lastAssignment, extra: testChip, tab: 'adventure-log-tab', tabLabel: 'Adventure Log'
         }),
-        page({
-            kind: 'story', icon: 'fa-feather-alt', kicker: story?.currentWord ? `Story · <em>${escapeHtml(story.currentWord)}</em>` : 'Story',
-            text: story?.currentSentence ? `“${escapeHtml(story.currentSentence)}”` : 'The story awaits its first chapter…',
-            empty: !story?.currentSentence, tab: 'reward-ideas-tab', tabLabel: 'Story Weavers'
-        }),
+        richPage(training),
         page({
             kind: 'log', icon: 'fa-compass', kicker: lastLog ? escapeHtml(logDay) : 'Adventure Log',
             text: escapeHtml(lastLog ? normalizeChroniclerText(lastLog.text) : 'No adventures written yet.'),
             empty: !lastLog, tab: 'adventure-log-tab', tabLabel: 'Open diary'
-        })
-    ].join('');
+        }),
+        ...lower.map(richPage)
+    ].filter(Boolean).join('');
 }
 
 /** Same Global Tools as desktop Home: only what the dock does not reach in one tap. */
@@ -522,6 +527,17 @@ function attachHomeListeners() {
             return;
         }
 
+        const chronicleAction = event.target.closest('[data-m-chronicle-action]');
+        if (chronicleAction) {
+            playSound('click');
+            const action = chronicleAction.dataset.mChronicleAction;
+            const classId = state.get('globalSelectedClassId');
+            if (action === 'oaths' && classId) import('../ui/modals/emberOaths.js').then((m) => m.openOathBoard(classId)).catch(quietly('mobile/home.js'));
+            else if (action === 'quiet-dragon') import('../ui/modals/quietDragon.js').then((m) => m.openQuietDragon({ from: 'home' })).catch(quietly('mobile/home.js'));
+            else if (action === 'roster') handleQuickAction('open-class-roster');
+            return;
+        }
+
         const quickAction = event.target.closest('[data-m-quick-action]');
         if (quickAction) {
             handleQuickAction(quickAction.dataset.mQuickAction, quickAction.dataset.mQuickSubtab);
@@ -609,6 +625,7 @@ export function initMobileHome() {
         [
             'allSchoolClasses', 'allTeachersClasses', 'allStudents', 'allStudentScores',
             'allAwardLogs', 'allAdventureLogs', 'allQuestAssignments', 'currentStoryData',
+            'allEmberOaths', 'allQuestBounties',
             'schoolName', 'schoolHolidayRanges', 'allScheduleOverrides', 'teacherSettings',
             'globalSelectedClassId', 'schoolYearState', 'currentTeacherName'
         ],

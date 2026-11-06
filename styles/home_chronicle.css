@@ -1,6 +1,8 @@
 /* ===================================================================
-   The Chronicle (Home, class view): three pages of the class diary.
+   The Chronicle (Home, class view): six pages of the class diary.
    Markup: features/home.js#getChroniclePageHtml; behaviour: wireChronicleDeck.
+   Six pages: Homework, Training Grounds, Adventure Log, then three live pages
+   (features/homeChroniclePages.mjs, their insides in home_chronicle_pages.css).
    =================================================================== */
 
 .ch-deck {
@@ -14,12 +16,16 @@
 .ch-deck > .ch-page:nth-child(1) { grid-row: 1; }
 .ch-deck > .ch-page:nth-child(2) { grid-row: 2; }
 .ch-deck > .ch-page:nth-child(3) { grid-row: 3; }
+.ch-deck > .ch-page:nth-child(4) { grid-row: 4; }
+.ch-deck > .ch-page:nth-child(5) { grid-row: 5; }
+.ch-deck > .ch-page:nth-child(6) { grid-row: 6; }
 @media (min-width: 768px) {
     .ch-deck { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .ch-deck > .ch-page:nth-child(n) { grid-row: 1; }
-    .ch-deck > .ch-page:nth-child(1) { grid-column: 1; }
-    .ch-deck > .ch-page:nth-child(2) { grid-column: 2; }
-    .ch-deck > .ch-page:nth-child(3) { grid-column: 3; }
+    .ch-deck > .ch-page:nth-child(-n + 3) { grid-row: 1; }
+    .ch-deck > .ch-page:nth-child(n + 4) { grid-row: 2; }
+    .ch-deck > .ch-page:nth-child(3n + 1) { grid-column: 1; }
+    .ch-deck > .ch-page:nth-child(3n + 2) { grid-column: 2; }
+    .ch-deck > .ch-page:nth-child(3n) { grid-column: 3; }
 }
 
 /* ---------- Palettes ---------- */
@@ -107,7 +113,7 @@
         0 2px 4px rgba(15, 23, 42, 0.05),
         0 18px 32px -14px var(--ch-glow);
 }
-.ch-page:nth-child(2):hover { transform: translateY(-4px) rotate(0.3deg); }
+.ch-page:nth-child(even):hover { transform: translateY(-4px) rotate(0.3deg); }
 .ch-page:hover::after { transform: translateX(120%); transition: transform 0.85s ease; }
 
 /* Press: the page sinks into the desk, then springs back. */
@@ -290,11 +296,12 @@
     pointer-events: none;
 }
 
+.ch-deck > .ch-page.is-open { grid-column: 1 / -1; grid-row: 1 / -1; }
 .ch-page.is-open {
     position: absolute;
     inset: -0.4rem -0.4rem auto;
     min-height: calc(100% + 0.8rem);
-    max-height: 24rem;
+    max-height: 26rem;
     z-index: 20;
     cursor: default;
     overflow-y: auto;
@@ -364,7 +371,7 @@
     .ch-page__hint i,
     .ch-page__open { animation: none !important; transition: none !important; }
     .ch-page:hover,
-    .ch-page:nth-child(2):hover,
+    .ch-page:nth-child(even):hover,
     .ch-page:active:not(.is-open) { transform: none; }
     .ch-page::after,
     .ch-page__ink { display: none; }

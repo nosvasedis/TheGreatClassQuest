@@ -1,30 +1,56 @@
-// ui/quietDragonButton.js — the ways into the Quiet Dragon: the optional header button (switched on in
-// Settings › Profile, remembered per computer) and the projector remote. The stage itself loads only
-// when it is opened.
-const PREF_KEY = 'gcq.quietDragon.headerButton';
+// ui/quietDragonButton.js — the ways into the Quiet Dragon: the header button (always there, next to
+// the Guide), the Q key from anywhere in the app, and the projector remote. The stage itself loads
+// only when it is opened.
 
-export function quietDragonHeaderButtonOn() {
-    try { return localStorage.getItem(PREF_KEY) === '1'; } catch { return false; }
+let opening = false;
+
+export async function openQuietDragonFrom(from = 'header', origin = null) {
+    if (opening || document.getElementById('quiet-dragon-stage')) return;
+    opening = true;
+    try {
+        const { openQuietDragon } = await import('./modals/quietDragon.js');
+        openQuietDragon({ from, origin });
+    } finally {
+        opening = false;
+    }
 }
 
-function applyHeaderPref() {
-    const on = quietDragonHeaderButtonOn();
-    document.getElementById('quiet-dragon-btn')?.classList.toggle('hidden', !on);
-    const toggle = document.getElementById('quiet-dragon-header-toggle');
-    if (toggle) toggle.checked = on;
+/** On screen (works for fixed elements too, unlike offsetParent). */
+function isShown(el) {
+    return Boolean(el && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden');
 }
 
-export async function openQuietDragonFrom(from = 'header') {
-    const { openQuietDragon } = await import('./modals/quietDragon.js');
-    openQuietDragon({ from });
+/** True when Q should be left alone: typing, a key combo, or another big modal owns the keyboard. */
+function keyIsBusy(event) {
+    if (event.ctrlKey || event.metaKey || event.altKey || event.repeat || event.defaultPrevented) return true;
+    const el = event.target;
+    if (el?.isContentEditable) return true;
+    const tag = el?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+    const active = document.activeElement;
+    if (active && (active.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName))) return true;
+    // Only for teachers who are signed in to the app (not the login gate or family pages).
+    const headerShown = isShown(document.getElementById('quiet-dragon-btn'));
+    const projectorShown = isShown(document.getElementById('dynamic-wallpaper-screen'));
+    if (!headerShown && !projectorShown) return true;
+    // Another full-screen moment (a ceremony, a quiz, a dialog) keeps its own keys.
+    const dialogs = document.querySelectorAll('[aria-modal="true"]');
+    for (const d of dialogs) if (d.getClientRects().length && getComputedStyle(d).visibility !== 'hidden') return true;
+    return false;
 }
 
 export function initQuietDragonButton() {
-    applyHeaderPref();
-    document.getElementById('quiet-dragon-btn')?.addEventListener('click', () => openQuietDragonFrom('header'));
-    document.addEventListener('change', (event) => {
-        if (event.target?.id !== 'quiet-dragon-header-toggle') return;
-        try { localStorage.setItem(PREF_KEY, event.target.checked ? '1' : '0'); } catch { /* this session only */ }
-        applyHeaderPref();
+    const btn = document.getElementById('quiet-dragon-btn');
+    if (btn) {
+        btn.classList.remove('hidden');
+        btn.title = 'The Quiet Dragon (Q)';
+        btn.addEventListener('click', () => openQuietDragonFrom('header', btn));
+    }
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'q' && event.key !== 'Q') return;
+        if (keyIsBusy(event)) return;
+        event.preventDefault();
+        const fromWall = isShown(document.getElementById('dynamic-wallpaper-screen'));
+        openQuietDragonFrom(fromWall ? 'wallpaper' : 'header', fromWall ? null : document.getElementById('quiet-dragon-btn'));
     });
 }

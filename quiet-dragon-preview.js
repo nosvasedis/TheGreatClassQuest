@@ -17,7 +17,7 @@ state.set('globalSelectedClassId', 'c1');
 const links = ['setup', 'calibrating', 'asleep', 'stirring', 'peeking', 'awake', 'held', 'ending', 'gift'];
 document.getElementById('pv-toolbar').innerHTML = links.map((v) => `<a href="?view=${v}${params.has('lite') ? '&lite=1' : ''}">${v}</a>`).join('');
 
-openQuietDragon({ from: 'wallpaper', lite: params.has('lite') });
+openQuietDragon({ from: 'wallpaper', lite: params.has('lite'), journey: params.has('journey') });
 const p = Number(params.get('p') ?? 0.55);
 setTimeout(() => {
     if (view === 'calibrating') hooks.showCalibrating();

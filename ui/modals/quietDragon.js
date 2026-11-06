@@ -17,6 +17,7 @@ import '../../styles/quiet_dragon.css';
 import { playSound, playHeroFanfare } from '../../audio.js';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 import { quietDragonHtml } from '../quietDragonArt.js';
+import { lairBackHtml, lairFrontHtml, journeyHtml, flyCamera, settleCamera, CAVE_Z_END, easeInCamera } from '../quietDragonCave.js';
 import {
     QUIET_LEVELS, QUIET_MINUTES, DEFAULT_MINUTES, CALIBRATE_SECONDS, HOARD_GIFTS, HOARD_PIECES, CLASS_TREATS,
     levelByKey, clampMinutes, rmsDb, calibrateFloor, tuneBy, createDragonEars, countsAsCalm, hoardPiecesFor,
@@ -67,7 +68,7 @@ const $ = (sel) => stage?.querySelector(sel);
 // ─── Open / close ─────────────────────────────────────────────────────────────
 
 /** Opens the Quiet Dragon. `from` is 'wallpaper' or 'header' (only changes the wording of the way out). */
-export function openQuietDragon({ from = 'header', lite: forceLite = null } = {}) {
+export function openQuietDragon({ from = 'header', lite: forceLite = null, origin = null, journey: wantJourney = true } = {}) {
     if (stage) return;
     const prefs = readPrefs();
     ui = {
@@ -89,10 +90,25 @@ export function openQuietDragon({ from = 'header', lite: forceLite = null } = {}
     stage.setAttribute('role', 'dialog');
     stage.setAttribute('aria-modal', 'true');
     stage.setAttribute('aria-label', 'The Quiet Dragon');
-    stage.innerHTML = sceneHtml(lite);
+    const journey = wantJourney && !reducedMotion();
+    stage.dataset.journey = journey ? 'on' : 'done';
+    stage.innerHTML = sceneHtml(lite, journey);
+    setOrigin(origin);
     document.body.appendChild(stage);
     document.body.classList.add('qd-open');
-    requestAnimationFrame(() => stage?.classList.add('is-in'));
+    // The story opens from the button that called it: a circle of darkness opens onto a cave mouth,
+    // and the camera travels through the tunnel to the lair where the dragon sleeps (two frames so
+    // the closed circle paints first).
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (!stage) return;
+        stage.classList.add('is-in');
+        if (journey) {
+            camera = flyCamera(stage, { duration: lite ? 2000 : 4200, story: true });
+            camera.done.then(() => arrive());
+        } else {
+            arrive();
+        }
+    }));
 
     stage.addEventListener('click', onClick);
     stage.addEventListener('input', onInput);
@@ -107,8 +123,45 @@ export function openQuietDragon({ from = 'header', lite: forceLite = null } = {}
     setHoard(0);
 }
 
+let camera = null;
+
+/** The camera has reached the lair: the cinema bars lift and the lullaby card slides in. */
+function arrive() {
+    camera = null;
+    if (!stage || stage.classList.contains('is-out')) return;
+    settleCamera(stage);
+    stage.dataset.journey = 'done';
+    stage.classList.add('is-arrived');
+    setTimeout(() => stage?.querySelector('.qd-arches')?.remove(), 900);
+}
+
+/** Where the night opens from (and closes back into): the button's centre, or low in the middle. */
+function setOrigin(origin) {
+    let x = window.innerWidth / 2;
+    let y = window.innerHeight * 0.62;
+    const r = origin?.getBoundingClientRect?.();
+    if (r && r.width) { x = r.left + r.width / 2; y = r.top + r.height / 2; }
+    stage.style.setProperty('--qd-ox', `${Math.round(x)}px`);
+    stage.style.setProperty('--qd-oy', `${Math.round(y)}px`);
+    // The circle must reach the farthest corner.
+    const far = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
+    stage.style.setProperty('--qd-or', `${Math.ceil(far) + 40}px`);
+}
+
 function closeQuietDragon() {
     if (!stage) return;
+    // Back into the button if it is still on screen.
+    const btn = ui?.from === 'header' ? document.getElementById('quiet-dragon-btn') : null;
+    if (btn?.getClientRects().length) setOrigin(btn);
+    camera?.cancel();
+    camera = null;
+    // The camera pulls back out of the lair as the circle closes (not on weak or still screens).
+    const pullBack = !stage.classList.contains('qd-stage--lite') && !stage.classList.contains('qd-stage--still');
+    if (pullBack) {
+        settleCamera(stage);
+        stage.classList.add('is-leaving-lair');
+        flyCamera(stage, { from: CAVE_Z_END, to: CAVE_Z_END - 2.2, duration: 1000, ease: easeInCamera });
+    }
     stopListening();
     unfollow?.();
     unfollow = null;
@@ -121,9 +174,10 @@ function closeQuietDragon() {
     stage = null;
     run = null;
     document.body.classList.remove('qd-open');
-    el.classList.remove('is-in');
     el.classList.add('is-out');
-    setTimeout(() => el.remove(), el.classList.contains('qd-stage--lite') ? 0 : 500);
+    el.classList.remove('is-in');
+    const still = el.classList.contains('qd-stage--lite') || el.classList.contains('qd-stage--still');
+    setTimeout(() => el.remove(), still ? 260 : 1050);
 }
 
 // ─── Markup ───────────────────────────────────────────────────────────────────
@@ -165,26 +219,30 @@ function burstHtml(lite) {
     return html;
 }
 
-function sceneHtml(lite) {
+function sceneHtml(lite, journey) {
     return `
-    <div class="qd-sky" aria-hidden="true">
-        <div class="qd-stars">${starsHtml(lite)}</div>
-        ${lite ? '' : '<i class="qd-shooting"></i>'}
-        <svg class="qd-peaks" viewBox="0 0 1600 400" preserveAspectRatio="none">
-            <path class="qd-peaks__far" d="M0 300 L120 200 L210 250 L330 120 L450 230 L560 170 L700 260 L820 150 L960 240 L1080 110 L1210 220 L1320 170 L1460 250 L1600 190 L1600 400 L0 400 Z"/>
-            <path class="qd-peaks__near" d="M0 350 C 160 290 260 330 400 300 C 560 268 640 320 800 300 C 960 280 1080 330 1240 306 C 1380 286 1500 320 1600 300 L1600 400 L0 400 Z"/>
-        </svg>
-        <div class="qd-mist qd-mist--a"></div>
-        <div class="qd-mist qd-mist--b"></div>
+    <div class="qd-world">
+        <div class="qd-sky" aria-hidden="true">
+            <div class="qd-stars">${starsHtml(lite)}</div>
+            ${lite ? '' : '<i class="qd-shooting"></i>'}
+        </div>
+        ${lite ? '' : '<div class="qd-aurora" aria-hidden="true"><i></i><i></i></div>'}
+        ${lairBackHtml()}
+        <div class="qd-beam" aria-hidden="true"></div>
+        <div class="qd-glow" aria-hidden="true"></div>
+        <div class="qd-rays" aria-hidden="true"></div>
+        ${lite ? '' : `<div class="qd-embers" aria-hidden="true">${'<i></i>'.repeat(12)}</div>`}
+        ${lite ? '' : '<div class="qd-motes" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>'}
+        <div class="qd-scene">
+            ${quietDragonHtml()}
+            <div class="qd-breath-gold" aria-hidden="true">${'<i></i>'.repeat(lite ? 0 : 14)}</div>
+            <div class="qd-burst" aria-hidden="true">${burstHtml(lite)}</div>
+        </div>
+        ${lairFrontHtml()}
     </div>
-    <div class="qd-glow" aria-hidden="true"></div>
     <div class="qd-alarm" aria-hidden="true"></div>
-    ${lite ? '' : '<div class="qd-motes" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>'}
-    <div class="qd-scene">
-        ${quietDragonHtml()}
-        <div class="qd-breath-gold" aria-hidden="true">${'<i></i>'.repeat(lite ? 0 : 14)}</div>
-        <div class="qd-burst" aria-hidden="true">${burstHtml(lite)}</div>
-    </div>
+    ${journey ? journeyHtml(lite) : ''}
+    <div class="qd-veil" aria-hidden="true"></div>
 
     <header class="qd-hud">
         <div class="qd-hud__title">
@@ -416,9 +474,9 @@ function giftHtml(result) {
         <p class="qd-gift-card__kicker">A gift from the hoard</p>
         <h3 class="qd-panel__title">The dragon leaves a gift!</h3>
         <div class="qd-stats">
-            <span><strong>${run.minutes}</strong><small>calm minute${run.minutes === 1 ? '' : 's'}</small></span>
-            <span><strong>${wakes || '0'}</strong><small>${wakes === 1 ? 'time it woke' : 'times it woke'}</small></span>
-            <span><strong>${run.heroIds.length}</strong><small>hero${run.heroIds.length === 1 ? '' : 'es'} here</small></span>
+            <span><strong data-count="${run.minutes}">${run.minutes}</strong><small>calm minute${run.minutes === 1 ? '' : 's'}</small></span>
+            <span><strong data-count="${wakes}">${wakes}</strong><small>${wakes === 1 ? 'time it woke' : 'times it woke'}</small></span>
+            <span><strong data-count="${run.heroIds.length}">${run.heroIds.length}</strong><small>hero${run.heroIds.length === 1 ? '' : 'es'} here</small></span>
         </div>
         <p class="qd-panel__lede">${wakes ? `Every time it woke, the class let it settle again.` : 'It never woke once. A truly quiet class!'}</p>
         <ul class="qd-gift-card__list">
@@ -430,6 +488,24 @@ function giftHtml(result) {
             <button type="button" class="qd-btn qd-btn--go" data-qd="close">${ui.from === 'wallpaper' ? 'Back to the projector' : 'Close'}</button>
         </div>
     </div>`;
+}
+
+/** The gift card's numbers count up as each stat pops in. */
+function countUp() {
+    if (!stage || stage.classList.contains('qd-stage--still')) return;
+    stage.querySelectorAll('[data-count]').forEach((el, i) => {
+        const target = Number(el.dataset.count) || 0;
+        if (target < 2) return;
+        el.textContent = '0';
+        const start = performance.now() + 1350 + i * 100;
+        const step = (now) => {
+            if (!el.isConnected) return;
+            const t = Math.max(0, Math.min(1, (now - start) / 900));
+            el.textContent = String(Math.round(target * (1 - Math.pow(1 - t, 3))));
+            if (t < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+    });
 }
 
 function setPanel(html) {
@@ -490,6 +566,7 @@ function paintDepth() {
 // ─── Events ───────────────────────────────────────────────────────────────────
 
 function onClick(e) {
+    if (stage?.dataset.journey === 'on') { camera?.skip(); return; }
     const t = e.target.closest('button');
     if (!t || !stage) return;
     if (t.dataset.qdClassPick) { ui.classId = t.dataset.qdClassPick; renderPanel(); return; }
@@ -558,6 +635,7 @@ function onKey(e) {
         return;
     }
     if (typing) { e.stopImmediatePropagation(); return; }
+    if (stage.dataset.journey === 'on') { e.preventDefault(); e.stopImmediatePropagation(); camera?.skip(); return; }
     const listening = stage.dataset.phase === 'listening';
     if (e.key === ' ' && listening) {
         e.preventDefault();
@@ -617,7 +695,12 @@ function onVisibility() {
 }
 
 async function startSession() {
-    if (!ui.classId || !giftIsReady(ui.gift)) return;
+    if (!ui.classId || !giftIsReady(ui.gift) || ui.starting) return;
+    ui.starting = true;
+    try { await beginSession(); } finally { if (ui) ui.starting = false; }
+}
+
+async function beginSession() {
     const media = navigator.mediaDevices;
     if (!media?.getUserMedia) {
         ui.error = 'This browser cannot use a microphone here. Try Chrome or Edge on the classroom computer.';
@@ -678,6 +761,17 @@ async function startSession() {
     };
     unfollow?.();
     unfollow = null;
+    // The lullaby card folds away and the dragon glides to the middle of the hollow.
+    const panel = $('[data-qd-panel]');
+    if (panel && !stage.classList.contains('qd-stage--still')) {
+        panel.classList.add('is-leaving');
+        await new Promise((resolve) => setTimeout(resolve, 380));
+        panel.classList.remove('is-leaving');
+    }
+    if (!stage || !run) return;
+    run.calibrateFrom = performance.now();
+    run.calibrateUntil = run.calibrateFrom + CALIBRATE_SECONDS * 1000;
+    run.last = run.calibrateFrom;
     stage.dataset.phase = 'calibrating';
     setPanel(calibrateHtml());
     paintClock();
@@ -858,7 +952,9 @@ async function finish() {
     const fill = $('.qd-ring__fill');
     if (fill) fill.style.strokeDashoffset = '0';
     try { playHeroFanfare(); } catch { /* sound is optional */ }
+    run.giftShownAt = performance.now();
     setPanel(giftHtml(null));
+    countUp();
     await payGift();
 }
 
@@ -881,6 +977,9 @@ async function payGift() {
         console.error('Quiet Dragon gift failed:', error);
         run.paid = { paid: false, heroes: 0 };
     }
+    // Let the card's entrance (rise, stats popping, numbers counting) finish before it updates.
+    const wait = Math.max(0, 2800 - (performance.now() - (run?.giftShownAt || 0)));
+    if (wait) await new Promise((resolve) => setTimeout(resolve, wait));
     if (stage?.dataset.phase === 'gift') {
         $('[data-qd-panel]')?.classList.add('is-settled');
         setPanel(giftHtml(run.paid));
@@ -931,6 +1030,7 @@ export const quietDragonTestHooks = {
         const fill = $('.qd-ring__fill');
         if (fill) fill.style.strokeDashoffset = '0';
         setPanel(giftHtml({ paid: true, heroes }));
+        countUp();
     },
     showEnding() { if (stage) { run = run || { calm: 420 }; stage.dataset.phase = 'ending'; setPanel(confirmEndHtml()); } },
     showCalibrating(p = 0.45) {

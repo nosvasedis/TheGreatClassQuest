@@ -888,3 +888,307 @@ small.qd-error { display: block; margin: .3rem 0 0; padding: .3rem .5rem; }
 .qd-stage--still .qd-head,
 .qd-stage--still .qd-scene,
 .qd-stage--still .qd-eye__open { transition-duration: .2s !important; }
+
+/* ═══ Round two: night falls from the button, and every stage gets its drama ═══ */
+
+/* Opening and closing: the night opens as a circle from the button that called it (or low in the
+   middle), with a gold-and-violet rim riding the edge; it closes back the same way. */
+.qd-stage {
+    --qd-ox: 50vw;
+    --qd-oy: 62vh;
+    --qd-or: 150vmax;
+    --qd-open-ease: cubic-bezier(.76, 0, .18, 1);
+    opacity: 1;
+    clip-path: circle(0px at var(--qd-ox) var(--qd-oy));
+    transition: clip-path 1.05s var(--qd-open-ease);
+}
+.qd-stage.is-in { clip-path: circle(var(--qd-or) at var(--qd-ox) var(--qd-oy)); }
+.qd-stage.is-out { clip-path: circle(0px at var(--qd-ox) var(--qd-oy)); transition: clip-path .85s cubic-bezier(.6, 0, .35, 1) .18s; }
+.qd-veil {
+    position: absolute;
+    left: calc(var(--qd-ox) - var(--qd-or));
+    top: calc(var(--qd-oy) - var(--qd-or));
+    width: calc(var(--qd-or) * 2);
+    height: calc(var(--qd-or) * 2);
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(circle closest-side, transparent 0 93%, rgba(255, 233, 160, .95) 96.5%, rgba(160, 130, 255, .55) 98.2%, transparent 100%);
+    transform: scale(0);
+    opacity: 0;
+    z-index: 5;
+}
+.qd-stage.is-in .qd-veil { animation: qd-veil-open 1.05s var(--qd-open-ease) both; }
+.qd-stage.is-out .qd-veil { animation: qd-veil-close .85s cubic-bezier(.6, 0, .35, 1) .18s both; }
+@keyframes qd-veil-open { 0% { transform: scale(0); opacity: 1; } 80% { opacity: 1; } 100% { transform: scale(1); opacity: 0; } }
+@keyframes qd-veil-close { 0% { transform: scale(1); opacity: 0; } 20% { opacity: 1; } 100% { transform: scale(0); opacity: 1; } }
+
+/* The night arrives in layers: the moon rises, the title breathes out, the card slides in. */
+.qd-stage.is-in .qd-dragon { animation: qd-arrive 1.6s var(--qd-ease) .25s both; }
+.qd-stage.is-in .qd-hud__title { animation: qd-title-in 1.2s var(--qd-ease) .45s backwards; }
+.qd-stage.is-in .qd-hud__side { animation: qd-moonrise 1.4s cubic-bezier(.3, 1.3, .5, 1) .55s backwards; }
+.qd-stage.is-in .qd-hud { animation: none; }
+.qd-stage.is-in[data-phase="setup"] .qd-panel { animation: qd-panel-in .9s cubic-bezier(.2, 1.1, .35, 1) .5s backwards; }
+@keyframes qd-title-in { from { opacity: 0; letter-spacing: .32em; transform: translateY(-8px); filter: blur(4px); } to { opacity: 1; letter-spacing: normal; transform: none; filter: none; } }
+@keyframes qd-moonrise { from { opacity: 0; transform: translateY(46px) scale(.7); } to { opacity: 1; transform: none; } }
+@keyframes qd-panel-in { from { opacity: 0; transform: translateX(60px) rotateY(-14deg) scale(.96); } to { opacity: 1; transform: none; } }
+.qd-panel-wrap { perspective: 1400px; }
+
+/* Leaving: the dragon tucks in, the card and HUD lift away, then the circle closes. */
+.qd-stage.is-out .qd-dragon { animation: qd-depart .9s var(--qd-ease) both; }
+.qd-stage.is-out .qd-hud, .qd-stage.is-out .qd-panel-wrap, .qd-stage.is-out .qd-dock, .qd-stage.is-out .qd-banner, .qd-stage.is-out .qd-toast { transition: opacity .3s ease, transform .3s ease; opacity: 0 !important; transform: translateY(-10px); }
+@keyframes qd-depart { to { opacity: .2; transform: translateY(6%) scale(.9); } }
+
+/* The setup card folds away when the dragon is told to sleep. */
+.qd-panel.is-leaving { animation: qd-panel-out .38s cubic-bezier(.5, 0, .75, 0) both !important; }
+@keyframes qd-panel-out { to { opacity: 0; transform: translateX(50px) scale(.95); } }
+.qd-stage[data-phase="setup"] .qd-panel__seal { animation: qd-seal 3.6s ease-in-out infinite; }
+@keyframes qd-seal { 0%, 100% { box-shadow: 0 0 0 4px rgba(244, 201, 93, .18), 0 0 22px rgba(244, 201, 93, .3); } 50% { box-shadow: 0 0 0 6px rgba(244, 201, 93, .12), 0 0 38px rgba(244, 201, 93, .55); } }
+.qd-level, .qd-gift { overflow: hidden; }
+.qd-level::before, .qd-gift::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, .12) 48%, transparent 66%);
+    transform: translateX(-100%);
+    transition: transform .7s ease;
+    pointer-events: none;
+}
+.qd-level:hover::before, .qd-gift:hover::before, .qd-level.is-on::before, .qd-gift.is-on::before { transform: translateX(100%); }
+.qd-btn--go:not(:disabled) { position: relative; overflow: hidden; }
+.qd-panel__foot .qd-btn--go:not(:disabled)::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, .55) 50%, transparent 65%);
+    transform: translateX(-120%);
+    animation: qd-sheen 4.2s ease-in-out 1.6s infinite;
+}
+@keyframes qd-sheen { 0%, 70% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
+
+/* The sky lives: aurora ribbons that turn ember-red when the dragon wakes, a moonbeam on the hoard. */
+.qd-aurora { position: absolute; inset: 0 0 30% 0; pointer-events: none; }
+.qd-aurora i { position: absolute; left: -20%; width: 140%; height: 70%; transition: opacity 1.2s ease; will-change: transform; }
+.qd-aurora i:nth-child(1) {
+    top: 2%;
+    background:
+        radial-gradient(40% 30% at 30% 50%, rgba(95, 212, 207, .16), transparent 70%),
+        radial-gradient(35% 26% at 62% 40%, rgba(155, 124, 240, .18), transparent 70%),
+        radial-gradient(30% 22% at 85% 58%, rgba(120, 200, 255, .12), transparent 70%);
+    animation: qd-aurora 26s ease-in-out infinite alternate;
+}
+.qd-aurora i:nth-child(2) {
+    top: 6%;
+    opacity: 0;
+    background:
+        radial-gradient(40% 30% at 35% 50%, rgba(255, 110, 70, .2), transparent 70%),
+        radial-gradient(35% 26% at 70% 42%, rgba(255, 70, 110, .18), transparent 70%);
+    animation: qd-aurora 9s ease-in-out infinite alternate-reverse;
+}
+.qd-stage[data-mood="awake"] .qd-aurora i:nth-child(1) { opacity: .25; }
+.qd-stage[data-mood="awake"] .qd-aurora i:nth-child(2) { opacity: 1; }
+.qd-stage[data-phase="gift"] .qd-aurora i:nth-child(1) { opacity: 1; }
+@keyframes qd-aurora { from { transform: translate3d(-4%, 0, 0) scaleY(1); } to { transform: translate3d(4%, 3%, 0) scaleY(1.15); } }
+.qd-beam {
+    position: absolute;
+    right: 6%;
+    top: -10%;
+    width: 46vw;
+    height: 120vh;
+    pointer-events: none;
+    transform-origin: 80% 0;
+    transform: rotate(32deg);
+    background: linear-gradient(90deg, transparent, rgba(220, 230, 255, .07) 35%, rgba(255, 246, 220, .1) 50%, rgba(220, 230, 255, .07) 65%, transparent);
+    mask-image: linear-gradient(180deg, rgba(0, 0, 0, .9), transparent 92%);
+    -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, .9), transparent 92%);
+    transition: opacity 1s ease;
+}
+.qd-stage[data-mood="awake"] .qd-beam, .qd-stage.is-held .qd-beam { opacity: .2; }
+.qd-stage[data-phase="setup"] .qd-beam { opacity: .5; }
+
+/* Awake: embers rise from the hoard, the eye burns, the Shhh! slams in. */
+.qd-embers { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .6s ease; }
+.qd-embers i { position: absolute; bottom: 8%; width: 6px; height: 6px; border-radius: 50%; background: radial-gradient(circle, #fff1c8, #ff9a4a 45%, rgba(255, 80, 40, 0) 72%); opacity: 0; }
+.qd-stage[data-mood="awake"] .qd-embers { opacity: 1; }
+.qd-stage[data-mood="awake"] .qd-embers i { animation: qd-ember 2.6s ease-out infinite; }
+.qd-embers i:nth-child(1) { left: 22%; animation-delay: 0s; }
+.qd-embers i:nth-child(2) { left: 30%; animation-delay: .4s; }
+.qd-embers i:nth-child(3) { left: 38%; animation-delay: 1.1s; }
+.qd-embers i:nth-child(4) { left: 45%; animation-delay: .7s; }
+.qd-embers i:nth-child(5) { left: 52%; animation-delay: 1.6s; }
+.qd-embers i:nth-child(6) { left: 58%; animation-delay: .2s; }
+.qd-embers i:nth-child(7) { left: 64%; animation-delay: 1.3s; }
+.qd-embers i:nth-child(8) { left: 70%; animation-delay: .9s; }
+.qd-embers i:nth-child(9) { left: 76%; animation-delay: 2s; }
+.qd-embers i:nth-child(10) { left: 34%; animation-delay: 1.9s; }
+.qd-embers i:nth-child(11) { left: 49%; animation-delay: 2.3s; }
+.qd-embers i:nth-child(12) { left: 61%; animation-delay: .6s; }
+@keyframes qd-ember {
+    0% { opacity: 0; transform: translate(0, 0) scale(.6); }
+    15% { opacity: 1; }
+    100% { opacity: 0; transform: translate(14px, -46vh) scale(1.2); }
+}
+.qd-stage[data-mood="peeking"] .qd-eye__open { animation: qd-eye-glow 1.2s ease-in-out infinite; }
+.qd-stage[data-mood="awake"] .qd-eye__open { animation: qd-eye-glow .9s ease-in-out infinite; }
+@keyframes qd-eye-glow { 0%, 100% { filter: drop-shadow(0 0 3px rgba(255, 170, 40, .7)); } 50% { filter: drop-shadow(0 0 10px rgba(255, 150, 30, 1)); } }
+.qd-stage[data-phase="listening"][data-mood="awake"]:not(.is-held) .qd-banner__awake { animation: qd-slam .6s cubic-bezier(.25, 1.7, .5, 1) both; }
+@keyframes qd-slam { 0% { opacity: 0; transform: scale(1.5); } 60% { opacity: 1; } 100% { opacity: 1; transform: none; } }
+.qd-stage[data-mood="awake"] .qd-ring { animation: qd-ring-shiver .5s ease-in-out 2; }
+@keyframes qd-ring-shiver { 0%, 100% { transform: none; } 25% { transform: rotate(-4deg); } 75% { transform: rotate(4deg); } }
+.qd-stage[data-mood="peeking"] .qd-hush { border-color: rgba(255, 210, 94, .5); }
+
+/* Learning the room: ripples spread from the countdown. */
+.qd-cal::before, .qd-cal::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid rgba(95, 212, 207, .5);
+    animation: qd-ripple 1.6s ease-out infinite;
+}
+.qd-cal::after { animation-delay: .8s; }
+@keyframes qd-ripple { from { transform: scale(.9); opacity: .9; } to { transform: scale(2); opacity: 0; } }
+.qd-stage[data-phase="calibrating"] .qd-panel { animation: qd-rise .5s var(--qd-ease) both; }
+
+/* The gift: golden rays turn behind the hoard, the title shines, the numbers count up. */
+.qd-rays {
+    position: absolute;
+    left: 50%;
+    bottom: -60vmax;
+    width: 150vmax;
+    height: 150vmax;
+    margin-left: -75vmax;
+    border-radius: 50%;
+    pointer-events: none;
+    background: repeating-conic-gradient(from 0deg, rgba(255, 222, 140, .13) 0 6deg, transparent 6deg 18deg);
+    mask-image: radial-gradient(circle, #000 0 20%, transparent 62%);
+    -webkit-mask-image: radial-gradient(circle, #000 0 20%, transparent 62%);
+    opacity: 0;
+    transform: scale(.6);
+    transition: opacity 1.4s ease, transform 1.6s var(--qd-ease);
+}
+.qd-stage[data-phase="gift"] .qd-rays { opacity: 1; transform: scale(1); animation: qd-rays 60s linear infinite; }
+@keyframes qd-rays { from { rotate: 0deg; } to { rotate: 360deg; } }
+@media (min-width: 900px) { .qd-stage[data-phase="gift"] .qd-rays { left: 32%; } }
+.qd-gift-card .qd-panel__title {
+    background: linear-gradient(100deg, #fbefd0 30%, #fff 45%, #ffd970 52%, #fbefd0 65%);
+    background-size: 250% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: qd-title-shine 3.4s ease-in-out 1.4s infinite;
+}
+@keyframes qd-title-shine { 0% { background-position: 100% 0; } 60%, 100% { background-position: 0 0; } }
+.qd-stage[data-phase="gift"] .qd-panel { border-color: rgba(244, 201, 93, .65); box-shadow: 0 30px 80px rgba(0, 0, 0, .55), 0 0 60px rgba(244, 201, 93, .18), inset 0 1px 0 rgba(255, 255, 255, .08); }
+.qd-stage[data-phase="gift"] .qd-panel:not(.is-settled) .qd-stats span { animation: qd-pop .55s cubic-bezier(.3, 1.6, .5, 1) both; }
+.qd-stage[data-phase="gift"] .qd-panel:not(.is-settled) .qd-stats span:nth-child(1) { animation-delay: 1.35s; }
+.qd-stage[data-phase="gift"] .qd-panel:not(.is-settled) .qd-stats span:nth-child(2) { animation-delay: 1.45s; }
+.qd-stage[data-phase="gift"] .qd-panel:not(.is-settled) .qd-stats span:nth-child(3) { animation-delay: 1.55s; }
+@keyframes qd-pop { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
+.qd-gift-card__chest { position: relative; }
+.qd-gift-card__chest::before {
+    content: '';
+    position: absolute;
+    inset: -40%;
+    background: repeating-conic-gradient(rgba(255, 226, 150, .22) 0 10deg, transparent 10deg 30deg);
+    mask-image: radial-gradient(circle, #000 15%, transparent 65%);
+    -webkit-mask-image: radial-gradient(circle, #000 15%, transparent 65%);
+    animation: qd-rays 14s linear infinite;
+    z-index: -1;
+}
+
+/* Weak laptops: a quick fade instead of the circle, no aurora, embers, rays motion or shimmer. */
+.qd-stage--lite, .qd-stage--still { clip-path: none; opacity: 0; transition: opacity .25s ease; }
+.qd-stage--lite.is-in, .qd-stage--still.is-in { opacity: 1; clip-path: none; }
+.qd-stage--lite.is-out, .qd-stage--still.is-out { opacity: 0; clip-path: none; transition: opacity .25s ease; }
+.qd-stage--lite .qd-veil, .qd-stage--still .qd-veil { display: none; }
+.qd-stage--lite.is-in .qd-hud__title, .qd-stage--lite.is-in .qd-hud__side { animation-duration: .5s; animation-delay: 0s; }
+.qd-stage--lite.is-in .qd-hud__title { animation-name: qd-fade; }
+.qd-stage--lite .qd-rays { animation: none; }
+.qd-stage--lite .qd-gift-card__chest::before, .qd-stage--lite .qd-panel__foot .qd-btn--go::after, .qd-stage--lite .qd-level::before, .qd-stage--lite .qd-gift::before { display: none; }
+.qd-stage--lite .qd-gift-card .qd-panel__title { animation: none; background: none; color: #fbefd0; }
+.qd-stage--lite .qd-eye__open { animation: none !important; }
+
+/* ═══ The cave: a journey through the mountain to the dragon's lair ═══ */
+.qd-stage { background: #05050f; }
+.qd-world { position: absolute; inset: 0; transform-origin: 50% 50%; }
+.qd-world::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 14vmin 4vmin #05050f;
+}
+.qd-cave { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.qd-peaks, .qd-mist { display: none; }
+.qd-stars { inset: 0 0 40% 0; }
+/* Moonlight falls through the hole in the roof onto the hoard. */
+.qd-beam {
+    left: 54%;
+    right: auto;
+    top: -4%;
+    width: 24vw;
+    height: 112vh;
+    transform-origin: 50% 0;
+    transform: rotate(13deg);
+    background: linear-gradient(90deg, transparent, rgba(200, 215, 255, .08) 30%, rgba(255, 248, 225, .13) 50%, rgba(200, 215, 255, .08) 70%, transparent);
+    mask-image: linear-gradient(180deg, rgba(0, 0, 0, .95) 10%, rgba(0, 0, 0, .55) 70%, transparent 96%);
+    -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, .95) 10%, rgba(0, 0, 0, .55) 70%, transparent 96%);
+}
+.qd-stage[data-phase="setup"] .qd-beam { opacity: 1; }
+.qd-aurora { inset: 0 0 55% 30%; }
+
+/* The journey: the arches the camera passes through, cinema bars and two lines of story. */
+.qd-arches { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+.qd-arch { position: absolute; left: -25%; top: -25%; width: 150%; height: 150%; transform-origin: 50% 50%; visibility: hidden; }
+.qd-stage[data-journey="on"] .qd-arch { visibility: visible; }
+.qd-bars { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
+.qd-bars i { position: absolute; left: 0; right: 0; height: 9vh; background: #000; transition: transform 1s var(--qd-ease); }
+.qd-bars i:first-child { top: 0; }
+.qd-bars i:last-child { bottom: 0; }
+.qd-stage.is-arrived .qd-bars i:first-child { transform: translateY(-100%); }
+.qd-stage.is-arrived .qd-bars i:last-child { transform: translateY(100%); }
+.qd-story { position: absolute; left: 0; right: 0; bottom: 11vh; z-index: 4; display: grid; place-items: center; pointer-events: none; }
+.qd-story__line {
+    grid-area: 1 / 1;
+    margin: 0;
+    padding: 0 16px;
+    text-align: center;
+    font-family: var(--gcq-font-serif);
+    font-style: italic;
+    font-size: clamp(1.1rem, 2.6vw, 2.2rem);
+    color: #f4ead0;
+    text-shadow: 0 2px 18px rgba(0, 0, 0, .9), 0 0 30px rgba(255, 200, 120, .25);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity .9s ease, transform 1.2s var(--qd-ease);
+}
+.qd-story__line.is-on { opacity: 1; transform: none; }
+.qd-stage.is-arrived .qd-story { display: none; }
+/* While travelling, everything else waits in the dark. */
+.qd-stage[data-journey="on"] .qd-hud,
+.qd-stage[data-journey="on"] .qd-panel-wrap,
+.qd-stage[data-journey="on"] .qd-dock,
+.qd-stage[data-journey="on"] .qd-toast,
+.qd-stage[data-journey="on"] .qd-zzz { opacity: 0; pointer-events: none; }
+.qd-stage[data-journey="on"] { cursor: pointer; }
+/* Arrival replaces the old glide: the dragon is already asleep when we find it. */
+.qd-stage.is-in .qd-dragon { animation: none; }
+.qd-stage.is-in .qd-wing { animation: qd-wing var(--qd-breath) ease-in-out infinite; }
+.qd-stage.is-in .qd-hud__title, .qd-stage.is-in .qd-hud__side, .qd-stage.is-in[data-phase="setup"] .qd-panel { animation: none; }
+.qd-stage.is-arrived .qd-hud__title { animation: qd-title-in 1.2s var(--qd-ease) .1s backwards; }
+.qd-stage.is-arrived .qd-hud__side { animation: qd-moonrise 1.3s cubic-bezier(.3, 1.3, .5, 1) .25s backwards; }
+.qd-stage.is-arrived[data-phase="setup"] .qd-panel { animation: qd-panel-in .9s cubic-bezier(.2, 1.1, .35, 1) .2s backwards; }
+.qd-stage.is-arrived .qd-zzz { transition: opacity 1s ease .8s; }
+/* Leaving the lair: the camera pulls back while the circle closes. */
+.qd-stage.is-leaving-lair .qd-dragon { animation: none; }
+.qd-stage.is-out .qd-alarm, .qd-stage.is-out .qd-bars, .qd-stage.is-out .qd-story { opacity: 0; transition: opacity .3s ease; }
+
+@media (max-width: 899px) {
+    .qd-bars i { height: 6vh; }
+    .qd-story { bottom: 8vh; }
+    .qd-beam { width: 40vw; left: 50%; }
+}
+.qd-stage--lite .qd-world::after { box-shadow: inset 0 0 10vmin 2vmin #05050f; }
+/* While travelling, the edges of the lair melt into the dark of the tunnel. */
+.qd-world::after { transition: box-shadow 1.4s ease; }
+.qd-stage[data-journey="on"] .qd-world::after { box-shadow: inset 0 0 22vmin 12vmin #05050f; }

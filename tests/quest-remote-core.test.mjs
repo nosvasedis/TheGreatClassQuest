@@ -207,7 +207,10 @@ test('the launch buttons match the places they live in', () => {
     const dragon = header.match(/<button id="quiet-dragon-btn"[^>]*class="([^"]+)"/);
     const remote = header.match(/<button id="quest-remote-btn"[^>]*class="([^"]+)"/);
     assert.ok(dragon && remote, 'both header buttons exist');
-    assert.equal(remote[1], dragon[1], 'same class string as its neighbour');
+    // The Quiet Dragon is always shown; the Quest Remote starts hidden until it is switched on.
+    const strip = (c) => c.replace(/\s*\bhidden\b/, '');
+    assert.equal(strip(remote[1]), strip(dragon[1]), 'same class string as its neighbour');
+    assert.doesNotMatch(dragon[1], /\bhidden\b/, 'the Quiet Dragon button is always in the header');
     const wall = read('templates/app/screens/wallpaper.js');
     assert.match(wall, /data-wall-action="wand"/);
     const more = read('mobile/templates.js');

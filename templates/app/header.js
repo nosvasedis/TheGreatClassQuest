@@ -180,8 +180,8 @@ ${headerDateHTML('id="current-date"')}
                             <i class="fas fa-info"></i>
                         </button>
                         <button id="quiet-dragon-btn" type="button"
-                            class="gcq-hbtn hidden hover:bg-white/40 text-white h-7 w-7 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
-                            title="The Quiet Dragon" aria-label="Open The Quiet Dragon">
+                            class="gcq-hbtn hover:bg-white/40 text-white h-7 w-7 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
+                            title="The Quiet Dragon (Q)" aria-label="Open The Quiet Dragon" aria-keyshortcuts="Q">
                             <i class="fas fa-dragon"></i>
                         </button>
                         <button id="quest-remote-btn" type="button"

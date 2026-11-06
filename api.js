@@ -62,7 +62,7 @@ export async function callSpeechApi(text, { signal, voice = '' } = {}) {
             }
             const blob = await response.blob();
             if (!blob.size) throw new Error('Empty speech audio');
-            // Which model spoke (a named voice or MeloTTS) sets the playback pace.
+            // Which model spoke (a named voice, or a MeloTTS line kept from before) sets the playback pace.
             blob.speechProvider = response.headers.get('X-GCQ-AI-Provider') || '';
             return blob;
         }

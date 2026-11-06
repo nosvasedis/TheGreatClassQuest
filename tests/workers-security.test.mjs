@@ -477,61 +477,48 @@ test('AI Worker paints images with FLUX.2 klein and returns decoded bytes', asyn
   assert.deepEqual(Buffer.from(await response.arrayBuffer()), jpeg);
 });
 
-test('AI Worker falls back to SDXL when FLUX fails', async () => {
+test('AI Worker falls back to FLUX.1 schnell when klein fails, sending only prompt and steps', async () => {
   const { worker } = await importWorker('scratch/ai-proxy-worker/src/worker.js');
-  const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47]), Buffer.alloc(64, 1)]);
+  const jpeg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(64, 1)]);
   const calls = [];
   const response = await serviceImageRequest(worker, {
     async run(model, inputs) {
       calls.push(model);
-      if (model.includes('flux')) throw new Error('4006: daily free allocation exceeded');
-      assert.equal(inputs.negative_prompt, 'text');
-      return png;
+      if (model.includes('klein')) throw new Error('3040: Capacity temporarily exceeded');
+      // schnell answers 400 to any other field (a seed included), seen live on 2026-11-07.
+      assert.deepEqual(inputs, { prompt: 'a cute chibi wizard', steps: 4 });
+      return { image: jpeg.toString('base64') };
     },
   });
   assert.equal(response.status, 200);
-  assert.deepEqual(calls, ['@cf/black-forest-labs/flux-2-klein-4b', '@cf/stabilityai/stable-diffusion-xl-base-1.0']);
-  assert.equal(response.headers.get('Content-Type'), 'image/png');
-  assert.deepEqual(Buffer.from(await response.arrayBuffer()), png);
+  assert.deepEqual(calls, ['@cf/black-forest-labs/flux-2-klein-4b', '@cf/black-forest-labs/flux-1-schnell']);
+  assert.equal(response.headers.get('Content-Type'), 'image/jpeg');
+  assert.equal(response.headers.get('X-GCQ-AI-Provider'), '@cf/black-forest-labs/flux-1-schnell');
+  assert.deepEqual(Buffer.from(await response.arrayBuffer()), jpeg);
 });
 
-test('AI Worker caps SDXL fallback steps at the model maximum of 20', async () => {
+test('AI Worker trims long prompts for schnell and gives sprite strips no square backup', async (t) => {
+  t.mock.method(console, 'error', () => {});
   const worker = await importIsolatedAiWorker();
-  const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47]), Buffer.alloc(64, 1)]);
-  const response = await worker.fetch(new Request('https://worker.example/', {
+  const jpeg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(64, 1)]);
+  const send = (body, ai) => worker.fetch(new Request('https://worker.example/', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-GCQ-Service-Key': 'shop-secret' },
-    body: JSON.stringify({ prompt: 'sprite sheet of a fox', mode: 'sprite', num_steps: 30, strength: 0.5 }),
-  }), { GCQ_AI_SERVICE_KEY: 'shop-secret', FIREBASE_PROJECT_ID: 'the-great-class-quest', AI: {
-    async run(model, inputs) {
-      if (model.includes('flux')) throw new Error('3040: Capacity temporarily exceeded');
-      assert.equal(inputs.num_steps, 20);
-      assert.equal('strength' in inputs, false);
-      return png;
-    },
-  } }, { waitUntil() {} });
-  assert.equal(response.status, 200);
-  assert.equal(response.headers.get('X-GCQ-AI-Provider'), '@cf/stabilityai/stable-diffusion-xl-base-1.0');
-});
-
-test('AI Worker tries SDXL Lightning when FLUX and SDXL both fail', async () => {
-  const worker = await importIsolatedAiWorker();
-  const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47]), Buffer.alloc(64, 2)]);
+    body: JSON.stringify(body),
+  }), { GCQ_AI_SERVICE_KEY: 'shop-secret', FIREBASE_PROJECT_ID: 'the-great-class-quest', AI: ai }, { waitUntil() {} });
+  const long = await send({ prompt: 'p'.repeat(3_000), num_steps: 30, guidance: 9 }, { async run(model, inputs) {
+    if (model.includes('klein')) throw new Error('3040: Capacity temporarily exceeded');
+    assert.equal(inputs.prompt.length, 2_048);
+    return { image: jpeg.toString('base64') };
+  } });
+  assert.equal(long.status, 200);
   const calls = [];
-  const response = await serviceImageRequest(worker, {
-    async run(model) {
-      calls.push(model);
-      if (!model.includes('lightning')) throw new Error('3040: Capacity temporarily exceeded');
-      return new Response(png).body;
-    },
-  });
-  assert.equal(response.status, 200);
-  assert.deepEqual(calls, [
-    '@cf/black-forest-labs/flux-2-klein-4b',
-    '@cf/stabilityai/stable-diffusion-xl-base-1.0',
-    '@cf/bytedance/stable-diffusion-xl-lightning',
-  ]);
-  assert.deepEqual(Buffer.from(await response.arrayBuffer()), png);
+  const sprite = await send({ prompt: 'sprite sheet of a fox', mode: 'sprite' }, { async run(model) {
+    calls.push(model);
+    throw new Error('3040: Capacity temporarily exceeded');
+  } });
+  assert.equal(sprite.status, 503);
+  assert.deepEqual(calls, ['@cf/black-forest-labs/flux-2-klein-4b']);
 });
 
 test('AI Worker reports a spent daily allocation as a final workers-ai-quota error', async (t) => {
@@ -544,11 +531,35 @@ test('AI Worker reports a spent daily allocation as a final workers-ai-quota err
   assert.equal(first.headers.get('X-GCQ-Error-Source'), 'workers-ai-quota');
   assert.ok(Number(first.headers.get('Retry-After')) >= 60);
   assert.match(first.headers.get('X-GCQ-AI-Reason'), /flux-2-klein-4b: 3036: You have used up your daily free allocation/);
-  assert.equal(calls, 3);
-  // Later requests in the same isolate fail fast instead of waiting on every model again.
+  // Workers Free refuses every model once the allowance is spent: the backup is not tried.
+  assert.equal(calls, 1);
+  // Later requests in the same isolate fail fast instead of waiting on the model again.
   const second = await serviceImageRequest(worker, ai);
   assert.equal(second.headers.get('X-GCQ-Error-Source'), 'workers-ai-quota');
-  assert.equal(calls, 3);
+  assert.equal(calls, 1);
+});
+
+test('AI Worker recognises a spent allocation that FLUX returns as an error object', async (t) => {
+  t.mock.method(console, 'error', () => {});
+  const worker = await importIsolatedAiWorker();
+  const calls = [];
+  // The live shape on 2026-11-01: klein resolved with this object instead of throwing.
+  const response = await serviceImageRequest(worker, { async run(model) {
+    calls.push(model);
+    return { name: 'AiError', internalCode: 4006, httpCode: 429, requestId: 'x',
+      message: "you have used up your daily free allocation of 10,000 neurons, please upgrade to Cloudflare's Workers Paid plan if you would like to continue usage.",
+      description: '' };
+  } });
+  assert.equal(response.status, 503);
+  assert.equal(response.headers.get('X-GCQ-Error-Source'), 'workers-ai-quota');
+  assert.deepEqual(calls, ['@cf/black-forest-labs/flux-2-klein-4b']);
+});
+
+test('AI Worker never names a retired picture or speech model in a run', async () => {
+  const source = await readFile(new URL('../scratch/ai-proxy-worker/src/worker.js', import.meta.url), 'utf8');
+  for (const retired of ['stable-diffusion-xl-base-1.0', 'stable-diffusion-xl-lightning', 'dreamshaper-8-lcm', 'stable-diffusion-v1-5-inpainting']) {
+    assert.ok(!source.includes(`@cf/stabilityai/${retired}`) && !source.includes(`@cf/bytedance/${retired}`) && !source.includes(`@cf/lykon/${retired}`), retired);
+  }
 });
 
 test('AI Worker returns a retryable image error when models fail for other reasons', async (t) => {
@@ -567,13 +578,13 @@ test('AI Worker gives up on a hung image model and moves to the next one', async
   let fluxSignal;
   const response = await serviceImageRequest(worker, {
     run(model, inputs, options) {
-      if (model.includes('flux')) { fluxSignal = options.signal; return new Promise(() => {}); }
+      if (model.includes('klein')) { fluxSignal = options.signal; return new Promise(() => {}); }
       assert.equal(fluxSignal.aborted, true, 'stop waiting on the old inference before starting a fallback');
       return Promise.resolve(png);
     },
   });
   assert.equal(response.status, 200);
-  assert.equal(response.headers.get('X-GCQ-AI-Provider'), '@cf/stabilityai/stable-diffusion-xl-base-1.0');
+  assert.equal(response.headers.get('X-GCQ-AI-Provider'), '@cf/black-forest-labs/flux-1-schnell');
 });
 
 test('FLUX gets enough time for a healthy small inference instead of the old premature fallback', async (t) => {
@@ -627,11 +638,11 @@ test('AI Worker treats a JSON error body or non-image bytes as a model failure',
   const response = await serviceImageRequest(worker, {
     async run(model) {
       calls.push(model);
-      if (model.includes('flux')) return new Response(JSON.stringify({ success: false, errors: [{ code: 5006, message: 'bad input' }] })).body;
+      if (model.includes('klein')) return new Response(JSON.stringify({ success: false, errors: [{ code: 5006, message: 'bad input' }] })).body;
       return new Response('not an image at all, just some text').body;
     },
   });
-  assert.equal(calls.length, 3);
+  assert.equal(calls.length, 2);
   assert.equal(response.status, 503);
   assert.equal(response.headers.get('X-GCQ-Error-Source'), 'workers-ai-image');
 });

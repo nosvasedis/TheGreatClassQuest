@@ -1,5 +1,7 @@
-// English narration uses MeloTTS, or a named cloud voice when the caller asks for one
-// (the quiz cast); device voices remain the free fallback.
+// English narration uses a named cloud voice when the caller asks for one (the quiz cast);
+// everything else reads with the best device voice. MeloTTS, the old cloud voice for plain
+// lines, was retired by Workers AI on 2026-11-20; lines it read earlier still replay from the
+// caches (this laptop, and the worker's for a month).
 // Every cloud line is also kept on this laptop (Cache API), so a chronicle or quiz line heard
 // once replays without the network or the day's free allowance. When the cloud says the
 // allowance is spent (429), it rests for a while (remembered across reloads) and the best
@@ -157,7 +159,7 @@ export function prefetchSpeech(text, { voice = '' } = {}) {
         const request = readDisk(key)
             .then(async (kept) => {
                 if (kept) return kept;
-                if (cloudResting()) return null;
+                if (!voice || cloudResting()) return null;
                 const { callSpeechApi } = await import('../api.js');
                 const blob = await callSpeechApi(chunk, voice ? { voice } : undefined);
                 void writeDisk(key, blob);
@@ -375,7 +377,9 @@ async function cloudAudio(job, chunk, voice, state) {
         blob = await readDisk(key);
         if (blob) rememberAudio(key, blob);
     }
-    if (blob || !state.network || !alive(job)) return blob;
+    // Plain lines (no named voice) have no cloud voice since MeloTTS was retired: a line kept
+    // from before still plays, anything new goes straight to the device voice.
+    if (blob || !voice || !state.network || !alive(job)) return blob;
     if (cloudResting()) { state.network = false; return null; }
     try {
         const { callSpeechApi } = await import('../api.js');

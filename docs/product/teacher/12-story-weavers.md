@@ -50,7 +50,7 @@ Until you choose a class, the tab shows a placeholder.
 8. **Start New** — a fresh quest.
 9. On a completed storybook: **Narrate Story** (speech), **Print Storybook** (PDF, themed pages), or delete.
 
-English read-aloud uses an online voice when available, with your device's voice as a fallback. Replaying the same passage reuses its audio during the session. Online narration needs an internet connection and may switch to the device voice when the daily allowance is unavailable. Other narration languages use device voices. **Stop** cancels narration even while the voice is loading; it does not turn the page.
+Read-aloud uses the best voice on your device (on Windows, Edge's "Natural" voices sound best). A passage the online narrator read before 20 November 2026 still plays in that voice. Other narration languages also use device voices. **Stop** cancels narration even while the voice is loading; it does not turn the page.
 
 ### Pedagogy in the room
 

@@ -5,10 +5,12 @@ const DEEPSEEK_MODEL = 'deepseek-flash';
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const OPENROUTER_FALLBACK_MODEL = 'google/gemini-3.1-flash-lite';
 const OPENROUTER_TIMEOUT_MS = 20_000;
-const SPEECH_MODEL = '@cf/myshell-ai/melotts';
+// MeloTTS, the near-free narrator for plain lines, is retired by Workers AI on 2026-11-20.
+// Its lines already kept in QUOTE_CACHE still play until they expire; nothing new is made.
+const RETIRED_SPEECH_MODEL = '@cf/myshell-ai/melotts';
 // Named voices for short lines (the quiz cast). Deepgram Aura-2 speaks clearest; Aura-1 takes
-// over when today's budget cannot fit Aura-2, and MeloTTS answers when neither can, so
-// narration never stops.
+// over when today's budget cannot fit Aura-2, and the app's device voice reads when neither
+// can, so narration never stops.
 const VOICE2_MODEL = '@cf/deepgram/aura-2-en';
 const VOICE2_SPEAKERS = new Set(['amalthea', 'andromeda', 'apollo', 'arcas', 'aries', 'asteria', 'athena', 'atlas', 'aurora',
   'callista', 'cora', 'cordelia', 'delia', 'draco', 'electra', 'harmonia', 'helena', 'hera', 'hermes', 'hyperion', 'iris',
@@ -31,13 +33,16 @@ const VOICE_DAILY_CHARS = 4_000;
 const VOICE2_COST = 2;
 const VOICE_TIMEOUT_MS = 12_000;
 const VOICE_CACHE_TTL = 30 * 86_400;
-// FLUX.2 [klein] 4B paints every image; the unmetered SDXL betas take over when FLUX
-// fails, e.g. once the day's free Workers AI neurons are spent on a Free plan.
+// FLUX.2 [klein] 4B paints every image (~104 neurons at 512px). FLUX.1 [schnell] takes over
+// when klein errors or times out: prompt + steps only (no seed, no size: a 1024 square JPEG,
+// so never for sprite strips), about half klein's neurons. The SDXL betas were retired on
+// 2026-11-20; they never helped once the day's neurons were spent, because a Workers Free
+// account refuses every model at the shared 10,000 (seen live on 2026-11-01). So a spent
+// allowance ends the chain at once instead of paying for nothing.
 const IMAGE_MODEL = '@cf/black-forest-labs/flux-2-klein-4b';
-const IMAGE_FALLBACK_MODEL = '@cf/stabilityai/stable-diffusion-xl-base-1.0';
-const IMAGE_LAST_RESORT_MODEL = '@cf/bytedance/stable-diffusion-xl-lightning';
-// SDXL rejects the whole request above 20 steps.
-const SDXL_MAX_STEPS = 20;
+const IMAGE_FALLBACK_MODEL = '@cf/black-forest-labs/flux-1-schnell';
+const SCHNELL_STEPS = 4;
+const SCHNELL_MAX_PROMPT = 2_048;
 // A live 512px FLUX call took 18s: the old 15s cutoff discarded a healthy
 // inference and paid for a second picture. Clients allow 65s for this 55s chain.
 const IMAGE_MODEL_TIMEOUT_MS = 28_000;
@@ -756,6 +761,11 @@ async function imageBytesFrom(result, model, depth = 0) {
   const isBinary = result instanceof ArrayBuffer || ArrayBuffer.isView(result)
     || result instanceof ReadableStream || result instanceof Response || result instanceof Blob;
   if (!isBinary) {
+    // An error object ({ name, internalCode, message, ... }; FLUX answers a spent allowance
+    // this way): keep its code and wording so the quota check can recognise it.
+    const code = result.internalCode ?? result.code ?? '';
+    const said = String(result.message || result.description || '').slice(0, 200);
+    if (code || said) throw new Error(`${model} error ${code}: ${said}`.trim());
     throw new Error(`${model} returned an unexpected result (${Object.keys(result).slice(0, 8).join(',') || typeof result}).`);
   }
   const bytes = new Uint8Array(await (result instanceof Response ? result : new Response(result)).arrayBuffer());
@@ -803,19 +813,11 @@ async function runFluxImage(env, { prompt, width, height, seed }, signal) {
   return image;
 }
 
-// The SDXL betas usually return a PNG stream; it is read fully so an empty or
-// failed stream counts as a model failure instead of a broken 200 response.
-async function runSdxlImage(env, model, inputs, signal) {
-  const sdxlInputs = {
-    prompt: inputs.prompt,
-    negative_prompt: inputs.negative_prompt,
-    num_steps: Math.min(SDXL_MAX_STEPS, inputs.num_steps),
-    guidance: inputs.guidance,
-    width: inputs.width,
-    height: inputs.height,
-  };
-  if (Number.isFinite(inputs.seed)) sdxlInputs.seed = inputs.seed;
-  return toImage(await env.AI.run(model, sdxlInputs, { signal }), model);
+// schnell refuses any field but prompt and steps (a seed is a 400), and answers
+// { image: base64 JPEG } at 1024x1024.
+async function runSchnellImage(env, { prompt }, signal) {
+  const inputs = { prompt: prompt.slice(0, SCHNELL_MAX_PROMPT), steps: SCHNELL_STEPS };
+  return toImage(await env.AI.run(IMAGE_FALLBACK_MODEL, inputs, { signal }), IMAGE_FALLBACK_MODEL);
 }
 
 function withDeadline(promise, timeoutMs, label, onTimeout = () => {}) {
@@ -880,11 +882,10 @@ async function handleImage(payload, env, corsHeaders) {
   }
   if (Date.now() < imageQuotaExhaustedUntil) return imageUnavailable(corsHeaders, true, imageQuotaReason);
   const isSprite = String(payload.mode || '').toLowerCase() === 'sprite' || /sprite sheet|4 frames|single horizontal row/i.test(prompt);
+  // FLUX has no negative prompt, guidance or step count: old clients' SDXL-era fields
+  // (negative_prompt, num_steps, guidance) are still accepted and ignored.
   const inputs = {
     prompt,
-    negative_prompt: negativePrompt,
-    num_steps: Math.round(boundedNumber(payload.num_steps, SDXL_MAX_STEPS, 1, SDXL_MAX_STEPS)),
-    guidance: boundedNumber(payload.guidance, isSprite ? 8 : 7.5, 1, 10),
     // All current app artwork fits one 512px output tile, including old clients
     // which still request 1024. Keep the legacy four-frame sprite aspect ratio.
     width: Math.round(boundedNumber(payload.width, isSprite ? 1024 : 512, 256, isSprite ? 1024 : 512)),
@@ -894,9 +895,11 @@ async function handleImage(payload, env, corsHeaders) {
 
   const attempts = [
     { model: IMAGE_MODEL, timeoutMs: IMAGE_MODEL_TIMEOUT_MS, run: (signal) => runFluxImage(env, inputs, signal) },
-    { model: IMAGE_FALLBACK_MODEL, timeoutMs: IMAGE_FALLBACK_TIMEOUT_MS, run: (signal) => runSdxlImage(env, IMAGE_FALLBACK_MODEL, inputs, signal) },
-    { model: IMAGE_LAST_RESORT_MODEL, timeoutMs: IMAGE_FALLBACK_TIMEOUT_MS, run: (signal) => runSdxlImage(env, IMAGE_LAST_RESORT_MODEL, inputs, signal) },
   ];
+  // schnell paints only squares, so a sprite strip has no backup.
+  if (!isSprite) {
+    attempts.push({ model: IMAGE_FALLBACK_MODEL, timeoutMs: IMAGE_FALLBACK_TIMEOUT_MS, run: (signal) => runSchnellImage(env, inputs, signal) });
+  }
   const startedAt = Date.now();
   const failures = [];
   for (const attempt of attempts) {
@@ -915,10 +918,14 @@ async function handleImage(payload, env, corsHeaders) {
       });
     } catch (error) {
       // Workers AI errors carry only codes and model names, never user data.
-      failures.push({ model: attempt.model, name: error?.name || 'Error', reason: describeAiError(error), quota: isWorkersAiQuotaError(error) });
+      const quota = isWorkersAiQuotaError(error);
+      failures.push({ model: attempt.model, name: error?.name || 'Error', reason: describeAiError(error), quota });
+      // Workers Free refuses every model once the shared allowance is spent: stop here.
+      if (quota) break;
     }
   }
-  const quotaSpent = failures.length > 0 && failures.every((failure) => failure.quota);
+  // One model saying the allowance is spent means it is spent for all of them.
+  const quotaSpent = failures.some((failure) => failure.quota);
   const reason = failures.map((failure) => `${failure.model.split('/').pop()}: ${failure.reason}`).join(' | ');
   if (quotaSpent) {
     imageQuotaExhaustedUntil = Date.now() + IMAGE_QUOTA_MEMO_MS;
@@ -1013,40 +1020,23 @@ async function handleSpeech(payload, env, ctx, corsHeaders) {
   }
   const voiced = await namedVoice(payload, text, env, ctx, corsHeaders);
   if (voiced) return voiced;
-  // MeloTTS lines are kept for a month like the named voices: a chronicle or story page read
-  // once replays free on every laptop, even after the day's free allowance is spent.
-  const cacheKey = env.QUOTE_CACHE ? `voice-audio:v1:melotts:${await sha256Hex(text)}` : '';
-  if (cacheKey) {
+  // A line MeloTTS read before its retirement is kept for a month: it still replays free.
+  if (env.QUOTE_CACHE) {
     try {
-      const cached = await env.QUOTE_CACHE.get(cacheKey, { type: 'arrayBuffer' });
-      if (cached && cached.byteLength > 32) return speechAudioResponse(new Uint8Array(cached), SPEECH_MODEL, corsHeaders);
-    } catch (_) { /* a bad cache entry falls through to a fresh line */ }
+      const cached = await env.QUOTE_CACHE.get(`voice-audio:v1:melotts:${await sha256Hex(text)}`, { type: 'arrayBuffer' });
+      if (cached && cached.byteLength > 32) return speechAudioResponse(new Uint8Array(cached), RETIRED_SPEECH_MODEL, corsHeaders);
+    } catch (_) { /* a bad cache entry falls through to the device voice */ }
   }
-  try {
-    const bytes = await withDeadline((async () => {
-      const result = await env.AI.run(SPEECH_MODEL, { prompt: text, lang: 'en' });
-      if (result instanceof Response && !result.ok) throw new Error('Speech inference failed.');
-      const encoded = result?.audio ?? result?.result?.audio;
-      if (typeof encoded === 'string') return typeof Uint8Array.fromBase64 === 'function'
-        ? Uint8Array.fromBase64(encoded)
-        : Uint8Array.from(atob(encoded), char => char.charCodeAt(0));
-      if (!(result instanceof Response || result instanceof ReadableStream || result instanceof Blob
-        || result instanceof ArrayBuffer || ArrayBuffer.isView(result))) throw new Error('Invalid speech result.');
-      return new Uint8Array(await (result instanceof Response ? result : new Response(result)).arrayBuffer());
-    })(), 25_000, SPEECH_MODEL);
-    // The live model returns base64 WAV despite the catalog also advertising MP3.
-    const response = speechAudioResponse(bytes, SPEECH_MODEL, corsHeaders);
-    if (cacheKey) {
-      const save = env.QUOTE_CACHE.put(cacheKey, bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), { expirationTtl: VOICE_CACHE_TTL }).catch(() => {});
-      if (ctx?.waitUntil) ctx.waitUntil(save);
-    }
-    return response;
-  } catch (error) {
-    const quota = isWorkersAiQuotaError(error);
-    // The free allowance refills at 00:00 UTC; the app rests its cloud voice meanwhile.
-    return json({ error: quota ? 'Free speech allowance is temporarily unavailable.' : 'Speech generation is temporarily unavailable.' },
-      quota ? 429 : 503, corsHeaders, { 'X-GCQ-Error-Source': 'speech-unavailable', ...(quota ? { 'Retry-After': String(secondsUntilUtcMidnight()) } : {}) });
+  if (payload.voice) {
+    // Today's named-voice budget is spent (or both Aura models failed): the app rests its
+    // cloud voice and reads with the device voice until the free allowance refills.
+    return json({ error: 'Free speech allowance is temporarily unavailable.' }, 429, corsHeaders,
+      { 'X-GCQ-Error-Source': 'speech-unavailable', 'Retry-After': String(secondsUntilUtcMidnight()) });
   }
+  // Plain narration (story pages, chronicles) has no cloud voice left on Workers Free: Aura
+  // would spend the pictures' allowance on one page. Current clients never ask; old ones get this.
+  return json({ error: 'Plain narration uses the device voice.' }, 503, corsHeaders,
+    { 'X-GCQ-Error-Source': 'speech-device-only' });
 }
 
 async function processRequest(request, env, ctx, corsHeaders, identity, payload, route, requestId) {

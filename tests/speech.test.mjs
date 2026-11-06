@@ -28,15 +28,15 @@ function environment(run) {
         SPEECH_FREE_PLAN_CONFIRMED: 'true', AI: { run } };
 }
 
-test('speech pins MeloTTS and accepts stream, bytes, Response, and base64 outputs', async () => {
+test('a named voice accepts stream, bytes, Response, and base64 outputs', async () => {
     for (const output of [mp3, new Response(mp3), new Blob([mp3]).stream(), { audio: Buffer.from(mp3).toString('base64') }]) {
         const worker = await workerModule();
-        const env = environment(async (model, input) => {
-            assert.equal(model, '@cf/myshell-ai/melotts');
-            assert.deepEqual(input, { prompt: 'Together we learn.', lang: 'en' });
+        const env = { ...environment(async (model, input) => {
+            assert.equal(model, '@cf/deepgram/aura-1');
+            assert.deepEqual(input, { text: 'Together we learn.', speaker: 'stella', encoding: 'mp3' });
             return output;
-        });
-        const response = await worker.fetch(request({ text: 'Together we learn.', model_id: 'paid-model' }), env, {});
+        }), QUOTE_CACHE: memoryKv() };
+        const response = await worker.fetch(request({ text: 'Together we learn.', voice: 'stella', model_id: 'paid-model' }), env, {});
         assert.equal(response.status, 200);
         assert.equal(response.headers.get('Content-Type'), 'audio/mpeg');
         assert.equal(response.headers.get('Cache-Control'), 'no-store');
@@ -45,13 +45,13 @@ test('speech pins MeloTTS and accepts stream, bytes, Response, and base64 output
     }
 });
 
-test('speech recognizes the live model base64 WAV and returns the correct MIME type', async () => {
+test('speech recognizes base64 WAV and returns the correct MIME type', async () => {
     const worker = await workerModule();
     const wav = new Uint8Array(64);
     wav.set(new TextEncoder().encode('RIFF'), 0);
     wav.set(new TextEncoder().encode('WAVE'), 8);
-    const env = environment(async () => ({ audio: Buffer.from(wav).toString('base64') }));
-    const response = await worker.fetch(request({ text: 'Hello' }), env, {});
+    const env = { ...environment(async () => ({ audio: Buffer.from(wav).toString('base64') })), QUOTE_CACHE: memoryKv() };
+    const response = await worker.fetch(request({ text: 'Hello', voice: 'stella' }), env, {});
     assert.equal(response.status, 200);
     assert.equal(response.headers.get('Content-Type'), 'audio/wav');
     assert.deepEqual(new Uint8Array(await response.arrayBuffer()), wav);
@@ -72,23 +72,34 @@ test('speech does no inference without verified free plan, authentication, or va
     }
 });
 
-test('speech quota failures and malformed upstream output never use a paid fallback', async () => {
+test('named-voice failures hand the line to the device voice and try no other model', async () => {
     for (const kind of ['quota', 'json', 'empty', 'wrapper', 'http-error']) {
         const worker = await workerModule();
-        let calls = 0;
-        const env = environment(async () => {
-            calls += 1;
+        const models = [];
+        const env = { ...environment(async (model) => {
+            models.push(model);
             if (kind === 'quota') throw new Error('Neuron limit exceeded');
             if (kind === 'json') return new Response('{"error":"unavailable"}');
             if (kind === 'empty') return new Uint8Array();
             if (kind === 'wrapper') return { error: 'unavailable' };
             return new Response(mp3, { status: 503 });
-        });
-        const response = await worker.fetch(request({ text: 'Hello' }), env, {});
-        assert.equal(response.status, kind === 'quota' ? 429 : 503);
-        assert.equal(calls, 1);
+        }), QUOTE_CACHE: memoryKv() };
+        const response = await worker.fetch(request({ text: 'Hello', voice: 'orion' }), env, {});
+        assert.equal(response.status, 429, kind);
+        assert.ok(Number(response.headers.get('Retry-After')) >= 60, kind);
+        assert.deepEqual(models, ['@cf/deepgram/aura-2-en', '@cf/deepgram/aura-1'], kind);
         assert.equal(response.headers.get('X-GCQ-Error-Source'), 'speech-unavailable');
     }
+});
+
+test('plain narration runs no inference: MeloTTS is retired and the device voice reads', async () => {
+    const worker = await workerModule();
+    const env = { ...environment(() => assert.fail('No model may run for a plain line')), QUOTE_CACHE: memoryKv() };
+    const response = await worker.fetch(request({ text: 'The chronicle of October.' }), env, {});
+    assert.equal(response.status, 503);
+    assert.equal(response.headers.get('X-GCQ-Error-Source'), 'speech-device-only');
+    const source = await readFile(new URL('scratch/ai-proxy-worker/src/worker.js', root), 'utf8');
+    assert.doesNotMatch(source, /AI\.run\(RETIRED_SPEECH_MODEL/);
 });
 
 async function setupNarrator(t, generate, { autoEnd = true, denyAudio = false, voices = true } = {}) {
@@ -129,7 +140,7 @@ test('narration works without device voices and replay uses cached audio once', 
     const narrator = await setupNarrator(t, async () => { generations += 1; return new Blob([mp3]); });
     globalThis.window = {};
     assert.equal(narrator.isTtsSupported(), true);
-    const opts = { onStart() { starts += 1; }, onEnd() { ends += 1; } };
+    const opts = { voice: 'luna', onStart() { starts += 1; }, onEnd() { ends += 1; } };
     narrator.speakText('A shared adventure.', opts);
     assert.equal(narrator.isSpeaking(), true);
     await tick();
@@ -145,7 +156,7 @@ test('narration works without device voices and replay uses cached audio once', 
 test('stopping pending speech ignores late audio and cannot turn a page', async t => {
     let release, ended = 0;
     const narrator = await setupNarrator(t, () => new Promise(resolve => { release = resolve; }));
-    narrator.speakText('Waiting for narration.', { onEnd() { ended += 1; } });
+    narrator.speakText('Waiting for narration.', { voice: 'luna', onEnd() { ended += 1; } });
     await tick();
     narrator.stopSpeech();
     release(new Blob([mp3]));
@@ -158,7 +169,7 @@ test('stopping pending speech ignores late audio and cannot turn a page', async 
 test('stop during playback cleans audio without end/error callbacks', async t => {
     let callbacks = 0;
     const narrator = await setupNarrator(t, async () => new Blob([mp3]), { autoEnd: false });
-    narrator.speakText('Our story.', { onEnd() { callbacks++; }, onError() { callbacks++; } });
+    narrator.speakText('Our story.', { voice: 'luna', onEnd() { callbacks++; }, onError() { callbacks++; } });
     await tick();
     const oldEnd = narrator.audios[0].onended;
     narrator.stopSpeech();
@@ -172,7 +183,7 @@ test('quota failures use ready device voices and finish long narration once', as
     let starts = 0, ends = 0, calls = 0;
     const narrator = await setupNarrator(t, async () => { calls++; throw new Error('quota exceeded'); }, { voices: false });
     const text = 'The children share a wonderful adventure. '.repeat(45).trim();
-    narrator.speakText(text, { voiceHint: 'en', onStart() { starts++; }, onEnd() { ends++; } });
+    narrator.speakText(text, { voice: 'luna', voiceHint: 'en', onStart() { starts++; }, onEnd() { ends++; } });
     await tick();
     assert.equal(calls, 1);
     assert.equal(starts, 1); assert.equal(ends, 1);
@@ -181,12 +192,12 @@ test('quota failures use ready device voices and finish long narration once', as
     assert.equal(narrator.isSpeaking(), false);
 });
 
-test('autoplay denial uses device narration; Greek never requests MeloTTS', async t => {
+test('autoplay denial uses device narration; Greek never requests a cloud voice', async t => {
     let calls = 0;
     const narrator = await setupNarrator(t, async () => { calls++; return new Blob([mp3]); }, { denyAudio: true });
-    narrator.speakText('We read together.');
+    narrator.speakText('We read together.', { voice: 'luna' });
     await tick();
-    narrator.speakText('Διαβάζουμε μαζί.', { voiceHint: 'el' });
+    narrator.speakText('Διαβάζουμε μαζί.', { voice: 'luna', voiceHint: 'el' });
     await tick();
     assert.equal(calls, 1);
     assert.equal(narrator.spoken.length, 2);
@@ -245,7 +256,7 @@ test('an Aura-1 voice name still uses Aura-1 with that speaker and reports who s
     assert.deepEqual(new Uint8Array(await response.arrayBuffer()), mp3);
 });
 
-test('MeloTTS speaks when a voice is unknown, fails, is too long, or the daily voice budget is spent', async () => {
+test('the device voice reads when a voice is unknown, fails, is too long, or the daily voice budget is spent', async () => {
     for (const scenario of ['unknown', 'fails', 'long', 'budget', 'no-kv']) {
         const worker = await workerModule();
         const models = [];
@@ -258,9 +269,9 @@ test('MeloTTS speaks when a voice is unknown, fails, is too long, or the daily v
         }), QUOTE_CACHE: scenario === 'no-kv' ? undefined : kv };
         const text = scenario === 'long' ? 'a'.repeat(401) : 'Hello there, class.';
         const response = await worker.fetch(request({ text, voice: scenario === 'unknown' ? 'robot' : 'orion' }), env, {});
-        assert.equal(response.status, 200, scenario);
-        assert.equal(response.headers.get('X-GCQ-AI-Provider'), '@cf/myshell-ai/melotts', scenario);
-        assert.deepEqual(models, scenario === 'fails' ? ['@cf/deepgram/aura-2-en', '@cf/deepgram/aura-1', '@cf/myshell-ai/melotts'] : ['@cf/myshell-ai/melotts'], scenario);
+        assert.equal(response.status, 429, scenario);
+        assert.equal(response.headers.get('X-GCQ-Error-Source'), 'speech-unavailable', scenario);
+        assert.deepEqual(models, scenario === 'fails' ? ['@cf/deepgram/aura-2-en', '@cf/deepgram/aura-1'] : [], scenario);
     }
 });
 
@@ -271,7 +282,7 @@ test('named voices count their characters against the daily budget', async () =>
     const first = await worker.fetch(request({ text: 'Twenty characters!!!', voice: 'stella' }), env, {});
     assert.equal(first.headers.get('X-GCQ-AI-Provider'), '@cf/deepgram/aura-1:stella');
     const second = await worker.fetch(request({ text: 'Other twenty chars!!', voice: 'stella' }), env, {});
-    assert.equal(second.headers.get('X-GCQ-AI-Provider'), '@cf/myshell-ai/melotts');
+    assert.equal(second.status, 429, 'over budget: the device voice reads');
     assert.equal(kv.store.get(`voice-chars:${new Date().toISOString().slice(0, 10)}`), '20');
 });
 
@@ -283,9 +294,9 @@ test('Aura-2 speaks the quiz cast, counts double, and hands over to the nearest 
     const first = await worker.fetch(request({ text: 'Twenty characters!!!', voice: 'thalia' }), env, {});
     assert.equal(first.headers.get('X-GCQ-AI-Provider'), '@cf/deepgram/aura-2-en:thalia');
     assert.equal(kv.store.get(`voice-chars:${new Date().toISOString().slice(0, 10)}`), '40');
-    // 10 left: Aura-2 (40) does not fit and Aura-1 (20) does not either, so MeloTTS answers.
+    // 10 left: Aura-2 (40) does not fit and Aura-1 (20) does not either, so the device voice reads.
     const second = await worker.fetch(request({ text: 'Other twenty chars!!', voice: 'thalia' }), env, {});
-    assert.equal(second.headers.get('X-GCQ-AI-Provider'), '@cf/myshell-ai/melotts');
+    assert.equal(second.status, 429);
     kv.store.set(`voice-chars:${new Date().toISOString().slice(0, 10)}`, '25');
     const third = await worker.fetch(request({ text: 'Third twenty chars!!', voice: 'thalia' }), env, {});
     assert.equal(third.headers.get('X-GCQ-AI-Provider'), '@cf/deepgram/aura-1:asteria');
@@ -352,7 +363,7 @@ test('a spent free allowance rests the cloud voice across reloads and the device
     const quota = () => { calls++; const e = new Error('Speech unavailable (429)'); e.status = 429; e.source = 'speech-unavailable'; throw e; };
     const narrator = await setupNarrator(t, async () => quota());
     let ends = 0, errors = 0;
-    narrator.speakText('The chronicle of October.', { voiceHint: 'en', onEnd() { ends++; }, onError() { errors++; } });
+    narrator.speakText('The chronicle of October.', { voice: 'luna', voiceHint: 'en', onEnd() { ends++; }, onError() { errors++; } });
     await settle();
     assert.equal(calls, 1);
     assert.equal(ends, 1); assert.equal(errors, 0);
@@ -361,7 +372,7 @@ test('a spent free allowance rests the cloud voice across reloads and the device
     assert.ok(restUntil - Date.now() > 29 * 60_000, 'rests about half an hour');
     // A fresh page load reads the rest and goes straight to the device voice.
     const reloaded = await setupNarrator(t, async () => quota());
-    reloaded.speakText('Another line.', { voiceHint: 'en', onEnd() { ends++; } });
+    reloaded.speakText('Another line.', { voice: 'luna', voiceHint: 'en', onEnd() { ends++; } });
     await settle();
     assert.equal(calls, 1);
     assert.equal(ends, 2);
@@ -379,16 +390,34 @@ test('cloud rest lengths follow the reason', async t => {
 test('cloud lines are kept on the laptop and replay without the network', async t => {
     setGlobal(t, 'caches', memoryCaches());
     let calls = 0;
-    const first = await setupNarrator(t, async () => { calls++; const b = new Blob([mp3], { type: 'audio/mpeg' }); b.speechProvider = '@cf/myshell-ai/melotts'; return b; });
-    await new Promise((resolve) => first.speakText('Kept for later.', { onEnd: resolve }));
+    const first = await setupNarrator(t, async () => { calls++; const b = new Blob([mp3], { type: 'audio/mpeg' }); b.speechProvider = '@cf/deepgram/aura-1:luna'; return b; });
+    await new Promise((resolve) => first.speakText('Kept for later.', { voice: 'luna', onEnd: resolve }));
     await settle();
     const fresh = await setupNarrator(t, async () => { calls++; throw new Error('offline'); });
     let info = null;
-    await new Promise((resolve) => fresh.speakText('Kept for later.', { onStart(i) { info = i; }, onEnd: resolve }));
+    await new Promise((resolve) => fresh.speakText('Kept for later.', { voice: 'luna', onStart(i) { info = i; }, onEnd: resolve }));
     assert.equal(calls, 1);
-    assert.deepEqual(info, { speaker: '' });
+    assert.deepEqual(info, { speaker: 'Luna' });
     assert.equal(fresh.spoken.length, 0, 'played the kept audio, not the device voice');
-    assert.equal(fresh.audios[0].playbackRate, 0.88, 'the kept line remembers MeloTTS pace');
+});
+
+test('a plain line MeloTTS read earlier still replays; a new plain line never asks the cloud', async t => {
+    const caches = memoryCaches();
+    setGlobal(t, 'caches', caches);
+    const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('Kept from before.')));
+    const url = `https://gcq-speech.invalid/${[...digest].map((b) => b.toString(16).padStart(2, '0')).join('')}`;
+    await (await caches.open('gcq-speech-v1')).put(url, new Response(new Blob([mp3]), {
+        headers: { 'Content-Type': 'audio/mpeg', 'X-GCQ-AI-Provider': '@cf/myshell-ai/melotts' } }));
+    let calls = 0;
+    const narrator = await setupNarrator(t, async () => { calls++; return new Blob([mp3]); });
+    await new Promise((resolve) => narrator.speakText('Kept from before.', { onEnd: resolve }));
+    assert.equal(narrator.spoken.length, 0, 'the kept MeloTTS line played');
+    assert.equal(narrator.audios[0].playbackRate, 0.88, 'the kept line remembers MeloTTS pace');
+    await new Promise((resolve) => narrator.speakText('A brand new page.', { onEnd: resolve }));
+    narrator.prefetchSpeech('Another new page.');
+    await settle();
+    assert.equal(calls, 0);
+    assert.equal(narrator.spoken.at(-1).text, 'A brand new page.');
 });
 
 test('device voices: natural British English first, novelty voices last', async t => {
@@ -424,18 +453,14 @@ test('the device reads a sentence or two at a time and a failing voice hands ove
     assert.equal(read.map((u) => u.text).join(' '), text);
 });
 
-test('MeloTTS lines are cached in KV so a replay costs nothing', async () => {
+test('MeloTTS lines kept in KV before its retirement still replay for free', async () => {
     const worker = await workerModule();
     const kv = memoryKv();
-    let runs = 0;
-    const env = { ...environment(async () => { runs++; return mp3; }), QUOTE_CACHE: kv };
-    const waits = [];
-    const ctx = { waitUntil(p) { waits.push(p); } };
-    await worker.fetch(request({ text: 'The chronicle of October.' }), env, ctx);
-    await Promise.all(waits);
-    const again = await worker.fetch(request({ text: 'The chronicle of October.' }), env, ctx);
+    const hash = Buffer.from(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('The chronicle of October.'))).toString('hex');
+    kv.store.set(`voice-audio:v1:melotts:${hash}`, mp3.buffer.slice(0));
+    const env = { ...environment(() => assert.fail('A kept line runs no model')), QUOTE_CACHE: kv };
+    const again = await worker.fetch(request({ text: 'The chronicle of October.' }), env, {});
     assert.equal(again.status, 200);
     assert.equal(again.headers.get('X-GCQ-AI-Provider'), '@cf/myshell-ai/melotts');
     assert.deepEqual(new Uint8Array(await again.arrayBuffer()), mp3);
-    assert.equal(runs, 1);
 });

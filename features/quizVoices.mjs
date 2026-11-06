@@ -2,7 +2,7 @@
 // picked from the question id so a replay, the review card and every device agree.
 // Speakers are Deepgram Aura-2 voices served by the AI worker, chosen for clear, steady
 // speech a language learner can follow. If that voice is unavailable the worker answers
-// with the nearest Aura-1 voice or MeloTTS, and the device voice is the last resort.
+// with the nearest Aura-1 voice, and the device voice is the last resort.
 
 export const QUIZ_VOICES = [
     { id: 'thalia', name: 'Thalia', accent: 'American' },

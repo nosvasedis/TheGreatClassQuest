@@ -628,8 +628,13 @@ export async function openQuestAssignmentModal() {
     currentAssignmentTextarea.value = '';
     clearQuestTestFields();
     if (dateChipEl) {
-        const labelEl = dateChipEl.querySelector('span');
-        if (labelEl) labelEl.textContent = getTodayAssignmentChipText();
+        const dayEl = dateChipEl.querySelector('.qb-notepad__day');
+        const weekdayEl = dateChipEl.querySelector('.qb-notepad__weekday');
+        if (dayEl) dayEl.textContent = getTodayAssignmentChipText();
+        if (weekdayEl) {
+            const today = utils.parseFlexibleDate(utils.getTodayDateString()) || new Date();
+            weekdayEl.textContent = today.toLocaleDateString('en-GB', { weekday: 'long' });
+        }
     }
 
     setupLeagueHomeworkImport(classId);

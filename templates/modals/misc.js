@@ -125,8 +125,8 @@ export const miscModalsHTML = `
                         <div class="notebook-container qb-notepad">
                             <span class="qb-notepad__clip" aria-hidden="true"></span>
                             <div id="quest-assignment-date-chip" class="qb-notepad__date">
-                                <i class="fas fa-calendar-day" aria-hidden="true"></i>
-                                <span>DD/MM/YYYY</span>
+                                <span class="qb-notepad__weekday">Today</span>
+                                <span class="qb-notepad__day">DD/MM/YYYY</span>
                             </div>
                             <label for="quest-assignment-textarea" class="sr-only">Assignment for next lesson</label>
                             <textarea id="quest-assignment-textarea" rows="8"

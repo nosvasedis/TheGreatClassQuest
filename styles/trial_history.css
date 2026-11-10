@@ -475,6 +475,11 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+.th-result__later {
+    font-weight: 500;
+    font-size: 0.78rem;
+    color: var(--th-ink-3);
+}
 .th-pill {
     --pill: var(--th-ink-3);
     display: inline-flex;

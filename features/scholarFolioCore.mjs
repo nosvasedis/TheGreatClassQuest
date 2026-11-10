@@ -9,7 +9,7 @@
 // `time` is a timestamp, `pct` the normalized percent (0–100), `display` the
 // mark as the class records it ("17/20", "Great!!").
 
-import { competitionRanks, esc, mean, tierForPercent } from './scholarScrollCore.mjs';
+import { competitionRanks, esc, groupTrialSessions, mean, tierForPercent } from './scholarScrollCore.mjs';
 
 export const FOLIO_RANGES = Object.freeze({
     '30d': 'Last 30 days',
@@ -90,12 +90,13 @@ export function buildFolio({
         .filter((e) => sinceTime === null || e.time >= sinceTime)
         .sort((a, b) => a.time - b.time);
 
-    // One sitting of one paper: everyone's results, the class average and the ranks.
+    // One paper: everyone's results (make-up sittings included), the class average and the ranks.
     const sessions = new Map();
-    inWindow.forEach((e) => {
-        const key = sessionKey(e);
-        if (!sessions.has(key)) sessions.set(key, { key, type: e.type, title: e.title, date: e.date, time: e.time, entries: [] });
-        sessions.get(key).entries.push(e);
+    const sessionOf = new Map();
+    groupTrialSessions(inWindow, (e) => e.time).forEach((g) => {
+        const s = { key: g.key, type: g.type, title: g.title, date: g.date, time: g.time, entries: [...g.scores] };
+        sessions.set(g.key, s);
+        s.entries.forEach((e) => sessionOf.set(e, s));
     });
     sessions.forEach((s) => {
         s.entries.sort((a, b) => b.pct - a.pct);
@@ -156,7 +157,7 @@ export function buildFolio({
 
     // The scholar's own trials, each set against the paper's class result.
     const trials = inWindow.filter((e) => e.studentId === studentId).map((e, index) => {
-        const s = sessions.get(sessionKey(e));
+        const s = sessionOf.get(e);
         const classmates = s.count - 1;
         const sessionAvg = classmates > 0 ? s.avg : null;
         const isBest = bestIds.has(e.id);

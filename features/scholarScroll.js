@@ -856,8 +856,11 @@ function ledgerHtml(classData, model, rows, metric) {
     const kindTile = (type) => {
         const entries = scores.filter((e) => e.score.type === type);
         const avg = mean(entries.map((e) => e.pct));
-        const sessions = new Set(entries.map((e) => `${e.score.date}|${String(e.score.title || '').trim().toLowerCase()}`));
-        const latest = entries[entries.length - 1];
+        // One paper, even when absent pupils sat it on a later day.
+        const timeByScore = new Map(entries.map((e) => [e.score, e.time]));
+        const sessions = groupTrialSessions(entries.map((e) => e.score), (score) => timeByScore.get(score) ?? null);
+        const latestSession = sessions.reduce((top, s) => (!top || (s.time ?? 0) >= (top.time ?? 0) ? s : top), null);
+        const latest = latestSession ? { score: latestSession.scores[0], date: new Date(latestSession.time) } : null;
         const scheme = getAssessmentSchemeForClass(classData, type);
         const qual = qualLabel(scheme, avg);
         const isTest = type === 'test';
@@ -869,7 +872,7 @@ function ledgerHtml(classData, model, rows, metric) {
                 <span class="ss-tile__icon" aria-hidden="true"><i class="fas ${isTest ? 'fa-file-alt' : TRIAL_TYPES.dictation.icon}"></i></span>
                 <span class="ss-tile__label">${isTest ? 'Tests' : 'Dictations'}</span>
                 <span class="ss-tile__value">${avg === null ? '--' : formatPct(avg, 0)}${qual ? `<small>${esc(qual)}</small>` : ''}</span>
-                <span class="ss-tile__note">${sessions.size ? `${sessions.size} ${isTest ? 'test' : 'dictation'}${sessions.size === 1 ? '' : 's'} · ${entries.length} results` : 'None logged yet'}</span>
+                <span class="ss-tile__note">${sessions.length ? `${sessions.length} ${isTest ? 'test' : 'dictation'}${sessions.length === 1 ? '' : 's'} · ${entries.length} results` : 'None logged yet'}</span>
                 ${latest ? `<span class="ss-tile__latest"><i class="fas fa-bookmark" aria-hidden="true"></i><span>${esc(latestName)}</span><em>${shortDate(latest.date)}</em></span>` : ''}
             </${tag}>`;
     };
@@ -1751,7 +1754,7 @@ function historyByTrialHtml({ view, ofView, studentById, pctOf, timeOf, q, nameO
         const title = s.title || (view === 'dictation' ? 'Dictation' : 'Test');
         const defaultOpen = thState.expandAll !== null ? thState.expandAll : (!!q || s.index < 2);
         const open = thState.expanded.has(s.key) || (defaultOpen && !thState.collapsed.has(s.key));
-        const results = [...s.scores].sort(sorter).map((score) => historyResultHtml(score, studentById.get(score.studentId), pctOf(score), currentUserId)).join('');
+        const results = [...s.scores].sort(sorter).map((score) => historyResultHtml(score, studentById.get(score.studentId), pctOf(score), currentUserId, score.date !== s.date ? timeOf(score) : null)).join('');
         const bodyId = `th-trial-${s.key.replace(/[^a-z0-9]/gi, '-')}`;
         return `
                 <article class="th-trial${open ? ' is-open' : ''}" data-key="${esc(s.key)}" data-tier="${tierForPercent(avg)}">
@@ -1759,7 +1762,7 @@ function historyByTrialHtml({ view, ofView, studentById, pctOf, timeOf, q, nameO
                         <span class="th-date" aria-hidden="true"><b>${d ? d.getDate() : '?'}</b><small>${d ? d.toLocaleDateString('en-GB', { month: 'short' }) : ''}</small><i>${d ? d.toLocaleDateString('en-GB', { weekday: 'short' }) : ''}</i></span>
                         <span class="th-trial__main">
                             <span class="th-trial__title">${esc(title)}</span>
-                            <span class="th-trial__meta">${d ? esc(d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })) : esc(s.date)} · ${s.filtered ? `${s.scores.length} matching` : `${s.scores.length} graded`}</span>
+                            <span class="th-trial__meta">${d ? esc(d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })) : esc(s.date)} · ${s.filtered ? `${s.scores.length} matching` : `${s.scores.length} graded`}${s.makeups && !s.filtered ? ` · ${s.makeups} sat it later` : ''}</span>
                             ${tierBarHtml(tierCounts(pcts))}
                         </span>
                         <span class="th-trial__avg" data-tier="${tierForPercent(avg)}"><b>${avg === null ? '--' : formatPct(avg, 0)}</b><small>average</small></span>
@@ -1773,7 +1776,7 @@ function historyByTrialHtml({ view, ofView, studentById, pctOf, timeOf, q, nameO
         </section>`).join('');
 }
 
-function historyResultHtml(score, student, pct, currentUserId) {
+function historyResultHtml(score, student, pct, currentUserId, laterTime = null) {
     const label = getAssessmentValueLabel(score) || (pct !== null ? formatPct(pct, 0) : '—');
     const numeric = score.scoreNumeric !== null && score.scoreNumeric !== undefined && !score.scoreQualitative;
     const isOwner = score.teacherId === currentUserId;
@@ -1781,7 +1784,7 @@ function historyResultHtml(score, student, pct, currentUserId) {
     return `
         <li class="th-result trial-history-item${student ? '' : ' th-result--former'}" data-tier="${tierForPercent(pct)}">
             ${avatarMarkup(student || { name: '?' }, 'th-av')}
-            <span class="th-result__name">${esc(name)}</span>
+            <span class="th-result__name">${esc(name)}${Number.isFinite(laterTime) ? `<small class="th-result__later" title="Sat this paper later"> · sat ${esc(shortDate(new Date(laterTime)))}</small>` : ''}</span>
             <span class="th-pill" data-tier="${isUnmarkableScore(score) ? 'unmarkable' : tierForPercent(pct)}"${isUnmarkableScore(score) ? ' title="Could not be marked"' : ''}><b>${esc(label)}</b>${numeric && pct !== null ? `<small>${formatPct(pct, 0)}</small>` : ''}</span>
             ${isOwner ? `
                 <span class="th-result__tools">

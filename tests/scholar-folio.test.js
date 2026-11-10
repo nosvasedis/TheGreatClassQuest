@@ -106,3 +106,15 @@ test('folioCsv lists the summary and every trial; oracleMarkdown escapes HTML', 
     assert.match(html, /<li><strong>Read<\/strong> daily<\/li>/);
     assert.doesNotMatch(html, /<script>/);
 });
+
+test('a make-up sitting counts as the same paper, not a missed one', async () => {
+    const { buildFolio } = await import('../features/scholarFolioCore.mjs');
+    const entries = classFixture();
+    entries.push(entry('ada', 'test', '2026-11-03', 80, 'Unit 3'));
+    const folio = buildFolio({ studentId: 'ada', classStudentIds: ['ada', 'ben', 'cy'], entries, usage: { tests: true, dictations: false, any: true }, joinedAt: day('2026-09-01') });
+    assert.equal(folio.missed.length, 0);
+    const unit3 = folio.trials.find((t) => t.title === 'Unit 3');
+    assert.equal(unit3.of, 3);
+    assert.equal(unit3.rank, 1);
+    assert.equal(unit3.date, '2026-11-03');
+});

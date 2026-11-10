@@ -117,19 +117,58 @@ export function competitionRanks(sortedValues) {
     return ranks;
 }
 
+/** Longest gap between a paper and a make-up sitting of it (absent pupils catching up). */
+export const MAKEUP_WINDOW_DAYS = 60;
+
+const paperTitleKey = (title) => String(title ?? '').normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').trim();
+
 /**
- * Groups score records into trial sessions (one sitting of one test/dictation).
+ * Groups score records into trial sessions (one paper of one test/dictation).
  * `timeOf(score)` returns a sortable timestamp or null.
+ *
+ * Pupils who were absent often sit the same paper a few days later. Those
+ * make-up results join the paper's first sitting instead of counting as a new
+ * test: a later sitting with the same type and title joins an earlier one when
+ * none of its pupils already has a result there and it falls within
+ * MAKEUP_WINDOW_DAYS. A real second paper with a reused title (the same class
+ * sitting it again) shares pupils, so it stays apart. Untitled trials are never
+ * joined. A joined session keeps the first sitting's key, date and time, and
+ * `makeups` counts the results logged on a later day.
  */
 export function groupTrialSessions(scores, timeOf) {
-    const sessions = new Map();
+    const sittings = new Map();
     (scores || []).forEach((score) => {
         const title = String(score.title || '').trim();
         const key = `${score.type}|${score.date}|${title.toLowerCase()}`;
-        if (!sessions.has(key)) {
-            sessions.set(key, { key, type: score.type, date: score.date, title, time: timeOf(score), scores: [] });
+        if (!sittings.has(key)) {
+            sittings.set(key, { key, type: score.type, date: score.date, title, time: timeOf(score), scores: [], makeups: 0 });
         }
-        sessions.get(key).scores.push(score);
+        sittings.get(key).scores.push(score);
     });
-    return [...sessions.values()];
+
+    const ordered = [...sittings.values()];
+    const timed = ordered
+        .filter((s) => Number.isFinite(s.time) && paperTitleKey(s.title))
+        .sort((a, b) => a.time - b.time);
+    const papers = new Map();
+    const absorbed = new Set();
+    const windowMs = MAKEUP_WINDOW_DAYS * 86400000;
+    timed.forEach((sitting) => {
+        const ids = sitting.scores.map((sc) => sc.studentId);
+        const paperKey = `${sitting.type}|${paperTitleKey(sitting.title)}`;
+        const candidates = papers.get(paperKey) || [];
+        const anchor = ids.every((id) => id !== undefined && id !== null && id !== '')
+            ? candidates.find((p) => sitting.time - p.time <= windowMs && ids.every((id) => !p.studentIds.has(id)))
+            : null;
+        if (anchor) {
+            anchor.session.scores.push(...sitting.scores);
+            anchor.session.makeups += sitting.scores.length;
+            ids.forEach((id) => anchor.studentIds.add(id));
+            absorbed.add(sitting);
+            return;
+        }
+        candidates.push({ time: sitting.time, session: sitting, studentIds: new Set(ids) });
+        papers.set(paperKey, candidates);
+    });
+    return ordered.filter((s) => !absorbed.has(s));
 }

@@ -51,6 +51,38 @@ test('sittings group by type, date and title', () => {
     assert.equal(sessions[0].scores.length, 2);
 });
 
+test('make-up sittings join the first sitting of the same paper', () => {
+    const t = (d) => Date.parse(d);
+    const timeOf = (s) => t(s.iso);
+    const sessions = groupTrialSessions([
+        { type: 'test', date: '20-10-2026', iso: '2026-10-20', title: 'Unit 7 Test!', studentId: 'a' },
+        { type: 'test', date: '20-10-2026', iso: '2026-10-20', title: 'Unit 7 Test!', studentId: 'b' },
+        { type: 'test', date: '20-10-2026', iso: '2026-10-20', title: 'Unit 7 Test!', studentId: 'c' },
+        { type: 'test', date: '03-11-2026', iso: '2026-11-03', title: 'unit 7  test!', studentId: 'd' },
+        { type: 'test', date: '05-11-2026', iso: '2026-11-05', title: 'Unit 7 Test!', studentId: 'e' },
+        // The same class sitting a paper with a reused title is a new test.
+        { type: 'test', date: '10-11-2026', iso: '2026-11-10', title: 'Unit 7 Test!', studentId: 'a' },
+        { type: 'test', date: '10-11-2026', iso: '2026-11-10', title: 'Unit 7 Test!', studentId: 'f' },
+        // Untitled dictations on different days stay apart.
+        { type: 'dictation', date: '01-10-2026', iso: '2026-10-01', title: '', studentId: 'a' },
+        { type: 'dictation', date: '02-10-2026', iso: '2026-10-02', title: '', studentId: 'b' }
+    ], timeOf);
+    const tests = sessions.filter((s) => s.type === 'test');
+    assert.equal(tests.length, 2);
+    assert.equal(tests[0].date, '20-10-2026');
+    assert.equal(tests[0].scores.length, 5);
+    assert.equal(tests[0].makeups, 2);
+    assert.equal(tests[1].scores.length, 2);
+    assert.equal(sessions.filter((s) => s.type === 'dictation').length, 2);
+
+    // Too long after the first sitting: a different paper.
+    const late = groupTrialSessions([
+        { type: 'test', date: 'x', iso: '2026-01-10', title: 'Mid-year', studentId: 'a' },
+        { type: 'test', date: 'y', iso: '2026-06-10', title: 'Mid-year', studentId: 'b' }
+    ], timeOf);
+    assert.equal(late.length, 2);
+});
+
 test('markup helpers escape and draw', () => {
     assert.equal(esc('<b>"x"</b>'), '&lt;b&gt;&quot;x&quot;&lt;/b&gt;');
     assert.equal(sparklineSvg([]), '');

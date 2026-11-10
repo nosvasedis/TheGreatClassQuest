@@ -3,14 +3,15 @@
 // loudness reading a few times a second; the reward is paid by db/actions/quietDragon.js.
 //
 // How the dragon listens: the first seconds measure how quiet this room is (the "floor"). The
-// teacher's level sets how far above that floor the class may go. Short bumps (a cough, a chair)
-// only make the dragon stir; it wakes only when the room stays loud for a couple of seconds.
-// While it is awake the calm clock waits; it never runs backwards and nothing is ever taken away.
+// teacher's level sets how far above that floor the class may go. A single short bump (a cough,
+// a dropped pencil) only makes it stir, but noise keeps adding up while the room stays above the
+// limit, a noisy room ("stirs" zone) never lets it calm down, and it forgets only slowly once the
+// room is truly quiet. Once it wakes it stays awake: the quiet time is over and there is no gift.
 
 export const QUIET_LEVELS = [
-    { key: 'test', name: 'Test silence', hint: 'Pin-drop quiet, for tests', margin: 7 },
-    { key: 'whisper', name: 'Whispers', hint: 'Writing time, whispers only', margin: 12 },
-    { key: 'soft', name: 'Soft voices', hint: 'Quiet partner work', margin: 18 }
+    { key: 'test', name: 'Test silence', hint: 'Pin-drop quiet, for tests', margin: 5 },
+    { key: 'whisper', name: 'Whispers', hint: 'Writing time, whispers only', margin: 9 },
+    { key: 'soft', name: 'Soft voices', hint: 'Quiet partner work', margin: 14 }
 ];
 
 export const QUIET_MINUTES = [5, 10, 15, 20, 30];
@@ -20,13 +21,13 @@ export const HOARD_PIECES = 8;
 export const CALIBRATE_SECONDS = 3;
 const FLOOR_MIN = -78;
 const FLOOR_MAX = -32;
-const WAKE_RATE = 1.15;       // annoyance per second for each "threshold" of extra noise
-const CALM_RATE = 0.32;       // annoyance that fades per second once the room is quiet again
+const WAKE_BASE = 0.5;        // annoyance per second just for being over the limit at all
+const WAKE_RATE = 0.9;        // plus this much per second for each "threshold" of extra noise
+const CALM_RATE = 0.12;       // annoyance that fades per second, only while the room is truly calm
+const CALM_BELOW = 0.6;       // ratio under which the room counts as calm (the "calm" zone)
 const MAX_OVER = 1.0;         // a door slam counts no more than a loud voice
-const SETTLE_QUIET_S = 4;     // quiet seconds needed before an awake dragon lies back down
-const SETTLE_ANIM_S = 2.5;    // the lying-down itself (still counts as calm)
 const TUNE_STEP_DB = 2;
-const TUNE_LIMIT_DB = 10;
+const TUNE_LIMIT_DB = 6;
 
 export function levelByKey(key) {
     return QUIET_LEVELS.find((l) => l.key === key) || QUIET_LEVELS[1];
@@ -63,66 +64,47 @@ export function tuneBy(current, direction) {
 
 /**
  * The dragon's ears. `step(db, dt)` takes one reading (dBFS) and the seconds since the last one and
- * returns { mood, ratio, annoyance, woke } where mood is asleep | stirring | peeking | awake | settling,
- * ratio is the smoothed loudness (0 at the floor, 1 at the limit), woke is true on the reading that
- * woke it and settle (0..1) is how far an awake dragon is towards lying back down. `held` (teacher speaking) freezes everything.
+ * returns { mood, ratio, annoyance, woke, wakes } where mood is asleep | stirring | peeking | awake,
+ * ratio is the smoothed loudness (0 at the floor, 1 at the limit) and woke is true on the one reading
+ * that woke it. Waking is final: an awake dragon never lies back down. `held` (teacher speaking)
+ * freezes everything.
  */
 export function createDragonEars({ floor = -55, margin = 12, tune = 0 } = {}) {
     const ears = {
         floor, margin, tune,
-        mood: 'asleep', ratio: 0, annoyance: 0, quietFor: 0, settleLeft: 0, wakes: 0,
+        mood: 'asleep', ratio: 0, annoyance: 0, wakes: 0,
         step(db, dt = 0.15, { held = false } = {}) {
             const seconds = Math.max(0, Math.min(1, Number(dt) || 0));
-            if (held) return ears.snapshot(false);
+            if (held || ears.mood === 'awake') return ears.snapshot(false);
             const raw = (Number(db) - ears.floor) / Math.max(3, ears.margin + ears.tune);
             const target = Math.max(0, raw);
             // Quick to hear, slow to forget: the meter rises fast and falls gently.
             const k = target > ears.ratio ? 0.6 : 0.22;
             ears.ratio += (target - ears.ratio) * k;
-            let woke = false;
 
-            if (ears.mood === 'awake') {
-                ears.quietFor = ears.ratio < 0.75 ? ears.quietFor + seconds : 0;
-                if (ears.quietFor >= SETTLE_QUIET_S) {
-                    ears.mood = 'settling';
-                    ears.settleLeft = SETTLE_ANIM_S;
-                    ears.annoyance = 0.2;
-                    ears.quietFor = 0;
-                }
-                return ears.snapshot(false);
-            }
-
-            if (raw > 1) ears.annoyance += (Math.min(raw, 1 + MAX_OVER) - 1) * WAKE_RATE * seconds;
-            else ears.annoyance -= CALM_RATE * seconds;
+            if (raw > 1) ears.annoyance += (WAKE_BASE + (Math.min(raw, 1 + MAX_OVER) - 1) * WAKE_RATE) * seconds;
+            else if (ears.ratio < CALM_BELOW) ears.annoyance -= CALM_RATE * seconds;
+            // In between (the "stirs" zone) the annoyance simply stays: chatter never calms it.
             ears.annoyance = Math.max(0, Math.min(1, ears.annoyance));
 
             if (ears.annoyance >= 1) {
                 ears.mood = 'awake';
-                ears.wakes += 1;
-                ears.quietFor = 0;
-                woke = true;
-                return ears.snapshot(woke);
-            }
-
-            if (ears.mood === 'settling') {
-                ears.settleLeft -= seconds;
-                if (ears.settleLeft > 0) return ears.snapshot(false);
+                ears.wakes = 1;
+                return ears.snapshot(true);
             }
             ears.mood = moodFor(ears.ratio, ears.annoyance);
             return ears.snapshot(false);
         },
         snapshot(woke) {
-            // settle: how far an awake dragon is towards lying back down (0..1), for the stage's countdown.
-            const settle = ears.mood === 'awake' ? Math.min(1, ears.quietFor / SETTLE_QUIET_S) : 0;
-            return { mood: ears.mood, ratio: ears.ratio, annoyance: ears.annoyance, woke, wakes: ears.wakes, settle };
+            return { mood: ears.mood, ratio: ears.ratio, annoyance: ears.annoyance, woke, wakes: ears.wakes };
         }
     };
     return ears;
 }
 
 function moodFor(ratio, annoyance) {
-    if (annoyance >= 0.55 || ratio >= 1.05) return 'peeking';
-    if (annoyance >= 0.15 || ratio >= 0.6) return 'stirring';
+    if (annoyance >= 0.5 || ratio >= 1) return 'peeking';
+    if (annoyance >= 0.12 || ratio >= CALM_BELOW) return 'stirring';
     return 'asleep';
 }
 

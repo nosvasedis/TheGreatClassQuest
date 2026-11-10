@@ -17,28 +17,42 @@ test('a quiet room keeps the dragon asleep', () => {
     assert.equal(ears.wakes, 0);
 });
 
-test('a short bump only stirs it; steady talk wakes it', () => {
+test('a short bump only stirs it; steady talk wakes it within seconds', () => {
     const ears = createDragonEars({ floor: -55, margin: 12 });
-    const bump = run(ears, -20, 0.45);
+    const bump = run(ears, -20, 0.3);
     assert.notEqual(bump.mood, 'awake');
     assert.notEqual(bump.mood, 'asleep');
-    run(ears, -55, 6);
+    run(ears, -55, 12);
     assert.equal(ears.mood, 'asleep');
-    const talk = run(ears, -38, 6);
+    const talk = run(ears, -40, 2.5);
     assert.equal(talk.mood, 'awake');
     assert.equal(ears.wakes, 1);
 });
 
-test('an awake dragon lies back down after a few quiet seconds', () => {
+test('waking is final: the dragon never lies back down', () => {
     const ears = createDragonEars({ floor: -55, margin: 12 });
-    run(ears, -30, 5);
-    assert.equal(ears.mood, 'awake');
+    let woke = 0;
+    for (let t = 0; t < 5; t += 0.15) if (ears.step(-30, 0.15).woke) woke += 1;
+    assert.equal(woke, 1);
+    assert.equal(run(ears, -60, 60).mood, 'awake');
+    assert.equal(ears.wakes, 1);
+});
+
+test('noise adds up: two bumps close together wake it', () => {
+    const ears = createDragonEars({ floor: -55, margin: 12 });
+    run(ears, -20, 0.45);
+    assert.notEqual(ears.mood, 'awake');
     run(ears, -55, 2);
+    run(ears, -20, 0.45);
     assert.equal(ears.mood, 'awake');
-    run(ears, -55, 4);
-    assert.equal(ears.mood, 'settling');
-    run(ears, -55, 4);
-    assert.equal(ears.mood, 'asleep');
+});
+
+test('chatter in the "stirs" zone never calms it down', () => {
+    const ears = createDragonEars({ floor: -55, margin: 12 });
+    run(ears, -20, 0.3);
+    const before = ears.annoyance;
+    run(ears, -45, 20); // ratio ~0.83: loud enough to stir, below the limit
+    assert.ok(ears.annoyance >= before - 1e-9);
 });
 
 test('the teacher speaking freezes the dragon', () => {
@@ -66,8 +80,8 @@ test('calibration, loudness and tuning stay in range', () => {
     assert.ok(Math.abs(rmsDb(new Float32Array(100).fill(0.5)) - -6.02) < 0.05);
     assert.equal(rmsDb([]), -100);
     assert.equal(tuneBy(0, 1), 2);
-    assert.equal(tuneBy(10, 1), 10);
-    assert.equal(tuneBy(-10, -1), -10);
+    assert.equal(tuneBy(6, 1), 6);
+    assert.equal(tuneBy(-6, -1), -6);
 });
 
 test('hoard pieces, clock and minutes', () => {
@@ -89,13 +103,4 @@ test('gifts are cleaned and described', () => {
     assert.deepEqual(normalizeGift({ hoard: { key: 'nope' } }).hoard, { key: 'none', amount: 0 });
     assert.equal(describeGift({ hoard: { key: 'stars', amount: 0.5 }, treat: 'A game' }), '+½ star for every hero here + A game');
     assert.equal(describeGift({ hoard: { key: 'quest', amount: 2 } }), "+2 to the class's Team Quest");
-});
-
-test('an awake dragon reports how far it is towards settling', () => {
-    const ears = createDragonEars({ floor: -55, margin: 12 });
-    run(ears, -30, 5);
-    assert.equal(ears.mood, 'awake');
-    const halfway = run(ears, -55, 2);
-    assert.ok(halfway.settle > 0 && halfway.settle < 1);
-    assert.equal(run(ears, -55, 8).settle, 0);
 });

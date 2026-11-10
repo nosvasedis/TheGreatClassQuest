@@ -1,20 +1,21 @@
 // ui/modals/quietDragon.js — The Quiet Dragon: a noise meter for the projector.
 // A dragon sleeps on its hoard while the class works. The laptop microphone measures only how loud
 // the room is (a few readings a second; nothing is recorded, kept or sent). The dragon stirs as the
-// room gets louder and wakes if it stays loud; while it is awake the calm clock waits. When the
-// class gives it the calm minutes the teacher asked for, it leaves the gift the teacher chose, and
-// the session counts as a completed class bounty. Nothing is ever taken away.
+// room gets louder and wakes if the noise adds up. Waking is final: the quiet time ends there with
+// no gift, and the teacher can try again. When the class gives it the calm minutes the teacher asked
+// for, it leaves the gift the teacher chose, and the session counts as a completed class bounty.
+// Nothing is ever taken away.
 // Opened from the projector remote (Projector Mode) or the optional header button.
 //
 // The stage, in order: the lullaby card (setup) → the dragon learns the room (3 s, live sound bars
 // and a countdown ring) → it sleeps (moon clock with hoard pips, the hush meter, a dock of controls)
-// → the gift (coins burst from the hoard, then the gift card). Keys: Space teacher speaking,
+// → the gift (coins burst from the hoard, then the gift card), or, if it wakes, the woke card. Keys: Space teacher speaking,
 // ↑/↓ deeper/lighter sleep, F full screen, Esc end. No sounds play while the microphone listens, so
 // the dragon never hears itself.
 // Rules: features/quietDragonCore.mjs · Art: ui/quietDragonArt.js · Gift: db/actions/quietDragon.js
 import { quietly } from '../../utils/runtimeMetrics.js';
 import '../../styles/quiet_dragon.css';
-import { playSound, playHeroFanfare } from '../../audio.js';
+import { playSound, playHeroFanfare, playWheelSfx } from '../../audio.js';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 import { quietDragonHtml } from '../quietDragonArt.js';
 import { lairBackHtml, lairFrontHtml, journeyHtml, flyCamera, settleCamera, CAVE_Z_END, easeInCamera } from '../quietDragonCave.js';
@@ -40,7 +41,6 @@ const MOOD_TEXT = {
     stirring: 'The dragon stirs…',
     peeking: 'One eye opens… shhh!',
     awake: 'The dragon is awake!',
-    settling: 'Drifting back to sleep…',
     gift: 'The dragon wakes gently, very pleased with you.'
 };
 
@@ -281,9 +281,8 @@ function sceneHtml(lite, journey) {
 
     <div class="qd-banner" data-qd-banner aria-live="assertive">
         <div class="qd-banner__awake">
-            <strong>Shhh!</strong>
-            <span>The dragon is awake. Stay quiet so it lies back down.</span>
-            <span class="qd-settle" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+            <strong>Too loud!</strong>
+            <span>The dragon woke up. The quiet time is over.</span>
         </div>
         <div class="qd-banner__held">
             <strong><i class="fas fa-person-chalkboard" aria-hidden="true"></i> Teacher speaking</strong>
@@ -296,7 +295,7 @@ function sceneHtml(lite, journey) {
         <button type="button" class="qd-ctl qd-ctl--hold" data-qd="hold" title="I am speaking: stop listening" aria-pressed="false"><i class="fas fa-person-chalkboard" aria-hidden="true"></i><span data-qd-hold-label>Teacher speaking</span><kbd>Space</kbd></button>
         <span class="qd-dock__group" role="group" aria-label="How deeply it sleeps">
             <button type="button" class="qd-ctl qd-ctl--icon" data-qd="tune-down" title="Lighter sleep: wakes more easily (↓)" aria-label="Lighter sleep"><i class="fas fa-ear-listen" aria-hidden="true"></i></button>
-            <span class="qd-depth" data-qd-depth aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="qd-depth" data-qd-depth aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
             <button type="button" class="qd-ctl qd-ctl--icon" data-qd="tune-up" title="Deeper sleep: wakes less easily (↑)" aria-label="Deeper sleep"><i class="fas fa-moon" aria-hidden="true"></i></button>
         </span>
         <button type="button" class="qd-ctl qd-ctl--icon" data-qd="fullscreen" title="Full screen (F)" aria-label="Full screen"><i class="fas fa-expand" aria-hidden="true"></i></button>
@@ -336,7 +335,7 @@ function setupHtml() {
         <span class="qd-panel__seal" aria-hidden="true">${levelIcon(1)}</span>
         <div>
             <h3 class="qd-panel__title">Let the dragon sleep</h3>
-            <p class="qd-panel__lede">Keep the room calm and the dragon leaves a gift. If it wakes, the clock simply waits until the room settles again.</p>
+            <p class="qd-panel__lede">Keep the room calm and the dragon leaves a gift. If the noise wakes it, the quiet time is over and there is no gift.</p>
         </div>
         <button type="button" class="qd-x" data-qd="close" aria-label="Close"><i class="fas fa-xmark"></i></button>
     </div>
@@ -458,6 +457,28 @@ function confirmEndHtml() {
     </div>`;
 }
 
+function wokeHtml() {
+    const calm = Math.floor(run?.calm || 0);
+    const goal = run?.goal || 0;
+    const pieces = hoardPiecesFor(goal ? calm / goal : 0);
+    return `
+    <div class="qd-panel__center qd-woke-card">
+        <span class="qd-woke-card__eye" aria-hidden="true"><i class="fas fa-eye"></i></span>
+        <p class="qd-gift-card__kicker">The quiet time is over</p>
+        <h3 class="qd-panel__title">The dragon woke up!</h3>
+        <div class="qd-stats">
+            <span><strong>${formatClock(calm)}</strong><small>calm time</small></span>
+            <span><strong>${formatClock(goal)}</strong><small>it needed</small></span>
+            <span><strong>${pieces}/${HOARD_PIECES}</strong><small>treasures</small></span>
+        </div>
+        <p class="qd-panel__lede">The room got too loud and the dragon woke. It keeps its hoard, so there is no gift this time.</p>
+        <div class="qd-actions qd-actions--stack">
+            <button type="button" class="qd-btn qd-btn--go" data-qd="again"><i class="fas fa-moon"></i> Try again from the start</button>
+            <button type="button" class="qd-btn qd-btn--ghost" data-qd="close">${ui?.from === 'wallpaper' ? 'Back to the projector' : 'Close'}</button>
+        </div>
+    </div>`;
+}
+
 function giftHtml(result) {
     const gift = run.gift;
     const hoardLine = hoardGiftLine(gift);
@@ -467,7 +488,6 @@ function giftHtml(result) {
     if (gift.hoard.key === 'gold' || gift.hoard.key === 'stars') hoardNote = paid ? `Given to ${heroes} hero${heroes === 1 ? '' : 'es'}.` : '';
     if (gift.hoard.key === 'quest') hoardNote = paid ? 'Added to this month’s Team Quest.' : '';
     if (!result) hoardNote = 'Placing it in the hoard…';
-    const wakes = run.ears?.wakes || 0;
     return `
     <div class="qd-panel__center qd-gift-card">
         <div class="qd-gift-card__chest">${chestIcon()}</div>
@@ -475,10 +495,9 @@ function giftHtml(result) {
         <h3 class="qd-panel__title">The dragon leaves a gift!</h3>
         <div class="qd-stats">
             <span><strong data-count="${run.minutes}">${run.minutes}</strong><small>calm minute${run.minutes === 1 ? '' : 's'}</small></span>
-            <span><strong data-count="${wakes}">${wakes}</strong><small>${wakes === 1 ? 'time it woke' : 'times it woke'}</small></span>
             <span><strong data-count="${run.heroIds.length}">${run.heroIds.length}</strong><small>hero${run.heroIds.length === 1 ? '' : 'es'} here</small></span>
         </div>
-        <p class="qd-panel__lede">${wakes ? `Every time it woke, the class let it settle again.` : 'It never woke once. A truly quiet class!'}</p>
+        <p class="qd-panel__lede">${run.calm >= run.goal ? 'It never woke once. A truly quiet class!' : 'The teacher ended the quiet time early with a gift.'}</p>
         <ul class="qd-gift-card__list">
             ${hoardLine ? `<li><span class="qd-gift__icon" aria-hidden="true">${giftIcon(gift.hoard.key)}</span><span><strong>${esc(hoardLine)}</strong>${hoardNote ? `<small${!result ? ' class="qd-pending"' : ''}>${esc(hoardNote)}</small>` : ''}${result && !paid ? '<small class="qd-error">This could not be saved. Check the connection and try again.</small>' : ''}</span>${paid ? '<i class="fas fa-circle-check qd-tick" aria-label="Saved"></i>' : ''}</li>` : ''}
             ${gift.treat ? `<li><span class="qd-gift__icon" aria-hidden="true">${giftIcon('none')}</span><span><strong>${esc(gift.treat)}</strong><small>From the teacher, in person.</small></span></li>` : ''}
@@ -555,9 +574,9 @@ function setMoodText(text) {
 }
 
 function paintDepth() {
-    const tuneSteps = Math.round((run?.tune || 0) / 2); // -5 … 5
+    const tuneSteps = Math.round((run?.tune || 0) / 2); // -3 … 3
     stage?.querySelectorAll('[data-qd-depth] i').forEach((dot, i) => {
-        const pos = i - 5;
+        const pos = i - 3;
         dot.classList.toggle('is-on', pos === tuneSteps);
         dot.classList.toggle('is-mid', pos === 0);
     });
@@ -592,6 +611,7 @@ function onClick(e) {
         case 'end': askEnd(); break;
         case 'resume': resume(); break;
         case 'gift-now': finish(); break;
+        case 'again': tryAgain(); break;
         case 'retry-pay': payGift(); break;
         default: break;
     }
@@ -751,7 +771,6 @@ async function beginSession() {
         last: performance.now(),
         shownSecond: -1,
         shownPieces: -1,
-        shownSettle: -1,
         lastMood: 'asleep',
         saidHalf: false,
         saidLast: false,
@@ -816,9 +835,10 @@ function tick() {
     if (stage.dataset.phase !== 'listening') return;
 
     const snap = run.ears.step(db, dt, { held: run.held });
+    if (snap.woke) { dragonWoke(snap); return; }
     if (countsAsCalm(snap.mood, run.held)) run.calm = Math.min(run.goal, run.calm + dt);
     // While the teacher speaks the dragon simply sleeps on; the clock and its ears wait.
-    paint(run.held ? { ...snap, mood: 'asleep', ratio: 0, annoyance: 0, settle: 0 } : snap);
+    paint(run.held ? { ...snap, mood: 'asleep', ratio: 0, annoyance: 0 } : snap);
     if (run.calm >= run.goal) finish();
 }
 
@@ -851,13 +871,16 @@ function paint(snap) {
         stage.dataset.mood = snap.mood;
         setMoodText(MOOD_TEXT[snap.mood] || '');
         const label = $('[data-qd-left-label]');
-        if (label) label.textContent = snap.mood === 'awake' ? 'the clock waits for calm' : 'calm minutes to go';
+        if (label) label.textContent = snap.mood === 'awake' ? 'left when it woke' : 'calm minutes to go';
         if (snap.mood === 'awake' && prev !== 'awake') {
             stage.classList.remove('is-jolt');
             void stage.offsetWidth;
             stage.classList.add('is-jolt');
         }
-        if (snap.mood === 'asleep' && prev === 'settling') showToast('Phew… it is asleep again.');
+        if (snap.mood === 'peeking' && prev !== 'peeking' && !(performance.now() - (run.peekToastAt || -1e9) < 8000)) {
+            run.peekToastAt = performance.now();
+            showToast('One eye is open. One more noise and it wakes!', 2200);
+        }
         run.lastMood = snap.mood;
     }
 
@@ -873,13 +896,6 @@ function paint(snap) {
     if (meter) meter.setAttribute('aria-valuenow', String(Math.round(x * 100)));
     const zone = x >= 1 / METER_MAX ? 'loud' : x >= 0.6 / METER_MAX ? 'stir' : 'calm';
     if (stage.dataset.zone !== zone) stage.dataset.zone = zone;
-
-    // Settle countdown: four dots light as the room stays quiet.
-    const settleDots = snap.mood === 'awake' ? Math.floor((snap.settle || 0) * 4 + 1e-6) : 0;
-    if (settleDots !== run.shownSettle) {
-        run.shownSettle = settleDots;
-        stage.querySelectorAll('.qd-settle i').forEach((d, i) => d.classList.toggle('is-on', i < settleDots));
-    }
 
     const second = Math.floor(run.calm);
     if (second !== run.shownSecond) {
@@ -932,6 +948,45 @@ function resume() {
     run.last = performance.now();
     stage.dataset.phase = 'listening';
     setPanel('');
+}
+
+// ─── The dragon wakes ─────────────────────────────────────────────────────────
+
+/** The noise woke it: the session is over for good (no grace, no gift). The teacher may start again. */
+function dragonWoke(snap) {
+    if (!run || !stage) return;
+    stopListening();
+    run.woke = true;
+    stage.classList.remove('is-held', 'qd-woke-card');
+    stage.dataset.phase = 'woke';
+    paint({ ...snap, mood: 'awake', annoyance: 1 });
+    // The microphone is off now, so the dragon may roar.
+    try { playWheelSfx('thunder'); } catch { /* sound is optional */ }
+    clearTimeout(run.wokeTimer);
+    run.wokeTimer = setTimeout(() => {
+        if (stage?.dataset.phase !== 'woke') return;
+        stage.classList.add('qd-woke-card');
+        setPanel(wokeHtml());
+        $('[data-qd="again"]')?.focus({ preventScroll: true });
+    }, stage.classList.contains('qd-stage--still') ? 200 : 1600);
+}
+
+/** A fresh start with the same class, level, minutes and gift. */
+function tryAgain() {
+    if (!stage || stage.dataset.phase !== 'woke') return;
+    clearTimeout(run?.wokeTimer);
+    run = null;
+    stage.classList.remove('qd-woke-card', 'is-jolt');
+    stage.dataset.mood = 'asleep';
+    stage.dataset.zone = 'calm';
+    setMoodText(MOOD_TEXT.asleep);
+    const label = $('[data-qd-left-label]');
+    if (label) label.textContent = 'calm minutes to go';
+    ['[data-qd-ear]', '[data-qd-wake]'].forEach((sel) => { const el = $(sel); if (el) el.style.transform = 'scaleX(0)'; });
+    const rail = $('[data-qd-rail]');
+    if (rail) rail.style.transform = 'translateX(0%)';
+    setHoard(0);
+    startSession();
 }
 
 // ─── The gift ─────────────────────────────────────────────────────────────────
@@ -991,16 +1046,16 @@ export const quietDragonTestHooks = {
     get stage() { return stage; },
     showMood(mood) {
         if (!stage) return;
-        run = run || { calm: 0, goal: 900, tune: 0, lastMood: 'asleep', shownSettle: -1 };
+        run = run || { calm: 0, goal: 900, tune: 0, lastMood: 'asleep' };
         stage.dataset.phase = 'listening';
         setPanel('');
         stage.dataset.mood = mood;
         setMoodText(MOOD_TEXT[mood] || '');
         const label = $('[data-qd-left-label]');
-        if (label) label.textContent = mood === 'awake' ? 'the clock waits for calm' : 'calm minutes to go';
+        if (label) label.textContent = mood === 'awake' ? 'left when it woke' : 'calm minutes to go';
         paintDepth();
     },
-    showProgress(p, ratio = 0.3, { annoyance = null, settle = 0.5 } = {}) {
+    showProgress(p, ratio = 0.3, { annoyance = null } = {}) {
         if (!stage) return;
         setHoard(p);
         const fill = $('.qd-ring__fill');
@@ -1013,12 +1068,10 @@ export const quietDragonTestHooks = {
         const a = annoyance ?? Math.min(1, Math.max(0, (ratio - 0.5) * 1.1));
         $('[data-qd-wake]').style.transform = `scaleX(${stage.dataset.mood === 'awake' ? 1 : a})`;
         stage.dataset.zone = x >= 1 / METER_MAX ? 'loud' : x >= 0.6 / METER_MAX ? 'stir' : 'calm';
-        const dots = stage.dataset.mood === 'awake' ? Math.floor(settle * 4) : 0;
-        stage.querySelectorAll('.qd-settle i').forEach((d, i) => d.classList.toggle('is-on', i < dots));
     },
-    showGift(gift, heroes = 23, wakes = 2) {
+    showGift(gift, heroes = 23) {
         if (!stage) return;
-        run = { gift: normalizeGift(gift), minutes: 15, heroIds: Array.from({ length: heroes }, (_, i) => `h${i}`), ears: { wakes } };
+        run = { gift: normalizeGift(gift), minutes: 15, calm: 900, goal: 900, heroIds: Array.from({ length: heroes }, (_, i) => `h${i}`) };
         stage.dataset.phase = 'gift';
         stage.dataset.mood = 'gift';
         setMoodText(MOOD_TEXT.gift);
@@ -1031,6 +1084,13 @@ export const quietDragonTestHooks = {
         if (fill) fill.style.strokeDashoffset = '0';
         setPanel(giftHtml({ paid: true, heroes }));
         countUp();
+    },
+    showWoke(p = 0.55, { card = true } = {}) {
+        if (!stage) return;
+        run = { calm: 900 * p, goal: 900, tune: 0, lastMood: 'peeking', shownSecond: -1, shownPieces: -1 };
+        stage.dataset.phase = 'woke';
+        paint({ mood: 'awake', ratio: 1.4, annoyance: 1 });
+        if (card) { stage.classList.add('qd-woke-card'); setPanel(wokeHtml()); } else setPanel('');
     },
     showEnding() { if (stage) { run = run || { calm: 420 }; stage.dataset.phase = 'ending'; setPanel(confirmEndHtml()); } },
     showCalibrating(p = 0.45) {

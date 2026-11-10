@@ -1,5 +1,5 @@
 // Quiet Dragon preview: the real stage with a sample class, no microphone and no Firebase writes.
-// /quiet-dragon-preview.html?view=setup|asleep|stirring|peeking|awake|held|calibrating|ending|gift[&p=0.6][&lite=1][&shot=1]
+// /quiet-dragon-preview.html?view=setup|asleep|stirring|peeking|awake|held|calibrating|ending|gift|woke|waking[&p=0.6][&lite=1][&shot=1]
 import * as state from './state.js';
 import { openQuietDragon, quietDragonTestHooks as hooks } from './ui/modals/quietDragon.js';
 
@@ -14,7 +14,7 @@ state.setAllSchoolClasses([cls]);
 state.setAllStudents(names.map((name, i) => ({ id: `s${i}`, name, classId: 'c1' })));
 state.set('globalSelectedClassId', 'c1');
 
-const links = ['setup', 'calibrating', 'asleep', 'stirring', 'peeking', 'awake', 'held', 'ending', 'gift'];
+const links = ['setup', 'calibrating', 'asleep', 'stirring', 'peeking', 'awake', 'held', 'ending', 'gift', 'waking', 'woke'];
 document.getElementById('pv-toolbar').innerHTML = links.map((v) => `<a href="?view=${v}${params.has('lite') ? '&lite=1' : ''}">${v}</a>`).join('');
 
 openQuietDragon({ from: 'wallpaper', lite: params.has('lite'), journey: params.has('journey') });
@@ -23,6 +23,7 @@ setTimeout(() => {
     if (view === 'calibrating') hooks.showCalibrating();
     else if (view === 'ending') { hooks.showMood('asleep'); hooks.showProgress(p); hooks.showEnding(); }
     else if (view === 'gift') hooks.showGift({ hoard: { key: params.get('hoard') || 'gold', amount: Number(params.get('amount') || 2) }, treat: params.get('treat') ?? 'A game at the end of the lesson' });
+    else if (view === 'woke' || view === 'waking') hooks.showWoke(p, { card: view === 'woke' });
     else if (view === 'held') { hooks.showMood('asleep'); hooks.showProgress(p, 0); hooks.hold(true); }
     else if (view !== 'setup') {
         const ratio = { asleep: 0.25, stirring: 0.7, peeking: 1.05, awake: 1.4 }[view] ?? 0.3;

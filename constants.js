@@ -243,7 +243,7 @@ export const WHEEL_RARITY_CONFIG = {
     omen: [
         { label: 'Omen',      color: '#ffb347', bg: '#2b0b2e', glow: '#ff8a3d99' },   // Comet ember on eclipse plum
     ],
-    // The Envoy's wheel: a guild with no heroes in the class sends gifts for everyone.
+    // The Envoy's wheel: a guild with no heroes in the class sends a rival Envoy (mostly small mischief).
     envoy: [
         { label: 'Envoy',     color: '#93c5fd', bg: '#1b2a4a', glow: '#93c5fd80' },   // Moonlit letter blue
         { label: 'Envoy',     color: '#c4b5fd', bg: '#2a2250', glow: '#c4b5fd80' },   // Wax-seal lilac

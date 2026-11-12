@@ -105,8 +105,10 @@ function _luminance(hex) {
  *           The Eclipse, the Scales and the Thief hit whoever leads the class this month, so they
  *           help the guilds behind catch up. Calm and gilded wheels only carry bright Omens.
  *   envoy:  a guild with no heroes in the class sends its Envoy instead: a wheel for every hero
- *           in the class, whatever their guild. Mostly gifts, a few tolls (`harsh`), and one
- *           rare trick (`envoyRare`) that swaps the top and bottom guilds' Glory.
+ *           in the class, whatever their guild. The Envoy is a rival, so it mostly brings small
+ *           mischief to the other guilds (`harsh`: −1 or −2 Glory, a little gold), sometimes a
+ *           laugh, only two small gifts (`envoyGift`), and one rare trick (`envoyRare`) that swaps
+ *           the top and bottom guilds' Glory.
  *
  * Fair by design: Glory always goes to (or comes from) each guild member in the spinning class,
  * so every child in every guild faces the same chances, whatever the guild's size. A storm only
@@ -202,19 +204,17 @@ const ALL_SEGMENTS = [
     { id: 'swap_of_fates',     emoji: '🔄', label: 'Swap of Fates',      description: 'This guild and another guild here trade places: their Glory this month swaps (up to 8 per hero). Lucky if you are behind!', rarity: 'omen', category: 'omen', harsh: true, weight: 1, favoredOk: false, effect: (ctx) => swapOfFates(ctx) },
     { id: 'topsy_turvy',       emoji: '🙃', label: 'Topsy-Turvy',        description: 'The top and bottom guilds in this class swap their Glory this month (up to 8 per hero)!', rarity: 'omen', category: 'omen', harsh: true, weight: 1, favoredOk: false, effect: (ctx) => topsyTurvy(ctx) },
     { id: 'the_void',          emoji: '🌌', label: 'The Void',           description: 'The rarest dark sky: the Void swallows half of each guildmate\'s Glory this month (up to 8 each).', rarity: 'omen', category: 'omen', harsh: true, weight: 1, favoredOk: false, effect: (ctx) => theVoid(ctx) },
-    // ── The Envoy's wheel: a guild with no heroes here sends gifts (and a few tolls) for the whole class ──
-    { id: 'envoy_dove',        emoji: '🕊️', label: 'Peace Dove',         description: 'Every hero in this class earns +1 Glory for their own guild.', rarity: 'envoy', category: 'envoy', weight: 3, effect: (ctx) => envoyGlory(ctx, 1) },
-    { id: 'envoy_map',         emoji: '🗺️', label: "Envoy's Map",        description: 'A map from far away: +4 Team Quest bonus stars for the class!', rarity: 'envoy', category: 'envoy', weight: 3, effect: (ctx) => classQuestBonus(ctx, 4) },
-    { id: 'envoy_parcel',      emoji: '📦', label: "Envoy's Parcel",     description: 'One hero from every guild in this class gets +10 gold.', rarity: 'envoy', category: 'envoy', weight: 3, effect: (ctx) => envoyPerGuild(ctx, { gold: 10 }) },
-    { id: 'envoy_letter',      emoji: '📜', label: 'Letter from Afar',   description: '3 heroes in this class get +5 gold, with warm greetings.', rarity: 'envoy', category: 'envoy', weight: 2, effect: (ctx) => envoyGold(ctx, 3, 5) },
-    { id: 'envoy_banner',      emoji: '🚩', label: 'Distant Banner',     description: 'The envoy cheers for the underdog: +2 Glory for each hero of the guild that is last in this class this month.', rarity: 'envoy', category: 'envoy', weight: 1, effect: (ctx) => envoyBanner(ctx) },
-    { id: 'envoy_lantern',     emoji: '🏮', label: 'Wishing Lantern',    description: 'One hero from every guild in this class gets +1 star!', rarity: 'envoy', category: 'envoy', weight: 1, effect: (ctx) => envoyPerGuild(ctx, { stars: 1 }) },
-    { id: 'envoy_feast',       emoji: '🍯', label: "Travellers' Feast",  description: 'Every hero in this class gets +5 gold!', rarity: 'envoy', category: 'envoy', weight: 1, effect: (ctx) => envoyGold(ctx, Infinity, 5) },
-    { id: 'envoy_toll',        emoji: '🧾', label: "Envoy's Toll",       description: 'The envoy collects a toll: −1 Glory from every hero in this class (only Glory earned this month).', rarity: 'envoy', category: 'envoy', harsh: true, weight: 1, effect: (ctx) => envoyToll(ctx, 1) },
-    { id: 'envoy_spy',         emoji: '🕵️', label: 'Spy from Afar',      description: 'A spy slips into the leading guild\'s camp: −3 Glory for each of its heroes here.', rarity: 'envoy', category: 'envoy', harsh: true, weight: 1, effect: (ctx) => envoySpy(ctx, 3) },
-    { id: 'envoy_fog',         emoji: '🌫️', label: 'Sour Fog',           description: 'A fog rolls in from far away: one hero from every guild here drops 10 gold.', rarity: 'envoy', category: 'envoy', harsh: true, weight: 1, effect: (ctx) => envoyFog(ctx, 10) },
+    // ── The Envoy's wheel: a guild with no heroes here sends its Envoy, a rival who mostly brings small mischief ──
+    // Mischief (`harsh`) fills most of the wheel and is always small. Gifts (`envoyGift`) show up once each, so only two wedges in fourteen give.
+    { id: 'envoy_toll',        emoji: '🧾', label: "Envoy's Toll",       description: 'The rival envoy collects a toll: −1 Glory from every hero in this class (only Glory earned this month).', rarity: 'envoy', category: 'envoy', harsh: true, weight: 2, effect: (ctx) => envoyToll(ctx, 1) },
+    { id: 'envoy_spy',         emoji: '🕵️', label: 'Spy from Afar',      description: 'A spy slips into the leading guild\'s camp: −2 Glory for each of its heroes here.', rarity: 'envoy', category: 'envoy', harsh: true, weight: 3, effect: (ctx) => envoySpy(ctx, 2) },
+    { id: 'envoy_rumour',      emoji: '🗣️', label: 'Whispered Rumour',   description: 'The envoy whispers a rumour about one guild here: −1 Glory for each of its heroes.', rarity: 'envoy', category: 'envoy', harsh: true, weight: 3, effect: (ctx) => envoyRumour(ctx, 1) },
+    { id: 'envoy_fog',         emoji: '🌫️', label: 'Sour Fog',           description: 'A fog rolls in from far away: one hero from every guild here drops 5 gold.', rarity: 'envoy', category: 'envoy', harsh: true, weight: 2, effect: (ctx) => envoyFog(ctx, 5) },
+    { id: 'envoy_gate',         emoji: '🏰', label: 'Border Guards',      description: 'The envoy\'s guards stop 3 heroes at the border: each pays 5 gold.', rarity: 'envoy', category: 'envoy', harsh: true, weight: 2, effect: (ctx) => envoyGuards(ctx, 3, 5) },
     { id: 'envoy_trick',       emoji: '🃏', label: "Envoy's Trick",      description: 'The rarest card in the envoy\'s sleeve: the top and bottom guilds in this class swap their Glory this month (up to 8 per hero)!', rarity: 'envoy', category: 'envoy', harsh: true, envoyRare: true, weight: 1, effect: (ctx) => topsyTurvy(ctx, 'envoy_trick') },
-    { id: 'envoy_jest',        emoji: '🤹', label: "Envoy's Juggling",   description: 'The envoy juggles for the class. Big laughs, and nothing else changes!', rarity: 'envoy', category: 'envoy', weight: 1, effect: () => ({ gloryDelta: 0, echo: { kind: 'none' }, description: 'The envoy juggles three apples and a teapot. The whole class laughs, and nothing else changes!' }) },
+    { id: 'envoy_jest',        emoji: '🤹', label: "Envoy's Juggling",   description: 'The envoy juggles for the class. Big laughs, and nothing else changes!', rarity: 'envoy', category: 'envoy', weight: 2, effect: () => ({ gloryDelta: 0, echo: { kind: 'none' }, description: 'The envoy juggles three apples and a teapot. The whole class laughs, and nothing else changes!' }) },
+    { id: 'envoy_letter',      emoji: '📜', label: 'Letter from Afar',   description: 'A friendly letter after all: 2 heroes in this class get +5 gold.', rarity: 'envoy', category: 'envoy', envoyGift: true, weight: 1, effect: (ctx) => envoyGold(ctx, 2, 5) },
+    { id: 'envoy_banner',      emoji: '🚩', label: 'Distant Banner',     description: 'The envoy cheers for the underdog: +1 Glory for each hero of the guild that is last in this class this month.', rarity: 'envoy', category: 'envoy', envoyGift: true, weight: 1, effect: (ctx) => envoyBanner(ctx, 1) },
 ];
 
 const SEGMENTS_BY_ID = new Map(ALL_SEGMENTS.map((seg) => [seg.id, seg]));
@@ -790,14 +790,6 @@ function _envoyNobody() {
     return { gloryDelta: 0, echo: { kind: 'none' }, description: 'The envoy found no guild heroes in this class to visit.' };
 }
 
-async function envoyGlory(ctx, perHero) {
-    const heroes = ctx.classStudents || [];
-    if (!heroes.length) return _envoyNobody();
-    const byGuild = await giveGlory(ctx, heroes, perHero, 'envoy_dove', 'wheel_envoy');
-    const total = _round2(Object.values(byGuild).reduce((s, n) => s + (Number(n) || 0), 0));
-    return { gloryDelta: 0, classGlory: total, affectedStudents: heroes.map((s) => s.id), echo: { kind: 'none' }, description: `A peace dove circles the class: all ${heroes.length} heroes here earn +${perHero} Glory for their own guild.` };
-}
-
 async function envoyGold(ctx, count, amount) {
     const heroes = ctx.classStudents || [];
     if (!heroes.length) return _envoyNobody();
@@ -805,30 +797,16 @@ async function envoyGold(ctx, count, amount) {
     return { ...r, echo: { kind: 'none' }, description: count >= heroes.length ? `Every hero in this class gets +${amount} gold!` : `With greetings from far away: ${r.description}` };
 }
 
-/** One random hero from every guild in this class gets the gift (fair across guilds). */
-async function envoyPerGuild(ctx, { gold = 0, stars = 0 } = {}) {
-    const heroes = ctx.classStudents || [];
-    if (!heroes.length) return _envoyNobody();
-    const byGuild = new Map();
-    heroes.forEach((s) => byGuild.set(s.guildId, [...(byGuild.get(s.guildId) || []), s]));
-    const picked = [...byGuild.values()].map((list) => list[Math.floor(Math.random() * list.length)]);
-    const r = stars
-        ? await randomStars({ ...ctx, guildStudents: picked }, picked.length, stars)
-        : await randomGold({ ...ctx, guildStudents: picked }, picked.length, gold);
-    const what = stars ? `+${stars} star${stars === 1 ? '' : 's'}` : `+${gold} gold`;
-    return { ...r, echo: { kind: 'none' }, description: `The envoy chooses one hero from every guild here: ${picked.map((s) => s.name).join(', ')} each get ${what}.` };
-}
-
-async function envoyBanner(ctx) {
+async function envoyBanner(ctx, perHero = 1) {
     const { lastAlone, st } = _standingsShape(ctx.classId);
     const target = lastAlone || st[0]?.gid;
     if (!target) return _envoyNobody();
     const heroes = _classMembersOf(target, ctx.classId);
-    const byGuild = await giveGlory(ctx, heroes, 2, 'envoy_banner', 'wheel_envoy');
-    return { gloryDelta: 0, classGlory: _round2(byGuild[target]), echo: { kind: 'none' }, description: `The envoy raises a banner for ${_guildName(target)}${lastAlone ? ', last in this class this month' : ''}: +2 Glory for each of its ${heroes.length} hero${heroes.length === 1 ? '' : 'es'} here!` };
+    const byGuild = await giveGlory(ctx, heroes, perHero, 'envoy_banner', 'wheel_envoy');
+    return { gloryDelta: 0, classGlory: _round2(byGuild[target]), echo: { kind: 'none' }, description: `The envoy raises a banner for ${_guildName(target)}${lastAlone ? ', last in this class this month' : ''}: +${perHero} Glory for each of its ${heroes.length} hero${heroes.length === 1 ? '' : 'es'} here!` };
 }
 
-// The Envoy's tolls: a guild far away can bring trouble too (only Glory earned this month, gold only from heroes who have some).
+// The Envoy's mischief: a rival guild far away mostly brings small trouble (only Glory earned this month, gold only from heroes who have some).
 
 async function envoyToll(ctx, perHero) {
     const heroes = ctx.classStudents || [];
@@ -868,6 +846,31 @@ async function envoyFog(ctx, amount) {
     if (!picked.length) return { gloryDelta: 0, echo: { kind: 'none' }, description: 'A sour fog rolls in… but nobody here has gold to drop!' };
     const r = await loseGold({ ...ctx, guildStudents: picked }, picked.length, amount);
     return { ...r, stormHit: false, loss: true, echo: { kind: 'none' }, description: `A sour fog rolls in from far away: ${picked.map((s) => s.name).join(', ')} each drop up to ${amount} gold.` };
+}
+
+/** A rumour about one guild here (picked at random, so no guild is singled out every time): a little Glory from each of its heroes. */
+async function envoyRumour(ctx, perHero) {
+    const guilds = GUILD_IDS.filter((g) => _classMembersOf(g, ctx.classId).length);
+    if (!guilds.length) return _envoyNobody();
+    const target = guilds[Math.floor(Math.random() * guilds.length)];
+    const heroes = _classMembersOf(target, ctx.classId);
+    const taken = await _takeEach(ctx, heroes.map((s) => ({ s, n: perHero })), 'envoy_rumour', 'wheel_envoy');
+    const name = _guildName(target);
+    return {
+        gloryDelta: 0, classGlory: -taken.total, loss: taken.total > 0, echo: { kind: 'none' },
+        decision: `Rumour about ${name}`,
+        description: taken.total > 0
+            ? `The envoy whispers a silly rumour about ${name}: up to ${perHero} Glory from each of its ${heroes.length} ${_heroWord(heroes.length)} here (−${taken.total} in all).`
+            : `The envoy whispers a rumour about ${name}… but nobody believes it. No Glory lost!`,
+    };
+}
+
+/** The Border Guards: a few random heroes here (only those with gold) pay a little gold. */
+async function envoyGuards(ctx, count, amount) {
+    const heroes = (ctx.classStudents || []).filter((s) => _goldOf(s.id) > 0);
+    if (!heroes.length) return { gloryDelta: 0, echo: { kind: 'none' }, description: 'The border guards check every pocket… but nobody here has gold to pay. They wave the class through!' };
+    const r = await loseGold({ ...ctx, guildStudents: heroes }, Math.min(count, heroes.length), amount);
+    return { ...r, stormHit: false, loss: true, echo: { kind: 'none' }, description: `The envoy's guards stop heroes at the border: ${r.description}` };
 }
 
 // ── Treasure helpers ──────────────────────────────────────────────────────────
@@ -1252,7 +1255,7 @@ function _windNoteHtml() {
         + '</span></div>';
 }
 
-/** How a wedge is painted: an Envoy's toll wears the storm's colours, so the class sees the risk. */
+/** How a wedge is painted: the Envoy's mischief wears the storm's colours, so the class sees the risk. */
 function _wedgeLook(seg) {
     return seg?.rarity === 'envoy' && seg.harsh ? 'storm' : seg?.rarity;
 }
@@ -2300,7 +2303,7 @@ function _renderCurrentGuildMembers() {
             <div class="fw-guild-members__header">${guildDef?.name || 'This guild'}'s Envoy<span class="fw-guild-members__count">0</span></div>
             <div class="fw-envoy-note">
                 <span class="fw-envoy-note__seal" aria-hidden="true">📜</span>
-                <p><b>No ${guildDef?.name || 'guild'} heroes in this class.</b> Their Envoy rides in with a wheel for ${heroes ? `all ${heroes} heroes here, whatever their guild` : 'the class'}: mostly gifts, a few tolls, and sometimes one rare trick.</p>
+                <p><b>No ${guildDef?.name || 'guild'} heroes in this class.</b> Their Envoy, a rival from far away, rides in with a wheel for ${heroes ? `all ${heroes} heroes here, whatever their guild` : 'the class'}: mostly small mischief, a laugh, only a gift or two, and sometimes one rare trick.</p>
             </div>`;
         return;
     }
@@ -2629,7 +2632,7 @@ function _renderWheelLegend() {
     const chips = order
         .filter(rarity => counts.get(rarity))
         .map(rarity => {
-            const conf = rarity === 'toll' ? { ...getRarityPalette('storm', 0), label: 'Toll' } : getRarityPalette(rarity, 0);
+            const conf = rarity === 'toll' ? { ...getRarityPalette('storm', 0), label: 'Mischief' } : getRarityPalette(rarity, 0);
             return `<span class="fw-wheel-legend__chip" data-rarity="${rarity === 'toll' ? 'storm' : rarity}" style="--chip-color:${conf.color};--chip-bg:${conf.bg};">
                 <span class="fw-wheel-legend__gem"></span>${conf.label}<b>×${counts.get(rarity)}</b>
             </span>`;

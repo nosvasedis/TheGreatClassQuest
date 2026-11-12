@@ -8,7 +8,7 @@
 //   storm:  a small loss (a little Glory or gold), some of which can be braved
 //   omen:   super rare (about one wheel in three hides one): a big Glory swing, up or down
 // A guild with no heroes in the class spins the Envoy's wheel instead (composeEnvoyWheel):
-// gifts for the whole class, a few tolls, and on some wheels one rare trick.
+// a rival's wheel of mostly small mischief, a laugh, two small gifts, and on some wheels one rare trick.
 
 export const TREASURE_RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
 export const FAMILY_RARITIES = ['storm', 'twist', 'trial'];
@@ -120,9 +120,11 @@ export function composeWheel(catalog, rarityWeights = {}, { mode = 'normal', rng
 }
 
 /**
- * The Envoy's wheel: for a guild with no heroes in the spinning class. Every envoy wedge shows up
- * once (the `envoyRare` trick only on ENVOY_RARE_CHANCE of wheels), the rest of the `size` wedges
- * are gifts drawn by weight. No wedge sits beside itself, and no two tolls (`harsh`) sit side by side.
+ * The Envoy's wheel: for a guild with no heroes in the spinning class. The Envoy is a rival, so
+ * the wheel is mostly small mischief for the guilds here. Every envoy wedge shows up once (the
+ * `envoyRare` trick only on ENVOY_RARE_CHANCE of wheels); gifts (`envoyGift`) show up only that
+ * once, and the rest of the `size` wedges are mischief and laughs drawn by weight. No wedge sits
+ * beside itself, and the two gifts never sit side by side.
  */
 export const ENVOY_RARE_CHANCE = 0.35;
 
@@ -130,31 +132,39 @@ export function composeEnvoyWheel(catalog, { size = 14, rng = defaultRng } = {})
     const all = catalog.filter((seg) => seg.rarity === 'envoy');
     if (!all.length) return [];
     const pool = all.filter((seg) => !seg.envoyRare || rng() < ENVOY_RARE_CHANCE);
-    const gifts = all.filter((seg) => !seg.harsh && !seg.envoyRare);
-    const total = gifts.reduce((s, seg) => s + Math.max(0, seg.weight ?? 1), 0);
+    const fill = all.filter((seg) => !seg.envoyGift && !seg.envoyRare);
+    const total = fill.reduce((s, seg) => s + Math.max(0, seg.weight ?? 1), 0);
     const bag = shuffle([...pool], rng).slice(0, size);
-    while (bag.length < size && gifts.length) {
+    while (bag.length < size && fill.length) {
         let roll = rng() * total;
-        let pick = gifts[gifts.length - 1];
-        for (const seg of gifts) { roll -= Math.max(0, seg.weight ?? 1); if (roll <= 0) { pick = seg; break; } }
+        let pick = fill[fill.length - 1];
+        for (const seg of fill) { roll -= Math.max(0, seg.weight ?? 1); if (roll <= 0) { pick = seg; break; } }
         bag.push(pick);
     }
-    shuffle(bag, rng);
-    const clash = (a, b) => a.id === b.id || (a.harsh && b.harsh);
-    for (let pass = 0; pass < 12; pass += 1) {
-        let changed = false;
-        for (let i = 0; i < bag.length; i += 1) {
-            const k = (i + 1) % bag.length;
-            if (!clash(bag[i], bag[k])) continue;
-            const j = bag.findIndex((seg, m) => m !== i && m !== k && !clash(seg, bag[i])
-                && !clash(bag[k], bag[(m + bag.length - 1) % bag.length]) && !clash(bag[k], bag[(m + 1) % bag.length])
-                && !clash(seg, bag[(k + 1) % bag.length]));
-            if (j < 0) continue;
-            [bag[k], bag[j]] = [bag[j], bag[k]];
-            changed = true;
+    const clash = (a, b) => a.id === b.id || (a.envoyGift && b.envoyGift);
+    // Deal the wedges round the wheel: each step takes the most-left kind that does not clash with
+    // the one before (ties at random), so repeats spread out evenly. A few tries fix the seam.
+    let best = null;
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+        const left = shuffle([...bag], rng);
+        const out = [];
+        while (left.length) {
+            const counts = new Map();
+            left.forEach((seg) => counts.set(seg.id, (counts.get(seg.id) || 0) + 1));
+            const prev = out[out.length - 1];
+            let at = -1;
+            left.forEach((seg, m) => {
+                if (prev && clash(prev, seg)) return;
+                if (at < 0 || counts.get(seg.id) > counts.get(left[at].id)) at = m;
+            });
+            if (at < 0) at = 0;
+            out.push(left.splice(at, 1)[0]);
         }
-        if (!changed) break;
+        const bad = out.filter((seg, k) => clash(seg, out[(k + 1) % out.length])).length;
+        if (!best || bad < best.bad) best = { out, bad };
+        if (!bad) break;
     }
+    bag.splice(0, bag.length, ...best.out);
     return bag.map((seg) => ({ ...seg, paletteIndex: Math.floor(rng() * 3) }));
 }
 

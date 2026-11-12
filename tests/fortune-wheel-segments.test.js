@@ -240,29 +240,33 @@ test('Omens are rare: at most one per wheel, about a third of wheels, and never 
   }
 });
 
-test('the Envoy\'s wheel: every wedge once, the rare trick on about a third of wheels, no twin or two tolls side by side', async () => {
+test('the Envoy\'s wheel: mostly mischief, each gift once and never side by side, the rare trick on about a third of wheels', async () => {
   const { composeEnvoyWheel, ENVOY_RARE_CHANCE } = await loadSegments();
-  const gifts = ['dove', 'map', 'parcel', 'letter', 'banner', 'lantern', 'feast', 'jest'].map((id, i) => ({ id: `envoy_${id}`, rarity: 'envoy', weight: i < 3 ? 3 : 1 }));
-  const tolls = ['toll', 'spy', 'fog'].map((id) => ({ id: `envoy_${id}`, rarity: 'envoy', harsh: true, weight: 1 }));
+  const gifts = ['letter', 'banner'].map((id) => ({ id: `envoy_${id}`, rarity: 'envoy', envoyGift: true, weight: 1 }));
+  const jest = { id: 'envoy_jest', rarity: 'envoy', weight: 2 };
+  const tolls = [['toll', 2], ['spy', 3], ['rumour', 3], ['fog', 2], ['gate', 2]].map(([id, weight]) => ({ id: `envoy_${id}`, rarity: 'envoy', harsh: true, weight }));
   const trick = { id: 'envoy_trick', rarity: 'envoy', harsh: true, envoyRare: true, weight: 1 };
-  const catalog = [...buildCatalog(), ...gifts, ...tolls, trick];
+  const catalog = [...buildCatalog(), ...gifts, jest, ...tolls, trick];
   let tricks = 0;
+  let harsh = 0;
   for (let i = 0; i < 1500; i += 1) {
     const segs = composeEnvoyWheel(catalog);
     assert.equal(segs.length, 14);
     assert.ok(segs.every((s) => s.rarity === 'envoy'));
-    [...gifts, ...tolls].forEach((g) => assert.ok(segs.some((s) => s.id === g.id), `${g.id} on the wheel`));
-    tolls.forEach((t) => assert.equal(segs.filter((s) => s.id === t.id).length, 1, 'each toll once'));
+    [...gifts, jest, ...tolls].forEach((g) => assert.ok(segs.some((s) => s.id === g.id), `${g.id} on the wheel`));
+    gifts.forEach((g) => assert.equal(segs.filter((s) => s.id === g.id).length, 1, 'each gift once'));
     const t = segs.filter((s) => s.id === 'envoy_trick').length;
     assert.ok(t <= 1);
     tricks += t;
+    harsh += segs.filter((s) => s.harsh).length;
     segs.forEach((s, k) => {
       const next = segs[(k + 1) % segs.length];
       assert.notEqual(s.id, next.id);
-      assert.ok(!(s.harsh && next.harsh), 'two tolls side by side');
+      assert.ok(!(s.envoyGift && next.envoyGift), 'two gifts side by side');
     });
   }
   assert.ok(Math.abs(tricks / 1500 - ENVOY_RARE_CHANCE) < 0.05, `${tricks} of 1500 Envoy wheels had the trick`);
+  assert.ok(harsh / (1500 * 14) > 0.65, 'most of the Envoy\'s wedges are mischief');
 });
 
 test('live Omens: big but capped at OMEN_MAX_SWING, harsh ones only take this month\'s Glory; the Envoy can take a little', () => {
@@ -284,11 +288,13 @@ test('live Omens: big but capped at OMEN_MAX_SWING, harsh ones only take this mo
   assert.doesNotMatch(effects, /takeGlory\((?!\[s\.id\])/, 'Omens and the Envoy take only through _takeEach');
 
   const envoy = wedges.filter((w) => w.rarity === 'envoy');
-  assert.ok(envoy.length >= 12, 'envoy wedges');
+  assert.ok(envoy.length >= 8, 'envoy wedges');
   const harsh = envoy.filter((w) => /harsh: true/.test(w.line));
-  assert.ok(harsh.length >= 3 && harsh.length <= envoy.length / 3, 'the Envoy mostly gives');
+  assert.ok(harsh.length > envoy.length / 2, 'the Envoy is a rival: mostly mischief');
+  assert.ok(envoy.filter((w) => /envoyGift: true/.test(w.line)).length <= 2, 'only a gift or two');
+  envoy.filter((w) => /envoyGift: true/.test(w.line)).forEach((w) => assert.doesNotMatch(w.line, /harsh: true|star/i, `${w.id} is a small gift, never stars`));
   assert.equal(envoy.filter((w) => /envoyRare: true/.test(w.line)).length, 1);
-  envoy.filter((w) => !/harsh: true/.test(w.line)).forEach((w) => assert.doesNotMatch(w.line, /Toll|Spy|Fog|topsy/i, `${w.id} is a gift`));
+  envoy.filter((w) => !/harsh: true/.test(w.line)).forEach((w) => assert.doesNotMatch(w.line, /Toll|Spy|Fog|Rumour|Guards|topsy/i, `${w.id} is not mischief`));
 });
 
 test('a guild with no heroes in the class gets the Envoy, and the result card never hides heroes behind "+N more"', () => {

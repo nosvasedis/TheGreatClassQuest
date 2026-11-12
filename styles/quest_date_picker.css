@@ -1,0 +1,276 @@
+/* ╔══════════════════════════════════════════════════════════════════════════╗
+   ║  QUEST BOARD: the test date calendar                                     ║
+   ║  A paper wall calendar with a red ring binding. Lesson days wear a blue  ║
+   ║  pin, closures are hatched, today is ringed in blue ink and the picked   ║
+   ║  day is stamped in red. Lazy-loaded by features/questDatePicker.js.      ║
+   ╚══════════════════════════════════════════════════════════════════════════╝ */
+
+.qdp-layer {
+    --qdp-paper: #fffdf7;
+    --qdp-ink: #1f2a3d;
+    --qdp-ink-soft: #5b6678;
+    --qdp-amber: #b45309;
+    --qdp-red: #d63a3a;
+    --qdp-red-deep: #a62828;
+    --qdp-blue: #2f5fb3;
+    --qdp-hand: 'Caveat', 'Segoe Print', cursive;
+    --qdp-round: 'Fredoka', 'Fredoka One', sans-serif;
+    position: fixed;
+    inset: 0;
+    z-index: 95;
+    font-family: var(--qdp-round);
+    color: var(--qdp-ink);
+}
+
+.qdp-scrim { position: absolute; inset: 0; background: transparent; }
+
+.qdp {
+    position: absolute;
+    width: 21.5rem;
+    max-width: calc(100vw - 24px);
+    padding: 1.35rem 1rem 0.85rem;
+    border-radius: 0.55rem 0.55rem 0.8rem 0.8rem;
+    background:
+        radial-gradient(120% 60% at 50% 0%, rgba(255, 255, 255, 0.9), transparent 70%),
+        repeating-linear-gradient(0deg, transparent 0 27px, rgba(47, 95, 179, 0.04) 27px 28px),
+        var(--qdp-paper);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.9) inset,
+        0 0 0 1px rgba(120, 84, 40, 0.14),
+        0 28px 50px -18px rgba(15, 20, 30, 0.6),
+        0 8px 16px -8px rgba(15, 20, 30, 0.35);
+    transform-origin: 50% 0;
+    opacity: 0;
+    transform: translateY(-8px) rotate(-0.6deg) scale(0.96);
+    transition: opacity 0.2s ease, transform 0.26s cubic-bezier(0.2, 0.9, 0.3, 1.25);
+}
+.qdp.is-above { transform-origin: 50% 100%; transform: translateY(8px) rotate(0.6deg) scale(0.96); }
+.qdp-layer.is-open .qdp { opacity: 1; transform: rotate(-0.4deg); }
+.qdp-layer.is-leaving .qdp { opacity: 0; transform: translateY(-6px) rotate(-0.6deg) scale(0.97); transition-duration: 0.16s; }
+
+/* the red binding strip with its rings */
+.qdp-binding {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 0.85rem;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: flex-start;
+    border-radius: 0.55rem 0.55rem 0 0;
+    background: linear-gradient(180deg, #e25555, var(--qdp-red-deep));
+    box-shadow: 0 2px 0 rgba(127, 29, 29, 0.35);
+}
+.qdp-binding span {
+    width: 0.42rem;
+    height: 1.25rem;
+    margin-top: -0.6rem;
+    border-radius: 0.3rem;
+    background: linear-gradient(90deg, #8b93a3, #eef1f6 45%, #8b93a3);
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.3);
+}
+
+.qdp-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.55rem;
+}
+.qdp-title { display: flex; align-items: baseline; gap: 0.4rem; min-width: 0; }
+.qdp-title__month { font-weight: 600; font-size: 1.45rem; line-height: 1.1; }
+.qdp-title__year { font-family: var(--qdp-hand); font-weight: 600; font-size: 1.3rem; color: var(--qdp-red); }
+
+.qdp-nav {
+    width: 2.25rem;
+    height: 2.25rem;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 999px;
+    background: #f6eedb;
+    color: var(--qdp-amber);
+    font-size: 0.85rem;
+    cursor: pointer;
+    box-shadow: 0 2px 0 rgba(180, 83, 9, 0.18);
+    transition: transform 0.15s ease, background-color 0.15s ease;
+}
+.qdp-nav:hover { background: #fde7c2; transform: translateY(-1px); }
+.qdp-nav:active { transform: translateY(1px); box-shadow: none; }
+
+.qdp-quick { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.6rem; }
+.qdp-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.28rem 0.7rem;
+    border: 1.5px solid rgba(180, 83, 9, 0.25);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--qdp-ink);
+    font-family: var(--qdp-round);
+    font-weight: 500;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+.qdp-chip:hover { border-color: var(--qdp-red); transform: translateY(-1px); }
+.qdp-chip--lesson { border-color: rgba(47, 95, 179, 0.35); color: var(--qdp-blue); }
+.qdp-chip--lesson i { font-size: 0.7rem; transform: rotate(30deg); }
+
+.qdp-weekdays,
+.qdp-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.15rem; }
+.qdp-weekdays { margin-bottom: 0.2rem; }
+.qdp-weekdays span {
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--qdp-amber);
+}
+.qdp-weekdays span.is-weekend { color: #c58b7a; }
+
+.qdp-grid-wrap { overflow: hidden; }
+.qdp-grid { display: flex; flex-direction: column; gap: 0.15rem; touch-action: pan-y; }
+.qdp-grid.is-slide-next { animation: qdp-slide-next 0.28s cubic-bezier(0.2, 0.8, 0.3, 1); }
+.qdp-grid.is-slide-prev { animation: qdp-slide-prev 0.28s cubic-bezier(0.2, 0.8, 0.3, 1); }
+@keyframes qdp-slide-next { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+@keyframes qdp-slide-prev { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: none; } }
+
+.qdp-day {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    min-height: 2.35rem;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 0.65rem;
+    background: transparent;
+    color: var(--qdp-ink);
+    font-family: var(--qdp-round);
+    font-weight: 500;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease, transform 0.15s ease;
+}
+.qdp-day__n { position: relative; z-index: 1; }
+.qdp-day:hover { background: #fdf0d6; }
+.qdp-day:focus-visible { outline: 2.5px solid rgba(47, 95, 179, 0.55); outline-offset: -2px; }
+.qdp-day.is-weekend { color: #a0675a; }
+.qdp-day.is-outside { color: #c9bfae; }
+.qdp-day.is-past:not(.is-selected) { opacity: 0.45; }
+
+/* lesson day: a small blue pin under the number */
+.qdp-day.is-lesson::after {
+    content: '';
+    position: absolute;
+    bottom: 0.22rem;
+    left: 50%;
+    width: 0.38rem;
+    height: 0.38rem;
+    margin-left: -0.19rem;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #8fb0ee, var(--qdp-blue) 60%, #1d3f80);
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+}
+.qdp-day.is-lesson { font-weight: 600; }
+
+/* no school: pencil hatching */
+.qdp-day.is-closed {
+    color: #a99c88;
+    background: repeating-linear-gradient(135deg, rgba(180, 83, 9, 0.1) 0 3px, transparent 3px 7px);
+}
+
+/* today: a hand-drawn blue ink ring */
+.qdp-day.is-today::before {
+    content: '';
+    position: absolute;
+    inset: 12%;
+    border: 2px solid var(--qdp-blue);
+    border-radius: 48% 52% 45% 55% / 55% 45% 55% 45%;
+    transform: rotate(-8deg);
+    opacity: 0.8;
+}
+
+/* the picked day: a red rubber stamp */
+.qdp-day.is-selected { color: #fff; font-weight: 600; }
+.qdp-day.is-selected::before {
+    content: '';
+    position: absolute;
+    inset: 8%;
+    border: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #ea6a6a, var(--qdp-red) 55%, var(--qdp-red-deep));
+    box-shadow: 0 0 0 2px rgba(255, 253, 247, 0.9), 0 0 0 3.5px rgba(214, 58, 58, 0.55), 0 4px 8px -2px rgba(166, 40, 40, 0.6);
+    transform: rotate(-6deg);
+    opacity: 1;
+}
+.qdp-day.is-selected.is-lesson::after { background: #fff; box-shadow: none; z-index: 1; }
+.qdp-day.is-stamping::before { animation: qdp-stamp 0.38s cubic-bezier(0.3, 1.6, 0.5, 1); }
+.qdp-day.is-stamping .qdp-day__n { animation: qdp-stamp-n 0.38s ease; }
+@keyframes qdp-stamp {
+    0% { transform: scale(1.9) rotate(-18deg); opacity: 0; }
+    55% { transform: scale(0.9) rotate(-4deg); opacity: 1; }
+    100% { transform: scale(1) rotate(-6deg); opacity: 1; }
+}
+@keyframes qdp-stamp-n { 0%, 40% { opacity: 0; } 100% { opacity: 1; } }
+
+.qdp-foot { margin-top: 0.55rem; padding-top: 0.5rem; border-top: 1.5px dashed rgba(180, 83, 9, 0.22); }
+.qdp-readout { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.15rem 0.5rem; min-height: 1.7rem; }
+.qdp-readout__day { font-family: var(--qdp-hand); font-weight: 700; font-size: 1.45rem; line-height: 1.1; color: var(--qdp-red-deep); }
+.qdp-readout__rel { font-size: 0.8rem; color: var(--qdp-ink-soft); }
+.qdp-readout__empty { font-family: var(--qdp-hand); font-size: 1.25rem; color: #a8957a; }
+
+.qdp-foot__row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 0.25rem; }
+.qdp-legend { display: flex; gap: 0.7rem; font-size: 0.72rem; color: var(--qdp-ink-soft); }
+.qdp-legend span { display: inline-flex; align-items: center; gap: 0.3rem; }
+.qdp-legend__pin { width: 0.45rem; height: 0.45rem; border-radius: 50%; background: var(--qdp-blue); }
+.qdp-legend__closed {
+    width: 0.85rem;
+    height: 0.85rem;
+    border-radius: 0.2rem;
+    background: repeating-linear-gradient(135deg, rgba(180, 83, 9, 0.28) 0 2px, transparent 2px 4px);
+    border: 1px solid rgba(180, 83, 9, 0.2);
+}
+.qdp-actions { display: flex; gap: 0.2rem; }
+.qdp-link {
+    padding: 0.3rem 0.6rem;
+    border: 0;
+    border-radius: 0.5rem;
+    background: transparent;
+    color: var(--qdp-blue);
+    font-family: var(--qdp-round);
+    font-weight: 600;
+    font-size: 0.82rem;
+    cursor: pointer;
+}
+.qdp-link:hover { background: rgba(47, 95, 179, 0.08); }
+.qdp-link--clear { color: var(--qdp-ink-soft); }
+
+/* phones: a bottom sheet over a soft scrim */
+.qdp-layer--sheet .qdp-scrim { background: rgba(15, 20, 30, 0.45); opacity: 0; transition: opacity 0.22s ease; }
+.qdp-layer--sheet.is-open .qdp-scrim { opacity: 1; }
+.qdp-layer--sheet.is-leaving .qdp-scrim { opacity: 0; }
+.qdp-layer--sheet .qdp {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: none;
+    padding: 1.6rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+    border-radius: 1.2rem 1.2rem 0 0;
+    transform: translateY(100%);
+    transition: opacity 0.2s ease, transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+.qdp-layer--sheet.is-open .qdp { transform: none; }
+.qdp-layer--sheet.is-leaving .qdp { transform: translateY(100%); opacity: 1; }
+.qdp-layer--sheet .qdp-binding { border-radius: 1.2rem 1.2rem 0 0; height: 1rem; }
+.qdp-layer--sheet .qdp-day { min-height: 2.7rem; font-size: 1.08rem; }
+.qdp-layer--sheet .qdp-title__month { font-size: 1.6rem; }
+.qdp-layer--sheet .qdp-chip { padding: 0.4rem 0.85rem; font-size: 0.86rem; }
+
+@media (prefers-reduced-motion: reduce) {
+    .qdp, .qdp-scrim, .qdp-grid, .qdp-day::before, .qdp-day__n { transition: none !important; animation: none !important; }
+}

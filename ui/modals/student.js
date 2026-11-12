@@ -67,8 +67,30 @@ export function setQuestTestModalVisible(visible) {
     }
 }
 
+/** The custom date button on the Schedule a test card mirrors the hidden ISO value. */
+function syncQuestTestDateTrigger(iso) {
+    const btn = document.getElementById('quest-test-date-btn');
+    if (!btn) return;
+    const monthEl = document.getElementById('quest-test-date-month');
+    const dayEl = document.getElementById('quest-test-date-day');
+    const textEl = document.getElementById('quest-test-date-text');
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+    const d = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12) : null;
+    btn.classList.toggle('is-empty', !d);
+    if (!d) {
+        if (monthEl) monthEl.textContent = '';
+        if (dayEl) dayEl.innerHTML = '<i class="fas fa-calendar-plus"></i>';
+        if (textEl) textEl.textContent = 'Pick the day of the test';
+        return;
+    }
+    if (monthEl) monthEl.textContent = d.toLocaleDateString('en-GB', { month: 'short' });
+    if (dayEl) dayEl.textContent = String(d.getDate());
+    if (textEl) textEl.textContent = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+
 export function refreshQuestTestPanelSummary() {
     const { testDate, testTitle, testCurriculum, summaryCard, summaryTitle, summaryDetails, headerBadge } = getQuestTestElements();
+    syncQuestTestDateTrigger(testDate?.value);
     const hasTitle = !!testTitle?.value?.trim();
     const hasDate = !!testDate?.value;
     const hasAnyValue = hasTitle || hasDate;

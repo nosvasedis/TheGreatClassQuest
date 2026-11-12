@@ -748,3 +748,65 @@
 @media (prefers-reduced-motion: reduce) {
     .qb-import, .qb-notepad--imported { animation: none; }
 }
+
+/* the test date button: a little tear-off calendar page + the chosen day in words.
+   The calendar that opens from it lives in styles/quest_date_picker.css (lazy). */
+.qb-date-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.35rem 0.6rem 0.35rem 0.35rem;
+    border: 2px dashed rgba(180, 83, 9, 0.28);
+    border-radius: 0.7rem;
+    background: rgba(255, 255, 255, 0.55);
+    color: var(--qb-ink);
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.18s ease;
+}
+.qb-date-trigger:hover { border-color: rgba(214, 58, 58, 0.55); background: #fff; }
+.qb-date-trigger:focus-visible { outline: 3px solid rgba(47, 95, 179, 0.45); outline-offset: 2px; }
+.qb-date-trigger[aria-expanded="true"] { border-style: solid; border-color: var(--qb-red); background: #fff; }
+.qb-date-trigger__page {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    width: 2.9rem;
+    overflow: hidden;
+    border-radius: 0.45rem;
+    background: #fff;
+    box-shadow: 0 2px 0 rgba(31, 42, 61, 0.12), 0 4px 10px -4px rgba(31, 42, 61, 0.35);
+    text-align: center;
+}
+.qb-date-trigger__month {
+    min-height: 0.95rem;
+    padding: 0.05rem 0;
+    background: linear-gradient(180deg, #e25555, #b52a2a);
+    color: #fff;
+    font-family: var(--qb-round);
+    font-weight: 600;
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    line-height: 0.9rem;
+}
+.qb-date-trigger__day {
+    font-family: var(--qb-round);
+    font-weight: 600;
+    font-size: 1.35rem;
+    line-height: 1.75rem;
+    color: var(--qb-ink);
+}
+.qb-date-trigger.is-empty .qb-date-trigger__day { font-size: 1.05rem; color: #b45309; }
+.qb-date-trigger__text {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-family: var(--qb-round);
+    font-weight: 500;
+    font-size: 1.02rem;
+    line-height: 1.25;
+}
+.qb-date-trigger.is-empty .qb-date-trigger__text { font-family: var(--qb-hand); font-weight: 400; font-size: 1.3rem; color: #a8957a; }
+.qb-date-trigger__chev { flex: 0 0 auto; font-size: 0.8rem; color: #b45309; transition: transform 0.2s ease; }
+.qb-date-trigger[aria-expanded="true"] .qb-date-trigger__chev { transform: rotate(180deg); }

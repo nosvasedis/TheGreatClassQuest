@@ -176,9 +176,18 @@ export const miscModalsHTML = `
                 </div>
             </div>
             <div class="qb-test-card__fields">
-                <div class="qb-field">
-                    <label for="quest-test-date">Test date</label>
-                    <input type="date" id="quest-test-date">
+                <div class="qb-field qb-field--date">
+                    <label id="quest-test-date-label" for="quest-test-date-btn">Test date</label>
+                    <input type="hidden" id="quest-test-date">
+                    <button type="button" id="quest-test-date-btn" class="qb-date-trigger is-empty"
+                        aria-haspopup="dialog" aria-expanded="false" aria-labelledby="quest-test-date-label quest-test-date-text">
+                        <span class="qb-date-trigger__page" aria-hidden="true">
+                            <span class="qb-date-trigger__month" id="quest-test-date-month"></span>
+                            <span class="qb-date-trigger__day" id="quest-test-date-day"><i class="fas fa-calendar-plus"></i></span>
+                        </span>
+                        <span class="qb-date-trigger__text" id="quest-test-date-text">Pick the day of the test</span>
+                        <i class="fas fa-chevron-down qb-date-trigger__chev" aria-hidden="true"></i>
+                    </button>
                 </div>
                 <div class="qb-field">
                     <label for="quest-test-title">Test title</label>

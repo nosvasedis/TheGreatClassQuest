@@ -1062,6 +1062,16 @@ export function setupUIListeners() {
     document.getElementById('edit-quest-test-btn').addEventListener('click', () => modals.setQuestTestModalVisible(true));
     document.getElementById('quest-test-done-btn').addEventListener('click', () => modals.setQuestTestModalVisible(false));
     document.getElementById('quest-test-clear-btn').addEventListener('click', () => modals.clearQuestTestFields({ hide: true }));
+    document.getElementById('quest-test-date-btn')?.addEventListener('click', (event) => {
+        const trigger = event.currentTarget;
+        import('../../features/questDatePicker.js')
+            .then((m) => m.openQuestDatePicker({
+                trigger,
+                input: document.getElementById('quest-test-date'),
+                classId: document.getElementById('quest-assignment-class-id')?.value || '',
+            }))
+            .catch((err) => console.error('Quest Board date picker failed to load:', err));
+    });
     ['quest-test-date', 'quest-test-title', 'quest-test-curriculum'].forEach((id) => {
         document.getElementById(id).addEventListener('input', modals.refreshQuestTestPanelSummary);
     });

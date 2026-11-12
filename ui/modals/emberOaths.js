@@ -92,11 +92,12 @@ function ensureShell() {
     if (modal) return modal;
     modal = document.createElement('div');
     modal.id = MODAL_ID;
-    modal.className = 'fixed inset-0 bg-black/60 z-[80] flex items-center justify-center p-3 sm:p-5 hidden backdrop-blur-md';
-    modal.innerHTML = '<div class="eo-shell pop-in" role="dialog" aria-modal="true" aria-labelledby="eo-title">' +
-        '<header class="eo-head"><span class="eo-sky" aria-hidden="true"><span class="eo-stars"></span><span class="eo-moon"></span><span class="eo-hills"></span><span class="eo-glow"></span></span>' +
-        '<span class="eo-floaters" aria-hidden="true">' + Array.from({ length: 9 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</span>' +
-        '<div class="eo-head-main"><span class="eo-hearth" aria-hidden="true">' + FLAME + '<span class="eo-hearth__logs"></span></span><div><p class="eo-head-eyebrow">Ember Oaths</p><h2 id="eo-title" class="font-title"></h2><p class="eo-head-sub"></p></div></div>' +
+    modal.className = 'eo-modal fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-5 hidden';
+    // One twilight from top to bottom: stars above, a hearth glowing below, embers drifting up between.
+    modal.innerHTML = '<div class="eo-shell" role="dialog" aria-modal="true" aria-labelledby="eo-title">' +
+        '<span class="eo-sky" aria-hidden="true"><span class="eo-stars"></span><span class="eo-stars is-far"></span><span class="eo-hearthglow"></span></span>' +
+        '<span class="eo-floaters" aria-hidden="true">' + Array.from({ length: 10 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</span>' +
+        '<header class="eo-head"><div class="eo-head-main"><span class="eo-hearth" aria-hidden="true">' + FLAME + '</span><div class="eo-head-words"><p class="eo-head-eyebrow">Ember Oaths</p><h2 id="eo-title"></h2><p class="eo-head-sub"></p></div></div>' +
         '<div class="eo-head-side"><div class="eo-stats"></div>' +
         '<button type="button" class="eo-icon-btn" data-close aria-label="Close"><i class="fas fa-times"></i></button></div>' +
         '</header>' +
@@ -147,6 +148,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
     }
 
     function renderStats() {
+        if (screen === 'loading') { modal.querySelector('.eo-stats').innerHTML = ''; return; }
         const growing = roster.filter(s => activeFor(s.id)).length;
         const ready = roster.filter(s => { const o = activeFor(s.id); return o && resultFor(o).ready; }).length;
         const kept = local.filter(o => o.status === 'kept').length;
@@ -154,9 +156,14 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
             '<span class="eo-stat-stack"><span class="eo-stat"><span aria-hidden="true">⭐</span><b>' + kept + '</b> kept</span>' +
             (ready ? '<span class="eo-stat is-ready"><span aria-hidden="true">✨</span><b>' + ready + '</b> ready</span>' : '') + '</span>';
     }
-    function setView(html, name) {
-        screen = name; view.innerHTML = html; view.scrollTop = 0;
-        view.classList.remove('is-entering'); void view.offsetWidth; view.classList.add('is-entering');
+    /** Swap the view. A new screen glides in from the top; a live refresh of the same screen swaps quietly in place. */
+    function setView(html, name, { animate = name !== screen } = {}) {
+        const top = view.scrollTop;
+        screen = name; view.innerHTML = html;
+        if (animate) {
+            view.scrollTop = 0;
+            view.classList.remove('is-entering'); void view.offsetWidth; view.classList.add('is-entering');
+        } else view.scrollTop = top;
         shell.dataset.screen = name;
         renderStats();
     }
@@ -166,6 +173,14 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
         try { await fn(); }
         catch (e) { if (!closed) { error.textContent = e.message || 'Could not save this change. Please try again.'; error.hidden = false; } }
         finally { busy = false; shell.removeAttribute('aria-busy'); }
+    }
+
+    /** While the promises load: the class's own faces on unlit cards, so nothing jumps when they arrive. */
+    function skeletonHtml() {
+        return '<div class="eo-focus-row is-sketch" aria-hidden="true"><span class="eo-focus"></span><span class="eo-focus"></span></div>' +
+            '<p class="eo-sketch-note"><span class="eo-sketch-flame" aria-hidden="true">' + FLAME + '</span>Gathering promises…</p>' +
+            '<div class="eo-grid">' + roster.map((s, i) => '<article class="eo-card is-sketch" style="--i:' + i + '" aria-hidden="true"><div class="eo-card-top">' + avatarHtml(s) +
+                '<div class="eo-card-name"><h3>' + esc(s.name) + '</h3><span class="eo-sketch-line is-short"></span></div></div><span class="eo-sketch-line"></span><span class="eo-sketch-line is-mid"></span></article>').join('') + '</div>';
     }
 
     // ─── Board ────────────────────────────────────────────────────────────────
@@ -206,7 +221,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
     function classPromiseBlock() {
         const current = c.classOath?.text || '';
         const custom = current && !CLASS_PROMISES.some(p => p.text === current);
-        return '<section class="eo-promise"><div class="eo-promise-title"><span aria-hidden="true">🤝</span><div><h3 class="font-title">Our Class Promise</h3><p>Little ones share one promise at the Campfire: no names, no numbers.</p></div></div>' +
+        return '<section class="eo-promise"><div class="eo-promise-title"><span aria-hidden="true">🤝</span><div><h3>Our Class Promise</h3><p>Little ones share one promise at the Campfire: no names, no numbers.</p></div></div>' +
             '<div class="eo-promise-options">' + CLASS_PROMISES.map(p => '<button type="button" data-promise="' + esc(p.text) + '" aria-pressed="' + (current === p.text) + '"><span aria-hidden="true">' + p.icon + '</span>' + esc(p.text) + '</button>').join('') +
             '<button type="button" data-promise-custom aria-pressed="' + Boolean(custom) + '"><span aria-hidden="true">✏️</span>' + esc(custom ? current : 'Our own words…') + '</button></div>' +
             '<form class="eo-promise-form" hidden><input maxlength="200" placeholder="We…" aria-label="Our own class promise" value="' + esc(custom ? current : '') + '"><button class="eo-primary is-small">Save</button></form></section>';
@@ -223,12 +238,12 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
         if (toCheck.length && !early) items.push('<button type="button" class="eo-focus eo-focus--check" data-filter="check"><span class="eo-focus-icon" aria-hidden="true">🔥</span><span><b>' + toCheck.length + ' to check in today</b><small>Did they keep their promise today?</small></span></button>');
         if (waiting.length && !checkInOnly) items.push('<button type="button" class="eo-focus eo-focus--ceremony" data-ceremony><span class="eo-focus-icon" aria-hidden="true">' + FLAME + '</span>' +
             '<span class="eo-focus-body"><b>The Choosing Ceremony</b><small>' + (waiting.length === 1 ? esc(waiting[0].name) + ' is waiting for a promise' : waiting.length + ' heroes are waiting for a promise') + '</small>' +
-            '<span class="eo-focus-faces" aria-hidden="true">' + waiting.slice(0, 5).map(s => avatarHtml(s, 'sm')).join('') + (waiting.length > 5 ? '<em>+' + (waiting.length - 5) + '</em>' : '') + '</span></span>' +
+            '<span class="eo-focus-faces" aria-hidden="true">' + waiting.map(s => avatarHtml(s, 'sm')).join('') + '</span></span>' +
             '<span class="eo-focus-go" aria-hidden="true">Begin →</span></button>');
         if (!items.length && roster.length) items.push('<div class="eo-focus eo-focus--calm"><span class="eo-focus-icon" aria-hidden="true">🌙</span><span><b>All tended for today</b><small>Every promise has its check-in. The embers rest.</small></span></div>');
         return items.length ? '<div class="eo-focus-row">' + items.join('') + '</div>' : '';
     }
-    function renderBoard() {
+    function renderBoard({ animate } = {}) {
         if (closed) return;
         const waiting = roster.filter(s => !activeFor(s.id));
         const ready = roster.filter(s => { const o = activeFor(s.id); return o && resultFor(o).ready; });
@@ -238,12 +253,12 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
         const tabs = [['all', 'Everyone', roster.length], ['check', 'Check in', toCheck.length], ['waiting', 'Need a promise', waiting.length], ['ready', 'Ready to keep', ready.length]]
             .filter(([key, , n]) => key === 'all' || n || filter === key);
         const empty = filter === 'ready' ? ['🌙', 'No promise is ready yet. Embers grow with every moment.'] : filter === 'waiting' ? ['🌟', 'Every hero has a promise.'] : ['🌱', 'No students in this class yet.'];
-        setView((early && !studentId ? classPromiseBlock() + '<h3 class="eo-section-title font-title">Personal promises <small>optional · never shown on the projector</small></h3>' : '') +
+        setView((early && !studentId ? classPromiseBlock() + '<h3 class="eo-section-title">Personal promises <small>optional · never shown on the projector</small></h3>' : '') +
             focusBar(waiting, ready, toCheck) +
             '<div class="eo-toolbar"><div class="eo-tabs" role="tablist">' + tabs.map(([key, label, n]) =>
                 '<button type="button" role="tab" data-filter="' + key + '" aria-selected="' + (filter === key) + '">' + label + ' <b>' + n + '</b></button>').join('') + '</div></div>' +
             (shown.length ? '<div class="eo-grid">' + shown.map(studentCard).join('') + '</div>'
-                : '<div class="eo-empty-state"><span aria-hidden="true">' + empty[0] + '</span><p>' + empty[1] + '</p></div>'), 'board');
+                : '<div class="eo-empty-state"><span aria-hidden="true">' + empty[0] + '</span><p>' + empty[1] + '</p></div>'), 'board', animate ? { animate } : undefined);
     }
 
     // ─── Choosing ceremony ──────────────────────────────────────────────────────
@@ -298,7 +313,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
         return '<button type="button" class="eo-oath eo-oath--' + meta.hue + '" data-pick="' + i + '" style="--i:' + i + '" aria-pressed="' + (choosing.selected === i) + '">' +
             spiritRibbon(t.spirit) + '<span class="eo-oath-seal" aria-hidden="true"><span>' + meta.icon + '</span></span>' +
             '<span class="eo-oath-title">' + esc(t.title || meta.label) + '</span>' +
-            '<span class="eo-oath-text font-title">' + esc(t.text) + '</span>' +
+            '<span class="eo-oath-text">' + esc(t.text) + '</span>' +
             '<span class="eo-oath-why"><span aria-hidden="true">💡</span>' + esc(t.why || '') + '</span>' +
             '<span class="eo-oath-foot"><span class="eo-oath-kind">' + esc(meta.label) + '</span><span class="eo-oath-measure" title="One ember for each lesson they keep it: ' + n + ' to light">' +
                 '<span class="eo-oath-dots" aria-hidden="true">' + '<i></i>'.repeat(n) + '</span>' + n + ' embers · ' + weeks + (weeks > 1 ? ' weeks' : ' week') + '</span></span>' +
@@ -308,7 +323,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
         return choosing.suggestions.map(oathCardHtml).join('') +
             '<button type="button" class="eo-oath eo-oath--own" data-pick="own" style="--i:3" aria-pressed="' + (choosing.selected === 'own') + '">' + spiritRibbon('own') +
             '<span class="eo-oath-seal" aria-hidden="true"><span>✏️</span></span><span class="eo-oath-title">In Their Own Words</span>' +
-            '<span class="eo-oath-text font-title">Something else…</span><span class="eo-oath-why"><span aria-hidden="true">🗣️</span>Write exactly what the child says.</span><span class="eo-option-check" aria-hidden="true">✓</span></button>';
+            '<span class="eo-oath-text">Something else…</span><span class="eo-oath-why"><span aria-hidden="true">🗣️</span>Write exactly what the child says.</span><span class="eo-option-check" aria-hidden="true">✓</span></button>';
     }
     function lensesHtml() {
         const all = choosing.all, first = firstName(choosing.student.name);
@@ -333,7 +348,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
         const guild = getGuildById(student.guildId);
         return '<aside class="eo-reading" aria-label="What the embers know about ' + esc(student.name) + '">' +
             '<div class="eo-reading-hero"><span class="eo-reading-ring" aria-hidden="true">' + Array.from({ length: 12 }, (_, i) => '<i style="--i:' + i + '"' + (i < kept * 3 ? ' class="is-lit"' : '') + '></i>').join('') + '</span>' + avatarHtml(student, 'xl') + '</div>' +
-            '<h3 class="font-title">' + esc(student.name) + '</h3>' +
+            '<h3>' + esc(student.name) + '</h3>' +
             '<p class="eo-reading-sub">' + [student.heroClass, guild?.name].filter(Boolean).map(esc).join(' · ') + (kept ? (student.heroClass || guild ? ' · ' : '') + '⭐ ' + kept + ' kept' : '') + '</p>' +
             '<details class="eo-signs-box"' + (matchMedia('(max-width: 640px)').matches ? '' : ' open') + '><summary><span>What the embers know</span><small>for your eyes</small></summary><div class="eo-signs">' +
                 (signs.length ? signs.map(x => '<span class="eo-sign eo-sign--' + x.tone + '" title="' + esc(x.hint) + '"><span aria-hidden="true">' + x.icon + '</span>' + esc(x.label) + '</span>').join('') : '<span class="eo-muted">Little is known yet. The ideas start broad.</span>') +
@@ -383,7 +398,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
             '<span class="eo-forge-embers" aria-hidden="true">' + Array.from({ length: 14 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</span>' +
             '<div class="eo-choose-top"><button type="button" class="eo-back" data-back>← Board</button>' + (ceremony ? ceremonyStrip(id) : '') + '</div>' +
             '<div class="eo-forge-grid">' + readingHtml(student) +
-            '<section class="eo-altar"><div class="eo-altar-head"><p class="eo-altar-eyebrow">The Oath Fire</p><h3 class="font-title">Which promise will ' + esc(first) + ' choose?</h3><p>Read them aloud. Let ' + esc(first) + ' pick, or say it in their own words.</p></div>' +
+            '<section class="eo-altar"><div class="eo-altar-head"><p class="eo-altar-eyebrow">The Oath Fire</p><h3>Which promise will ' + esc(first) + ' choose?</h3><p>Read them aloud. Let ' + esc(first) + ' pick, or say it in their own words.</p></div>' +
             '<div class="eo-lenses" role="group" aria-label="Look through">' + lensesHtml() + '</div>' +
             '<div class="eo-options">' + optionsHtml() + '</div>' +
             '<label class="eo-own" hidden><span>Their promise, in their words</span><input type="text" maxlength="200" placeholder="I will…"></label>' +
@@ -392,7 +407,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
             (canUseFeature('eliteAI') ? '<button type="button" class="eo-oracle" data-oracle><span aria-hidden="true">🔮</span> Ask the Oracle</button>' : '') +
             '<span class="eo-forge-count"><b data-forge-count>' + choosing.all.length + '</b> promises forged for ' + esc(first) + '</span></div>' +
             '<div class="eo-choose-actions"><button type="button" class="eo-quiet" data-skip-child>' + (ceremony ? 'Skip for now' : 'Cancel') + '</button><button type="button" class="eo-primary" data-commit disabled><span aria-hidden="true">🔥</span> Light this promise</button></div>' +
-            '</section></div></div>', 'choose');
+            '</section></div></div>', 'choose', { animate: true });
     }
     function selectedTemplate() {
         if (!choosing) return null;
@@ -444,11 +459,11 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
         setView('<div class="eo-story eo-story--' + meta.hue + (r.ready ? ' is-ready' : '') + '">' +
             '<div class="eo-choose-top"><button type="button" class="eo-back" data-back>← Board</button><span class="eo-pill">🗓️ ' + esc(dueLabel(oath)) + ' · until ' + esc(prettyDate(oath.dueDate)) + '</span></div>' +
             '<div class="eo-story-grid"><section class="eo-scroll">' +
-                '<div class="eo-story-hero">' + avatarHtml(student, 'lg') + '<div><h3 class="font-title">' + esc(student?.name) + '</h3><div class="eo-story-tags">' + categoryChip(oath.category) + (kept ? '<span class="eo-chip eo-chip--gold">⭐ ' + kept + ' kept before</span>' : '') + '</div></div></div>' +
+                '<div class="eo-story-hero">' + avatarHtml(student, 'lg') + '<div><h3>' + esc(student?.name) + '</h3><div class="eo-story-tags">' + categoryChip(oath.category) + (kept ? '<span class="eo-chip eo-chip--gold">⭐ ' + kept + ' kept before</span>' : '') + '</div></div></div>' +
                 '<div class="eo-story-name">' + spiritRibbon(oathName(oath).spirit) + '<span class="eo-story-title">' + esc(oathName(oath).title) + '</span></div>' +
-                '<blockquote class="eo-story-oath font-title"><span class="eo-quote" aria-hidden="true">“</span>' + esc(oath.text) + '</blockquote>' +
+                '<blockquote class="eo-story-oath"><span class="eo-quote" aria-hidden="true">“</span>' + esc(oath.text) + '</blockquote>' +
                 '<div class="eo-story-progress">' + emberRow(r.count, r.target, true) + '<p>' + (r.ready ? '<b>Ready to keep!</b> Every ember is lit.' : '<b>' + r.count + ' of ' + r.target + ' embers lit.</b> ' + left + ' more lesson' + (left > 1 ? 's' : '') + ' keeping it to go.') + '</p></div>' +
-                (r.ready ? '<section class="eo-keep"><h4 class="font-title">✨ Keep the Ember</h4><p>How does ' + esc(student?.name) + ' feel about it?</p><div class="eo-feelings">' +
+                (r.ready ? '<section class="eo-keep"><h4>✨ Keep the Ember</h4><p>How does ' + esc(student?.name) + ' feel about it?</p><div class="eo-feelings">' +
                     FEELINGS.map(([e, label], i) => '<button type="button" data-feeling="' + e + '" aria-pressed="' + (i === 0) + '"><span aria-hidden="true">' + e + '</span><small>' + label + '</small></button>').join('') + '</div>' +
                     '<input class="eo-helped" maxlength="200" placeholder="What helped? (optional)" aria-label="What helped">' +
                     '<button type="button" class="eo-primary is-wide is-gold" data-keep><span aria-hidden="true">⭐</span> Keep the promise</button></section>' : '') +
@@ -474,7 +489,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
             '<span class="eo-kept-night" aria-hidden="true"></span><div class="eo-kept-rays" aria-hidden="true"></div>' +
             '<div class="eo-kept-burst" aria-hidden="true">' + Array.from({ length: 16 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</div>' +
             '<div class="eo-kept-crest">' + keptStarMarkup(oath, { className: 'eo-kept-ember' }) + avatarHtml(student, 'lg') + '</div>' +
-            '<p class="eo-kept-eyebrow">' + esc(oathName(oath).title) + ' · kept</p><h3 class="font-title">' + esc(student?.name) + ' kept a promise!</h3><p class="eo-kept-quote font-title">“' + esc(oath.text) + '”</p>' +
+            '<p class="eo-kept-eyebrow">' + esc(oathName(oath).title) + ' · kept</p><h3>' + esc(student?.name) + ' kept a promise!</h3><p class="eo-kept-quote">“' + esc(oath.text) + '”</p>' +
             (days.length ? '<p class="eo-kept-days">' + days.map(l => '<span>' + esc(l.icons) + ' ' + esc(prettyDate(l.date)) + '</span>').join('') + '</p>' : '') +
             '<section class="eo-kept-path"><div class="eo-kept-sky">' + personalSkyMarkup(perk.n, who, { animate: !reduced }) + '</div><div class="eo-kept-perks">' + perkMarkup(perk, { name: student?.name, pending }) + '</div></section>' +
             rankLadderMarkup(perk.n) +
@@ -498,7 +513,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
     function renderShare(oath) {
         const student = roster.find(s => s.id === oath.studentId);
         setView('<div class="eo-share"><div class="eo-choose-top"><button type="button" class="eo-back" data-back>← Board</button></div>' +
-            '<div class="eo-story-hero">' + avatarHtml(student, 'lg') + '<div><h3 class="font-title">A note for ' + esc(student?.name) + '’s family</h3><p class="eo-muted">Only this message is shared. Moments and reflections stay with you.</p></div></div>' +
+            '<div class="eo-story-hero">' + avatarHtml(student, 'lg') + '<div><h3>A note for ' + esc(student?.name) + '’s family</h3><p class="eo-muted">Only this message is shared. Moments and reflections stay with you.</p></div></div>' +
             '<form data-publish="' + esc(oath.id) + '"><textarea maxlength="500" required>' + esc(student?.name + ' kept a promise: “' + oath.text + '” 🌟') + '</textarea>' +
             '<button class="eo-primary is-wide"><span aria-hidden="true">💌</span> Send to Family Portal</button></form></div>', 'share');
     }
@@ -509,7 +524,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
         if (b.hasAttribute('data-close')) return close();
         if (busy) return;
         if (b.hasAttribute('data-back')) { choosing = null; focusId = null; return renderBoard(); }
-        if (b.dataset.filter) { filter = b.dataset.filter; return renderBoard(); }
+        if (b.dataset.filter) { const changed = filter !== b.dataset.filter; filter = b.dataset.filter; return renderBoard({ animate: changed }); }
         if (b.hasAttribute('data-ceremony')) { const first = nextChildWithoutOath(roster.map(r => r.id), local); return first && work(() => choose(first, { fromCeremony: true })); }
         if (b.dataset.choose) return work(() => choose(b.dataset.choose, { fromCeremony: false }));
         if (b.dataset.newFor) return work(() => choose(b.dataset.newFor, { fromCeremony: false }));
@@ -670,6 +685,7 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
     function close() {
         if (closed) return; closed = true;
         stop(); dispose();
+        modal.classList.add('is-closing');
         hideModal(MODAL_ID);
         if (previousFocus?.isConnected) previousFocus.focus?.();
     }
@@ -686,8 +702,13 @@ export async function openOathBoard(classId, { checkInOnly = false, studentId = 
     window.addEventListener('gcq:campfire-close', close); window.addEventListener('gcq:campfire-reset', close);
     session = { dispose };
     error.hidden = true;
-    view.innerHTML = '<div class="eo-loading">' + FLAME + '<p>Gathering promises…</p></div>';
+    modal.classList.remove('is-closing');
+    modal.classList.toggle('is-lite', shell.classList.contains('is-lite'));
     modal.querySelector('.eo-stats').innerHTML = '';
+    // The board opens at once: with the promises this laptop already holds, or a quiet sketch of the class.
+    const held = !preview && !studentId && state.get('hasLoadedEmberOaths') ? (state.get('allEmberOaths') || []).filter(o => o.classId === classId) : null;
+    screen = '';
+    if (held) { local = held; renderBoard(); } else setView(skeletonHtml(), 'loading');
     showAnimatedModal(MODAL_ID);
     requestAnimationFrame(() => modal.querySelector('[data-close]')?.focus({ preventScroll: true }));
 
@@ -711,7 +732,7 @@ function starPathTile(student, kept) {
     if (!kept) return '';
     const rank = rankFor(kept), next = nextRank(kept);
     return '<section class="eo-chron-path" aria-label="Star Path">' + personalSkyMarkup(kept, { name: student.name, heroClass: student.heroClass, studentId: student.id }, { animate: false }) +
-        '<div><p class="eo-chron-eyebrow">STAR PATH</p><b class="font-title">' + esc((rank?.icon || '') + ' ' + (rank?.name || '')) + '</b><p>' + kept + (kept === 1 ? ' promise' : ' promises') + ' kept' +
+        '<div><p class="eo-chron-eyebrow">STAR PATH</p><b >' + esc((rank?.icon || '') + ' ' + (rank?.name || '')) + '</b><p>' + kept + (kept === 1 ? ' promise' : ' promises') + ' kept' +
         (next ? ' · ' + next.left + ' more to ' + esc(next.name) : ' · the whole path walked') + '</p></div></section>';
 }
 export async function renderChronicleOaths(studentId) {
@@ -730,7 +751,7 @@ export async function renderChronicleOaths(studentId) {
         const activeFacts = needsWindow ? await oathActions.getOathFacts(active).catch(() => liveFacts) : liveFacts;
         if (document.getElementById('hero-chronicle-modal')?.dataset.studentId !== studentId) return;
         host.innerHTML = '<div class="eo-chron">' +
-            '<div class="eo-chron-head"><div><p class="eo-chron-eyebrow">EMBER OATHS</p><h3 class="font-title">Small promises, steady growth</h3><p class="eo-muted">Personal goals ' + esc(student.name) + ' chose. Separate from grades and stars.</p></div>' +
+            '<div class="eo-chron-head"><div><p class="eo-chron-eyebrow">EMBER OATHS</p><h3>Small promises, steady growth</h3><p class="eo-muted">Personal goals ' + esc(student.name) + ' chose. Separate from grades and stars.</p></div>' +
             '<button type="button" class="eo-primary" data-open-board><span aria-hidden="true">' + (active ? '🔥' : '✨') + '</span> ' + (active ? 'Open this promise' : 'Choose a promise') + '</button></div>' +
             starPathTile(student, oaths.filter(o => o.status === 'kept').length) +
             (oaths.length ? '<div class="eo-chron-list">' + oaths.map((o, i) => {

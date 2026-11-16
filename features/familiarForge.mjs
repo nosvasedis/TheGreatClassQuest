@@ -376,6 +376,14 @@ export const GROWTH_LABELS = {
     crown5: { circlet: 'Gold circlet', laurel: 'Golden laurel', tiara: 'Tiara', starDiadem: 'Star diadem', flowerCrown: 'Flower crown', horned: 'Horned crown' },
     regalia4: ['', 'Orbit of charms', 'Rune circle', 'Wings of light', 'Starburst'],
     extra5: { motesOrbit: 'Orbit of charms', runeCircle: 'Rune circle', lightWings: 'Wings of light', starburst: 'Starburst', petalHalo: 'Petal halo' },
+    tuft: { cowlick: 'Cowlick', curl: 'Curly tuft', spikes: 'Spiky tuft', floof: 'Fluffy floof', antenna: 'Star antenna', twinCurl: 'Twin curls', leafy: 'Leafy tuft' },
+    faceMark: { star: 'Star mark', heart: 'Heart mark', crescent: 'Moon mark', diamond: 'Diamond mark', dots: 'Three dots', blaze: 'White blaze' },
+    cheek: { freckles: 'Cheek freckles', swirls: 'Cheek swirls', whiskerStripes: 'Whisker stripes', hearts: 'Heart cheeks' },
+    coat: { eyePatch: 'Eye patch', socks: 'Little socks', saddle: 'Saddle coat', bellyStar: 'Star belly', twoTone: 'Two-tone coat' },
+    pattern: { rosettes: 'Rosettes', tigerBack: 'Tiger back', constellation: 'Constellation coat', zigzag: 'Zigzag coat', hearts: 'Heart coat', bands: 'Banded coat' },
+    gear: { glasses: 'Round glasses', monocle: 'Monocle', earring: 'Gold earring', sash: 'Adventurer sash', satchel: 'Tiny satchel', leafCape: 'Leaf cloak' },
+    armour: { shoulderPlates: 'Shoulder plates', chestPlate: 'Chest plate', vambraces: 'Gold bracers' },
+    regaliaB: { rainbowArc: 'Rainbow arc', banners: 'Banners', lanternOrbit: 'Lantern orbit', featherFan: 'Feather fan', bubbleOrbit: 'Bubble orbit' },
     sigil: { ring: 'Rune ring', star: 'Star sigil', hex: 'Hex sigil', flower: 'Flower sigil', moon: 'Moon sigil', sun: 'Sun sigil' }
 };
 
@@ -393,7 +401,15 @@ function rollGrowthGenes(typeId, seed) {
         sigil: pick(rand, ['ring', 'star', 'hex', 'flower', 'moon', 'sun']),
         hornGrowth: 0.9 + rand() * 0.24,
         wingGrowth: 0.92 + rand() * 0.18,
-        shell: pick(rand, ['dots', 'zigzag', 'stripes', 'stars', 'hearts'])
+        shell: pick(rand, ['dots', 'zigzag', 'stripes', 'stars', 'hearts']),
+        tuft: weighted(rand, [['none', 3], ['cowlick', 1], ['curl', 1], ['spikes', 1], ['floof', 1], ['antenna', 1], ['twinCurl', 1], ['leafy', 1]]),
+        faceMark: weighted(rand, [['none', 4], ['star', 1], ['heart', 1], ['crescent', 1], ['diamond', 1], ['dots', 1], ['blaze', 1]]),
+        cheek: weighted(rand, [['none', 4], ['freckles', 1], ['swirls', 1], ['whiskerStripes', 1], ['hearts', 1]]),
+        coat: weighted(rand, [['none', 3], ['eyePatch', 1], ['socks', 2], ['saddle', 1], ['bellyStar', 1], ['twoTone', 1]]),
+        pattern: weighted(rand, [['none', 4], ['rosettes', 1], ['tigerBack', 1], ['constellation', 1], ['zigzag', 1], ['hearts', 1], ['bands', 1]]),
+        gear: weighted(rand, [['none', 5], ['glasses', 1], ['monocle', 1], ['earring', 1], ['sash', 1], ['satchel', 1], ['leafCape', 1]]),
+        armour: weighted(rand, [['none', 3], ['shoulderPlates', 1], ['chestPlate', 1], ['vambraces', 1]]),
+        regaliaB: weighted(rand, [['none', 3], ['rainbowArc', 1], ['banners', 1], ['lanternOrbit', 1], ['featherFan', 1], ['bubbleOrbit', 1]])
     };
 }
 
@@ -402,17 +418,20 @@ export function familiarGrowthTraits(genome, level) {
     const gr = genome?.growth;
     const lvl = lvlOf(level);
     if (!gr) return [];
-    const out = [GROWTH_LABELS.build[gr.build]];
+    const out = [GROWTH_LABELS.build[gr.build], GROWTH_LABELS.tuft[gr.tuft], GROWTH_LABELS.faceMark[gr.faceMark], GROWTH_LABELS.cheek[gr.cheek], GROWTH_LABELS.coat[gr.coat]];
+    if (lvl >= 2) out.push(GROWTH_LABELS.pattern[gr.pattern], GROWTH_LABELS.gear[gr.gear]);
     if (lvl >= 3) out.push(`${['First', 'Second', 'Third'][gr.path]} path`, GROWTH_LABELS.sigil[gr.sigil]);
     if (lvl >= 4) {
         if (gr.regalia4) out.push(GROWTH_LABELS.regalia4[gr.regalia4]);
         if (gr.emblem !== 'none') out.push(GROWTH_LABELS.emblem[gr.emblem]);
         if (gr.mantle !== 'none') out.push(GROWTH_LABELS.mantle[gr.mantle]);
         if (gr.bands) out.push('Golden bands');
+        out.push(GROWTH_LABELS.armour[gr.armour]);
     }
     if (lvl === 5) {
         if (gr.extra5 !== 'none') out.push(GROWTH_LABELS.extra5[gr.extra5]);
         if (gr.crown5 !== 'none') out.push(GROWTH_LABELS.crown5[gr.crown5]);
+        out.push(GROWTH_LABELS.regaliaB[gr.regaliaB]);
     }
     return out.filter(Boolean);
 }
@@ -661,6 +680,11 @@ function partsFor(genome, level) {
         if (gr.bands) front.push('bands');
     }
     if (lvl === 5 && gr.crown5 && gr.crown5 !== 'none') addCrown(`crown_${gr.crown5}`);
+    if (gr.tuft && gr.tuft !== 'none' && !(lvl === 5 && gr.crown5 && gr.crown5 !== 'none')) addCrown(`tuft_${gr.tuft}`);
+    if (lvl >= 2 && gr.gear === 'leafCape') back.push('leafCape');
+    if (lvl >= 2 && (gr.gear === 'sash' || gr.gear === 'satchel')) front.push(`gear_${gr.gear}`);
+    if (lvl >= 4 && gr.armour && gr.armour !== 'none') front.push(`armour_${gr.armour}`);
+    if (lvl === 5 && gr.regaliaB && gr.regaliaB !== 'none') regalia.unshift(gr.regaliaB);
     if (lvl === 5) front.push('mythicGlints');
 
     const cross = genome.crossbreed;
@@ -1016,6 +1040,13 @@ const PAIR_PARTS = {
 
 // Centre parts sit on the crown of the head at (tx, ty). `back` ones are drawn behind the head.
 const CENTER_PARTS = {
+    tuft_cowlick: { sway: true, draw: (tx, ty, c, o) => `<path d="M${tx - 2} ${ty + 4}C${tx - 4} ${ty - 3} ${tx + 4} ${ty - 6} ${tx + 1} ${ty - 11}C${tx + 8} ${ty - 7} ${tx + 6} ${ty} ${tx + 3} ${ty + 4}Z" fill="${c.m}"${o}/>` },
+    tuft_curl: { sway: true, draw: (tx, ty, c) => `<path d="M${tx} ${ty + 3}C${tx - 5} ${ty - 3} ${tx + 1} ${ty - 11} ${tx + 5} ${ty - 7}C${tx + 8} ${ty - 4} ${tx + 3} ${ty - 1} ${tx + 2} ${ty - 4}" stroke="${c.ink}" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M${tx} ${ty + 3}C${tx - 5} ${ty - 3} ${tx + 1} ${ty - 11} ${tx + 5} ${ty - 7}C${tx + 8} ${ty - 4} ${tx + 3} ${ty - 1} ${tx + 2} ${ty - 4}" stroke="${c.mainHex}" stroke-width="2.4" fill="none" stroke-linecap="round"/>` },
+    tuft_spikes: { draw: (tx, ty, c, o) => [[-5, -7, -20], [0, -10, 0], [5, -7, 20]].map(([dx, h, r]) => `<path d="M${tx + dx - 2.6} ${ty + 4}L${tx + dx} ${ty + h}L${tx + dx + 2.6} ${ty + 4}Z" fill="${c.m}"${o} transform="rotate(${r} ${tx + dx} ${ty + 4})"/>`).join('') },
+    tuft_floof: { draw: (tx, ty, c, o) => `<g${o.replace('stroke-width="1.2"', 'stroke-width="0.9"')}><circle cx="${tx - 4}" cy="${ty + 1}" r="4" fill="${c.b}"/><circle cx="${tx + 4}" cy="${ty + 1}" r="4" fill="${c.b}"/><circle cx="${tx}" cy="${ty - 3}" r="4.6" fill="${c.b}"/></g>` },
+    tuft_antenna: { glow: true, draw: (tx, ty, c) => `<path d="M${tx} ${ty + 3}Q${tx + 3} ${ty - 5} ${tx} ${ty - 11}" stroke="${c.ink}" stroke-width="1.3" fill="none" stroke-linecap="round"/>${star4(tx, ty - 13, 3.6, c.accentHex, ' stroke="#fff" stroke-width="0.5"')}` },
+    tuft_twinCurl: { sway: true, draw: (tx, ty, c) => [-1, 1].map((sd) => `<path d="M${tx + sd * 3} ${ty + 3}C${tx + sd * 3} ${ty - 4} ${tx + sd * 10} ${ty - 6} ${tx + sd * 9} ${ty - 1}C${tx + sd * 8.4} ${ty + 1} ${tx + sd * 6} ${ty} ${tx + sd * 6.6} ${ty - 2}" stroke="${c.mainHex}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`).join('') },
+    tuft_leafy: { sway: true, draw: (tx, ty, c) => `<path d="M${tx} ${ty + 3}C${tx - 7} ${ty - 2} ${tx - 9} ${ty - 7} ${tx - 3} ${ty - 9}C${tx - 2} ${ty - 4} ${tx - 1} ${ty} ${tx} ${ty + 3}Z" fill="${c.secondHex}" stroke="${c.ink}" stroke-width="0.6"/><path d="M${tx} ${ty + 3}C${tx + 6} ${ty - 1} ${tx + 8} ${ty - 5} ${tx + 4} ${ty - 7}C${tx + 2} ${ty - 3} ${tx + 1} ${ty} ${tx} ${ty + 3}Z" fill="${shade(c.secondHex, 0.1)}" stroke="${c.ink}" stroke-width="0.6"/>` },
     crown_circlet: { draw: (tx, ty, c) => `<path d="M${tx - 14} ${ty + 10}Q${tx} ${ty + 3} ${tx + 14} ${ty + 10}" stroke="#92400e" stroke-width="3.4" fill="none" stroke-linecap="round"/><path d="M${tx - 14} ${ty + 10}Q${tx} ${ty + 3} ${tx + 14} ${ty + 10}" stroke="#fbbf24" stroke-width="2.2" fill="none" stroke-linecap="round"/>
         <path d="M${tx} ${ty + 3.4}l2.6 3.2-2.6 3.4-2.6-3.4z" fill="${c.accentHex}" stroke="#fff" stroke-width="0.6"/>` },
     crown_laurel: { draw: (tx, ty) => {
@@ -1319,6 +1350,11 @@ const REGALIA = {
     prismArc: () => ['#f87171', '#fb923c', '#facc15', '#4ade80', '#38bdf8', '#a78bfa']
         .map((col, i) => `<path d="M${10 + i * 4} 92A${50 - i * 4} ${50 - i * 4} 0 0 1 ${110 - i * 4} 92" stroke="${col}" stroke-width="3.4" fill="none" opacity="0.5"/>`).join('')
         + '<g class="fc-regalia-glow"><path d="M10 92A50 50 0 0 1 110 92" stroke="#fff" stroke-width="0.8" fill="none" opacity="0.7"/></g>',
+    rainbowArc: () => ['#f87171', '#fb923c', '#facc15', '#4ade80', '#38bdf8', '#a78bfa'].map((col, i) => `<path d="M${4 + i * 3.4} 100A${56 - i * 3.4} ${56 - i * 3.4} 0 0 1 ${116 - i * 3.4} 100" stroke="${col}" stroke-width="3" fill="none" opacity="0.45"/>`).join(''),
+    banners: (c) => { const b = `<path d="M14 104V30" stroke="#78350f" stroke-width="1.8" stroke-linecap="round"/><circle cx="14" cy="29" r="1.8" fill="#fbbf24"/><path d="M15 32H32L27 40L32 48H15Z" fill="${c.accentHex}" stroke="${c.ink}" stroke-width="0.6"/><path d="M18 36H26" stroke="#fff" stroke-width="0.8" opacity="0.6"/>`; return b + mirror(b.replace(c.accentHex, c.secondHex)); },
+    lanternOrbit: (c) => `<g class="fc-regalia-spin fc-regalia-spin--slow" style="transform-origin:60px 58px">${ring(6, 47, 60, 58, () => `<g><rect x="-2.6" y="-3.6" width="5.2" height="7" rx="1.6" fill="#fde68a" stroke="#b45309" stroke-width="0.6"/><rect x="-1.6" y="-5" width="3.2" height="1.4" fill="#b45309"/><circle r="5" fill="${c.glowHex}" opacity="0.25"/></g>`)}</g>`,
+    featherFan: (c) => [-64, -48, -32, -16, 0, 16, 32, 48, 64].map((d, i) => `<g transform="rotate(${d} 60 76)"><path d="M60 76C55 58 55 34 60 16C65 34 65 58 60 76Z" fill="${i % 2 ? c.secondHex : c.accentHex}" opacity="0.55" stroke="#fff" stroke-width="0.5"/><circle cx="60" cy="24" r="2.4" fill="#fff" opacity="0.7"/></g>`).join(''),
+    bubbleOrbit: () => `<g class="fc-regalia-spin fc-regalia-spin--slow" style="transform-origin:60px 58px">${ring(9, 46, 60, 58, (i) => `<circle r="${i % 3 ? 2.6 : 4}" fill="#e0f2fe" fill-opacity="0.2" stroke="#e0f2fe" stroke-width="0.8"/><circle cx="-1" cy="-1" r="0.8" fill="#fff"/>`)}</g>`,
     motesOrbit: (c) => {
         const draw = MOTE_SHAPES[c.typeId] || MOTE_SHAPES.sparkling;
         return `<g class="fc-regalia-spin fc-regalia-spin--slow" style="transform-origin:60px 60px">${ring(10, 46, 60, 60, (i) => `<g transform="scale(${i % 2 ? 1.5 : 2.1})">${draw(0, 0, c)}</g>`)}</g>`;
@@ -1386,6 +1422,11 @@ function eggshellPattern(kind, c) {
 }
 
 const FRONT_EXTRAS = {
+    gear_sash: (c) => `<path d="M44 68L78 100" stroke="${c.ink}" stroke-width="5.6" stroke-linecap="round" opacity="0.5"/><path d="M44 68L78 100" stroke="${c.accentHex}" stroke-width="4.2" stroke-linecap="round"/><rect x="58.4" y="80.6" width="5.6" height="5.6" rx="1" fill="#fbbf24" stroke="#78350f" stroke-width="0.7" transform="rotate(43 61.2 83.4)"/>`,
+    gear_satchel: () => `<path d="M47 68Q62 76 75 88" stroke="#78350f" stroke-width="1.6" fill="none"/><rect x="71" y="86" width="12" height="10" rx="2.4" fill="#a16207" stroke="#78350f" stroke-width="0.8"/><path d="M71 89.4H83" stroke="#78350f" stroke-width="0.8"/><circle cx="77" cy="91" r="1.1" fill="#fbbf24"/>`,
+    armour_shoulderPlates: () => { const plate = '<path d="M35 74C35 66 42 62 50 66C48 71 42 75 35 74Z" fill="#fbbf24" stroke="#78350f" stroke-width="0.9"/><path d="M38 70C41 67 45 66 48 67" stroke="#fef3c7" stroke-width="0.8" fill="none"/><circle cx="43" cy="69.6" r="1.2" fill="#fff7d6"/>'; return plate + mirror(plate); },
+    armour_chestPlate: (c) => `<path d="M48 70Q60 66 72 70L70 84Q60 90 50 84Z" fill="#fbbf24" stroke="#78350f" stroke-width="0.9" opacity="0.95"/><path d="M60 69V87M51 74Q60 71 69 74" stroke="#92400e" stroke-width="0.7" fill="none" opacity="0.7"/><circle cx="60" cy="77" r="2.2" fill="${c.accentHex}" stroke="#fff" stroke-width="0.5"/>`,
+    armour_vambraces: () => { const v = '<path d="M46 90.4Q51 92.6 56 90.4" stroke="#78350f" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M46 90.4Q51 92.6 56 90.4" stroke="#fbbf24" stroke-width="1.8" fill="none" stroke-linecap="round"/>'; return v + mirror(v); },
     bands: () => {
         const band = '<path d="M43 98.4Q49 100.6 55 98.4" stroke="#78350f" stroke-width="3.2" fill="none" stroke-linecap="round"/><path d="M43 98.4Q49 100.6 55 98.4" stroke="#fbbf24" stroke-width="1.9" fill="none" stroke-linecap="round"/><circle cx="49" cy="99.6" r="0.9" fill="#fff7d6"/>';
         return band + mirror(band);
@@ -1507,6 +1548,66 @@ function sigilSvg(level, c, glow, style = 'ring') {
     return `<g class="fc-sigil">${out}</g>`;
 }
 
+// ─── Personal face and coat details (growth genes) ───────────────────────────
+function faceUnderSvg(gr, c, face, lx, rx) {
+    let out = '';
+    if (gr.coat === 'eyePatch') out += `<ellipse cx="${f(lx)}" cy="${f(face.eyeY + 0.4)}" rx="${f(face.eye * 1.75)}" ry="${f(face.eye * 1.55)}" fill="${shade(c.secondHex, -0.12)}" opacity="0.8"/>`;
+    const fx = 60, fy = face.eyeY - face.eye - 6.4;
+    const mark = {
+        star: () => star4(fx, fy, 2.6, c.accentHex, ' opacity="0.95"'),
+        heart: () => `<path d="M${fx} ${fy + 2.2}C${fx - 3} ${fy} ${fx - 3} ${fy - 2.4} ${fx - 1.4} ${fy - 2.4}C${fx - 0.6} ${fy - 2.4} ${fx} ${fy - 1.8} ${fx} ${fy - 1.2}C${fx} ${fy - 1.8} ${fx + 0.6} ${fy - 2.4} ${fx + 1.4} ${fy - 2.4}C${fx + 3} ${fy - 2.4} ${fx + 3} ${fy} ${fx} ${fy + 2.2}Z" fill="#fb7185" opacity="0.9"/>`,
+        crescent: () => `<path d="M${fx + 1.4} ${fy - 2.6}A2.8 2.8 0 1 0 ${fx + 1.4} ${fy + 2.6}A2.1 2.1 0 1 1 ${fx + 1.4} ${fy - 2.6}Z" fill="${c.accentHex}" opacity="0.95"/>`,
+        diamond: () => `<path d="M${fx} ${fy - 2.8}l2 2.8-2 2.8-2-2.8z" fill="${c.accentHex}" stroke="#fff" stroke-width="0.4"/>`,
+        dots: () => [-2.6, 0, 2.6].map((dx) => `<circle cx="${fx + dx}" cy="${fy + Math.abs(dx) * 0.3}" r="0.9" fill="${c.accentHex}"/>`).join(''),
+        blaze: () => `<path d="M${fx} ${fy - 4}C${fx + 1.8} ${fy - 1} ${fx + 1.6} ${fy + 3} ${fx} ${fy + 5.6}C${fx - 1.6} ${fy + 3} ${fx - 1.8} ${fy - 1} ${fx} ${fy - 4}Z" fill="#fff" opacity="0.7"/>`
+    }[gr.faceMark];
+    return out + (mark ? mark() : '');
+}
+
+function faceOverSvg(gr, c, face, lx, rx, level, plan) {
+    let out = '';
+    const by = face.blushY;
+    const cheek = {
+        freckles: () => [lx - 5, rx + 5].map((x) => [[-1.6, 0], [0.4, -1.2], [1.4, 1]].map(([dx, dy]) => `<circle cx="${f(x + dx)}" cy="${f(by + dy)}" r="0.65" fill="${c.dark}" opacity="0.7"/>`).join('')).join(''),
+        swirls: () => [lx - 5, rx + 5].map((x) => `<path d="M${f(x)} ${f(by)}c1.4 0 1.6 1.8 .2 2-1.8.2-2.4-2-.8-3.2 1.8-1.2 4 .2 3.6 2.2" stroke="${c.accentHex}" stroke-width="0.8" fill="none" stroke-linecap="round"/>`).join(''),
+        whiskerStripes: () => [lx - 6, rx + 6].map((x, i) => `<path d="M${f(x - 2.4)} ${f(by - 1.4)}h4.8M${f(x - 2)} ${f(by + 1)}h4" stroke="${c.dark}" stroke-width="1.1" stroke-linecap="round" opacity="0.6" transform="rotate(${i ? -8 : 8} ${f(x)} ${f(by)})"/>`).join(''),
+        hearts: () => [lx - 5, rx + 5].map((x) => `<path d="M${f(x)} ${f(by + 1.6)}c-2.2-1.6-2.2-3.4-1-3.6.6-.1 1 .3 1 .8 0-.5.4-.9 1-.8 1.2.2 1.2 2-1 3.6z" fill="#fb7185"/>`).join('')
+    }[gr.cheek];
+    if (cheek) out += cheek();
+    if (level >= 2) {
+        const r = face.eye * 1.55;
+        if (gr.gear === 'glasses') out += `<g fill="#fff" fill-opacity="0.16" stroke="#1f2937" stroke-width="1.2"><circle cx="${f(lx)}" cy="${f(face.eyeY)}" r="${f(r)}"/><circle cx="${f(rx)}" cy="${f(face.eyeY)}" r="${f(r)}"/></g><path d="M${f(lx + r)} ${f(face.eyeY - 0.6)}Q60 ${f(face.eyeY - 2.4)} ${f(rx - r)} ${f(face.eyeY - 0.6)}" stroke="#1f2937" stroke-width="1.1" fill="none"/>`;
+        if (gr.gear === 'monocle') out += `<circle cx="${f(rx)}" cy="${f(face.eyeY)}" r="${f(r)}" fill="#fff" fill-opacity="0.18" stroke="#d97706" stroke-width="1.4"/><path d="M${f(rx + r * 0.7)} ${f(face.eyeY + r * 0.7)}q3 6 -1 11" stroke="#fbbf24" stroke-width="0.7" fill="none" stroke-dasharray="1 1"/>`;
+        if (gr.gear === 'earring') { const [ex, ey] = plan.face.earL; out += `<circle cx="${f(120 - ex + 1)}" cy="${f(ey + 9)}" r="2.1" fill="none" stroke="#fbbf24" stroke-width="1.2"/><circle cx="${f(120 - ex + 1)}" cy="${f(ey + 11.2)}" r="0.9" fill="${c.accentHex}"/>`; }
+    }
+    return out;
+}
+
+function coatSvg(gr, c, rand) {
+    let out = '';
+    if (gr.coat === 'saddle') out += `<ellipse cx="60" cy="70" rx="26" ry="10" fill="${c.secondHex}" opacity="0.55"/>`;
+    if (gr.coat === 'twoTone') out += `<rect x="0" y="0" width="60" height="120" fill="${c.secondHex}" opacity="0.28"/>`;
+    if (gr.coat === 'bellyStar') out += star4(60, 92, 5, '#fff', ' opacity="0.55"');
+    const dark = c.dark;
+    switch (gr.pattern) {
+        case 'rosettes': out += [[43, 76], [77, 78], [46, 92], [75, 93], [60, 69]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="2.6" fill="none" stroke="${dark}" stroke-width="1.2" opacity="0.45"/><circle cx="${x}" cy="${y}" r="0.9" fill="${dark}" opacity="0.4"/>`).join(''); break;
+        case 'tigerBack': out += [52, 60, 68].map((x) => `<path d="M${x - 4} 64l4 6 4-6" stroke="${dark}" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.45"/>`).join(''); break;
+        case 'constellation': { const pts = [[42, 74], [47, 82], [44, 92], [76, 76], [72, 86], [78, 94]]; out += `<path d="M42 74L47 82L44 92M76 76L72 86L78 94" stroke="${c.accentHex}" stroke-width="0.6" opacity="0.7" fill="none"/>` + pts.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.1" fill="#fff" opacity="0.9"/>`).join(''); break; }
+        case 'zigzag': out += `<path d="M34 80l5-4 5 4 5-4 5 4M66 80l5-4 5 4 5-4 5 4" stroke="${dark}" stroke-width="1.6" fill="none" stroke-linejoin="round" opacity="0.45"/>`; break;
+        case 'hearts': out += [[43, 78], [77, 80], [45, 93], [76, 92]].map(([x, y]) => `<path d="M${x} ${y + 1.8}c-2.4-1.8-2.4-3.8-1-4 .7-.1 1 .4 1 .9 0-.5.3-1 1-.9 1.4.2 1.4 2.2-1 4z" fill="${dark}" opacity="0.4"/>`).join(''); break;
+        case 'bands': out += [78, 90].map((y) => `<path d="M30 ${y}Q60 ${y + 6 + (rand() - 0.5) * 2} 90 ${y}" stroke="${dark}" stroke-width="2.6" fill="none" opacity="0.32"/>`).join(''); break;
+        default: break;
+    }
+    return out;
+}
+
+function socksSvg(gr, c, plan) {
+    if (gr.coat !== 'socks' || !['paws', 'claws', 'stumps', 'bunnyFeet'].includes(plan.feet)) return '';
+    const x = plan.feet === 'bunnyFeet' ? 46.6 : plan.feet === 'stumps' ? 47 : 49;
+    const sock = `<ellipse cx="${x}" cy="101.4" rx="6.6" ry="3.4" fill="${c.secondHex}" opacity="0.9"/>`;
+    return sock + mirror(sock);
+}
+
 // Chest emblems (form 4 and up), drawn on a small gold badge.
 const EMBLEMS = {
     gem: (c) => `<path d="M0 -3.4L3 0L0 3.6L-3 0Z" fill="${c.accentHex}" stroke="#fff" stroke-width="0.5"/>`,
@@ -1525,6 +1626,7 @@ function emblemSvg(kind, c) {
 
 // Capes and mantles hang behind the body from form 4 on.
 const BACK_EXTRAS = {
+    leafCape: (c) => [[-34, 0], [-14, 1], [14, 1], [34, 0]].map(([r, i]) => `<g transform="rotate(${r} 60 68)"><path d="M60 68C52 78 52 92 60 104C68 92 68 78 60 68Z" fill="${i ? c.secondHex : shade(c.secondHex, -0.12)}" stroke="${c.ink}" stroke-width="0.7"/><path d="M60 70V102" stroke="${c.ink}" stroke-width="0.5" opacity="0.6"/></g>`).join(''),
     cape: (c, o) => `<path d="M43 68C34 80 30 94 27 106C38 103 48 107 60 104C72 107 82 103 93 106C90 94 86 80 77 68Z" fill="${c.s}"${o}/>
         <path d="M27 106C38 103 48 107 60 104C72 107 82 103 93 106" stroke="#fbbf24" stroke-width="1.8" fill="none" stroke-linecap="round"/>`,
     mantle: (c, o) => `<path d="M40 68C34 74 31 82 31 90Q37 86 41 91Q46 85 51 90Q56 85 60 90Q64 85 69 90Q74 85 79 91Q83 86 89 90C89 82 86 74 80 68Z" fill="${c.a}"${o}/>
@@ -1618,10 +1720,10 @@ export function buildFamiliarSvg(genome, opts = {}) {
     const body = `<g class="fc-body" style="transform-origin:60px 104px">
         ${bodyFill}
         <clipPath id="${uid}-clip">${bodyMarkup}</clipPath>
-        <g clip-path="url(#${uid}-clip)">${markingSvg(genome.marking, c, rand)}<ellipse cx="60" cy="${plan.body === 'squat' ? 80 : 70}" rx="15" ry="4" fill="#000" opacity="0.12"/></g>
+        <g clip-path="url(#${uid}-clip)">${markingSvg(genome.marking, c, rand)}${level >= 2 || gr.coat !== 'none' ? coatSvg(level >= 2 ? gr : { ...gr, pattern: 'none' }, c, rand) : ''}<ellipse cx="60" cy="${plan.body === 'squat' ? 80 : 70}" rx="15" ry="4" fill="#000" opacity="0.12"/></g>
         ${bellyShape(plan.shell ? 'plastron' : plan.body, c)}${bellyPlates}${mossPatches}${glowCore}
         <ellipse cx="${plan.body === 'squat' ? 44 : 49}" cy="${plan.body === 'squat' ? 82 : plan.body === 'orb' ? 66 : 74}" rx="5" ry="3" fill="#fff" opacity="0.22" transform="rotate(-25 49 74)"/>
-        ${feetSvg(plan.feet, c, o)}
+        ${feetSvg(plan.feet, c, o)}${socksSvg(gr, c, plan)}
         ${plan.paws ? frontPaws(c, o) : ''}
     </g>`;
 
@@ -1635,7 +1737,7 @@ export function buildFamiliarSvg(genome, opts = {}) {
     const headKeepsake = !neckKeepsake ? keepsakeSvg(genome.keepsake, genome.keepsakeColour, plan, c) : '';
     const [hox, hoy] = plan.headOrigin;
     const head = `<g class="fc-head" style="transform-origin:${hox}px ${hoy}px">
-        ${centerBack}${pairs}${headSvg(plan.head, c, o, face)}${plan.body === 'orb' ? '' : ''}${eyes}${blush}${orbBeak}${centerFront}${headKeepsake}
+        ${centerBack}${pairs}${headSvg(plan.head, c, o, face)}${faceUnderSvg(gr, c, face, lx, rx)}${eyes}${blush}${faceOverSvg(gr, c, face, lx, rx, level, plan)}${orbBeak}${centerFront}${headKeepsake}
     </g>`;
 
     const auraR = [0, 30, 38, 44, 50][level - 1] + (genome.shiny ? 6 : 0);

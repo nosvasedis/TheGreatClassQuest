@@ -429,29 +429,29 @@ function planFor(typeId, level, form) {
     const base = { feet: 'paws', paws: true, shoulder: [46, 72], tail: [76, 95], neck: 66, neckAccessory: true, headOrigin: [60, 68] };
     const lvl = lvlOf(level);
     if (typeId === 'emberfang') {
-        return { ...base, body: form.body || 'round', head: 'dragon', feet: 'claws', face: FACE.dragon, wingScale: [0.55, 0.8, 1.05, 1.12, 1.2][lvl - 1] * (form.wingScale || 1) };
+        return { ...base, body: form.body || 'round', head: 'dragon', feet: 'claws', face: FACE.dragon, wingScale: [0.5, 0.82, 1.1, 1.24, 1.36][lvl - 1] * (form.wingScale || 1) };
     }
     if (typeId === 'frostpaw') {
         return { ...base, body: 'round', head: 'fox', face: FACE.fox };
     }
     if (typeId === 'thornback') {
-        if (lvl === 1) return { ...base, body: 'squat', head: 'toad', feet: 'toad', paws: false, face: FACE.toad, shoulder: [40, 82], tail: [84, 97], neck: 74, headOrigin: [60, 82] };
+        if (lvl === 1) return { ...base, integrated: true, body: 'squat', head: 'toad', feet: 'toad', paws: false, face: FACE.toad, shoulder: [40, 82], tail: [84, 97], neck: 74, headOrigin: [60, 82] };
         if (lvl === 2) return { ...base, body: 'stout', head: 'bear', face: FACE.bear };
         return { ...base, body: 'bark', head: 'bear', feet: 'roots', face: FACE.bear };
     }
     if (typeId === 'veilshade') {
-        if (lvl === 1) return { ...base, body: 'wisp', head: 'none', feet: 'none', paws: false, face: FACE.wisp, shoulder: [42, 80], tail: null, neckAccessory: false, headOrigin: [60, 90] };
+        if (lvl === 1) return { ...base, integrated: true, body: 'wisp', head: 'none', feet: 'none', paws: false, face: FACE.wisp, shoulder: [42, 80], tail: null, neckAccessory: false, headOrigin: [60, 90] };
         return { ...base, body: 'round', head: 'cat', face: FACE.cat };
     }
     if (typeId === 'sparkling') {
-        if (lvl === 1) return { ...base, body: 'orb', head: 'none', feet: 'bird', paws: false, face: FACE.orb, shoulder: [40, 80], tail: [79, 92], neckAccessory: false, headOrigin: [60, 96] };
+        if (lvl === 1) return { ...base, integrated: true, body: 'orb', head: 'none', feet: 'bird', paws: false, face: FACE.orb, shoulder: [40, 80], tail: [79, 92], neckAccessory: false, headOrigin: [60, 96] };
         return { ...base, body: 'bird', head: 'bird', feet: 'bird', paws: false, face: FACE.bird, shoulder: [44, 74], neck: 66 };
     }
     if (typeId === 'tidefin') {
         return { ...base, body: lvl === 1 ? 'round' : 'otter', head: 'otter', feet: lvl >= 3 ? 'flippers' : 'paws', face: FACE.otter, tail: [74, 97], shoulder: [44, 76] };
     }
     if (typeId === 'stormwing') {
-        if (lvl === 1) return { ...base, body: 'orb', head: 'owlet', feet: 'talons', paws: false, face: FACE.owlet, shoulder: [40, 80], tail: [79, 94], neckAccessory: false, headOrigin: [60, 96] };
+        if (lvl === 1) return { ...base, integrated: true, body: 'orb', head: 'owlet', feet: 'talons', paws: false, face: FACE.owlet, shoulder: [40, 80], tail: [79, 94], neckAccessory: false, headOrigin: [60, 96] };
         return { ...base, body: 'owl', head: 'owl', feet: 'talons', paws: false, face: FACE.owl, shoulder: [43, 73], neck: 66, tail: [74, 99] };
     }
     if (typeId === 'gemshell') {
@@ -467,9 +467,11 @@ function planFor(typeId, level, form) {
 }
 
 /**
- * Which parts a familiar wears at a stage. The first three forms keep the shapes the class has
- * always known; the fourth and fifth add regalia drawn behind the body (`regalia`), extras in
- * front (`front`) and, for the fifth (Mythic), orbiting glints.
+ * Which parts a familiar wears at a stage. Every form must read as a clear step up from the one
+ * before: the first form is a hatchling still sitting in its eggshell, the second finds its
+ * class shape, the third grows the class's signature (wings, fins, antlers, extra tails), the
+ * fourth gains regalia behind the body (`regalia`) and new armour in front (`front`), and the
+ * fifth (Mythic) wears the grandest crown and regalia of all, over a glowing sigil.
  */
 function partsFor(genome, level) {
     const { typeId, form } = genome;
@@ -484,70 +486,83 @@ function partsFor(genome, level) {
     const front = [];
     const addCrown = (key) => { if (!crown.includes(key)) crown.push(key); };
     const swapCrown = (from, to) => { crown = crown.filter((k) => k !== from); addCrown(to); };
+    const dropCrown = (...keys) => { crown = crown.filter((k) => !keys.includes(k)); };
+
+    // Every hatchling still sits in the bottom half of its eggshell.
+    if (lvl === 1) front.push('eggshell');
 
     if (typeId === 'emberfang') {
-        if (lvl >= 4) { regalia.push('spines'); front.push('chestCore'); }
-        if (lvl === 5) { regalia.unshift('fireRing'); tail = 'grandFlame'; crown = crown.filter((k) => k !== 'spikeCrest'); addCrown('flameCrest'); }
+        if (lvl === 1) crown = ['nubHorns'];
+        if (lvl >= 3) regalia.push('spines');
+        if (lvl === 4) tail = 'flame';
+        if (lvl >= 4) front.push('chestCore', 'lavaVeins');
+        if (lvl === 5) { regalia.unshift('fireRing'); tail = 'grandFlame'; dropCrown('spikeCrest'); addCrown('flameCrest'); }
     }
     if (typeId === 'frostpaw') {
         if (lvl >= 2) ruff = true;
-        if (lvl === 3) tail = form.legendTail || 'twinFluffy';
+        if (lvl === 3) tail = 'twinFluffy';
         if (lvl === 4) tail = 'tripleFluffy';
         if (lvl === 5) tail = 'fanFluffy';
-        if (lvl >= 3 && form.legendWings) { wings = form.legendWings; wingScale = [0.95, 1.05, 1.15][lvl - 3]; }
-        if (lvl >= 4) addCrown('iceCrown');
-        if (lvl === 5) regalia.push('auroraArcs');
+        if (lvl >= 3) { addCrown('frostGem'); front.push('iceShards'); }
+        if (lvl >= 3 && form.legendWings) { wings = form.legendWings; wingScale = [1, 1.16, 1.3][lvl - 3]; }
+        if (lvl === 5 && !wings) { wings = 'crystal'; wingScale = 1.18; }
+        if (lvl >= 4) { addCrown('iceCrown'); regalia.push('frostHalo'); }
+        if (lvl === 5) regalia.unshift('auroraArcs');
     }
     if (typeId === 'thornback') {
         if (lvl === 1) tail = null;
         if (lvl === 2) crown = ['roundEars', ...crown];
         if (lvl === 3) { crown = ['antlers', ...crown]; tail = 'leafTail'; }
-        if (lvl >= 4) { crown = ['bloomAntlers', ...crown]; tail = 'leafTail'; front.push('pauldrons'); }
+        if (lvl >= 4) { crown = ['bloomAntlers', ...crown]; tail = 'leafTail'; front.push('pauldrons', 'mushrooms'); }
         if (lvl === 5) regalia.push('canopy');
     }
     if (typeId === 'veilshade') {
         if (lvl === 1) { crown = ['wispEars']; tail = null; }
-        if (lvl >= 3) { wings = 'smoke'; wingScale = [1, 1.15, 1.2][lvl - 3]; addCrown('crescentHorns'); }
+        if (lvl >= 3) { wings = 'smoke'; wingScale = [1.05, 1.2, 1.3][lvl - 3]; addCrown('crescentHorns'); addCrown('voidEye'); }
+        if (lvl >= 4) { crown = crown.map((k) => (k === 'catEars' || k === 'starEars' ? 'lynxEars' : k)); regalia.push('shadowFlames'); }
         if (lvl === 4) regalia.push('eclipse');
-        if (lvl === 5) { wings = 'starCloak'; regalia.push('crescentMoon'); addCrown('starCrest'); }
+        if (lvl === 5) { wings = 'starCloak'; regalia.push('crescentMoon'); addCrown('sphinxHood'); addCrown('starCrest'); }
     }
     if (typeId === 'sparkling') {
         if (lvl === 1) { wings = 'feather'; wingScale = 0.5; tail = 'plume'; }
-        if (lvl === 2) { wings = 'fairy'; wingScale = 0.9; addCrown('halo'); }
-        if (lvl === 3) { wings = 'feather'; wingScale = 1.15; tail = 'flamePlume'; }
-        if (lvl === 4) { wings = 'feather'; wingScale = 1.28; tail = 'streamers'; addCrown('halo'); }
-        if (lvl === 5) { wings = 'feather'; wingScale = 1.34; tail = 'streamers'; addCrown('sunCrest'); regalia.push('sunDisc'); }
+        if (lvl === 2) { wings = 'fairy'; wingScale = 0.95; addCrown('halo'); }
+        if (lvl >= 3) { dropCrown('plumeCrest'); addCrown('flameCrest'); }
+        if (lvl === 3) { wings = 'feather'; wingScale = 1.2; tail = 'flamePlume'; }
+        if (lvl === 4) { wings = 'feather'; wingScale = 1.32; tail = 'streamers'; addCrown('halo'); regalia.push('sunRays'); }
+        if (lvl === 5) { wings = 'feather'; wingScale = 1.42; tail = 'streamers'; dropCrown('flameCrest'); addCrown('phoenixCrest'); regalia.push('sunDisc'); }
     }
     if (typeId === 'tidefin') {
         if (lvl === 1) front.push('bubble');
-        if (lvl >= 3) { tail = 'flukeTail'; wings = 'fin'; wingScale = [0.75, 0.95, 1.1][lvl - 3]; }
+        if (lvl === 2) front.push('shellHold');
+        if (lvl >= 3) { tail = 'flukeTail'; wings = 'fin'; wingScale = [0.85, 1.05, 1.2][lvl - 3]; }
+        if (lvl >= 4) front.push('pearlNecklace');
         if (lvl === 4) { addCrown('coralCrown'); regalia.push('waveRing'); }
-        if (lvl === 5) { crown = crown.filter((k) => k !== 'pearlCrest'); addCrown('tideCrown'); regalia.push('tideHalo'); }
+        if (lvl === 5) { dropCrown('pearlCrest'); addCrown('tideCrown'); regalia.push('trident', 'tideHalo'); }
     }
     if (typeId === 'stormwing') {
         if (lvl === 1) { crown = crown.filter((k) => k === 'owlEars'); wings = 'feather'; wingScale = 0.45; }
-        if (lvl === 2) { wings = 'feather'; wingScale = 0.85; }
-        if (lvl >= 3) { wings = 'storm'; wingScale = [1, 1.12, 1.22][lvl - 3]; addCrown('boltCrest'); }
-        if (lvl >= 4) tail = 'stormTail';
-        if (lvl === 4) regalia.push('stormCloud');
+        if (lvl === 2) { wings = 'feather'; wingScale = 0.92; }
+        if (lvl >= 3) { wings = 'storm'; wingScale = [1.08, 1.22, 1.38][lvl - 3]; addCrown('boltCrest'); }
+        if (lvl >= 4) { tail = 'stormTail'; regalia.push('stormCloud'); }
         if (lvl === 5) { swapCrown('boltCrest', 'stormCrown'); regalia.push('boltRing'); }
     }
     if (typeId === 'gemshell') {
         shellCrystals = [0, 2, 3, 5, 5][lvl - 1];
         if (lvl >= 2 && !crown.includes('leafSprout')) addCrown('gemSpike');
-        if (lvl === 5) { swapCrown('gemSpike', 'prismCrown'); regalia.push('prismArc'); }
+        if (lvl === 4) regalia.push('mountain');
+        if (lvl === 5) { swapCrown('gemSpike', 'prismCrown'); regalia.push('prismArc', 'crystalSpires'); }
     }
     if (typeId === 'starfoal') {
         if (lvl === 1 && crown.includes('unicornHorn')) swapCrown('unicornHorn', 'hornlet');
         if (lvl >= 2) addCrown('unicornHorn');
-        if (lvl >= 3) { wings = 'astral'; wingScale = [0.88, 1.02, 1.14][lvl - 3]; }
+        if (lvl >= 3) { wings = 'astral'; wingScale = [1.42, 1.58, 1.72][lvl - 3]; regalia.push('nebulaCloud'); }
         if (lvl >= 4) { tail = 'cometTail'; regalia.push('constellation'); }
         if (lvl === 5) { swapCrown('unicornHorn', 'starHorn'); regalia.unshift('galaxySpiral'); }
     }
     if (typeId === 'cloverhop') {
         if (lvl >= 2 && !crown.includes('cloverSprig')) addCrown('cloverBud');
         if (lvl >= 3) addCrown('jackAntlers');
-        if (lvl >= 4) { wings = 'clover'; wingScale = lvl === 4 ? 0.85 : 1.05; tail = 'cloverTail'; regalia.push('cloverRing'); }
+        if (lvl >= 4) { wings = 'clover'; wingScale = lvl === 4 ? 1 : 1.2; tail = 'cloverTail'; regalia.push('cloverRing'); }
         if (lvl === 5) { swapCrown('jackAntlers', 'goldAntlers'); regalia.unshift('horseshoe'); }
     }
     if (lvl === 5) front.push('mythicGlints');
@@ -566,7 +581,7 @@ function partsFor(genome, level) {
 const f = (n) => (Math.round(n * 10) / 10).toString();
 const mirror = (svg) => `<g transform="matrix(-1 0 0 1 120 0)">${svg}</g>`;
 
-function gradientDefs(uid, pal, shiny) {
+function gradientDefs(uid, pal, shiny, eggBase) {
     const g = (id, hex, hi = 0.2, lo = -0.2) => `
         <radialGradient id="${uid}-${id}" cx="34%" cy="28%" r="78%">
             <stop offset="0" stop-color="${shade(hex, hi)}"/>
@@ -588,6 +603,16 @@ function gradientDefs(uid, pal, shiny) {
             <stop offset="0" stop-color="${shiny ? '#fde68a' : pal.glow}" stop-opacity="0.55"/>
             <stop offset="0.6" stop-color="${shiny ? '#fbbf24' : pal.glow}" stop-opacity="0.18"/>
             <stop offset="1" stop-color="${pal.glow}" stop-opacity="0"/>
+        </radialGradient>
+        ${eggBase ? `<radialGradient id="${uid}-egg" cx="38%" cy="20%" r="90%">
+            <stop offset="0" stop-color="${shade(eggBase, 0.24)}"/>
+            <stop offset="0.6" stop-color="${eggBase}"/>
+            <stop offset="1" stop-color="${shade(eggBase, -0.2)}"/>
+        </radialGradient>` : ''}
+        <radialGradient id="${uid}-sun" cx="50%" cy="50%" r="50%">
+            <stop offset="0" stop-color="#fffbeb" stop-opacity="0.95"/>
+            <stop offset="0.45" stop-color="#fde047" stop-opacity="0.6"/>
+            <stop offset="1" stop-color="#fb923c" stop-opacity="0"/>
         </radialGradient>
         <linearGradient id="${uid}-fl" x1="0" y1="1" x2="0" y2="0">
             <stop offset="0" stop-color="${pal.accent === '#3b3440' ? '#f97316' : pal.accent}"/>
@@ -850,6 +875,7 @@ const antlerPath = (bx, by) => `M${bx} ${by}C${bx - 1} ${by - 5} ${bx - 1.4} ${b
 
 // Pair parts are drawn on the left at anchor (ax, ay) and mirrored to the right.
 const PAIR_PARTS = {
+    lynxEars: (ax, ay, c, o) => `<path d="M${ax - 10} ${ay + 7}L${ax - 8} ${ay - 15}Q${ax - 7} ${ay - 17} ${ax - 5} ${ay - 15}L${ax + 7} ${ay + 2}Z" fill="${c.m}"${o}/><path d="M${ax - 7} ${ay + 4}L${ax - 6.6} ${ay - 9}L${ax + 3} ${ay + 2}Z" fill="${c.s}" opacity="0.85"/><path d="M${ax - 6.8} ${ay - 15}l-3 -7M${ax - 6.8} ${ay - 15}l.4 -9M${ax - 6.8} ${ay - 15}l3.4 -6" stroke="${c.ink}" stroke-width="1.7" stroke-linecap="round"/><path d="M${ax - 6.8} ${ay - 15}l.4 -9" stroke="${c.accentHex}" stroke-width="0.7" stroke-linecap="round" opacity="0.8"/>`,
     nubHorns: (ax, ay, c, o) => `<path d="M${ax - 3} ${ay + 5}Q${ax - 5} ${ay - 5} ${ax - 1} ${ay - 10}Q${ax + 2} ${ay - 3} ${ax + 4} ${ay + 3}Z" fill="${c.a}"${o}/>`,
     curvedHorns: (ax, ay, c, o) => `<path d="M${ax - 1} ${ay + 5}C${ax - 8} ${ay} ${ax - 13} ${ay - 8} ${ax - 11} ${ay - 17}C${ax - 6} ${ay - 10} ${ax} ${ay - 5} ${ax + 5} ${ay + 2}Z" fill="${c.a}"${o}/><path d="M${ax - 4} ${ay - 2}l3 -1M${ax - 7} ${ay - 7}l3 -1" stroke="${c.dark}" stroke-width="0.9" opacity="0.5"/>`,
     ramHorns: (ax, ay, c) => {
@@ -894,6 +920,19 @@ const PAIR_PARTS = {
 
 // Centre parts sit on the crown of the head at (tx, ty). `back` ones are drawn behind the head.
 const CENTER_PARTS = {
+    frostGem: { glow: true, draw: (tx, ty) => `<path d="M${tx} ${ty + 4}l3.2 4.6-3.2 4.6-3.2-4.6z" fill="#e0f2fe" stroke="#38bdf8" stroke-width="0.9" stroke-linejoin="round"/><path d="M${tx} ${ty + 4}v9.2M${tx - 3.2} ${ty + 8.6}h6.4" stroke="#fff" stroke-width="0.6" opacity="0.85"/>` },
+    voidEye: { glow: true, draw: (tx, ty, c) => `<path d="M${tx - 4.6} ${ty + 8}Q${tx} ${ty + 3.6} ${tx + 4.6} ${ty + 8}Q${tx} ${ty + 12.4} ${tx - 4.6} ${ty + 8}Z" fill="#0b0618" stroke="${c.accentHex}" stroke-width="1"/><circle cx="${tx}" cy="${ty + 8}" r="1.7" fill="${c.accentHex}"/><circle cx="${tx - 0.5}" cy="${ty + 7.5}" r="0.6" fill="#fff"/>` },
+    sphinxHood: { back: true, draw: (tx, ty, c) => {
+        const d = `M${tx - 15} ${ty + 2}Q${tx} ${ty - 7} ${tx + 15} ${ty + 2}L${tx + 29} ${ty + 36}Q${tx + 24} ${ty + 42} ${tx + 17} ${ty + 38}L${tx - 17} ${ty + 38}Q${tx - 24} ${ty + 42} ${tx - 29} ${ty + 36}Z`;
+        const stripes = [8, 15, 22, 29, 36].map((dy) => `<path d="M${tx - 34} ${ty + dy}H${tx + 34}" stroke="#fbbf24" stroke-width="2.6"/>`).join('');
+        return `<clipPath id="${c.uid}-hood"><path d="${d}"/></clipPath><path d="${d}" fill="${shade(c.secondHex, -0.18)}" stroke="#92400e" stroke-width="1"/>
+            <g clip-path="url(#${c.uid}-hood)" opacity="0.9">${stripes}</g><path d="${d}" fill="none" stroke="#fde68a" stroke-width="0.8"/>`;
+    } },
+    phoenixCrest: { back: true, draw: (tx, ty, c) => [-60, -40, -20, 0, 20, 40, 60].map((deg, i) => {
+        const h = [15, 20, 25, 30, 25, 20, 15][i];
+        return `<g transform="rotate(${deg} ${tx} ${ty + 8})"><path d="M${tx - 4.6} ${ty + 8}C${tx - 6.4} ${f(ty - h * 0.35)} ${tx - 1.4} ${f(ty - h * 0.7)} ${tx} ${ty - h}C${tx + 1.4} ${f(ty - h * 0.7)} ${tx + 6.4} ${f(ty - h * 0.35)} ${tx + 4.6} ${ty + 8}Z" fill="url(#${c.uid}-fl)" stroke="#ea580c" stroke-width="0.7"/>
+            <path d="M${tx} ${ty + 5}V${ty - h + 5}" stroke="#fff7d6" stroke-width="0.9" opacity="0.75" stroke-linecap="round"/><circle cx="${tx}" cy="${ty - h + 6}" r="1.6" fill="${c.accentHex}" stroke="#fff" stroke-width="0.4"/></g>`;
+    }).join('') },
     spikeCrest: { draw: (tx, ty, c, o) => [[-6, 3], [0, 0], [6, 3]].map(([dx, dy]) => `<path d="M${tx + dx - 3} ${ty + dy + 3}L${tx + dx} ${ty + dy - 6}L${tx + dx + 3} ${ty + dy + 3}Z" fill="${c.a}"${o}/>`).join('') },
     leafSprout: { sway: true, draw: (tx, ty, c) => `<path d="M${tx} ${ty + 3}q-1 -6 0 -9" stroke="#3f6212" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M${tx} ${ty - 5}C${tx - 9} ${ty - 11} ${tx - 12} ${ty - 3} ${tx} ${ty - 4}Z" fill="${c.s}" stroke="${c.ink}" stroke-width="0.8"/><path d="M${tx} ${ty - 6}C${tx + 8} ${ty - 14} ${tx + 13} ${ty - 5} ${tx} ${ty - 5}Z" fill="${c.s}" stroke="${c.ink}" stroke-width="0.8"/>` },
     flowerSprout: { sway: true, draw: (tx, ty, c) => `<path d="M${tx} ${ty + 3}q1 -6 0 -9" stroke="#3f6212" stroke-width="1.6" fill="none"/>` + [0, 72, 144, 216, 288].map((deg) => {
@@ -1095,7 +1134,8 @@ const REGALIA = {
         const dark = shade(c.secondHex, -0.18);
         return leaves.map(([x, y, r]) => `<circle cx="${x}" cy="${y + 1.6}" r="${r}" fill="${dark}"/>`).join('')
             + leaves.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${c.secondHex}"/><circle cx="${x - r * 0.3}" cy="${y - r * 0.35}" r="${f(r * 0.4)}" fill="#fff" opacity="0.14"/>`).join('')
-            + [[30, 40], [48, 20], [74, 18], [90, 40], [62, 10], [40, 34], [82, 32]].map(([x, y], i) => `<circle cx="${x}" cy="${y}" r="1.8" fill="${i % 2 ? '#fde047' : c.accentHex}" class="fc-twinkle" style="animation-delay:${-i * 0.35}s"/>`).join('');
+            + [[30, 40], [48, 20], [74, 18], [90, 40], [62, 10], [40, 34], [82, 32]].map(([x, y], i) => `<circle cx="${x}" cy="${y}" r="1.8" fill="${i % 2 ? '#fde047' : c.accentHex}" class="fc-twinkle" style="animation-delay:${-i * 0.35}s"/>`).join('')
+            + [[26, 52], [94, 52], [46, 36], [76, 34], [56, 4]].map(([x, y]) => `<path d="M${x} ${y - 4}q1.6 -2.4 3.4 -2" stroke="#3f6212" stroke-width="0.9" fill="none"/><circle cx="${x}" cy="${y}" r="3.6" fill="#fbbf24" stroke="#b45309" stroke-width="0.7"/><circle cx="${x - 1.2}" cy="${y - 1.2}" r="1.1" fill="#fff7d6"/>`).join('');
     },
     eclipse: (c) => `<circle cx="60" cy="44" r="34" fill="none" stroke="${c.accentHex}" stroke-width="1" stroke-dasharray="2 4" opacity="0.5" class="fc-regalia-glow"/>
         <circle cx="60" cy="44" r="29" fill="#0b0618" stroke="${c.accentHex}" stroke-width="2.4" opacity="0.92"/>
@@ -1104,8 +1144,9 @@ const REGALIA = {
         <circle cx="60" cy="46" r="38" fill="#f5f3ff" mask="url(#${c.uid}-moon)" opacity="0.95"/>
         <circle cx="60" cy="46" r="38" fill="none" stroke="${c.accentHex}" stroke-width="1.4" mask="url(#${c.uid}-moon)" opacity="0.8"/>
         ${[[92, 20], [100, 44], [84, 8], [28, 18], [104, 66]].map(([x, y], i) => `<path d="M${x} ${y - 2.8}l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" fill="${i % 2 ? c.accentHex : '#fff'}" class="fc-twinkle" style="animation-delay:${-i * 0.5}s"/>`).join('')}`,
-    sunDisc: () => `<g class="fc-regalia-spin" style="transform-origin:60px 46px">${ring(14, 36, 60, 46, () => '<path d="M-3 4L0 -8L3 4Z" fill="#fde047" opacity="0.85"/>')}</g>
-        <circle cx="60" cy="46" r="29" fill="#fde047" opacity="0.28"/><circle cx="60" cy="46" r="24" fill="#fef3c7" opacity="0.55"/>`,
+    sunDisc: (c) => `<circle cx="60" cy="46" r="50" fill="url(#${c.uid}-sun)" class="fc-regalia-glow"/>
+        <g class="fc-regalia-spin" style="transform-origin:60px 46px">${ring(16, 38, 60, 46, (i) => `<path d="M-3.4 4L0 ${i % 2 ? -7 : -12}L3.4 4Z" fill="${i % 2 ? '#fef08a' : '#fbbf24'}" stroke="#f59e0b" stroke-width="0.5"/>`)}</g>
+        <circle cx="60" cy="46" r="31" fill="none" stroke="#fde68a" stroke-width="1.6" opacity="0.85"/>`,
     waveRing: (c) => `<path d="M12 100A48 48 0 0 1 108 100" stroke="${c.secondHex}" stroke-width="12" fill="none" opacity="0.2"/>
         <path d="M20 100A40 40 0 0 1 100 100" stroke="${c.secondHex}" stroke-width="5" fill="none" opacity="0.3"/>
         <path d="M12 100A48 48 0 0 1 108 100" stroke="#fff" stroke-width="1.2" fill="none" opacity="0.7" stroke-dasharray="6 9" class="fc-regalia-flow"/>
@@ -1160,10 +1201,81 @@ const REGALIA = {
     },
     prismArc: () => ['#f87171', '#fb923c', '#facc15', '#4ade80', '#38bdf8', '#a78bfa']
         .map((col, i) => `<path d="M${10 + i * 4} 92A${50 - i * 4} ${50 - i * 4} 0 0 1 ${110 - i * 4} 92" stroke="${col}" stroke-width="3.4" fill="none" opacity="0.5"/>`).join('')
-        + '<g class="fc-regalia-glow"><path d="M10 92A50 50 0 0 1 110 92" stroke="#fff" stroke-width="0.8" fill="none" opacity="0.7"/></g>'
+        + '<g class="fc-regalia-glow"><path d="M10 92A50 50 0 0 1 110 92" stroke="#fff" stroke-width="0.8" fill="none" opacity="0.7"/></g>',
+    frostHalo: () => {
+        const arm = '<path d="M0 -12V-50M0 -26l-8.6 -7.4M0 -26l8.6 -7.4M0 -39l-6.6 -6M0 -39l6.6 -6" stroke="#e0f2fe" stroke-width="2.2" stroke-linecap="round" fill="none" opacity="0.7"/><path d="M0 -51l-3 3.6 3 3.6 3-3.6z" fill="#bae6fd" stroke="#fff" stroke-width="0.5"/>';
+        return `<circle cx="60" cy="50" r="46" fill="none" stroke="#bae6fd" stroke-width="1" opacity="0.45"/><g class="fc-regalia-glow"><g class="fc-regalia-spin fc-regalia-spin--slow" style="transform-origin:60px 50px">${[0, 60, 120, 180, 240, 300].map((d) => `<g transform="translate(60 50) rotate(${d})">${arm}</g>`).join('')}</g></g>`;
+    },
+    sunRays: (c) => `<circle cx="60" cy="48" r="42" fill="url(#${c.uid}-sun)" opacity="0.75" class="fc-regalia-glow"/>
+        <g class="fc-regalia-spin fc-regalia-spin--slow" style="transform-origin:60px 48px">${ring(10, 34, 60, 48, () => '<path d="M-2.6 3L0 -9L2.6 3Z" fill="#fde68a" opacity="0.9"/>')}</g>`,
+    shadowFlames: (c) => {
+        const tongue = (x, y, s) => `<path d="M${x} ${y}C${f(x - 6 * s)} ${f(y - 6 * s)} ${f(x - 1 * s)} ${f(y - 12 * s)} ${f(x - 4 * s)} ${f(y - 20 * s)}C${f(x + 4 * s)} ${f(y - 14 * s)} ${f(x + 7 * s)} ${f(y - 7 * s)} ${f(x + 4 * s)} ${y}Z" fill="${c.secondHex}" opacity="0.55"/>
+            <path d="M${f(x + 0.6 * s)} ${f(y - 1 * s)}C${f(x - 2 * s)} ${f(y - 5 * s)} ${f(x + 0.4 * s)} ${f(y - 9 * s)} ${f(x - 1.4 * s)} ${f(y - 13 * s)}C${f(x + 2.6 * s)} ${f(y - 9 * s)} ${f(x + 3.4 * s)} ${f(y - 5 * s)} ${f(x + 2.4 * s)} ${f(y - 1 * s)}Z" fill="${c.accentHex}" opacity="0.6"/>`;
+        const side = tongue(30, 100, 1.3) + tongue(24, 82, 1.05) + tongue(30, 64, 0.85);
+        return `<g class="fc-regalia-glow">${side}${mirror(side)}</g>`;
+    },
+    trident: (c) => `<g transform="rotate(14 92 104)">
+        <path d="M92 104V26" stroke="#78350f" stroke-width="4.4" stroke-linecap="round"/><path d="M92 104V26" stroke="#fbbf24" stroke-width="2.6" stroke-linecap="round"/>
+        <path d="M80 30C80 20 82 14 84 8C85 15 86 22 92 26C98 22 99 15 100 8C102 14 104 20 104 30" stroke="#78350f" stroke-width="4.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M80 30C80 20 82 14 84 8C85 15 86 22 92 26C98 22 99 15 100 8C102 14 104 20 104 30" stroke="#fbbf24" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M92 26V4" stroke="#78350f" stroke-width="4.2" stroke-linecap="round"/><path d="M92 26V4" stroke="#fde047" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M89.6 8L92 0L94.4 8Z" fill="#fde047" stroke="#78350f" stroke-width="0.8"/><path d="M81.6 12L84 4.6L86 12Z" fill="#fde047" stroke="#78350f" stroke-width="0.8"/><path d="M98 12L100 4.6L102.4 12Z" fill="#fde047" stroke="#78350f" stroke-width="0.8"/>
+        <circle cx="92" cy="30" r="3.2" fill="#fdf4ff" stroke="${c.secondHex}" stroke-width="1"/><circle cx="91" cy="29" r="1" fill="#fff"/>
+        <path d="M92 40C96 42 88 46 92 48C96 50 88 54 92 56" stroke="${c.secondHex}" stroke-width="1.4" fill="none" opacity="0.8"/></g>`,
+    mountain: (c) => {
+        const rock = '#9a8670';
+        const rockDark = '#5b4a3a';
+        const peak = (pts, snow, shadow) => `<path d="${pts}" fill="${rock}" stroke="${rockDark}" stroke-width="1.2" stroke-linejoin="round"/><path d="${shadow}" fill="${rockDark}" opacity="0.45"/><path d="${snow}" fill="#f8fafc" stroke="#cbd5e1" stroke-width="0.6" stroke-linejoin="round"/>`;
+        const pine = (x, y, k = 1) => `<path d="M${x} ${f(y - 9 * k)}L${f(x + 3.6 * k)} ${f(y - 2 * k)}H${f(x + 1.4 * k)}L${f(x + 4.4 * k)} ${y}H${f(x - 4.4 * k)}L${f(x - 1.4 * k)} ${f(y - 2 * k)}H${f(x - 3.6 * k)}Z" fill="#166534" stroke="#14532d" stroke-width="0.5"/>`;
+        return peak('M8 92L24 50L32 60L42 38L58 78Z', 'M24 50L28.6 57.6L31 55L32 60L36.4 51.6L39 54L42 38L37.6 46L35 44L33 49.6L29.6 47L27.4 52Z', 'M42 38L58 78L44 84L46 56Z')
+            + peak('M62 78L78 34L87 50L96 42L112 92Z', 'M78 34L73.6 46.4L77 44.6L79.6 49L82.4 44L87 50L90 46.6L96 42L92.4 50.6L89 49L85.4 45L81.6 41.4Z', 'M96 42L112 92L100 92L98 60Z')
+            + '<path d="M16 72L22 66M28 80L35 74M92 76L99 70M84 66L90 61" stroke="#fff" stroke-width="0.9" opacity="0.3" stroke-linecap="round"/>'
+            + pine(20, 84, 1) + pine(27, 80, 0.8) + pine(100, 84, 1) + pine(93, 79, 0.8)
+            + [[34, 66, -14], [88, 62, 12]].map(([x, y, r]) => `<g transform="rotate(${r} ${x} ${y})" class="fc-glowmark"><path d="M${x - 3} ${y + 3}L${x - 2} ${y - 6}L${x} ${y - 10}L${x + 2} ${y - 6}L${x + 3} ${y + 3}Z" fill="${c.accentHex}" stroke="#fff" stroke-width="0.6"/></g>`).join('');
+    },
+    crystalSpires: (c) => {
+        const spire = (x, h, w, r, i) => `<g transform="rotate(${r} ${x} 92)"><path d="M${x - w} 92L${x - w} ${92 - h + w * 1.6}L${x} ${92 - h}L${x + w} ${92 - h + w * 1.6}L${x + w} 92Z" fill="${i % 2 ? shade(c.accentHex, -0.12) : c.accentHex}" stroke="#fff" stroke-width="0.8" opacity="0.92"/>
+            <path d="M${x} ${92 - h}V90M${x - w} ${92 - h + w * 1.6}L${x} ${92 - h + w * 2.6}L${x + w} ${92 - h + w * 1.6}" stroke="#fff" stroke-width="0.7" fill="none" opacity="0.7"/></g>`;
+        const side = spire(22, 50, 5, -18, 0) + spire(30, 66, 6, -8, 1) + spire(14, 34, 4, -28, 2);
+        return `<g class="fc-regalia-glow">${side}${mirror(side)}</g>`
+            + [[18, 30], [102, 26], [8, 54], [112, 50]].map(([x, y], i) => `<path d="M${x} ${y - 4}l2.6 4-2.6 4-2.6-4z" fill="${i % 2 ? '#fff' : c.accentHex}" class="fc-twinkle" style="animation-delay:${-i * 0.45}s"/>`).join('');
+    },
+    nebulaCloud: (c) => `<g class="fc-regalia-glow">${[[32, 50, 26], [88, 46, 26], [60, 26, 22]].map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="url(#${c.uid}-glow)"/>`).join('')}</g>
+        ${[[26, 40], [94, 30], [44, 20], [80, 60], [34, 70], [96, 74]].map(([x, y], i) => `<circle cx="${x}" cy="${y}" r="${i % 3 ? 0.9 : 1.4}" fill="#fff" class="fc-twinkle" style="animation-delay:${-i * 0.3}s"/>`).join('')}`
 };
 
 const FRONT_EXTRAS = {
+    eggshell: (c) => {
+        const d = 'M32 92L37.5 85.6L43 91.4L48.6 84.6L54.4 90.8L60 83.6L65.6 90.8L71.4 84.6L77 91.4L82.5 85.6L88 92C89 102 77.6 109 60 109C42.4 109 31 102 32 92Z';
+        return `<g class="fc-eggshell"><path d="${d}" fill="url(#${c.uid}-egg)" stroke="${c.eggEdge}" stroke-width="1.2" stroke-linejoin="round"/>
+            <path d="M36 97C40 103.6 49 106.4 59 106.6" stroke="#fff" stroke-width="1.8" opacity="0.42" fill="none" stroke-linecap="round"/>
+            ${[[43, 98, 2.6], [60, 101, 2.2], [76, 97.6, 2.8], [52, 94, 1.4], [69, 94.6, 1.6]].map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${c.eggMark}" opacity="0.75"/>`).join('')}
+            <path d="M48.6 84.6L50 88M71.4 84.6L70.4 88.4" stroke="${c.eggEdge}" stroke-width="0.8" opacity="0.6" stroke-linecap="round"/></g>`;
+    },
+    lavaVeins: () => {
+        const side = '<path d="M41 74l4 3.4-2.4 4 4.2 3.2-1.6 4.6M39.6 90l4.4 1 1.6 4.4" stroke="#7c2d12" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"/><path d="M41 74l4 3.4-2.4 4 4.2 3.2-1.6 4.6M39.6 90l4.4 1 1.6 4.4" stroke="#fb923c" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M41 74l4 3.4-2.4 4 4.2 3.2-1.6 4.6" stroke="#fef08a" stroke-width="0.5" fill="none" stroke-linecap="round"/>';
+        return `<g class="fc-glowmark">${side}${mirror(side)}</g>`;
+    },
+    iceShards: () => {
+        const side = [[40, 71, -58, 9], [43, 67, -34, 11], [47.6, 65.4, -12, 7.6]].map(([x, y, r, h]) => `<g transform="rotate(${r} ${x} ${y})"><path d="M${x - 2.6} ${y + 2}L${x} ${y - h}L${x + 2.6} ${y + 2}Z" fill="#bae6fd" stroke="#f0f9ff" stroke-width="0.8" stroke-linejoin="round"/><path d="M${x} ${y - h + 1}V${y + 1}" stroke="#fff" stroke-width="0.6" opacity="0.85"/></g>`).join('');
+        return `<g class="fc-glowmark">${side}${mirror(side)}</g>`;
+    },
+    mushrooms: (c) => {
+        const shroom = (x, y, k, cap, glow) => `<g${glow ? ' class="fc-glowmark"' : ''}><rect x="${f(x - 1.6 * k)}" y="${f(y - 5 * k)}" width="${f(3.2 * k)}" height="${f(5.4 * k)}" rx="${f(1.2 * k)}" fill="#fef3c7" stroke="${c.ink}" stroke-width="0.5"/>
+            <path d="M${f(x - 5.4 * k)} ${f(y - 4 * k)}C${f(x - 5 * k)} ${f(y - 11 * k)} ${f(x + 5 * k)} ${f(y - 11 * k)} ${f(x + 5.4 * k)} ${f(y - 4 * k)}Z" fill="${cap}" stroke="${c.ink}" stroke-width="0.6"/>
+            <circle cx="${f(x - 2 * k)}" cy="${f(y - 7 * k)}" r="${f(0.9 * k)}" fill="#fff"/><circle cx="${f(x + 2 * k)}" cy="${f(y - 6 * k)}" r="${f(0.7 * k)}" fill="#fff"/></g>`;
+        return shroom(29, 105, 1.1, '#ef4444', false) + shroom(36, 106, 0.7, c.accentHex, true) + shroom(91, 105, 1, c.accentHex, true) + shroom(84.6, 106.4, 0.66, '#ef4444', false);
+    },
+    shellHold: (c) => `<g transform="translate(60 88)"><path d="M0 7C-6 7 -9.4 2 -8.6 -2.4C-6.6 -6.6 -3.4 -8 0 -8C3.4 -8 6.6 -6.6 8.6 -2.4C9.4 2 6 7 0 7Z" fill="#fbcfe8" stroke="#be185d" stroke-width="0.8"/>
+        <path d="M0 6V-7M-3.6 6L-5.6 -5M3.6 6L5.6 -5M-6.6 4L-8 -1.6M6.6 4L8 -1.6" stroke="#be185d" stroke-width="0.6" opacity="0.6"/><path d="M-3 8.6H3L2 6H-2Z" fill="#f9a8d4" stroke="#be185d" stroke-width="0.6"/>
+        <ellipse cx="-3.4" cy="-4" rx="2" ry="1" fill="#fff" opacity="0.6"/></g>
+        <ellipse cx="51.4" cy="92.4" rx="4.4" ry="3.6" fill="${c.m}"/><ellipse cx="68.6" cy="92.4" rx="4.4" ry="3.6" fill="${c.m}"/>`,
+    pearlNecklace: (c, plan) => {
+        const n = plan.neck;
+        const pts = [-14, -9.4, -4.8, 0, 4.8, 9.4, 14].map((dx) => [60 + dx, n + 5 + (14 * 14 - dx * dx) / 40]);
+        return `<path d="M${pts.map(([x, y]) => `${f(x)} ${f(y)}`).join('L')}" stroke="${c.ink}" stroke-width="0.5" fill="none" opacity="0.6"/>`
+            + pts.map(([x, y], i) => `<circle cx="${f(x)}" cy="${f(y)}" r="${i === 3 ? 3.2 : 2}" fill="#fdf4ff" stroke="${c.secondHex}" stroke-width="0.6"/><circle cx="${f(x - 0.6)}" cy="${f(y - 0.6)}" r="${i === 3 ? 1 : 0.6}" fill="#fff"/>`).join('');
+    },
     chestCore: (c) => `<circle cx="60" cy="81" r="7" fill="${c.accentHex === '#3b3440' ? '#f97316' : c.accentHex}" opacity="0.35" class="fc-glowmark"/><circle cx="60" cy="81" r="3.6" fill="#fde047"/><circle cx="59" cy="80" r="1.3" fill="#fff"/>`,
     pauldrons: (c) => {
         const tuft = `<path d="M37 74C38 67 46 64 52 68C49 72 43 75 37 74Z" fill="${c.secondHex}" stroke="${c.ink}" stroke-width="0.6"/><circle cx="43" cy="69.5" r="1.6" fill="#f9a8d4"/><circle cx="43" cy="69.5" r="0.7" fill="#fde047"/>`;
@@ -1206,6 +1318,37 @@ function starbondSvg(count) {
     }).join('')}</g>`;
 }
 
+// ─── Stature: how each form grows ────────────────────────────────────────────
+// Overall size, then body against head: a hatchling is small with a big head and big eyes,
+// every form after it stands taller with a broader body, a smaller head and grown horns.
+const STATURE = { full: [0.6, 0.71, 0.82, 0.92, 1], chip: [0.76, 0.83, 0.9, 0.96, 1] };
+const TORSO = [[0.9, 0.84], [0.96, 0.94], [1, 1], [1.04, 1.07], [1.07, 1.12]];
+const HEAD_SCALE = [1.2, 1.09, 1, 0.95, 0.92];
+const EYE_SCALE = [1.22, 1.1, 1, 0.95, 0.92];
+const HORN_SCALE = [0.7, 0.88, 1.04, 1.18, 1.3];
+const EAR_SCALE = [0.86, 0.95, 1, 1.04, 1.08];
+const TAIL_SCALE = [0.72, 0.88, 1, 1.08, 1.15];
+// Crown parts that grow with the horns (sprouts, flowers, bows and halos keep their size).
+const GROWING_CROWN = new Set(['unicornHorn', 'starHorn', 'hornlet', 'gemSpike', 'prismCrown', 'iceCrown', 'coralCrown', 'tideCrown', 'stormCrown', 'boltCrest', 'flameCrest', 'spikeCrest', 'sunCrest', 'plumeCrest', 'phoenixCrest', 'starCrest']);
+const grow = (x, y, k, svg) => (k === 1 ? svg : `<g transform="translate(${f(x)} ${f(y)}) scale(${k}) translate(${f(-x)} ${f(-y)})">${svg}</g>`);
+
+/** A glowing sigil on the ground under the third form and up: a ring, then runes, then light. */
+function sigilSvg(level, c, glow) {
+    if (level < 3) return '';
+    let out = `<ellipse cx="60" cy="105" rx="34" ry="6" fill="none" stroke="${glow}" stroke-width="1.1" opacity="0.5"/>`;
+    if (level >= 4) {
+        out = `<ellipse cx="60" cy="105" rx="30" ry="5.2" fill="${glow}" opacity="0.14"/>${out}
+            <ellipse cx="60" cy="105" rx="42" ry="7.6" fill="none" stroke="${glow}" stroke-width="1" stroke-dasharray="3 5" opacity="0.65" class="fc-regalia-flow"/>`
+            + [[18, 105], [102, 105], [33, 99], [87, 99], [33, 111], [87, 111]].map(([x, y]) => `<path d="M${x} ${y - 2.2}l1.6 2.2-1.6 2.2-1.6-2.2z" fill="${glow}" opacity="0.9"/>`).join('');
+    }
+    if (level >= 5) {
+        out = `<ellipse cx="60" cy="105" rx="48" ry="9" fill="url(#${c.uid}-glow)" class="fc-beam"/>${out}
+            <ellipse cx="60" cy="105" rx="48" ry="9" fill="none" stroke="#fff7d6" stroke-width="0.8" opacity="0.7"/>`
+            + [[12, 105], [108, 105], [24, 98.6], [96, 98.6], [24, 111.4], [96, 111.4]].map(([x, y], i) => `<path d="M${x} ${y - 3}l.9 2.1 2.1 .9-2.1 .9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z" fill="#fff7d6" class="fc-twinkle" style="animation-delay:${-i * 0.33}s"/>`).join('');
+    }
+    return `<g class="fc-sigil">${out}</g>`;
+}
+
 let uidCounter = 0;
 
 /**
@@ -1231,14 +1374,21 @@ export function buildFamiliarSvg(genome, opts = {}) {
         k: `url(#${uid}-k)`,
         ink: darkCoat ? shade(pal.second, 0.12) : shade(pal.main, -0.42)
     };
+    if (level === 1) {
+        const egg = eggColours(genome);
+        c.eggBase = egg.base;
+        c.eggMark = egg.mark;
+        c.eggEdge = shade(egg.base, -0.35);
+    }
     const o = ` stroke="${outline}" stroke-width="1.2" stroke-linejoin="round"`;
     const rand = seededRandom(hashString(`${genome.preset.id}:${genome.marking}:${level}`));
-    const scale = [0.72, 0.8, 0.88, 0.94, 1][level - 1];
-    const face = plan.face;
+    const scale = STATURE[mode][level - 1];
+    const face = { ...plan.face, eye: plan.face.eye * EYE_SCALE[level - 1] };
+    const hornK = HORN_SCALE[level - 1];
 
     // Tail and wings sit behind the body; the wings flap from the shoulder.
     const tail = parts.tail && plan.tail
-        ? `<g class="fc-tail" style="transform-origin:${plan.tail[0]}px ${plan.tail[1]}px">${tailSvg(parts.tail, plan.tail[0], plan.tail[1], c, o)}</g>`
+        ? `<g class="fc-tail" style="transform-origin:${plan.tail[0]}px ${plan.tail[1]}px">${grow(plan.tail[0], plan.tail[1], TAIL_SCALE[level - 1], tailSvg(parts.tail, plan.tail[0], plan.tail[1], c, o))}</g>`
         : '';
     let wings = '';
     if (parts.wings) {
@@ -1249,18 +1399,19 @@ export function buildFamiliarSvg(genome, opts = {}) {
             + `<g class="fc-wing fc-wing--r" style="transform-origin:${120 - wx}px ${wy}px">${mirror(wing)}</g>`;
     }
 
-    const centerBack = parts.crown.filter((k) => CENTER_PARTS[k]?.back).map((k) => CENTER_PARTS[k].draw(face.top[0], face.top[1], c, o)).join('');
+    const crownK = (k) => (GROWING_CROWN.has(k) ? hornK : 1);
+    const centerBack = parts.crown.filter((k) => CENTER_PARTS[k]?.back).map((k) => grow(face.top[0], face.top[1] + 3, crownK(k), CENTER_PARTS[k].draw(face.top[0], face.top[1], c, o))).join('');
     const pairs = parts.crown.filter((k) => PAIR_PARTS[k]).map((k) => {
         const [ax, ay] = face.earL;
-        const left = PAIR_PARTS[k](ax, ay, c, o);
         const ear = k.endsWith('Ears');
+        const left = grow(ax, ay + 5, ear ? EAR_SCALE[level - 1] : hornK, PAIR_PARTS[k](ax, ay, c, o));
         return `<g class="${ear ? 'fc-ear fc-ear--l' : 'fc-horn'}" style="transform-origin:${ax}px ${ay + 5}px">${left}</g>`
             + `<g class="${ear ? 'fc-ear fc-ear--r' : 'fc-horn'}" style="transform-origin:${120 - ax}px ${ay + 5}px">${mirror(left)}</g>`;
     }).join('');
     const centerFront = parts.crown.filter((k) => CENTER_PARTS[k] && !CENTER_PARTS[k].back).map((k) => {
         const def = CENTER_PARTS[k];
         const cls = def.flame ? 'fc-flame' : def.halo ? 'fc-halo' : def.sway ? 'fc-sprout' : def.spark ? 'fc-crest fc-spark' : def.glow ? 'fc-crest fc-glowmark' : 'fc-crest';
-        return `<g class="${cls}" style="transform-origin:${face.top[0]}px ${face.top[1] + 3}px">${def.draw(face.top[0], face.top[1], c, o)}</g>`;
+        return `<g class="${cls}" style="transform-origin:${face.top[0]}px ${face.top[1] + 3}px">${grow(face.top[0], face.top[1] + 3, crownK(k), def.draw(face.top[0], face.top[1], c, o))}</g>`;
     }).join('');
 
     const ruff = parts.ruff && plan.head === 'fox'
@@ -1307,17 +1458,24 @@ export function buildFamiliarSvg(genome, opts = {}) {
     const regalia = parts.regalia.length
         ? `<g class="fc-regalia">${parts.regalia.map((k) => REGALIA[k]?.(c, o) || '').join('')}</g>` : '';
     const shell = plan.shell ? shellSvg(c, parts.shellCrystals, level) : '';
-    const frontExtras = parts.front.filter((k) => k !== 'mythicGlints' && k !== 'bubble').map((k) => FRONT_EXTRAS[k]?.(c) || '').join('');
+    const frontExtras = parts.front.filter((k) => k !== 'mythicGlints' && k !== 'bubble').map((k) => FRONT_EXTRAS[k]?.(c, plan) || '').join('');
     const overlay = (parts.front.includes('bubble') ? FRONT_EXTRAS.bubble(c) : '')
         + (parts.front.includes('mythicGlints') && mode === 'full' ? FRONT_EXTRAS.mythicGlints(c) : '');
     const starbond = mode === 'full' ? starbondSvg(opts.starbond) : '';
+    const sigil = mode === 'full' ? sigilSvg(level, c, genome.shiny ? '#fde68a' : pal.glow) : '';
+    const [torsoX, torsoY] = plan.integrated ? [1, 1] : TORSO[level - 1];
+    const headK = plan.integrated ? 1 : HEAD_SCALE[level - 1];
+    const neckTo = 104 - (104 - plan.neck) * torsoY;
+    const torsoT = `translate(60 104) scale(${torsoX} ${torsoY}) translate(-60 -104)`;
+    const headT = `translate(60 ${f(neckTo)}) scale(${headK}) translate(-60 ${-plan.neck})`;
 
     return `<svg width="100%" height="100%" class="fc fc--${genome.typeId} fc--lv${level} fc--${mode}${genome.shiny ? ' fc--shiny' : ''}${level === 5 ? ' fc--mythic' : ''}" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="${title ? 'false' : 'true'}">${title}
-        ${gradientDefs(uid, pal, genome.shiny)}
+        ${gradientDefs(uid, pal, genome.shiny, level === 1 ? c.eggBase : '')}
         ${aura}${shinyRing}
-        <ellipse class="fc-shadow" cx="60" cy="105.5" rx="${f(24 * scale)}" ry="4.2" fill="#0f172a" opacity="0.2"/>
+        <ellipse class="fc-shadow" cx="60" cy="105.5" rx="${f(24 * scale * torsoX)}" ry="4.2" fill="#0f172a" opacity="0.2"/>
+        ${sigil}
         <g class="fc-rig" style="transform-origin:60px 106px"><g transform="translate(60 106) scale(${scale}) translate(-60 -106)">
-            ${regalia}${tail}${wings}${shell}${body}${frontExtras}${neckKeepsake}${ruff}${head}${overlay}
+            ${regalia}<g transform="${torsoT}">${tail}${wings}${shell}${body}${frontExtras}${neckKeepsake}${ruff}</g><g transform="${headT}">${head}</g>${overlay}
         </g></g>
         ${motes}${starbond}
     </svg>`;
@@ -1342,6 +1500,17 @@ const EGG_MARKS = {
     gemshell: (c) => `<path d="M40 60l10-8 10 8 10-8 10 8M40 60l10 10 10-10 10 10 10-10M40 80l10-10M80 80l-10-10M50 90l10-10 10 10" stroke="${c.a}" stroke-width="2.2" fill="none" stroke-linejoin="round"/><path d="M60 40l5 7-5 7-5-7z" fill="${c.a}" stroke="#fff" stroke-width="0.8"/>`
 };
 
+/** The egg's shell and mark colours (the hatchling keeps sitting in the same shell). */
+function eggColours(genome) {
+    const pal = genome.palette;
+    const paleShell = ['frostpaw', 'sparkling', 'stormwing', 'cloverhop'].includes(genome.typeId);
+    let mark = paleShell ? shade(pal.second, -0.08) : genome.typeId === 'gemshell' ? pal.accent : pal.accent === '#3b3440' ? '#f97316' : pal.accent;
+    if (genome.typeId === 'stormwing') mark = pal.accent;
+    if (genome.typeId === 'starfoal' || genome.typeId === 'cloverhop') mark = pal.second;
+    const base = paleShell ? pal.belly : genome.typeId === 'gemshell' || genome.typeId === 'tidefin' ? pal.second : pal.main;
+    return { mark, base };
+}
+
 /**
  * Draw the egg. It is painted in the creature's own colours, cracks as hatching nears and glows when ready.
  * @param {object} genome
@@ -1352,12 +1521,8 @@ export function buildFamiliarEggSvg(genome, opts = {}) {
     const uid = `fe${(++uidCounter).toString(36)}`;
     const pal = genome.palette;
     const progress = Math.max(0, Math.min(100, Number(opts.progress) || 0));
-    const paleShell = ['frostpaw', 'sparkling', 'stormwing', 'cloverhop'].includes(genome.typeId);
-    const c = { a: paleShell ? shade(pal.second, -0.08) : genome.typeId === 'gemshell' ? pal.accent : pal.accent === '#3b3440' ? '#f97316' : pal.accent };
-    if (genome.typeId === 'stormwing') c.a = pal.accent;
-    if (genome.typeId === 'starfoal') c.a = pal.second;
-    if (genome.typeId === 'cloverhop') c.a = pal.second;
-    const shellBase = paleShell ? pal.belly : genome.typeId === 'gemshell' ? pal.second : genome.typeId === 'tidefin' ? pal.second : pal.main;
+    const { mark, base: shellBase } = eggColours(genome);
+    const c = { a: mark };
     const shell = `<path d="M60 16C82 16 94 56 94 76C94 96 79 106 60 106S26 96 26 76C26 56 38 16 60 16Z"/>`;
     const cracks = [
         progress >= 50 ? `<path d="M44 46l6 5-3 6 7 4" stroke="#1f2937" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>` : '',

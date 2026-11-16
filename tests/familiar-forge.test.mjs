@@ -69,7 +69,7 @@ test('every preset draws cleanly at every stage, as an egg and as a chip', () =>
         for (const preset of getFamiliarPresets(type)) {
             for (const seed of [1, 99, 123457]) {
                 const genome = describeFamiliar(type, { v: 1, preset: preset.id, seed });
-                for (const level of [1, 2, 3]) {
+                for (const level of [1, 2, 3, 4, 5]) {
                     for (const mode of ['full', 'chip']) {
                         const svg = buildFamiliarSvg(genome, { level, mode });
                         assert.match(svg, /^<svg[\s\S]*<\/svg>$/);
@@ -81,6 +81,33 @@ test('every preset draws cleanly at every stage, as an egg and as a chip', () =>
             }
         }
     }
+});
+
+test('every class of familiar draws cleanly at all five forms', () => {
+    const ALL = ['emberfang', 'frostpaw', 'thornback', 'veilshade', 'sparkling', 'tidefin', 'stormwing', 'gemshell', 'starfoal', 'cloverhop'];
+    for (const type of ALL) {
+        for (const preset of getFamiliarPresets(type)) {
+            const genome = describeFamiliar(type, { v: 1, preset: preset.id, seed: 77 });
+            for (const level of [1, 2, 3, 4, 5]) {
+                for (const mode of ['full', 'chip']) {
+                    const svg = buildFamiliarSvg(genome, { level, mode, starbond: 2 });
+                    assert.doesNotMatch(svg, /NaN|undefined|null|\[object/, `${preset.id} L${level} ${mode}`);
+                }
+            }
+        }
+    }
+});
+
+test('each form grows: hatchlings sit in their eggshell, later forms stand bigger over a sigil', () => {
+    const genome = describeFamiliar('gemshell', { v: 1, preset: 'amethyst-pebble', seed: 9 });
+    const size = (svg) => Number(/scale\(([\d.]+)\) translate\(-60 -106\)/.exec(svg)[1]);
+    const forms = [1, 2, 3, 4, 5].map((level) => buildFamiliarSvg(genome, { level }));
+    forms.slice(1).forEach((svg, i) => assert.ok(size(svg) > size(forms[i]), `form ${i + 2} is bigger than form ${i + 1}`));
+    assert.match(forms[0], /fc-eggshell/);
+    assert.doesNotMatch(forms[1], /fc-eggshell/);
+    assert.doesNotMatch(forms[1], /fc-sigil/);
+    assert.match(forms[2], /fc-sigil/);
+    assert.doesNotMatch(buildFamiliarSvg(genome, { level: 5, mode: 'chip' }), /fc-sigil/);
 });
 
 test('two drawings of the same familiar never share gradient ids', () => {

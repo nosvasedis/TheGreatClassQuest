@@ -59,6 +59,9 @@
 .fc--full .fc-starbond { animation: fc-halo 3s ease-in-out infinite; }
 .fc .fc-regalia-spin, .fc .fc-orbit, .fc .fc-bubble { transform-box: view-box; }
 .fc--mythic.fc--full .fc-aura { animation-duration: 2.6s; }
+/* The ground sigil under forms 3-5; the Mythic form's light beams breathe. */
+.fc--full .fc-beam { animation: fc-beam 3.6s ease-in-out infinite; }
+@keyframes fc-beam { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.9; } }
 
 /* Low-power machines: a breath and a blink, nothing else. */
 .fc--lite.fc--full .fc-shadow, .fc--lite.fc--full .fc-head, .fc--lite.fc--full .fc-wing--l,
@@ -67,7 +70,7 @@
 .fc--lite.fc--full .fc-halo, .fc--lite.fc--full .fc-aura, .fc--lite.fc--full .fc-twinkle,
 .fc--lite.fc--full .fc-glowmark, .fc--lite.fc--full .fc-body, .fc--lite.fc--full .fc-regalia-spin,
 .fc--lite.fc--full .fc-regalia-glow, .fc--lite.fc--full .fc-regalia-flow, .fc--lite.fc--full .fc-spark,
-.fc--lite.fc--full .fc-bubble, .fc--lite.fc--full .fc-orbit, .fc--lite.fc--full .fc-starbond { animation: none; }
+.fc--lite.fc--full .fc-bubble, .fc--lite.fc--full .fc-orbit, .fc--lite.fc--full .fc-starbond, .fc--lite.fc--full .fc-beam { animation: none; }
 .fc--lite .fc-motes { display: none; }
 .fc--chip .fc-eyes { animation: none; }
 

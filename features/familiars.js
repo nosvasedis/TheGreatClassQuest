@@ -564,6 +564,54 @@ export function renderFamiliarSprite(familiar, size = 'small', studentId = '') {
              aria-label="${escapeHtml(`${displayName}, ${stageLabel}. Open the Den.`)}">${art}${pending ? '<span class="fam-awaits__spark" aria-hidden="true"></span>' : ''}</div>`;
 }
 
+/** What the drawings of a familiar depend on: when it changes, every chip of it must redraw. */
+export function familiarDrawKey(familiar) {
+    if (!familiar) return '';
+    return JSON.stringify([familiar.typeId, familiar.state, familiar.level || 0, familiar.seenLevel ?? null, familiar.look?.preset || '', familiar.look?.seed || 0, familiar.variant?.key || '', familiar.name || '']);
+}
+
+/**
+ * Redraw every small familiar of this student that is on screen (Award Stars cards, the
+ * projector, leaderboard nests, hero cards) after a hatch, an evolution or a new egg, so no
+ * one has to leave the tab and come back. The Den and the Evolution Moment draw their own.
+ * @param {string} studentId
+ * @param {{ awardSlot?: boolean }} [opts]  awardSlot: add the familiar to an Award Stars card that had none yet
+ */
+export function refreshFamiliarSprites(studentId, { awardSlot = false } = {}) {
+    if (!studentId || typeof document === 'undefined') return;
+    const familiar = scoreFor(studentId)?.familiar || null;
+    const esc = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(studentId) : String(studentId).replace(/["\\]/g, '\\$&');
+    const sizeFor = (px) => Object.entries(SIZE_PX).find(([, v]) => v === px)?.[0] || 'small';
+    const fresh = (size) => {
+        const holder = document.createElement('div');
+        holder.innerHTML = renderFamiliarSprite(familiar, size, studentId).trim();
+        const next = holder.firstElementChild;
+        if (next) { next.classList.add('fam-refresh'); setTimeout(() => next.classList.remove('fam-refresh'), 800); }
+        return next;
+    };
+    document.querySelectorAll(`.familiar-container[data-student-id="${esc}"]`).forEach((el) => {
+        if (el.closest('.fam-hab, .fam-modal-card, .fam-moment, .fam-notice')) return;
+        if (!familiar || !FAMILIAR_TYPES[familiar.typeId]) {
+            (el.closest('.aw-familiar') || el).remove();
+            return;
+        }
+        const next = fresh(sizeFor(parseInt(el.style.width, 10) || SIZE_PX.small));
+        if (next) el.replaceWith(next);
+    });
+    if (awardSlot && familiar && FAMILIAR_TYPES[familiar.typeId]) {
+        document.querySelectorAll(`.aw-card[data-studentid="${esc}"] .aw-card__head`).forEach((head) => {
+            if (head.querySelector('.aw-familiar')) return;
+            const slot = document.createElement('div');
+            slot.className = 'aw-familiar';
+            slot.title = 'Familiar';
+            const next = fresh('small');
+            if (!next) return;
+            slot.appendChild(next);
+            head.prepend(slot);
+        });
+    }
+}
+
 // ─── FAMILIAR TAG (hover card instead of the browser's title box) ─────────────
 
 let tipsBound = false;

@@ -88,3 +88,8 @@
     transform-origin: bottom left;
     pointer-events: none;
 }
+
+/* A familiar that just hatched or evolved pops in place on every screen. */
+.familiar-container.fam-refresh.fam-refresh { animation: fam-refresh-pop 0.7s cubic-bezier(.2, 1.5, .4, 1) both; }
+@keyframes fam-refresh-pop { 0% { transform: scale(0.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .familiar-container.fam-refresh { animation: none; } }

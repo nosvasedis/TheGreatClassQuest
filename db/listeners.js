@@ -15,6 +15,7 @@ import {
 } from "../firebase.js";
 import { isLegacyHeroClass, normalizeHeroClass } from "../features/heroClassNames.mjs";
 import { buildTodaysStarsMap, changedTodaysStarIds } from "../features/awardPending.mjs";
+import { canUseFeature } from "../utils/subscription.js";
 import * as state from "../state.js";
 import { getStartOfMonthString, getTodayDateString } from "../utils.js";
 import {
@@ -47,7 +48,7 @@ import { updateCeremonyStatus } from "../features/ceremony.js";
 import * as utils from "../utils.js";
 import { DEFAULT_SCHOOL_NAME } from "../constants.js";
 import * as modals from "../ui/modals/index.js";
-import { renderFamiliarOptionsUi, scheduleFamiliarGrowthSweep } from "../features/familiars.js";
+import { familiarDrawKey, refreshFamiliarSprites, renderFamiliarOptionsUi, scheduleFamiliarGrowthSweep } from "../features/familiars.js";
 import { renderHomeTab } from "../features/home.js";
 import { refreshSetupClassesList } from "../features/schoolSetup.js";
 import {
@@ -1181,8 +1182,23 @@ export async function setupDataListeners(
                             includeUntagged,
                         }),
                     );
+                const familiarKeysBefore = new Map(
+                    (state.get("allStudentScores") || []).map((s) => [
+                        s.id,
+                        familiarDrawKey(s.familiar),
+                    ]),
+                );
                 state.setAllStudentScores(allStudentScores);
                 scheduleFamiliarGrowthSweep();
+                // A hatch, an evolution or a new egg redraws that familiar everywhere at once
+                // (Award Stars, projector, nests), on every device, without leaving the tab.
+                allStudentScores.forEach((s) => {
+                    if (!familiarKeysBefore.has(s.id)) return;
+                    if (familiarKeysBefore.get(s.id) === familiarDrawKey(s.familiar)) return;
+                    refreshFamiliarSprites(s.id, {
+                        awardSlot: canUseFeature("familiars"),
+                    });
+                });
                 snapshot.docChanges().forEach((change) => {
                     if (change.type === "added" || change.type === "modified") {
                         const scoreData = change.doc.data();

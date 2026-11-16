@@ -110,6 +110,18 @@ test('each form grows: hatchlings sit in their eggshell, later forms stand bigge
     assert.doesNotMatch(buildFamiliarSvg(genome, { level: 5, mode: 'chip' }), /fc-sigil/);
 });
 
+test('two children with the same egg and colours grow into different Mythic familiars', () => {
+    for (const type of ['emberfang', 'starfoal', 'gemshell', 'cloverhop']) {
+        const preset = getFamiliarPresets(type)[0].id;
+        const looks = new Set();
+        for (let seed = 1; seed <= 40; seed++) {
+            const svg = buildFamiliarSvg(describeFamiliar(type, { v: 1, preset, seed: seed * 7919 }), { level: 5 });
+            looks.add(svg.replace(/fc[0-9a-z]+-/g, '').replace(/id="fc[0-9a-z]+/g, ''));
+        }
+        assert.ok(looks.size >= 38, `${type}: only ${looks.size} distinct Mythic drawings out of 40`);
+    }
+});
+
 test('two drawings of the same familiar never share gradient ids', () => {
     const genome = describeFamiliar('thornback', { v: 1, preset: 'mosscrown-sprout', seed: 5 });
     const ids = (svg) => [...svg.matchAll(/id="([^"]+)"/g)].map((m) => m[1]);

@@ -21,7 +21,8 @@ import {
     FAMILIAR_TRICK_LEVEL,
     familiarTricksPerMonth,
     familiarTricksUsed,
-    isFamiliarTrickReady
+    isFamiliarTrickReady,
+    familiarGrowthTraits
 } from './familiarForge.mjs';
 import {
     FAMILIAR_TYPES,
@@ -166,7 +167,7 @@ export function renderFamiliarDen(studentId) {
     const progressDone = Math.max(0, Math.min(progressSpan, progress.current - progress.min));
     const progressVerb = progress.phase === 'egg' ? 'Hatches into' : 'Evolves into';
     const nextStageName = isEgg ? familiarStageName(familiar.typeId, 1) : info.nextName;
-    const traits = (genome?.traits || []).slice(1)
+    const traits = [...(genome?.traits || []).slice(1), ...(isEgg ? [] : familiarGrowthTraits(genome, level))]
         .map((t) => `<span class="fam-den-trait${t === 'Shiny' ? ' fam-den-trait--shiny' : ''}">${esc(t)}</span>`).join('');
     const starbond = info.starbond;
     const starbondPips = Array.from({ length: Math.max(5, Math.min(10, starbond.marks + 1)) }, (_, i) =>

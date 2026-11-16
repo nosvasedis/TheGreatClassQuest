@@ -363,6 +363,60 @@ export function resolveFamiliarLook(familiar, studentId = '') {
     return legacyFamiliarLook(typeId, studentId, familiar?.variant?.key || '');
 }
 
+// ─── Growth genes: how THIS familiar evolves ──────────────────────────────────
+// Rolled from the same saved seed on a separate stream (so the colours, eyes and markings a
+// child already knows never change). They decide the build, which of three evolution paths
+// the class signature takes from form 3, the form-4 regalia, the Mythic extra, a chest
+// emblem, a cape or mantle, ankle bands, a Mythic crown and the shape of the ground sigil.
+// Two children with the same egg and even the same colours almost never grow the same way.
+export const GROWTH_LABELS = {
+    build: { sturdy: 'Sturdy build', chubby: 'Round build', sleek: 'Sleek build' },
+    emblem: { gem: 'Gem emblem', star: 'Star emblem', moon: 'Moon emblem', sun: 'Sun emblem', heart: 'Heart emblem', rune: 'Rune emblem', leaf: 'Leaf emblem' },
+    mantle: { cape: 'Hero cape', mantle: 'Short mantle', scarfCape: 'Banner cape' },
+    crown5: { circlet: 'Gold circlet', laurel: 'Golden laurel', tiara: 'Tiara', starDiadem: 'Star diadem', flowerCrown: 'Flower crown', horned: 'Horned crown' },
+    regalia4: ['', 'Orbit of charms', 'Rune circle', 'Wings of light', 'Starburst'],
+    extra5: { motesOrbit: 'Orbit of charms', runeCircle: 'Rune circle', lightWings: 'Wings of light', starburst: 'Starburst', petalHalo: 'Petal halo' },
+    sigil: { ring: 'Rune ring', star: 'Star sigil', hex: 'Hex sigil', flower: 'Flower sigil', moon: 'Moon sigil', sun: 'Sun sigil' }
+};
+
+function rollGrowthGenes(typeId, seed) {
+    const rand = seededRandom(hashString(`${typeId}:${seed}:growth`));
+    return {
+        build: weighted(rand, [['sturdy', 3], ['chubby', 2], ['sleek', 2]]),
+        path: Math.floor(rand() * 3),
+        regalia4: weighted(rand, [[0, 3], [1, 1], [2, 1], [3, 1], [4, 1]]),
+        extra5: weighted(rand, [['none', 2], ['motesOrbit', 1], ['runeCircle', 1], ['lightWings', 1], ['starburst', 1], ['petalHalo', 1]]),
+        emblem: weighted(rand, [['none', 3], ['gem', 1], ['star', 1], ['moon', 1], ['sun', 1], ['heart', 1], ['rune', 1], ['leaf', 1]]),
+        mantle: weighted(rand, [['none', 4], ['cape', 2], ['mantle', 2], ['scarfCape', 1]]),
+        bands: rand() < 0.4,
+        crown5: weighted(rand, [['none', 3], ['circlet', 1], ['laurel', 1], ['tiara', 1], ['starDiadem', 1], ['flowerCrown', 1], ['horned', 1]]),
+        sigil: pick(rand, ['ring', 'star', 'hex', 'flower', 'moon', 'sun']),
+        hornGrowth: 0.9 + rand() * 0.24,
+        wingGrowth: 0.92 + rand() * 0.18,
+        shell: pick(rand, ['dots', 'zigzag', 'stripes', 'stars', 'hearts'])
+    };
+}
+
+/** The growth traits this familiar has shown so far (for the Den's trait list). */
+export function familiarGrowthTraits(genome, level) {
+    const gr = genome?.growth;
+    const lvl = lvlOf(level);
+    if (!gr) return [];
+    const out = [GROWTH_LABELS.build[gr.build]];
+    if (lvl >= 3) out.push(`${['First', 'Second', 'Third'][gr.path]} path`, GROWTH_LABELS.sigil[gr.sigil]);
+    if (lvl >= 4) {
+        if (gr.regalia4) out.push(GROWTH_LABELS.regalia4[gr.regalia4]);
+        if (gr.emblem !== 'none') out.push(GROWTH_LABELS.emblem[gr.emblem]);
+        if (gr.mantle !== 'none') out.push(GROWTH_LABELS.mantle[gr.mantle]);
+        if (gr.bands) out.push('Golden bands');
+    }
+    if (lvl === 5) {
+        if (gr.extra5 !== 'none') out.push(GROWTH_LABELS.extra5[gr.extra5]);
+        if (gr.crown5 !== 'none') out.push(GROWTH_LABELS.crown5[gr.crown5]);
+    }
+    return out.filter(Boolean);
+}
+
 /**
  * Turn a saved look into a full genome: palette, parts and personal traits.
  * @returns {object|null}
@@ -400,7 +454,8 @@ export function describeFamiliar(typeId, look) {
     if (crossbreed) traits.push(`Cross-breed: ${crossbreed.label}`);
     if (shiny) traits.unshift('Shiny');
 
-    return { typeId, preset, palette, form: preset.form, eyes, marking, keepsake, keepsakeColour, blush, shiny, voice, crossbreed, traits };
+    const growth = rollGrowthGenes(typeId, look?.seed || hashString(`${typeId}:${look?.preset}`));
+    return { typeId, preset, palette, form: preset.form, eyes, marking, keepsake, keepsakeColour, blush, shiny, voice, crossbreed, traits, growth };
 }
 
 // ─── Body plans: where every part sits, per class and stage ───────────────────
@@ -565,6 +620,47 @@ function partsFor(genome, level) {
         if (lvl >= 4) { wings = 'clover'; wingScale = lvl === 4 ? 1 : 1.2; tail = 'cloverTail'; regalia.push('cloverRing'); }
         if (lvl === 5) { swapCrown('jackAntlers', 'goldAntlers'); regalia.unshift('horseshoe'); }
     }
+    // ── This familiar's own growth path (see rollGrowthGenes) ──
+    const gr = genome.growth || {};
+    const back = [];
+    const path = lvl >= 3 ? gr.path || 0 : 0;
+    const early = lvl < 5;
+    if (path === 1) {
+        if (typeId === 'emberfang') { tail = lvl === 5 ? 'grandFlame' : 'spiked'; addCrown('spikeCrest'); }
+        if (typeId === 'frostpaw') { if (lvl >= 4) crown = crown.map((k) => (k.endsWith('Ears') ? 'crystalEars' : k)); }
+        if (typeId === 'thornback') { if (!crown.includes('mushroomCap')) addCrown('mushroomCap'); dropCrown('leafSprout', 'flowerSprout'); }
+        if (typeId === 'veilshade') { tail = tail === 'curl' ? 'wisp' : 'curl'; if (lvl === 3) addCrown('starCrest'); }
+        if (typeId === 'sparkling' && early) { wings = 'fairy'; wingScale = lvl === 3 ? 1.15 : 1.3; addCrown('heartCrest'); }
+        if (typeId === 'tidefin') crown = crown.map((k) => (k === 'otterEars' ? 'finEars' : k));
+        if (typeId === 'stormwing') { if (early) tail = 'owlTail'; addCrown('plumeCrest'); }
+        if (typeId === 'gemshell') { swapCrown('gemSpike', 'leafSprout'); if (lvl >= 4) front.push('mushrooms'); }
+        if (typeId === 'starfoal' && early) { wings = 'fairy'; wingScale *= 0.82; }
+        if (typeId === 'cloverhop' && early) swapCrown('jackAntlers', 'antlers');
+    }
+    if (path === 2) {
+        if (typeId === 'emberfang') { if (early) tail = 'spade'; addCrown('flameCrest'); }
+        if (typeId === 'frostpaw' && !wings && lvl >= 4) { wings = 'crystal'; wingScale = lvl === 4 ? 0.95 : 1.15; }
+        if (typeId === 'thornback' && lvl >= 4) { wings = 'leaf'; wingScale = lvl === 4 ? 0.95 : 1.1; }
+        if (typeId === 'veilshade') { addCrown('starCrest'); if (lvl >= 4) dropCrown('crescentHorns'); }
+        if (typeId === 'sparkling') { tail = early ? 'ribbon' : tail; addCrown('sunCrest'); }
+        if (typeId === 'tidefin') { if (!front.includes('pearlNecklace')) front.push('pearlNecklace'); if (early) addCrown('pearlCrest'); }
+        if (typeId === 'stormwing') { wingScale += 0.1; if (!crown.includes('owlEars')) addCrown('owlEars'); }
+        if (typeId === 'gemshell' && lvl >= 4) { wings = 'crystal'; wingScale = lvl === 4 ? 0.85 : 1; }
+        if (typeId === 'starfoal') addCrown(crown.includes('blazeStar') ? 'moonClip' : 'blazeStar');
+        if (typeId === 'cloverhop') { addCrown('heartCrest'); if (lvl >= 4 && early) wings = 'fairy'; }
+    }
+    if (lvl === 4 && gr.regalia4) {
+        const keep = ['spines', 'mountain'];
+        for (let i = regalia.length - 1; i >= 0; i--) if (!keep.includes(regalia[i])) regalia.splice(i, 1);
+        regalia.push(['', 'motesOrbit', 'runeCircle', 'lightWings', 'starburst'][gr.regalia4]);
+    }
+    if (lvl === 5 && gr.extra5 && gr.extra5 !== 'none') regalia.unshift(gr.extra5);
+    if (lvl >= 4) {
+        if (gr.emblem && gr.emblem !== 'none') { const i = front.indexOf('chestCore'); if (i >= 0) front.splice(i, 1); front.push(`emblem:${gr.emblem}`); }
+        if (gr.mantle && gr.mantle !== 'none') back.push(gr.mantle);
+        if (gr.bands) front.push('bands');
+    }
+    if (lvl === 5 && gr.crown5 && gr.crown5 !== 'none') addCrown(`crown_${gr.crown5}`);
     if (lvl === 5) front.push('mythicGlints');
 
     const cross = genome.crossbreed;
@@ -573,7 +669,7 @@ function partsFor(genome, level) {
         if (cross.slot === 'wings') { wings = cross.part; if (wingScale === 1 && !form.wings) wingScale = [0.55, 0.75, 0.95, 1.05, 1.15][lvl - 1]; }
         if (cross.slot === 'crown' && !crown.includes(cross.part)) crown.push(cross.part);
     }
-    return { crown, tail, wings, wingScale, ruff, shellCrystals, regalia, front };
+    return { crown, tail, wings, wingScale, ruff, shellCrystals, regalia, front, back };
 }
 
 // ─── Drawing ──────────────────────────────────────────────────────────────────
@@ -920,6 +1016,27 @@ const PAIR_PARTS = {
 
 // Centre parts sit on the crown of the head at (tx, ty). `back` ones are drawn behind the head.
 const CENTER_PARTS = {
+    crown_circlet: { draw: (tx, ty, c) => `<path d="M${tx - 14} ${ty + 10}Q${tx} ${ty + 3} ${tx + 14} ${ty + 10}" stroke="#92400e" stroke-width="3.4" fill="none" stroke-linecap="round"/><path d="M${tx - 14} ${ty + 10}Q${tx} ${ty + 3} ${tx + 14} ${ty + 10}" stroke="#fbbf24" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+        <path d="M${tx} ${ty + 3.4}l2.6 3.2-2.6 3.4-2.6-3.4z" fill="${c.accentHex}" stroke="#fff" stroke-width="0.6"/>` },
+    crown_laurel: { draw: (tx, ty) => {
+        const side = [0, 1, 2, 3, 4].map((i) => {
+            const a = Math.PI * (0.92 - i * 0.12);
+            const x = tx + Math.cos(a) * 15, y = ty + 10 - Math.sin(a) * 9;
+            return `<ellipse cx="${f(x)}" cy="${f(y)}" rx="3.4" ry="1.6" fill="#fbbf24" stroke="#92400e" stroke-width="0.5" transform="rotate(${f(-(i * 22) + 30)} ${f(x)} ${f(y)})"/>`;
+        }).join('');
+        return side + mirror(side).replace('matrix(-1 0 0 1 120 0)', `matrix(-1 0 0 1 ${tx * 2} 0)`);
+    } },
+    crown_tiara: { draw: (tx, ty, c) => `<path d="M${tx - 11} ${ty + 6}L${tx - 8} ${ty - 1}L${tx - 4} ${ty + 3}L${tx} ${ty - 6}L${tx + 4} ${ty + 3}L${tx + 8} ${ty - 1}L${tx + 11} ${ty + 6}Q${tx} ${ty + 2} ${tx - 11} ${ty + 6}Z" fill="#fde047" stroke="#92400e" stroke-width="0.8" stroke-linejoin="round"/>
+        <circle cx="${tx}" cy="${ty - 3}" r="1.9" fill="${c.accentHex}" stroke="#fff" stroke-width="0.4"/><circle cx="${tx - 8}" cy="${ty + 1}" r="1.2" fill="#fff"/><circle cx="${tx + 8}" cy="${ty + 1}" r="1.2" fill="#fff"/>` },
+    crown_starDiadem: { glow: true, draw: (tx, ty, c) => [[-10, 1, 2.8], [0, -4, 4.2], [10, 1, 2.8]].map(([dx, dy, r], i) => star4(tx + dx, ty + dy, r, i === 1 ? '#fff7d6' : c.accentHex, ' stroke="#f59e0b" stroke-width="0.5"')).join('')
+        + `<path d="M${tx - 12} ${ty + 6}Q${tx} ${ty + 1} ${tx + 12} ${ty + 6}" stroke="#fde68a" stroke-width="1.2" fill="none"/>` },
+    crown_flowerCrown: { sway: true, draw: (tx, ty, c) => [-12, -6, 0, 6, 12].map((dx, i) => {
+        const y = ty + 7 - (36 - dx * dx / 4) / 8;
+        const col = ['#f9a8d4', '#fde047', c.accentHex, '#fde047', '#f9a8d4'][i];
+        return [0, 72, 144, 216, 288].map((deg) => { const r = (deg * Math.PI) / 180; return `<circle cx="${f(tx + dx + Math.cos(r) * 2)}" cy="${f(y + Math.sin(r) * 2)}" r="1.7" fill="${col}" stroke="${c.ink}" stroke-width="0.3"/>`; }).join('') + `<circle cx="${tx + dx}" cy="${f(y)}" r="1.1" fill="#fff7d6"/>`;
+    }).join('') },
+    crown_horned: { draw: (tx, ty, c) => `<path d="M${tx - 12} ${ty + 7}L${tx - 14} ${ty - 4}L${tx - 7} ${ty + 2}L${tx} ${ty - 8}L${tx + 7} ${ty + 2}L${tx + 14} ${ty - 4}L${tx + 12} ${ty + 7}Q${tx} ${ty + 3} ${tx - 12} ${ty + 7}Z" fill="#fbbf24" stroke="#78350f" stroke-width="0.9" stroke-linejoin="round"/>
+        <path d="M${tx - 10} ${ty + 5}Q${tx} ${ty + 1.6} ${tx + 10} ${ty + 5}" stroke="#fef3c7" stroke-width="0.8" fill="none"/><circle cx="${tx}" cy="${ty + 2.4}" r="1.8" fill="${c.accentHex}" stroke="#fff" stroke-width="0.4"/>` },
     frostGem: { glow: true, draw: (tx, ty) => `<path d="M${tx} ${ty + 4}l3.2 4.6-3.2 4.6-3.2-4.6z" fill="#e0f2fe" stroke="#38bdf8" stroke-width="0.9" stroke-linejoin="round"/><path d="M${tx} ${ty + 4}v9.2M${tx - 3.2} ${ty + 8.6}h6.4" stroke="#fff" stroke-width="0.6" opacity="0.85"/>` },
     voidEye: { glow: true, draw: (tx, ty, c) => `<path d="M${tx - 4.6} ${ty + 8}Q${tx} ${ty + 3.6} ${tx + 4.6} ${ty + 8}Q${tx} ${ty + 12.4} ${tx - 4.6} ${ty + 8}Z" fill="#0b0618" stroke="${c.accentHex}" stroke-width="1"/><circle cx="${tx}" cy="${ty + 8}" r="1.7" fill="${c.accentHex}"/><circle cx="${tx - 0.5}" cy="${ty + 7.5}" r="0.6" fill="#fff"/>` },
     sphinxHood: { back: true, draw: (tx, ty, c) => {
@@ -1202,6 +1319,19 @@ const REGALIA = {
     prismArc: () => ['#f87171', '#fb923c', '#facc15', '#4ade80', '#38bdf8', '#a78bfa']
         .map((col, i) => `<path d="M${10 + i * 4} 92A${50 - i * 4} ${50 - i * 4} 0 0 1 ${110 - i * 4} 92" stroke="${col}" stroke-width="3.4" fill="none" opacity="0.5"/>`).join('')
         + '<g class="fc-regalia-glow"><path d="M10 92A50 50 0 0 1 110 92" stroke="#fff" stroke-width="0.8" fill="none" opacity="0.7"/></g>',
+    motesOrbit: (c) => {
+        const draw = MOTE_SHAPES[c.typeId] || MOTE_SHAPES.sparkling;
+        return `<g class="fc-regalia-spin fc-regalia-spin--slow" style="transform-origin:60px 60px">${ring(10, 46, 60, 60, (i) => `<g transform="scale(${i % 2 ? 1.5 : 2.1})">${draw(0, 0, c)}</g>`)}</g>`;
+    },
+    runeCircle: (c) => `<g class="fc-regalia-glow"><circle cx="60" cy="56" r="45" fill="none" stroke="${c.accentHex}" stroke-width="1.4" opacity="0.7"/><circle cx="60" cy="56" r="39" fill="none" stroke="${c.accentHex}" stroke-width="0.7" opacity="0.6"/>
+        <g class="fc-regalia-spin fc-regalia-spin--slow" style="transform-origin:60px 56px">${ring(8, 42, 60, 56, (i) => `<path d="${['M-2 -2.4L2 2.4M2 -2.4V2.4', 'M-2.4 0H2.4M0 -2.4L-2 2.4', 'M-2 -2.4L0 0 2 -2.4M0 0V2.6', 'M-2.4 -2H2.4L-2.4 2.4H2.4'][i % 4]}" stroke="#fff7d6" stroke-width="1.1" fill="none" stroke-linecap="round"/>`)}</g></g>`,
+    lightWings: (c) => {
+        const wing = `<path d="M46 72C34 58 18 46 4 40C10 50 6 56 12 62C6 64 6 72 14 76C10 80 14 86 22 86C30 86 40 80 46 76Z" fill="${c.glowHex}" opacity="0.34" stroke="#fff" stroke-width="0.9" stroke-opacity="0.75"/>
+            <path d="M44 72L10 48M44 74L12 66M44 76L18 82" stroke="#fff" stroke-width="0.7" opacity="0.5"/>`;
+        return `<g class="fc-regalia-glow">${wing}${mirror(wing)}</g>`;
+    },
+    starburst: (c) => `<g class="fc-regalia-glow"><g class="fc-regalia-spin fc-regalia-spin--slow" style="transform-origin:60px 52px">${ring(8, 30, 60, 52, (i) => `<path d="M0 ${i % 2 ? -20 : -28}L3 0L0 6L-3 0Z" fill="${i % 2 ? '#fff' : c.accentHex}" opacity="0.6"/>`)}</g></g>`,
+    petalHalo: (c) => `<g class="fc-regalia-spin fc-regalia-spin--slow" style="transform-origin:60px 50px">${ring(12, 40, 60, 50, (i) => `<ellipse rx="3.6" ry="7.4" fill="${i % 2 ? c.secondHex : '#fbcfe8'}" stroke="#fff" stroke-width="0.6" opacity="0.85"/>`)}</g>`,
     frostHalo: () => {
         const arm = '<path d="M0 -12V-50M0 -26l-8.6 -7.4M0 -26l8.6 -7.4M0 -39l-6.6 -6M0 -39l6.6 -6" stroke="#e0f2fe" stroke-width="2.2" stroke-linecap="round" fill="none" opacity="0.7"/><path d="M0 -51l-3 3.6 3 3.6 3-3.6z" fill="#bae6fd" stroke="#fff" stroke-width="0.5"/>';
         return `<circle cx="60" cy="50" r="46" fill="none" stroke="#bae6fd" stroke-width="1" opacity="0.45"/><g class="fc-regalia-glow"><g class="fc-regalia-spin fc-regalia-spin--slow" style="transform-origin:60px 50px">${[0, 60, 120, 180, 240, 300].map((d) => `<g transform="translate(60 50) rotate(${d})">${arm}</g>`).join('')}</g></g>`;
@@ -1244,12 +1374,27 @@ const REGALIA = {
         ${[[26, 40], [94, 30], [44, 20], [80, 60], [34, 70], [96, 74]].map(([x, y], i) => `<circle cx="${x}" cy="${y}" r="${i % 3 ? 0.9 : 1.4}" fill="#fff" class="fc-twinkle" style="animation-delay:${-i * 0.3}s"/>`).join('')}`
 };
 
+function eggshellPattern(kind, c) {
+    const m = c.eggMark;
+    switch (kind) {
+        case 'zigzag': return `<path d="M35 99l5 -3.6 5 3.6 5 -3.6 5 3.6 5 -3.6 5 3.6 5 -3.6 5 3.6 5 -3.6 5 3.6" stroke="${m}" stroke-width="2" fill="none" stroke-linejoin="round" opacity="0.85"/>`;
+        case 'stripes': return [95, 101].map((y, i) => `<path d="M${35 + i * 3} ${y}Q60 ${y + 4} ${85 - i * 3} ${y}" stroke="${m}" stroke-width="2.2" fill="none" stroke-linecap="round" opacity="0.8"/>`).join('');
+        case 'stars': return [[44, 98, 3], [60, 102, 2.4], [75, 97, 3.2]].map(([x, y, r]) => star4(x, y, r, m, ' opacity="0.9"')).join('');
+        case 'hearts': return [[45, 97], [60, 102], [75, 97]].map(([x, y]) => `<path d="M${x} ${y + 2.4}C${x - 3} ${y} ${x - 3} ${y - 2.4} ${x - 1.4} ${y - 2.4}C${x - 0.6} ${y - 2.4} ${x} ${y - 1.8} ${x} ${y - 1.2}C${x} ${y - 1.8} ${x + 0.6} ${y - 2.4} ${x + 1.4} ${y - 2.4}C${x + 3} ${y - 2.4} ${x + 3} ${y} ${x} ${y + 2.4}Z" fill="${m}" opacity="0.85"/>`).join('');
+        default: return [[43, 98, 2.6], [60, 101, 2.2], [76, 97.6, 2.8], [52, 94, 1.4], [69, 94.6, 1.6]].map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${m}" opacity="0.75"/>`).join('');
+    }
+}
+
 const FRONT_EXTRAS = {
-    eggshell: (c) => {
+    bands: () => {
+        const band = '<path d="M43 98.4Q49 100.6 55 98.4" stroke="#78350f" stroke-width="3.2" fill="none" stroke-linecap="round"/><path d="M43 98.4Q49 100.6 55 98.4" stroke="#fbbf24" stroke-width="1.9" fill="none" stroke-linecap="round"/><circle cx="49" cy="99.6" r="0.9" fill="#fff7d6"/>';
+        return band + mirror(band);
+    },
+    eggshell: (c, plan, gr = {}) => {
         const d = 'M32 92L37.5 85.6L43 91.4L48.6 84.6L54.4 90.8L60 83.6L65.6 90.8L71.4 84.6L77 91.4L82.5 85.6L88 92C89 102 77.6 109 60 109C42.4 109 31 102 32 92Z';
         return `<g class="fc-eggshell"><path d="${d}" fill="url(#${c.uid}-egg)" stroke="${c.eggEdge}" stroke-width="1.2" stroke-linejoin="round"/>
             <path d="M36 97C40 103.6 49 106.4 59 106.6" stroke="#fff" stroke-width="1.8" opacity="0.42" fill="none" stroke-linecap="round"/>
-            ${[[43, 98, 2.6], [60, 101, 2.2], [76, 97.6, 2.8], [52, 94, 1.4], [69, 94.6, 1.6]].map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${c.eggMark}" opacity="0.75"/>`).join('')}
+            ${eggshellPattern(gr.shell, c)}
             <path d="M48.6 84.6L50 88M71.4 84.6L70.4 88.4" stroke="${c.eggEdge}" stroke-width="0.8" opacity="0.6" stroke-linecap="round"/></g>`;
     },
     lavaVeins: () => {
@@ -1323,6 +1468,8 @@ function starbondSvg(count) {
 // every form after it stands taller with a broader body, a smaller head and grown horns.
 const STATURE = { full: [0.6, 0.71, 0.82, 0.92, 1], chip: [0.76, 0.83, 0.9, 0.96, 1] };
 const TORSO = [[0.9, 0.84], [0.96, 0.94], [1, 1], [1.04, 1.07], [1.07, 1.12]];
+// Each familiar's own build stretches that (fully from the third form): round, sleek or sturdy.
+const BUILDS = { sturdy: [1, 1], chubby: [1.08, 0.96], sleek: [0.93, 1.05] };
 const HEAD_SCALE = [1.2, 1.09, 1, 0.95, 0.92];
 const EYE_SCALE = [1.22, 1.1, 1, 0.95, 0.92];
 const HORN_SCALE = [0.7, 0.88, 1.04, 1.18, 1.3];
@@ -1333,12 +1480,23 @@ const GROWING_CROWN = new Set(['unicornHorn', 'starHorn', 'hornlet', 'gemSpike',
 const grow = (x, y, k, svg) => (k === 1 ? svg : `<g transform="translate(${f(x)} ${f(y)}) scale(${k}) translate(${f(-x)} ${f(-y)})">${svg}</g>`);
 
 /** A glowing sigil on the ground under the third form and up: a ring, then runes, then light. */
-function sigilSvg(level, c, glow) {
+const SIGIL_SHAPES = {
+    ring: () => '',
+    star: () => { const pts = Array.from({ length: 10 }, (_, i) => { const a = -Math.PI / 2 + (i * Math.PI) / 5; const r = i % 2 ? 15 : 36; return `${f(Math.cos(a) * r)} ${f(Math.sin(a) * r)}`; }); return `<path d="M${pts.join('L')}Z"/>`; },
+    hex: () => { const pts = Array.from({ length: 6 }, (_, i) => { const a = (i * Math.PI) / 3; return `${f(Math.cos(a) * 34)} ${f(Math.sin(a) * 34)}`; }); return `<path d="M${pts.join('L')}Z"/><path d="M${pts[0]}L${pts[3]}M${pts[1]}L${pts[4]}M${pts[2]}L${pts[5]}"/>`; },
+    flower: () => [0, 60, 120, 180, 240, 300].map((d) => `<ellipse cx="0" cy="-18" rx="8" ry="17" transform="rotate(${d})"/>`).join(''),
+    moon: () => [0, 90, 180, 270].map((d) => `<path d="M-6 -30A8 8 0 1 0 6 -30A6.4 6.4 0 1 1 -6 -30Z" transform="rotate(${d})"/>`).join('') + '<circle r="22"/>',
+    sun: () => '<circle r="16"/>' + Array.from({ length: 12 }, (_, i) => `<path d="M0 -20V-34" transform="rotate(${i * 30})"/>`).join('')
+};
+
+function sigilSvg(level, c, glow, style = 'ring') {
     if (level < 3) return '';
     let out = `<ellipse cx="60" cy="105" rx="34" ry="6" fill="none" stroke="${glow}" stroke-width="1.1" opacity="0.5"/>`;
     if (level >= 4) {
+        const shape = (SIGIL_SHAPES[style] || SIGIL_SHAPES.ring)();
         out = `<ellipse cx="60" cy="105" rx="30" ry="5.2" fill="${glow}" opacity="0.14"/>${out}
             <ellipse cx="60" cy="105" rx="42" ry="7.6" fill="none" stroke="${glow}" stroke-width="1" stroke-dasharray="3 5" opacity="0.65" class="fc-regalia-flow"/>`
+            + (shape ? `<g transform="translate(60 105) scale(1 0.19)" fill="none" stroke="${glow}" stroke-width="1.6" opacity="0.8" vector-effect="non-scaling-stroke">${shape.replace(/<(path|ellipse|circle) /g, '<$1 vector-effect="non-scaling-stroke" ')}</g>` : '')
             + [[18, 105], [102, 105], [33, 99], [87, 99], [33, 111], [87, 111]].map(([x, y]) => `<path d="M${x} ${y - 2.2}l1.6 2.2-1.6 2.2-1.6-2.2z" fill="${glow}" opacity="0.9"/>`).join('');
     }
     if (level >= 5) {
@@ -1348,6 +1506,33 @@ function sigilSvg(level, c, glow) {
     }
     return `<g class="fc-sigil">${out}</g>`;
 }
+
+// Chest emblems (form 4 and up), drawn on a small gold badge.
+const EMBLEMS = {
+    gem: (c) => `<path d="M0 -3.4L3 0L0 3.6L-3 0Z" fill="${c.accentHex}" stroke="#fff" stroke-width="0.5"/>`,
+    star: () => '<path d="M0 -3.6l1 2.4 2.6 .2-2 1.7 .6 2.6-2.2-1.4-2.2 1.4 .6-2.6-2-1.7 2.6-.2z" fill="#fff7d6"/>',
+    moon: (c) => `<path d="M1.6 -3.2A3.4 3.4 0 1 0 1.6 3.2A2.6 2.6 0 1 1 1.6 -3.2Z" fill="#f5f3ff" stroke="${c.accentHex}" stroke-width="0.4"/>`,
+    sun: () => `<circle r="1.8" fill="#fde047"/>${[0, 45, 90, 135, 180, 225, 270, 315].map((d) => `<path d="M0 -2.6V-3.8" stroke="#fde047" stroke-width="0.9" stroke-linecap="round" transform="rotate(${d})"/>`).join('')}`,
+    heart: () => '<path d="M0 3C-3.6 0.6 -3.6 -2.6 -1.6 -2.8C-0.8 -2.9 0 -2.2 0 -1.6C0 -2.2 0.8 -2.9 1.6 -2.8C3.6 -2.6 3.6 0.6 0 3Z" fill="#fb7185"/>',
+    rune: (c) => `<path d="M-2 -2.6L0 0 -2 2.6M2 -2.6V2.6M0 0H2" stroke="${c.accentHex}" stroke-width="0.9" fill="none" stroke-linecap="round"/>`,
+    leaf: () => '<path d="M0 3.4C-3 1 -2.6 -2.4 0 -3.6C2.6 -2.4 3 1 0 3.4Z" fill="#4ade80" stroke="#166534" stroke-width="0.5"/><path d="M0 3V-3" stroke="#166534" stroke-width="0.4"/>'
+};
+function emblemSvg(kind, c) {
+    const draw = EMBLEMS[kind];
+    if (!draw) return '';
+    return `<g transform="translate(60 83)" class="fc-glowmark"><circle r="5.6" fill="#78350f"/><circle r="4.8" fill="#fbbf24"/><circle r="4" fill="${shade(c.secondHex, -0.25)}"/>${draw(c)}</g>`;
+}
+
+// Capes and mantles hang behind the body from form 4 on.
+const BACK_EXTRAS = {
+    cape: (c, o) => `<path d="M43 68C34 80 30 94 27 106C38 103 48 107 60 104C72 107 82 103 93 106C90 94 86 80 77 68Z" fill="${c.s}"${o}/>
+        <path d="M27 106C38 103 48 107 60 104C72 107 82 103 93 106" stroke="#fbbf24" stroke-width="1.8" fill="none" stroke-linecap="round"/>`,
+    mantle: (c, o) => `<path d="M40 68C34 74 31 82 31 90Q37 86 41 91Q46 85 51 90Q56 85 60 90Q64 85 69 90Q74 85 79 91Q83 86 89 90C89 82 86 74 80 68Z" fill="${c.a}"${o}/>
+        <path d="M33 86Q37 83 41 88Q46 82 51 87Q56 82 60 87Q64 82 69 87Q74 82 79 88Q83 83 87 86" stroke="#fff" stroke-width="0.8" fill="none" opacity="0.5"/>`,
+    scarfCape: (c) => `<path d="M46 68C42 84 38 96 32 108L44 104L48 110L54 72Z" fill="${c.accentHex}" stroke="${c.ink}" stroke-width="0.8" stroke-linejoin="round"/>
+        <path d="M74 68C78 84 82 96 88 108L76 104L72 110L66 72Z" fill="${c.accentHex}" stroke="${c.ink}" stroke-width="0.8" stroke-linejoin="round"/>
+        <path d="M45 80L50 81M43 90L48 91M75 80L70 81M77 90L72 91" stroke="#fbbf24" stroke-width="1.4" stroke-linecap="round"/>`
+};
 
 let uidCounter = 0;
 
@@ -1374,6 +1559,8 @@ export function buildFamiliarSvg(genome, opts = {}) {
         k: `url(#${uid}-k)`,
         ink: darkCoat ? shade(pal.second, 0.12) : shade(pal.main, -0.42)
     };
+    c.typeId = genome.typeId;
+    c.glowHex = genome.shiny ? '#fde68a' : pal.glow;
     if (level === 1) {
         const egg = eggColours(genome);
         c.eggBase = egg.base;
@@ -1384,7 +1571,8 @@ export function buildFamiliarSvg(genome, opts = {}) {
     const rand = seededRandom(hashString(`${genome.preset.id}:${genome.marking}:${level}`));
     const scale = STATURE[mode][level - 1];
     const face = { ...plan.face, eye: plan.face.eye * EYE_SCALE[level - 1] };
-    const hornK = HORN_SCALE[level - 1];
+    const gr = genome.growth || {};
+    const hornK = f(HORN_SCALE[level - 1] * (level >= 3 ? gr.hornGrowth || 1 : 1)) * 1;
 
     // Tail and wings sit behind the body; the wings flap from the shoulder.
     const tail = parts.tail && plan.tail
@@ -1392,7 +1580,7 @@ export function buildFamiliarSvg(genome, opts = {}) {
         : '';
     let wings = '';
     if (parts.wings) {
-        const ws = (plan.wingScale || 1) * (parts.wingScale || 1);
+        const ws = (plan.wingScale || 1) * (parts.wingScale || 1) * (level >= 3 ? gr.wingGrowth || 1 : 1);
         const [wx, wy] = plan.shoulder;
         const wing = `<g transform="translate(${wx} ${wy}) scale(${f(ws)}) translate(${-wx} ${-wy})">${wingSvg(parts.wings, wx, wy, c, o)}</g>`;
         wings = `<g class="fc-wing fc-wing--l" style="transform-origin:${wx}px ${wy}px">${wing}</g>`
@@ -1458,12 +1646,16 @@ export function buildFamiliarSvg(genome, opts = {}) {
     const regalia = parts.regalia.length
         ? `<g class="fc-regalia">${parts.regalia.map((k) => REGALIA[k]?.(c, o) || '').join('')}</g>` : '';
     const shell = plan.shell ? shellSvg(c, parts.shellCrystals, level) : '';
-    const frontExtras = parts.front.filter((k) => k !== 'mythicGlints' && k !== 'bubble').map((k) => FRONT_EXTRAS[k]?.(c, plan) || '').join('');
+    const frontExtras = parts.front.filter((k) => k !== 'mythicGlints' && k !== 'bubble')
+        .map((k) => (k.startsWith('emblem:') ? emblemSvg(k.slice(7), c) : FRONT_EXTRAS[k]?.(c, plan, gr) || '')).join('');
+    const backExtras = (parts.back || []).map((k) => BACK_EXTRAS[k]?.(c, o) || '').join('');
     const overlay = (parts.front.includes('bubble') ? FRONT_EXTRAS.bubble(c) : '')
         + (parts.front.includes('mythicGlints') && mode === 'full' ? FRONT_EXTRAS.mythicGlints(c) : '');
     const starbond = mode === 'full' ? starbondSvg(opts.starbond) : '';
-    const sigil = mode === 'full' ? sigilSvg(level, c, genome.shiny ? '#fde68a' : pal.glow) : '';
-    const [torsoX, torsoY] = plan.integrated ? [1, 1] : TORSO[level - 1];
+    const sigil = mode === 'full' ? sigilSvg(level, c, c.glowHex, gr.sigil) : '';
+    const buildK = BUILDS[gr.build] || BUILDS.sturdy;
+    const grownUp = Math.min(1, 0.5 + (level - 1) / 4);
+    const [torsoX, torsoY] = plan.integrated ? [1, 1] : [TORSO[level - 1][0] * (1 + (buildK[0] - 1) * grownUp), TORSO[level - 1][1] * (1 + (buildK[1] - 1) * grownUp)];
     const headK = plan.integrated ? 1 : HEAD_SCALE[level - 1];
     const neckTo = 104 - (104 - plan.neck) * torsoY;
     const torsoT = `translate(60 104) scale(${torsoX} ${torsoY}) translate(-60 -104)`;
@@ -1475,7 +1667,7 @@ export function buildFamiliarSvg(genome, opts = {}) {
         <ellipse class="fc-shadow" cx="60" cy="105.5" rx="${f(24 * scale * torsoX)}" ry="4.2" fill="#0f172a" opacity="0.2"/>
         ${sigil}
         <g class="fc-rig" style="transform-origin:60px 106px"><g transform="translate(60 106) scale(${scale}) translate(-60 -106)">
-            ${regalia}<g transform="${torsoT}">${tail}${wings}${shell}${body}${frontExtras}${neckKeepsake}${ruff}</g><g transform="${headT}">${head}</g>${overlay}
+            ${regalia}<g transform="${torsoT}">${backExtras}${tail}${wings}${shell}${body}${frontExtras}${neckKeepsake}${ruff}</g><g transform="${headT}">${head}</g>${overlay}
         </g></g>
         ${motes}${starbond}
     </svg>`;

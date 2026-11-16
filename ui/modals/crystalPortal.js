@@ -12,7 +12,7 @@ import { db, query, collection, where, getDocs } from '../../firebase.js';
 import { getSchoolYearStartMonthDate } from '../../utils/schoolYear.js';
 import { monthKeysSince, realmMonthKey } from '../../features/realmMomentsCore.mjs';
 import { buildPortalView } from '../../features/crystalPortalCore.mjs';
-import { portalModalHtml, keepersHtml } from './crystalPortalView.mjs';
+import { portalModalHtml, keepersHtml, settleLadder } from './crystalPortalView.mjs';
 import { collectLeagueParties, openZoneOverviewModal } from './realmOverview.js';
 import { showAnimatedModal } from './base.js';
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
@@ -94,6 +94,7 @@ export function openCrystalPortalModal() {
 
     contentEl.innerHTML = portalModalHtml(buildPortalView({ parties, activeClassId, monthKey, monthKeys }), options);
     if (!alreadyOpen) showAnimatedModal(MODAL_ID);
+    requestAnimationFrame(() => settleLadder(contentEl));
 
     // The year's record arrives a moment later; only this opening may fill it in.
     const token = ++openToken;

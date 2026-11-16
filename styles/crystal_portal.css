@@ -17,7 +17,7 @@
     display: flex;
     flex-direction: column;
     width: 100%;
-    max-width: 54rem;
+    max-width: 58rem;
     max-height: min(92vh, 980px);
     padding: 0;
     overflow: hidden;
@@ -25,10 +25,25 @@
     border-radius: 1.75rem;
     background: #110a2e;
     box-shadow:
-        0 0 0 1px rgba(171, 108, 255, 0.45),
-        0 0 0 6px rgba(101, 232, 255, 0.1),
-        0 0 70px rgba(124, 58, 237, 0.4),
+        0 0 0 6px rgba(101, 232, 255, 0.08),
+        0 0 80px rgba(124, 58, 237, 0.45),
+        0 0 140px rgba(101, 232, 255, 0.15),
         0 32px 70px rgba(4, 2, 16, 0.6);
+}
+
+/* A prism edge round the whole panel: cyan, violet and rose light caught in the glass */
+#milestone-details-modal[data-modal-mode="portal"] .milestone-details-panel::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 9;
+    padding: 1.5px;
+    border-radius: inherit;
+    background: linear-gradient(140deg, rgba(255, 255, 255, 0.85), rgba(101, 232, 255, 0.75) 18%, rgba(171, 108, 255, 0.5) 42%, rgba(241, 147, 255, 0.7) 68%, rgba(101, 232, 255, 0.6) 90%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    pointer-events: none;
 }
 
 #milestone-details-modal[data-modal-mode="portal"] .milestone-details-header {
@@ -44,8 +59,8 @@
     place-items: center;
     width: 2.6rem;
     height: 2.6rem;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(var(--cp-close-edge, 191, 246, 255), 0.6);
+    background: rgba(20, 10, 60, 0.45);
     color: #fff;
     font-size: 1.6rem;
     line-height: 1;
@@ -78,6 +93,7 @@
     --cp-pink: 241, 147, 255;
     --cp-gold: 253, 224, 138;
     --cp-ink: #f5f0ff;
+    --cp-beam-o: 1;
     --cp-muted: rgba(226, 216, 255, 0.72);
     --cp-glass: rgba(255, 255, 255, 0.055);
     --cp-line: rgba(196, 181, 253, 0.2);
@@ -92,29 +108,31 @@
         linear-gradient(180deg, #160d3a 0%, #0f0828 60%, #0b0620 100%);
 }
 
-/* —— Hero —— */
+/* —— Hero: the Crystal Sanctum ——
+   A centred stage: light beams fan out behind the Portal, two clusters of cut-crystal
+   spires stand guard, and the Portal hovers over a mirror floor. Title and lore below. */
 .cp-hero {
     position: relative;
     isolation: isolate;
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: center;
-    gap: 1.75rem;
-    min-height: 16rem;
-    padding: 2rem 4.25rem 2rem 2rem;
+    justify-items: center;
+    padding: 1.4rem 1.5rem 1.6rem;
     overflow: hidden;
-    border-bottom: 1px solid var(--cp-line);
+    text-align: center;
+    border-bottom: 1px solid transparent;
+    border-image: linear-gradient(90deg, transparent, rgba(var(--cp-cyan), 0.55), rgba(var(--cp-pink), 0.55), transparent) 1;
 }
 
 .cp-sky {
     position: absolute;
     inset: 0;
-    z-index: -1;
+    z-index: -2;
     overflow: hidden;
     pointer-events: none;
     background:
-        radial-gradient(60% 90% at 18% 50%, rgba(var(--cp-violet), 0.35), transparent 70%),
-        linear-gradient(120deg, #1d0f4a 0%, #120a36 55%, #0c2340 100%);
+        radial-gradient(42% 52% at 50% 36%, rgba(var(--cp-cyan), 0.22), transparent 70%),
+        radial-gradient(70% 70% at 50% 40%, rgba(var(--cp-violet), 0.42), transparent 72%),
+        linear-gradient(180deg, #0b0628 0%, #1a0d4a 46%, #120a34 78%, #0d0726 100%);
 }
 
 .cp-sky__stars {
@@ -130,7 +148,10 @@
         radial-gradient(1.6px 1.6px at 74% 18%, #fff, transparent),
         radial-gradient(1px 1px at 83% 52%, #e0f7ff, transparent),
         radial-gradient(1.4px 1.4px at 92% 28%, #fff, transparent),
-        radial-gradient(1px 1px at 96% 78%, #fde7ff, transparent);
+        radial-gradient(1px 1px at 96% 78%, #fde7ff, transparent),
+        radial-gradient(1.2px 1.2px at 4% 56%, #fff, transparent),
+        radial-gradient(1px 1px at 30% 40%, #e0f7ff, transparent),
+        radial-gradient(1.2px 1.2px at 88% 8%, #fff, transparent);
     opacity: 0.85;
 }
 
@@ -138,30 +159,40 @@
     background-image:
         radial-gradient(2px 2px at 14% 40%, #fff, transparent),
         radial-gradient(1.6px 1.6px at 30% 88%, #c7f6ff, transparent),
-        radial-gradient(2px 2px at 52% 22%, #fff, transparent),
+        radial-gradient(2px 2px at 52% 8%, #fff, transparent),
         radial-gradient(1.6px 1.6px at 70% 66%, #fbd5ff, transparent),
         radial-gradient(2px 2px at 88% 12%, #fff, transparent),
-        radial-gradient(1.6px 1.6px at 79% 90%, #fff, transparent);
+        radial-gradient(1.6px 1.6px at 79% 90%, #fff, transparent),
+        radial-gradient(2px 2px at 6% 10%, #c7f6ff, transparent);
     animation: cp-twinkle 3.6s ease-in-out infinite alternate;
 }
 
 .cp-sky__nebula {
     position: absolute;
-    right: -12%;
-    bottom: -40%;
-    width: 70%;
-    height: 120%;
+    right: -18%;
+    top: -30%;
+    width: 60%;
+    height: 110%;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(var(--cp-pink), 0.2), rgba(var(--cp-cyan), 0.08) 45%, transparent 70%);
+    background: radial-gradient(circle, rgba(var(--cp-pink), 0.22), rgba(var(--cp-cyan), 0.07) 45%, transparent 70%);
     animation: cp-nebula 14s ease-in-out infinite alternate;
+}
+
+.cp-sky__nebula--left {
+    right: auto;
+    left: -20%;
+    top: 10%;
+    background: radial-gradient(circle, rgba(var(--cp-cyan), 0.18), rgba(var(--cp-violet), 0.08) 45%, transparent 70%);
+    animation-duration: 18s;
+    animation-direction: alternate-reverse;
 }
 
 /* Motes drifting up through the hero */
 .cp-mote {
     position: absolute;
     bottom: -0.6rem;
-    width: 0.38rem;
-    height: 0.38rem;
+    width: 0.34rem;
+    height: 0.34rem;
     border-radius: 50%;
     background: #fff;
     box-shadow: 0 0 8px 2px rgba(var(--cp-cyan), 0.7);
@@ -172,21 +203,138 @@
 .cp-mote--1 { left: 6%; animation-delay: -0.4s; }
 .cp-mote--2 { left: 15%; animation-delay: -3.1s; animation-duration: 8.5s; }
 .cp-mote--3 { left: 27%; animation-delay: -5.2s; }
-.cp-mote--4 { left: 41%; animation-delay: -1.8s; animation-duration: 9s; box-shadow: 0 0 8px 2px rgba(var(--cp-pink), 0.7); }
-.cp-mote--5 { left: 55%; animation-delay: -4.4s; }
-.cp-mote--6 { left: 63%; animation-delay: -2.6s; animation-duration: 8s; box-shadow: 0 0 8px 2px rgba(var(--cp-violet), 0.8); }
-.cp-mote--7 { left: 72%; animation-delay: -6.1s; }
-.cp-mote--8 { left: 81%; animation-delay: -0.9s; animation-duration: 10s; }
-.cp-mote--9 { left: 89%; animation-delay: -3.7s; box-shadow: 0 0 8px 2px rgba(var(--cp-pink), 0.7); }
-.cp-mote--10 { left: 96%; animation-delay: -5.6s; animation-duration: 9.5s; }
+.cp-mote--4 { left: 38%; animation-delay: -1.8s; animation-duration: 9s; box-shadow: 0 0 8px 2px rgba(var(--cp-pink), 0.7); }
+.cp-mote--5 { left: 52%; animation-delay: -4.4s; }
+.cp-mote--6 { left: 61%; animation-delay: -2.6s; animation-duration: 8s; box-shadow: 0 0 8px 2px rgba(var(--cp-violet), 0.8); }
+.cp-mote--7 { left: 70%; animation-delay: -6.1s; }
+.cp-mote--8 { left: 79%; animation-delay: -0.9s; animation-duration: 10s; }
+.cp-mote--9 { left: 87%; animation-delay: -3.7s; box-shadow: 0 0 8px 2px rgba(var(--cp-pink), 0.7); }
+.cp-mote--10 { left: 95%; animation-delay: -5.6s; animation-duration: 9.5s; }
+.cp-mote--11 { left: 44%; animation-delay: -6.8s; animation-duration: 11s; }
+.cp-mote--12 { left: 20%; animation-delay: -7.4s; animation-duration: 10.5s; box-shadow: 0 0 8px 2px rgba(var(--cp-violet), 0.8); }
+
+/* The stage the Portal stands on */
+.cp-stage {
+    --cp-size: 15rem;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    width: min(100%, 38rem);
+    height: calc(var(--cp-size) + 2.4rem);
+    margin-top: 0.4rem;
+}
+
+/* God rays: one wide conic wash, slowly turning, faded at the edges */
+.cp-beams {
+    position: absolute;
+    left: 50%;
+    top: calc(50% - 1.6rem);
+    width: 46rem;
+    height: 46rem;
+    margin: -23rem 0 0 -23rem;
+    z-index: -1;
+    border-radius: 50%;
+    background: repeating-conic-gradient(from 0deg,
+        rgba(var(--cp-cyan), 0.16) 0deg 4deg,
+        transparent 4deg 15deg,
+        rgba(var(--cp-pink), 0.12) 15deg 18deg,
+        transparent 18deg 30deg);
+    -webkit-mask-image: radial-gradient(circle, #000 8%, rgba(0, 0, 0, 0.55) 30%, transparent 62%);
+    mask-image: radial-gradient(circle, #000 8%, rgba(0, 0, 0, 0.55) 30%, transparent 62%);
+    animation: cp-beams-in 1600ms ease-out 250ms both, cp-spin 90s linear 1.8s infinite;
+}
+
+.cp-hero.is-sealed { --cp-beam-o: 0.45; }
+
+/* Mirror floor: an ellipse of crystal with rings that ripple outwards */
+.cp-floor {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: 24rem;
+    height: 4.4rem;
+    margin-left: -12rem;
+    z-index: 0;
+}
+
+.cp-floor > span {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+}
+
+.cp-floor__glow {
+    background: radial-gradient(50% 50% at 50% 50%, rgba(var(--cp-cyan), 0.55), rgba(var(--cp-violet), 0.3) 45%, transparent 72%);
+    animation: cp-breathe 4.4s ease-in-out infinite;
+}
+
+.cp-floor__ring {
+    border: 1.5px solid rgba(var(--cp-cyan), 0.55);
+    box-shadow: 0 0 14px rgba(var(--cp-cyan), 0.35), inset 0 0 14px rgba(var(--cp-violet), 0.35);
+    animation: cp-ripple 4.2s ease-out infinite;
+}
+
+.cp-floor__ring--2 {
+    border-color: rgba(var(--cp-pink), 0.5);
+    animation-delay: 2.1s;
+}
+
+/* Cut-crystal spires either side */
+.cp-spire {
+    position: relative;
+    z-index: 1;
+    width: 7.5rem;
+    height: 12.5rem;
+    margin-bottom: 1.1rem;
+    overflow: visible;
+    filter: drop-shadow(0 0 14px rgba(var(--cp-cyan), 0.35));
+    animation: cp-spire-rise 1100ms cubic-bezier(0.2, 1.1, 0.4, 1) 200ms both;
+}
+
+.cp-spire--r {
+    transform: scaleX(-1);
+    animation-name: cp-spire-rise-r;
+}
+
+.cp-spire__prism--1 { opacity: 0.86; }
+.cp-spire__prism--2 { opacity: 0.7; }
+
+.cp-spire__edge {
+    fill: none;
+    stroke: #fff;
+    stroke-width: 1.2;
+    stroke-linejoin: round;
+    opacity: 0.9;
+}
+
+.cp-spire__ridge {
+    stroke: rgba(255, 255, 255, 0.55);
+    stroke-width: 0.8;
+}
+
+.cp-glint {
+    fill: #fff;
+    opacity: 0;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: cp-glint 3.8s ease-in-out infinite;
+}
+
+.cp-glint--2 { animation-delay: 1.3s; }
+.cp-glint--3 { animation-delay: 2.5s; }
+.cp-spire--r .cp-glint { animation-delay: 0.6s; }
+.cp-spire--r .cp-glint--2 { animation-delay: 1.9s; }
+.cp-spire--r .cp-glint--3 { animation-delay: 3.1s; }
 
 /* —— The Portal —— */
 .cp-portal {
-    --cp-size: 13.5rem;
     position: relative;
+    z-index: 2;
     width: var(--cp-size);
     height: var(--cp-size);
     flex: 0 0 auto;
+    margin: 0 -0.6rem 1.7rem;
     animation: cp-portal-open 1100ms cubic-bezier(0.2, 1.25, 0.4, 1) both;
 }
 
@@ -197,9 +345,9 @@
 }
 
 .cp-portal__aura {
-    inset: -22%;
+    inset: -24%;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(var(--cp-cyan), 0.42) 0%, rgba(var(--cp-violet), 0.28) 38%, rgba(var(--cp-pink), 0.1) 58%, transparent 72%);
+    background: radial-gradient(circle, rgba(var(--cp-cyan), 0.5) 0%, rgba(var(--cp-violet), 0.32) 38%, rgba(var(--cp-pink), 0.12) 58%, transparent 72%);
     animation: cp-breathe 4.4s ease-in-out infinite;
 }
 
@@ -212,24 +360,22 @@
 
 .cp-portal__rim {
     fill: none;
-    stroke: rgba(var(--cp-cyan), 0.35);
+    stroke: rgba(var(--cp-cyan), 0.4);
     stroke-width: 0.8;
 }
 
 .cp-portal__rim--inner {
-    stroke: rgba(var(--cp-pink), 0.3);
+    stroke: rgba(var(--cp-pink), 0.35);
     stroke-dasharray: 2 5;
 }
 
 .cp-portal__runes text {
-    fill: rgba(236, 228, 255, 0.82);
+    fill: rgba(236, 228, 255, 0.85);
     font: 700 7.4px 'Cinzel', Georgia, serif;
     letter-spacing: 0.6px;
 }
 
-.cp-portal__spin {
-    inset: 9%;
-}
+.cp-portal__spin { inset: 11%; }
 
 .cp-portal__spin img {
     display: block;
@@ -241,21 +387,59 @@
 
 .cp-portal__spin--outer { animation: cp-spin 14s linear infinite; }
 .cp-portal__spin--inner {
-    inset: 22%;
+    inset: 24%;
     opacity: 0.78;
     animation: cp-spin-reverse 8.5s linear infinite;
 }
 
 .cp-portal__core {
-    inset: 36%;
+    inset: 37%;
     border-radius: 50%;
-    background: radial-gradient(circle, #fff 0%, rgba(255, 255, 255, 0.85) 30%, rgba(var(--cp-cyan), 0.4) 62%, transparent 74%);
+    background: radial-gradient(circle, #fff 0%, rgba(255, 255, 255, 0.88) 30%, rgba(var(--cp-cyan), 0.45) 62%, transparent 74%);
     animation: cp-core 3.2s ease-in-out infinite;
 }
 
-.cp-portal.is-sealed .cp-portal__core { opacity: 0.55; animation-duration: 5s; }
-.cp-portal.is-sealed .cp-portal__spin { opacity: 0.62; }
-.cp-portal.is-sealed .cp-portal__spin--inner { opacity: 0.4; }
+/* The cut-crystal frame (12 facets, four gem studs), turning very slowly the other way */
+.cp-portal__frame {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    animation: cp-spin-reverse 120s linear infinite;
+}
+
+.cp-frame__outer {
+    fill: none;
+    stroke: url(#cpFrameGrad);
+    stroke-width: 3.2;
+    stroke-linejoin: round;
+    opacity: 0.95;
+}
+
+.cp-frame__inner {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.4);
+    stroke-width: 0.9;
+    stroke-linejoin: round;
+}
+
+.cp-portal.is-sealed .cp-portal__core { opacity: 0.5; animation-duration: 5s; }
+.cp-portal.is-sealed .cp-portal__spin { opacity: 0.55; }
+.cp-portal.is-sealed .cp-portal__spin--inner { opacity: 0.35; }
+.cp-portal.is-sealed .cp-portal__spin--outer { animation-duration: 26s; }
+.cp-portal.is-sealed .cp-frame__outer { opacity: 0.7; }
+
+/* Sealed: a sheet of frost-crystal lattice over the vortex */
+.cp-portal__frost {
+    inset: 14%;
+    border-radius: 50%;
+    background:
+        repeating-linear-gradient(60deg, rgba(225, 245, 255, 0.16) 0 1px, transparent 1px 13px),
+        repeating-linear-gradient(-60deg, rgba(225, 245, 255, 0.16) 0 1px, transparent 1px 13px),
+        repeating-linear-gradient(0deg, rgba(225, 245, 255, 0.1) 0 1px, transparent 1px 13px),
+        radial-gradient(circle, rgba(196, 230, 255, 0.05) 30%, rgba(196, 230, 255, 0.28) 70%, rgba(255, 255, 255, 0.4) 100%);
+    box-shadow: inset 0 0 22px rgba(255, 255, 255, 0.35);
+    animation: cp-visitor-in 900ms ease-out 500ms both;
+}
 
 .cp-portal__lock {
     inset: auto;
@@ -263,18 +447,18 @@
     top: 50%;
     display: grid;
     place-items: center;
-    width: 2.6rem;
-    height: 2.6rem;
-    margin: -1.3rem 0 0 -1.3rem;
-    border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.75);
-    background: radial-gradient(circle at 35% 30%, #4c2a99, #1a1045);
-    color: rgb(var(--cp-pink));
-    font-size: 1rem;
-    box-shadow: 0 0 18px rgba(var(--cp-pink), 0.55);
+    width: 3rem;
+    height: 3rem;
+    margin: -1.5rem 0 0 -1.5rem;
+    clip-path: polygon(50% 0, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+    background:
+        linear-gradient(150deg, rgba(255, 255, 255, 0.55) 0 30%, transparent 31%),
+        linear-gradient(160deg, #f5a8ff 0%, #8b5cf6 55%, #3b1f8f 100%);
+    color: #fff;
+    font-size: 1.05rem;
+    text-shadow: 0 1px 3px rgba(30, 10, 80, 0.8);
     animation: cp-visitor-in 600ms cubic-bezier(0.2, 1.5, 0.4, 1) 650ms both;
 }
-.cp-portal.is-sealed .cp-portal__spin--outer { animation-duration: 24s; }
 
 /* A white flash as the Portal opens */
 .cp-portal__flash {
@@ -288,30 +472,32 @@
 
 /* Crystal shards on a slow orbit */
 .cp-orbit {
-    inset: -6%;
+    inset: -8%;
     animation: cp-spin 36s linear infinite;
 }
 
 .cp-shard {
     position: absolute;
-    width: 0.9rem;
-    height: 1.4rem;
+    width: 0.95rem;
+    height: 1.5rem;
     clip-path: polygon(50% 0, 100% 38%, 50% 100%, 0 38%);
-    background: linear-gradient(160deg, #ffffff 0%, rgba(var(--cp-cyan), 0.95) 40%, rgba(var(--cp-violet), 0.95) 100%);
+    background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.7) 0 50%, transparent 50%),
+        linear-gradient(160deg, #ffffff 0%, rgba(var(--cp-cyan), 0.95) 40%, rgba(var(--cp-violet), 0.95) 100%);
     opacity: 0.92;
     animation: cp-shard-in 900ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
 }
 
-.cp-shard--1 { left: 47%; top: -2%; animation-delay: 300ms; }
-.cp-shard--2 { left: 90%; top: 22%; animation-delay: 360ms; }
-.cp-shard--3 { left: 90%; top: 70%; animation-delay: 420ms; width: 0.7rem; height: 1.1rem; }
-.cp-shard--4 { left: 47%; top: 93%; animation-delay: 480ms; }
-.cp-shard--5 { left: 3%; top: 70%; animation-delay: 540ms; width: 0.7rem; height: 1.1rem; }
-.cp-shard--6 { left: 3%; top: 22%; animation-delay: 600ms; }
+.cp-shard--1 { left: 47%; top: -3%; animation-delay: 300ms; }
+.cp-shard--2 { left: 92%; top: 22%; animation-delay: 360ms; }
+.cp-shard--3 { left: 92%; top: 70%; animation-delay: 420ms; width: 0.7rem; height: 1.1rem; }
+.cp-shard--4 { left: 47%; top: 95%; animation-delay: 480ms; }
+.cp-shard--5 { left: 1%; top: 70%; animation-delay: 540ms; width: 0.7rem; height: 1.1rem; }
+.cp-shard--6 { left: 1%; top: 22%; animation-delay: 600ms; }
 
 /* Classes already through float in the Portal's light */
 .cp-visitor {
-    --r: calc(var(--cp-size) * 0.5);
+    --r: calc(var(--cp-size) * 0.53);
     inset: auto;
     left: 50%;
     top: 50%;
@@ -322,64 +508,116 @@
 
 .cp-visitor__seal {
     position: absolute;
-    left: -1.25rem;
-    top: -1.25rem;
+    left: -1.3rem;
+    top: -1.3rem;
     display: grid;
     place-items: center;
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 2.6rem;
+    height: 2.6rem;
     border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.85);
-    background: radial-gradient(circle at 35% 30%, #3b2a7a, #1a1045);
-    font-size: 1.25rem;
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    background: radial-gradient(circle at 35% 30%, #4a3496, #1a1045);
+    font-size: 1.3rem;
     line-height: 1;
-    box-shadow: 0 0 14px rgba(var(--cp-cyan), 0.65), 0 4px 10px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 16px rgba(var(--cp-cyan), 0.7), 0 4px 10px rgba(0, 0, 0, 0.4);
     animation: cp-visitor-in 700ms cubic-bezier(0.2, 1.5, 0.4, 1) calc(700ms + var(--d)) both, cp-bob 3.4s ease-in-out calc(1.4s + var(--d)) infinite;
 }
 
 .cp-visitor.is-first .cp-visitor__seal {
     border-color: rgb(var(--cp-gold));
-    box-shadow: 0 0 16px rgba(var(--cp-gold), 0.8), 0 4px 10px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 18px rgba(var(--cp-gold), 0.85), 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+/* A slow band of light sweeps across the whole sanctum once it has opened */
+.cp-hero__sweep {
+    position: absolute;
+    inset: -10% -40%;
+    z-index: 3;
+    pointer-events: none;
+    background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.13) 48%, rgba(var(--cp-cyan), 0.12) 51%, transparent 58%);
+    transform: translateX(-70%);
+    animation: cp-hero-sweep 7s ease-in-out 1.6s infinite;
 }
 
 /* —— Hero copy —— */
 .cp-hero__copy {
     position: relative;
+    z-index: 2;
     min-width: 0;
+    margin-top: -0.2rem;
     animation: cp-rise 700ms cubic-bezier(0.22, 1, 0.36, 1) 350ms both;
 }
 
 .cp-hero__eyebrow {
-    margin: 0 0 0.35rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0 0 0.3rem;
     font-size: 0.7rem;
     font-weight: 700;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: rgba(var(--cp-cyan), 0.9);
+    color: rgba(var(--cp-cyan), 0.95);
+}
+
+/* A little cut gem on a hairline, used beside small headings */
+.cp-gem-dash {
+    position: relative;
+    display: inline-block;
+    width: 2.4rem;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(var(--cp-cyan), 0.85));
+}
+
+.cp-gem-dash:last-child { transform: scaleX(-1); }
+
+.cp-gem-dash::after {
+    content: '';
+    position: absolute;
+    right: -0.2rem;
+    top: -0.24rem;
+    width: 0.48rem;
+    height: 0.48rem;
+    background: linear-gradient(135deg, #fff, rgb(var(--cp-cyan)) 50%, rgb(var(--cp-violet)));
+    transform: rotate(45deg);
+    box-shadow: 0 0 6px rgba(var(--cp-cyan), 0.9);
 }
 
 .cp-hero__title {
+    position: relative;
     margin: 0;
     font-family: var(--cp-title-font);
-    font-size: clamp(1.9rem, 4.6vw, 2.9rem);
+    font-size: clamp(2.1rem, 5.4vw, 3.3rem);
     font-weight: 400;
     line-height: 1.05;
     color: #fff;
-    text-shadow: 0 0 22px rgba(var(--cp-violet), 0.75), 0 3px 12px rgba(0, 0, 0, 0.5);
+    filter: drop-shadow(0 0 18px rgba(var(--cp-violet), 0.75)) drop-shadow(0 3px 8px rgba(0, 0, 0, 0.55));
+}
+
+/* Prism lettering: white ice that catches cyan and rose as the light moves */
+.cp-hero__title span {
+    background: linear-gradient(100deg, #ffffff 0%, #ffffff 30%, #bff6ff 40%, #ffffff 48%, #f2d7ff 58%, #ffffff 68%, #ffffff 100%);
+    background-size: 250% 100%;
+    background-position: 100% 0;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: cp-title-glint 6s ease-in-out 1.2s infinite;
 }
 
 .cp-hero__lore {
-    margin: 0.65rem 0 0;
-    max-width: 30rem;
-    font-size: 0.96rem;
+    margin: 0.55rem auto 0;
+    max-width: 36rem;
+    font-size: 0.95rem;
     font-weight: 500;
     line-height: 1.45;
-    color: rgba(240, 234, 255, 0.9);
+    color: rgba(240, 234, 255, 0.88);
 }
 
 .cp-hero__chips {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     gap: 0.45rem;
     margin-top: 0.95rem;
 }
@@ -943,15 +1181,459 @@
     color: var(--cp-muted);
 }
 
+/* ============================================================
+   CRYSTAL DRESS — every panel below the sanctum is cut glass:
+   prism-edged borders, a facet catch-light in the corner, hexagonal
+   gem icons. (Overrides the shared rune/ladder looks in quest_ranks.css
+   only inside .cp.)
+   ============================================================ */
+.cp {
+    --cp-prism-edge: linear-gradient(135deg, rgba(var(--cp-cyan), 0.55), rgba(var(--cp-violet), 0.22) 35%, rgba(var(--cp-pink), 0.42) 70%, rgba(var(--cp-cyan), 0.18));
+    --cp-hex: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+    --cp-base: linear-gradient(#150c3a, #120a31);
+}
+
+.cp-body {
+    background:
+        repeating-linear-gradient(60deg, rgba(196, 181, 253, 0.025) 0 1px, transparent 1px 34px),
+        repeating-linear-gradient(-60deg, rgba(196, 181, 253, 0.025) 0 1px, transparent 1px 34px);
+}
+
+.cp-card,
+.cp-mine,
+.cp-beyond__tile {
+    position: relative;
+    border: 1px solid transparent;
+    background:
+        linear-gradient(160deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.025) 42%, rgba(var(--cp-violet), 0.09)) padding-box,
+        var(--cp-base) padding-box,
+        var(--cp-prism-edge) border-box;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 12px 30px rgba(4, 2, 16, 0.35);
+}
+
+/* the facet catch-light in the top-left corner */
+.cp-card::before,
+.cp-mine::before,
+.cp-beyond__tile::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 7rem;
+    height: 4.5rem;
+    border-top-left-radius: inherit;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04) 45%, transparent 46%);
+    pointer-events: none;
+}
+
+.cp-card__title {
+    padding-bottom: 0.6rem;
+    background: linear-gradient(90deg, rgba(var(--cp-cyan), 0.5), rgba(var(--cp-pink), 0.3) 45%, transparent) left bottom / 100% 1px no-repeat;
+    color: #fff;
+}
+
+.cp-card__title > i {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 1.75rem;
+    height: 1.95rem;
+    clip-path: var(--cp-hex);
+    background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.3) 0 50%, transparent 50%),
+        linear-gradient(160deg, #9df3ff, #8b5cf6 60%, #5b21b6);
+    color: #fff;
+    font-size: 0.72rem;
+}
+
+.cp-card__count {
+    padding: 0.12rem 0.6rem;
+    border: 1px solid rgba(var(--cp-cyan), 0.45);
+    background: linear-gradient(135deg, rgba(var(--cp-violet), 0.55), rgba(var(--cp-cyan), 0.3));
+    box-shadow: 0 0 10px rgba(var(--cp-cyan), 0.3);
+}
+
+/* —— Your class: ring + the last stretch of road —— */
+.cp-mine {
+    row-gap: 0.4rem;
+    padding: 1.1rem 1.25rem 0.9rem;
+    background:
+        radial-gradient(70% 140% at 0% 30%, rgba(var(--cp-violet), 0.32), transparent 70%),
+        linear-gradient(160deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.03) 42%, rgba(var(--cp-cyan), 0.06)) padding-box,
+        var(--cp-base) padding-box,
+        var(--cp-prism-edge) border-box;
+}
+
+.cp-mine--through {
+    background:
+        radial-gradient(70% 140% at 0% 30%, rgba(var(--cp-gold), 0.22), transparent 70%),
+        linear-gradient(120deg, rgba(var(--cp-violet), 0.3), rgba(var(--cp-cyan), 0.12)) padding-box,
+        var(--cp-base) padding-box,
+        linear-gradient(135deg, rgba(var(--cp-gold), 0.85), rgba(var(--cp-pink), 0.4) 50%, rgba(var(--cp-cyan), 0.6)) border-box;
+}
+
+.cp-mine__ring::before {
+    content: '';
+    position: absolute;
+    inset: -12%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(var(--cp-cyan), 0.32), transparent 65%);
+}
+
+.cp-mine__title { font-size: clamp(1.2rem, 2.7vw, 1.6rem); }
+
+.cp-path {
+    grid-column: 1 / -1;
+    position: relative;
+    height: 3.3rem;
+    margin: 0.35rem 3.2rem 0 1.2rem;
+}
+
+.cp-path__track {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 1.1rem;
+    height: 0.6rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 2px 4px rgba(0, 0, 0, 0.35);
+}
+
+.cp-path__fill {
+    position: relative;
+    display: block;
+    height: 100%;
+    overflow: hidden;
+    border-radius: inherit;
+    background: linear-gradient(90deg, rgb(var(--cp-violet)), rgb(var(--cp-cyan)) 70%, rgb(var(--cp-pink)));
+    box-shadow: 0 0 12px rgba(var(--cp-cyan), 0.7);
+    transform-origin: left;
+    animation: cp-path-grow 1300ms cubic-bezier(0.22, 1, 0.36, 1) 700ms both;
+}
+
+.cp-path__fill::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    width: 40%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+    animation: cp-path-spark 2.8s ease-in-out 2s infinite;
+}
+
+.cp-path.is-through .cp-path__fill { background: linear-gradient(90deg, rgb(var(--cp-violet)), rgb(var(--cp-cyan)) 55%, rgb(var(--cp-gold))); }
+
+.cp-path__stop {
+    position: absolute;
+    top: 0.95rem;
+    display: grid;
+    justify-items: center;
+    transform: translateX(-50%);
+}
+
+.cp-path__stop i {
+    width: 0.9rem;
+    height: 0.9rem;
+    background: linear-gradient(135deg, #fff, rgb(var(--cp-cyan)) 45%, rgb(var(--cp-violet)));
+    transform: rotate(45deg);
+    box-shadow: 0 0 8px rgba(var(--cp-cyan), 0.9);
+}
+
+.cp-path__stop small,
+.cp-path__label {
+    margin-top: 0.45rem;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--cp-muted);
+}
+
+.cp-path__label {
+    position: absolute;
+    left: 0;
+    top: 2.05rem;
+    margin: 0;
+}
+
+.cp-path__gate {
+    position: absolute;
+    left: 100%;
+    top: 1.4rem;
+    width: 3rem;
+    height: 3rem;
+    margin: -1.5rem 0 0 0.15rem;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8), 0 0 18px rgba(var(--cp-cyan), 0.8), 0 0 34px rgba(var(--cp-violet), 0.6);
+    overflow: hidden;
+    background: #1a0f4a;
+}
+
+.cp-path__gate-swirl {
+    position: absolute;
+    inset: -10%;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle, #fff 0 14%, rgba(255, 255, 255, 0.4) 22%, transparent 42%),
+        conic-gradient(from 0deg, #65e8ff, #ab6cff, #f193ff, #65e8ff, #ab6cff, #f193ff, #65e8ff);
+    animation: cp-spin 5s linear infinite;
+}
+
+.cp-path__token {
+    position: absolute;
+    top: 1.4rem;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    margin: -1.2rem 0 0 -1.2rem;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    background: radial-gradient(circle at 35% 30%, #4a3496, #1a1045);
+    font-size: 1.25rem;
+    line-height: 1;
+    box-shadow: 0 0 14px rgba(var(--cp-cyan), 0.85), 0 4px 10px rgba(0, 0, 0, 0.45);
+    animation: cp-token-in 1300ms cubic-bezier(0.22, 1, 0.36, 1) 700ms both, cp-bob 3.2s ease-in-out 2.2s infinite;
+}
+
+.cp-path.is-through .cp-path__token {
+    left: calc(100% + 1.65rem) !important;
+    border-color: rgb(var(--cp-gold));
+    box-shadow: 0 0 18px rgba(var(--cp-gold), 0.95), 0 4px 10px rgba(0, 0, 0, 0.45);
+}
+
+/* —— Runes: hexagonal cut gems —— */
+.cp .cp-rune {
+    border-color: rgba(196, 181, 253, 0.3);
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015));
+}
+
+.cp .cp-rune.is-lit {
+    border: 1px solid transparent;
+    background:
+        linear-gradient(120deg, rgba(var(--cp-violet), 0.26), rgba(var(--cp-cyan), 0.07) 60%, rgba(var(--cp-gold), 0.08)) padding-box,
+        var(--cp-base) padding-box,
+        linear-gradient(135deg, rgba(var(--cp-gold), 0.8), rgba(var(--cp-pink), 0.35) 45%, rgba(var(--cp-cyan), 0.6)) border-box;
+}
+
+.cp .cp-rune__glyph,
+.cp .cp-rune.is-lit .cp-rune__glyph {
+    position: relative;
+    isolation: isolate;
+    width: 2.8rem;
+    height: 3.1rem;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    color: rgba(226, 216, 255, 0.55);
+}
+
+.cp .cp-rune__glyph::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    clip-path: var(--cp-hex);
+    background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.12) 0 50%, rgba(0, 0, 0, 0.12) 50%),
+        linear-gradient(180deg, rgba(196, 181, 253, 0.28), rgba(70, 50, 150, 0.3));
+}
+
+.cp .cp-rune.is-lit .cp-rune__glyph { color: #fff; text-shadow: 0 1px 4px rgba(60, 20, 120, 0.8); }
+
+.cp .cp-rune.is-lit .cp-rune__glyph::before {
+    background:
+        linear-gradient(150deg, rgba(255, 255, 255, 0.55) 0 22%, transparent 23%),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.22) 0 50%, rgba(0, 0, 0, 0.1) 50%),
+        linear-gradient(165deg, #ffd6fb 0%, #c084fc 45%, #6d28d9 100%);
+}
+
+.cp .cp-rune.is-lit .cp-rune__glyph::after {
+    content: '';
+    position: absolute;
+    inset: -45%;
+    z-index: -2;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(var(--cp-pink), 0.55), rgba(var(--cp-violet), 0.2) 45%, transparent 68%);
+}
+
+.cp .cp-rune__part.is-lit { box-shadow: 0 0 12px color-mix(in srgb, var(--v) 35%, transparent); }
+
+/* —— Through / threshold rows —— */
+.cp-through__row,
+.cp-near__row {
+    border-color: rgba(196, 181, 253, 0.14);
+    background: linear-gradient(110deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+}
+
+.cp-through__row.is-first {
+    border: 1px solid transparent;
+    background:
+        linear-gradient(110deg, rgba(var(--cp-gold), 0.16), rgba(255, 255, 255, 0.03)) padding-box,
+        var(--cp-base) padding-box,
+        linear-gradient(135deg, rgba(var(--cp-gold), 0.85), rgba(var(--cp-pink), 0.3) 60%, rgba(var(--cp-cyan), 0.4)) border-box;
+}
+
+.cp-through__order {
+    min-width: 2.2rem;
+    height: 2.4rem;
+    padding: 0;
+    border-radius: 0;
+    clip-path: var(--cp-hex);
+    background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.16) 0 50%, transparent 50%),
+        linear-gradient(170deg, rgba(var(--cp-violet), 0.85), rgba(60, 30, 140, 0.9));
+}
+
+.cp-through__row.is-first .cp-through__order {
+    background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.35) 0 50%, transparent 50%),
+        linear-gradient(170deg, #fff1b8, #f59e0b);
+}
+
+.cp-through__seal { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18); }
+
+/* —— Beyond the Portal —— */
+.cp-beyond__title {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.7rem;
+    margin: 0.35rem 0 0.1rem;
+    font-family: var(--gcq-font-title);
+    font-size: 1.1rem;
+    font-weight: 400;
+    color: #fff;
+    text-shadow: 0 0 14px rgba(var(--cp-violet), 0.8);
+}
+
+.cp-beyond__tile {
+    justify-items: center;
+    padding: 1.05rem 1rem 1.1rem;
+    overflow: hidden;
+    text-align: center;
+    background:
+        radial-gradient(60% 50% at 50% 0%, rgba(var(--cp-cyan), 0.2), transparent 70%),
+        linear-gradient(160deg, rgba(var(--cp-violet), 0.2), rgba(var(--cp-cyan), 0.06)) padding-box,
+        var(--cp-base) padding-box,
+        var(--cp-prism-edge) border-box;
+}
+
+.cp-beyond__tile:nth-of-type(2) {
+    background:
+        radial-gradient(60% 50% at 50% 0%, rgba(var(--cp-gold), 0.2), transparent 70%),
+        linear-gradient(160deg, rgba(var(--cp-violet), 0.2), rgba(var(--cp-gold), 0.05)) padding-box,
+        var(--cp-base) padding-box,
+        linear-gradient(135deg, rgba(var(--cp-gold), 0.65), rgba(var(--cp-violet), 0.22) 40%, rgba(var(--cp-pink), 0.4)) border-box;
+}
+
+.cp-beyond__icon {
+    width: 3rem;
+    height: 3.35rem;
+    margin-bottom: 0.35rem;
+    border-radius: 0;
+    clip-path: var(--cp-hex);
+    background:
+        linear-gradient(150deg, rgba(255, 255, 255, 0.45) 0 22%, transparent 23%),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.18) 0 50%, rgba(0, 0, 0, 0.1) 50%),
+        linear-gradient(165deg, #9df3ff 0%, #8b5cf6 55%, #4c1d95 100%);
+    box-shadow: none;
+    font-size: 1.15rem;
+    animation: cp-bob 3.6s ease-in-out calc(1.5s + var(--i, 0) * 0.4s) infinite;
+}
+
+.cp-beyond__tile:nth-of-type(2) .cp-beyond__icon {
+    background:
+        linear-gradient(150deg, rgba(255, 255, 255, 0.5) 0 22%, transparent 23%),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.2) 0 50%, rgba(0, 0, 0, 0.1) 50%),
+        linear-gradient(165deg, #fff3bf 0%, #f5b70b 55%, #b45309 100%);
+    color: #4a2500;
+}
+
+.cp-beyond__icon .qrc,
+.cp-beyond__crest { width: 1.9rem; height: 1.9rem; }
+
+.cp-beyond__tile strong { font-size: 1.05rem; }
+
+/* —— Ranks: a staircase of crystal, climbing towards the Portal —— */
+.cp .cp-ladder {
+    align-items: end;
+    padding-top: 0.9rem;
+}
+
+.cp .cp-ladder__rank {
+    margin-bottom: calc(var(--step, 0) * 0.5rem);
+    border: 1px solid transparent;
+    background:
+        linear-gradient(170deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02)) padding-box,
+        var(--cp-base) padding-box,
+        linear-gradient(160deg, rgba(var(--cp-cyan), 0.35), rgba(var(--cp-violet), 0.15) 50%, rgba(var(--cp-pink), 0.3)) border-box;
+}
+
+.cp .cp-ladder__rank::after {
+    content: '';
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    bottom: -0.45rem;
+    height: 0.45rem;
+    border-radius: 0 0 50% 50%;
+    background: linear-gradient(180deg, rgba(var(--cp-cyan), 0.35), transparent);
+    opacity: 0.6;
+}
+
+.cp .cp-ladder__rank.is-current {
+    background:
+        radial-gradient(70% 50% at 50% 0%, rgba(var(--cp-gold), 0.22), transparent 70%),
+        linear-gradient(170deg, rgba(var(--cp-violet), 0.42), rgba(var(--cp-gold), 0.08)) padding-box,
+        var(--cp-base) padding-box,
+        linear-gradient(160deg, rgba(var(--cp-gold), 0.95), rgba(var(--cp-pink), 0.5) 55%, rgba(var(--cp-cyan), 0.7)) border-box;
+    box-shadow: 0 0 1.4rem rgba(var(--cp-violet), 0.55), 0 0 0.6rem rgba(var(--cp-gold), 0.3);
+}
+
+/* —— Portal Keepers + footer —— */
+.cp-keepers__row { background: linear-gradient(110deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02)); }
+.cp-keepers__cell.is-done { filter: drop-shadow(0 0 3px rgba(var(--cp-cyan), 0.8)); }
+
+.cp-back {
+    border: 1px solid transparent;
+    background:
+        linear-gradient(135deg, rgba(var(--cp-violet), 0.35), rgba(var(--cp-cyan), 0.12)) padding-box,
+        var(--cp-base) padding-box,
+        var(--cp-prism-edge) border-box;
+    box-shadow: 0 0 14px rgba(var(--cp-violet), 0.3);
+}
+
+.cp-back:hover {
+    background:
+        linear-gradient(135deg, rgba(var(--cp-violet), 0.55), rgba(var(--cp-cyan), 0.22)) padding-box,
+        var(--cp-base) padding-box,
+        var(--cp-prism-edge) border-box;
+}
+
 /* —— Lighter effects for weak laptops —— */
 .cp--lite .cp-fx-heavy { display: none; }
 .cp--lite .cp-portal__runes,
+.cp--lite .cp-portal__frame,
 .cp--lite .cp-orbit,
-.cp--lite .cp-sky__nebula { animation: none; }
+.cp--lite .cp-sky__nebula,
+.cp--lite .cp-floor__glow,
+.cp--lite .cp-glint,
+.cp--lite .cp-hero__title span,
+.cp--lite .cp-path__fill::after,
+.cp--lite .cp-beyond__icon { animation: none; }
+.cp--lite .cp-beams { animation: cp-beams-in 1200ms ease-out 250ms both; }
+.cp--lite .cp-spire { filter: none; }
 .cp--lite .cp-visitor__seal { animation: cp-visitor-in 700ms cubic-bezier(0.2, 1.5, 0.4, 1) calc(700ms + var(--d)) both; }
+.cp--lite .cp-path__token { animation: cp-token-in 1100ms cubic-bezier(0.22, 1, 0.36, 1) 600ms both; }
 .cp--lite .cp-mine--through::after { display: none; }
 
-/* —— Keyframes (transform and opacity only) —— */
+/* —— Keyframes (transform and opacity only, bar the title's glint) —— */
 @keyframes cp-portal-open {
     0% { opacity: 0; transform: scale(0.25) rotate(-120deg); }
     60% { opacity: 1; }
@@ -971,53 +1653,99 @@
     0% { opacity: 0; transform: translate3d(0, 0, 0) scale(0.6); }
     15% { opacity: 0.9; }
     85% { opacity: 0.6; }
-    100% { opacity: 0; transform: translate3d(1.2rem, -17rem, 0) scale(1); }
+    100% { opacity: 0; transform: translate3d(1.2rem, -24rem, 0) scale(1); }
 }
 @keyframes cp-rise { from { opacity: 0; transform: translateY(0.9rem); } to { opacity: 1; transform: none; } }
 @keyframes cp-sheen { 0% { transform: translateX(-100%); } 45%, 100% { transform: translateX(100%); } }
 @keyframes cp-pop { from { opacity: 0; transform: scale(0.3); } to { opacity: 1; transform: none; } }
 @keyframes cp-wait { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+@keyframes cp-beams-in { from { opacity: 0; transform: scale(0.55); } to { opacity: var(--cp-beam-o, 1); transform: none; } }
+@keyframes cp-ripple { 0% { opacity: 0; transform: scale(0.5); } 25% { opacity: 1; } 100% { opacity: 0; transform: scale(1.3); } }
+@keyframes cp-spire-rise { from { opacity: 0; transform: translateY(35%); } to { opacity: 1; transform: none; } }
+@keyframes cp-spire-rise-r { from { opacity: 0; transform: scaleX(-1) translateY(35%); } to { opacity: 1; transform: scaleX(-1); } }
+@keyframes cp-glint { 0%, 62%, 100% { opacity: 0; transform: scale(0.3) rotate(0deg); } 76% { opacity: 1; transform: scale(1.15) rotate(45deg); } }
+@keyframes cp-hero-sweep { 0% { transform: translateX(-70%); } 45%, 100% { transform: translateX(70%); } }
+@keyframes cp-title-glint { 0% { background-position: 100% 0; } 45%, 100% { background-position: 0 0; } }
+@keyframes cp-path-grow { from { transform: scaleX(0); } to { transform: none; } }
+@keyframes cp-path-spark { 0% { transform: translateX(-100%); } 60%, 100% { transform: translateX(260%); } }
+@keyframes cp-token-in { from { opacity: 0; translate: -3rem 0; } to { opacity: 1; translate: 0 0; } }
 
 /* —— Small screens —— */
-@media (max-width: 720px) {
-    .cp-hero {
-        grid-template-columns: minmax(0, 1fr);
-        justify-items: center;
-        gap: 1.1rem;
-        padding: 2.2rem 1.1rem 1.4rem;
-        text-align: center;
+@media (max-width: 900px) {
+    /* The ranks become a sideways staircase you swipe along */
+    .cp .cp-ladder {
+        grid-template-columns: none;
+        grid-auto-flow: column;
+        grid-auto-columns: 7.6rem;
+        overflow-x: auto;
+        padding: 0.9rem 0.2rem 0.7rem;
+        scroll-snap-type: x proximity;
+        scrollbar-width: thin;
     }
-    .cp-portal { --cp-size: 10.5rem; }
-    .cp-hero__lore { margin-left: auto; margin-right: auto; }
-    .cp-hero__chips { justify-content: center; }
+    .cp .cp-ladder__rank { scroll-snap-align: center; margin-bottom: calc(var(--step, 0) * 0.32rem); }
+}
+
+@media (max-width: 720px) {
+    .cp-hero { padding: 1.1rem 0.9rem 1.3rem; }
+    .cp-stage { --cp-size: 11rem; height: calc(var(--cp-size) + 1.8rem); margin-top: 1.4rem; }
+    .cp-portal { margin: 0 -1.1rem 1.3rem; }
+    .cp-spire { width: 4.6rem; height: 7.8rem; margin-bottom: 0.8rem; }
+    .cp-beams { width: 30rem; height: 30rem; margin: -15rem 0 0 -15rem; }
+    .cp-floor { width: 17rem; height: 3.2rem; margin-left: -8.5rem; }
+    .cp-visitor__seal { left: -1.1rem; top: -1.1rem; width: 2.2rem; height: 2.2rem; font-size: 1.05rem; }
+    .cp-hero__eyebrow { gap: 0.4rem; font-size: 0.6rem; letter-spacing: 0.12em; }
+    .cp-gem-dash { display: none; }
+    .cp-hero__title { font-size: 2.05rem; }
+    .cp-hero__lore { font-size: 0.86rem; }
     .cp-body { padding: 1rem 0.85rem 1.2rem; }
     .cp-grid,
     .cp-beyond { grid-template-columns: minmax(0, 1fr); }
     .cp-beyond { gap: 0.5rem; }
-    .cp-beyond__tile { grid-template-columns: auto minmax(0, 1fr); column-gap: 0.75rem; padding: 0.7rem 0.85rem; }
-    .cp-beyond__icon { grid-row: span 2; margin: 0; }
+    .cp-beyond__tile { grid-template-columns: auto minmax(0, 1fr); column-gap: 0.85rem; justify-items: start; padding: 0.8rem 0.9rem; text-align: left; }
+    .cp-beyond__icon { grid-row: span 2; align-self: center; margin: 0; }
     .cp-through__row { gap: 0.45rem; padding: 0.45rem 0.55rem; }
-    .cp-through__order { min-width: 1.8rem; height: 1.8rem; font-size: 0.68rem; }
-    .cp-mine { grid-template-columns: auto minmax(0, 1fr); padding: 0.85rem; }
+    .cp-through__order { min-width: 1.9rem; height: 2.1rem; font-size: 0.68rem; }
+    .cp-mine { grid-template-columns: auto minmax(0, 1fr); padding: 0.9rem 0.85rem 0.75rem; }
     .cp-mine__ring { width: 4.6rem; height: 4.6rem; }
+    .cp-path { margin: 0.3rem 2.9rem 0 1.1rem; }
+    .cp-path__stop small { display: none; }
+    .cp-path__gate { width: 2.6rem; height: 2.6rem; margin-top: -1.3rem; }
+    .cp-path.is-through .cp-path__token { left: calc(100% + 1.45rem) !important; }
     .cp-keepers__head,
     .cp-keepers__row { grid-template-columns: minmax(6.5rem, 1fr) auto 1.8rem; gap: 0.5rem; }
     .cp-keepers__cells { grid-template-columns: repeat(var(--months, 1), 1.2rem); gap: 0.15rem; }
+}
+
+@media (max-width: 380px) {
+    .cp-spire { width: 3.8rem; height: 6.6rem; }
+    .cp-stage { --cp-size: 10rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .cp-portal,
     .cp-portal *,
     .cp-hero__copy,
+    .cp-hero__title span,
     .cp-rise,
     .cp-mote,
+    .cp-beams,
+    .cp-floor > span,
+    .cp-spire,
+    .cp-glint,
+    .cp-path__fill,
+    .cp-path__fill::after,
+    .cp-path__token,
+    .cp-path__gate-swirl,
+    .cp-beyond__icon,
     .cp-sky__stars--twinkle,
     .cp-sky__nebula,
     .cp-mine--through::after,
     .cp-keepers__cell,
     .cp-keepers__loading span { animation: none !important; }
+    .cp-hero.is-sealed .cp-beams { opacity: 0.45; }
     .cp-portal__flash { opacity: 0; }
-    .cp-mote { display: none; }
+    .cp-mote,
+    .cp-hero__sweep { display: none; }
     .cp-back:hover,
     #milestone-details-modal[data-modal-mode="portal"] #milestone-modal-close-btn:hover { transform: none; }
 }

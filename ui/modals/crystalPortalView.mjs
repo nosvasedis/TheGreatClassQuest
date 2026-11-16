@@ -69,36 +69,115 @@ function portalHtml(view) {
             <span class="cp-portal__spin cp-portal__spin--outer"><img src="${ASSETS.vortex}" alt="" draggable="false" decoding="async"></span>
             <span class="cp-portal__spin cp-portal__spin--inner cp-fx-heavy"><img src="${ASSETS.vortex}" alt="" draggable="false" decoding="async"></span>
             <span class="cp-portal__core"></span>
-            ${view.open ? '' : '<span class="cp-portal__lock"><i class="fas fa-lock"></i></span>'}
+            ${frameSvg()}
+            ${view.open ? '' : '<span class="cp-portal__frost"></span><span class="cp-portal__lock"><i class="fas fa-lock"></i></span>'}
             <span class="cp-portal__flash"></span>
             <span class="cp-orbit">${shards}</span>
             ${visitorHtml}
         </div>`;
 }
 
+/** Twelve-sided cut-crystal frame round the vortex, with four gem studs. */
+function frameSvg() {
+    const pts = (r, off = 0) => Array.from({ length: 12 }, (_, i) => {
+        const a = ((i * 30 + off) * Math.PI) / 180;
+        return `${(100 + r * Math.cos(a)).toFixed(1)},${(100 + r * Math.sin(a)).toFixed(1)}`;
+    }).join(' ');
+    const studs = [0, 90, 180, 270].map((deg) => {
+        const a = (deg * Math.PI) / 180;
+        const x = 100 + 77 * Math.cos(a);
+        const y = 100 + 77 * Math.sin(a);
+        return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${deg + 90})"><path d="M0,-7 L5,0 L0,7 L-5,0 Z" fill="url(#cpStudGrad)"></path><path d="M0,-7 L5,0 L0,0 Z" fill="#fff" opacity=".7"></path></g>`;
+    }).join('');
+    return `
+        <svg class="cp-portal__frame" viewBox="0 0 200 200" aria-hidden="true">
+            <defs>
+                <linearGradient id="cpFrameGrad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#ffffff"></stop>
+                    <stop offset="30%" stop-color="#8ff3ff"></stop>
+                    <stop offset="62%" stop-color="#b98bff"></stop>
+                    <stop offset="100%" stop-color="#ff9cf2"></stop>
+                </linearGradient>
+                <linearGradient id="cpStudGrad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#e6fdff"></stop>
+                    <stop offset="100%" stop-color="#7c5cff"></stop>
+                </linearGradient>
+            </defs>
+            <polygon points="${pts(80, 15)}" class="cp-frame__outer"></polygon>
+            <polygon points="${pts(74)}" class="cp-frame__inner"></polygon>
+            ${studs}
+        </svg>`;
+}
+
+/** A cluster of tall cut-crystal spires (drawn facing right; CSS mirrors the right one). */
+function spireSvg(side) {
+    const prisms = [
+        // cx, width, height, tip, tone
+        [58, 26, 132, 26, 0], [86, 18, 84, 18, 1], [34, 16, 70, 15, 1], [104, 12, 46, 12, 2], [16, 10, 36, 10, 2]
+    ];
+    const base = 200;
+    const body = prisms.map(([cx, w, h, tip, tone]) => {
+        const l = cx - w / 2;
+        const r = cx + w / 2;
+        const top = base - h;
+        return `<g class="cp-spire__prism cp-spire__prism--${tone}">
+            <polygon points="${l},${base} ${l},${top} ${cx},${top - tip} ${cx},${base}" fill="url(#cpSpireL${side})"></polygon>
+            <polygon points="${cx},${base} ${cx},${top - tip} ${r},${top} ${r},${base}" fill="url(#cpSpireR${side})"></polygon>
+            <polyline points="${l},${top} ${cx},${top - tip} ${r},${top}" class="cp-spire__edge"></polyline>
+            <line x1="${cx}" y1="${top - tip}" x2="${cx}" y2="${base}" class="cp-spire__ridge"></line>
+        </g>`;
+    }).join('');
+    const glints = [[58, 70], [86, 120], [34, 134]].map(([x, y], i) => `<path class="cp-glint cp-glint--${i + 1}" d="M${x},${y - 6} L${x + 1.4},${y - 1.4} L${x + 6},${y} L${x + 1.4},${y + 1.4} L${x},${y + 6} L${x - 1.4},${y + 1.4} L${x - 6},${y} L${x - 1.4},${y - 1.4} Z"></path>`).join('');
+    return `
+        <svg class="cp-spire cp-spire--${side}" viewBox="0 0 120 200" aria-hidden="true" preserveAspectRatio="xMidYMax meet">
+            <defs>
+                <linearGradient id="cpSpireL${side}" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#f2fdff"></stop>
+                    <stop offset="35%" stop-color="#8fe9ff"></stop>
+                    <stop offset="100%" stop-color="#5b3fc4" stop-opacity="0.35"></stop>
+                </linearGradient>
+                <linearGradient id="cpSpireR${side}" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#c9b4ff"></stop>
+                    <stop offset="40%" stop-color="#7c5cff"></stop>
+                    <stop offset="100%" stop-color="#2a1670" stop-opacity="0.3"></stop>
+                </linearGradient>
+            </defs>
+            ${body}
+            ${glints}
+        </svg>`;
+}
+
 function heroHtml(view, { league, monthKey }) {
     const status = view.open
         ? `<span class="cp-chip cp-chip--open"><i class="fas fa-door-open" aria-hidden="true"></i> Open · ${view.through.length} of ${view.total} through</span>`
         : `<span class="cp-chip cp-chip--sealed"><i class="fas fa-lock" aria-hidden="true"></i> Sealed · who will be first?</span>`;
-    const motes = Array.from({ length: 10 }, (_, i) => `<span class="cp-mote cp-mote--${i + 1}${i > 4 ? ' cp-fx-heavy' : ''}"></span>`).join('');
+    const motes = Array.from({ length: 12 }, (_, i) => `<span class="cp-mote cp-mote--${i + 1}${i > 5 ? ' cp-fx-heavy' : ''}"></span>`).join('');
     return `
-        <header class="cp-hero">
+        <header class="cp-hero${view.open ? ' is-open' : ' is-sealed'}">
             <div class="cp-sky" aria-hidden="true">
                 <span class="cp-sky__stars"></span>
                 <span class="cp-sky__stars cp-sky__stars--twinkle cp-fx-heavy"></span>
                 <span class="cp-sky__nebula"></span>
+                <span class="cp-sky__nebula cp-sky__nebula--left"></span>
                 ${motes}
             </div>
-            ${portalHtml(view)}
+            <div class="cp-stage" aria-hidden="true">
+                <span class="cp-beams"></span>
+                <span class="cp-floor"><span class="cp-floor__ring"></span><span class="cp-floor__ring cp-floor__ring--2 cp-fx-heavy"></span><span class="cp-floor__glow"></span></span>
+                ${spireSvg('l')}
+                ${portalHtml(view)}
+                ${spireSvg('r')}
+            </div>
             <div class="cp-hero__copy">
-                <p class="cp-hero__eyebrow">The end of the road · ${esc(league)} League · ${esc(monthName(monthKey))}</p>
-                <h2 class="cp-hero__title">The Crystal Portal</h2>
+                <p class="cp-hero__eyebrow"><span class="cp-gem-dash" aria-hidden="true"></span>The end of the road · ${esc(league)} League · ${esc(monthName(monthKey))}<span class="cp-gem-dash" aria-hidden="true"></span></p>
+                <h2 class="cp-hero__title"><span>The Crystal Portal</span></h2>
                 <p class="cp-hero__lore">Fill your monthly goal to the very last star and light every rune of your rank, and the Portal opens. Every class that steps through rises one rank and brings home Gold for every hero.</p>
                 <div class="cp-hero__chips">
                     <span class="cp-chip"><i class="fas fa-bullseye" aria-hidden="true"></i> 100% of each class's own goal</span>
                     ${status}
                 </div>
             </div>
+            <span class="cp-hero__sweep cp-fx-heavy" aria-hidden="true"></span>
         </header>`;
 }
 
@@ -161,8 +240,23 @@ function mineHtml(mine) {
                 <h3 class="cp-mine__title">${headline}</h3>
                 <p class="cp-mine__detail">${detail}</p>
             </div>
+            ${gatePathHtml(mine)}
         </section>
         ${runesHtml(mine)}`;
+}
+
+/** The class token on the last stretch of road: the Crystal Realm at 85%, the Portal at 100%. */
+function gatePathHtml(mine) {
+    const through = mine.state === 'through';
+    const at = through ? 100 : Math.min(100, Math.max(0, Number(mine.pct) || 0));
+    return `
+        <div class="cp-path${through ? ' is-through' : ''}${at >= 100 ? ' is-full' : ''}" aria-hidden="true">
+            <span class="cp-path__track"><span class="cp-path__fill" style="width:${at.toFixed(1)}%"></span></span>
+            <span class="cp-path__stop cp-path__stop--realm" style="left:85%"><i></i><small>Crystal Realm</small></span>
+            <span class="cp-path__gate"><span class="cp-path__gate-swirl"></span></span>
+            <span class="cp-path__token" style="left:${at.toFixed(1)}%">${esc(mine.logo)}</span>
+            <span class="cp-path__label cp-path__label--start">Road</span>
+        </div>`;
 }
 
 /** The runes the class's rank asks for this month, each with how far it has come. */
@@ -298,6 +392,7 @@ function beyondHtml(mine) {
     ];
     return `
         <section class="cp-beyond cp-rise" style="--rise:4" aria-label="Beyond the Portal">
+            <h3 class="cp-beyond__title"><span class="cp-gem-dash" aria-hidden="true"></span>Waiting beyond the Portal<span class="cp-gem-dash" aria-hidden="true"></span></h3>
             ${tiles.map(([icon, title, text], i) => `
                 <div class="cp-beyond__tile" style="--i:${i}">
                     <span class="cp-beyond__icon" aria-hidden="true">${icon}</span>
@@ -323,9 +418,9 @@ export function ranksLadderHtml(currentLevel = null) {
     }).join('');
     const current = currentLevel ? Math.min(7, currentLevel) : null;
     return `
-        <ol class="cp-ladder">
+        <ol class="cp-ladder" data-portal-ladder>
             ${QUEST_RANKS.map((rank) => `
-                <li class="cp-ladder__rank${current === rank.level ? ' is-current' : ''}${current && rank.level < current ? ' is-past' : ''}">
+                <li class="cp-ladder__rank${current === rank.level ? ' is-current' : ''}${current && rank.level < current ? ' is-past' : ''}" style="--step:${rank.level - 1}">
                     ${rankCrestSvg(rank.level, { className: 'cp-ladder__crest' })}
                     <strong>${esc(rank.name)}</strong>
                     <small>Level ${rank.level}${rank.level === 7 ? '+' : ''}</small>
@@ -396,4 +491,12 @@ export function portalModalHtml(view, { league = '', monthKey = '', activeClassI
                 </footer>
             </div>
         </div>`;
+}
+
+/** On narrow screens the ranks scroll sideways: bring the class's own rank into view. */
+export function settleLadder(root) {
+    const ladder = root?.querySelector?.('[data-portal-ladder]');
+    const current = ladder?.querySelector('.is-current');
+    if (!ladder || !current || ladder.scrollWidth <= ladder.clientWidth + 2) return;
+    ladder.scrollLeft = Math.max(0, current.offsetLeft - (ladder.clientWidth - current.offsetWidth) / 2);
 }

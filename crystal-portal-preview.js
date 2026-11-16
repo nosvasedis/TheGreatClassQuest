@@ -6,7 +6,7 @@ import './styles/tokens.css'; // shared fonts + tokens (this preview skips style
 import './styles/crystal_portal.css';
 import './styles/quest_ranks.css';
 import { buildPortalView } from './features/crystalPortalCore.mjs';
-import { portalModalHtml, keepersHtml } from './ui/modals/crystalPortalView.mjs';
+import { portalModalHtml, keepersHtml, settleLadder } from './ui/modals/crystalPortalView.mjs';
 import { evaluatePortal } from './features/questRanksCore.mjs';
 import { riddleHtml, endHtml } from './features/portalGuardianView.mjs';
 
@@ -77,6 +77,7 @@ if (scene === 'riddle' || scene === 'bowed') {
 }
 const opts = { league: 'B', monthKey, activeClassId, lite: params.has('lite') };
 content.innerHTML = portalModalHtml(buildPortalView({ parties, activeClassId, monthKey, monthKeys }), opts);
+requestAnimationFrame(() => settleLadder(content));
 if (!params.has('loading')) {
     setTimeout(() => {
         const slot = content.querySelector('[data-portal-keepers]');

@@ -9,7 +9,7 @@ import { createParentAccess, deleteParentAccess, disableParentAccess, resetParen
 import { showToast } from '../ui/effects.js';
 import { showModal } from '../ui/modals/index.js';
 import { friendlyActionError } from '../utils/friendlyErrors.js';
-import { generateFamilyPassword, printFamilySlips, suggestFamilyUsername } from './familyAccessKit.js';
+import { generateFamilyPassword, printClassQrSheet, printFamilySlips, suggestFamilyUsername } from './familyAccessKit.js';
 import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 
 
@@ -141,9 +141,59 @@ export function renderParentAccessCard(data = accessData) {
                         <button type="button" id="options-parent-delete-btn" class="ts-btn ts-btn--danger bubbly-button ${link ? '' : 'hidden'}"><i class="fas fa-trash"></i> Delete</button>
                     </div>
                 </div>
+                ${renderQrSheetRow(students)}
             ` : '<div class="parent-empty ts-empty"><div class="ts-empty__icon" aria-hidden="true">👪</div><p class="ts-empty__text">Create students first, then parent accounts can be linked here.</p></div>'}
         </article>
     `;
+}
+
+function classesById() {
+    const map = new Map();
+    [...(state.get('allTeachersClasses') || []), ...(state.get('allSchoolClasses') || [])].forEach((item) => { if (item?.id && !map.has(item.id)) map.set(item.id, item); });
+    return map;
+}
+
+/** One "print QR cards" button per class: every student's QR card on A4 with cut lines, for notebooks. */
+function renderQrSheetRow(students) {
+    const classes = classesById();
+    const ids = [...new Set(students.map((student) => student.classId).filter((id) => classes.has(id)))]
+        .sort((a, b) => String(classes.get(a).name || '').localeCompare(String(classes.get(b).name || '')));
+    if (!ids.length) return '';
+    return `
+        <div class="ts-access__qr-sheets">
+            <p class="ts-access__lede"><i class="fas fa-qrcode" aria-hidden="true"></i> Notebook QR cards: every student of a class on one A4 sheet, with cut lines and names. Each card opens the family's sign-in with their username filled in.</p>
+            <div class="ts-actions">
+                ${ids.map((id) => {
+                    const classData = classes.get(id);
+                    return `<button type="button" class="ts-btn ts-btn--quiet bubbly-button" data-access-qr-sheet="${escapeHtml(id)}"><i class="fas fa-print"></i> ${escapeHtml(classData.logo || '')} ${escapeHtml(classData.name || 'Class')}</button>`;
+                }).join('')}
+            </div>
+        </div>`;
+}
+
+async function printQrSheetForClass(button) {
+    const classId = button.dataset.accessQrSheet;
+    const classData = classesById().get(classId);
+    const students = getManageableStudents()
+        .filter((student) => student.classId === classId)
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+    if (!students.length) return;
+    setBusyState(button, true, 'Preparing…');
+    try {
+        await printClassQrSheet({
+            schoolName: state.get('schoolName') || '',
+            className: classData?.name || '',
+            cards: students.map((student) => {
+                const link = accessData.parentLinksByStudent[student.id];
+                return { studentName: student.name, username: link && String(link.status || 'active') === 'active' ? link.username : '' };
+            })
+        });
+    } catch (error) {
+        console.error('Could not print the QR cards:', error);
+        showToast('Could not open printing. Try again.', 'error');
+    } finally {
+        setBusyState(button, false);
+    }
 }
 
 export async function renderAccessCenterUi() {
@@ -184,6 +234,12 @@ export function wireAccessCenterEvents() {
                 input.focus();
                 input.select();
             }
+            return;
+        }
+
+        const qrSheetBtn = event.target.closest('[data-access-qr-sheet]');
+        if (qrSheetBtn) {
+            void printQrSheetForClass(qrSheetBtn);
             return;
         }
 

@@ -81,6 +81,15 @@ function writeStorage(key, value) {
     } catch (_) { /* storage unavailable */ }
 }
 
+let linkedUsername = '';
+
+/** The username a family's QR code carried, handed over once. */
+export function takeLinkedAuthUsername() {
+    const value = linkedUsername;
+    linkedUsername = '';
+    return value;
+}
+
 /**
  * The role a QR code or link asked for: ?login=parent, ?role=parent or #parent.
  * The request is removed from the address bar so a refresh or bookmark stays clean.
@@ -93,8 +102,11 @@ export function consumeAuthDeepLinkRole() {
     const fromHash = DEEP_LINK_ROLES[hash] ? hash : '';
     const role = DEEP_LINK_ROLES[String(fromQuery || fromHash).trim().toLowerCase()] || '';
     if (!role) return '';
+    // A family's own slip or notebook card also carries its username (?u=maria.p), so only the password is left to type.
+    linkedUsername = String(url.searchParams.get('u') || '').trim().toLowerCase().replace(/[^a-z0-9._-]/g, '').slice(0, 40);
     url.searchParams.delete('login');
     url.searchParams.delete('role');
+    url.searchParams.delete('u');
     if (fromHash) url.hash = '';
     try {
         window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);

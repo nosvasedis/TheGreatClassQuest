@@ -35,6 +35,7 @@ import { buildSyntheticRoleEmail, getRoleFromSyntheticEmail, isRoleLogin, normal
 import {
     clearAuthError,
     consumeAuthDeepLinkRole,
+    takeLinkedAuthUsername,
     hideForgotPanel,
     paintAuthRoleCopy,
     readRememberedAuthRole,
@@ -991,7 +992,7 @@ function setAuthMode(mode) {
 function prefillRememberedUsername() {
     const input = document.getElementById('login-username');
     if (!input || input.value.trim() || !isRoleLogin(activeAuthRole)) return;
-    input.value = readRememberedUsername(activeAuthRole);
+    input.value = (activeAuthRole === ROLE_PARENT && takeLinkedAuthUsername()) || readRememberedUsername(activeAuthRole);
     updateUsernameHint();
 }
 

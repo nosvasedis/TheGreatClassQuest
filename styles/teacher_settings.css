@@ -1935,3 +1935,11 @@ body.gcq-mobile #m-options-subtab-dropdown .m-subtab-dropdown__trigger {
 }
 #options-tab .ts-access__issued i { color: #059669; }
 #options-tab .ts-access__issued code { padding: 0.05rem 0.4rem; border-radius: 0.35rem; background: #fff; font-weight: 800; color: #1f2a44; }
+
+/* Notebook QR cards: one print button per class, across the whole card. */
+#options-tab .ts-access__qr-sheets {
+    grid-column: 1 / -1;
+    padding-top: 1rem;
+    border-top: 1px dashed rgba(120, 90, 40, 0.3);
+}
+#options-tab .ts-access__qr-sheets .ts-access__lede i { color: #d97706; margin-right: 0.3rem; }

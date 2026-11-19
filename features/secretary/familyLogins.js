@@ -14,6 +14,7 @@ import {
     getParentLoginUrl,
     normalizeFamilyUsername,
     printFamilyPoster,
+    printClassQrSheet,
     printFamilySlips,
     renderQrSvg,
     suggestFamilyUsername
@@ -258,6 +259,10 @@ function renderDrawer(group) {
                     <button type="button" class="office-btn office-btn--enrol office-btn--small" data-family-batch="${escapeHtml(classData?.id || '__unplaced')}">
                         <i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i> Create ${missing} missing
                     </button>` : '<span class="family-drawer__done"><i class="fas fa-circle-check" aria-hidden="true"></i> All set</span>'}
+                <button type="button" class="office-btn office-btn--quiet office-btn--small family-drawer__qr" data-family-qr-sheet="${escapeHtml(classData?.id || '__unplaced')}"
+                    title="Every student's QR card on A4, with cut lines, to stick in notebooks">
+                    <i class="fas fa-qrcode" aria-hidden="true"></i> Print QR cards
+                </button>
             </header>
             <div class="family-drawer__hooks">
                 ${visible.map(renderTag).join('')}
@@ -823,6 +828,33 @@ async function handleDialogClick(event) {
     }
 }
 
+/** Every student of the class (never only the filtered ones) on cut-out notebook QR cards. */
+async function printClassQrCards(button) {
+    const classId = button.dataset.familyQrSheet;
+    const classIds = new Set(liveSchoolClasses().map((item) => item.id));
+    const classData = classId === '__unplaced' ? null : classById(classId);
+    const students = liveStudents()
+        .filter((student) => (classId === '__unplaced' ? !classIds.has(student.classId) : student.classId === classId))
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+    if (!students.length) return;
+    setBusyState(button, true, 'Preparing…');
+    try {
+        await printClassQrSheet({
+            schoolName: schoolName(),
+            className: classData ? classLabel(classData) : 'Waiting for a class',
+            cards: students.map((student) => {
+                const link = linksByStudent.get(student.id);
+                return { studentName: student.name, username: linkStatus(link) === 'active' ? link.username : '' };
+            })
+        });
+    } catch (error) {
+        console.error('Could not print the QR cards:', error);
+        showToast('Could not open printing. Try again.', 'error');
+    } finally {
+        setBusyState(button, false);
+    }
+}
+
 // ── Panel clicks (wired from secretaryConsole.js) ──────────────────────────
 
 /** Returns true when the click belonged to the Family Logins panel. */
@@ -832,6 +864,9 @@ export function handleFamilyLoginsClick(event) {
 
     const batchBtn = event.target.closest('[data-family-batch]');
     if (batchBtn) { openBatch(batchBtn.dataset.familyBatch); return true; }
+
+    const qrSheetBtn = event.target.closest('[data-family-qr-sheet]');
+    if (qrSheetBtn) { void printClassQrCards(qrSheetBtn); return true; }
 
     const filterBtn = event.target.closest('[data-family-filter]');
     if (filterBtn) {

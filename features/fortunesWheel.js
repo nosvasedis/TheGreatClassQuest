@@ -17,12 +17,14 @@ import { detectLowPowerTier } from '../utils/devicePerformance.mjs';
 import { applyWheelStudentEffects, applyClassQuestBonusDelta } from '../db/actions/fortuneWheelEffects.js';
 import { checkBountyProgress } from '../db/actions/bounties.js';
 import { checkAndRecordQuestCompletion } from '../db/actions/stars.js';
-import { ensureAudioReady, playSound, playHeroFanfare, playWheelSfx, warmWheelAudio, playDrumRoll, stopDrumRoll } from '../audio.js';
+import { ensureAudioReady, playSound, playWheelSfx, warmWheelAudio, playDrumRoll, stopDrumRoll } from '../audio.js';
 import { evaluateWheelAvailability } from '../utils/fortuneWheelEligibility.mjs';
 import { showAnimatedModal, hideModal } from '../ui/modals/base.js';
 import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 import { tailwindGlyphSvg, tailwindPipsHtml } from './tailwindArt.js';
 import { GOLD_COIN_HTML } from '../utils/goldCoin.js';
+import { getTodayDateString } from '../utils.js';
+import { wheelSound, warmWheelSounds, landingSoundFor } from './wheelSounds.js';
 
 /**
  * Every write the Wheel makes, in one place: the effects below call these, so the preview page
@@ -402,14 +404,41 @@ async function threeChests(ctx, d = {}) {
     return { ...(await stormGlory(ctx, 1, 'A Mimic! It bites off a little Glory.', 'chest')), decision: 'The Mimic' };
 }
 
-/** Guild members in this class, for another guild. */
-function _classMembersOf(guildId, classId) {
+/**
+ * Heroes marked absent in this class today (the Award tab's rain clouds). The wheel only ever
+ * touches heroes who are in the room: an absent hero neither gains nor loses anything, and a
+ * guild whose heroes are all away sends its Envoy instead.
+ */
+function _awayToday(classId) {
+    if (wheelTestHooks.away) return new Set(wheelTestHooks.away(classId) || []);
+    let today = '';
+    try { today = getTodayDateString(); } catch (_) { return new Set(); }
+    return new Set((state.get('allAttendanceRecords') || [])
+        .filter((r) => r && r.classId === classId && r.date === today && (!r.status || r.status === 'absent'))
+        .map((r) => r.studentId));
+}
+
+/** Every hero of a guild enrolled in this class, here today or not. */
+function _enrolledOf(guildId, classId) {
     return (state.get('allStudents') || []).filter((s) => s.guildId === guildId && s.classId === classId);
 }
 
-/** Every hero in this class who belongs to a guild. */
+/** Guild members in this class who are here today. */
+function _classMembersOf(guildId, classId) {
+    const away = _awayToday(classId);
+    return _enrolledOf(guildId, classId).filter((s) => !away.has(s.id));
+}
+
+/** Guild members in this class who are away today. */
+function _awayMembersOf(guildId, classId) {
+    const away = _awayToday(classId);
+    return away.size ? _enrolledOf(guildId, classId).filter((s) => away.has(s.id)) : [];
+}
+
+/** Every hero in this class who belongs to a guild and is here today. */
 function _classHeroes(classId) {
-    return (state.get('allStudents') || []).filter((s) => s.classId === classId && GUILD_IDS.includes(s.guildId));
+    const away = _awayToday(classId);
+    return (state.get('allStudents') || []).filter((s) => s.classId === classId && GUILD_IDS.includes(s.guildId) && !away.has(s.id));
 }
 
 const _guildName = (gid, fallback = 'a guild') => getGuildById(gid)?.name || fallback;
@@ -1166,8 +1195,8 @@ async function _spendFortuneFavor(guildId, classId) {
 export async function applyWheelResult(guildId, segment, classId, { favored = false, decision = {}, previous = null, envoy = false, wind = null } = {}) {
     // `wind` is the spinning guild's Tailwind as it was shown before the spin (for the words only:
     // each Glory write works out its own guild's Tailwind).
-    const allStudents = state.get('allStudents') || [];
-    const guildStudents = allStudents.filter(s => s.guildId === guildId && s.classId === classId);
+    // Only the heroes in the room today: absent heroes are never touched by a fate.
+    const guildStudents = _classMembersOf(guildId, classId);
 
     const ctx = {
         guildId,
@@ -1232,7 +1261,7 @@ function _ledgerRows(ledger) {
 }
 
 /** Lets the guidebook capture and the browser checks run the ceremony without Firestore. */
-export const wheelTestHooks = { effect: null, lite: null, segments: null, pick: null, order: null };
+export const wheelTestHooks = { effect: null, lite: null, segments: null, pick: null, order: null, away: null };
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CANVAS WHEEL RENDERER
@@ -2060,8 +2089,8 @@ export async function openFortunesWheel() {
     document.getElementById('fw-summary')?.classList.add('hidden');
     modal.classList.remove('fw--sealed', 'fw--revealing');
     _launchHallButton();
-    // The little wheel on the button flies out and grows into the relic; the ceremony is laid
-    // out (concealed) behind it. Measured before the modal shows, so the button is still there.
+    // A golden portal opens from the button's little wheel; the ceremony is laid out (concealed)
+    // behind it. Measured before the modal shows, so the button is still there.
     const from = _flightOrigin();
     if (_flightOn()) modal.classList.add('fw--splashing');
     showAnimatedModal('fortunes-wheel-modal');
@@ -2158,7 +2187,7 @@ function _awaken(card, seq) {
     _afterAwakenTimer = setTimeout(() => _whenIdle(() => {
         if (seq !== _openSeq) return;
         // Wake the audio once the relic has settled, so the first spin starts without a stall.
-        ensureAudioReady().then(() => warmWheelAudio()).catch(quietly('features/fortunesWheel.js'));
+        ensureAudioReady().then(() => { warmWheelAudio(); return warmWheelSounds(); }).catch(quietly('features/fortunesWheel.js'));
         if (_wheelState.active && !_wheelState.forgeRiddles) _loadForgeRiddles(_wheelState.classId, _wheelState.leagueLevel);
     }), settleMs);
 }
@@ -2328,7 +2357,7 @@ function _renderLockedState(title, message, emoji) {
 }
 
 /** One hero's medallion for the party card: the portrait (or initial underneath, if it fails to load) and first name. */
-function _partyHeroHtml(student, i, ringColor) {
+function _partyHeroHtml(student, i, ringColor, away = false) {
     const name = String(student.name || 'Hero');
     const first = name.split(/\s+/)[0];
     const initial = _esc(name.charAt(0).toUpperCase() || '?');
@@ -2336,10 +2365,21 @@ function _partyHeroHtml(student, i, ringColor) {
         ? `<img src="${_esc(student.avatar)}" alt="" class="fw-party__img" decoding="async">`
         : '';
     return `
-        <li class="fw-party__hero" style="--i:${i};${ringColor ? `--ring:${ringColor};` : ''}" title="${_esc(name)}">
-            <span class="fw-party__medal"><span class="fw-party__initial">${initial}</span>${portrait}</span>
+        <li class="fw-party__hero${away ? ' is-away' : ''}" style="--i:${i};${ringColor ? `--ring:${ringColor};` : ''}" title="${_esc(name)}${away ? ' · away today' : ''}">
+            <span class="fw-party__medal"><span class="fw-party__initial">${initial}</span>${portrait}</span>${away ? '<span class="fw-party__cloud" aria-hidden="true"><i></i></span>' : ''}
             <span class="fw-party__name">${_esc(first)}</span>
         </li>`;
+}
+
+/** The heroes who are away today: dimmed under a little cloud, so everyone can see why they sit this one out. */
+function _awayRowHtml(away, startIndex, ringOf = () => null) {
+    if (!away.length) return '';
+    const names = away.length === 1 ? 'is away today' : 'are away today';
+    return `
+        <div class="fw-party__away">
+            <div class="fw-party__away-label"><span class="fw-party__away-icon" aria-hidden="true"></span>${away.length} ${away.length === 1 ? 'hero' : 'heroes'} ${names} · no gain, no loss</div>
+            <ul class="fw-party__list fw-party__list--away">${away.map((s, i) => _partyHeroHtml(s, startIndex + i, ringOf(s), true)).join('')}</ul>
+        </div>`;
 }
 
 /**
@@ -2372,10 +2412,16 @@ function _renderCurrentGuildMembers() {
         : `<span class="fw-party__crest fw-party__crest--blank">${_esc(guildDef?.emoji || '⚜️')}</span>`;
     const guildName = _esc(guildDef?.name || 'This guild');
 
+    const awayMine = _awayMembersOf(guildId, _wheelState.classId).sort(byName);
+
     if (!members.length) {
         // The Envoy's wheel is for everyone here: show the whole class, guild by guild.
-        const heroes = _classHeroes(_wheelState.classId)
-            .sort((a, b) => GUILD_IDS.indexOf(a.guildId) - GUILD_IDS.indexOf(b.guildId) || byName(a, b));
+        const byGuild = (a, b) => GUILD_IDS.indexOf(a.guildId) - GUILD_IDS.indexOf(b.guildId) || byName(a, b);
+        const heroes = _classHeroes(_wheelState.classId).sort(byGuild);
+        const awayAll = GUILD_IDS.flatMap((gid) => _awayMembersOf(gid, _wheelState.classId)).sort(byGuild);
+        const why = awayMine.length
+            ? `Every ${guildName} hero is away today, so a rival Envoy spins for everyone here: mostly small mischief, a laugh, a gift or two.`
+            : `No ${guildName} heroes in this class, so a rival Envoy spins for everyone: mostly small mischief, a laugh, a gift or two.`;
         panel.dataset.mode = 'envoy';
         panel.innerHTML = `
             <div class="fw-party__head">
@@ -2386,8 +2432,9 @@ function _renderCurrentGuildMembers() {
                 </div>
                 <span class="fw-party__count" title="Heroes at the wheel">${heroes.length}</span>
             </div>
-            <p class="fw-party__note"><span aria-hidden="true">📜</span> No ${guildName} heroes in this class, so a rival Envoy spins for everyone: mostly small mischief, a laugh, a gift or two.</p>
-            ${heroes.length ? `<ul class="fw-party__list fw-party__list--class">${heroes.map((s, i) => _partyHeroHtml(s, i, getGuildById(s.guildId)?.primary)).join('')}</ul>` : ''}`;
+            <p class="fw-party__note"><span aria-hidden="true">📜</span> ${why}</p>
+            ${heroes.length ? `<ul class="fw-party__list fw-party__list--class">${heroes.map((s, i) => _partyHeroHtml(s, i, getGuildById(s.guildId)?.primary)).join('')}</ul>` : ''}
+            ${_awayRowHtml(awayAll, heroes.length, (s) => getGuildById(s.guildId)?.primary)}`;
         _dropBrokenPortraits(panel);
         return;
     }
@@ -2402,7 +2449,8 @@ function _renderCurrentGuildMembers() {
             </div>
             <span class="fw-party__count" title="Heroes at the wheel">${members.length}</span>
         </div>
-        <ul class="fw-party__list" data-size="${members.length > 8 ? 'many' : members.length > 4 ? 'some' : 'few'}">${members.map((s, i) => _partyHeroHtml(s, i, null)).join('')}</ul>`;
+        <ul class="fw-party__list" data-size="${members.length > 8 ? 'many' : members.length > 4 ? 'some' : 'few'}">${members.map((s, i) => _partyHeroHtml(s, i, null)).join('')}</ul>
+        ${_awayRowHtml(awayMine, members.length)}`;
     _dropBrokenPortraits(panel);
 }
 
@@ -2428,20 +2476,19 @@ async function _landingMoment(seg) {
     const frame = document.getElementById('fw-stage-frame');
     const lite = _isLite();
     try {
+        if (seg.rarity !== 'omen') wheelSound(landingSoundFor(seg));
         if (seg.rarity === 'storm') {
             playWheelSfx('thunder');
             await fxStorm(frame, { lite });
             return;
         }
         if (seg.rarity === 'twist') {
-            playSound('magic_chime');
             fxTwist(frame);
             // A staged twist lets its shimmer breathe; a plain one shows its fate at once.
             if (seg.stage) await new Promise((r) => setTimeout(r, 600));
             return;
         }
         if (seg.rarity === 'trial') {
-            playSound('quiz_open');
             fxTrial(frame);
             if (seg.stage) await new Promise((r) => setTimeout(r, 600));
             return;
@@ -2453,8 +2500,7 @@ async function _landingMoment(seg) {
             try { playDrumRoll(); } catch (_) { /* optional */ }
             await fxOmen(frame, { emoji: seg.emoji, label: seg.label, dark, lite });
             try { stopDrumRoll(); } catch (_) { /* optional */ }
-            if (dark) playWheelSfx('thunder');
-            else playHeroFanfare();
+            if (dark) { playWheelSfx('thunder'); wheelSound('storm'); } else wheelSound('mythic');
             return;
         }
         if (seg.rarity === 'envoy' && seg.harsh) {
@@ -2463,15 +2509,10 @@ async function _landingMoment(seg) {
             return;
         }
         if (seg.rarity === 'envoy') {
-            playSound('magic_chime');
             const o = _fxOrigin();
             if (o) fxBurst(o.layer, { x: o.x, y: o.y, colors: ['#bfdbfe', '#c4b5fd', '#fef3c7'], count: 14, emojis: ['🕊️', '📜', '✨'], emojiCount: 6, spread: o.size * 0.4, lite });
             return;
         }
-        if (seg.rarity === 'mythic' || seg.rarity === 'legendary') playHeroFanfare();
-        else if (seg.rarity === 'epic') playSound('familiar_levelup');
-        else if (seg.rarity === 'rare') playSound('magic_chime');
-        else playSound('star1');
     } catch (_) { /* sound is optional */ }
 }
 
@@ -2495,8 +2536,16 @@ async function _spinTo(winnerIndex, { quick = false, power = null } = {}) {
     stageFrame?.classList.add('is-spinning');
     _pulseStage(stageFrame, 'is-launch', 900);
     _setPartyMood('holding');
+    try { wheelSound('launch'); } catch (_) { /* optional */ }
+    // Each peg tocks as it passes; the gaps grow as the wheel slows, and the tocks grow heavier.
+    let lastTick = 0;
+    let odd = false;
     const anim = await animateWheelSpin(canvas, _wheelState.segments, winnerIndex, guildDef, () => {
-        try { playSound('click'); } catch (_) { /* optional */ }
+        const now = performance.now();
+        const gap = lastTick ? now - lastTick : 0;
+        lastTick = now;
+        odd = !odd;
+        try { wheelSound('peg', { slow: Math.max(0, Math.min(1, (gap - 60) / 260)), odd }); } catch (_) { /* optional */ }
         _flickPointer();
     }, { startAngle: _wheelState.rotationAngle || 0, quick, power });
     stageFrame?.classList.remove('is-spinning');
@@ -2534,8 +2583,7 @@ function _stageOptions(seg, cardEl) {
     const guildId = _wheelState.guildOrder[_wheelState.currentGuildIndex];
     const guildDef = getGuildById(guildId);
     const classId = _wheelState.classId;
-    const students = (state.get('allStudents') || [])
-        .filter((s) => s.classId === classId && s.guildId === guildId)
+    const students = _classMembersOf(guildId, classId)
         .map((s) => ({ id: s.id, name: s.name || 'Hero', avatar: s.avatar || null }));
     const otherGuilds = GUILD_IDS.filter((gid) => gid !== guildId)
         .map((gid) => ({ id: gid, def: getGuildById(gid), count: _classMembersOf(gid, classId).length }))
@@ -2687,9 +2735,11 @@ export function advanceWheel() {
         _wheelState.rotationAngle = 0;
         _renderWheelPhase();
         _playTurnIn();
+        try { wheelSound('turn'); } catch (_) { /* optional */ }
     } else {
         _wheelState.phase = 'summary';
         _renderWheelSummary();
+        try { wheelSound('finale'); } catch (_) { /* optional */ }
     }
 }
 
@@ -2724,19 +2774,25 @@ export async function closeFortunesWheel() {
     await _closeWithSplash();
 }
 
-// ── Opening / closing flight ─────────────────────────────────────────────────
-// Opening: night blooms softly out of the Guild Hall button while its little wheel flies out,
-// spinning and growing, into the real wheel's place; the stage fades up around it and the real
-// wheel takes over. Closing (a different motion): the night gathers, the wheel lifts, spins down
-// and is drawn back into the button on a comet trail; the night folds after it, the button twinkles.
+// ── Opening / closing portal ─────────────────────────────────────────────────
+// Like the guild anthem: the Wheel opens as a golden portal from the Guild Hall button. A disk of
+// starry night, ringed by the wheel's own gold rim and lamps, grows from the button's little wheel
+// to fill the screen (turning as it comes), the stage is put in place while it covers everything,
+// and then the portal dissolves into the waking relic. Closing runs it the other way with its own
+// motion: the portal gathers over the stage, then winds back down into the button, drawing a
+// spiral of sparks in after it, and the button catches it with a twinkle.
+// Only transform and opacity animate (WAAPI on a few full-size layers), so it stays on the GPU and
+// never redraws the card underneath; weak laptops get the disk and rim without the extras.
 
-const FLY_OPEN_MS = 1000;      // the wheel lands in its place
-const FLY_HANDOFF_MS = 720;    // the real wheel starts waking (cross-fades with the flyer)
-const FLY_CLOSE_MS = 1050;
+const PORTAL_OPEN_MS = 1300;
+const PORTAL_COVER = 0.44;        // the disk covers the screen at this point of the opening
+const PORTAL_HANDOFF_MS = 640;    // the relic starts waking as the portal clears
+const PORTAL_CLOSE_MS = 980;
+const PORTAL_SEAL = 0.28;         // the card is put away under the disk at this point of the closing
 let _flyLayer = null;
 
 function _flightOn() {
-    return !_reducedMotion() && !_isLite() && typeof document.body.animate === 'function';
+    return !_reducedMotion() && typeof document.body.animate === 'function';
 }
 
 /** The Guild Hall button's little wheel (centre + size), or null when it isn't on screen. */
@@ -2745,15 +2801,6 @@ function _flightOrigin() {
     const r = el?.getBoundingClientRect?.();
     if (!r || !r.width || r.bottom < 0 || r.top > window.innerHeight || r.right < 0 || r.left > window.innerWidth) return null;
     return { x: r.left + r.width / 2, y: r.top + r.height / 2, size: Math.min(r.width, r.height) };
-}
-
-/** Where the real wheel sits (the wheel face inside the stage frame). */
-function _flightTarget() {
-    const frame = document.getElementById('fw-stage-frame');
-    const r = frame?.getBoundingClientRect?.();
-    if (!r || !r.width) return null;
-    const size = r.width * 0.85;
-    return { x: r.left + r.width / 2, y: r.top + r.height / 2, size };
 }
 
 function _flyLayerFresh() {
@@ -2774,143 +2821,188 @@ function _flyPiece(layer, cls, html = '') {
     return el;
 }
 
-/** A soft round of night (or light) centred on (x, y) that can cover the whole screen. */
-function _flyDisc(layer, cls, x, y) {
-    const r = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y)) * 1.25;
-    const el = _flyPiece(layer, cls);
-    Object.assign(el.style, { left: `${x - r}px`, top: `${y - r}px`, width: `${r * 2}px`, height: `${r * 2}px` });
-    return el;
+/**
+ * The portal's layers, all drawn at full size around (x, y) and scaled down to the button's
+ * little wheel: night sky, starfield, the wheel's lamps and the gold rim.
+ */
+function _portalPieces(layer, at, lite) {
+    const r = Math.ceil(Math.hypot(Math.max(at.x, window.innerWidth - at.x), Math.max(at.y, window.innerHeight - at.y)) + 40);
+    const box = { left: `${at.x - r}px`, top: `${at.y - r}px`, width: `${r * 2}px`, height: `${r * 2}px` };
+    const make = (cls) => {
+        const el = _flyPiece(layer, `fw-portal__layer ${cls}`);
+        Object.assign(el.style, box);
+        return el;
+    };
+    layer.style.setProperty('--fw-pr', `${r}px`);
+    layer.style.setProperty('--fw-px', `${Math.round(at.x)}px`);
+    layer.style.setProperty('--fw-py', `${Math.round(at.y)}px`);
+    const disk = make('fw-portal__disk');
+    const stars = lite ? null : make('fw-portal__stars');
+    const lamps = lite ? null : make('fw-portal__lamps');
+    const rim = make('fw-portal__rim');
+    // It starts the size of the button's little wheel.
+    const s0 = Math.max(0.004, ((at.size || 26) / 2) / r);
+    return { disk, stars, lamps, rim, s0 };
 }
 
-/** The flying wheel, laid out at its landing place; transforms move it from there. */
-function _flyWheel(layer, at) {
-    const el = _flyPiece(layer, 'fw-fly__wheel', '<i class="fw-fly__glow"></i><i class="fw-fly__face"></i><i class="fw-fly__spokes"></i><i class="fw-fly__hub"></i>');
-    Object.assign(el.style, { left: `${at.x - at.size / 2}px`, top: `${at.y - at.size / 2}px`, width: `${at.size}px`, height: `${at.size}px` });
-    el.style.setProperty('--fw-fly-size', `${at.size}px`);
-    return el;
-}
-
-/** Opening flight. Returns when the real wheel should start waking (ms), or 0 for no flight. */
+/** Opening portal. Returns when the relic should start waking (ms), or 0 for no portal. */
 function _flyOpen(modal, from) {
     _flyLayer?.remove();
     _flyLayer = null;
     if (!_flightOn()) { modal.classList.remove('fw--splashing'); return 0; }
-    const to = _flightTarget();
-    if (!to) { modal.classList.remove('fw--splashing'); return 0; }
-    const start = from || { x: window.innerWidth / 2, y: window.innerHeight * 0.9, size: 24 };
-    // The flight replaces the card's own rise (fw--revealing stays on until the next opening,
+    const lite = _isLite();
+    const at = from || { x: window.innerWidth / 2, y: window.innerHeight / 2, size: 30 };
+    // The portal replaces the card's own rise (fw--revealing stays on until the next opening,
     // so the card's enter / backdrop fade never restart underneath).
     modal.querySelector('.fw-card')?.classList.remove('fw-card--enter');
     const layer = _flyLayerFresh();
-    const ease = 'cubic-bezier(0.22, 0.9, 0.3, 1)';
+    layer.classList.add('fw-fly--open');
+    const { disk, stars, lamps, rim, s0 } = _portalPieces(layer, at, lite);
+    const D = PORTAL_OPEN_MS;
+    const C = PORTAL_COVER;
+    const grow = 'cubic-bezier(.65, 0, .25, 1)';
+    const small = (deg = 0) => `scale(${s0}) rotate(${deg}deg)`;
+    disk.animate([
+        { transform: small(), opacity: 1, easing: grow },
+        { transform: 'scale(1)', opacity: 1, offset: C },
+        { transform: 'scale(1)', opacity: 1, offset: C + 0.06, easing: 'ease-out' },
+        { transform: 'scale(1.04)', opacity: 0 },
+    ], { duration: D, fill: 'both' });
+    stars?.animate([
+        { transform: small(-70), opacity: 0.9, easing: grow },
+        { transform: 'scale(1) rotate(0deg)', opacity: 1, offset: C, easing: 'ease-out' },
+        { transform: 'scale(1.08) rotate(12deg)', opacity: 0 },
+    ], { duration: D, fill: 'both' });
+    // The wheel's lamps sweep out turning, like the rim of the wheel opening up around the room.
+    lamps?.animate([
+        { transform: small(-240), opacity: 1, easing: grow },
+        { transform: 'scale(1) rotate(0deg)', opacity: 1, offset: C, easing: 'ease-out' },
+        { transform: 'scale(1.06) rotate(8deg)', opacity: 0, offset: 0.66 },
+        { transform: 'scale(1.06) rotate(8deg)', opacity: 0 },
+    ], { duration: D, fill: 'both' });
+    rim.animate([
+        { transform: small(), opacity: 1, easing: grow },
+        { transform: 'scale(1)', opacity: 0.95, offset: C, easing: 'ease-out' },
+        { transform: 'scale(1.05)', opacity: 0, offset: 0.62 },
+        { transform: 'scale(1.05)', opacity: 0 },
+    ], { duration: D, fill: 'both' });
 
-    // Night blooms out of the button (soft edge, so there is no hard wipe), with a warm halo.
-    const bloom = _flyDisc(layer, 'fw-fly__bloom', start.x, start.y);
-    bloom.animate([{ transform: 'scale(0.01)', opacity: 0.6 }, { transform: 'scale(1)', opacity: 1 }], { duration: 760, easing: 'cubic-bezier(0.3, 0.7, 0.2, 1)', fill: 'forwards' });
-    const halo = _flyDisc(layer, 'fw-fly__halo', to.x, to.y);
-    halo.animate([{ transform: 'scale(0.05)', opacity: 0 }, { transform: 'scale(0.55)', opacity: 1, offset: 0.6 }, { transform: 'scale(0.9)', opacity: 0 }], { duration: 1400, easing: 'ease-out', fill: 'forwards' });
-
-    // The little wheel lifts off the button and flies, spinning, into its place, growing as it goes.
-    const wheel = _flyWheel(layer, to);
-    const dx = start.x - to.x;
-    const dy = start.y - to.y;
-    const s0 = Math.max(0.04, start.size / to.size);
-    const lift = Math.min(120, to.size * 0.35);
-    wheel.animate([
-        { transform: `translate(${dx}px, ${dy}px) scale(${s0}) rotate(0deg)`, opacity: 1 },
-        { transform: `translate(${dx * 0.92}px, ${dy * 0.92 - 18}px) scale(${s0 * 1.6}) rotate(-180deg)`, opacity: 1, offset: 0.12 },
-        { transform: `translate(${dx * 0.3}px, ${dy * 0.3 - lift}px) scale(0.55) rotate(-620deg)`, opacity: 1, offset: 0.55 },
-        { transform: 'translate(0, 0) scale(1.03) rotate(-890deg)', opacity: 1, offset: 0.88 },
-        { transform: 'translate(0, 0) scale(1) rotate(-900deg)', opacity: 1 },
-    ], { duration: FLY_OPEN_MS, easing: ease, fill: 'forwards' });
-    // …and a comet trail of sparks follows it.
-    for (let i = 0; i < 9; i += 1) {
-        const spark = _flyPiece(layer, i % 3 ? 'fw-fly__spark' : 'fw-fly__spark fw-fly__spark--star', i % 3 ? '' : '✦');
-        const sc = 1 - i * 0.08;
-        spark.animate([
-            { transform: `translate(${start.x}px, ${start.y}px) scale(${sc})`, opacity: 0 },
-            { transform: `translate(${start.x + dx * -0.08}px, ${start.y + dy * -0.08 - 18}px) scale(${sc})`, opacity: 1, offset: 0.12 },
-            { transform: `translate(${to.x + dx * 0.3}px, ${to.y + dy * 0.3 - lift}px) scale(${sc * 0.9})`, opacity: 0.9, offset: 0.55 },
-            { transform: `translate(${to.x + (i % 2 ? 1 : -1) * to.size * 0.35}px, ${to.y - to.size * 0.25}px) scale(0.2)`, opacity: 0 },
-        ], { duration: FLY_OPEN_MS, delay: 40 + i * 38, easing: ease, fill: 'both' });
+    if (!lite) {
+        // A flash of light on the button, a ring rolling out, and the fates' sparks flung wide.
+        const pulse = _flyPiece(layer, 'fw-portal__pulse');
+        pulse.animate([{ transform: 'scale(0.15)', opacity: 0.95 }, { transform: 'scale(1)', opacity: 0 }], { duration: 700, delay: 40, easing: 'ease-out', fill: 'both' });
+        const glyphs = ['✦', '✧', '★', '✦', '◆', '✧', '✦', '★', '✧', '◆', '✦', '✧'];
+        const reach = Math.min(window.innerWidth, window.innerHeight) * 0.42;
+        glyphs.forEach((g, i) => {
+            const el = _flyPiece(layer, `fw-portal__glyph${i % 4 === 0 ? ' fw-portal__glyph--gold' : ''}`, g);
+            const a = (i / glyphs.length) * Math.PI * 2 + 0.3;
+            const d = reach * (0.75 + (i % 3) * 0.18);
+            const x = at.x + Math.cos(a) * d;
+            const y = at.y + Math.sin(a) * d;
+            el.animate([
+                { transform: `translate(${at.x}px, ${at.y}px) scale(0.3) rotate(0deg)`, opacity: 0 },
+                { transform: `translate(${at.x + Math.cos(a) * d * 0.2}px, ${at.y + Math.sin(a) * d * 0.2}px) scale(1) rotate(40deg)`, opacity: 1, offset: 0.18 },
+                { transform: `translate(${x}px, ${y}px) scale(1.25) rotate(160deg)`, opacity: 0 },
+            ], { duration: 1150, delay: 50 + i * 32, easing: 'cubic-bezier(.15, .8, .3, 1)', fill: 'both' });
+        });
     }
 
-    try { playSound('magic_chime'); } catch (_) { /* optional */ }
+    try { wheelSound('open'); } catch (_) { /* optional */ }
 
-    // The stage fades up around the wheel while it is still flying.
+    // While the disk covers the screen, the stage is put in place (no fade, nothing to redraw).
     setTimeout(() => {
         modal.classList.add('fw--revealing');
         modal.classList.remove('fw--splashing');
-    }, 480);
-    // The real wheel takes over: the flyer and the night melt away.
-    setTimeout(() => {
-        wheel.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 520, easing: 'ease-in-out', fill: 'forwards' });
-        bloom.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 520, easing: 'ease-out', fill: 'forwards' });
-    }, FLY_OPEN_MS - 240);
+    }, Math.round(D * C));
     setTimeout(() => {
         if (_flyLayer === layer) { layer.remove(); _flyLayer = null; }
-    }, FLY_OPEN_MS + 600);
-    return FLY_HANDOFF_MS;
+    }, D + 120);
+    return PORTAL_HANDOFF_MS;
 }
 
-/** Closing flight: the wheel is drawn back into the Guild Hall button. */
+/** Closing portal: the stage is gathered into a disk that winds back down into the Guild Hall button. */
 async function _closeWithSplash() {
     const modal = document.getElementById('fortunes-wheel-modal');
     if (!modal) return;
-    const from = _flightTarget();
-    if (!_flightOn() || !from) { hideModal('fortunes-wheel-modal'); return; }
-    const home = _flightOrigin() || { x: window.innerWidth / 2, y: window.innerHeight + 40, size: 20 };
+    if (!_flightOn()) { hideModal('fortunes-wheel-modal'); return; }
+    const lite = _isLite();
+    const home = _flightOrigin() || { x: window.innerWidth / 2, y: window.innerHeight / 2, size: 30 };
     const layer = _flyLayerFresh();
+    layer.classList.add('fw-fly--close');
+    const { disk, stars, lamps, rim, s0 } = _portalPieces(layer, home, lite);
+    const D = PORTAL_CLOSE_MS;
+    const S = PORTAL_SEAL;
+    // the circle leaves the screen corners quickly, then settles gently onto the button
+    const shrink = 'cubic-bezier(.25, .55, .3, 1)';
+    const small = (deg = 0) => `scale(${s0}) rotate(${deg}deg)`;
+    disk.animate([
+        { transform: 'scale(1)', opacity: 0, easing: 'ease-in' },
+        { transform: 'scale(1)', opacity: 1, offset: S, easing: shrink },
+        { transform: small(), opacity: 1, offset: 0.94 },
+        { transform: small(), opacity: 0 },
+    ], { duration: D, fill: 'both' });
+    stars?.animate([
+        { transform: 'scale(1) rotate(0deg)', opacity: 0 },
+        { transform: 'scale(1) rotate(0deg)', opacity: 1, offset: S, easing: shrink },
+        { transform: small(90), opacity: 0.6, offset: 0.94 },
+        { transform: small(90), opacity: 0 },
+    ], { duration: D, fill: 'both' });
+    // The lamps wind the other way as it closes, like the wheel spinning down into the button.
+    lamps?.animate([
+        { transform: 'scale(1.04) rotate(0deg)', opacity: 0 },
+        { transform: 'scale(1) rotate(0deg)', opacity: 1, offset: S, easing: shrink },
+        { transform: small(300), opacity: 1, offset: 0.94 },
+        { transform: small(300), opacity: 0 },
+    ], { duration: D, fill: 'both' });
+    rim.animate([
+        { transform: 'scale(1)', opacity: 0 },
+        { transform: 'scale(1)', opacity: 1, offset: S, easing: shrink },
+        { transform: small(), opacity: 1, offset: 0.94 },
+        { transform: small(), opacity: 0 },
+    ], { duration: D, fill: 'both' });
 
-    // The night gathers over the stage (the card's own colours, so it reads as dimming)...
-    const bloom = _flyDisc(layer, 'fw-fly__bloom', home.x, home.y);
-    bloom.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: 'ease-out', fill: 'forwards' });
-    // ...the wheel rises out of the stage...
-    const wheel = _flyWheel(layer, from);
-    wheel.animate([{ opacity: 0, transform: 'scale(1.08)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 300, easing: 'ease-out', fill: 'forwards' });
-    await new Promise((r) => setTimeout(r, 300));
+    if (!lite) {
+        // A spiral of sparks is drawn in after it.
+        const reach = Math.hypot(window.innerWidth, window.innerHeight) * 0.32;
+        for (let i = 0; i < 14; i += 1) {
+            const el = _flyPiece(layer, `fw-portal__glyph${i % 3 === 0 ? ' fw-portal__glyph--gold' : ''}`, i % 2 ? '✦' : '✧');
+            const a = (i / 14) * Math.PI * 2;
+            const d = reach * (0.7 + (i % 4) * 0.12);
+            const sx = home.x + Math.cos(a) * d;
+            const sy = home.y + Math.sin(a) * d;
+            const mx = home.x + Math.cos(a + 1.3) * d * 0.4;
+            const my = home.y + Math.sin(a + 1.3) * d * 0.4;
+            el.animate([
+                { transform: `translate(${sx}px, ${sy}px) scale(1.1) rotate(0deg)`, opacity: 0 },
+                { transform: `translate(${sx}px, ${sy}px) scale(1.1) rotate(0deg)`, opacity: 1, offset: 0.3 },
+                { transform: `translate(${mx}px, ${my}px) scale(0.8) rotate(-160deg)`, opacity: 1, offset: 0.7 },
+                { transform: `translate(${home.x}px, ${home.y}px) scale(0.2) rotate(-280deg)`, opacity: 0 },
+            ], { duration: D, delay: i * 14, easing: 'cubic-bezier(.45, 0, .55, 1)', fill: 'both' });
+        }
+    }
+
+    try { wheelSound('close'); } catch (_) { /* optional */ }
+    await new Promise((r) => setTimeout(r, Math.round(D * S)));
     modal.classList.add('fw--sealed');
     hideModal('fortunes-wheel-modal');
-
-    // ...then spins down and dives back into the button, the night folding in behind it.
-    const dx = home.x - from.x;
-    const dy = home.y - from.y;
-    const s1 = Math.max(0.04, home.size / from.size);
-    const ease = 'cubic-bezier(0.55, 0, 0.3, 1)';
-    wheel.animate([
-        { transform: 'translate(0, 0) scale(1) rotate(0deg)', opacity: 1 },
-        { transform: `translate(0, ${-Math.min(40, from.size * 0.08)}px) scale(0.86) rotate(160deg)`, opacity: 1, offset: 0.22 },
-        { transform: `translate(${dx * 0.55}px, ${dy * 0.35 - 60}px) scale(${Math.max(s1, 0.32)}) rotate(520deg)`, opacity: 1, offset: 0.62 },
-        { transform: `translate(${dx}px, ${dy}px) scale(${s1}) rotate(760deg)`, opacity: 0.9 },
-    ], { duration: FLY_CLOSE_MS - 300, easing: ease, fill: 'forwards' });
-    bloom.animate([{ transform: 'scale(1)', opacity: 1 }, { transform: 'scale(0.01)', opacity: 0.4 }], { duration: FLY_CLOSE_MS - 300, delay: 120, easing: 'cubic-bezier(0.6, 0, 0.7, 0.3)', fill: 'forwards' });
-    for (let i = 0; i < 9; i += 1) {
-        const spark = _flyPiece(layer, i % 3 ? 'fw-fly__spark' : 'fw-fly__spark fw-fly__spark--star', i % 3 ? '' : '✦');
-        const a = (i / 9) * Math.PI * 2;
-        const rx = from.x + Math.cos(a) * from.size * 0.55;
-        const ry = from.y + Math.sin(a) * from.size * 0.55;
-        spark.animate([
-            { transform: `translate(${rx}px, ${ry}px) scale(1)`, opacity: 0 },
-            { transform: `translate(${rx}px, ${ry}px) scale(1)`, opacity: 1, offset: 0.15 },
-            { transform: `translate(${from.x + dx * 0.55}px, ${from.y + dy * 0.35 - 60}px) scale(0.8)`, opacity: 1, offset: 0.6 },
-            { transform: `translate(${home.x}px, ${home.y}px) scale(0.3)`, opacity: 0 },
-        ], { duration: FLY_CLOSE_MS - 300, delay: 60 + i * 30, easing: ease, fill: 'both' });
-    }
-    await new Promise((r) => setTimeout(r, FLY_CLOSE_MS - 300));
+    await new Promise((r) => setTimeout(r, Math.round(D * (0.94 - S))));
 
     // The button catches it: a twinkle of light and a little bounce.
-    wheel.animate([{ opacity: 0.9 }, { opacity: 0 }], { duration: 160, fill: 'forwards' });
-    for (let i = 0; i < 8; i += 1) {
-        const spark = _flyPiece(layer, 'fw-fly__spark');
-        const a = (i / 8) * Math.PI * 2;
-        spark.animate([
-            { transform: `translate(${home.x}px, ${home.y}px) scale(0.6)`, opacity: 1 },
-            { transform: `translate(${home.x + Math.cos(a) * 34}px, ${home.y + Math.sin(a) * 34}px) scale(0.2)`, opacity: 0 },
-        ], { duration: 520, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' });
+    if (!lite) {
+        const pulse = _flyPiece(layer, 'fw-portal__pulse fw-portal__pulse--catch');
+        pulse.animate([{ transform: 'scale(0.1)', opacity: 1 }, { transform: 'scale(0.55)', opacity: 0 }], { duration: 520, easing: 'ease-out', fill: 'both' });
+        for (let i = 0; i < 8; i += 1) {
+            const spark = _flyPiece(layer, 'fw-fly__spark');
+            const a = (i / 8) * Math.PI * 2;
+            spark.animate([
+                { transform: `translate(${home.x}px, ${home.y}px) scale(0.6)`, opacity: 1 },
+                { transform: `translate(${home.x + Math.cos(a) * 36}px, ${home.y + Math.sin(a) * 36}px) scale(0.2)`, opacity: 0 },
+            ], { duration: 520, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' });
+        }
     }
     const btn = document.getElementById('fortunes-wheel-btn');
     btn?.animate?.([{ transform: 'scale(1)' }, { transform: 'scale(1.1)' }, { transform: 'scale(1)' }], { duration: 460, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' });
-    setTimeout(() => { if (_flyLayer === layer) { layer.remove(); _flyLayer = null; } }, 560);
+    setTimeout(() => { if (_flyLayer === layer) { layer.remove(); _flyLayer = null; } }, 600);
 }
 
 /** The little wheel on the Guild Hall button whirls as the relic is opened. */
@@ -3271,6 +3363,7 @@ function _fateSceneHtml(fate, lite) {
 
 /** Builds the fate's scene around the reveal card and sets its entrance. */
 function _stageFateScene(layer, shell, fate) {
+    try { wheelSound('reveal'); } catch (_) { /* optional */ }
     let back = layer.querySelector('.fw-fate-scene--back');
     let front = layer.querySelector('.fw-fate-scene--front');
     if (!back) {
@@ -3603,7 +3696,7 @@ function _playOutcome(segment, result, outcome) {
     const lite = _isLite();
     if (outcome === 'braved' && segment.rarity === 'omen') {
         // The comet bursts into stardust.
-        try { playHeroFanfare(); } catch (_) { /* optional */ }
+        try { wheelSound('legendary'); } catch (_) { /* optional */ }
         if (o) {
             fxFlash(o.layer, 'rgba(255, 214, 140, 0.35)');
             fxBurst(o.layer, { x: o.x, y: o.y, colors: ['#ffd28a', '#fff7d6', '#c4b5fd', '#93c5fd'], count: 34, emojis: ['✨', '🌟', '💫'], emojiCount: 14, spread: o.size * 0.6, lite });

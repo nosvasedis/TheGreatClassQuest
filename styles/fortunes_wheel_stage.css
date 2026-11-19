@@ -515,22 +515,23 @@
 /* Closing: the card is folded away under the splash */
 #fortunes-wheel-modal.fw--sealed :is(.fw-card, .fw-backdrop) { opacity: 0 !important; transition: none; }
 
-/* ── Opening / closing flight ──────────────────────────────────────────────
-   Opening: night blooms softly out of the Guild Hall button while its little
-   wheel flies out, spinning and growing, into the real wheel's place; the
-   stage fades up around it and the real wheel takes over.
-   Closing: the night gathers over the stage, the wheel lifts, spins down and
-   is drawn back into the button on a comet trail; the night folds after it
-   and the button gives a little twinkle. Driven by WAAPI in fortunesWheel.js. */
+/* ── Opening / closing portal ──────────────────────────────────────────────
+   Like the guild anthem: a disk of starry night ringed by the wheel's gold rim
+   and lamps grows from the Guild Hall button's little wheel to fill the screen,
+   the stage is put in place under it, and it dissolves into the waking relic.
+   Closing gathers it over the stage and winds it back into the button. Every
+   layer is drawn at full size and scaled (transform/opacity only, on the GPU);
+   it is driven by WAAPI in fortunesWheel.js. */
 
 #fortunes-wheel-modal.fw--splashing :is(.fw-card, .fw-backdrop) {
     opacity: 0;
     animation: none !important;
 }
 
+/* the stage appears in one frame while the portal covers it */
 #fortunes-wheel-modal.fw--revealing :is(.fw-card, .fw-backdrop) {
     animation: none !important;
-    transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: none;
 }
 
 .fw-fly {
@@ -542,54 +543,90 @@
     contain: strict;
 }
 
-.fw-fly__bloom,
-.fw-fly__halo {
+.fw-portal__layer {
     position: absolute;
     border-radius: 50%;
+    transform: scale(0);
+    opacity: 0;
     will-change: transform, opacity;
 }
 
-.fw-fly__bloom {
-    background: radial-gradient(circle closest-side, #171040 0 60%, rgba(23, 16, 64, 0.92) 74%, rgba(23, 16, 64, 0.5) 88%, rgba(23, 16, 64, 0) 100%);
+/* the night beyond the wheel: a warm light at its heart, the fates' colours, deep night, a gold edge */
+.fw-portal__disk {
+    background: radial-gradient(circle closest-side,
+        #fff7d6 0,
+        #fde68a 5%,
+        #f59e0b 11%,
+        #c2410c 18%,
+        #9d174d 27%,
+        #5b21b6 40%,
+        #2e1065 58%,
+        #120a33 80%,
+        #0b0620 96%,
+        #7a5a12 100%);
 }
 
-.fw-fly__halo {
-    background: radial-gradient(circle closest-side, rgba(255, 236, 170, 0.32), rgba(251, 191, 36, 0.12) 45%, rgba(251, 191, 36, 0) 75%);
+/* a starfield that turns with the portal */
+.fw-portal__stars {
+    background:
+        radial-gradient(circle at 18% 30%, #fff 0 1.6px, transparent 2.4px),
+        radial-gradient(circle at 72% 22%, #fde68a 0 2px, transparent 3px),
+        radial-gradient(circle at 64% 74%, #fff 0 1.4px, transparent 2.2px),
+        radial-gradient(circle at 30% 80%, #c4b5fd 0 1.8px, transparent 2.6px),
+        radial-gradient(circle at 86% 52%, #fff 0 1.2px, transparent 2px),
+        radial-gradient(circle at 44% 12%, #fff 0 1.2px, transparent 2px),
+        radial-gradient(circle at 10% 58%, #fde68a 0 1.4px, transparent 2.2px);
+    background-size: 210px 210px, 260px 260px, 180px 180px, 300px 300px, 150px 150px, 240px 240px, 330px 330px;
+    -webkit-mask: radial-gradient(circle closest-side, transparent 0 22%, #000 44%, #000 92%, transparent 99%);
+    mask: radial-gradient(circle closest-side, transparent 0 22%, #000 44%, #000 92%, transparent 99%);
     mix-blend-mode: screen;
 }
 
-.fw-fly__wheel {
+/* the wheel's ring of lamps, just inside the rim */
+.fw-portal__lamps {
+    background: repeating-conic-gradient(from 0deg, #fff7d6 0deg 1.6deg, rgba(255, 247, 214, 0) 2.6deg 8.4deg, #fff7d6 10deg);
+    -webkit-mask: radial-gradient(circle closest-side, transparent 0 93.2%, #000 93.6%, #000 96.2%, transparent 96.6%);
+    mask: radial-gradient(circle closest-side, transparent 0 93.2%, #000 93.6%, #000 96.2%, transparent 96.6%);
+    filter: drop-shadow(0 0 6px #fbbf24);
+}
+
+/* the gold rim (drawn at full size, so it is fine near the button and bold as it sweeps out) */
+.fw-portal__rim {
+    border: 14px solid #f5c95a;
+    box-shadow:
+        inset 0 0 0 3px #7a4b0c,
+        inset 0 0 46px 8px rgba(251, 191, 36, 0.85),
+        inset 0 0 120px rgba(192, 38, 211, 0.45),
+        0 0 0 3px #3b2306;
+}
+
+.fw-portal__pulse {
     position: absolute;
+    left: calc(var(--fw-px) - 7rem);
+    top: calc(var(--fw-py) - 7rem);
+    width: 14rem;
+    height: 14rem;
+    border-radius: 50%;
+    border: 5px solid #fde68a;
+    box-shadow: 0 0 24px rgba(251, 191, 36, 0.8), inset 0 0 24px rgba(251, 191, 36, 0.6);
+    opacity: 0;
     will-change: transform, opacity;
 }
 
-.fw-fly__wheel i { position: absolute; border-radius: 50%; }
-
-.fw-fly__glow {
-    inset: -28%;
-    background: radial-gradient(circle closest-side, rgba(255, 236, 170, 0.6), rgba(251, 191, 36, 0.2) 50%, rgba(251, 191, 36, 0) 100%);
+.fw-portal__glyph {
+    position: absolute;
+    left: 0;
+    top: 0;
+    margin: -0.6em 0 0 -0.5em;
+    font-size: 22px;
+    line-height: 1;
+    color: #fff7d6;
+    text-shadow: 0 0 10px #fbbf24, 0 0 22px rgba(192, 38, 211, 0.8);
+    opacity: 0;
+    will-change: transform, opacity;
 }
 
-.fw-fly__face {
-    inset: 0;
-    background:
-        radial-gradient(circle closest-side, transparent 0 82%, rgba(0, 0, 0, 0.28) 100%),
-        conic-gradient(#ef4444 0 45deg, #f59e0b 0 90deg, #22c55e 0 135deg, #06b6d4 0 180deg, #6366f1 0 225deg, #a855f7 0 270deg, #ec4899 0 315deg, #eab308 0);
-    box-shadow: 0 0 0 calc(var(--fw-fly-size) * 0.018) #0b0824, 0 0 0 calc(var(--fw-fly-size) * 0.04) #f5c95a, 0 0 0 calc(var(--fw-fly-size) * 0.05) #7a4b0c, 0 0 calc(var(--fw-fly-size) * 0.18) rgba(251, 191, 36, 0.55);
-}
-
-.fw-fly__spokes {
-    inset: 0;
-    background: repeating-conic-gradient(from 0deg, rgba(255, 247, 214, 0.75) 0deg 0.8deg, transparent 0.8deg 45deg);
-    -webkit-mask: radial-gradient(circle closest-side, transparent 30%, #000 32%, #000 98%, transparent 99%);
-    mask: radial-gradient(circle closest-side, transparent 30%, #000 32%, #000 98%, transparent 99%);
-}
-
-.fw-fly__hub {
-    inset: 36%;
-    background: radial-gradient(circle at 35% 30%, #fff7d6, #f5c95a 50%, #a8680f);
-    box-shadow: 0 0 0 calc(var(--fw-fly-size) * 0.012) #3b2306;
-}
+.fw-portal__glyph--gold { color: #fde68a; font-size: 28px; }
 
 .fw-fly__spark {
     position: absolute;
@@ -602,18 +639,6 @@
     background: #fff7d6;
     box-shadow: 0 0 8px #fbbf24, 0 0 18px rgba(251, 191, 36, 0.8);
     will-change: transform, opacity;
-}
-
-.fw-fly__spark--star {
-    width: auto;
-    height: auto;
-    margin: 0;
-    background: none;
-    box-shadow: none;
-    color: #fde68a;
-    font-size: 16px;
-    line-height: 1;
-    text-shadow: 0 0 10px #fbbf24;
 }
 
 /* ── Fate scenes around the reveal card ─────────────────────────────────── */
@@ -1185,4 +1210,132 @@
 
     .fw-progress-pill__name { display: none; }
 
+}
+
+/* ── Away today ────────────────────────────────────────────────────────────
+   Heroes marked absent on the Award tab sit this one out: dimmed, under a
+   little rain cloud, and never touched by a fate. */
+.fw-party__away {
+    margin-top: 0.7rem;
+    padding-top: 0.55rem;
+    border-top: 1px dashed rgba(203, 213, 225, 0.22);
+}
+
+.fw-party__away-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.45rem;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #b6c2d9;
+}
+
+.fw-party__away-icon {
+    width: 1.1rem;
+    height: 0.7rem;
+    flex: none;
+    border-radius: 999px;
+    background: #cbd5e1;
+    box-shadow: 0.32rem -0.22rem 0 -0.06rem #cbd5e1, -0.18rem -0.12rem 0 -0.12rem #cbd5e1;
+    opacity: 0.85;
+}
+
+.fw-party__list--away { --medal: 34px; gap: 0.4rem 0.2rem; }
+
+.fw-party__hero.is-away .fw-party__medal {
+    border-color: #7c8aa5;
+    box-shadow: 0 0 0 2px var(--fw-night-950), 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+.fw-party__hero.is-away :is(.fw-party__img, .fw-party__initial) {
+    filter: grayscale(0.85) brightness(0.7);
+}
+
+.fw-party__hero.is-away .fw-party__name { color: #8d9ab3; font-size: 0.64rem; }
+
+/* a small rain cloud over the portrait's shoulder, with a few drops */
+.fw-party__hero.is-away { position: relative; }
+.fw-party__hero.is-away .fw-party__medal { opacity: 0.62; }
+
+.fw-party__cloud {
+    position: absolute;
+    top: -3px;
+    left: calc(50% + var(--medal) * 0.12);
+    width: 20px;
+    height: 8px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+    z-index: 2;
+}
+
+.fw-party__cloud::before,
+.fw-party__cloud::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: #e2e8f0;
+}
+
+.fw-party__cloud::before { width: 10px; height: 10px; left: 3px; top: -5px; }
+.fw-party__cloud::after { width: 8px; height: 8px; left: 10px; top: -3px; }
+
+.fw-party__cloud i {
+    position: absolute;
+    left: 5px;
+    top: 9px;
+    width: 1.5px;
+    height: 4px;
+    border-radius: 1px;
+    background: #93c5fd;
+    box-shadow: 4px 2px 0 #93c5fd, 8px 0 0 #93c5fd;
+}
+
+/* the party holding its breath and lighting up are for the heroes at the wheel only */
+#fortunes-wheel-modal .fw-guild-members-panel[data-mood] .fw-party__hero.is-away .fw-party__medal { animation: none; }
+
+/* ── Comets round the rim ──────────────────────────────────────────────────
+   While the wheel whirls, two comets of light chase each other round the ring
+   of lamps, bright when it flies and fading as it slows (opacity follows the
+   wheel's speed). One small layer turning with transform: cheap on the GPU. */
+.fw-comets {
+    position: absolute;
+    inset: 1.2%;
+    z-index: 1;
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease-out;
+    -webkit-mask: radial-gradient(circle closest-side, transparent 0 88%, #000 91%, #000 97%, transparent 100%);
+    mask: radial-gradient(circle closest-side, transparent 0 88%, #000 91%, #000 97%, transparent 100%);
+}
+
+.fw-comets i {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg,
+        rgba(255, 247, 214, 0) 0deg,
+        rgba(251, 191, 36, 0.15) 40deg,
+        rgba(253, 230, 138, 0.75) 82deg,
+        #fff7d6 88deg,
+        rgba(255, 247, 214, 0) 90deg 360deg);
+}
+
+.fw-comets i + i { transform: rotate(180deg); }
+
+.fw-stage-frame.is-spinning .fw-comets {
+    opacity: calc(0.25 + var(--fw-speed, 0) * 0.75);
+    transition: none;
+    animation: fw-comets-run 0.62s linear infinite;
+}
+
+@keyframes fw-comets-run { to { transform: rotate(360deg); } }
+
+#fortunes-wheel-modal.fw--lite .fw-comets { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+    .fw-comets { display: none; }
 }

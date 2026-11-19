@@ -80,6 +80,7 @@ export const fortunesWheelModalHTML = `
                                 <div class="fw-stage-rays" aria-hidden="true"></div>
                                 <div class="fw-stage-ring fw-stage-ring--outer" aria-hidden="true"></div>
                                 <div class="fw-marquee" aria-hidden="true">${MARQUEE_BULBS}</div>
+                                <div class="fw-comets" aria-hidden="true"><i></i><i></i></div>
                                 <div class="fw-stage-ring fw-stage-ring--inner" aria-hidden="true"></div>
                                 <div class="fw-waking" aria-hidden="true"></div>
                                 <div class="fw-dormant" aria-hidden="true">

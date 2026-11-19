@@ -86,6 +86,11 @@ Object.assign(wheelIo, {
 const catalog = getWheelCatalog();
 const wedge = params.get('wedge');
 const wanted = catalog.find((w) => w.id === wedge);
+// ?away=s1,s4 marks those heroes absent today (as the Award tab would).
+if (params.get('away')) {
+    const { getTodayDateString } = await import('./utils.js');
+    state.setAllAttendanceRecords(params.get('away').split(',').map((id) => ({ studentId: id, classId: 'c1', date: getTodayDateString(), status: 'absent' })));
+}
 if (params.get('lite')) wheelTestHooks.lite = params.get('lite') === '1';
 if (params.get('order')) wheelTestHooks.order = params.get('order').split(',');
 wheelTestHooks.segments = (segs, { envoy, catalog: all }) => {

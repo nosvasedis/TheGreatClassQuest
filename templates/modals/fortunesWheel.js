@@ -12,9 +12,6 @@ const MARQUEE_BULBS = Array.from({ length: 24 }, (_, i) => (i % 2
     : `<span class="fw-marquee__bulb" style="--i:${i}"><i></i></span>`)
 ).join('');
 
-const SPLASH_TITLE = [...'Fortune\u2019s Wheel'].map((ch, i) => (ch === ' ' ? '<span class="fw-splash__gap"> </span>' : `<span style="--i:${i}">${ch}</span>`)).join('');
-const SPLASH_SPARKS = Array.from({ length: 14 }, (_, i) => `<span style="--a:${i * (360 / 14)}deg;--d:${(i % 3) * 0.05}s"></span>`).join('');
-
 const ZODIAC_RING = ZODIAC.map((z, i) => `<span style="--i:${i}" data-z="${z}"></span>`).join('');
 
 export const fortunesWheelModalHTML = `
@@ -146,22 +143,5 @@ export const fortunesWheelModalHTML = `
             </div>
         </div>
 
-        <div id="fw-splash" class="fw-splash" aria-hidden="true">
-            <div class="fw-splash__sky"></div>
-            <div class="fw-splash__rays"></div>
-            <div class="fw-splash__zodiac">${ZODIAC_RING}</div>
-            <div class="fw-splash__ring"></div>
-            <div class="fw-splash__ring fw-splash__ring--late"></div>
-            <div class="fw-splash__medal">
-                <i class="fw-splash__glow"></i>
-                <i class="fw-splash__wheel"></i>
-                <i class="fw-splash__rim"></i>
-                <i class="fw-splash__hub"></i>
-                <i class="fw-splash__pin"></i>
-            </div>
-            <div class="fw-splash__title font-title">${SPLASH_TITLE}</div>
-            <div class="fw-splash__sub">The relic awakens</div>
-            <div class="fw-splash__sparks">${SPLASH_SPARKS}</div>
-        </div>
     </div>
 `;

@@ -2058,12 +2058,15 @@ export async function openFortunesWheel() {
     _setCardPhase('idle');
     _hideResultReveal();
     document.getElementById('fw-summary')?.classList.add('hidden');
-    modal.classList.remove('fw--sealed');
+    modal.classList.remove('fw--sealed', 'fw--revealing');
     _launchHallButton();
+    // The little wheel on the button flies out and grows into the relic; the ceremony is laid
+    // out (concealed) behind it. Measured before the modal shows, so the button is still there.
+    const from = _flightOrigin();
+    if (_flightOn()) modal.classList.add('fw--splashing');
     showAnimatedModal('fortunes-wheel-modal');
     const openedAt = performance.now();
-    // The splash bursts out of the Guild Hall button; the ceremony is laid out (concealed) behind it.
-    const splashMs = _playSplash(modal, 'open');
+    const splashMs = _flyOpen(modal, from);
 
     const { classId, leagueLevel } = _headerClass();
     // Lays the ceremony out now (same task as the card's first frame); waits only when the
@@ -2073,7 +2076,7 @@ export async function openFortunesWheel() {
     await _imagesSettled(card, 400);
     if (seq !== _openSeq) return;
     // Let the card start rising before its contents awaken, so the two read as one movement.
-    const lead = Math.max(0, (splashMs ? splashMs - SPLASH_HANDOFF_MS : AWAKEN_LEAD_MS) - (performance.now() - openedAt));
+    const lead = Math.max(0, (splashMs || AWAKEN_LEAD_MS) - (performance.now() - openedAt));
     setTimeout(() => _awaken(card, seq), lead);
 }
 
@@ -2721,62 +2724,193 @@ export async function closeFortunesWheel() {
     await _closeWithSplash();
 }
 
-// ── Opening / closing splash ─────────────────────────────────────────────────
+// ── Opening / closing flight ─────────────────────────────────────────────────
+// Opening: night blooms softly out of the Guild Hall button while its little wheel flies out,
+// spinning and growing, into the real wheel's place; the stage fades up around it and the real
+// wheel takes over. Closing (a different motion): the night gathers, the wheel lifts, spins down
+// and is drawn back into the button on a comet trail; the night folds after it, the button twinkles.
 
-const SPLASH_OPEN_MS = 1400;
-const SPLASH_OPEN_LITE_MS = 650;
-const SPLASH_HANDOFF_MS = 420;   // the wheel starts waking this long before the splash is gone
-const SPLASH_CLOSE_COVER_MS = 380;
-const SPLASH_CLOSE_MS = 980;
-let _splashTimer = null;
+const FLY_OPEN_MS = 1000;      // the wheel lands in its place
+const FLY_HANDOFF_MS = 720;    // the real wheel starts waking (cross-fades with the flyer)
+const FLY_CLOSE_MS = 1050;
+let _flyLayer = null;
 
-/** Where the splash bursts from / folds back into: the Guild Hall button, else the middle of the screen. */
-function _splashOrigin(modal) {
-    const btn = document.getElementById('fortunes-wheel-btn');
-    const r = btn?.getBoundingClientRect?.();
-    const visible = r && r.width > 0 && r.bottom > 0 && r.top < window.innerHeight;
-    const x = visible ? r.left + Math.min(r.width, 48) / 2 + 4 : window.innerWidth / 2;
-    const y = visible ? r.top + r.height / 2 : window.innerHeight / 2;
-    modal.style.setProperty('--sx', `${Math.round(x)}px`);
-    modal.style.setProperty('--sy', `${Math.round(y)}px`);
+function _flightOn() {
+    return !_reducedMotion() && !_isLite() && typeof document.body.animate === 'function';
 }
 
-/** Plays the splash ('open' | 'close'); returns its length in ms (0 when there is none). */
-function _playSplash(modal, kind) {
-    const splash = document.getElementById('fw-splash');
-    if (!splash || _reducedMotion()) return 0;
-    const lite = _isLite();
-    _splashOrigin(modal);
-    clearTimeout(_splashTimer);
-    splash.classList.remove('is-open', 'is-close', 'is-lite');
-    void splash.offsetWidth;
-    const sub = splash.querySelector('.fw-splash__sub');
-    if (sub) sub.textContent = kind === 'open' ? 'The relic awakens' : 'The relic sleeps until next week';
-    splash.classList.toggle('is-lite', lite);
-    splash.classList.add(kind === 'open' ? 'is-open' : 'is-close');
-    const ms = kind === 'open' ? (lite ? SPLASH_OPEN_LITE_MS : SPLASH_OPEN_MS) : (lite ? 520 : SPLASH_CLOSE_MS);
-    if (kind === 'open') {
-        try { playSound('magic_chime'); } catch (_) { /* optional */ }
-        _splashTimer = setTimeout(() => splash.classList.remove('is-open', 'is-lite'), ms);
+/** The Guild Hall button's little wheel (centre + size), or null when it isn't on screen. */
+function _flightOrigin() {
+    const el = document.querySelector('#fortunes-wheel-btn .gh-wheelmini') || document.getElementById('fortunes-wheel-btn');
+    const r = el?.getBoundingClientRect?.();
+    if (!r || !r.width || r.bottom < 0 || r.top > window.innerHeight || r.right < 0 || r.left > window.innerWidth) return null;
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2, size: Math.min(r.width, r.height) };
+}
+
+/** Where the real wheel sits (the wheel face inside the stage frame). */
+function _flightTarget() {
+    const frame = document.getElementById('fw-stage-frame');
+    const r = frame?.getBoundingClientRect?.();
+    if (!r || !r.width) return null;
+    const size = r.width * 0.85;
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2, size };
+}
+
+function _flyLayerFresh() {
+    _flyLayer?.remove();
+    const layer = document.createElement('div');
+    layer.className = 'fw-fly';
+    layer.setAttribute('aria-hidden', 'true');
+    document.body.append(layer);
+    _flyLayer = layer;
+    return layer;
+}
+
+function _flyPiece(layer, cls, html = '') {
+    const el = document.createElement('div');
+    el.className = cls;
+    el.innerHTML = html;
+    layer.append(el);
+    return el;
+}
+
+/** A soft round of night (or light) centred on (x, y) that can cover the whole screen. */
+function _flyDisc(layer, cls, x, y) {
+    const r = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y)) * 1.25;
+    const el = _flyPiece(layer, cls);
+    Object.assign(el.style, { left: `${x - r}px`, top: `${y - r}px`, width: `${r * 2}px`, height: `${r * 2}px` });
+    return el;
+}
+
+/** The flying wheel, laid out at its landing place; transforms move it from there. */
+function _flyWheel(layer, at) {
+    const el = _flyPiece(layer, 'fw-fly__wheel', '<i class="fw-fly__glow"></i><i class="fw-fly__face"></i><i class="fw-fly__spokes"></i><i class="fw-fly__hub"></i>');
+    Object.assign(el.style, { left: `${at.x - at.size / 2}px`, top: `${at.y - at.size / 2}px`, width: `${at.size}px`, height: `${at.size}px` });
+    el.style.setProperty('--fw-fly-size', `${at.size}px`);
+    return el;
+}
+
+/** Opening flight. Returns when the real wheel should start waking (ms), or 0 for no flight. */
+function _flyOpen(modal, from) {
+    _flyLayer?.remove();
+    _flyLayer = null;
+    if (!_flightOn()) { modal.classList.remove('fw--splashing'); return 0; }
+    const to = _flightTarget();
+    if (!to) { modal.classList.remove('fw--splashing'); return 0; }
+    const start = from || { x: window.innerWidth / 2, y: window.innerHeight * 0.9, size: 24 };
+    // The flight replaces the card's own rise (fw--revealing stays on until the next opening,
+    // so the card's enter / backdrop fade never restart underneath).
+    modal.querySelector('.fw-card')?.classList.remove('fw-card--enter');
+    const layer = _flyLayerFresh();
+    const ease = 'cubic-bezier(0.22, 0.9, 0.3, 1)';
+
+    // Night blooms out of the button (soft edge, so there is no hard wipe), with a warm halo.
+    const bloom = _flyDisc(layer, 'fw-fly__bloom', start.x, start.y);
+    bloom.animate([{ transform: 'scale(0.01)', opacity: 0.6 }, { transform: 'scale(1)', opacity: 1 }], { duration: 760, easing: 'cubic-bezier(0.3, 0.7, 0.2, 1)', fill: 'forwards' });
+    const halo = _flyDisc(layer, 'fw-fly__halo', to.x, to.y);
+    halo.animate([{ transform: 'scale(0.05)', opacity: 0 }, { transform: 'scale(0.55)', opacity: 1, offset: 0.6 }, { transform: 'scale(0.9)', opacity: 0 }], { duration: 1400, easing: 'ease-out', fill: 'forwards' });
+
+    // The little wheel lifts off the button and flies, spinning, into its place, growing as it goes.
+    const wheel = _flyWheel(layer, to);
+    const dx = start.x - to.x;
+    const dy = start.y - to.y;
+    const s0 = Math.max(0.04, start.size / to.size);
+    const lift = Math.min(120, to.size * 0.35);
+    wheel.animate([
+        { transform: `translate(${dx}px, ${dy}px) scale(${s0}) rotate(0deg)`, opacity: 1 },
+        { transform: `translate(${dx * 0.92}px, ${dy * 0.92 - 18}px) scale(${s0 * 1.6}) rotate(-180deg)`, opacity: 1, offset: 0.12 },
+        { transform: `translate(${dx * 0.3}px, ${dy * 0.3 - lift}px) scale(0.55) rotate(-620deg)`, opacity: 1, offset: 0.55 },
+        { transform: 'translate(0, 0) scale(1.03) rotate(-890deg)', opacity: 1, offset: 0.88 },
+        { transform: 'translate(0, 0) scale(1) rotate(-900deg)', opacity: 1 },
+    ], { duration: FLY_OPEN_MS, easing: ease, fill: 'forwards' });
+    // …and a comet trail of sparks follows it.
+    for (let i = 0; i < 9; i += 1) {
+        const spark = _flyPiece(layer, i % 3 ? 'fw-fly__spark' : 'fw-fly__spark fw-fly__spark--star', i % 3 ? '' : '✦');
+        const sc = 1 - i * 0.08;
+        spark.animate([
+            { transform: `translate(${start.x}px, ${start.y}px) scale(${sc})`, opacity: 0 },
+            { transform: `translate(${start.x + dx * -0.08}px, ${start.y + dy * -0.08 - 18}px) scale(${sc})`, opacity: 1, offset: 0.12 },
+            { transform: `translate(${to.x + dx * 0.3}px, ${to.y + dy * 0.3 - lift}px) scale(${sc * 0.9})`, opacity: 0.9, offset: 0.55 },
+            { transform: `translate(${to.x + (i % 2 ? 1 : -1) * to.size * 0.35}px, ${to.y - to.size * 0.25}px) scale(0.2)`, opacity: 0 },
+        ], { duration: FLY_OPEN_MS, delay: 40 + i * 38, easing: ease, fill: 'both' });
     }
-    return ms;
+
+    try { playSound('magic_chime'); } catch (_) { /* optional */ }
+
+    // The stage fades up around the wheel while it is still flying.
+    setTimeout(() => {
+        modal.classList.add('fw--revealing');
+        modal.classList.remove('fw--splashing');
+    }, 480);
+    // The real wheel takes over: the flyer and the night melt away.
+    setTimeout(() => {
+        wheel.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 520, easing: 'ease-in-out', fill: 'forwards' });
+        bloom.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 520, easing: 'ease-out', fill: 'forwards' });
+    }, FLY_OPEN_MS - 240);
+    setTimeout(() => {
+        if (_flyLayer === layer) { layer.remove(); _flyLayer = null; }
+    }, FLY_OPEN_MS + 600);
+    return FLY_HANDOFF_MS;
 }
 
-/** Close: the night folds over the card, then shrinks back into the Guild Hall button. */
+/** Closing flight: the wheel is drawn back into the Guild Hall button. */
 async function _closeWithSplash() {
     const modal = document.getElementById('fortunes-wheel-modal');
-    const ms = modal ? _playSplash(modal, 'close') : 0;
-    if (!ms) { hideModal('fortunes-wheel-modal'); return; }
-    const lite = _isLite();
-    await new Promise((r) => setTimeout(r, lite ? 200 : SPLASH_CLOSE_COVER_MS));
+    if (!modal) return;
+    const from = _flightTarget();
+    if (!_flightOn() || !from) { hideModal('fortunes-wheel-modal'); return; }
+    const home = _flightOrigin() || { x: window.innerWidth / 2, y: window.innerHeight + 40, size: 20 };
+    const layer = _flyLayerFresh();
+
+    // The night gathers over the stage (the card's own colours, so it reads as dimming)...
+    const bloom = _flyDisc(layer, 'fw-fly__bloom', home.x, home.y);
+    bloom.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: 'ease-out', fill: 'forwards' });
+    // ...the wheel rises out of the stage...
+    const wheel = _flyWheel(layer, from);
+    wheel.animate([{ opacity: 0, transform: 'scale(1.08)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 300, easing: 'ease-out', fill: 'forwards' });
+    await new Promise((r) => setTimeout(r, 300));
     modal.classList.add('fw--sealed');
     hideModal('fortunes-wheel-modal');
-    await new Promise((r) => setTimeout(r, ms - (lite ? 200 : SPLASH_CLOSE_COVER_MS)));
-    document.getElementById('fw-splash')?.classList.remove('is-close', 'is-lite');
-    const btn = document.getElementById('fortunes-wheel-btn');
-    if (btn && typeof btn.animate === 'function' && !lite) {
-        btn.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.08)' }, { transform: 'scale(1)' }], { duration: 420, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' });
+
+    // ...then spins down and dives back into the button, the night folding in behind it.
+    const dx = home.x - from.x;
+    const dy = home.y - from.y;
+    const s1 = Math.max(0.04, home.size / from.size);
+    const ease = 'cubic-bezier(0.55, 0, 0.3, 1)';
+    wheel.animate([
+        { transform: 'translate(0, 0) scale(1) rotate(0deg)', opacity: 1 },
+        { transform: `translate(0, ${-Math.min(40, from.size * 0.08)}px) scale(0.86) rotate(160deg)`, opacity: 1, offset: 0.22 },
+        { transform: `translate(${dx * 0.55}px, ${dy * 0.35 - 60}px) scale(${Math.max(s1, 0.32)}) rotate(520deg)`, opacity: 1, offset: 0.62 },
+        { transform: `translate(${dx}px, ${dy}px) scale(${s1}) rotate(760deg)`, opacity: 0.9 },
+    ], { duration: FLY_CLOSE_MS - 300, easing: ease, fill: 'forwards' });
+    bloom.animate([{ transform: 'scale(1)', opacity: 1 }, { transform: 'scale(0.01)', opacity: 0.4 }], { duration: FLY_CLOSE_MS - 300, delay: 120, easing: 'cubic-bezier(0.6, 0, 0.7, 0.3)', fill: 'forwards' });
+    for (let i = 0; i < 9; i += 1) {
+        const spark = _flyPiece(layer, i % 3 ? 'fw-fly__spark' : 'fw-fly__spark fw-fly__spark--star', i % 3 ? '' : '✦');
+        const a = (i / 9) * Math.PI * 2;
+        const rx = from.x + Math.cos(a) * from.size * 0.55;
+        const ry = from.y + Math.sin(a) * from.size * 0.55;
+        spark.animate([
+            { transform: `translate(${rx}px, ${ry}px) scale(1)`, opacity: 0 },
+            { transform: `translate(${rx}px, ${ry}px) scale(1)`, opacity: 1, offset: 0.15 },
+            { transform: `translate(${from.x + dx * 0.55}px, ${from.y + dy * 0.35 - 60}px) scale(0.8)`, opacity: 1, offset: 0.6 },
+            { transform: `translate(${home.x}px, ${home.y}px) scale(0.3)`, opacity: 0 },
+        ], { duration: FLY_CLOSE_MS - 300, delay: 60 + i * 30, easing: ease, fill: 'both' });
     }
+    await new Promise((r) => setTimeout(r, FLY_CLOSE_MS - 300));
+
+    // The button catches it: a twinkle of light and a little bounce.
+    wheel.animate([{ opacity: 0.9 }, { opacity: 0 }], { duration: 160, fill: 'forwards' });
+    for (let i = 0; i < 8; i += 1) {
+        const spark = _flyPiece(layer, 'fw-fly__spark');
+        const a = (i / 8) * Math.PI * 2;
+        spark.animate([
+            { transform: `translate(${home.x}px, ${home.y}px) scale(0.6)`, opacity: 1 },
+            { transform: `translate(${home.x + Math.cos(a) * 34}px, ${home.y + Math.sin(a) * 34}px) scale(0.2)`, opacity: 0 },
+        ], { duration: 520, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' });
+    }
+    const btn = document.getElementById('fortunes-wheel-btn');
+    btn?.animate?.([{ transform: 'scale(1)' }, { transform: 'scale(1.1)' }, { transform: 'scale(1)' }], { duration: 460, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' });
+    setTimeout(() => { if (_flyLayer === layer) { layer.remove(); _flyLayer = null; } }, 560);
 }
 
 /** The little wheel on the Guild Hall button whirls as the relic is opened. */

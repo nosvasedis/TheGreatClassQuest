@@ -39,10 +39,12 @@
     min-width: 0;
     min-height: 0;
     overflow-y: auto;
-    overflow-x: visible;
-    scrollbar-width: thin;
-    padding: 0.2rem 0.15rem 0.6rem;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    padding: 0.2rem 14px 0.6rem;
 }
+
+.fw-wing::-webkit-scrollbar { display: none; }
 
 /* The right wing is no longer one big panel: each card stands on its own */
 .fw-controls-section {
@@ -513,297 +515,106 @@
 /* Closing: the card is folded away under the splash */
 #fortunes-wheel-modal.fw--sealed :is(.fw-card, .fw-backdrop) { opacity: 0 !important; transition: none; }
 
-/* ── Splash: the relic bursts out of its button, and folds back into it ── */
+/* ── Opening / closing flight ──────────────────────────────────────────────
+   Opening: night blooms softly out of the Guild Hall button while its little
+   wheel flies out, spinning and growing, into the real wheel's place; the
+   stage fades up around it and the real wheel takes over.
+   Closing: the night gathers over the stage, the wheel lifts, spins down and
+   is drawn back into the button on a comet trail; the night folds after it
+   and the button gives a little twinkle. Driven by WAAPI in fortunesWheel.js. */
 
-.fw-splash {
-    --sx: 50vw;
-    --sy: 50vh;
-    --m: min(40vmin, 330px);
-    --cy: calc(50% - 5vh);
+#fortunes-wheel-modal.fw--splashing :is(.fw-card, .fw-backdrop) {
+    opacity: 0;
+    animation: none !important;
+}
+
+#fortunes-wheel-modal.fw--revealing :is(.fw-card, .fw-backdrop) {
+    animation: none !important;
+    transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fw-fly {
     position: fixed;
     inset: 0;
-    z-index: 30;
-    display: none;
+    z-index: 90;
     pointer-events: none;
     overflow: hidden;
-    color: var(--fw-moon);
+    contain: strict;
 }
 
-.fw-splash.is-open,
-.fw-splash.is-close { display: block; }
-
-.fw-splash__sky {
+.fw-fly__bloom,
+.fw-fly__halo {
     position: absolute;
+    border-radius: 50%;
+    will-change: transform, opacity;
+}
+
+.fw-fly__bloom {
+    background: radial-gradient(circle closest-side, #171040 0 60%, rgba(23, 16, 64, 0.92) 74%, rgba(23, 16, 64, 0.5) 88%, rgba(23, 16, 64, 0) 100%);
+}
+
+.fw-fly__halo {
+    background: radial-gradient(circle closest-side, rgba(255, 236, 170, 0.32), rgba(251, 191, 36, 0.12) 45%, rgba(251, 191, 36, 0) 75%);
+    mix-blend-mode: screen;
+}
+
+.fw-fly__wheel {
+    position: absolute;
+    will-change: transform, opacity;
+}
+
+.fw-fly__wheel i { position: absolute; border-radius: 50%; }
+
+.fw-fly__glow {
+    inset: -28%;
+    background: radial-gradient(circle closest-side, rgba(255, 236, 170, 0.6), rgba(251, 191, 36, 0.2) 50%, rgba(251, 191, 36, 0) 100%);
+}
+
+.fw-fly__face {
     inset: 0;
     background:
-        radial-gradient(circle at 50% 46%, rgba(251, 191, 36, 0.32), transparent 38%),
-        radial-gradient(ellipse 80% 60% at 50% 110%, rgba(109, 40, 217, 0.55), transparent 65%),
-        linear-gradient(180deg, #0d0828, #170f3f 55%, #0a0620);
+        radial-gradient(circle closest-side, transparent 0 82%, rgba(0, 0, 0, 0.28) 100%),
+        conic-gradient(#ef4444 0 45deg, #f59e0b 0 90deg, #22c55e 0 135deg, #06b6d4 0 180deg, #6366f1 0 225deg, #a855f7 0 270deg, #ec4899 0 315deg, #eab308 0);
+    box-shadow: 0 0 0 calc(var(--fw-fly-size) * 0.018) #0b0824, 0 0 0 calc(var(--fw-fly-size) * 0.04) #f5c95a, 0 0 0 calc(var(--fw-fly-size) * 0.05) #7a4b0c, 0 0 calc(var(--fw-fly-size) * 0.18) rgba(251, 191, 36, 0.55);
 }
 
-.fw-splash__rays {
-    position: absolute;
-    top: var(--cy);
-    left: 50%;
-    width: max(150vmax, 1300px);
-    aspect-ratio: 1;
-    transform: translate(-50%, -50%);
-    background: repeating-conic-gradient(from 0deg, rgba(253, 230, 138, 0.16) 0deg 5deg, transparent 5deg 15deg);
-    -webkit-mask: radial-gradient(circle, #000 0%, transparent 52%);
-    mask: radial-gradient(circle, #000 0%, transparent 52%);
-}
-
-.fw-splash__zodiac {
-    position: absolute;
-    top: var(--cy);
-    left: 50%;
-    width: min(88vmin, 760px);
-    aspect-ratio: 1;
-    transform: translate(-50%, -50%);
-    border-radius: 50%;
-    border: 1px solid rgba(232, 196, 106, 0.35);
-    box-shadow: inset 0 0 0 46px rgba(232, 196, 106, 0.04), inset 0 0 0 47px rgba(232, 196, 106, 0.25);
-}
-
-.fw-splash__zodiac span {
-    position: absolute;
+.fw-fly__spokes {
     inset: 0;
-    transform: rotate(calc(var(--i) * 30deg + 15deg));
+    background: repeating-conic-gradient(from 0deg, rgba(255, 247, 214, 0.75) 0deg 0.8deg, transparent 0.8deg 45deg);
+    -webkit-mask: radial-gradient(circle closest-side, transparent 30%, #000 32%, #000 98%, transparent 99%);
+    mask: radial-gradient(circle closest-side, transparent 30%, #000 32%, #000 98%, transparent 99%);
 }
 
-.fw-splash__zodiac span::before {
-    content: attr(data-z);
+.fw-fly__hub {
+    inset: 36%;
+    background: radial-gradient(circle at 35% 30%, #fff7d6, #f5c95a 50%, #a8680f);
+    box-shadow: 0 0 0 calc(var(--fw-fly-size) * 0.012) #3b2306;
+}
+
+.fw-fly__spark {
     position: absolute;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-family: 'Segoe UI Symbol', 'Noto Sans Symbols', 'DejaVu Sans', serif;
-    font-size: clamp(16px, 2.6vmin, 26px);
-    color: rgba(251, 231, 166, 0.55);
-}
-
-.fw-splash__ring {
-    position: absolute;
-    top: calc(var(--cy) - var(--m) / 2 - 12px);
-    left: calc(50% - var(--m) / 2 - 12px);
-    width: calc(var(--m) + 24px);
-    aspect-ratio: 1;
-    border-radius: 50%;
-    border: 3px solid #fde68a;
-    box-shadow: 0 0 30px #fbbf24, inset 0 0 30px #fbbf24;
-    opacity: 0;
-}
-
-.fw-splash__medal {
-    position: absolute;
-    top: calc(var(--cy) - var(--m) / 2);
-    left: calc(50% - var(--m) / 2);
-    width: var(--m);
-    aspect-ratio: 1;
-}
-
-.fw-splash__medal i { position: absolute; border-radius: 50%; }
-
-.fw-splash__glow {
-    inset: -30%;
-    background: radial-gradient(circle, rgba(255, 236, 170, 0.55), rgba(251, 191, 36, 0.18) 40%, transparent 68%);
-}
-
-.fw-splash__wheel {
-    inset: 0;
-    background:
-        radial-gradient(circle, transparent 60%, rgba(0, 0, 0, 0.25) 100%),
-        repeating-conic-gradient(from 0deg, transparent 0deg 29.4deg, #fde68a 29.4deg 30deg),
-        conic-gradient(#ef4444 0 30deg, #f59e0b 0 60deg, #eab308 0 90deg, #22c55e 0 120deg, #14b8a6 0 150deg, #06b6d4 0 180deg, #3b82f6 0 210deg, #6366f1 0 240deg, #8b5cf6 0 270deg, #a855f7 0 300deg, #d946ef 0 330deg, #ec4899 0);
-    box-shadow: 0 0 0 6px var(--fw-night-950), 0 0 0 12px var(--fw-gold), 0 0 0 15px var(--fw-gold-dark), 0 0 60px rgba(251, 191, 36, 0.6);
-}
-
-.fw-splash__rim {
-    inset: -12px;
-    background: radial-gradient(circle, transparent 0 48.5%, transparent 49%),
-        repeating-conic-gradient(from 6deg, #fff3c4 0deg 2.4deg, transparent 2.4deg 15deg);
-    -webkit-mask: radial-gradient(circle closest-side, transparent 90%, #000 91%, #000 98%, transparent 99%);
-    mask: radial-gradient(circle closest-side, transparent 90%, #000 91%, #000 98%, transparent 99%);
-}
-
-.fw-splash__hub {
-    inset: 38%;
-    background: radial-gradient(circle at 35% 30%, #fff7d6, var(--fw-gold) 50%, var(--fw-gold-dark));
-    box-shadow: 0 0 0 4px var(--fw-night-950), 0 0 24px rgba(251, 191, 36, 0.7);
-}
-
-.fw-splash__pin {
-    top: -26px;
-    left: 50%;
-    width: 30px;
-    height: 44px;
-    margin-left: -15px;
-    border-radius: 0 !important;
-    background: linear-gradient(90deg, #8a5a1c, #fff3c4 50%, #d9a84e);
-    clip-path: polygon(0 0, 100% 0, 50% 100%);
-    filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.5));
-}
-
-.fw-splash__title {
-    position: absolute;
-    top: calc(var(--cy) + var(--m) / 2 + 4.5vh);
     left: 0;
-    right: 0;
-    display: flex;
-    justify-content: center;
-    font-size: clamp(2.2rem, 7vw, 4.6rem);
-    line-height: 1;
-    color: #fde68a;
-    background: linear-gradient(180deg, #fffbea, #fde68a 45%, #d99a2b);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 4px 0 rgba(7, 5, 26, 0.85)) drop-shadow(0 0 22px rgba(251, 191, 36, 0.45));
-    white-space: pre;
-}
-
-.fw-splash__title span { display: inline-block; }
-
-.fw-splash__sub {
-    position: absolute;
-    top: calc(var(--cy) + var(--m) / 2 + 4.5vh + clamp(2.6rem, 7.6vw, 5.2rem));
-    left: 0;
-    right: 0;
-    text-align: center;
-    font-size: clamp(0.72rem, 1.6vw, 0.95rem);
-    font-weight: 700;
-    letter-spacing: 0.32em;
-    text-transform: uppercase;
-    color: #fbe7a6;
-    text-shadow: 0 0 10px #0d0828, 0 0 18px #0d0828, 0 2px 0 #0d0828;
-}
-
-.fw-splash__sparks { position: absolute; top: var(--cy); left: 50%; width: 0; height: 0; }
-
-.fw-splash__sparks span {
-    position: absolute;
-    width: 8px;
-    height: 8px;
-    margin: -4px;
+    top: 0;
+    width: 10px;
+    height: 10px;
+    margin: -5px;
     border-radius: 50%;
     background: #fff7d6;
-    box-shadow: 0 0 10px #fbbf24, 0 0 20px #fbbf24;
-    opacity: 0;
+    box-shadow: 0 0 8px #fbbf24, 0 0 18px rgba(251, 191, 36, 0.8);
+    will-change: transform, opacity;
 }
 
-/* Opening (1.4 s): the portal bursts out of the button, the wheel spins in, the name lands
-   letter by letter, a ring of light rolls out, then it all lifts away into the real wheel */
-.fw-splash.is-open {
-    animation: fw-splash-iris-open 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both, fw-splash-leave 0.45s cubic-bezier(0.4, 0, 0.2, 1) 0.95s both;
+.fw-fly__spark--star {
+    width: auto;
+    height: auto;
+    margin: 0;
+    background: none;
+    box-shadow: none;
+    color: #fde68a;
+    font-size: 16px;
+    line-height: 1;
+    text-shadow: 0 0 10px #fbbf24;
 }
-
-@keyframes fw-splash-iris-open {
-    from { clip-path: circle(0 at var(--sx) var(--sy)); }
-    to { clip-path: circle(160vmax at var(--sx) var(--sy)); }
-}
-
-@keyframes fw-splash-leave {
-    from { opacity: 1; transform: none; }
-    to { opacity: 0; transform: scale(1.08); }
-}
-
-.fw-splash.is-open .fw-splash__rays { animation: fw-splash-rays 1.4s linear both; }
-
-@keyframes fw-splash-rays {
-    from { transform: translate(-50%, -50%) rotate(-20deg); opacity: 0; }
-    30% { opacity: 1; }
-    to { transform: translate(-50%, -50%) rotate(25deg); opacity: 1; }
-}
-
-.fw-splash.is-open .fw-splash__zodiac { animation: fw-splash-zodiac 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-
-@keyframes fw-splash-zodiac {
-    from { transform: translate(-50%, -50%) rotate(-90deg) scale(0.7); opacity: 0; }
-    to { transform: translate(-50%, -50%) rotate(0deg) scale(1); opacity: 1; }
-}
-
-.fw-splash.is-open .fw-splash__medal { animation: fw-splash-medal-in 1.05s cubic-bezier(0.16, 1, 0.3, 1) 0.12s both; }
-.fw-splash.is-open .fw-splash__wheel,
-.fw-splash.is-open .fw-splash__rim { animation: fw-splash-spin 1.3s cubic-bezier(0.1, 0.7, 0.2, 1) 0.12s both; }
-
-@keyframes fw-splash-medal-in {
-    0% { opacity: 0; transform: scale(0.25); }
-    60% { opacity: 1; transform: scale(1.06); }
-    100% { opacity: 1; transform: scale(1); }
-}
-
-@keyframes fw-splash-spin {
-    from { transform: rotate(-900deg); }
-    to { transform: rotate(0deg); }
-}
-
-.fw-splash.is-open .fw-splash__title span {
-    animation: fw-splash-letter 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-    animation-delay: calc(0.3s + var(--i) * 32ms);
-}
-
-@keyframes fw-splash-letter {
-    0% { opacity: 0; transform: translateY(-40px) rotate(-12deg) scale(0.6); }
-    100% { opacity: 1; transform: none; }
-}
-
-.fw-splash.is-open .fw-splash__sub { animation: fw-rise-in 0.5s ease-out 0.62s both; }
-
-.fw-splash.is-open .fw-splash__ring { animation: fw-splash-ring 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.62s both; }
-.fw-splash.is-open .fw-splash__ring--late { animation-delay: 0.78s; }
-
-@keyframes fw-splash-ring {
-    0% { opacity: 0.95; transform: scale(0.9); }
-    100% { opacity: 0; transform: scale(2.4); }
-}
-
-.fw-splash.is-open .fw-splash__sparks span {
-    animation: fw-splash-spark 0.85s cubic-bezier(0.16, 1, 0.3, 1) both;
-    animation-delay: calc(0.6s + var(--d));
-}
-
-@keyframes fw-splash-spark {
-    0% { opacity: 1; transform: rotate(var(--a)) translateY(0) scale(1); }
-    100% { opacity: 0; transform: rotate(var(--a)) translateY(min(-30vmin, -220px)) scale(0.3); }
-}
-
-/* Closing (1 s): the night falls over the card, the wheel winds down, then the portal folds into the button */
-.fw-splash.is-close {
-    animation: fw-fade-in 0.35s ease-out both, fw-splash-iris-close 0.5s cubic-bezier(0.6, 0, 0.8, 0.4) 0.36s both;
-}
-
-@keyframes fw-splash-iris-close {
-    from { clip-path: circle(160vmax at var(--sx) var(--sy)); }
-    to { clip-path: circle(0 at var(--sx) var(--sy)); }
-}
-
-.fw-splash.is-close .fw-splash__medal { animation: fw-splash-medal-out 0.95s cubic-bezier(0.4, 0, 0.2, 1) both; }
-.fw-splash.is-close .fw-splash__wheel,
-.fw-splash.is-close .fw-splash__rim { animation: fw-splash-wind-down 0.95s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
-.fw-splash.is-close .fw-splash__title { opacity: 0.9; }
-.fw-splash.is-close .fw-splash__sub { animation: fw-fade-in 0.3s ease-out 0.1s both; }
-.fw-splash.is-close .fw-splash__glow { animation: fw-fade-out 0.9s ease-in both; }
-
-@keyframes fw-splash-medal-out {
-    0% { transform: scale(1.25); opacity: 0; }
-    30% { transform: scale(1); opacity: 1; }
-    100% { transform: scale(0.85); opacity: 1; }
-}
-
-@keyframes fw-splash-wind-down {
-    from { transform: rotate(360deg); }
-    to { transform: rotate(0deg); }
-}
-
-/* Weak laptops: a plain fade in and out, no iris */
-.fw-splash.is-lite :is(.fw-splash__rays, .fw-splash__zodiac, .fw-splash__ring, .fw-splash__sparks) { display: none; }
-.fw-splash.is-lite.is-open { animation: fw-splash-leave 0.3s ease-in 0.35s both; }
-.fw-splash.is-lite.is-close { animation: fw-fade-in 0.2s ease-out both, fw-splash-leave 0.3s ease-in 0.22s both; }
-.fw-splash.is-lite .fw-splash__medal,
-.fw-splash.is-lite .fw-splash__wheel,
-.fw-splash.is-lite .fw-splash__rim,
-.fw-splash.is-lite .fw-splash__title span,
-.fw-splash.is-lite .fw-splash__sub { animation: none !important; }
 
 /* ── Fate scenes around the reveal card ─────────────────────────────────── */
 
@@ -1312,7 +1123,7 @@
 #fortunes-wheel-modal.fw--lite .fw-reveal-layer__shell[data-fate] { animation: fw-deal-rise 0.4s ease-out both; }
 
 @media (prefers-reduced-motion: reduce) {
-    .fw-splash { display: none !important; }
+    .fw-fly { display: none !important; }
     .fw-guild-banner,
     .fw-card[data-phase="ready"] .fw-btn-primary:not(:disabled),
     .fw-card[data-phase="ready"] .fw-btn-primary:not(:disabled)::before,
@@ -1374,7 +1185,4 @@
 
     .fw-progress-pill__name { display: none; }
 
-    .fw-splash { --m: min(62vw, 280px); --cy: 40%; }
-    .fw-splash__title { font-size: clamp(1.8rem, 9vw, 2.6rem); }
-    .fw-splash__sub { top: calc(var(--cy) + var(--m) / 2 + 4.5vh + 3rem); }
 }

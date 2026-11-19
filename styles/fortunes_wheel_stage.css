@@ -1,0 +1,1380 @@
+/* ==========================================================================
+   Fortune's Wheel — the stage (Nov 2026)
+   A theatre in three parts: the guild's hanging banner and its heroes on
+   the left wing, the wheel in the middle with its spin dock beneath, the
+   fates on this wheel on the right wing. Everything enters in turn: the
+   road of guilds, the banner drops and swings, the heroes pop in, the
+   wheel winds in, the fates slide in. Every new guild replays it.
+   Also here: the opening/closing splash and the fate scenes around the
+   reveal card. Transform and opacity only, so it stays on the compositor;
+   weak laptops (.fw--lite) get short fades, reduced motion gets none.
+   ========================================================================== */
+
+#fortunes-wheel-modal .hidden { display: none !important; }
+
+/* ── Layout ─────────────────────────────────────────────────────────────── */
+
+.fw-content-unified {
+    padding: 1.2rem clamp(1rem, 3.5vw, 3rem) 1rem;
+    gap: 0.7rem;
+}
+
+.fw-header-floating {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+.fw-main-layout {
+    grid-template-columns: minmax(230px, 290px) minmax(0, 1fr) minmax(230px, 290px);
+    gap: clamp(1rem, 2vw, 2rem);
+    max-width: 1500px;
+    align-items: stretch;
+}
+
+.fw-wing {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: visible;
+    scrollbar-width: thin;
+    padding: 0.2rem 0.15rem 0.6rem;
+}
+
+/* The right wing is no longer one big panel: each card stands on its own */
+.fw-controls-section {
+    padding: 0.2rem 0.15rem 0.6rem;
+    background: none;
+    box-shadow: none;
+    border-radius: 0;
+}
+
+.fw-stage-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.55rem;
+    min-height: 0;
+}
+
+.fw-wheel-container {
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    container-type: size;
+    padding: 0.4rem 0 0.2rem;
+}
+
+.fw-stage-frame { width: min(100cqw, 100cqh, 820px); }
+
+.fw-stage-dock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.55rem;
+    width: min(100%, 460px);
+    flex: none;
+}
+
+.fw-stage-dock .fw-stage-caption { max-width: 100%; }
+
+.fw-actions {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.fw-actions .fw-btn-primary { min-height: 4rem; border-radius: 999px; }
+.fw-actions .fw-btn-secondary,
+.fw-actions .fw-btn-success { border-radius: 999px; }
+
+/* The spin button breathes while it waits for a teacher */
+.fw-card[data-phase="ready"] .fw-btn-primary:not(:disabled) {
+    animation: fw-spin-breathe 2.6s ease-in-out infinite;
+}
+
+.fw-btn-primary::before {
+    content: '';
+    position: absolute;
+    inset: -40%;
+    background: radial-gradient(circle, rgba(255, 247, 214, 0.5), transparent 55%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.fw-card[data-phase="ready"] .fw-btn-primary:not(:disabled)::before {
+    animation: fw-spin-halo 2.6s ease-in-out infinite;
+}
+
+@keyframes fw-spin-breathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.025); }
+}
+
+@keyframes fw-spin-halo {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 0.65; }
+}
+
+/* ── Header: title crest + the road of four guilds ────────────────────── */
+
+.fw-title { font-size: clamp(1.8rem, 3.2vw, 2.7rem); }
+
+.fw-progress-rail {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 0;
+    background: none;
+    border: 0;
+    box-shadow: none;
+}
+
+.fw-progress-rail::before { display: none; }
+
+.fw-progress-pill {
+    position: relative;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0 0.35rem;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    opacity: 0.55;
+}
+
+/* gilt road between the crests */
+.fw-progress-pill + .fw-progress-pill::before {
+    content: '';
+    position: absolute;
+    top: 17px;
+    right: calc(50% + 21px);
+    width: calc(100% - 42px + 0.7rem);
+    height: 2px;
+    background: repeating-linear-gradient(90deg, rgba(232, 196, 106, 0.7) 0 6px, transparent 6px 10px);
+}
+
+.fw-progress-pill[data-state="complete"] + .fw-progress-pill::before {
+    background: linear-gradient(90deg, #34d399, var(--fw-gold));
+}
+
+.fw-progress-pill__crest {
+    width: 36px;
+    height: 36px;
+    border-width: 2px;
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.45s ease;
+}
+
+.fw-progress-pill[data-state="current"] { opacity: 1; background: none; box-shadow: none; }
+
+.fw-progress-pill[data-state="current"] .fw-progress-pill__crest {
+    transform: scale(1.22);
+    border-color: var(--fw-gold-light);
+    box-shadow: 0 0 0 3px var(--fw-night-950), 0 0 18px color-mix(in srgb, var(--guild-primary) 80%, transparent);
+}
+
+.fw-progress-pill[data-state="complete"] { opacity: 0.9; border: 0; }
+
+.fw-progress-pill__copy { text-align: center; }
+
+.fw-progress-pill__name {
+    font-size: 0.62rem;
+    white-space: nowrap;
+    -webkit-line-clamp: 1;
+    max-width: 6.5rem;
+}
+
+.fw-progress-pill__step { display: none; }
+
+/* ── Left wing: the guild's hanging banner ─────────────────────────────── */
+
+.fw-guild-header-pill {
+    position: relative;
+    flex: none;
+    padding: 0;
+    background: none;
+    box-shadow: none;
+    border-radius: 0;
+    transform-origin: 50% 0;
+}
+
+.fw-guild-banner {
+    position: relative;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 1.35rem 1rem 2.4rem;
+    margin-top: 10px;
+    text-align: center;
+    color: var(--fw-moon);
+    background:
+        radial-gradient(120% 70% at 50% 0%, rgba(255, 255, 255, 0.18), transparent 60%),
+        repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.08) 0 2px, transparent 2px 9px),
+        linear-gradient(180deg, color-mix(in srgb, var(--guild-primary) 78%, #000) 0%, color-mix(in srgb, var(--guild-primary) 48%, #0b0824) 100%);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 26px), 0 100%);
+    filter: drop-shadow(0 14px 18px rgba(0, 0, 0, 0.5));
+    transform-origin: 50% -10px;
+    animation: fw-banner-sway 6s ease-in-out infinite;
+}
+
+/* gold rod with finials the banner hangs from */
+.fw-guild-header-pill::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: -10px;
+    right: -10px;
+    height: 10px;
+    border-radius: 999px;
+    z-index: 2;
+    background:
+        radial-gradient(circle at 6px 50%, #fff3c4 0 3px, #9a7128 4px 5px, transparent 6px),
+        radial-gradient(circle at calc(100% - 6px) 50%, #fff3c4 0 3px, #9a7128 4px 5px, transparent 6px),
+        linear-gradient(180deg, #fff3c4, var(--fw-gold) 50%, var(--fw-gold-dark));
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5);
+}
+
+/* gilt edging stitched down both sides */
+.fw-guild-banner::before {
+    content: '';
+    position: absolute;
+    inset: 0 8px;
+    border-left: 2px dashed rgba(251, 231, 166, 0.55);
+    border-right: 2px dashed rgba(251, 231, 166, 0.55);
+    pointer-events: none;
+}
+
+@keyframes fw-banner-sway {
+    0%, 100% { transform: rotate(-0.8deg); }
+    50% { transform: rotate(0.8deg); }
+}
+
+.fw-guild-banner__crest {
+    width: 84px;
+    height: 84px;
+    border-width: 3px;
+    box-shadow: 0 0 0 3px var(--fw-night-950), 0 0 26px color-mix(in srgb, var(--guild-primary) 70%, transparent), 0 8px 16px rgba(0, 0, 0, 0.45);
+}
+
+.fw-guild-banner__copy { flex: none; }
+.fw-guild-banner__eyebrow { font-size: 0.62rem; color: #fff3c4; }
+
+.fw-guild-banner__name {
+    font-size: 1.45rem;
+    white-space: normal;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45), 0 0 16px color-mix(in srgb, var(--guild-primary) 80%, transparent);
+}
+
+.fw-guild-banner__flag {
+    position: absolute;
+    top: 0.8rem;
+    right: 1.1rem;
+    font-size: 1.25rem;
+    display: block !important;
+}
+
+/* ── Right wing: the fates on this wheel, as a ledger of gems ─────────── */
+
+.fw-wheel-legend {
+    padding: 0.8rem 0.85rem 0.9rem;
+    border-radius: 0.95rem;
+    background: linear-gradient(170deg, rgba(36, 27, 88, 0.92), rgba(13, 9, 38, 0.92));
+    border: 1px solid rgba(232, 196, 106, 0.4);
+    box-shadow: inset 0 1px 0 rgba(255, 244, 214, 0.12), 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+.fw-wheel-legend__chips {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem;
+}
+
+.fw-wheel-legend__chip {
+    justify-content: flex-start;
+    padding: 0.35rem 0.55rem;
+    border-radius: 0.6rem;
+}
+
+.fw-wheel-legend__chip b { margin-left: auto; }
+
+.fw-wheel-legend__omen,
+.fw-wind-card { margin-top: 0.6rem; }
+
+.fw-availability-card { border-radius: 0.95rem; }
+
+/* ── Phases ─────────────────────────────────────────────────────────────── */
+
+.fw-card[data-phase="idle"] .fw-guild-members-panel,
+.fw-card[data-phase="locked"] .fw-guild-members-panel,
+.fw-card[data-phase="locked"] .fw-guild-header-pill,
+.fw-guild-header-pill:empty,
+.fw-progress-rail:empty { display: none; }
+
+.fw-card[data-phase="summary"] :is(.fw-wing, .fw-wheel-container, .fw-stage-caption) { display: none; }
+.fw-card[data-phase="summary"] .fw-main-layout { grid-template-columns: minmax(0, 1fr); max-width: 980px; }
+.fw-card[data-phase="summary"] .fw-actions { flex-direction: row; justify-content: center; }
+.fw-card[data-phase="summary"] #fw-spin-btn { display: none; }
+.fw-card[data-phase="summary"] .fw-stage-dock { width: min(100%, 560px); }
+.fw-card[data-phase="summary"] .fw-stage-section { justify-content: flex-start; }
+
+/* ── Opening: "waking" (contents concealed while laid out) → "awaken" (staged entrance) ── */
+
+.fw-waking {
+    position: absolute;
+    inset: 22%;
+    z-index: 1;
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(circle, rgba(255, 244, 214, 0.55) 0%, rgba(251, 191, 36, 0.22) 38%, transparent 70%);
+    opacity: 0;
+}
+
+#fortunes-wheel-modal .fw-card--waking :is(.fw-progress-rail, .fw-wing > *, .fw-canvas-wrap, .fw-dormant, .fw-stage-dock) {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease-out;
+}
+
+#fortunes-wheel-modal .fw-card--waking .fw-marquee__bulb { opacity: 0.2; transition: opacity 0.22s ease-out; }
+
+#fortunes-wheel-modal .fw-card--waking .fw-waking {
+    opacity: 0.5;
+    transition: opacity 0.3s ease-out;
+    animation: fw-waking-gather 1.6s ease-in-out infinite alternate;
+}
+
+#fortunes-wheel-modal .fw-card--waking-instant :is(.fw-progress-rail, .fw-wing > *, .fw-canvas-wrap, .fw-dormant, .fw-stage-dock, .fw-marquee__bulb, .fw-waking) {
+    transition: none;
+}
+
+@keyframes fw-waking-gather {
+    from { opacity: 0.3; transform: scale(0.8); }
+    to { opacity: 0.75; transform: scale(1.05); }
+}
+
+/* Awaken and every new guild's turn share one choreography */
+#fortunes-wheel-modal :is(.fw-card--awaken, .fw-card--turn) .fw-waking { animation: fw-awake-bloom 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+@keyframes fw-awake-bloom {
+    0% { opacity: 0.75; transform: scale(1); }
+    35% { opacity: 0.9; transform: scale(1.5); }
+    100% { opacity: 0; transform: scale(2.1); }
+}
+
+#fortunes-wheel-modal .fw-card--awaken .fw-marquee__bulb {
+    animation: fw-awake-lamp 0.5s ease-out both;
+    animation-delay: calc(80ms + var(--i) * 26ms);
+}
+
+@keyframes fw-awake-lamp {
+    0% { opacity: 0.2; }
+    45%, 100% { opacity: 1; }
+}
+
+/* 1 · the road: crests pop in one after another */
+#fortunes-wheel-modal .fw-card--awaken .fw-progress-pill {
+    animation: fw-pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+#fortunes-wheel-modal .fw-card--awaken .fw-progress-pill:nth-child(1) { animation-delay: 60ms; }
+#fortunes-wheel-modal .fw-card--awaken .fw-progress-pill:nth-child(2) { animation-delay: 140ms; }
+#fortunes-wheel-modal .fw-card--awaken .fw-progress-pill:nth-child(3) { animation-delay: 220ms; }
+#fortunes-wheel-modal .fw-card--awaken .fw-progress-pill:nth-child(4) { animation-delay: 300ms; }
+
+/* on a new turn only the current crest jumps */
+#fortunes-wheel-modal .fw-card--turn .fw-progress-pill[data-state="current"] {
+    animation: fw-pop-in 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes fw-pop-in {
+    0% { opacity: 0; transform: scale(0.4) translateY(8px); }
+    100% { opacity: 1; transform: none; }
+}
+
+/* 2 · the banner drops from its rod and swings to rest */
+#fortunes-wheel-modal :is(.fw-card--awaken, .fw-card--turn) .fw-guild-header-pill {
+    animation: fw-banner-drop 1.1s cubic-bezier(0.2, 0.9, 0.3, 1) 0.12s both;
+}
+
+@keyframes fw-banner-drop {
+    0% { opacity: 0; transform: translateY(-50px) scaleY(0.3); }
+    35% { opacity: 1; transform: translateY(0) scaleY(1.04) rotate(-5deg); }
+    55% { transform: rotate(3.5deg); }
+    72% { transform: rotate(-2deg); }
+    86% { transform: rotate(1deg); }
+    100% { opacity: 1; transform: none; }
+}
+
+/* 3 · the heroes pop in one by one */
+#fortunes-wheel-modal :is(.fw-card--awaken, .fw-card--turn) .fw-guild-members-panel {
+    animation: fw-rise-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+}
+
+#fortunes-wheel-modal :is(.fw-card--awaken, .fw-card--turn) .fw-party__hero {
+    animation: fw-hero-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    animation-delay: calc(0.45s + var(--i) * 55ms);
+}
+
+@keyframes fw-hero-pop {
+    0% { opacity: 0; transform: scale(0.3) translateY(14px); }
+    100% { opacity: 1; transform: none; }
+}
+
+/* 4 · the wheel winds into place out of the light */
+#fortunes-wheel-modal .fw-card--awaken .fw-canvas-wrap {
+    will-change: transform, opacity;
+    animation: fw-awake-wheel 1.05s cubic-bezier(0.16, 1, 0.3, 1) 60ms both;
+}
+
+#fortunes-wheel-modal .fw-card--turn .fw-canvas-wrap {
+    animation: fw-turn-wheel 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes fw-awake-wheel {
+    0% { opacity: 0; transform: scale(0.84) rotate(-40deg); }
+    45% { opacity: 1; }
+    100% { opacity: 1; transform: none; }
+}
+
+@keyframes fw-turn-wheel {
+    0% { opacity: 0.2; transform: scale(0.9) rotate(-120deg); }
+    100% { opacity: 1; transform: none; }
+}
+
+#fortunes-wheel-modal .fw-card--awaken .fw-dormant { animation: fw-awake-settle 0.7s cubic-bezier(0.16, 1, 0.3, 1) 60ms both; }
+
+@keyframes fw-awake-settle {
+    0% { opacity: 0; transform: scale(0.92); }
+    100% { opacity: 1; transform: none; }
+}
+
+/* 5 · the fates slide in from the right, card by card */
+#fortunes-wheel-modal :is(.fw-card--awaken, .fw-card--turn) .fw-wing--right > * {
+    animation: fw-slide-left 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: 0.35s;
+}
+#fortunes-wheel-modal :is(.fw-card--awaken, .fw-card--turn) .fw-wing--right > :nth-child(2) { animation-delay: 0.47s; }
+#fortunes-wheel-modal :is(.fw-card--awaken, .fw-card--turn) .fw-wing--right > :nth-child(3) { animation-delay: 0.59s; }
+
+#fortunes-wheel-modal :is(.fw-card--awaken, .fw-card--turn) .fw-wheel-legend__chip {
+    animation: fw-slide-left 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(0.5s + var(--n, 0) * 40ms);
+}
+.fw-wheel-legend__chip:nth-child(2) { --n: 1; }
+.fw-wheel-legend__chip:nth-child(3) { --n: 2; }
+.fw-wheel-legend__chip:nth-child(4) { --n: 3; }
+.fw-wheel-legend__chip:nth-child(5) { --n: 4; }
+.fw-wheel-legend__chip:nth-child(6) { --n: 5; }
+.fw-wheel-legend__chip:nth-child(7) { --n: 6; }
+.fw-wheel-legend__chip:nth-child(n + 8) { --n: 7; }
+
+@keyframes fw-slide-left {
+    0% { opacity: 0; transform: translateX(26px); }
+    100% { opacity: 1; transform: none; }
+}
+
+@keyframes fw-rise-in {
+    0% { opacity: 0; transform: translateY(18px); }
+    100% { opacity: 1; transform: none; }
+}
+
+/* 6 · the dock rises last: caption, then the spin button with a bounce */
+#fortunes-wheel-modal :is(.fw-card--awaken, .fw-card--turn) .fw-stage-caption {
+    animation: fw-rise-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.6s both;
+}
+
+#fortunes-wheel-modal :is(.fw-card--awaken, .fw-card--turn) .fw-actions {
+    animation: fw-dock-bounce 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.72s both;
+}
+
+@keyframes fw-dock-bounce {
+    0% { opacity: 0; transform: translateY(30px) scale(0.85); }
+    100% { opacity: 1; transform: none; }
+}
+
+/* Weak laptops: the same order, as short fades */
+#fortunes-wheel-modal.fw--lite :is(.fw-card--awaken, .fw-card--turn) :is(.fw-canvas-wrap, .fw-dormant, .fw-progress-pill, .fw-guild-header-pill, .fw-guild-members-panel, .fw-party__hero, .fw-wing--right > *, .fw-wheel-legend__chip, .fw-stage-caption, .fw-actions, .fw-marquee__bulb) {
+    will-change: auto;
+    animation: fw-fade-in 0.35s ease-out both;
+    animation-delay: 0ms;
+}
+
+#fortunes-wheel-modal.fw--lite .fw-guild-banner { animation: none; }
+#fortunes-wheel-modal.fw--lite .fw-card--waking .fw-waking { animation: none; }
+#fortunes-wheel-modal.fw--lite :is(.fw-card--awaken, .fw-card--turn) .fw-waking { animation: fw-fade-out 0.35s ease-out both; }
+#fortunes-wheel-modal.fw--lite .fw-card[data-phase="ready"] .fw-btn-primary:not(:disabled),
+#fortunes-wheel-modal.fw--lite .fw-card[data-phase="ready"] .fw-btn-primary:not(:disabled)::before { animation: none; }
+
+@keyframes fw-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fw-fade-out { from { opacity: 0.5; } to { opacity: 0; } }
+
+/* Closing: the card is folded away under the splash */
+#fortunes-wheel-modal.fw--sealed :is(.fw-card, .fw-backdrop) { opacity: 0 !important; transition: none; }
+
+/* ── Splash: the relic bursts out of its button, and folds back into it ── */
+
+.fw-splash {
+    --sx: 50vw;
+    --sy: 50vh;
+    --m: min(40vmin, 330px);
+    --cy: calc(50% - 5vh);
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: none;
+    pointer-events: none;
+    overflow: hidden;
+    color: var(--fw-moon);
+}
+
+.fw-splash.is-open,
+.fw-splash.is-close { display: block; }
+
+.fw-splash__sky {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 50% 46%, rgba(251, 191, 36, 0.32), transparent 38%),
+        radial-gradient(ellipse 80% 60% at 50% 110%, rgba(109, 40, 217, 0.55), transparent 65%),
+        linear-gradient(180deg, #0d0828, #170f3f 55%, #0a0620);
+}
+
+.fw-splash__rays {
+    position: absolute;
+    top: var(--cy);
+    left: 50%;
+    width: max(150vmax, 1300px);
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    background: repeating-conic-gradient(from 0deg, rgba(253, 230, 138, 0.16) 0deg 5deg, transparent 5deg 15deg);
+    -webkit-mask: radial-gradient(circle, #000 0%, transparent 52%);
+    mask: radial-gradient(circle, #000 0%, transparent 52%);
+}
+
+.fw-splash__zodiac {
+    position: absolute;
+    top: var(--cy);
+    left: 50%;
+    width: min(88vmin, 760px);
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 1px solid rgba(232, 196, 106, 0.35);
+    box-shadow: inset 0 0 0 46px rgba(232, 196, 106, 0.04), inset 0 0 0 47px rgba(232, 196, 106, 0.25);
+}
+
+.fw-splash__zodiac span {
+    position: absolute;
+    inset: 0;
+    transform: rotate(calc(var(--i) * 30deg + 15deg));
+}
+
+.fw-splash__zodiac span::before {
+    content: attr(data-z);
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Segoe UI Symbol', 'Noto Sans Symbols', 'DejaVu Sans', serif;
+    font-size: clamp(16px, 2.6vmin, 26px);
+    color: rgba(251, 231, 166, 0.55);
+}
+
+.fw-splash__ring {
+    position: absolute;
+    top: calc(var(--cy) - var(--m) / 2 - 12px);
+    left: calc(50% - var(--m) / 2 - 12px);
+    width: calc(var(--m) + 24px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    border: 3px solid #fde68a;
+    box-shadow: 0 0 30px #fbbf24, inset 0 0 30px #fbbf24;
+    opacity: 0;
+}
+
+.fw-splash__medal {
+    position: absolute;
+    top: calc(var(--cy) - var(--m) / 2);
+    left: calc(50% - var(--m) / 2);
+    width: var(--m);
+    aspect-ratio: 1;
+}
+
+.fw-splash__medal i { position: absolute; border-radius: 50%; }
+
+.fw-splash__glow {
+    inset: -30%;
+    background: radial-gradient(circle, rgba(255, 236, 170, 0.55), rgba(251, 191, 36, 0.18) 40%, transparent 68%);
+}
+
+.fw-splash__wheel {
+    inset: 0;
+    background:
+        radial-gradient(circle, transparent 60%, rgba(0, 0, 0, 0.25) 100%),
+        repeating-conic-gradient(from 0deg, transparent 0deg 29.4deg, #fde68a 29.4deg 30deg),
+        conic-gradient(#ef4444 0 30deg, #f59e0b 0 60deg, #eab308 0 90deg, #22c55e 0 120deg, #14b8a6 0 150deg, #06b6d4 0 180deg, #3b82f6 0 210deg, #6366f1 0 240deg, #8b5cf6 0 270deg, #a855f7 0 300deg, #d946ef 0 330deg, #ec4899 0);
+    box-shadow: 0 0 0 6px var(--fw-night-950), 0 0 0 12px var(--fw-gold), 0 0 0 15px var(--fw-gold-dark), 0 0 60px rgba(251, 191, 36, 0.6);
+}
+
+.fw-splash__rim {
+    inset: -12px;
+    background: radial-gradient(circle, transparent 0 48.5%, transparent 49%),
+        repeating-conic-gradient(from 6deg, #fff3c4 0deg 2.4deg, transparent 2.4deg 15deg);
+    -webkit-mask: radial-gradient(circle closest-side, transparent 90%, #000 91%, #000 98%, transparent 99%);
+    mask: radial-gradient(circle closest-side, transparent 90%, #000 91%, #000 98%, transparent 99%);
+}
+
+.fw-splash__hub {
+    inset: 38%;
+    background: radial-gradient(circle at 35% 30%, #fff7d6, var(--fw-gold) 50%, var(--fw-gold-dark));
+    box-shadow: 0 0 0 4px var(--fw-night-950), 0 0 24px rgba(251, 191, 36, 0.7);
+}
+
+.fw-splash__pin {
+    top: -26px;
+    left: 50%;
+    width: 30px;
+    height: 44px;
+    margin-left: -15px;
+    border-radius: 0 !important;
+    background: linear-gradient(90deg, #8a5a1c, #fff3c4 50%, #d9a84e);
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.5));
+}
+
+.fw-splash__title {
+    position: absolute;
+    top: calc(var(--cy) + var(--m) / 2 + 4.5vh);
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    font-size: clamp(2.2rem, 7vw, 4.6rem);
+    line-height: 1;
+    color: #fde68a;
+    background: linear-gradient(180deg, #fffbea, #fde68a 45%, #d99a2b);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 4px 0 rgba(7, 5, 26, 0.85)) drop-shadow(0 0 22px rgba(251, 191, 36, 0.45));
+    white-space: pre;
+}
+
+.fw-splash__title span { display: inline-block; }
+
+.fw-splash__sub {
+    position: absolute;
+    top: calc(var(--cy) + var(--m) / 2 + 4.5vh + clamp(2.6rem, 7.6vw, 5.2rem));
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: clamp(0.72rem, 1.6vw, 0.95rem);
+    font-weight: 700;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: #fbe7a6;
+    text-shadow: 0 0 10px #0d0828, 0 0 18px #0d0828, 0 2px 0 #0d0828;
+}
+
+.fw-splash__sparks { position: absolute; top: var(--cy); left: 50%; width: 0; height: 0; }
+
+.fw-splash__sparks span {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    margin: -4px;
+    border-radius: 50%;
+    background: #fff7d6;
+    box-shadow: 0 0 10px #fbbf24, 0 0 20px #fbbf24;
+    opacity: 0;
+}
+
+/* Opening (1.4 s): the portal bursts out of the button, the wheel spins in, the name lands
+   letter by letter, a ring of light rolls out, then it all lifts away into the real wheel */
+.fw-splash.is-open {
+    animation: fw-splash-iris-open 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both, fw-splash-leave 0.45s cubic-bezier(0.4, 0, 0.2, 1) 0.95s both;
+}
+
+@keyframes fw-splash-iris-open {
+    from { clip-path: circle(0 at var(--sx) var(--sy)); }
+    to { clip-path: circle(160vmax at var(--sx) var(--sy)); }
+}
+
+@keyframes fw-splash-leave {
+    from { opacity: 1; transform: none; }
+    to { opacity: 0; transform: scale(1.08); }
+}
+
+.fw-splash.is-open .fw-splash__rays { animation: fw-splash-rays 1.4s linear both; }
+
+@keyframes fw-splash-rays {
+    from { transform: translate(-50%, -50%) rotate(-20deg); opacity: 0; }
+    30% { opacity: 1; }
+    to { transform: translate(-50%, -50%) rotate(25deg); opacity: 1; }
+}
+
+.fw-splash.is-open .fw-splash__zodiac { animation: fw-splash-zodiac 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+@keyframes fw-splash-zodiac {
+    from { transform: translate(-50%, -50%) rotate(-90deg) scale(0.7); opacity: 0; }
+    to { transform: translate(-50%, -50%) rotate(0deg) scale(1); opacity: 1; }
+}
+
+.fw-splash.is-open .fw-splash__medal { animation: fw-splash-medal-in 1.05s cubic-bezier(0.16, 1, 0.3, 1) 0.12s both; }
+.fw-splash.is-open .fw-splash__wheel,
+.fw-splash.is-open .fw-splash__rim { animation: fw-splash-spin 1.3s cubic-bezier(0.1, 0.7, 0.2, 1) 0.12s both; }
+
+@keyframes fw-splash-medal-in {
+    0% { opacity: 0; transform: scale(0.25); }
+    60% { opacity: 1; transform: scale(1.06); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fw-splash-spin {
+    from { transform: rotate(-900deg); }
+    to { transform: rotate(0deg); }
+}
+
+.fw-splash.is-open .fw-splash__title span {
+    animation: fw-splash-letter 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    animation-delay: calc(0.3s + var(--i) * 32ms);
+}
+
+@keyframes fw-splash-letter {
+    0% { opacity: 0; transform: translateY(-40px) rotate(-12deg) scale(0.6); }
+    100% { opacity: 1; transform: none; }
+}
+
+.fw-splash.is-open .fw-splash__sub { animation: fw-rise-in 0.5s ease-out 0.62s both; }
+
+.fw-splash.is-open .fw-splash__ring { animation: fw-splash-ring 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.62s both; }
+.fw-splash.is-open .fw-splash__ring--late { animation-delay: 0.78s; }
+
+@keyframes fw-splash-ring {
+    0% { opacity: 0.95; transform: scale(0.9); }
+    100% { opacity: 0; transform: scale(2.4); }
+}
+
+.fw-splash.is-open .fw-splash__sparks span {
+    animation: fw-splash-spark 0.85s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: calc(0.6s + var(--d));
+}
+
+@keyframes fw-splash-spark {
+    0% { opacity: 1; transform: rotate(var(--a)) translateY(0) scale(1); }
+    100% { opacity: 0; transform: rotate(var(--a)) translateY(min(-30vmin, -220px)) scale(0.3); }
+}
+
+/* Closing (1 s): the night falls over the card, the wheel winds down, then the portal folds into the button */
+.fw-splash.is-close {
+    animation: fw-fade-in 0.35s ease-out both, fw-splash-iris-close 0.5s cubic-bezier(0.6, 0, 0.8, 0.4) 0.36s both;
+}
+
+@keyframes fw-splash-iris-close {
+    from { clip-path: circle(160vmax at var(--sx) var(--sy)); }
+    to { clip-path: circle(0 at var(--sx) var(--sy)); }
+}
+
+.fw-splash.is-close .fw-splash__medal { animation: fw-splash-medal-out 0.95s cubic-bezier(0.4, 0, 0.2, 1) both; }
+.fw-splash.is-close .fw-splash__wheel,
+.fw-splash.is-close .fw-splash__rim { animation: fw-splash-wind-down 0.95s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.fw-splash.is-close .fw-splash__title { opacity: 0.9; }
+.fw-splash.is-close .fw-splash__sub { animation: fw-fade-in 0.3s ease-out 0.1s both; }
+.fw-splash.is-close .fw-splash__glow { animation: fw-fade-out 0.9s ease-in both; }
+
+@keyframes fw-splash-medal-out {
+    0% { transform: scale(1.25); opacity: 0; }
+    30% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(0.85); opacity: 1; }
+}
+
+@keyframes fw-splash-wind-down {
+    from { transform: rotate(360deg); }
+    to { transform: rotate(0deg); }
+}
+
+/* Weak laptops: a plain fade in and out, no iris */
+.fw-splash.is-lite :is(.fw-splash__rays, .fw-splash__zodiac, .fw-splash__ring, .fw-splash__sparks) { display: none; }
+.fw-splash.is-lite.is-open { animation: fw-splash-leave 0.3s ease-in 0.35s both; }
+.fw-splash.is-lite.is-close { animation: fw-fade-in 0.2s ease-out both, fw-splash-leave 0.3s ease-in 0.22s both; }
+.fw-splash.is-lite .fw-splash__medal,
+.fw-splash.is-lite .fw-splash__wheel,
+.fw-splash.is-lite .fw-splash__rim,
+.fw-splash.is-lite .fw-splash__title span,
+.fw-splash.is-lite .fw-splash__sub { animation: none !important; }
+
+/* ── Fate scenes around the reveal card ─────────────────────────────────── */
+
+.fw-fate-scene {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.fw-fate-scene--front { z-index: 3; }
+.fw-fate-scene i, .fw-fate-scene svg { position: absolute; font-style: normal; }
+
+/* Shared: a coloured bloom behind the card */
+.fs-glow {
+    top: 50%; left: 50%;
+    width: min(110vmin, 900px); aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--backdrop-color, #fbbf24) 45%, transparent), transparent 60%);
+    animation: fs-bloom 1.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.fs-glow--parchment { background: radial-gradient(circle, rgba(254, 243, 199, 0.4), transparent 60%); }
+
+@keyframes fs-bloom {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+    40% { opacity: 1; }
+    100% { opacity: 0.7; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* coins: a fountain of Gold from below the card */
+.fs-coin {
+    bottom: -40px; left: 50%;
+    font-size: calc(28px * var(--s));
+    animation: fs-fountain 1.9s cubic-bezier(0.25, 0.6, 0.4, 1) var(--d) both;
+}
+.fs-coin > .gq-gold { width: 1em; height: 1em; display: block; animation: fs-flip 0.5s linear infinite; }
+
+@keyframes fs-fountain {
+    0% { opacity: 0; transform: translate(-50%, 0); }
+    10% { opacity: 1; }
+    45% { transform: translate(calc(-50% + var(--x) * 0.6), calc(-1 * var(--h) - 40vh)) rotate(calc(var(--r) * 0.5)); }
+    100% { opacity: 0; transform: translate(calc(-50% + var(--x)), 0) rotate(var(--r)); }
+}
+
+@keyframes fs-flip { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.15); } }
+
+/* starfall: shooting stars across the sky, twinkles thrown off the card */
+.fs-shoot {
+    top: var(--y); left: var(--x);
+    width: 180px; height: 2px;
+    background: linear-gradient(90deg, transparent, #f5d0fe 70%, #fff);
+    border-radius: 2px;
+    transform: rotate(155deg);
+    opacity: 0;
+    animation: fs-shoot 1.1s ease-in var(--d) both;
+}
+
+@keyframes fs-shoot {
+    0% { opacity: 0; transform: rotate(155deg) translateX(0); }
+    20% { opacity: 1; }
+    100% { opacity: 0; transform: rotate(155deg) translateX(-420px); }
+}
+
+.fs-twinkle, .fs-trick, .fs-shard {
+    top: 50%; left: 50%;
+    color: #fde68a;
+    font-size: calc(22px * var(--s));
+    text-shadow: 0 0 12px currentColor;
+    animation: fs-throw 1.3s cubic-bezier(0.16, 1, 0.3, 1) var(--d) both;
+}
+.fw-reveal-layer[data-fate="starfall"] .fs-twinkle { color: #e9d5ff; }
+.fs-trick { color: #c4b5fd; }
+
+@keyframes fs-throw {
+    0% { opacity: 0; transform: rotate(var(--a)) translateY(0) scale(0.4); }
+    25% { opacity: 1; }
+    100% { opacity: 0; transform: rotate(var(--a)) translateY(calc(-1 * var(--dist))) scale(1) rotate(180deg); }
+}
+
+/* blaze: two rings of fire and rising embers */
+.fs-firering {
+    top: 50%; left: 50%;
+    width: 420px; height: 420px;
+    margin: -210px 0 0 -210px;
+    border-radius: 50%;
+    border: 10px solid #fb923c;
+    box-shadow: 0 0 40px #f97316, inset 0 0 40px #f97316;
+    opacity: 0;
+    animation: fs-ring 1s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.fs-firering--late { animation-delay: 0.2s; border-color: #fbbf24; }
+
+@keyframes fs-ring {
+    0% { opacity: 0.9; transform: scale(0.4); }
+    100% { opacity: 0; transform: scale(2.4); }
+}
+
+.fs-ember {
+    bottom: -10px; left: var(--x);
+    width: calc(7px * var(--s)); height: calc(7px * var(--s));
+    border-radius: 50%;
+    background: #fde68a;
+    box-shadow: 0 0 8px #fb923c, 0 0 16px #f97316;
+    animation: fs-ember var(--t) ease-out var(--d) infinite;
+}
+
+@keyframes fs-ember {
+    0% { opacity: 0; transform: translate(0, 0); }
+    15% { opacity: 1; }
+    100% { opacity: 0; transform: translate(var(--w), -85vh); }
+}
+
+/* crown: a slow gilded sunburst, a crown descends onto the card, gold leaves fall */
+.fs-sunburst {
+    top: 50%; left: 50%;
+    width: max(140vmax, 1200px); aspect-ratio: 1;
+    background: repeating-conic-gradient(from 0deg, rgba(253, 230, 138, 0.3) 0deg 4deg, transparent 4deg 12deg);
+    -webkit-mask: radial-gradient(circle, #000 0%, transparent 45%);
+    mask: radial-gradient(circle, #000 0%, transparent 45%);
+    animation: fs-burst-in 1.2s cubic-bezier(0.16, 1, 0.3, 1) both, fw-rays-turn 30s linear 1.2s infinite;
+    transform: translate(-50%, -50%);
+}
+.fs-sunburst--dawn { top: 85%; }
+
+@keyframes fs-burst-in {
+    from { opacity: 0; transform: translate(-50%, -50%) scale(0.3) rotate(-30deg); }
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+}
+
+.fs-halo {
+    top: 50%; left: 50%;
+    width: 640px; height: 640px; margin: -320px 0 0 -320px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 247, 214, 0.5), rgba(251, 191, 36, 0.2) 40%, transparent 65%);
+    animation: fs-halo 2.4s ease-in-out infinite alternate;
+}
+
+@keyframes fs-halo { from { opacity: 0.6; transform: scale(0.95); } to { opacity: 1; transform: scale(1.05); } }
+
+.fs-crown {
+    top: calc(50% - min(47dvh, 450px) - 30px);
+    left: 50%;
+    font-size: 64px;
+    filter: drop-shadow(0 0 18px rgba(251, 191, 36, 0.9));
+    animation: fs-crown 1.1s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both, fs-crown-bob 2.4s ease-in-out 1.4s infinite;
+}
+
+@keyframes fs-crown {
+    0% { opacity: 0; transform: translate(-50%, -140px) rotate(-25deg) scale(0.5); }
+    100% { opacity: 1; transform: translate(-50%, 0) rotate(0deg) scale(1); }
+}
+
+@keyframes fs-crown-bob {
+    0%, 100% { transform: translate(-50%, 0); }
+    50% { transform: translate(-50%, -8px); }
+}
+
+.fs-leaf, .fs-rain, .fs-ash, .fs-feather {
+    top: -40px; left: var(--x);
+    animation: fs-fall var(--t) linear var(--d) infinite;
+}
+
+.fs-leaf {
+    width: calc(12px * var(--s)); height: calc(7px * var(--s));
+    border-radius: 60% 0;
+    background: linear-gradient(135deg, #fff3c4, #f5c95a 50%, #b45309);
+}
+
+@keyframes fs-fall {
+    0% { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+    10% { opacity: 1; }
+    50% { transform: translate(var(--w), 55vh) rotate(calc(var(--r) * 0.5)); }
+    100% { opacity: 0.2; transform: translate(0, 110vh) rotate(var(--r)); }
+}
+
+/* prism: aurora ribbons and crystal shards */
+.fs-aurora {
+    top: 30%; left: -20%;
+    width: 140%; height: 34%;
+    border-radius: 50%;
+    background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.45), rgba(167, 139, 250, 0.5), rgba(244, 114, 182, 0.45), transparent);
+    mix-blend-mode: screen;
+    animation: fs-aurora 4s ease-in-out infinite alternate, fw-fade-in 0.8s ease-out both;
+}
+.fs-aurora--b { top: 46%; animation-duration: 5s, 0.8s; animation-delay: -1.5s, 0.1s; transform: rotate(-6deg); }
+.fs-aurora--c { top: 18%; height: 22%; animation-duration: 6s, 0.8s; animation-delay: -3s, 0.2s; background: linear-gradient(90deg, transparent, rgba(52, 211, 153, 0.4), rgba(251, 191, 36, 0.35), transparent); }
+
+@keyframes fs-aurora {
+    from { transform: translateX(-6%) skewY(-4deg) scaleY(0.8); }
+    to { transform: translateX(6%) skewY(4deg) scaleY(1.15); }
+}
+
+.fs-shard {
+    width: calc(14px * var(--s)); height: calc(26px * var(--s));
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+    background: linear-gradient(160deg, #fff, hsl(calc(var(--a) * 1) 90% 70%) 60%, hsl(calc(var(--a) * 1 + 60) 90% 55%));
+}
+
+/* twist: two tarot rings turning against each other, stars orbiting */
+.fs-swirl {
+    top: 50%; left: 50%;
+    width: 640px; height: 640px; margin: -320px 0 0 -320px;
+    border-radius: 50%;
+    background: repeating-conic-gradient(from 0deg, rgba(244, 114, 182, 0.4) 0deg 8deg, transparent 8deg 22deg);
+    -webkit-mask: radial-gradient(circle, transparent 60%, #000 62%, #000 68%, transparent 70%);
+    mask: radial-gradient(circle, transparent 60%, #000 62%, #000 68%, transparent 70%);
+    animation: fs-swirl 9s linear infinite, fw-fade-in 0.6s ease-out both;
+}
+.fs-swirl--rev { width: 820px; height: 820px; margin: -410px 0 0 -410px; animation-direction: reverse, normal; background: repeating-conic-gradient(from 0deg, rgba(192, 132, 252, 0.35) 0deg 4deg, transparent 4deg 14deg); }
+
+@keyframes fs-swirl { to { transform: rotate(360deg); } }
+
+.fs-orbit {
+    top: 50%; left: 50%;
+    color: #f9a8d4;
+    font-size: 20px;
+    text-shadow: 0 0 10px #ec4899;
+    animation: fs-orbit 6s linear infinite, fw-fade-in 0.5s ease-out var(--d) both;
+}
+
+@keyframes fs-orbit {
+    from { transform: rotate(var(--a)) translateY(min(-36dvh, -300px)) rotate(calc(-1 * var(--a))); }
+    to { transform: rotate(calc(var(--a) + 360deg)) translateY(min(-36dvh, -300px)) rotate(calc(-1 * var(--a) - 360deg)); }
+}
+
+/* trial: a gong's ripples, a shockwave and dust where the card lands */
+.fs-ripple {
+    top: 50%; left: 50%;
+    width: 500px; height: 500px; margin: -250px 0 0 -250px;
+    border-radius: 50%;
+    border: 3px solid #5eead4;
+    box-shadow: 0 0 24px rgba(45, 212, 191, 0.6);
+    opacity: 0;
+    animation: fs-ring 1.6s cubic-bezier(0.16, 1, 0.3, 1) 0.35s infinite;
+}
+.fs-ripple--2 { animation-delay: 0.85s; }
+.fs-ripple--3 { animation-delay: 1.35s; }
+
+.fs-shock {
+    top: calc(50% + min(40dvh, 380px)); left: 10%;
+    width: 80%; height: 4px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, #ccfbf1, rgba(45, 212, 191, 0.6) 40%, transparent 70%);
+    opacity: 0;
+    animation: fs-shock 0.7s ease-out 0.38s both;
+}
+
+@keyframes fs-shock {
+    0% { opacity: 1; transform: scaleX(0.2); }
+    100% { opacity: 0; transform: scaleX(1.4) scaleY(4); }
+}
+
+.fs-dust {
+    top: calc(50% + min(40dvh, 380px) - 20px); left: var(--x);
+    width: calc(40px * var(--s)); height: calc(40px * var(--s));
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(204, 251, 241, 0.5), transparent 65%);
+    opacity: 0;
+    animation: fs-dust 0.9s ease-out 0.38s both;
+}
+
+@keyframes fs-dust {
+    0% { opacity: 0.9; transform: translate(0, 0) scale(0.4); }
+    100% { opacity: 0; transform: translate(var(--w), -40px) scale(1.6); }
+}
+
+/* storm: clouds roll in, rain falls, lightning strikes (twice) */
+.fs-cloud {
+    top: -8%;
+    width: 70%; height: 46%;
+    background:
+        radial-gradient(closest-side circle at 28% 58%, rgba(71, 85, 105, 0.95) 0 45%, rgba(51, 65, 85, 0) 100%),
+        radial-gradient(closest-side circle at 52% 42%, rgba(100, 116, 139, 0.9) 0 40%, rgba(71, 85, 105, 0) 100%),
+        radial-gradient(closest-side circle at 74% 60%, rgba(51, 65, 85, 0.95) 0 45%, rgba(30, 41, 59, 0) 100%),
+        radial-gradient(closest-side ellipse at 50% 72%, rgba(15, 23, 42, 0.95) 0 55%, rgba(15, 23, 42, 0) 100%);
+    filter: drop-shadow(0 18px 30px rgba(2, 6, 23, 0.6));
+    opacity: 0.92;
+}
+.fs-cloud--l { left: -12%; animation: fs-cloud-l 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.fs-cloud--r { right: -12%; transform: scaleX(-1); animation: fs-cloud-r 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both; }
+
+@keyframes fs-cloud-l { from { transform: translateX(-60%); opacity: 0; } to { transform: none; opacity: 0.92; } }
+@keyframes fs-cloud-r { from { transform: translateX(60%) scaleX(-1); opacity: 0; } to { transform: scaleX(-1); opacity: 0.92; } }
+
+/* braved: the same clouds part and the sun breaks through */
+.fs-cloud--l.fs-cloud--part { animation: fs-cloud-l 0.6s ease-out both, fs-part-l 1.2s cubic-bezier(0.6, 0, 0.2, 1) 0.6s both; }
+.fs-cloud--r.fs-cloud--part { animation: fs-cloud-r 0.6s ease-out both, fs-part-r 1.2s cubic-bezier(0.6, 0, 0.2, 1) 0.6s both; }
+
+@keyframes fs-part-l { to { transform: translateX(-70%); opacity: 0; } }
+@keyframes fs-part-r { to { transform: translateX(70%) scaleX(-1); opacity: 0; } }
+
+.fs-sunbeam {
+    top: -10%; left: 50%;
+    width: 60%; height: 120%;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg, rgba(254, 243, 199, 0.55), rgba(251, 191, 36, 0.15) 60%, transparent);
+    clip-path: polygon(40% 0, 60% 0, 100% 100%, 0 100%);
+    mix-blend-mode: screen;
+    animation: fw-fade-in 0.8s ease-out 0.9s both;
+}
+
+.fs-shieldring {
+    top: 50%; left: 50%;
+    width: 560px; height: 560px; margin: -280px 0 0 -280px;
+    border-radius: 50%;
+    border: 4px solid #93c5fd;
+    box-shadow: 0 0 30px rgba(96, 165, 250, 0.8), inset 0 0 30px rgba(96, 165, 250, 0.6);
+    opacity: 0;
+    animation: fs-ring 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.9s both;
+}
+.fs-shieldring--late { animation-delay: 1.15s; }
+
+.fs-rain {
+    width: 2px; height: calc(26px * var(--s));
+    background: linear-gradient(180deg, transparent, rgba(186, 230, 253, 0.7));
+    animation-duration: calc(var(--t) * 0.25);
+    animation-name: fs-rain;
+}
+
+@keyframes fs-rain {
+    0% { opacity: 0; transform: translate(0, 0) rotate(12deg); }
+    15% { opacity: 1; }
+    100% { opacity: 0.6; transform: translate(-60px, 110vh) rotate(12deg); }
+}
+
+.fs-flash {
+    inset: 0;
+    background: #e0f2fe;
+    opacity: 0;
+    animation: fs-flash 2.4s linear 0.35s both;
+}
+
+@keyframes fs-flash {
+    0%, 100% { opacity: 0; }
+    2% { opacity: 0.75; }
+    5% { opacity: 0; }
+    8% { opacity: 0.45; }
+    11% { opacity: 0; }
+    62% { opacity: 0; }
+    64% { opacity: 0.5; }
+    67% { opacity: 0; }
+}
+
+.fs-bolt {
+    top: 4%; left: 18%;
+    width: 60px; height: 180px;
+    fill: #fef9c3;
+    filter: drop-shadow(0 0 12px #fde047) drop-shadow(0 0 30px #facc15);
+    opacity: 0;
+    animation: fs-bolt 2.4s linear 0.35s both;
+}
+
+@keyframes fs-bolt {
+    0%, 100% { opacity: 0; }
+    2%, 9% { opacity: 1; }
+    12% { opacity: 0; }
+    62% { opacity: 0; transform: translateX(62vw) scaleX(-1); }
+    64%, 68% { opacity: 1; transform: translateX(62vw) scaleX(-1); }
+    71% { opacity: 0; transform: translateX(62vw) scaleX(-1); }
+}
+
+/* eclipse: the sky dims, a dark moon slides over the sun, ash drifts down */
+.fs-dim { inset: 0; background: radial-gradient(circle at 50% 18%, transparent 10%, rgba(2, 0, 10, 0.55) 60%); animation: fw-fade-in 1s ease-out both; }
+
+.fs-sun {
+    top: 6%; left: 50%;
+    width: 130px; height: 130px; margin-left: -65px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff7d6, #fbbf24 60%, #f59e0b);
+    box-shadow: 0 0 40px 10px rgba(251, 191, 36, 0.6), 0 0 120px 40px rgba(251, 191, 36, 0.25);
+    animation: fs-corona 1.6s ease-in 0.6s both;
+}
+
+.fs-moon {
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #1e1b4b, #020010 70%);
+    animation: fs-moon 1.4s cubic-bezier(0.4, 0, 0.2, 1) 0.15s both;
+}
+
+@keyframes fs-moon { from { transform: translateX(-140%); } to { transform: none; } }
+@keyframes fs-corona {
+    from { box-shadow: 0 0 40px 10px rgba(251, 191, 36, 0.6), 0 0 120px 40px rgba(251, 191, 36, 0.25); }
+    to { box-shadow: 0 0 14px 4px rgba(254, 243, 199, 0.95), 0 0 60px 12px rgba(167, 139, 250, 0.55); }
+}
+
+.fs-ash {
+    width: calc(5px * var(--s)); height: calc(5px * var(--s));
+    border-radius: 50%;
+    background: rgba(148, 163, 184, 0.7);
+}
+
+/* dawn: a golden sun rises behind the card */
+.fs-horizon {
+    left: 50%; bottom: -30%;
+    width: 520px; height: 520px; margin-left: -260px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff7d6, #fbbf24 45%, rgba(251, 146, 60, 0.5) 62%, transparent 72%);
+    animation: fs-rise 1.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes fs-rise { from { transform: translateY(40%); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* envoy: feathers drift down as the letter unfolds, a seal stamps the card */
+.fs-feather { font-size: calc(26px * var(--s)); animation-duration: calc(var(--t) * 1.6); }
+
+.fs-seal {
+    top: calc(50% - min(44dvh, 400px)); left: calc(50% + min(24vw, 230px));
+    font-size: 46px;
+    filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.5));
+    animation: fs-stamp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.55s both;
+}
+
+@keyframes fs-stamp {
+    0% { opacity: 0; transform: scale(2.4) rotate(-30deg); }
+    100% { opacity: 1; transform: scale(1) rotate(-12deg); }
+}
+
+/* mischief: purple fog curls in, little tricks fly out */
+.fs-fog {
+    bottom: -20%; left: -20%;
+    width: 140%; height: 70%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at 30% 60%, rgba(124, 58, 237, 0.45), transparent 55%), radial-gradient(ellipse at 70% 50%, rgba(76, 29, 149, 0.5), transparent 55%);
+    animation: fs-fog 6s ease-in-out infinite alternate, fw-fade-in 0.8s ease-out both;
+}
+.fs-fog--b { top: -25%; bottom: auto; animation-delay: -3s, 0.1s; }
+
+@keyframes fs-fog { from { transform: translateX(-8%) scale(1); } to { transform: translateX(8%) scale(1.1); } }
+
+/* ── Each kind of card is dealt in its own way ───────────────────────────── */
+
+.fw-reveal-layer__shell[data-fate="coins"],
+.fw-reveal-layer__shell[data-fate="blaze"] { animation: fw-deal-rise 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.fw-reveal-layer__shell[data-fate="starfall"] { animation: fw-deal-swoop 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.fw-reveal-layer__shell[data-fate="crown"],
+.fw-reveal-layer__shell[data-fate="dawn"] { animation: fw-deal-ascend 1s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.fw-reveal-layer__shell[data-fate="prism"] {
+    animation: fw-deal-ascend 1s cubic-bezier(0.16, 1, 0.3, 1) both, fw-shell-mythic-pulse 2.6s ease-in-out 1s infinite;
+}
+.fw-reveal-layer__shell[data-fate="twist"] { animation: fw-deal-flip 0.9s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.fw-reveal-layer__shell[data-fate="trial"] { animation: fw-deal-slam 0.55s cubic-bezier(0.55, 0, 0.75, 0.2) both, fw-deal-thud 0.4s ease-out 0.38s both; }
+.fw-reveal-layer__shell[data-fate="storm"],
+.fw-reveal-layer__shell[data-fate="mischief"] { animation: fw-deal-blown 0.7s cubic-bezier(0.22, 1, 0.36, 1) both, fw-deal-shake 0.5s ease-in-out 0.7s both; }
+.fw-reveal-layer__shell[data-fate="shield"] { animation: fw-deal-rise 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.fw-reveal-layer__shell[data-fate="eclipse"] { animation: fw-deal-dark 1.1s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.fw-reveal-layer__shell[data-fate="envoy"] { animation: fw-deal-unfold 0.9s cubic-bezier(0.22, 1, 0.36, 1) both; transform-origin: 50% 0; }
+
+@keyframes fw-deal-rise {
+    0% { opacity: 0; transform: translateY(60px) scale(0.85); }
+    100% { opacity: 1; transform: none; }
+}
+
+@keyframes fw-deal-swoop {
+    0% { opacity: 0; transform: translate(40vw, -30vh) rotate(18deg) scale(0.6); }
+    100% { opacity: 1; transform: none; }
+}
+
+@keyframes fw-deal-ascend {
+    0% { opacity: 0; transform: scale(0.6); }
+    55% { opacity: 1; transform: scale(1.04); }
+    100% { opacity: 1; transform: none; }
+}
+
+@keyframes fw-deal-flip {
+    0% { opacity: 0; transform: perspective(1200px) rotateY(-180deg) scale(0.8); }
+    45% { opacity: 1; }
+    100% { opacity: 1; transform: perspective(1200px) rotateY(0) scale(1); }
+}
+
+@keyframes fw-deal-slam {
+    0% { opacity: 0; transform: translateY(-70vh) scale(1.1); }
+    100% { opacity: 1; transform: none; }
+}
+
+@keyframes fw-deal-thud {
+    0% { transform: scale(1.04, 0.94); }
+    100% { transform: none; }
+}
+
+@keyframes fw-deal-blown {
+    0% { opacity: 0; transform: translate(-30vw, -10vh) rotate(-14deg); }
+    100% { opacity: 1; transform: none; }
+}
+
+@keyframes fw-deal-shake {
+    0%, 100% { transform: none; }
+    20%, 60% { transform: translateX(-7px) rotate(-0.6deg); }
+    40%, 80% { transform: translateX(7px) rotate(0.6deg); }
+}
+
+@keyframes fw-deal-dark {
+    0% { opacity: 0; transform: scale(1.25); filter: brightness(0.2); }
+    100% { opacity: 1; transform: none; filter: none; }
+}
+
+@keyframes fw-deal-unfold {
+    0% { opacity: 0; transform: scaleY(0.05); }
+    60% { opacity: 1; transform: scaleY(1.03); }
+    100% { opacity: 1; transform: none; }
+}
+
+/* Weak laptops: the scenes are thinned in JS; the big moving layers go */
+#fortunes-wheel-modal.fw--lite :is(.fs-aurora, .fs-fog, .fs-swirl--rev, .fs-halo, .fs-ripple--3, .fs-ember) { display: none; }
+#fortunes-wheel-modal.fw--lite .fw-reveal-layer__shell[data-fate] { animation: fw-deal-rise 0.4s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+    .fw-splash { display: none !important; }
+    .fw-guild-banner,
+    .fw-card[data-phase="ready"] .fw-btn-primary:not(:disabled),
+    .fw-card[data-phase="ready"] .fw-btn-primary:not(:disabled)::before,
+    .fw-reveal-layer__shell[data-fate] { animation: none !important; }
+    #fortunes-wheel-modal .fw-card--waking :is(.fw-progress-rail, .fw-wing > *, .fw-canvas-wrap, .fw-dormant, .fw-stage-dock, .fw-marquee__bulb, .fw-waking) { transition: none; animation: none; }
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+
+/* Mid widths: narrower wings */
+@media (max-width: 1180px) {
+    .fw-main-layout { grid-template-columns: minmax(200px, 240px) minmax(0, 1fr) minmax(200px, 240px); gap: 1rem; }
+    .fw-wheel-legend__chips { grid-template-columns: minmax(0, 1fr); }
+    .fw-guild-banner__crest { width: 68px; height: 68px; }
+    .fw-guild-banner__name { font-size: 1.2rem; }
+}
+
+@media (max-height: 760px) and (min-width: 900px) {
+    .fw-kicker { display: none; }
+    .fw-crest__moon { display: none; }
+    .fw-title { font-size: clamp(1.4rem, 2.4vw, 1.9rem); }
+    .fw-progress-pill__name { display: none; }
+    .fw-guild-banner { padding: 1rem 0.8rem 2rem; }
+    .fw-guild-banner__crest { width: 60px; height: 60px; }
+    .fw-actions .fw-btn-primary { min-height: 3.4rem; }
+    .fw-stage-caption { padding: 0.3rem 0.9rem; font-size: 0.78rem; }
+}
+
+/* Phones and narrow screens: one column — banner, wheel, spin (kept in reach), heroes, fates */
+@media (max-width: 899px), (max-height: 599px) {
+    .fw-content-unified { padding: 1.6rem 0.9rem 1rem; }
+    .fw-main-layout { display: flex; flex-direction: column; gap: 0.9rem; flex: none; }
+    .fw-wing { display: contents; }
+    .fw-guild-header-pill { order: 1; }
+    .fw-stage-section { order: 2; }
+    .fw-guild-members-panel { order: 3; }
+    .fw-wheel-legend { order: 4; }
+    .fw-availability-card { order: 5; }
+    .fw-result-card { order: 3; }
+
+    .fw-wheel-container { container-type: inline-size; flex: none; }
+    .fw-stage-frame { width: min(100cqw, 440px); }
+
+    .fw-guild-banner {
+        flex-direction: row;
+        text-align: left;
+        gap: 0.8rem;
+        padding: 0.9rem 1.2rem 0.9rem;
+        clip-path: polygon(0 0, 100% 0, calc(100% - 18px) 50%, 100% 100%, 0 100%);
+        animation: none;
+    }
+    .fw-guild-banner__crest { width: 56px; height: 56px; }
+    .fw-guild-banner__name { font-size: 1.2rem; }
+    .fw-guild-banner__flag { position: static; margin-left: auto; margin-right: 1rem; }
+
+    .fw-stage-dock { width: 100%; position: sticky; bottom: 0.4rem; z-index: 5; }
+    .fw-stage-dock .fw-stage-caption { display: none; }
+    .fw-card[data-phase="summary"] .fw-actions { flex-direction: column; }
+
+    .fw-progress-pill__name { display: none; }
+
+    .fw-splash { --m: min(62vw, 280px); --cy: 40%; }
+    .fw-splash__title { font-size: clamp(1.8rem, 9vw, 2.6rem); }
+    .fw-splash__sub { top: calc(var(--cy) + var(--m) / 2 + 4.5vh + 3rem); }
+}

@@ -2,6 +2,7 @@
 
 import { quietly } from '../utils/runtimeMetrics.js';
 import '../styles/fortunes_wheel.css';
+import '../styles/fortunes_wheel_stage.css';
 import * as state from '../state.js';
 import { db, doc, updateDoc } from '../firebase.js';
 import { GUILD_IDS, getGuildById, getGuildEmblemUrl } from './guilds.js';
@@ -2057,8 +2058,12 @@ export async function openFortunesWheel() {
     _setCardPhase('idle');
     _hideResultReveal();
     document.getElementById('fw-summary')?.classList.add('hidden');
+    modal.classList.remove('fw--sealed');
+    _launchHallButton();
     showAnimatedModal('fortunes-wheel-modal');
     const openedAt = performance.now();
+    // The splash bursts out of the Guild Hall button; the ceremony is laid out (concealed) behind it.
+    const splashMs = _playSplash(modal, 'open');
 
     const { classId, leagueLevel } = _headerClass();
     // Lays the ceremony out now (same task as the card's first frame); waits only when the
@@ -2068,7 +2073,7 @@ export async function openFortunesWheel() {
     await _imagesSettled(card, 400);
     if (seq !== _openSeq) return;
     // Let the card start rising before its contents awaken, so the two read as one movement.
-    const lead = Math.max(0, AWAKEN_LEAD_MS - (performance.now() - openedAt));
+    const lead = Math.max(0, (splashMs ? splashMs - SPLASH_HANDOFF_MS : AWAKEN_LEAD_MS) - (performance.now() - openedAt));
     setTimeout(() => _awaken(card, seq), lead);
 }
 
@@ -2517,7 +2522,7 @@ function _pulseStage(stageFrame, cls, ms) {
 /** Opens the reveal layer as an empty, family-themed card for an interactive moment. */
 function _openStageCard(seg) {
     const conf = getRarityPalette(seg.rarity, seg.paletteIndex);
-    _showResultReveal({ cardHtml: '', rarity: seg.rarity, rarityColor: conf.color, rarityGlow: conf.glow, rarityBg: conf.bg });
+    _showResultReveal({ cardHtml: '', rarity: seg.rarity, rarityColor: conf.color, rarityGlow: conf.glow, rarityBg: conf.bg, fate: _fateOf(seg) });
     return document.getElementById('fw-reveal-card');
 }
 
@@ -2678,6 +2683,7 @@ export function advanceWheel() {
         _wheelState.winnerIndex = null;
         _wheelState.rotationAngle = 0;
         _renderWheelPhase();
+        _playTurnIn();
     } else {
         _wheelState.phase = 'summary';
         _renderWheelSummary();
@@ -2712,7 +2718,86 @@ export async function closeFortunesWheel() {
     // Leave the card exactly as it is while it animates out; re-rendering it
     // here flashed the idle roster panel inside the closing card.
     // openFortunesWheel resets the view before the next opening.
+    await _closeWithSplash();
+}
+
+// ── Opening / closing splash ─────────────────────────────────────────────────
+
+const SPLASH_OPEN_MS = 1400;
+const SPLASH_OPEN_LITE_MS = 650;
+const SPLASH_HANDOFF_MS = 420;   // the wheel starts waking this long before the splash is gone
+const SPLASH_CLOSE_COVER_MS = 380;
+const SPLASH_CLOSE_MS = 980;
+let _splashTimer = null;
+
+/** Where the splash bursts from / folds back into: the Guild Hall button, else the middle of the screen. */
+function _splashOrigin(modal) {
+    const btn = document.getElementById('fortunes-wheel-btn');
+    const r = btn?.getBoundingClientRect?.();
+    const visible = r && r.width > 0 && r.bottom > 0 && r.top < window.innerHeight;
+    const x = visible ? r.left + Math.min(r.width, 48) / 2 + 4 : window.innerWidth / 2;
+    const y = visible ? r.top + r.height / 2 : window.innerHeight / 2;
+    modal.style.setProperty('--sx', `${Math.round(x)}px`);
+    modal.style.setProperty('--sy', `${Math.round(y)}px`);
+}
+
+/** Plays the splash ('open' | 'close'); returns its length in ms (0 when there is none). */
+function _playSplash(modal, kind) {
+    const splash = document.getElementById('fw-splash');
+    if (!splash || _reducedMotion()) return 0;
+    const lite = _isLite();
+    _splashOrigin(modal);
+    clearTimeout(_splashTimer);
+    splash.classList.remove('is-open', 'is-close', 'is-lite');
+    void splash.offsetWidth;
+    const sub = splash.querySelector('.fw-splash__sub');
+    if (sub) sub.textContent = kind === 'open' ? 'The relic awakens' : 'The relic sleeps until next week';
+    splash.classList.toggle('is-lite', lite);
+    splash.classList.add(kind === 'open' ? 'is-open' : 'is-close');
+    const ms = kind === 'open' ? (lite ? SPLASH_OPEN_LITE_MS : SPLASH_OPEN_MS) : (lite ? 520 : SPLASH_CLOSE_MS);
+    if (kind === 'open') {
+        try { playSound('magic_chime'); } catch (_) { /* optional */ }
+        _splashTimer = setTimeout(() => splash.classList.remove('is-open', 'is-lite'), ms);
+    }
+    return ms;
+}
+
+/** Close: the night folds over the card, then shrinks back into the Guild Hall button. */
+async function _closeWithSplash() {
+    const modal = document.getElementById('fortunes-wheel-modal');
+    const ms = modal ? _playSplash(modal, 'close') : 0;
+    if (!ms) { hideModal('fortunes-wheel-modal'); return; }
+    const lite = _isLite();
+    await new Promise((r) => setTimeout(r, lite ? 200 : SPLASH_CLOSE_COVER_MS));
+    modal.classList.add('fw--sealed');
     hideModal('fortunes-wheel-modal');
+    await new Promise((r) => setTimeout(r, ms - (lite ? 200 : SPLASH_CLOSE_COVER_MS)));
+    document.getElementById('fw-splash')?.classList.remove('is-close', 'is-lite');
+    const btn = document.getElementById('fortunes-wheel-btn');
+    if (btn && typeof btn.animate === 'function' && !lite) {
+        btn.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.08)' }, { transform: 'scale(1)' }], { duration: 420, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' });
+    }
+}
+
+/** The little wheel on the Guild Hall button whirls as the relic is opened. */
+function _launchHallButton() {
+    const btn = document.getElementById('fortunes-wheel-btn');
+    if (!btn) return;
+    btn.classList.remove('is-launching');
+    void btn.offsetWidth;
+    btn.classList.add('is-launching');
+    setTimeout(() => btn.classList.remove('is-launching'), 1200);
+}
+
+/** A new guild steps up: the banner drops in again, the heroes and the fates come in one by one. */
+function _playTurnIn() {
+    const card = document.querySelector('#fortunes-wheel-modal .fw-card');
+    if (!card || _reducedMotion()) return;
+    clearTimeout(card._fwTurnTimer);
+    card.classList.remove('fw-card--turn');
+    void card.offsetWidth;
+    card.classList.add('fw-card--turn');
+    card._fwTurnTimer = setTimeout(() => card.classList.remove('fw-card--turn'), 1600);
 }
 
 // ── Internal UI helpers ──────────────────────────────────────────────────────
@@ -2893,6 +2978,8 @@ function _hideResultReveal() {
     const secondaryBtn = document.getElementById('fw-reveal-secondary-btn');
     if (revealLayer) revealLayer.classList.add('hidden');
     if (revealCard) revealCard.innerHTML = '';
+    revealLayer?.querySelectorAll('.fw-fate-scene').forEach((el) => { el.innerHTML = ''; });
+    if (revealLayer) delete revealLayer.dataset.fate;
     if (primaryBtn) {
         primaryBtn.classList.add('hidden');
         primaryBtn.onclick = null;
@@ -2912,7 +2999,7 @@ function _hideResultReveal() {
     }
 }
 
-function _showResultReveal({ cardHtml, rarity = 'common', rarityColor = null, rarityGlow = null, rarityBg = null, isPrismatic = false, primaryAction = null, secondaryAction = null, wide = null }) {
+function _showResultReveal({ cardHtml, rarity = 'common', rarityColor = null, rarityGlow = null, rarityBg = null, isPrismatic = false, primaryAction = null, secondaryAction = null, wide = null, fate = null }) {
     const revealLayer = document.getElementById('fw-reveal-layer');
     const revealCard = document.getElementById('fw-reveal-card');
     const primaryBtn = document.getElementById('fw-reveal-primary-btn');
@@ -2960,7 +3047,122 @@ function _showResultReveal({ cardHtml, rarity = 'common', rarityColor = null, ra
         secondaryBtn.onclick = null;
     }
 
+    // A newly dealt card gets its own hand-made entrance and scene; a card filled in place keeps its own.
+    if (cardHtml !== null) _stageFateScene(revealLayer, shell, fate || rarity);
+
     revealLayer.classList.remove('hidden');
+}
+
+// ── Fate scenes: every kind of fate deals its card in its own way ─────────────
+
+/** Which scene a wedge's card gets. */
+function _fateOf(seg, { braved = false } = {}) {
+    if (!seg) return 'coins';
+    if (braved) return 'shield';
+    if (seg.rarity === 'storm') return 'storm';
+    if (seg.rarity === 'omen') return seg.harsh ? 'eclipse' : 'dawn';
+    if (seg.rarity === 'envoy') return seg.harsh ? 'mischief' : 'envoy';
+    if (seg.rarity === 'twist' || seg.rarity === 'trial') return seg.rarity;
+    return ({ rare: 'starfall', epic: 'blaze', legendary: 'crown', mythic: 'prism' })[seg.rarity] || 'coins';
+}
+
+const _rand = (min, max) => min + Math.random() * (max - min);
+const _bits = (n, make) => Array.from({ length: n }, (_, i) => make(i)).join('');
+
+/** The scene's pieces: `back` sits behind the card, `front` in front of it (never catching clicks). */
+function _fateSceneHtml(fate, lite) {
+    const k = lite ? 0.4 : 1;
+    const n = (count) => Math.max(2, Math.round(count * k));
+    const fall = (cls, count, inner = '') => _bits(n(count), (i) => `<i class="${cls}" style="--x:${_rand(2, 98).toFixed(1)}%;--d:${_rand(0, 1.4).toFixed(2)}s;--t:${_rand(2.6, 4.6).toFixed(2)}s;--s:${_rand(0.7, 1.3).toFixed(2)};--r:${Math.round(_rand(-180, 180))}deg;--w:${Math.round(_rand(-40, 40))}px">${inner}</i>`);
+    const burst = (cls, count, inner = '', dist = [160, 340]) => _bits(n(count), (i) => {
+        const a = (i / n(count)) * 360 + _rand(-10, 10);
+        return `<i class="${cls}" style="--a:${a.toFixed(0)}deg;--dist:${Math.round(_rand(dist[0], dist[1]))}px;--d:${_rand(0, 0.25).toFixed(2)}s;--s:${_rand(0.6, 1.2).toFixed(2)}">${inner}</i>`;
+    });
+    switch (fate) {
+    case 'coins': return {
+        back: '<i class="fs-glow"></i>',
+        front: _bits(n(20), (i) => `<i class="fs-coin" style="--x:${_rand(-260, 260).toFixed(0)}px;--h:${_rand(200, 380).toFixed(0)}px;--d:${_rand(0, 0.5).toFixed(2)}s;--r:${Math.round(_rand(360, 1080))}deg;--s:${_rand(0.8, 1.4).toFixed(2)}"><i class="gq-gold"></i></i>`),
+    };
+    case 'starfall': return {
+        back: '<i class="fs-glow"></i>' + _bits(n(9), (i) => `<i class="fs-shoot" style="--y:${_rand(-10, 70).toFixed(0)}%;--x:${_rand(10, 90).toFixed(0)}%;--d:${(i * 0.32 + _rand(0, 0.2)).toFixed(2)}s"></i>`),
+        front: burst('fs-twinkle', 14, '✦', [180, 320]),
+    };
+    case 'blaze': return {
+        back: '<i class="fs-firering"></i><i class="fs-firering fs-firering--late"></i><i class="fs-glow"></i>',
+        front: _bits(n(26), (i) => `<i class="fs-ember" style="--x:${_rand(5, 95).toFixed(1)}%;--d:${_rand(0, 2).toFixed(2)}s;--t:${_rand(1.8, 3.2).toFixed(2)}s;--w:${Math.round(_rand(-50, 50))}px;--s:${_rand(0.5, 1.2).toFixed(2)}"></i>`),
+    };
+    case 'crown': return {
+        back: '<i class="fs-sunburst"></i><i class="fs-halo"></i>',
+        front: '<i class="fs-crown">👑</i>' + fall('fs-leaf', 22),
+    };
+    case 'prism': return {
+        back: '<i class="fs-aurora"></i><i class="fs-aurora fs-aurora--b"></i><i class="fs-aurora fs-aurora--c"></i>',
+        front: burst('fs-shard', 18, '', [200, 420]),
+    };
+    case 'twist': return {
+        back: '<i class="fs-swirl"></i><i class="fs-swirl fs-swirl--rev"></i>',
+        front: _bits(n(10), (i) => `<i class="fs-orbit" style="--a:${i * 36}deg;--d:${(i * 0.06).toFixed(2)}s">✦</i>`),
+    };
+    case 'trial': return {
+        back: '<i class="fs-ripple"></i><i class="fs-ripple fs-ripple--2"></i><i class="fs-ripple fs-ripple--3"></i>',
+        front: '<i class="fs-shock"></i>' + _bits(n(8), (i) => `<i class="fs-dust" style="--x:${(8 + i * 12).toFixed(0)}%;--w:${Math.round(_rand(-60, 60))}px;--s:${_rand(0.7, 1.3).toFixed(2)}"></i>`),
+    };
+    case 'storm': return {
+        back: '<i class="fs-cloud fs-cloud--l"></i><i class="fs-cloud fs-cloud--r"></i>' + fall('fs-rain', 36),
+        front: '<i class="fs-flash"></i><svg class="fs-bolt" viewBox="0 0 40 120" aria-hidden="true"><path d="M24 0 6 62h14L10 120 36 46H21L30 0z"/></svg>',
+    };
+    case 'shield': return {
+        back: '<i class="fs-cloud fs-cloud--l fs-cloud--part"></i><i class="fs-cloud fs-cloud--r fs-cloud--part"></i><i class="fs-sunbeam"></i>',
+        front: '<i class="fs-shieldring"></i><i class="fs-shieldring fs-shieldring--late"></i>',
+    };
+    case 'eclipse': return {
+        back: '<i class="fs-dim"></i><i class="fs-sun"><i class="fs-moon"></i></i>',
+        front: fall('fs-ash', 20),
+    };
+    case 'dawn': return {
+        back: '<i class="fs-horizon"></i><i class="fs-sunburst fs-sunburst--dawn"></i>',
+        front: burst('fs-twinkle', 16, '✦', [160, 360]),
+    };
+    case 'envoy': return {
+        back: '<i class="fs-glow fs-glow--parchment"></i>',
+        front: fall('fs-feather', 9, '🪶') + '<i class="fs-seal">📜</i>',
+    };
+    case 'mischief': return {
+        back: '<i class="fs-fog"></i><i class="fs-fog fs-fog--b"></i>',
+        front: burst('fs-trick', 10, '✧', [140, 300]),
+    };
+    default: return { back: '', front: '' };
+    }
+}
+
+/** Builds the fate's scene around the reveal card and sets its entrance. */
+function _stageFateScene(layer, shell, fate) {
+    let back = layer.querySelector('.fw-fate-scene--back');
+    let front = layer.querySelector('.fw-fate-scene--front');
+    if (!back) {
+        back = document.createElement('div');
+        back.className = 'fw-fate-scene fw-fate-scene--back';
+        back.setAttribute('aria-hidden', 'true');
+        layer.querySelector('.fw-reveal-layer__shell')?.before(back);
+    }
+    if (!front) {
+        front = document.createElement('div');
+        front.className = 'fw-fate-scene fw-fate-scene--front';
+        front.setAttribute('aria-hidden', 'true');
+        layer.append(front);
+    }
+    const reduced = _reducedMotion();
+    const scene = reduced ? { back: '', front: '' } : _fateSceneHtml(fate, _isLite());
+    layer.dataset.fate = fate;
+    back.innerHTML = scene.back;
+    front.innerHTML = scene.front;
+    if (shell) {
+        shell.dataset.fate = fate;
+        // Restart the entrance even when two cards of the same kind follow each other.
+        shell.style.animation = 'none';
+        void shell.offsetWidth;
+        shell.style.animation = '';
+    }
 }
 
 const _esc = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
@@ -3076,6 +3278,7 @@ function _renderWheelPending(segment, guildDef, { whirlwind = false, braved = fa
         rarityGlow: rarityConf.glow,
         rarityBg: rarityConf.bg,
         isPrismatic: segment.isPrismatic === true,
+        fate: _fateOf(segment, { braved }),
     });
 }
 
@@ -3211,6 +3414,7 @@ function _renderWheelResult(segment, result, guildDef) {
     _showResultReveal({
         wide: Boolean(heroLedgerHtml) && _ledgerIsBig(result),
         cardHtml: settled ? null : cardHtml,
+        fate: _fateOf(segment, { braved: Boolean(result.braved) }),
         rarity: segment.rarity,
         rarityColor: rarityConf.color,
         rarityGlow: rarityConf.glow,

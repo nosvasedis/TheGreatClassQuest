@@ -191,6 +191,72 @@
     border: 2px solid rgba(134, 239, 172, 0.7);
     animation: gh-ring 2s ease-out infinite;
 }
+/* Fortune's Wheel button: a little living wheel that turns, a sheen across the pill, sparks around it */
+.gh-action--wheel { position: relative; overflow: hidden; isolation: isolate; }
+.gh-wheelmini { background: none !important; overflow: visible; }
+.gh-wheelmini__face {
+    position: absolute; inset: 0; border-radius: 50%;
+    background:
+        radial-gradient(circle, transparent 58%, #f5c95a 60% 70%, #7a4b0c 72% 76%, transparent 78%),
+        conic-gradient(#ef4444 0 45deg, #f59e0b 0 90deg, #22c55e 0 135deg, #06b6d4 0 180deg, #6366f1 0 225deg, #a855f7 0 270deg, #ec4899 0 315deg, #eab308 0);
+    box-shadow: 0 0 0 2px #3b2306, 0 0 12px rgba(245, 201, 90, 0.55);
+    animation: gh-wheelmini-turn 9s linear infinite;
+}
+.gh-wheelmini__hub {
+    position: absolute; inset: 36%; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff7d6, #f5c95a 50%, #a8680f);
+    box-shadow: 0 0 0 1.5px #3b2306;
+}
+.gh-wheelmini__pin {
+    position: absolute; top: -5px; left: 50%; width: 9px; height: 11px; margin-left: -4.5px;
+    background: linear-gradient(90deg, #a8680f, #fff3c4, #d99a2b);
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+    transform-origin: 50% 0;
+    animation: gh-wheelmini-tick 0.75s ease-in-out infinite;
+}
+.gh-action--wheel:hover:not(:disabled) .gh-wheelmini__face,
+.gh-action--wheel[data-fw-state="ready"] .gh-wheelmini__face { animation-duration: 2.4s; }
+.gh-action--wheel.is-launching .gh-wheelmini__face { animation: gh-wheelmini-launch 1.1s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.gh-action--wheel.is-launching { transform: scale(0.96); border-color: var(--gh-gold); }
+@keyframes gh-wheelmini-turn { to { transform: rotate(360deg); } }
+@keyframes gh-wheelmini-launch { from { transform: rotate(0); } to { transform: rotate(1440deg); } }
+@keyframes gh-wheelmini-tick { 0%, 70%, 100% { transform: rotate(0); } 80% { transform: rotate(-14deg); } }
+.gh-wheelbtn__sheen {
+    position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background: linear-gradient(105deg, transparent 35%, rgba(255, 236, 170, 0.28) 50%, transparent 65%);
+    transform: translateX(-120%);
+    animation: gh-wheelbtn-sheen 4.5s ease-in-out infinite;
+}
+@keyframes gh-wheelbtn-sheen { 0%, 55% { transform: translateX(-120%); } 85%, 100% { transform: translateX(120%); } }
+.gh-wheelbtn__sparks { position: absolute; left: 0.4rem; top: 50%; width: 2.3rem; height: 2.3rem; margin-top: -1.15rem; pointer-events: none; }
+.gh-wheelbtn__sparks i {
+    position: absolute; top: 50%; left: 50%; width: 4px; height: 4px; border-radius: 50%;
+    background: #fff3c4; box-shadow: 0 0 6px #f5c95a; opacity: 0;
+    animation: gh-wheelbtn-spark 2.8s ease-out infinite;
+}
+.gh-wheelbtn__sparks i:nth-child(1) { --dx: -16px; --dy: -15px; }
+.gh-wheelbtn__sparks i:nth-child(2) { --dx: 17px; --dy: -12px; animation-delay: 0.7s; }
+.gh-wheelbtn__sparks i:nth-child(3) { --dx: 15px; --dy: 16px; animation-delay: 1.4s; }
+.gh-wheelbtn__sparks i:nth-child(4) { --dx: -14px; --dy: 15px; animation-delay: 2.1s; }
+@keyframes gh-wheelbtn-spark {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+    25% { opacity: 1; }
+    100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1); }
+}
+.gh-action--wheel[data-fw-state="ready"] { box-shadow: 0 0 0 1px rgba(134, 239, 172, 0.35), 0 0 22px rgba(245, 201, 90, 0.35); }
+.gh-action--wheel[data-fw-state="ready"]::before {
+    content: ''; position: absolute; inset: 0; z-index: -2; pointer-events: none;
+    background: radial-gradient(60% 140% at 12% 50%, rgba(245, 201, 90, 0.4), transparent 70%);
+    animation: gh-wheelbtn-glow 2.4s ease-in-out infinite;
+}
+@keyframes gh-wheelbtn-glow { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+.gh--lite :is(.gh-wheelbtn__sheen, .gh-wheelbtn__sparks) { display: none; }
+.gh--lite .gh-action--wheel[data-fw-state="ready"]::before { animation: none; }
+.gh--lite .gh-wheelmini__face, .gh--lite .gh-wheelmini__pin { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+    .gh-wheelmini__face, .gh-wheelmini__pin, .gh-wheelbtn__sheen, .gh-wheelbtn__sparks i, .gh-action--wheel[data-fw-state="ready"]::before { animation: none !important; }
+}
 .gh-action__chev {
     margin-left: 0.15rem;
     font-size: 0.7rem;

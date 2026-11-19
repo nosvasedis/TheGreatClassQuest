@@ -448,7 +448,11 @@ function _actionButtonsHtml(seasonLive) {
             <button type="button" id="fortunes-wheel-btn" class="gh-action gh-action--wheel${seasonLive ? '' : ' is-season-frozen'}"
                     data-fw-state="${seasonLive ? 'waiting' : 'locked'}" ${seasonLive ? '' : 'disabled'}
                     aria-label="${seasonLive ? "Open Fortune's Wheel" : "Fortune's Wheel is locked until the school year begins."}">
-                <span class="gh-action__icon" aria-hidden="true"><i class="fa-solid ${seasonLive ? 'fa-dharmachakra' : 'fa-snowflake'}"></i></span>
+                ${seasonLive
+        ? `<span class="gh-action__icon gh-wheelmini" aria-hidden="true"><i class="gh-wheelmini__face"></i><i class="gh-wheelmini__hub"></i><i class="gh-wheelmini__pin"></i></span>
+                <span class="gh-wheelbtn__sparks" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                <span class="gh-wheelbtn__sheen" aria-hidden="true"></span>`
+        : '<span class="gh-action__icon" aria-hidden="true"><i class="fa-solid fa-snowflake"></i></span>'}
                 <span class="gh-action__text">
                     <span class="gh-action__title">Fortune's Wheel</span>
                     <span id="fortunes-wheel-window" class="gh-action__sub" data-state="${seasonLive ? 'waiting' : 'locked'}">${seasonLive ? 'Pick a class first' : 'Season frozen'}</span>

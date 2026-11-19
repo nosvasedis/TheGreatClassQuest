@@ -12,6 +12,9 @@ const MARQUEE_BULBS = Array.from({ length: 24 }, (_, i) => (i % 2
     : `<span class="fw-marquee__bulb" style="--i:${i}"><i></i></span>`)
 ).join('');
 
+const SPLASH_TITLE = [...'Fortune\u2019s Wheel'].map((ch, i) => (ch === ' ' ? '<span class="fw-splash__gap"> </span>' : `<span style="--i:${i}">${ch}</span>`)).join('');
+const SPLASH_SPARKS = Array.from({ length: 14 }, (_, i) => `<span style="--a:${i * (360 / 14)}deg;--d:${(i % 3) * 0.05}s"></span>`).join('');
+
 const ZODIAC_RING = ZODIAC.map((z, i) => `<span style="--i:${i}" data-z="${z}"></span>`).join('');
 
 export const fortunesWheelModalHTML = `
@@ -64,15 +67,16 @@ export const fortunesWheelModalHTML = `
                         <h2 id="fortunes-wheel-title" class="fw-title font-title">Fortune's Wheel</h2>
                         <span class="fw-crest__flourish" aria-hidden="true"></span>
                     </div>
+                    <div id="fw-progress" class="fw-progress-rail" aria-live="polite"></div>
                 </header>
 
                 <div class="fw-main-layout">
-                    <section class="fw-stage-section">
-                        <div class="fw-stage-top">
-                            <div id="fw-guild-header" class="fw-guild-header-pill"></div>
-                            <div id="fw-progress" class="fw-progress-rail" aria-live="polite"></div>
-                        </div>
+                    <aside class="fw-wing fw-wing--left">
+                        <div id="fw-guild-header" class="fw-guild-header-pill"></div>
+                        <div id="fw-guild-members" class="fw-guild-members-panel" aria-live="polite"></div>
+                    </aside>
 
+                    <section class="fw-stage-section">
                         <main class="fw-wheel-container">
                             <div id="fw-stage-frame" class="fw-stage-frame">
                                 <div class="fw-stage-aura-bright" aria-hidden="true"></div>
@@ -110,39 +114,54 @@ export const fortunesWheelModalHTML = `
 
                         <div id="fw-summary" class="fw-summary-card hidden"></div>
 
-                        <div id="fw-stage-caption" class="fw-stage-caption">
-                            Choose a class in the header to awaken the relic and begin the ceremony.
+                        <div class="fw-stage-dock">
+                            <div id="fw-stage-caption" class="fw-stage-caption">
+                                Choose a class in the header to awaken the relic and begin the ceremony.
+                            </div>
+                            <div class="fw-actions">
+                                <button id="fw-spin-btn" type="button" class="bubbly-button fw-btn-primary">
+                                    <span class="fw-btn-primary__label font-title">Spin the Wheel</span>
+                                    <span class="fw-btn-primary__sub">The relic chooses a fate</span>
+                                </button>
+                                <button id="fw-next-btn" type="button" class="bubbly-button fw-btn-secondary hidden">
+                                    <span class="font-title">Next Guild</span>
+                                </button>
+                                <button id="fw-done-btn" type="button" class="bubbly-button fw-btn-success hidden">
+                                    <span class="font-title">Close Ceremony</span>
+                                </button>
+                            </div>
                         </div>
                     </section>
 
-                    <aside class="fw-controls-section">
-                        <div id="fw-guild-members" class="fw-guild-members-panel" aria-live="polite"></div>
-
+                    <aside class="fw-controls-section fw-wing fw-wing--right">
                         <div id="fw-wheel-legend" class="fw-wheel-legend hidden" aria-live="polite"></div>
-
                         <div id="fw-availability" class="fw-availability-card" aria-live="polite">
                             <div id="fw-availability-title" class="fw-availability-title">Awaiting a class</div>
                             <div id="fw-availability-message" class="fw-availability-message">Choose a class in the header to see if the relic can awaken.</div>
                             <div id="fw-availability-meta" class="fw-availability-meta"></div>
                         </div>
-
                         <div id="fw-result" class="fw-result-card hidden"></div>
-
-                        <div class="fw-actions">
-                            <button id="fw-spin-btn" type="button" class="bubbly-button fw-btn-primary">
-                                <span class="fw-btn-primary__label font-title">Spin the Wheel</span>
-                                <span class="fw-btn-primary__sub">The relic chooses a fate</span>
-                            </button>
-                            <button id="fw-next-btn" type="button" class="bubbly-button fw-btn-secondary hidden">
-                                <span class="font-title">Next Guild</span>
-                            </button>
-                            <button id="fw-done-btn" type="button" class="bubbly-button fw-btn-success hidden">
-                                <span class="font-title">Close Ceremony</span>
-                            </button>
-                        </div>
                     </aside>
                 </div>
             </div>
+        </div>
+
+        <div id="fw-splash" class="fw-splash" aria-hidden="true">
+            <div class="fw-splash__sky"></div>
+            <div class="fw-splash__rays"></div>
+            <div class="fw-splash__zodiac">${ZODIAC_RING}</div>
+            <div class="fw-splash__ring"></div>
+            <div class="fw-splash__ring fw-splash__ring--late"></div>
+            <div class="fw-splash__medal">
+                <i class="fw-splash__glow"></i>
+                <i class="fw-splash__wheel"></i>
+                <i class="fw-splash__rim"></i>
+                <i class="fw-splash__hub"></i>
+                <i class="fw-splash__pin"></i>
+            </div>
+            <div class="fw-splash__title font-title">${SPLASH_TITLE}</div>
+            <div class="fw-splash__sub">The relic awakens</div>
+            <div class="fw-splash__sparks">${SPLASH_SPARKS}</div>
         </div>
     </div>
 `;

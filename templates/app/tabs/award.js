@@ -51,6 +51,8 @@ export const awardTabHTML = `
 
                     <div id="award-sky-summary" class="aw-sky-summary hidden" aria-live="polite"></div>
 
+                    <div class="aw-sky-motes" aria-hidden="true"><span class="aw-mote aw-mote--spark" style="--x:8%;--y:12%;--d:5s;--i:0"></span><span class="aw-mote aw-mote--spark" style="--x:92%;--y:18%;--d:6.5s;--i:1"></span><span class="aw-mote aw-mote--spark" style="--x:48%;--y:6%;--d:4.6s;--i:2"></span><span class="aw-mote aw-mote--spark" style="--x:22%;--y:44%;--d:7s;--i:3"></span><span class="aw-mote aw-mote--spark" style="--x:78%;--y:52%;--d:5.4s;--i:4"></span><span class="aw-mote aw-mote--spark" style="--x:4%;--y:70%;--d:6.2s;--i:5"></span><span class="aw-mote aw-mote--spark" style="--x:96%;--y:82%;--d:4.8s;--i:6"></span><span class="aw-mote aw-mote--spark" style="--x:56%;--y:90%;--d:7.4s;--i:7"></span><span class="aw-mote aw-mote--puff" style="--x:0%;--y:28%;--d:70s;--i:8"></span><span class="aw-mote aw-mote--puff" style="--x:0%;--y:63%;--d:92s;--i:9"></span><span class="aw-mote aw-mote--puff" style="--x:0%;--y:96%;--d:80s;--i:10"></span><span class="aw-mote aw-mote--bird" style="--x:0%;--y:22%;--d:38s;--i:11"></span></div>
+
                     <div id="award-stars-student-list" class="aw-sky-grid">
                         <p class="aw-empty col-span-full"><i class="fas fa-cloud" aria-hidden="true"></i> Please choose a class from the header to award stars.</p>
                     </div>

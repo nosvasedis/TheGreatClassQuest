@@ -324,7 +324,11 @@ function meltOldCloud(card, { toAbsent, wasPalette, cloud }, duration) {
     ghost.className = `aw-cloud aw-turn-was${toAbsent ? '' : ' aw-turn-was--rain'}`;
     ghost.setAttribute('aria-hidden', 'true');
     for (const [name, value] of Object.entries(wasPalette)) ghost.style.setProperty(name, value);
-    ghost.innerHTML = buildAwardCloudSvg(cloud, `${card.dataset.studentid || 'x'}-was`);
+    // The same silhouette, its own ids, wearing the old colours.
+    const shape = cloudEl.querySelector('.aw-cloud__shape');
+    ghost.innerHTML = shape
+        ? shape.outerHTML.replace(/awc-/g, 'awcw-')
+        : buildAwardCloudSvg(cloud, `${card.dataset.studentid || 'x'}-was`);
     cloudEl.after(ghost);
     run(ghost, [{ opacity: 1 }, { opacity: 0 }], { duration, easing: 'ease-in-out' });
 }

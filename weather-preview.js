@@ -3,7 +3,7 @@
 import { headerHTML, svgFiltersHTML } from './templates/app/header.js';
 import { awardImmersiveSkyHTML } from './templates/app/index.js';
 import { awardTabHTML } from './templates/app/tabs/award.js';
-import { buildAwardCloudCardHtml } from './features/awardCloudCard.mjs';
+import { buildAwardCloudCardHtml, AWARD_CLOUD_KEYS } from './features/awardCloudCard.mjs';
 import { resolveWeatherTheme, headerClassesForTheme, withNightWeatherText, HEADER_WEATHER_CLASSES, wallpaperClassesForCode, WALLPAPER_WEATHER_CLASSES } from './features/weatherTheme.js';
 import { syncAwardSkyWeather } from './utils.js';
 import { applySkyReading, paintSkySurface } from './features/skyWeatherStage.js';
@@ -66,7 +66,30 @@ if (params.get('mobile') === '1') {
 const awardTab = document.getElementById('award-stars-tab');
 awardTab?.classList.remove('hidden');
 const list = document.getElementById('award-stars-student-list');
-if (list) list.innerHTML = ['Alex', 'Maria', 'Nikos', 'Eleni'].map((n, i) => card(n, 'abcd'[i], i)).join('');
+if (list && !params.get('heroes')) list.innerHTML = ['Alex', 'Maria', 'Nikos', 'Eleni'].map((n, i) => card(n, 'abcd'[i], i)).join('');
+// ?heroes=12 fills the sky with a whole class in every state a cloud can be in.
+function richCard(i) {
+    const names = ['Alexandros Papadopoulos', 'Maria', 'Nikos Georgiou', 'Eleni Dimitriou', 'Konstantina Antonopoulou', 'Yiannis', 'Sofia Karra', 'Dimitris Vlachos', 'Ioanna', 'Petros Nikolaidis', 'Katerina Zografou', 'Giorgos'];
+    const guilds = [{ name: 'Dragon Flame', color: '#dc2626' }, { name: 'Grizzly Might', color: '#92400e' }, { name: 'Owl Wisdom', color: '#4f46e5' }, { name: 'Phoenix Rising', color: '#ea580c' }];
+    const name = names[i % names.length];
+    const st = ['plain', 'hero', 'locked', 'absent', 'prodigy', 'birthday', 'returning', 'plain', 'nameday', 'locked', 'levelup', 'plain'][i % 12];
+    const mode = st === 'absent' ? 'away-today' : st === 'returning' ? 'returning' : (st === 'locked' ? 'none' : 'absent-offer');
+    return buildAwardCloudCardHtml({
+        id: `h${i}`, name, firstName: name.split(' ')[0], avatar: null, guild: guilds[i % 4],
+        heroClass: { title: ['Scout', 'Guardian', 'Sage', 'Bard'][i % 4], icon: ['🛡️', '⚔️', '📜', '🎵'][i % 4], aura: ['#16a34a', '#2563eb', '#7c3aed', '#db2777'][i % 4] },
+        levelUp: st === 'levelup', gold: 12 + i * 7, today: st === 'locked' || st === 'hero' ? 2 : 0, month: 10 + i * 4, total: 60 + i * 9,
+        todayReason: st === 'locked' ? 'teamwork' : null, locked: st === 'locked', isAbsent: st === 'absent' || st === 'returning', attendanceMode: mode,
+        boon: { eligible: i % 3 === 0 },
+        honours: { heroOfDay: st === 'hero', heroBonusReady: st === 'hero', prodigy: st === 'prodigy', occasion: st === 'birthday' ? 'birthday' : st === 'nameday' ? 'nameday' : null },
+        cloud: AWARD_CLOUD_KEYS[(i * 3) % AWARD_CLOUD_KEYS.length], hue: ['snow', 'lilac', 'aqua', 'dawn', 'mist'][(i * 2) % 5], floatDelay: i * 900, riseDelay: 0
+    }).replace(' tab-mount-rise', '');
+}
+if (list && params.get('heroes')) list.innerHTML = Array.from({ length: Number(params.get('heroes')) }, (_, i) => richCard(i)).join('');
+if (list && params.get('fit') !== '0') {
+    const { watchAwardClouds } = await import('./ui/awardCloudFit.js');
+    watchAwardClouds(list);
+    list.querySelectorAll('.aw-card').forEach((c) => c.classList.add('is-afloat'));
+}
 
 // Same markup as features/home.js#reminderPill and #ceremonyPillHtml (?pills=0 shows one plain badge).
 function pvPill({ tone, icon = '', emoji = '', avatarHtml = '', eyebrow, title, tag = '', trailingHtml = '', extraClass = '', attrs = '' }) {

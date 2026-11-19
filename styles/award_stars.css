@@ -10,8 +10,84 @@
  */
 
 #award-stars-tab > .aw-stage-wide {
+    position: relative;
     max-width: 76rem;
 }
+
+/* ───────────── The open sky between the clouds ─────────────
+ * Sun sparkles (stars at night) twinkling in the gaps, far-off puffs sailing
+ * across, and now and then a bird. Transform and opacity only. */
+.aw-sky-motes {
+    position: absolute;
+    inset: 9rem 0 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+#award-stars-student-list { position: relative; z-index: 1; }
+
+.aw-mote { position: absolute; left: var(--x); top: var(--y); display: block; }
+
+.aw-mote--spark {
+    width: 14px;
+    height: 14px;
+    background: radial-gradient(circle, #fff 0 22%, #fde68a 60%);
+    clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
+    animation: aw-mote-twinkle var(--d) ease-in-out infinite;
+    animation-delay: calc(var(--i) * -0.9s);
+}
+
+@keyframes aw-mote-twinkle {
+    0%, 100% { opacity: 0.15; transform: scale(0.5) rotate(0deg); }
+    50% { opacity: 0.95; transform: scale(1.1) rotate(45deg); }
+}
+
+.aw-mote--puff {
+    width: 120px;
+    height: 44px;
+    border-radius: 999px;
+    background:
+        radial-gradient(circle at 30% 70%, rgba(255, 255, 255, 0.8) 0 30%, transparent 31%),
+        radial-gradient(circle at 52% 45%, rgba(255, 255, 255, 0.85) 0 34%, transparent 35%),
+        radial-gradient(circle at 74% 68%, rgba(255, 255, 255, 0.75) 0 28%, transparent 29%);
+    opacity: 0.7;
+    animation: aw-mote-sail var(--d) linear infinite;
+    animation-delay: calc(var(--i) * -23s);
+}
+
+@keyframes aw-mote-sail {
+    from { transform: translate3d(-140px, 0, 0); }
+    to { transform: translate3d(78rem, 0, 0); }
+}
+
+.aw-mote--bird {
+    width: 22px;
+    height: 10px;
+    border: solid rgba(30, 58, 138, 0.55);
+    border-width: 2.5px 0 0;
+    border-radius: 50% 50% 0 0;
+    animation: aw-mote-sail var(--d) linear infinite, aw-mote-flap 0.5s ease-in-out infinite alternate;
+}
+
+.aw-mote--bird::after {
+    content: '';
+    position: absolute;
+    left: 10px;
+    top: -2.5px;
+    width: 22px;
+    height: 10px;
+    border: inherit;
+    border-width: 2.5px 0 0;
+    border-radius: 50% 50% 0 0;
+}
+
+@keyframes aw-mote-flap { to { height: 6px; } }
+
+#app-screen.header-night .aw-mote--spark { background: radial-gradient(circle, #fff 0 26%, #c7d2fe 64%); }
+#app-screen.header-night .aw-mote--puff { opacity: 0.25; }
+#app-screen.header-night .aw-mote--bird { display: none; }
+#award-stars-tab.award-scroll-pause .aw-mote { animation-play-state: paused !important; }
 
 /* ───────────────────────── Today's star roll ─────────────────────────
  * One slim row above the clouds: the count, today's stars, and a bead per hero.
@@ -607,9 +683,9 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
 .aw-sky-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 20.5rem), 1fr));
-    gap: 3.4rem 2.1rem;
+    gap: 4rem 2.7rem;
     align-items: start;
-    padding: 1.9rem 0.6rem 7rem;
+    padding: 3.2rem 0.6rem 7rem;
     overflow: visible;
 }
 
@@ -657,6 +733,7 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
     --awc-tint-o: 0;
     --awc-halo: rgba(255, 255, 255, 0);
     --awc-flare: rgba(125, 211, 252, 0.8);
+    --awc-shade: var(--awc-bot);
 
     position: relative;
     isolation: isolate;
@@ -685,23 +762,29 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
     animation-delay: var(--aw-float-delay, 0ms);
 }
 
-/* The cloud art */
+/* The cloud art: drawn in the content box's own pixels by features/awardCloudShape.mjs,
+   reaching past the card on purpose (crowns, tails, cloudlets). */
 .aw-cloud {
     position: absolute;
-    inset: -0.9rem -1.25rem -1.5rem;
+    inset: 0;
     z-index: -1;
     pointer-events: none;
 }
 
+.aw-cloud__shape {
+    position: absolute;
+    inset: 0;
+}
+
 .aw-cloud__art {
+    position: absolute;
     display: block;
-    width: 100%;
-    height: 100%;
     overflow: visible;
 }
 
 .aw-cloud__shelf { fill: var(--awc-shelf); }
-.aw-cloud__rim { fill: var(--awc-rim); stroke: var(--awc-rim); stroke-width: 7; }
+.aw-cloud__rim { fill: var(--awc-rim); stroke: var(--awc-rim); stroke-width: 6; stroke-linejoin: round; }
+.aw-cloud__shade { fill: var(--awc-shade); }
 .aw-cloud__tint {
     fill: var(--awc-tint);
     opacity: var(--awc-tint-o);
@@ -710,12 +793,83 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
 .aw-cloud__sheen path {
     fill: none;
     stroke: var(--awc-sheen);
-    stroke-width: 7;
+    stroke-width: 5;
     stroke-linecap: round;
+    opacity: 0.5;
+}
+.aw-cloud__wisps ellipse {
+    fill: var(--awc-mid);
+    stroke: var(--awc-rim);
+    stroke-width: 2;
     opacity: 0.85;
 }
-.aw-cloud__glints path { fill: var(--awc-glint); opacity: 0.85; }
 .aw-cloud__rain { display: none; stroke: #93c5fd; stroke-width: 4; stroke-linecap: round; }
+
+/* A new shape (the card grew or shrank) melts in over the old one. */
+.aw-cloud__shape.is-reshaping { animation: aw-cloud-reshape 0.5s ease-out both; }
+.aw-cloud__shape.is-leaving { animation: aw-cloud-leave 0.5s ease-in both; }
+@keyframes aw-cloud-reshape { from { opacity: 0; } to { opacity: 1; } }
+@keyframes aw-cloud-leave { from { opacity: 1; } to { opacity: 0; } }
+
+/* Sparkles resting on the upper puffs: a four-point glint that twinkles while on screen. */
+.aw-cloud__glint {
+    position: absolute;
+    width: var(--s, 10px);
+    height: var(--s, 10px);
+    margin: calc(var(--s, 10px) / -2) 0 0 calc(var(--s, 10px) / -2);
+    background: radial-gradient(circle, #fff 0 18%, var(--awc-glint) 46%);
+    clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+    opacity: 0.85;
+}
+
+.aw-card.is-afloat .aw-cloud__glint {
+    animation: aw-glint 3.6s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * -1.3s + var(--aw-float-delay, 0ms));
+}
+
+@keyframes aw-glint {
+    0%, 100% { transform: scale(0.55) rotate(0deg); opacity: 0.35; }
+    45% { transform: scale(1.15) rotate(45deg); opacity: 1; }
+    60% { transform: scale(0.9) rotate(60deg); opacity: 0.85; }
+}
+
+/* Little cloudlets that keep the big cloud company, drifting on their own breeze. */
+.aw-cloudlet {
+    position: absolute;
+    display: block;
+    pointer-events: none;
+}
+
+.aw-cloudlet svg { display: block; width: 100%; height: auto; overflow: visible; }
+.aw-cloudlet.is-flipped svg { transform: scaleX(-1); }
+.aw-cloudlet__shade { fill: var(--awc-shade); stroke: var(--awc-rim); stroke-width: 1.5; }
+.aw-cloudlet__body { fill: var(--awc-top); }
+
+.aw-card.is-afloat .aw-cloudlet {
+    animation: aw-cloudlet-drift 11s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * -4.2s + var(--aw-float-delay, 0ms));
+}
+
+@keyframes aw-cloudlet-drift {
+    0%, 100% { transform: translate3d(-7px, 0, 0); }
+    50% { transform: translate3d(9px, -5px, 0); }
+}
+
+.aw-card.is-absent .aw-cloudlet,
+.aw-card.is-absent .aw-cloud__glint { opacity: 0.5; }
+
+
+/* Each hero's cloud is lit a little differently: snow, lilac, aqua, dawn or mist.
+   Heroes, prodigies, special days and the absent keep their own colours. */
+.aw-card[data-hue="lilac"]:not(.aw-card--hero):not(.aw-card--prodigy):not(.aw-card--party):not(.is-absent) { --awc-mid: #f8f5ff; --awc-bot: #e4dbfb; --awc-rim: rgba(176, 160, 230, 0.6); }
+.aw-card[data-hue="aqua"]:not(.aw-card--hero):not(.aw-card--prodigy):not(.aw-card--party):not(.is-absent) { --awc-mid: #f3fbff; --awc-bot: #d3ecfa; --awc-rim: rgba(130, 190, 228, 0.62); }
+.aw-card[data-hue="dawn"]:not(.aw-card--hero):not(.aw-card--prodigy):not(.aw-card--party):not(.is-absent) { --awc-mid: #fffaf6; --awc-bot: #f3e0e3; --awc-rim: rgba(214, 170, 190, 0.55); }
+.aw-card[data-hue="mist"]:not(.aw-card--hero):not(.aw-card--prodigy):not(.aw-card--party):not(.is-absent) { --awc-mid: #f6f9fc; --awc-bot: #dce4ee; --awc-rim: rgba(150, 170, 200, 0.58); }
+
+/* Each lobe's shaded belly: the body colour pulled a little toward the rim. */
+@supports (color: color-mix(in srgb, red, blue)) {
+    .aw-card { --awc-shade: color-mix(in srgb, var(--awc-bot) 62%, var(--awc-rim)); }
+}
 
 /* Pre-drawn glow behind the cloud (hero, prodigy, and the award flare). */
 .aw-cloud__halo {
@@ -786,6 +940,11 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
     --awc-shelf: rgba(2, 6, 23, 0.34);
     --awc-glint: #fef9c3;
 }
+
+#app-screen.header-night .aw-card[data-hue="lilac"]:not(.aw-card--hero):not(.aw-card--prodigy):not(.aw-card--party):not(.is-absent) { --awc-mid: #ebe6ff; --awc-bot: #c3b6ef; }
+#app-screen.header-night .aw-card[data-hue="aqua"]:not(.aw-card--hero):not(.aw-card--prodigy):not(.aw-card--party):not(.is-absent) { --awc-mid: #e3f1ff; --awc-bot: #a9c8ec; }
+#app-screen.header-night .aw-card[data-hue="dawn"]:not(.aw-card--hero):not(.aw-card--prodigy):not(.aw-card--party):not(.is-absent) { --awc-mid: #f1e9fb; --awc-bot: #cdb6dc; }
+#app-screen.header-night .aw-card[data-hue="mist"]:not(.aw-card--hero):not(.aw-card--prodigy):not(.aw-card--party):not(.is-absent) { --awc-mid: #e6ebf7; --awc-bot: #b5c0db; }
 
 #app-screen.header-night .aw-card--hero {
     --awc-top: #fffbeb;
@@ -1200,6 +1359,9 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
     color: #1e293b;
     text-shadow: 0 1px 0 #fff, 0 2px 0 rgba(191, 219, 254, 0.7);
 }
+
+.aw-card__name--long { font-size: 1.35rem; }
+.aw-card__name--xlong { font-size: 1.16rem; }
 
 .aw-ribbon {
     position: relative;
@@ -2249,8 +2411,8 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
 
 body.gcq-mobile .aw-sky-grid {
     grid-template-columns: minmax(0, 1fr);
-    gap: 2.9rem;
-    padding: 1.6rem 0.9rem 6.5rem;
+    gap: 3.8rem;
+    padding: 3rem 0.9rem 6.5rem;
 }
 
 body.gcq-mobile .aw-sky-grid > .award-card-mount { margin-top: 0 !important; }
@@ -2277,6 +2439,10 @@ body.projector-mode .aw-desk__arrive {
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .aw-mote,
+    .aw-card .aw-cloud__glint,
+    .aw-card .aw-cloudlet,
+    .aw-card .aw-cloud__shape,
     .aw-card.is-afloat,
     .aw-card .aw-boon__heart,
     .aw-card .aw-portrait__levelup,

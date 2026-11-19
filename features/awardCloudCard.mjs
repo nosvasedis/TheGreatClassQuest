@@ -9,6 +9,9 @@
 // #student-gold-display-<id>, .enlargeable-avatar.
 import { escapeHtml as esc } from '../utils/html.mjs';
 import { GOLD_COIN_HTML } from '../utils/goldCoin.js';
+import { AWARD_CLOUD_FAMILIES, AWARD_CLOUD_HUES, AWARD_CLOUD_DEFAULT_LAYOUT, buildAwardCloudShapeHtml } from './awardCloudShape.mjs';
+
+export { AWARD_CLOUD_FAMILIES, AWARD_CLOUD_HUES };
 
 /** The four life skills a teacher can name on a cloud, in button order. */
 export const AWARD_VIRTUES = [
@@ -28,7 +31,9 @@ export const AWARD_STAR_TIERS = [
 ];
 
 /**
- * Cloud silhouettes, drawn on a 400 x 440 board: one body plus puffs (cx, cy, r).
+ * Legacy cloud silhouettes for the small clouds in other places (Teacher Boon card, boon sponsor
+ * picker). The Award tab's own clouds come from features/awardCloudShape.mjs.
+ * Drawn on a 400 x 440 board: one body plus puffs (cx, cy, r).
  * Every shape keeps a central dome near (200, 92) so the portrait always sits on cloud.
  */
 export const AWARD_CLOUD_SHAPES = {
@@ -54,7 +59,8 @@ export const AWARD_CLOUD_SHAPES = {
     }
 };
 
-export const AWARD_CLOUD_KEYS = Object.keys(AWARD_CLOUD_SHAPES);
+/** The cloud families a hero's cloud can take (see features/awardCloudShape.mjs). */
+export const AWARD_CLOUD_KEYS = AWARD_CLOUD_FAMILIES;
 
 /** Stars can be fractional (Welcome Back, peer boons); show at most one decimal. */
 export function formatAwardStars(value) {
@@ -83,7 +89,7 @@ function sparkPath(cx, cy, s) {
  * Drawn once and never animated from inside, so it rasterises once per card.
  */
 export function buildAwardCloudSvg(cloudKey, uid) {
-    const shape = AWARD_CLOUD_SHAPES[cloudKey] || AWARD_CLOUD_SHAPES.a;
+    const shape = AWARD_CLOUD_SHAPES[cloudKey] || AWARD_CLOUD_SHAPES['abcd'[Math.max(0, AWARD_CLOUD_FAMILIES.indexOf(cloudKey)) % 4]];
     const id = `awc-${safeIdPart(uid)}`;
     const topPuffs = shape.puffs.filter(([, cy]) => cy < 140);
     const sheen = topPuffs.map(([cx, cy, r]) => {
@@ -382,19 +388,25 @@ export function buildAwardCloudCardHtml(view) {
     const cornerAttendance = mode === 'absent-offer' ? buildAwardAttendanceHtml(mode, view.firstName) : '';
     const desk = deskOpen ? buildAwardAttendanceHtml(mode, view.firstName) : '';
     const honoursHtml = buildAwardHonoursHtml(honours);
+    const nameLength = String(view.name || '').length;
+    const nameSize = nameLength > 22 ? ' aw-card__name--xlong' : nameLength > 17 ? ' aw-card__name--long' : '';
+    const family = AWARD_CLOUD_FAMILIES.includes(view.cloud) ? view.cloud : AWARD_CLOUD_FAMILIES[0];
+    const hue = AWARD_CLOUD_HUES.includes(view.hue) ? view.hue : AWARD_CLOUD_HUES[0];
+    // A first cloud for a typical card; ui/awardCloudFit.js reshapes it to the real card once laid out.
+    const firstLayout = { ...AWARD_CLOUD_DEFAULT_LAYOUT, h: AWARD_CLOUD_DEFAULT_LAYOUT.h + (honoursHtml ? 22 : 0) };
     const rise = Number.isFinite(view.riseDelay) ? view.riseDelay : 0;
     const float = Number.isFinite(view.floatDelay) ? view.floatDelay : 0;
 
     return `<div class="award-card-mount tab-mount-rise" style="--tab-rise-delay:${rise}ms">`
-        + `<article class="${cardClasses}" data-studentid="${esc(id)}" data-cloud="${esc(view.cloud || 'a')}"${locked && view.todayReason ? ` data-awarded="${esc(view.todayReason)}"` : ''} style="--aw-float-delay:-${float}ms" aria-label="${esc(view.name)}">`
+        + `<article class="${cardClasses}" data-studentid="${esc(id)}" data-cloud="${family}" data-hue="${hue}"${locked && view.todayReason ? ` data-awarded="${esc(view.todayReason)}"` : ''} style="--aw-float-delay:-${float}ms" aria-label="${esc(view.name)}">`
         + `<div class="aw-card__lift">`
-        + `<div class="aw-cloud" aria-hidden="true"><span class="aw-cloud__halo"></span>${buildAwardCloudSvg(view.cloud, id)}</div>`
+        + `<div class="aw-cloud" aria-hidden="true"><span class="aw-cloud__halo"></span>${buildAwardCloudShapeHtml(family, view.cloudSeed ?? id, firstLayout, id)}</div>`
         + `<div class="aw-card__corner aw-card__corner--left">${buildAwardBoonButtonHtml(id, view.boon || {})}</div>`
         + `<div class="aw-card__corner aw-card__corner--right"><div class="absence-controls">${cornerAttendance}</div>`
         + `<button type="button" id="post-award-undo-${esc(id)}" class="post-award-undo-btn aw-undo${locked ? '' : ' hidden'}" title="Undo today's award" aria-label="Undo today's award"><i class="fas fa-rotate-left" aria-hidden="true"></i><span class="aw-undo__tip">Undo</span></button></div>`
         + `<header class="aw-card__head">${familiarHtml(view)}${portraitHtml(view)}${purseHtml(view)}</header>`
         + `<div class="card-content-wrapper aw-card__body">`
-        + `<div class="aw-card__nameplate">${heroRibbonHtml(view)}<h3 class="aw-card__name font-title">${esc(view.name)}</h3>`
+        + `<div class="aw-card__nameplate">${heroRibbonHtml(view)}<h3 class="aw-card__name font-title${nameSize}">${esc(view.name)}</h3>`
         + `<div class="aw-card__honours">${honoursHtml}</div></div>`
         + tallyHtml(view)
         + `<div class="aw-card__desk">${desk}</div>`

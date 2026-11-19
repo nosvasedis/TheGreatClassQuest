@@ -8,6 +8,7 @@ import { renderFamiliarSprite } from '../../features/familiars.js';
 import { resolveDailyModifier, MODIFIER_TYPES } from '../../features/specialQuestEngine.js';
 import {
     AWARD_CLOUD_KEYS,
+    AWARD_CLOUD_HUES,
     buildAwardAttendanceHtml,
     buildAwardBoonButtonHtml,
     buildAwardCloudCardHtml,
@@ -37,6 +38,7 @@ import {
 import { buildHeroTieStats, pickProdigyWinners, rankHeroes } from '../../features/heroRanking.js';
 import { withPendingAwards } from '../../features/awardPending.mjs';
 import { withPendingAttendance } from '../../features/attendancePending.mjs';
+import { watchAwardCloud, watchAwardClouds } from '../awardCloudFit.js';
 import { isMonthFinaleLesson, monthFinaleContextFrom } from '../../features/monthFinale.js';
 import { playAttendanceTurn, readCloudPalette } from '../awardFx.js';
 import { bindAwardRollTips, hideAwardRollTip, refreshAwardRollTip, registerAwardTipBuilder } from '../awardRollTip.js';
@@ -148,8 +150,12 @@ function getAwardCardVisualState(classId, studentId) {
     if (awardVisualCache.has(cacheKey)) return awardVisualCache.get(cacheKey);
 
     const hash = utils.simpleHashCode(`${awardVisualSessionId}:${cacheKey}`);
+    // Heroes are first seen in seating order, so stepping through the families by 3
+    // keeps every neighbour (beside and below) a different kind of cloud.
+    const n = awardVisualCache.size + awardVisualSessionId;
     const visualState = {
-        cloud: AWARD_CLOUD_KEYS[hash % AWARD_CLOUD_KEYS.length],
+        cloud: AWARD_CLOUD_KEYS[(n * 3) % AWARD_CLOUD_KEYS.length],
+        hue: AWARD_CLOUD_HUES[(n * 2) % AWARD_CLOUD_HUES.length],
         floatDelay: hash % 6000
     };
     awardVisualCache.set(cacheKey, visualState);
@@ -369,6 +375,7 @@ function buildStudentCloudView(student, ctx, index = 0) {
         bonusReason: ctx.modifier?.type === 'reason' ? ctx.modifier.reason : null,
         familiarHtml: ctx.familiarsEnabled && scoreData.familiar ? renderFamiliarSprite(scoreData.familiar, 'small', student.id) : '',
         cloud: visual.cloud,
+        hue: visual.hue,
         floatDelay: visual.floatDelay,
         riseDelay: Math.min(index * 38, 620)
     };
@@ -621,6 +628,7 @@ state.subscribe('allAttendanceRecords', () => {
 // Clouds drift only while on screen, so a long class never keeps dozens of layers busy.
 let awardFloatObserver = null;
 function observeAwardFloat(listContainer) {
+    watchAwardClouds(listContainer);
     if (typeof IntersectionObserver === 'undefined') {
         listContainer.querySelectorAll('.aw-card').forEach((card) => card.classList.add('is-afloat'));
         return;
@@ -706,7 +714,7 @@ function patchAwardCloudList(listContainer, views) {
             if (mount) mount.replaceWith(fresh);
             mount = fresh;
             restoreAwardOpenCloud(newCard, openClouds.get(id));
-            if (newCard) awardFloatObserver?.observe(newCard);
+            if (newCard) { awardFloatObserver?.observe(newCard); watchAwardCloud(newCard); }
         }
         awardCardSignatures.set(id, signature);
         keep.add(mount);
@@ -859,6 +867,7 @@ export function refreshAwardCloud(studentId) {
     if (turning) playAttendanceTurn(fresh, { toAbsent: view.isAbsent, wasPalette, cloud: view.cloud });
     awardCardSignatures.set(String(studentId), signature);
     awardFloatObserver?.observe(fresh);
+    watchAwardCloud(fresh);
     renderAwardSkySummary(classId);
 }
 

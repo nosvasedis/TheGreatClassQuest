@@ -20,6 +20,9 @@
 /* Font Awesome 7 icons keep Font Awesome 6's widths so buttons and chips do not shift. */
 @import url('./styles/fa_widths.css');
 
+/* Gold's own coin icon, used for every Gold amount (also redraws FA coins icons). */
+@import url('./styles/gold_coin.css');
+
 /* 1. Base: Fonts, body, core animations, pop-in/out, date-time */
 @import url('./styles/base.css');
 

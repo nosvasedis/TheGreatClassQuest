@@ -14,7 +14,7 @@ export const specialQuestModalHTML = `
             <div class="flex items-center gap-2 flex-wrap">
               <span id="special-quest-runner-status" class="quest-status-chip quest-status-chip--active">Active</span>
               <span id="special-quest-runner-reward-badge" class="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-400/20 text-amber-300 border border-amber-400/30 flex items-center gap-1">
-                <span>⭐ +1 Stars</span> <span>🪙 +1 Gold</span>
+                <span>⭐ +1 Stars</span> <span><i class="gq-gold" aria-hidden="true"></i> +1 Gold</span>
               </span>
             </div>
             <h2 id="special-quest-runner-title" class="font-title text-2xl md:text-3xl font-black text-white mt-1 drop-shadow-sm">Special Quest</h2>

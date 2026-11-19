@@ -33,6 +33,7 @@ import { parseTrialScore, trialRowValue, UNMARKABLE_VALUE } from '../../features
 import { showShopPurchasePopup } from '../../ui/core/marketParcel.js';
 import { hoardRankPayout, stallInventoryEntry, charmFor, buildCharmSets, charmSetLine } from '../../features/treasureCharmsCore.mjs';
 import { stallBuyCheckFor, childStallCheck } from './smartStock.js';
+import { goldAmountHtml } from '../../utils/goldCoin.js';
 // GUILD_IDS not needed at module level but kept for reference
 
 // --- THE ECONOMY (SHOP & INVENTORY) ---
@@ -44,7 +45,7 @@ function animateShopGoldChange(newGoldBalance, durationMs = 650) {
 
     const oldGold = parseInt(String(goldDisplay.innerText || '0').replace(/[^\d-]/g, ''), 10);
     if (isNaN(oldGold)) {
-        goldDisplay.innerText = `${newGoldBalance} 🪙`;
+        goldDisplay.innerHTML = goldAmountHtml(newGoldBalance);
         return;
     }
     if (oldGold === newGoldBalance) return;
@@ -60,11 +61,11 @@ function animateShopGoldChange(newGoldBalance, durationMs = 650) {
         const t = Math.min(1, elapsed / durationMs);
         const eased = 1 - Math.pow(1 - t, 3);
         const val = Math.round(oldGold + (diff * eased));
-        goldDisplay.innerText = `${val} 🪙`;
+        goldDisplay.innerHTML = goldAmountHtml(val);
         if (t < 1) {
             requestAnimationFrame(step);
         } else {
-            goldDisplay.innerText = `${newGoldBalance} 🪙`;
+            goldDisplay.innerHTML = goldAmountHtml(newGoldBalance);
             setTimeout(() => {
                 goldDisplay.style.color = '';
                 goldDisplay.style.transform = '';
@@ -710,7 +711,7 @@ export async function handleBuyItem(studentId, itemId) {
             cta: 'Into the satchel!'
         });
         if (!popupShown) {
-            showToast(`${student.name} bought "${item.name}" for ${appliedFinalPrice}🪙${voucherUsed ? ' (Aurum discount applied)' : ''}.`, 'success');
+            showToast(`${student.name} bought "${item.name}" for ${appliedFinalPrice} Gold${voucherUsed ? ' (Aurum discount applied)' : ''}.`, 'success');
         }
 
         // --- FIX: Update Local State Immediately ---
@@ -985,7 +986,7 @@ export async function handleBuyFamiliarEgg(studentId, typeId) {
             finalPrice = hasAurumVoucher
                 ? Math.max(1, Math.round(typeDef.price * ((100 - aurumVoucherPercent) / 100)))
                 : typeDef.price;
-            if (currentGold < finalPrice) throw new Error(`Not enough Gold! Need ${finalPrice}🪙.`);
+            if (currentGold < finalPrice) throw new Error(`Not enough Gold! Need ${finalPrice} Gold.`);
             newGoldBalance = currentGold - finalPrice;
             familiarData = buildFamiliarInitData(typeId, scoreData.totalStars || 0, studentId, scoreData.activeSchoolYearKey || null);
 

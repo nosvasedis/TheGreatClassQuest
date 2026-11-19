@@ -10,6 +10,7 @@
 import * as state from '../../state.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 import '../../styles/market_till.css';
+import { GOLD_COIN_HTML } from '../../utils/goldCoin.js';
 
 export const SHOPPER_PLACEHOLDER = 'Choose your adventurer…';
 const TILL_PLACEHOLDER_HTML = `<span class="mm-till__ph-long">${SHOPPER_PLACEHOLDER}</span><span class="mm-till__ph-short">Tap to choose</span>`;
@@ -171,7 +172,7 @@ function optionHtml(student, { selected, hero, gold, index }) {
                 ${rest.length ? `<span class="mm-ledger__last">${esc(rest.join(' '))}</span>` : ''}
             </span>
             <span class="mm-ledger__coins" aria-label="${gold} gold">
-                <span aria-hidden="true">🪙</span>${gold}
+                ${GOLD_COIN_HTML}${gold}
             </span>
             ${selected ? '<span class="mm-ledger__tag" aria-hidden="true">At the till</span>' : ''}
         </button>`;

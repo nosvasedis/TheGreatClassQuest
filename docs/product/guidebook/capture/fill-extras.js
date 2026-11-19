@@ -174,7 +174,7 @@ function fillShopper() {
   const display = document.getElementById('shop-shopper-display');
   if (display) display.textContent = 'Alex';
   const gold = document.getElementById('shop-student-gold');
-  if (gold) gold.textContent = '64 🪙';
+  if (gold) gold.innerHTML = '64 <i class="gq-gold" aria-hidden="true"></i>';
   const restock = document.getElementById('generate-shop-btn');
   restock?.classList.remove('hidden');
   document.getElementById('shop-curtain')?.classList.add('hidden');

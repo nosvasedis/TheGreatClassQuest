@@ -1,6 +1,7 @@
 // /ui/modals/quizStageMarkup.js — Pure markup for the Quiz of the Week show stage.
 // No state, DOM or Firebase imports: the live modal and the guidebook captures both build from here.
 import { QUIZ_KIND_INFO, questionKind } from '../../features/quizKindsCore.mjs';
+import { GOLD_COIN_HTML } from '../../utils/goldCoin.js';
 
 const GEMS = ['a', 'b', 'c', 'd'];
 const GEM_LETTERS = ['A', 'B', 'C', 'D'];
@@ -532,7 +533,7 @@ export function quizResultsHtml(results = {}, { replay = false } = {}) {
                 <li class="qs-relic">
                     <span class="qs-relic__icon" aria-hidden="true">${prize.kind === 'treasure' && prize.item?.image
                         ? `<img src="${esc(prize.item.image)}" alt="">`
-                        : (prize.kind === 'treasure' ? esc(prize.item?.icon || '🎁') : '🪙')}</span>
+                        : (prize.kind === 'treasure' ? esc(prize.item?.icon || '🎁') : GOLD_COIN_HTML)}</span>
                     <span class="qs-relic__copy">
                         <strong>${championName(prize.studentId)} wins ${prize.kind === 'treasure' ? esc(prize.item?.name || 'a treasure') : `${fmt(prize.gold)} Gold`}</strong>
                         <span>${prize.kind === 'treasure'

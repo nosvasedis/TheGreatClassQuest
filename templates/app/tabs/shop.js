@@ -74,7 +74,7 @@ export const shopTabHTML = `
                                                 <span class="mm-till__pouch" aria-hidden="true"><i class="fas fa-coins"></i></span>
                                                 <span class="mm-till__purse-body">
                                                     <span class="mm-till__label">Purse</span>
-                                                    <span id="shop-student-gold" class="mm-till__gold">0 🪙</span>
+                                                    <span id="shop-student-gold" class="mm-till__gold">0 <i class="gq-gold" aria-hidden="true"></i></span>
                                                 </span>
                                             </div>
                                             <div id="shop-shopper-listbox" class="mm-ledger" aria-hidden="true" inert></div>
@@ -193,7 +193,7 @@ export const shopTabHTML = `
                         <button type="button" class="mm-keeper-float__back" aria-label="Back to the counter" title="Back to the counter">
                             <span class="mm-keeper-float__purse">
                                 <span class="mm-keeper-float__shopper"></span>
-                                <span class="mm-keeper-float__coin" aria-hidden="true">🪙</span>
+                                <span class="mm-keeper-float__coin" aria-hidden="true"><i class="gq-gold" aria-hidden="true"></i></span>
                                 <span class="mm-keeper-float__gold"></span>
                             </span>
                             <span class="mm-keeper-float__up" aria-hidden="true"><i class="fas fa-arrow-up"></i></span>

@@ -60,6 +60,7 @@ import { getSkyScene, getLastSkyReading } from './skyWeatherStage.js';
 import { getWeatherCardHtml, getClockHandAngles, formatClockTime, refreshWeatherCardInPlace } from './weatherCard.js';
 import { morphChildNodes } from '../utils/domMorph.mjs';
 import { PUBLIC_DATA_PATH, dataPath } from '../utils/tenant.mjs';
+import { GOLD_COIN_HTML } from '../utils/goldCoin.js';
 
 export { initializeHeaderQuote, fetchDailySpice };
 
@@ -1528,8 +1529,8 @@ export function getReminderPills(classId) {
             return {
                 tagName: 'button',
                 extraClass: `home-pill--action home-pill--treasure${t.opened ? '' : ' home-pill--treasure-ready'}`,
-                emoji: t.opened ? '🪙' : '',
-                leadHtml: t.opened ? '' : treasureChestLeadHtml(t.icon),
+                emoji: '',
+                leadHtml: t.opened ? GOLD_COIN_HTML : treasureChestLeadHtml(t.icon),
                 eyebrow: t.opened ? 'Treasure opened · see it again' : `Open ${t.name}!`,
                 attrs: `data-day-treasure="${escapeHtml(t.id)}" data-day-treasure-class="${escapeHtml(t.classId)}" aria-label="${escapeHtml(t.opened ? `See ${t.name} again` : `Open ${t.name} for ${t.classLabel}`)}"`,
             };

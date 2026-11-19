@@ -47,6 +47,7 @@ import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 import { initMarketKeeperFloat, keeperFloatSay } from './marketKeeperFloat.js';
 import { closeMarketCurtains, openMarketCurtains, shopStageIsLive } from './marketCurtains.js';
 import { bindShopperLedger, populateShopStudentPicker } from './marketShopperLedger.js';
+import { GOLD_COIN_HTML, goldAmountHtml } from '../../utils/goldCoin.js';
 
 export { populateShopStudentPicker };
 
@@ -392,7 +393,7 @@ function spillShopCoins() {
     for (let i = 0; i < 7; i++) {
         const coin = document.createElement('span');
         coin.className = 'mm-coin-spill';
-        coin.textContent = '🪙';
+        coin.innerHTML = GOLD_COIN_HTML;
         coin.style.setProperty('--dx', `${Math.round((Math.random() - 0.5) * 110)}px`);
         coin.style.setProperty('--dy', `${-40 - Math.round(Math.random() * 50)}px`);
         coin.style.setProperty('--rot', `${Math.round((Math.random() - 0.5) * 540)}deg`);
@@ -463,7 +464,7 @@ function initializeShopTabContent({ allowAutoEnsure = false } = {}) {
     if (!seasonLive) {
         populateShopStudentPicker([]);
         const shopStudentGold = document.getElementById('shop-student-gold');
-        if (shopStudentGold) shopStudentGold.innerText = '0 🪙';
+        if (shopStudentGold) shopStudentGold.innerHTML = goldAmountHtml(0);
         document.getElementById('generate-shop-btn')?.classList.add('hidden');
         showShopCurtain(SHOP_CURTAIN_SEALED);
         return;
@@ -488,7 +489,7 @@ function initializeShopTabContent({ allowAutoEnsure = false } = {}) {
     if (!classId) {
         populateShopStudentPicker([]);
         const shopStudentGold = document.getElementById('shop-student-gold');
-        if (shopStudentGold) shopStudentGold.innerText = "0 🪙";
+        if (shopStudentGold) shopStudentGold.innerHTML = goldAmountHtml(0);
 
         showShopCurtain(SHOP_CURTAIN_SLEEPING);
         return;
@@ -509,7 +510,7 @@ function initializeShopTabContent({ allowAutoEnsure = false } = {}) {
         syncShopRestockButton();
     }
     
-    document.getElementById('shop-student-gold').innerText = "0 🪙";
+    document.getElementById('shop-student-gold').innerHTML = goldAmountHtml(0);
 
     // 3. Filter Students
     const myClassesInLeague = allClasses.filter(c => c.questLevel === league);
@@ -788,7 +789,7 @@ export async function updateShopStudentDisplay(studentId, { quiet = false, only 
     (only ? [only] : document.querySelectorAll('#shop-items-container .mm-ware')).forEach(resetShopWareCard);
 
     if (!studentId) {
-        goldDisplay.innerText = "0 🪙";
+        goldDisplay.innerHTML = goldAmountHtml(0);
         if (container) delete container.dataset.shopperGold;
         buyBtns.forEach(btn => {
             setShopBuyBtn(btn, 'waiting', 'Pick a shopper', { title: 'Choose a student from the Shopper menu above' });
@@ -859,7 +860,7 @@ export async function updateShopStudentDisplay(studentId, { quiet = false, only 
     const protagonistThisMonth = scoreData?.lastProtagonistPurchaseMonth === currentMonthKey || inventory.some(i => i.id === 'leg_protagonist' && i.acquiredAt && i.acquiredAt.startsWith(currentMonthKey));
 
     // Update UI Display
-    goldDisplay.innerText = `${gold} 🪙`;
+    goldDisplay.innerHTML = goldAmountHtml(gold);
     if (container) container.dataset.shopperGold = String(gold);
 
     buyBtns.forEach(btn => {

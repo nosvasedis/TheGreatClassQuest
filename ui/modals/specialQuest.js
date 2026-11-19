@@ -6,6 +6,7 @@ import { QUEST_DEFINITIONS, normalizeQuestType } from '../../features/specialQue
 import { showToast } from '../effects.js';
 import { playSound, playWinnerFanfare } from '../../audio.js';
 import * as state from '../../state.js';
+import { GOLD_COIN_HTML } from '../../utils/goldCoin.js';
 
 let activeEvent = null;
 let activeRun = null;
@@ -170,7 +171,7 @@ function renderRunner() {
   const goldReward = starsReward * Number(activeEvent.rewardSpec?.goldPerStar ?? 1);
   const rewardBadge = document.getElementById('special-quest-runner-reward-badge');
   if (rewardBadge) {
-    rewardBadge.innerHTML = `<span>⭐ +${starsReward} Stars</span> <span>🪙 +${goldReward} Gold</span>`;
+    rewardBadge.innerHTML = `<span>⭐ +${starsReward} Stars</span> <span>${GOLD_COIN_HTML} +${goldReward} Gold</span>`;
   }
 
   // 3. Status & Objective Progress

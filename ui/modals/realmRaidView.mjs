@@ -6,6 +6,7 @@ import { RAID_REWARDS, LEGENDARY_AT, RAID_EFFORT, RAID_LENGTH_DAYS, guardianMood
 import { HERO_ARTS, STAR_ART, heroArt, classArt, classBand, strikeArts, leagueRank, wordTier, battleMessages, battleTitle, bossLine, caption } from '../../features/realmRaidBattle.mjs';
 import { sceneHtml } from '../../features/realmRaidScene.mjs';
 import { heroSpriteSvg, partyFormation } from '../../features/realmRaidParty.mjs';
+import { GOLD_COIN_HTML } from '../../utils/goldCoin.js';
 
 export function esc(value) {
     return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -85,7 +86,7 @@ function heroCardHtml(hero) {
     if (hero.none) return '<p class="rr-hero__none">No hero struck the shield this time.</p>';
     const prize = hero.prize?.kind === 'treasure'
         ? `<span class="rr-hero__prize">${hero.prize.image ? `<img src="${esc(hero.prize.image)}" alt="">` : `<b>${esc(hero.prize.icon || '🎁')}</b>`}<span>${esc(hero.prize.name)}</span></span>`
-        : hero.prize?.kind === 'gold' ? `<span class="rr-hero__prize"><b>🪙</b><span>+${hero.prize.gold} Gold (the stall was empty)</span></span>` : '';
+        : hero.prize?.kind === 'gold' ? `<span class="rr-hero__prize"><b>${GOLD_COIN_HTML}</b><span>+${hero.prize.gold} Gold (the stall was empty)</span></span>` : '';
     return `<div class="rr-hero">
         ${hero.faceHtml || ''}
         <span class="rr-hero__copy"><small>Raid Hero</small><b>${esc(hero.name || 'Our hero')}</b><em>Struck the shield in ${hero.days} ${hero.days === 1 ? 'lesson' : 'lessons'} (${fmt(hero.stars)} ★)</em></span>
@@ -469,9 +470,9 @@ export function victoryHtml(view, { legendary = false, lite = false } = {}) {
     const classes = view.rows.filter((row) => row.share > 0 || row.stars > 0).length;
     const heroes = view.rows.reduce((sum, row) => sum + (Number(row.heroes) || 0), 0);
     const results = legendary
-        ? [['👑', 'LEGENDARY VICTORY!', 'big'], ['🪙', `Every hero gets +${r.legendaryGold} Gold more!`], ['🗺️', 'Every Team Quest map moves 2.5% more!'], ['⭐', `${fmt(status.dealt)} stars from ${classes} classes!`]]
-        : [['⚔️', `${season.guardian} bows to the party!`, 'big'], ['🪙', `Every hero gets +${r.victoryGold} Gold!`], ['🗺️', 'Every Team Quest map moves 5%!'], ['🎁', 'Each Raid Hero finds a festival treasure!']];
-    const chests = legendary ? [['🪙', `+${r.legendaryGold}`], ['🗺️', '+2.5%'], ['👑', 'Crown']] : [['🪙', `+${r.victoryGold}`], ['🗺️', '+5%'], ['🎁', 'Treasure']];
+        ? [['👑', 'LEGENDARY VICTORY!', 'big'], [GOLD_COIN_HTML, `Every hero gets +${r.legendaryGold} Gold more!`], ['🗺️', 'Every Team Quest map moves 2.5% more!'], ['⭐', `${fmt(status.dealt)} stars from ${classes} classes!`]]
+        : [['⚔️', `${season.guardian} bows to the party!`, 'big'], [GOLD_COIN_HTML, `Every hero gets +${r.victoryGold} Gold!`], ['🗺️', 'Every Team Quest map moves 5%!'], ['🎁', 'Each Raid Hero finds a festival treasure!']];
+    const chests = legendary ? [[GOLD_COIN_HTML, `+${r.legendaryGold}`], ['🗺️', '+2.5%'], ['👑', 'Crown']] : [[GOLD_COIN_HTML, `+${r.victoryGold}`], ['🗺️', '+5%'], ['🎁', 'Treasure']];
     return `<div class="rr-victory rr-hall--${season.id}${legendary ? ' is-legendary' : ''}${lite ? ' rr-lite' : ''}" role="dialog" aria-modal="true" aria-labelledby="rr-victory-title">
         ${skyHtml(season.id, { lite })}
         <div class="rr-victory__stage rr-stage">

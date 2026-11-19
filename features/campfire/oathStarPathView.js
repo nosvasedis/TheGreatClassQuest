@@ -3,6 +3,7 @@
 import { escapeHtml as esc } from '../../utils/html.mjs';
 import './oathStarPath.css';
 import { personalConstellation, oathPerkFor, STAR_RANKS } from '../oathStarPath.mjs';
+import { GOLD_COIN_HTML } from '../../utils/goldCoin.js';
 
 const firstName = name => String(name || '').trim().split(/\s+/)[0] || '';
 
@@ -50,7 +51,7 @@ export function perkMarkup(perk, { name = '', pending = false } = {}) {
     const first = firstName(name) || 'They';
     const chips = [
         p.stars && '<li class="sp-gift sp-gift--stars" style="--g:0"><i aria-hidden="true">★</i><b data-count="' + p.stars + '">+' + p.stars + '</b><span>bonus ' + (p.stars === 1 ? 'star' : 'stars') + '</span></li>',
-        '<li class="sp-gift sp-gift--gold" style="--g:1"><i aria-hidden="true">🪙</i><b data-count="' + p.goldTotal + '">+' + p.goldTotal + '</b><span>Gold</span></li>'
+        '<li class="sp-gift sp-gift--gold" style="--g:1">' + GOLD_COIN_HTML + '<b data-count="' + p.goldTotal + '">+' + p.goldTotal + '</b><span>Gold</span></li>'
     ].filter(Boolean);
     if (p.keepsake) chips.push('<li class="sp-gift sp-gift--keepsake" style="--g:2"><i aria-hidden="true">' + esc(p.keepsake.icon) + '</i><b>' + esc(p.keepsake.name) + '</b><span>in the Satchel</span></li>');
     const rank = p.rank ? '<div class="sp-rank' + (p.milestone ? ' is-milestone' : '') + '"><span class="sp-rank-seal" aria-hidden="true">' + p.rank.icon + '</span><div><small>' + (p.milestone ? 'New rank on the Star Path' : 'Star Path · promise ' + p.n) + '</small><b>' + esc(p.rank.name) + '</b>' +

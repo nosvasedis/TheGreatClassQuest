@@ -107,7 +107,7 @@ export const studentModalsHTML = `
                             </div>
                             <div class="sp-record__cell">
                                 <dt>Gold</dt>
-                                <dd id="edit-student-stat-gold">0 🪙</dd>
+                                <dd id="edit-student-stat-gold">0 <i class="gq-gold" aria-hidden="true"></i></dd>
                             </div>
                             <div class="sp-record__cell">
                                 <dt>Hero rank</dt>

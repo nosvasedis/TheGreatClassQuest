@@ -10,6 +10,7 @@ import { createLivePacer } from '../../features/guildLiveCore.mjs';
 import { hideModal, showAnimatedModal } from './base.js';
 import * as state from '../../state.js';
 import { GLORY_EMOJI } from '../../constants.js';
+import { GOLD_COIN_HTML } from '../../utils/goldCoin.js';
 
 const VIEWS = [
     ['month', '🗓️', 'This month'],
@@ -564,7 +565,7 @@ function _wheelView(guild) {
         };
         chip(r.gloryDelta, GLORY_EMOJI, ' gsp-gift--glory');
         chip(r.starsDelta, '⭐');
-        chip(r.goldDelta, '🪙');
+        chip(r.goldDelta, GOLD_COIN_HTML);
         if (Number(r.artifactsGranted) > 0) out.push(`<span class="gsp-gift">${_plural(r.artifactsGranted, 'artifact')} 🎁</span>`);
         chip(r.classQuestDelta, 'Team Quest ⭐');
         if (r.braved) out.push('<span class="gsp-gift">🛡️ Braved</span>');
@@ -578,7 +579,7 @@ function _wheelView(guild) {
                 <div class="gsp-tile" style="--i:0;"><span class="gsp-tile__icon">🎡</span><b>${finds.length}</b><small>recent spins</small></div>
                 <div class="gsp-tile" style="--i:1;"><span class="gsp-tile__icon">${GLORY_EMOJI}</span><b>${signed(sum('gloryDelta'))}</b><small>Glory from the Wheel</small></div>
                 <div class="gsp-tile" style="--i:2;"><span class="gsp-tile__icon">⭐</span><b>${signed(sum('starsDelta'))}</b><small>stars</small></div>
-                <div class="gsp-tile" style="--i:3;"><span class="gsp-tile__icon">🪙</span><b>${signed(sum('goldDelta'))}</b><small>gold</small></div>
+                <div class="gsp-tile" style="--i:3;"><span class="gsp-tile__icon">${GOLD_COIN_HTML}</span><b>${signed(sum('goldDelta'))}</b><small>gold</small></div>
             </div>
             <section class="gsp-best gsp-rarity--${_esc(best.rarity || 'common')}" style="--i:4;">
                 <span class="gsp-best__icon" aria-hidden="true">${bestIcon}</span>

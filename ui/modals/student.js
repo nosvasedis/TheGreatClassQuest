@@ -31,6 +31,7 @@ function lazyOpen(loading, open) {
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 import { setupLeagueHomeworkImport } from './questBoardImport.js';
 import { prepareStarfall } from './starfall.js';
+import { goldAmountHtml } from '../../utils/goldCoin.js';
 
 const LEGACY_ASSIGNMENT_DATE_PREFIX_REGEX = /^\s*\d{1,2}[\/-]\d{1,2}[\/-]\d{4}\s*[:\-]?\s*/;
 
@@ -325,7 +326,7 @@ export function openEditStudentModal(studentId, options = {}) {
 
     if (statTotal) statTotal.textContent = `${scoreData.totalStars ?? 0} ⭐`;
     if (statMonthly) statMonthly.textContent = `${scoreData.monthlyStars ?? 0} 🌟`;
-    if (statGold) statGold.textContent = `${getLiveYearGoldFromAppState(scoreData, state)} 🪙`;
+    if (statGold) statGold.innerHTML = goldAmountHtml(getLiveYearGoldFromAppState(scoreData, state));
     if (statHeroLevel) statHeroLevel.textContent = `Lvl ${scoreData.heroLevel ?? 1}`;
 
     // 6. Profile Tab Placement Information

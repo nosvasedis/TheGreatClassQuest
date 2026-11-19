@@ -8,6 +8,7 @@ import * as state from '../state.js';
 import * as utils from '../utils.js';
 import { escapeCardText as esc } from './wallpaperDeck.mjs';
 import { addDaysIso, daysBetweenIso, describeSchoolDay, findClosureRange, toIsoDay, upcomingSchoolDays } from '../utils/schoolCalendar.mjs';
+import { GOLD_COIN_HTML } from '../utils/goldCoin.js';
 
 export const CALENDAR_CARD_TYPES = Object.freeze(['holiday', 'pre_holiday_hype', 'post_holiday_welcome', 'special_day', 'next_lesson']);
 
@@ -136,7 +137,7 @@ async function specialDay(classId, now = new Date()) {
     const colors = Array.isArray(special?.colors) ? special.colors : null;
     const style = colors ? ` style="--sd-a:${esc(colors[0])};--sd-b:${esc(colors[1])};--sd-ink:${esc(colors[2])}"` : '';
     const chest = treasure && isToday
-        ? `<div class="qc-prize"><span class="qc-prize__icon">${treasure.opened ? '💰' : '🧰'}</span><span>
+        ? `<div class="qc-prize"><span class="qc-prize__icon">${treasure.opened ? GOLD_COIN_HTML : '🧰'}</span><span>
                 <small>${treasure.opened ? 'Day Treasure opened' : 'Day Treasure waiting'}</small>
                 <b>${esc(treasure.name)}${treasure.opened && treasure.total ? ` · ${treasure.total} Gold found` : ''}</b>
             </span></div>`

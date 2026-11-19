@@ -22,6 +22,7 @@ import { SEALS, isAcademicSeal, sealArtHtml } from '../features/heroSealsCore.mj
 import { normalizeDuels, heroStandings, teamTotals } from '../features/heroDuelsCore.mjs';
 import { normalizeHeroClass } from '../features/heroClassNames.mjs';
 import { isLegendHero, getLegendQuest } from '../features/legendQuestCore.mjs';
+import { GOLD_COIN_HTML } from '../utils/goldCoin.js';
 
 const CLASS_QUEST_CARDS = [
     'tg_knots_week', 'quiz_champion_week', 'oaths_kept_month', 'realm_journal_month', 'class_teams_today',
@@ -166,7 +167,7 @@ async function quizChampionWeek(classId, now = new Date()) {
     const item = prize.kind === 'treasure' ? prize.item : null;
     const art = item?.image
         ? `<img src="${esc(item.image)}" alt="" class="qc-prize__img">`
-        : `<span class="qc-prize__icon">${esc(item?.icon || '🪙')}</span>`;
+        : `<span class="qc-prize__icon">${item?.icon ? esc(item.icon) : GOLD_COIN_HTML}</span>`;
     return {
         sigil: '🎯',
         title: 'Quiz Champion of the week',

@@ -46,6 +46,9 @@ import { openQuietDragonFrom } from './quietDragonButton.js';
 import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 import { namedaysOn, orthodoxSeasonOn } from '../features/namedayCalendar.mjs';
 import { WONDER_CARD_TYPES, WONDER_FOR_AI_CARD, hydrateWonderCard } from './wallpaperWonderCards.js';
+import { GOLD_COIN_HTML, goldCoinHtml } from '../utils/goldCoin.js';
+
+const GOLD_COIN_XL = goldCoinHtml('gq-gold--xl');
 
 // Proper Fisher-Yates shuffle for true variety
 function shuffleDeck(array) {
@@ -1650,13 +1653,13 @@ function getClassGoldTopTrioCard(classId) {
             <div class="text-2xl mb-1">${style.emoji}</div>
             ${avatar}
             <div class="font-bold text-white text-sm truncate">${s.name.split(' ')[0]}</div>
-            <div class="${style.color} font-title text-lg mt-1">${s.gold.toLocaleString()} 🪙</div>
+            <div class="${style.color} font-title text-lg mt-1">${s.gold.toLocaleString()} ${GOLD_COIN_HTML}</div>
         </div>`;
     }).join('');
 
     return {
         html: `<div class="text-center w-full">
-            <div class="badge-pill bg-yellow-100 text-yellow-800">💰 Wealthiest Adventurers</div>
+            <div class="badge-pill bg-yellow-100 text-yellow-800">${GOLD_COIN_HTML} Wealthiest Adventurers</div>
             <p class="text-yellow-700 text-sm font-bold mt-2 mb-5">The class treasury leaders!</p>
             <div class="flex gap-3">${cards}</div>
         </div>`,
@@ -1885,10 +1888,10 @@ function getClassGoldRankingCard(classId) {
     return {
         html: `<div class="text-center w-full">
             <div class="badge-pill bg-amber-100 text-amber-800">Gold Treasury Rank</div>
-            <div class="text-7xl my-3">💰</div>
+            <div class="text-7xl my-3">${GOLD_COIN_XL}</div>
             <h3 class="font-title text-4xl text-amber-900">#${rank} Richest Class</h3>
             <p class="font-title text-3xl text-amber-600">${myData.gold} Gold</p>
-            ${rank === 1 ? '<p class="text-amber-700 font-bold mt-2">👑 Wealthiest in school!</p>' : `<p class="text-amber-600 font-bold mt-2">${ranked[0].logo} ${ranked[0].name}: ${ranked[0].gold} 💰</p>`}
+            ${rank === 1 ? '<p class="text-amber-700 font-bold mt-2">👑 Wealthiest in school!</p>' : `<p class="text-amber-600 font-bold mt-2">${ranked[0].logo} ${ranked[0].name}: ${ranked[0].gold} ${GOLD_COIN_HTML}</p>`}
         </div>`,
         css: 'float-card-gold'
     };
@@ -2440,7 +2443,7 @@ function getTreasuryCard(classId) {
     } else {
         total = sumLiveYearGoldFromAppState(scores, state);
     }
-    return { html: `<div class="text-center"><div class="badge-pill bg-amber-100 text-amber-800">Treasury</div><div class="text-8xl mb-2 animate-bounce-slow">💰</div><h2 class="text-6xl font-title text-amber-900"><span class="js-count-up" data-target="${total}">0</span></h2><p class="text-amber-600 font-bold">Gold</p></div>`, css: 'float-card-gold' };
+    return { html: `<div class="text-center"><div class="badge-pill bg-amber-100 text-amber-800">Treasury</div><div class="text-8xl mb-2 animate-bounce-slow">${GOLD_COIN_XL}</div><h2 class="text-6xl font-title text-amber-900"><span class="js-count-up" data-target="${total}">0</span></h2><p class="text-amber-600 font-bold">Gold</p></div>`, css: 'float-card-gold' };
 }
 
 function getClassQuestCard(classId) {
@@ -2593,7 +2596,7 @@ function getSchoolGoldLeaderCard() {
     });
     if (!topClass) return null;
     return {
-        html: `<div class="text-center"><div class="badge-pill bg-amber-100 text-amber-800">Richest Realm</div><div class="text-7xl mb-2">💰</div><h3 class="font-title text-4xl text-amber-900">${topClass.name}</h3><p class="text-amber-700 text-xl font-bold"><span class="js-count-up" data-target="${maxGold}">0</span> Gold</p></div>`,
+        html: `<div class="text-center"><div class="badge-pill bg-amber-100 text-amber-800">Richest Realm</div><div class="text-7xl mb-2">${GOLD_COIN_XL}</div><h3 class="font-title text-4xl text-amber-900">${topClass.name}</h3><p class="text-amber-700 text-xl font-bold"><span class="js-count-up" data-target="${maxGold}">0</span> Gold</p></div>`,
         css: 'float-card-gold'
     };
 }

@@ -10,6 +10,7 @@ import { keeperPurchaseLine } from '../../features/marketKeeperCore.mjs';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 import { playSound } from '../../audio.js';
 import '../../styles/market_parcel.css';
+import { GOLD_COIN_HTML } from '../../utils/goldCoin.js';
 
 const AUTO_CLOSE_MS = 6500;
 const REVEAL_MS = 1500; // when the ware has risen and the receipt is out
@@ -67,9 +68,9 @@ function parcelMarkup({ kind, itemName, itemDescription, itemVisualHtml, finalPr
             <p class="mmp-receipt__head">Mystic Market · Receipt</p>
             <dl class="mmp-receipt__rows">
                 <div><dt>Sold to</dt><dd class="mmp-receipt__who">${escapeHtml(studentName)}</dd></div>
-                <div><dt>Price</dt><dd>${discounted ? `<s>${Number(basePrice)}</s> ` : ''}<b>${Number(finalPrice)}</b> 🪙</dd></div>
+                <div><dt>Price</dt><dd>${discounted ? `<s>${Number(basePrice)}</s> ` : ''}<b>${Number(finalPrice)}</b> ${GOLD_COIN_HTML}</dd></div>
                 ${discountNote ? `<div class="mmp-receipt__note"><dt>Discount</dt><dd>${escapeHtml(discountNote)}</dd></div>` : ''}
-                <div class="mmp-receipt__purse"><dt>Purse now</dt><dd><b data-mmp-purse>${Number(purseShown)}</b> 🪙</dd></div>
+                <div class="mmp-receipt__purse"><dt>Purse now</dt><dd><b data-mmp-purse>${Number(purseShown)}</b> ${GOLD_COIN_HTML}</dd></div>
             </dl>
             <span class="mmp-stamp" aria-hidden="true">Paid</span>
         </div>

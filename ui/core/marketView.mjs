@@ -5,6 +5,7 @@ import { FAMILIAR_STAGE_BOND } from '../../features/familiarProgression.mjs';
 import { buildFamiliarEggSvg, describeFamiliar, getFamiliarPresets } from '../../features/familiarForge.mjs';
 import { CHARM_SET_SIZE, charmFor, charmText, treasureTierLabel } from '../../features/treasureCharmsCore.mjs';
 import { legendaryArtSvg } from '../../features/legendaryArt.mjs';
+import { GOLD_COIN_HTML } from '../../utils/goldCoin.js';
 
 const YOUNG_LEAGUES = ['Pre-Junior', 'Junior A', 'Junior B'];
 
@@ -55,7 +56,7 @@ export function escapeShopHtml(value) {
 export function shopPriceMarkupPlain(basePrice) {
     return `
         <span class="mm-tag__hole" aria-hidden="true"></span>
-        <span class="mm-tag__price"><span class="shop-price-value">${basePrice}</span><span class="shop-price-coin" aria-hidden="true">🪙</span></span>
+        <span class="mm-tag__price"><span class="shop-price-value">${basePrice}</span><span class="shop-price-coin" aria-hidden="true">${GOLD_COIN_HTML}</span></span>
         <span class="sr-only">gold</span>`;
 }
 
@@ -63,7 +64,7 @@ export function shopPriceMarkupDiscount(basePrice, finalPrice) {
     return `
         <span class="mm-tag__hole" aria-hidden="true"></span>
         <span class="mm-tag__was shop-price-was"><span class="sr-only">was </span>${basePrice}</span>
-        <span class="mm-tag__price mm-tag__price--sale"><span class="shop-price-now">${finalPrice}</span><span class="shop-price-coin" aria-hidden="true">🪙</span></span>
+        <span class="mm-tag__price mm-tag__price--sale"><span class="shop-price-now">${finalPrice}</span><span class="shop-price-coin" aria-hidden="true">${GOLD_COIN_HTML}</span></span>
         <span class="sr-only">gold, your price</span>`;
 }
 
@@ -162,7 +163,7 @@ export function renderLegendaryRelicCard(family, variants, activeId = '') {
                         data-relic-form="${escapeShopHtml(v.id)}" title="${escapeShopHtml(`${v.name}: ${v.description}`)}">
                         <span class="mm-relic-form__art" aria-hidden="true">${legendaryArtSvg(v.id, { className: 'lg-art lg-art--chip' }) || escapeShopHtml(v.icon || '')}</span>
                         <span class="mm-relic-form__label">${escapeShopHtml(v.form || v.name)}</span>
-                        <span class="mm-relic-form__price">${Number(v.price) || 0}<span aria-hidden="true">🪙</span></span>
+                        <span class="mm-relic-form__price">${Number(v.price) || 0}${GOLD_COIN_HTML}</span>
                     </button>`).join('')}
                 </div>` : '';
     return `

@@ -97,7 +97,7 @@ export const optionsTabHTML = `
                                                 <span class="ts-label">Current gold</span>
                                                 <span class="ts-coin-input">
                                                     <input type="number" id="economy-gold-input" class="ts-input ts-input--gold" placeholder="0">
-                                                    <span class="ts-coin-input__coin" aria-hidden="true">🪙</span>
+                                                    <span class="ts-coin-input__coin" aria-hidden="true"><i class="gq-gold" aria-hidden="true"></i></span>
                                                 </span>
                                             </label>
                                             <button id="save-gold-btn" class="ts-btn bubbly-button" disabled>

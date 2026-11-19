@@ -15,6 +15,7 @@ import {
 } from './helpers.js';
 import { countWord, STAR_WORDS, LESSON_WORDS } from './i18n.js';
 import { renderTreasures } from './treasures.js';
+import { GOLD_COIN_HTML } from '../../utils/goldCoin.js';
 
 const VISIBLE_RESULTS = 5;
 
@@ -170,7 +171,7 @@ function renderHeroCard(snapshot, name) {
                     <span class="fp-hero__value">${Number(progress.heroLevel || 0)}</span>
                 </div>
                 <div class="fp-hero__item">
-                    <span class="fp-hero__badge" aria-hidden="true">🪙</span>
+                    <span class="fp-hero__badge" aria-hidden="true">${GOLD_COIN_HTML}</span>
                     <span class="fp-hero__label">${tr('Gold', 'Χρυσός')}</span>
                     <span class="fp-hero__value">${formatStars(progress.gold || 0)}</span>
                     <span class="fp-hero__hint">${tr('to spend in the class market', 'για την αγορά της τάξης')}</span>

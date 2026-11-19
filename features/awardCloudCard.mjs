@@ -8,6 +8,7 @@
 // .absence-controls [data-action], #today-stars-<id>, #monthly-stars-<id>, #total-stars-<id> (each absent while sealed),
 // #student-gold-display-<id>, .enlargeable-avatar.
 import { escapeHtml as esc } from '../utils/html.mjs';
+import { GOLD_COIN_HTML } from '../utils/goldCoin.js';
 
 /** The four life skills a teacher can name on a cloud, in button order. */
 export const AWARD_VIRTUES = [
@@ -177,7 +178,7 @@ function portraitHtml(view) {
 
 function purseHtml(view) {
     return `<div class="aw-purse" title="${esc(view.firstName || view.name)}'s Gold">`
-        + `<span class="aw-purse__coin" aria-hidden="true"><i class="fas fa-star"></i></span>`
+        + `<span class="aw-purse__coin" aria-hidden="true">${GOLD_COIN_HTML}</span>`
         + `<span class="aw-purse__value" id="student-gold-display-${esc(view.id)}">${esc(view.gold ?? 0)}</span>`
         + `<span class="sr-only"> Gold</span></div>`;
 }

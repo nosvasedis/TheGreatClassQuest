@@ -62,6 +62,7 @@ import { getLiveYearGoldFromAppState } from "../utils/yearGold.js";
 import { cancelScheduledRenders, scheduleRender } from "../utils/renderScheduler.js";
 import { getDeviceCacheChoice } from "../utils/deviceCache.js";
 import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
+import { goldAmountHtml } from '../utils/goldCoin.js';
 
 const OPEN_YEAR_CACHE_KEY = "gcq_open_school_years_v1";
 const OPEN_YEAR_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
@@ -1243,7 +1244,7 @@ export async function setupDataListeners(
                             shopStudentSelect &&
                             shopStudentSelect.value === studentId
                         ) {
-                            shopGoldEl.innerText = `${newGold} 🪙`;
+                            shopGoldEl.innerHTML = goldAmountHtml(newGold);
                         }
 
                         if (monthlyEl && monthlyEl.textContent != newMonthly) {

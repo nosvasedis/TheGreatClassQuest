@@ -17,6 +17,7 @@ import { tailwindGlyphSvg, tailwindPipsHtml } from '../../features/tailwindArt.j
 import * as state from '../../state.js';
 import { showToast } from '../effects.js';
 import { isGameplaySeasonLiveFromAppState } from '../../utils/schoolYear.js';
+import { GOLD_COIN_HTML } from '../../utils/goldCoin.js';
 
 /** Guild scores stay frozen while the school year is sealed. */
 function isGuildSeasonLive() {
@@ -1416,7 +1417,7 @@ function _ledgerGifts(r) {
         chip(n, `${GLORY_EMOJI} ${_escapeHtml(getGuildById(gid)?.name || '')}`, ' fl-gift--glory');
     });
     chip(r.starsDelta, '⭐');
-    chip(r.goldDelta, '🪙');
+    chip(r.goldDelta, GOLD_COIN_HTML);
     if (Number(r.artifactsGranted) > 0) out.push(`<span class="fl-gift">+${_fmtNumber(r.artifactsGranted)} 🎁</span>`);
     chip(r.classQuestDelta, 'Team Quest ⭐');
     if (r.braved) out.push('<span class="fl-gift fl-gift--braved">🛡️ Braved</span>');
@@ -1475,7 +1476,7 @@ function _renderLedgerChrome(logs, tallies) {
                                         ${isLucky(id) ? '<span class="fl-chest__ribbon">Luckiest guild</span>' : ''}
                                         <span class="fl-chest__head">${_emblemBadge(id, g.name, 'fl-chest__emblem')}<span class="fl-chest__name">${_escapeHtml(g.name || id)}</span></span>
                                         <span class="fl-chest__glory"><b>${_signed(t.glory)}</b> ${GLORY_EMOJI} Glory</span>
-                                        <span class="fl-chest__more">${t.finds} spin${t.finds === 1 ? '' : 's'} · ${_signed(t.stars)} ⭐ · ${_signed(t.gold)} 🪙${t.braved ? ` · 🛡️ ${t.braved}` : ''}</span>
+                                        <span class="fl-chest__more">${t.finds} spin${t.finds === 1 ? '' : 's'} · ${_signed(t.stars)} ⭐ · ${_signed(t.gold)} ${GOLD_COIN_HTML}${t.braved ? ` · 🛡️ ${t.braved}` : ''}</span>
                                         ${t.best ? `<span class="fl-chest__best fl-r--${_escapeHtml(t.best.rarity || 'common')}" title="Best find"><span aria-hidden="true">${bestIcon}</span>${_escapeHtml(bestName)}</span>` : ''}
                                     </li>`;
     }).join('')}</ul>` : '');

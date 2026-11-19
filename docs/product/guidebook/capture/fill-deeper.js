@@ -900,7 +900,7 @@ export function showSpecialQuestRunner() {
   if (badgeImg) badgeImg.src = '/assets/ceremony/quest-vocabulary-vault.svg';
   if (title) title.textContent = 'Vocabulary Vault';
   if (instructions) instructions.textContent = 'Count a use each time a child says today’s word in a real sentence.';
-  if (rewardBadge) rewardBadge.innerHTML = '<span>⭐ +1 Stars</span> <span>🪙 +1 Gold</span>';
+  if (rewardBadge) rewardBadge.innerHTML = '<span>⭐ +1 Stars</span> <span><i class="gq-gold" aria-hidden="true"></i> +1 Gold</span>';
   if (count) count.textContent = '7 / 10';
   if (bar) bar.style.width = '70%';
   if (complete) complete.disabled = true;

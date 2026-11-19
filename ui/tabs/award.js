@@ -38,7 +38,6 @@ import {
 import { buildHeroTieStats, pickProdigyWinners, rankHeroes } from '../../features/heroRanking.js';
 import { withPendingAwards } from '../../features/awardPending.mjs';
 import { withPendingAttendance } from '../../features/attendancePending.mjs';
-import { watchAwardCloud, watchAwardClouds } from '../awardCloudFit.js';
 import { isMonthFinaleLesson, monthFinaleContextFrom } from '../../features/monthFinale.js';
 import { playAttendanceTurn, readCloudPalette } from '../awardFx.js';
 import { bindAwardRollTips, hideAwardRollTip, refreshAwardRollTip, registerAwardTipBuilder } from '../awardRollTip.js';
@@ -376,6 +375,8 @@ function buildStudentCloudView(student, ctx, index = 0) {
         familiarHtml: ctx.familiarsEnabled && scoreData.familiar ? renderFamiliarSprite(scoreData.familiar, 'small', student.id) : '',
         cloud: visual.cloud,
         hue: visual.hue,
+        // Phone cards are narrower and taller, so their clouds are drawn on the taller board.
+        board: document.body.classList.contains('gcq-mobile') || window.innerWidth < 640 ? 'tall' : 'wide',
         floatDelay: visual.floatDelay,
         riseDelay: Math.min(index * 38, 620)
     };
@@ -628,7 +629,6 @@ state.subscribe('allAttendanceRecords', () => {
 // Clouds drift only while on screen, so a long class never keeps dozens of layers busy.
 let awardFloatObserver = null;
 function observeAwardFloat(listContainer) {
-    watchAwardClouds(listContainer);
     if (typeof IntersectionObserver === 'undefined') {
         listContainer.querySelectorAll('.aw-card').forEach((card) => card.classList.add('is-afloat'));
         return;
@@ -714,7 +714,7 @@ function patchAwardCloudList(listContainer, views) {
             if (mount) mount.replaceWith(fresh);
             mount = fresh;
             restoreAwardOpenCloud(newCard, openClouds.get(id));
-            if (newCard) { awardFloatObserver?.observe(newCard); watchAwardCloud(newCard); }
+            if (newCard) awardFloatObserver?.observe(newCard);
         }
         awardCardSignatures.set(id, signature);
         keep.add(mount);
@@ -867,7 +867,6 @@ export function refreshAwardCloud(studentId) {
     if (turning) playAttendanceTurn(fresh, { toAbsent: view.isAbsent, wasPalette, cloud: view.cloud });
     awardCardSignatures.set(String(studentId), signature);
     awardFloatObserver?.observe(fresh);
-    watchAwardCloud(fresh);
     renderAwardSkySummary(classId);
 }
 

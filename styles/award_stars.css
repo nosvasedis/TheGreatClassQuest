@@ -612,13 +612,13 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 27.5rem), 1fr));
     justify-items: center;
-    gap: 4.2rem 3rem;
+    gap: 8rem 6rem;
     align-items: start;
-    padding: 3.2rem 0.6rem 7rem;
+    padding: 6.5rem 4.6rem 8rem;
     overflow: visible;
+    overflow-x: clip; /* a puff may drift past the screen edge, never into a sideways scroll */
 }
 
-/* A loose, cloud-like formation: the middle column drifts lower. */
 /* A loose, cloud-like formation: every other cloud floats a little lower. */
 @media (min-width: 720px) {
     .aw-sky-grid > .award-card-mount:nth-child(2n) { margin-top: 1.6rem; }
@@ -658,7 +658,6 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
     --awc-tint-o: 0;
     --awc-halo: rgba(255, 255, 255, 0);
     --awc-flare: rgba(125, 211, 252, 0.8);
-    --awc-shade: var(--awc-bot);
 
     position: relative;
     isolation: isolate;
@@ -684,29 +683,24 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
     .aw-card:hover { transform: translateY(-3px); }
 }
 
-/* The cloud art: drawn in the content box's own pixels by features/awardCloudShape.mjs,
-   reaching past the card on purpose (crowns, tails, cloudlets). */
+/* The cloud art (features/awardCloudShape.mjs): one static SVG stretched over the card. Each
+   family sets its own percentage inset inline, so the round oval always wraps the content. */
 .aw-cloud {
     position: absolute;
-    inset: 0;
+    inset: -30% -12%;
     z-index: -1;
     pointer-events: none;
 }
 
-.aw-cloud__shape {
-    position: absolute;
-    inset: 0;
-}
-
 .aw-cloud__art {
-    position: absolute;
     display: block;
+    width: 100%;
+    height: 100%;
     overflow: visible;
 }
 
 .aw-cloud__shelf { fill: var(--awc-shelf); }
-.aw-cloud__rim { fill: var(--awc-rim); stroke: var(--awc-rim); stroke-width: 6; stroke-linejoin: round; }
-.aw-cloud__shade { fill: var(--awc-shade); }
+.aw-cloud__rim { fill: var(--awc-rim); stroke: var(--awc-rim); stroke-width: 7; }
 .aw-cloud__tint {
     fill: var(--awc-tint);
     opacity: var(--awc-tint-o);
@@ -715,45 +709,13 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
 .aw-cloud__sheen path {
     fill: none;
     stroke: var(--awc-sheen);
-    stroke-width: 5;
+    stroke-width: 7;
     stroke-linecap: round;
-    opacity: 0.5;
-}
-.aw-cloud__wisps ellipse {
-    fill: var(--awc-mid);
-    stroke: var(--awc-rim);
-    stroke-width: 2;
     opacity: 0.85;
 }
 .aw-cloud__rain { display: none; stroke: #93c5fd; stroke-width: 4; stroke-linecap: round; }
 
-/* Sparkles resting on the upper puffs (static: drawn once, nothing to repaint). */
-.aw-cloud__glint {
-    position: absolute;
-    width: var(--s, 10px);
-    height: var(--s, 10px);
-    margin: calc(var(--s, 10px) / -2) 0 0 calc(var(--s, 10px) / -2);
-    background: radial-gradient(circle, #fff 0 18%, var(--awc-glint) 46%);
-    clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
-    opacity: 0.85;
-}
-
-
-/* Little cloudlets that keep the big cloud company (they drift with it, no loop of their own). */
-.aw-cloudlet {
-    position: absolute;
-    display: block;
-    pointer-events: none;
-}
-
-.aw-cloudlet svg { display: block; width: 100%; height: auto; overflow: visible; }
-.aw-cloudlet.is-flipped svg { transform: scaleX(-1); }
-.aw-cloudlet__shade { fill: var(--awc-shade); stroke: var(--awc-rim); stroke-width: 1.5; }
-.aw-cloudlet__body { fill: var(--awc-top); }
-
-
-.aw-card.is-absent .aw-cloudlet,
-.aw-card.is-absent .aw-cloud__glint { opacity: 0.5; }
+.aw-cloud__glints path { fill: var(--awc-glint); opacity: 0.85; }
 
 
 /* Each hero's cloud is lit a little differently: snow, lilac, aqua, dawn or mist.
@@ -762,11 +724,6 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
 .aw-card[data-hue="aqua"]:not(.aw-card--hero):not(.aw-card--prodigy):not(.aw-card--party):not(.is-absent) { --awc-mid: #f3fbff; --awc-bot: #d3ecfa; --awc-rim: rgba(130, 190, 228, 0.62); }
 .aw-card[data-hue="dawn"]:not(.aw-card--hero):not(.aw-card--prodigy):not(.aw-card--party):not(.is-absent) { --awc-mid: #fffaf6; --awc-bot: #f3e0e3; --awc-rim: rgba(214, 170, 190, 0.55); }
 .aw-card[data-hue="mist"]:not(.aw-card--hero):not(.aw-card--prodigy):not(.aw-card--party):not(.is-absent) { --awc-mid: #f6f9fc; --awc-bot: #dce4ee; --awc-rim: rgba(150, 170, 200, 0.58); }
-
-/* Each lobe's shaded belly: the body colour pulled a little toward the rim. */
-@supports (color: color-mix(in srgb, red, blue)) {
-    .aw-card { --awc-shade: color-mix(in srgb, var(--awc-bot) 62%, var(--awc-rim)); }
-}
 
 /* Pre-drawn glow behind the cloud (hero, prodigy, and the award flare). */
 .aw-cloud__halo {
@@ -2394,8 +2351,8 @@ html[data-wx-lite="1"] .aw-card.is-afloat:is(:hover, :focus-within) .aw-portrait
 
 body.gcq-mobile .aw-sky-grid {
     grid-template-columns: minmax(0, 1fr);
-    gap: 3.8rem;
-    padding: 3rem 0.9rem 6.5rem;
+    gap: 5rem;
+    padding: 4.5rem 1.1rem 7rem;
 }
 
 body.gcq-mobile .aw-sky-grid > .award-card-mount { margin-top: 0 !important; }
@@ -2419,9 +2376,6 @@ body.projector-mode .aw-desk__arrive {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .aw-card .aw-cloud__glint,
-    .aw-card .aw-cloudlet,
-    .aw-card .aw-cloud__shape,
     .aw-card.is-afloat,
     .aw-card .aw-boon__heart,
     .aw-card .aw-portrait__levelup,

@@ -9,7 +9,7 @@
 // #student-gold-display-<id>, .enlargeable-avatar.
 import { escapeHtml as esc } from '../utils/html.mjs';
 import { GOLD_COIN_HTML } from '../utils/goldCoin.js';
-import { AWARD_CLOUD_FAMILIES, AWARD_CLOUD_HUES, AWARD_CLOUD_DEFAULT_LAYOUT, buildAwardCloudShapeHtml } from './awardCloudShape.mjs';
+import { AWARD_CLOUD_FAMILIES, AWARD_CLOUD_HUES, awardCloudInsetCss, buildAwardCloudArtSvg } from './awardCloudShape.mjs';
 
 export { AWARD_CLOUD_FAMILIES, AWARD_CLOUD_HUES };
 
@@ -32,7 +32,7 @@ export const AWARD_STAR_TIERS = [
 
 /**
  * Legacy cloud silhouettes for the small clouds in other places (Teacher Boon card, boon sponsor
- * picker). The Award tab's own clouds come from features/awardCloudShape.mjs.
+ * picker). The Award tab's own clouds come from features/awardCloudShape.mjs (buildAwardCloudArtSvg).
  * Drawn on a 400 x 440 board: one body plus puffs (cx, cy, r).
  * Every shape keeps a central dome near (200, 92) so the portrait always sits on cloud.
  */
@@ -392,15 +392,14 @@ export function buildAwardCloudCardHtml(view) {
     const nameSize = nameLength > 22 ? ' aw-card__name--xlong' : nameLength > 17 ? ' aw-card__name--long' : '';
     const family = AWARD_CLOUD_FAMILIES.includes(view.cloud) ? view.cloud : AWARD_CLOUD_FAMILIES[0];
     const hue = AWARD_CLOUD_HUES.includes(view.hue) ? view.hue : AWARD_CLOUD_HUES[0];
-    // A first cloud for a typical card; ui/awardCloudFit.js reshapes it to the real card once laid out.
-    const firstLayout = { ...AWARD_CLOUD_DEFAULT_LAYOUT, h: AWARD_CLOUD_DEFAULT_LAYOUT.h + (honoursHtml ? 22 : 0) };
     const rise = Number.isFinite(view.riseDelay) ? view.riseDelay : 0;
+    const board = view.board === 'tall' ? 'tall' : 'wide';
     const float = Number.isFinite(view.floatDelay) ? view.floatDelay : 0;
 
     return `<div class="award-card-mount tab-mount-rise" style="--tab-rise-delay:${rise}ms">`
         + `<article class="${cardClasses}" data-studentid="${esc(id)}" data-cloud="${family}" data-hue="${hue}"${locked && view.todayReason ? ` data-awarded="${esc(view.todayReason)}"` : ''} style="--aw-float-delay:-${float}ms" aria-label="${esc(view.name)}">`
         + `<div class="aw-card__lift">`
-        + `<div class="aw-cloud" aria-hidden="true"><span class="aw-cloud__halo"></span>${buildAwardCloudShapeHtml(family, view.cloudSeed ?? id, firstLayout, id)}</div>`
+        + `<div class="aw-cloud" aria-hidden="true" style="inset:${awardCloudInsetCss(family, board)}"><span class="aw-cloud__halo"></span>${buildAwardCloudArtSvg(family, board, id)}</div>`
         + `<div class="aw-card__corner aw-card__corner--left">${buildAwardBoonButtonHtml(id, view.boon || {})}</div>`
         + `<div class="aw-card__corner aw-card__corner--right"><div class="absence-controls">${cornerAttendance}</div>`
         + `<button type="button" id="post-award-undo-${esc(id)}" class="post-award-undo-btn aw-undo${locked ? '' : ' hidden'}" title="Undo today's award" aria-label="Undo today's award"><i class="fas fa-rotate-left" aria-hidden="true"></i><span class="aw-undo__tip">Undo</span></button></div>`

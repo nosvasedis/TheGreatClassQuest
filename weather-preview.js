@@ -38,7 +38,7 @@ function card(name, cloud, i) {
         heroClass: { title: 'Scout', icon: '🛡️', aura: '#16a34a' },
         gold: 20 + i * 7, today: i % 3, month: 10 + i * 4, total: 60 + i * 9, todayReason: null,
         locked: false, isAbsent: false, attendanceMode: 'none', boon: { eligible: false },
-        honours: {}, cloud, floatDelay: i * 900, riseDelay: 0
+        honours: {}, cloud, board: params.get('mobile') === '1' ? 'tall' : 'wide', floatDelay: i * 900, riseDelay: 0
     }).replace(' tab-mount-rise', '');
 }
 
@@ -81,14 +81,12 @@ function richCard(i) {
         todayReason: st === 'locked' ? 'teamwork' : null, locked: st === 'locked', isAbsent: st === 'absent' || st === 'returning', attendanceMode: mode,
         boon: { eligible: i % 3 === 0 },
         honours: { heroOfDay: st === 'hero', heroBonusReady: st === 'hero', prodigy: st === 'prodigy', occasion: st === 'birthday' ? 'birthday' : st === 'nameday' ? 'nameday' : null },
-        cloud: AWARD_CLOUD_KEYS[(i * 3) % AWARD_CLOUD_KEYS.length], hue: ['snow', 'lilac', 'aqua', 'dawn', 'mist'][(i * 2) % 5], floatDelay: i * 900, riseDelay: 0
+        cloud: AWARD_CLOUD_KEYS[(i * 3) % AWARD_CLOUD_KEYS.length], hue: ['snow', 'lilac', 'aqua', 'dawn', 'mist'][(i * 2) % 5], board: params.get('mobile') === '1' ? 'tall' : 'wide', floatDelay: i * 900, riseDelay: 0
     }).replace(' tab-mount-rise', '');
 }
 if (list && params.get('heroes')) list.innerHTML = Array.from({ length: Number(params.get('heroes')) }, (_, i) => richCard(i)).join('');
-if (list && params.get('fit') !== '0') {
-    const { watchAwardClouds } = await import('./ui/awardCloudFit.js');
-    watchAwardClouds(list);
-    // Same as ui/tabs/award.js: only clouds on screen drift.
+if (list) {
+    // Same as ui/tabs/award.js: only clouds on screen count as afloat.
     const io = new IntersectionObserver((es) => es.forEach((e) => e.target.classList.toggle('is-afloat', e.isIntersecting)), { rootMargin: '80px 0px' });
     list.querySelectorAll('.aw-card').forEach((c) => io.observe(c));
 }

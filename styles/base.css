@@ -1,3 +1,10 @@
+/*
+ * "hidden" always wins, app-wide. The whole app toggles the hidden class to show and hide things,
+ * and many hand-written rules set display on the same elements (Teacher Settings sheets, cards,
+ * buttons...). This rule lived in fortunes_wheel.css until Nov 2026; keep it here, global.
+ */
+.hidden { display: none !important; }
+
 /* Custom Font */
 body {
     font-family: var(--gcq-font-body);

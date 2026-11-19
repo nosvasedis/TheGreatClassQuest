@@ -18,7 +18,7 @@ export const AWARD_CLOUD_FAMILIES = ['cumulus', 'twin', 'tower', 'crown', 'billo
 export const AWARD_CLOUD_HUES = ['snow', 'lilac', 'aqua', 'dawn', 'mist'];
 
 /** The size the first (unmeasured) cloud is drawn for: a typical desktop card. */
-export const AWARD_CLOUD_DEFAULT_LAYOUT = { w: 333, h: 388, sideMax: 34 };
+export const AWARD_CLOUD_DEFAULT_LAYOUT = { w: 520, h: 300, sideMax: 30 };
 
 const PAD = 8; // the core reaches this far past the content on every side
 
@@ -154,15 +154,17 @@ export function buildAwardCloudGeometry(family, seed, layoutIn = {}) {
         puffs.push(c);
         sheen.push(c);
     };
+    // Crowns are sized to the cloud's height too, so a wide, low cloud gets lobes, not a mountain.
+    const S = Math.min(W, H * 1.05, 400);
     switch (F.crown) {
-        case 'dome': crownPuff(0.5, 44 + rand() * 8, W * 0.27); crownPuff(0.24, 22, W * 0.16); crownPuff(0.77, 26, W * 0.17); break;
-        case 'twin': crownPuff(0.3, 46 + rand() * 6, W * 0.22); crownPuff(0.7, 38 + rand() * 6, W * 0.21); crownPuff(0.5, 20, W * 0.16); break;
-        case 'tower': crownPuff(0.72, 30, W * 0.22); crownPuff(0.8, 46, W * 0.15); crownPuff(0.74, 54, W * 0.1); crownPuff(0.46, 26, W * 0.18); crownPuff(0.2, 12, W * 0.14); break;
-        case 'triple': crownPuff(0.2, 30, W * 0.15); crownPuff(0.5, 46, W * 0.2); crownPuff(0.8, 30, W * 0.15); break;
-        case 'low': crownPuff(0.5, 30, W * 0.32); crownPuff(0.18, 18, W * 0.17); break;
-        case 'lean': crownPuff(0.34, 48, W * 0.24); crownPuff(0.6, 32, W * 0.18); crownPuff(0.84, 16, W * 0.12); break;
+        case 'dome': crownPuff(0.5, 44 + rand() * 8, S * 0.27); crownPuff(0.24, 22, S * 0.16); crownPuff(0.77, 26, S * 0.17); break;
+        case 'twin': crownPuff(0.3, 46 + rand() * 6, S * 0.22); crownPuff(0.7, 38 + rand() * 6, S * 0.21); crownPuff(0.5, 20, S * 0.16); break;
+        case 'tower': crownPuff(0.72, 30, S * 0.22); crownPuff(0.8, 46, S * 0.15); crownPuff(0.74, 54, S * 0.1); crownPuff(0.46, 26, S * 0.18); crownPuff(0.2, 12, S * 0.14); break;
+        case 'triple': crownPuff(0.2, 30, S * 0.15); crownPuff(0.5, 46, S * 0.2); crownPuff(0.8, 30, S * 0.15); break;
+        case 'low': crownPuff(0.5, 30, S * 0.32); crownPuff(0.18, 18, S * 0.17); break;
+        case 'lean': crownPuff(0.34, 48, S * 0.24); crownPuff(0.6, 32, S * 0.18); crownPuff(0.84, 16, S * 0.12); break;
         case 'ridge': for (let i = 0; i < 6; i += 1) crownPuff(0.12 + i * 0.152, 18 + Math.sin((i / 5) * Math.PI) * 18 + rand() * 6, W * (0.085 + rand() * 0.03)); break;
-        case 'pair': crownPuff(0.38, 42, W * 0.21); crownPuff(0.64, 34, W * 0.18); break;
+        case 'pair': crownPuff(0.38, 42, S * 0.21); crownPuff(0.64, 34, S * 0.18); break;
         default: break;
     }
 
@@ -275,10 +277,10 @@ export function buildAwardCloudGeometry(family, seed, layoutIn = {}) {
 /** Where content usually sits in a card, for the first cloud before the card is measured. */
 function defaultBlocks(w, h) {
     return [
-        [12, 30, 44, 50], [w - 56, 30, 44, 50], // boon heart (+ its tag), attendance / undo
-        [w / 2 - 50, 6, 150, 104], // portrait and purse
-        [0, 112, w, h - 210], // name, tally, virtues
-        [w / 2 - 120, h - 96, 240, 96] // the stars
+        [4, 6, 40, 52], [w - 44, 6, 40, 40], // boon heart (+ its tag), attendance / undo
+        [w / 2 - 150, 0, 300, 96], // portrait, name and purse
+        [0, 100, w, h - 176], // tally and virtues
+        [w / 2 - 170, h - 66, 340, 66] // the stars
     ];
 }
 

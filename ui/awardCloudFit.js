@@ -1,9 +1,10 @@
 // Award Stars tab: reshapes each hero's cloud to the card's real size, so every button,
 // chip and name sits on cloud on any screen. The cloud is redrawn only when the card's
 // content box changes size (a desk opening, honours arriving, a narrower screen).
-import { buildAwardCloudShapeHtml } from '../features/awardCloudShape.mjs';
+import { buildAwardCloudShapeHtml, buildAwardCloudGeometry } from '../features/awardCloudShape.mjs';
 
 const fittedSize = new WeakMap();
+const fittedLayout = new WeakMap();
 const pending = new Set();
 let observer = null;
 let frame = 0;
@@ -22,7 +23,7 @@ function sideRoom(card, lift) {
 
 const BLOCKS = '.aw-card__corner .aw-boon, .aw-card__corner .aw-boon__tag, .aw-card__corner .aw-att, .aw-card__corner .aw-undo, '
     + '.aw-portrait, .aw-portrait__crown, .aw-portrait__laurel, .aw-portrait__guild, .aw-purse, .aw-familiar, '
-    + '.aw-card__nameplate > *, .aw-tally, .aw-desk, .aw-virtues, .aw-card__finale > *';
+    + '.aw-card__tags > *, .aw-card__name, .aw-honour, .aw-tally, .aw-desk, .aw-virtues, .aw-card__finale > *, .aw-star, .aw-seal';
 
 /** Every visible piece of the card, as [x, y, w, h] in the content box's pixels. */
 function contentBlocks(card, lift) {
@@ -37,35 +38,46 @@ function contentBlocks(card, lift) {
     return blocks;
 }
 
+function stillCovered(card, blocks) {
+    const prev = fittedLayout.get(card);
+    if (!prev) return false;
+    const g = buildAwardCloudGeometry(card.dataset.cloud, card.dataset.cloudSeed || card.dataset.studentid || 'hero', prev);
+    const [rx, ry, rw, rh, rr] = g.core;
+    const on = (x, y) => {
+        if (x >= rx && x <= rx + rw && y >= ry && y <= ry + rh) {
+            const dx = Math.max(rx + rr - x, 0, x - (rx + rw - rr));
+            const dy = Math.max(ry + rr - y, 0, y - (ry + rh - rr));
+            if (dx * dx + dy * dy <= rr * rr) return true;
+        }
+        return g.puffs.some(([cx, cy, r]) => (cx - x) ** 2 + (cy - y) ** 2 <= (r - 2) ** 2);
+    };
+    return blocks.every(([x, y, w, h]) => on(x - 3, y - 3) && on(x + w + 3, y - 3) && on(x - 3, y + h + 3) && on(x + w + 3, y + h + 3)
+        && on(x + w / 2, y - 3) && on(x + w / 2, y + h + 3) && on(x - 3, y + h / 2) && on(x + w + 3, y + h / 2));
+}
+
 function measure(card) {
     const lift = card.querySelector('.aw-card__lift');
     if (!lift || !lift.offsetWidth) return null;
     const layout = { w: lift.offsetWidth, h: lift.offsetHeight, sideMax: sideRoom(card, lift), blocks: contentBlocks(card, lift) };
-    const key = `${layout.w}|${layout.h}|${Math.round(layout.sideMax)}|${layout.blocks.join(';')}`;
-    return fittedSize.get(card) === key ? null : { card, layout, key };
+    const key = `${layout.w}|${layout.h}|${Math.round(layout.sideMax)}`;
+    // Same size and every piece still on the cloud it has (a virtue picked, a star button shown): keep it.
+    if (fittedSize.get(card) === key && stillCovered(card, layout.blocks)) return null;
+    return { card, layout, key };
 }
 
 function draw({ card, layout, key }) {
     const holder = card.querySelector('.aw-cloud');
-    const old = holder?.querySelector('.aw-cloud__shape');
     if (!holder) return;
-    const first = !fittedSize.has(card);
     fittedSize.set(card, key);
+    fittedLayout.set(card, layout);
     const id = card.dataset.studentid || 'hero';
     const tpl = document.createElement('template');
     tpl.innerHTML = buildAwardCloudShapeHtml(card.dataset.cloud, card.dataset.cloudSeed || id, layout, id);
     const fresh = tpl.content.firstElementChild;
     if (!fresh) return;
-    // The first fit lands while the card is still rising in, so it simply swaps.
-    if (!old || first) {
-        if (old) old.replaceWith(fresh); else holder.append(fresh);
-        return;
-    }
-    // Later changes (a desk opening, honours arriving) melt the old shape into the new one.
-    fresh.classList.add('is-reshaping');
-    old.classList.add('is-leaving');
-    old.after(fresh);
-    setTimeout(() => old.remove(), 520);
+    // A straight swap: one static picture replaces another, nothing to blend frame by frame.
+    const old = holder.querySelector('.aw-cloud__shape');
+    if (old) old.replaceWith(fresh); else holder.append(fresh);
 }
 
 function flush() {
@@ -105,7 +117,7 @@ export function watchAwardCloud(card) {
     // Picking a virtue swaps the hint for the star buttons without resizing the card: look again.
     if (!card.dataset.cloudFit) {
         card.dataset.cloudFit = '1';
-        card.addEventListener('click', () => setTimeout(() => queue(card), 420), { passive: true });
+        card.addEventListener('click', () => setTimeout(() => queue(card), 700), { passive: true });
     }
 }
 

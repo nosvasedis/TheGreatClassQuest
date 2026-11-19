@@ -404,10 +404,12 @@ export function buildAwardCloudCardHtml(view) {
         + `<div class="aw-card__corner aw-card__corner--left">${buildAwardBoonButtonHtml(id, view.boon || {})}</div>`
         + `<div class="aw-card__corner aw-card__corner--right"><div class="absence-controls">${cornerAttendance}</div>`
         + `<button type="button" id="post-award-undo-${esc(id)}" class="post-award-undo-btn aw-undo${locked ? '' : ' hidden'}" title="Undo today's award" aria-label="Undo today's award"><i class="fas fa-rotate-left" aria-hidden="true"></i><span class="aw-undo__tip">Undo</span></button></div>`
-        + `<header class="aw-card__head">${familiarHtml(view)}${portraitHtml(view)}${purseHtml(view)}</header>`
+        // A wide cloud: the portrait sits beside the name, so the card is broad and low like a real cloud.
+        + `<header class="aw-card__head">${familiarHtml(view)}${portraitHtml(view)}`
+        + `<div class="aw-card__nameplate"><div class="aw-card__tags">${heroRibbonHtml(view)}${purseHtml(view)}</div>`
+        + `<h3 class="aw-card__name font-title${nameSize}">${esc(view.name)}</h3>`
+        + `<div class="aw-card__honours">${honoursHtml}</div></div></header>`
         + `<div class="card-content-wrapper aw-card__body">`
-        + `<div class="aw-card__nameplate">${heroRibbonHtml(view)}<h3 class="aw-card__name font-title${nameSize}">${esc(view.name)}</h3>`
-        + `<div class="aw-card__honours">${honoursHtml}</div></div>`
         + tallyHtml(view)
         + `<div class="aw-card__desk">${desk}</div>`
         + buildAwardVirtuesHtml(view)

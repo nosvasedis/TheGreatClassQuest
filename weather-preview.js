@@ -88,7 +88,9 @@ if (list && params.get('heroes')) list.innerHTML = Array.from({ length: Number(p
 if (list && params.get('fit') !== '0') {
     const { watchAwardClouds } = await import('./ui/awardCloudFit.js');
     watchAwardClouds(list);
-    list.querySelectorAll('.aw-card').forEach((c) => c.classList.add('is-afloat'));
+    // Same as ui/tabs/award.js: only clouds on screen drift.
+    const io = new IntersectionObserver((es) => es.forEach((e) => e.target.classList.toggle('is-afloat', e.isIntersecting)), { rootMargin: '80px 0px' });
+    list.querySelectorAll('.aw-card').forEach((c) => io.observe(c));
 }
 
 // Same markup as features/home.js#reminderPill and #ceremonyPillHtml (?pills=0 shows one plain badge).

@@ -324,10 +324,11 @@ function meltOldCloud(card, { toAbsent, wasPalette, cloud }, duration) {
     ghost.className = `aw-cloud aw-turn-was${toAbsent ? '' : ' aw-turn-was--rain'}`;
     ghost.setAttribute('aria-hidden', 'true');
     for (const [name, value] of Object.entries(wasPalette)) ghost.style.setProperty(name, value);
-    // The same silhouette, its own ids, wearing the old colours.
+    // The same silhouette with its own ids (only ids: the colour variables must stay --awc-*,
+    // or the gradient loses its colours and the whole cloud flashes black), wearing the old colours.
     const shape = cloudEl.querySelector('.aw-cloud__shape');
     ghost.innerHTML = shape
-        ? shape.outerHTML.replace(/awc-/g, 'awcw-')
+        ? shape.outerHTML.replace(/(id="|#)awc-/g, '$1awcw-')
         : buildAwardCloudSvg(cloud, `${card.dataset.studentid || 'x'}-was`);
     cloudEl.after(ghost);
     run(ghost, [{ opacity: 1 }, { opacity: 0 }], { duration, easing: 'ease-in-out' });

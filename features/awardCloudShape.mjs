@@ -17,7 +17,7 @@ export const AWARD_CLOUD_HUES = ['snow', 'lilac', 'aqua', 'dawn', 'mist'];
 export const AWARD_CLOUD_BOARDS = {
     wide: { w: 480, h: 300, fx: 0.9, fy: 0.85, sx: 0 },
     // Phones have little room at the sides, so the cloud hugs them and the content may touch its edge.
-    tall: { w: 305, h: 340, fx: 0.85, fy: 0.8, sx: 0.03, puff: 0.36 }
+    tall: { w: 305, h: 340, fx: 0.85, fy: 0.8, sx: 0.1, puff: 0.36 }
 };
 
 /*
@@ -91,7 +91,7 @@ function placeShape(F, B, rand0, kx, ky) {
     for (let i = 0; i < F.lobes; i += 1) {
         const t = ((i + offset + (rand() - 0.5) * 0.3) / F.lobes) * Math.PI * 2;
         const deg = ((t * 180) / Math.PI) % 360;
-        const side = B.sx ? 1 - 0.35 * (bump(deg, 0, 35) + bump(deg, 180, 35)) : 1; // phones: slimmer sides
+        const side = B.sx ? 1 - 0.5 * (bump(deg, 0, 40) + bump(deg, 180, 40)) : 1; // phones: slimmer sides
         const r = base * Math.max(0.35, F.size(deg)) * side * (0.9 + rand() * 0.2);
         const [x, y] = ovalPoint(a, b, n, t);
         const len = Math.hypot(x, y) || 1;
@@ -132,7 +132,7 @@ function makeShape(family, boardKey) {
     let kx = B.fx; let ky = B.fy;
     let placed = placeShape(F, B, `${family}:${boardKey}`, kx, ky);
     for (let i = 0; i < 80 && !coversContent(placed, B); i += 1) {
-        kx += B.sx ? 0.012 : 0.015; ky += B.sx ? 0.02 : 0.03;
+        kx += B.sx ? 0.004 : 0.015; ky += B.sx ? 0.02 : 0.03;
         placed = placeShape(F, B, `${family}:${boardKey}`, kx, ky);
     }
     const { cx, cy, a, b, oval, puffs, top, rand } = placed;
@@ -170,6 +170,13 @@ for (const boardKey of Object.keys(AWARD_CLOUD_BOARDS)) {
 export function getAwardCloudShape(family, boardKey = 'wide') {
     const board = SHAPES[boardKey] || SHAPES.wide;
     return board[family] || board[AWARD_CLOUD_FAMILIES[0]];
+}
+
+/** How far the art reaches past the content box on each side, as fractions of its width. */
+export function awardCloudSideReach(family, boardKey = 'wide') {
+    const B = AWARD_CLOUD_BOARDS[boardKey] || AWARD_CLOUD_BOARDS.wide;
+    const [vx, , vw] = getAwardCloudShape(family, boardKey).view;
+    return { left: Math.round((-vx / B.w) * 1000) / 1000, right: Math.round(((vx + vw - B.w) / B.w) * 1000) / 1000 };
 }
 
 /** Where the art sits round the content box, as CSS insets in percent (top right bottom left; negative = outside). */

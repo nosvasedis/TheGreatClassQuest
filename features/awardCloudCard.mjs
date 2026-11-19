@@ -9,7 +9,7 @@
 // #student-gold-display-<id>, .enlargeable-avatar.
 import { escapeHtml as esc } from '../utils/html.mjs';
 import { GOLD_COIN_HTML } from '../utils/goldCoin.js';
-import { AWARD_CLOUD_FAMILIES, AWARD_CLOUD_HUES, awardCloudInsetCss, buildAwardCloudArtSvg } from './awardCloudShape.mjs';
+import { AWARD_CLOUD_FAMILIES, AWARD_CLOUD_HUES, awardCloudInsetCss, awardCloudSideReach, buildAwardCloudArtSvg } from './awardCloudShape.mjs';
 
 export { AWARD_CLOUD_FAMILIES, AWARD_CLOUD_HUES };
 
@@ -396,7 +396,9 @@ export function buildAwardCloudCardHtml(view) {
     const board = view.board === 'tall' ? 'tall' : 'wide';
     const float = Number.isFinite(view.floatDelay) ? view.floatDelay : 0;
 
-    return `<div class="award-card-mount tab-mount-rise" style="--tab-rise-delay:${rise}ms">`
+    const reach = awardCloudSideReach(family, board);
+    // Phones size each mount from these so the whole cloud, puffs and all, fits the screen.
+    return `<div class="award-card-mount tab-mount-rise" style="--tab-rise-delay:${rise}ms;--aw-reach-l:${reach.left};--aw-reach-r:${reach.right}">`
         + `<article class="${cardClasses}" data-studentid="${esc(id)}" data-cloud="${family}" data-hue="${hue}"${locked && view.todayReason ? ` data-awarded="${esc(view.todayReason)}"` : ''} style="--aw-float-delay:-${float}ms" aria-label="${esc(view.name)}">`
         + `<div class="aw-card__lift">`
         + `<div class="aw-cloud" aria-hidden="true" style="inset:${awardCloudInsetCss(family, board)}"><span class="aw-cloud__halo"></span>${buildAwardCloudArtSvg(family, board, id)}</div>`

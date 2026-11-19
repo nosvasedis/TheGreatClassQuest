@@ -382,7 +382,7 @@ async function dragonStage(cardEl, opts) {
 
 const WISHES = [
     { act: 'glory', icon: '⚜️', name: 'Glory', text: '+2 Glory for each guildmate here' },
-    { act: 'gold', icon: '🪙', name: 'Gold', text: '+15 gold for each guildmate here' },
+    { act: 'gold', icon: '<i class="gq-gold gq-gold--xl" aria-hidden="true"></i>', name: 'Gold', text: '+15 gold for each guildmate here' },
     { act: 'stars', icon: '⭐', name: 'Stars', text: '2 guildmates get +1 star' },
 ];
 

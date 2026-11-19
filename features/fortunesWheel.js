@@ -21,6 +21,7 @@ import { evaluateWheelAvailability } from '../utils/fortuneWheelEligibility.mjs'
 import { showAnimatedModal, hideModal } from '../ui/modals/base.js';
 import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 import { tailwindGlyphSvg, tailwindPipsHtml } from './tailwindArt.js';
+import { GOLD_COIN_HTML } from '../utils/goldCoin.js';
 
 /**
  * Every write the Wheel makes, in one place: the effects below call these, so the preview page
@@ -1251,8 +1252,33 @@ function _windNoteHtml() {
         + `<span class="fw-wind-card__orb">${tailwindGlyphSvg()}</span>`
         + '<span class="fw-wind-card__body">'
         + `<span class="fw-wind-card__head"><b class="fw-wind-card__pct">${_pctText(wind.pct)}</b><span class="fw-wind-card__name">Tailwind · ${wind.name || 'Breeze'}</span>${tailwindPipsHtml(wind.key, 'fw-wind-pips')}</span>`
-        + `<span class="fw-wind-card__copy">The wind is at this guild's back: any Glory the wheel brings grows by ${_pctText(wind.pct)}, like every Glory it earns this year.</span>`
+        + `<span class="fw-wind-card__copy">Any Glory the wheel brings this guild grows by ${_pctText(wind.pct)}.</span>`
         + '</span></div>';
+}
+
+// Gold's own coin (styles/gold_coin.css), so gold wedges never show the 🪙 emoji.
+const _GOLD_EMOJI = new Set(['🪙', '💰']);
+let _goldCoin = null;
+function _goldCoinImage() {
+    if (_goldCoin) return _goldCoin.complete && _goldCoin.naturalWidth ? _goldCoin : null;
+    try {
+        const raw = getComputedStyle(document.documentElement).getPropertyValue('--gq-gold-coin');
+        const m = raw && raw.match(/url\(\s*["']?([^"')]+)["']?\s*\)/);
+        if (!m) return null;
+        _goldCoin = new Image();
+        _goldCoin.onload = () => {
+            // Repaint the wheel with the coin once it is ready (it is a data URL, so almost at once).
+            invalidateWheelCache();
+            if (['ready', 'revealed'].includes(_wheelState.phase)) _sizeAndRenderWheel();
+        };
+        _goldCoin.src = m[1];
+    } catch (_) { /* the emoji stays */ }
+    return null;
+}
+
+/** A wedge's sign as HTML: Gold's coin for gold wedges, otherwise its emoji. */
+function _signHtml(emoji) {
+    return _GOLD_EMOJI.has(emoji) ? '<i class="gq-gold gq-gold--xl" aria-hidden="true"></i>' : emoji;
 }
 
 /** How a wedge is painted: the Envoy's mischief wears the storm's colours, so the class sees the risk. */
@@ -1596,7 +1622,17 @@ function _renderStaticWheelAtOrigin(ctx, size, segments, guildDef) {
         ctx.shadowBlur = size * 0.006;
         ctx.shadowOffsetY = size * 0.002;
         const emojiRadius = radius - Math.max(20, size * 0.068);
-        ctx.fillText(emoji, emojiRadius, 0);
+        const coin = _GOLD_EMOJI.has(emoji) ? _goldCoinImage() : null;
+        if (coin) {
+            const c = emojiSize * 1.25;
+            ctx.save();
+            ctx.translate(emojiRadius, 0);
+            ctx.rotate(Math.PI / 2);
+            ctx.drawImage(coin, -c / 2, -c / 2, c, c);
+            ctx.restore();
+        } else {
+            ctx.fillText(emoji, emojiRadius, 0);
+        }
 
         // Label text, reading outward from the hub
         const fontSize = Math.max(9, Math.floor(size / 40));
@@ -1919,6 +1955,16 @@ export function animateWheelSpin(canvas, segments, winnerIndex, guildDef, onTick
         const rollback = nearMiss ? 0.13 : 0;
         const startTime = performance.now();
         let lastSegIndex = null;
+        // How fast it turns (0..1) drives the light streaks and the rim's glow; skipped on weak laptops.
+        const stage = _isLite() ? null : canvas.closest('.fw-stage-frame');
+        let lastAngle = base;
+        let lastNow = startTime;
+        let shownSpeed = -1;
+        const showSpeed = (v) => {
+            if (!stage || Math.abs(v - shownSpeed) < 0.04) return;
+            shownSpeed = v;
+            stage.style.setProperty('--fw-speed', v.toFixed(2));
+        };
 
         const angleAt = (t) => {
             if (t < windUp) return -segAngle * 0.7 * Math.sin((t / windUp) * Math.PI);
@@ -1935,6 +1981,11 @@ export function animateWheelSpin(canvas, segments, winnerIndex, guildDef, onTick
             const t = Math.min(1, (now - startTime) / duration);
             const angle = base + angleAt(t);
             _setCanvasRotation(canvas, angle);
+            if (stage && now > lastNow) {
+                showSpeed(Math.min(1, Math.abs(angle - lastAngle) / (now - lastNow) / 0.014));
+                lastAngle = angle;
+                lastNow = now;
+            }
 
             // A tick each time a peg passes the pointer (both ways, so the roll-back clicks too).
             const pointerAt = ((((-Math.PI / 2 - angle) % TAU) + TAU) % TAU);
@@ -1948,6 +1999,7 @@ export function animateWheelSpin(canvas, segments, winnerIndex, guildDef, onTick
                 const finalAngle = base + travel;
                 _setCanvasRotation(canvas, finalAngle);
                 canvas.style.willChange = '';
+                if (stage) { shownSpeed = -1; showSpeed(0); }
                 // The winner's spotlight is painted in wheel space; the canvas keeps its rotation.
                 drawWheel(canvas, segments, 0, guildDef, winnerIndex);
                 // Resolve on the landing frame itself: the fate follows the stop with no gap.
@@ -1997,6 +2049,7 @@ export async function openFortunesWheel() {
     const card = modal.querySelector('.fw-card');
 
     _wireWheelResize();
+    _goldCoinImage();
     modal.classList.toggle('fw--lite', _isLite());
     const seq = ++_openSeq;
     // Clear the last ceremony's leftovers (still concealed) before the card animates in.
@@ -2266,50 +2319,100 @@ function _renderLockedState(title, message, emoji) {
     if (doneBtn) doneBtn.classList.add('hidden');
 }
 
+/** One hero's medallion for the party card: the portrait (or initial underneath, if it fails to load) and first name. */
+function _partyHeroHtml(student, i, ringColor) {
+    const name = String(student.name || 'Hero');
+    const first = name.split(/\s+/)[0];
+    const initial = _esc(name.charAt(0).toUpperCase() || '?');
+    const portrait = student.avatar
+        ? `<img src="${_esc(student.avatar)}" alt="" class="fw-party__img" decoding="async">`
+        : '';
+    return `
+        <li class="fw-party__hero" style="--i:${i};${ringColor ? `--ring:${ringColor};` : ''}" title="${_esc(name)}">
+            <span class="fw-party__medal"><span class="fw-party__initial">${initial}</span>${portrait}</span>
+            <span class="fw-party__name">${_esc(first)}</span>
+        </li>`;
+}
+
+/**
+ * "At the wheel": every hero of the guild whose turn it is, as portrait medallions.
+ * It sits first on the desk and is never squeezed by the panels below it (before, it was
+ * the last flex child of a fixed-height column, so guilds with a Tailwind note or an Omen
+ * left it no room and their heroes vanished). On an Envoy turn the whole class is at the
+ * wheel, so every hero in the class is shown, ringed in their own guild's colour.
+ */
 function _renderCurrentGuildMembers() {
     const panel = document.getElementById('fw-guild-members');
     if (!panel) return;
 
     const guildId = _wheelState.guildOrder[_wheelState.currentGuildIndex];
+    delete panel.dataset.mood;
     if (!_wheelState.active || !_wheelState.classId || !guildId) {
-        panel.innerHTML = `
-            <div class="fw-guild-members__header">Active Guild Members</div>
-            <div class="fw-guild-members__empty">Select a class in the header to view guild members for each turn.</div>`;
+        panel.innerHTML = '';
+        panel.dataset.mode = 'empty';
         return;
     }
 
     const guildDef = getGuildById(guildId);
-    const students = (state.get('allStudents') || [])
-        .filter(student => student.classId === _wheelState.classId && student.guildId === guildId)
-        .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-
-    const rosterHtml = students.length > 0
-        ? students.map(student => {
-            const avatarHtml = student.avatar
-                ? `<img src="${student.avatar}" alt="${student.name}" class="fw-guild-members__avatar">`
-                : `<span class="fw-guild-members__initial">${(student.name || '?').charAt(0).toUpperCase()}</span>`;
-            return `
-                <div class="fw-guild-members__item">
-                    <div class="fw-guild-members__visual">${avatarHtml}</div>
-                    <div class="fw-guild-members__name">${student.name || 'Unknown Student'}</div>
-                </div>`;
-        }).join('')
-        : '<div class="fw-guild-members__empty">No students from this guild are in the selected class.</div>';
-
+    const byName = (a, b) => String(a.name || '').localeCompare(String(b.name || ''));
+    const members = _classMembersOf(guildId, _wheelState.classId).sort(byName);
     panel.style.setProperty('--guild-primary', guildDef?.primary || '#e8c46a');
-    if (!students.length) {
-        const heroes = _classHeroes(_wheelState.classId).length;
+    panel.style.setProperty('--guild-glow', guildDef?.glow || guildDef?.primary || '#fbbf24');
+    const crest = getGuildEmblemUrl(guildId);
+    const crestHtml = crest
+        ? `<img src="${_esc(crest)}" alt="" class="fw-party__crest">`
+        : `<span class="fw-party__crest fw-party__crest--blank">${_esc(guildDef?.emoji || '⚜️')}</span>`;
+    const guildName = _esc(guildDef?.name || 'This guild');
+
+    if (!members.length) {
+        // The Envoy's wheel is for everyone here: show the whole class, guild by guild.
+        const heroes = _classHeroes(_wheelState.classId)
+            .sort((a, b) => GUILD_IDS.indexOf(a.guildId) - GUILD_IDS.indexOf(b.guildId) || byName(a, b));
+        panel.dataset.mode = 'envoy';
         panel.innerHTML = `
-            <div class="fw-guild-members__header">${guildDef?.name || 'This guild'}'s Envoy<span class="fw-guild-members__count">0</span></div>
-            <div class="fw-envoy-note">
-                <span class="fw-envoy-note__seal" aria-hidden="true">📜</span>
-                <p><b>No ${guildDef?.name || 'guild'} heroes in this class.</b> Their Envoy, a rival from far away, rides in with a wheel for ${heroes ? `all ${heroes} heroes here, whatever their guild` : 'the class'}: mostly small mischief, a laugh, only a gift or two, and sometimes one rare trick.</p>
-            </div>`;
+            <div class="fw-party__head">
+                ${crestHtml}
+                <div class="fw-party__title">
+                    <span class="fw-party__kicker">${guildName}'s Envoy visits</span>
+                    <span class="fw-party__label">The whole class</span>
+                </div>
+                <span class="fw-party__count" title="Heroes at the wheel">${heroes.length}</span>
+            </div>
+            <p class="fw-party__note"><span aria-hidden="true">📜</span> No ${guildName} heroes in this class, so a rival Envoy spins for everyone: mostly small mischief, a laugh, a gift or two.</p>
+            ${heroes.length ? `<ul class="fw-party__list fw-party__list--class">${heroes.map((s, i) => _partyHeroHtml(s, i, getGuildById(s.guildId)?.primary)).join('')}</ul>` : ''}`;
+        _dropBrokenPortraits(panel);
         return;
     }
+
+    panel.dataset.mode = 'guild';
     panel.innerHTML = `
-        <div class="fw-guild-members__header">${guildDef?.name || 'Active Guild'} Members<span class="fw-guild-members__count">${students.length}</span></div>
-        <div class="fw-guild-members__list">${rosterHtml}</div>`;
+        <div class="fw-party__head">
+            ${crestHtml}
+            <div class="fw-party__title">
+                <span class="fw-party__kicker">At the wheel</span>
+                <span class="fw-party__label">${guildName}</span>
+            </div>
+            <span class="fw-party__count" title="Heroes at the wheel">${members.length}</span>
+        </div>
+        <ul class="fw-party__list" data-size="${members.length > 8 ? 'many' : members.length > 4 ? 'some' : 'few'}">${members.map((s, i) => _partyHeroHtml(s, i, null)).join('')}</ul>`;
+    _dropBrokenPortraits(panel);
+}
+
+/** A portrait that fails to load is removed, so the hero's initial underneath shows instead. */
+function _dropBrokenPortraits(root) {
+    root.querySelectorAll('.fw-party__img').forEach((img) => {
+        if (img.complete && img.naturalWidth === 0 && img.getAttribute('src')) { img.remove(); return; }
+        img.addEventListener('error', () => img.remove(), { once: true });
+    });
+}
+
+/** The party at the wheel holds its breath while it spins, then lights up in the fate's colour. */
+function _setPartyMood(mood, color = null) {
+    const panel = document.getElementById('fw-guild-members');
+    if (!panel) return;
+    if (mood) panel.dataset.mood = mood;
+    else delete panel.dataset.mood;
+    if (color) panel.style.setProperty('--fate-color', color);
 }
 
 /** Plays the moment a wedge is landed on: storm clouds, a twist's shimmer, a trial's ring, or treasure. */
@@ -2379,7 +2482,11 @@ async function _spinTo(winnerIndex, { quick = false, power = null } = {}) {
     const canvas = document.getElementById('fortunes-wheel-canvas');
     const guildDef = getGuildById(_wheelState.guildOrder[_wheelState.currentGuildIndex]);
     const stageFrame = document.getElementById('fw-stage-frame');
+    clearTimeout(_landTimer);
+    stageFrame?.classList.remove('is-landed');
     stageFrame?.classList.add('is-spinning');
+    _pulseStage(stageFrame, 'is-launch', 900);
+    _setPartyMood('holding');
     const anim = await animateWheelSpin(canvas, _wheelState.segments, winnerIndex, guildDef, () => {
         try { playSound('click'); } catch (_) { /* optional */ }
         _flickPointer();
@@ -2387,6 +2494,24 @@ async function _spinTo(winnerIndex, { quick = false, power = null } = {}) {
     stageFrame?.classList.remove('is-spinning');
     _wheelState.winnerIndex = winnerIndex;
     _wheelState.rotationAngle = anim?.rotationAngle || 0;
+    // The landing: a beam falls through the pointer onto the wedge and a ring of light rolls out.
+    const seg = _wheelState.segments[winnerIndex];
+    const conf = seg ? getRarityPalette(_wedgeLook(seg), seg.paletteIndex) : null;
+    if (stageFrame && conf) stageFrame.style.setProperty('--land-color', conf.color || '#fbbf24');
+    _pulseStage(stageFrame, 'is-landed', 1700);
+    _setPartyMood('landed', conf?.color || null);
+}
+
+let _landTimer = null;
+
+/** Adds a one-shot effect class to the stage and takes it off again (restarting it if it was on). */
+function _pulseStage(stageFrame, cls, ms) {
+    if (!stageFrame) return;
+    stageFrame.classList.remove(cls);
+    void stageFrame.offsetWidth;
+    stageFrame.classList.add(cls);
+    const timer = setTimeout(() => stageFrame.classList.remove(cls), ms);
+    if (cls === 'is-landed') _landTimer = timer;
 }
 
 /** Opens the reveal layer as an empty, family-themed card for an interactive moment. */
@@ -2675,7 +2800,7 @@ function _renderWheelPhase() {
     const guildName = guildDef?.name || 'This guild';
     const omen = (_wheelState.segments || []).some((seg) => seg.rarity === 'omen');
     _setStageCaption((_wheelState.envoy
-        ? `No ${guildName} heroes in this class, so their Envoy spins for the whole class: gifts… or a toll!`
+        ? `${guildName}'s Envoy rides in to spin for the whole class. Mostly mischief… maybe a gift!`
         : _wheelState.favored
             ? `${guildName} steps up to a gilded wheel: Fortune's Favor cleared the storms and the Trickster.${omen ? ' An Omen glows on it!' : ''}`
             : _wheelState.calm
@@ -2889,7 +3014,7 @@ function _heroLedgerHtml(result) {
             const badges = [
                 row.glory ? `<span class="fw-hero__b fw-hero__b--glory${row.glory < 0 ? ' is-neg' : ''}">${_fmtDelta(row.glory)}<i aria-hidden="true">⚜️</i></span>` : '',
                 row.stars ? `<span class="fw-hero__b fw-hero__b--star${row.stars < 0 ? ' is-neg' : ''}">${_fmtDelta(row.stars)}<i aria-hidden="true">⭐</i></span>` : '',
-                row.gold ? `<span class="fw-hero__b fw-hero__b--gold${row.gold < 0 ? ' is-neg' : ''}">${_fmtDelta(row.gold)}<i aria-hidden="true">🪙</i></span>` : '',
+                row.gold ? `<span class="fw-hero__b fw-hero__b--gold${row.gold < 0 ? ' is-neg' : ''}">${_fmtDelta(row.gold)}${GOLD_COIN_HTML}</span>` : '',
                 ...(row.artifacts || []).map((a) => `<span class="fw-hero__b fw-hero__b--artifact" title="${_esc(a.name)}"><i aria-hidden="true">${_esc(a.icon)}</i>${_esc(a.name)}</span>`),
                 row.wind ? `<span class="fw-hero__b fw-hero__b--wind" title="Tailwind">${tailwindGlyphSvg('fw-hero__wind-glyph')}${_fmtDelta(row.wind)}</span>` : '',
             ].join('');
@@ -2932,7 +3057,7 @@ function _renderWheelPending(segment, guildDef, { whirlwind = false, braved = fa
              data-rarity="${segment.rarity}" data-family="${family}" data-outcome="${braved ? 'braved' : 'gain'}"
              style="--rarity-color:${rarityConf.color};--rarity-glow:${rarityConf.glow};--rarity-bg:${rarityConf.bg};border-color:${rarityConf.color};">
             <div class="fw-result-ribbon">${ribbon}</div>
-            <div class="fw-result-emoji-orb">${braved ? '🛡️' : segment.emoji}</div>
+            <div class="fw-result-emoji-orb">${braved ? '🛡️' : _signHtml(segment.emoji)}</div>
             <div class="fw-result-guild-row">
                 ${emblemUrl ? `<img src="${emblemUrl}" alt="${guildDef?.name || ''}" class="fw-result-guild-row__image">` : ''}
                 <span class="fw-result-guild-row__name">${guildDef?.name || ''}</span>
@@ -2990,7 +3115,7 @@ function _renderWheelResult(segment, result, guildDef) {
             .filter(([gid, n]) => n && (result.envoy || gid !== result.guildId))
             .map(([gid, n]) => ({ icon: _crestIcon(gid), label: `${getGuildById(gid)?.name || 'Guild'} Glory`, displayStr: `${n >= 0 ? '+' : ''}${n}`, isNeg: n < 0 })),
         result.goldDelta
-            ? { icon: '🪙', label: 'Gold',        displayStr: `${result.goldDelta >= 0 ? '+' : ''}${result.goldDelta}`,             isNeg: result.goldDelta < 0 }
+            ? { icon: GOLD_COIN_HTML, label: 'Gold',        displayStr: `${result.goldDelta >= 0 ? '+' : ''}${result.goldDelta}`,             isNeg: result.goldDelta < 0 }
             : null,
         result.starsDelta
             ? { icon: '⭐', label: 'Stars',       displayStr: `${result.starsDelta >= 0 ? '+' : ''}${result.starsDelta}`,           isNeg: result.starsDelta < 0 }
@@ -3057,7 +3182,7 @@ function _renderWheelResult(segment, result, guildDef) {
              data-rarity="${segment.rarity}" data-family="${family}" data-outcome="${outcome}"
              style="--rarity-color:${rarityConf.color};--rarity-glow:${rarityConf.glow};--rarity-bg:${rarityConf.bg};border-color:${rarityConf.color};">
             <div class="fw-result-ribbon">${ribbon}</div>
-            <div class="fw-result-emoji-orb">${result.braved ? '🛡️' : segment.emoji}</div>
+            <div class="fw-result-emoji-orb">${result.braved ? '🛡️' : _signHtml(segment.emoji)}</div>
             <div class="fw-result-guild-row">
                 ${emblemUrl ? `<img src="${emblemUrl}" alt="${guildDef?.name || ''}" class="fw-result-guild-row__image">` : ''}
                 <span class="fw-result-guild-row__name">${guildDef?.name || result.guildId}</span>
@@ -3227,7 +3352,7 @@ function _renderWheelSummary() {
                 r.wind?.total ? deltaChip(signed(r.wind.total), tailwindGlyphSvg('fw-summary-delta__glyph'), 'Tailwind', false).replace('fw-summary-delta"', 'fw-summary-delta fw-summary-delta--wind"') : '',
                 ...Object.entries(r.gloryByGuild || {}).filter(([gid, n]) => n && (r.envoy || gid !== r.guildId))
                     .map(([gid, n]) => deltaChip(signed(n), _crestIcon(gid), `${getGuildById(gid)?.name || 'Guild'} Glory`, n < 0)),
-                r.goldDelta ? deltaChip(signed(r.goldDelta), '🪙', 'Gold', r.goldDelta < 0) : '',
+                r.goldDelta ? deltaChip(signed(r.goldDelta), GOLD_COIN_HTML, 'Gold', r.goldDelta < 0) : '',
                 r.starsDelta ? deltaChip(signed(r.starsDelta), '⭐', 'Stars', r.starsDelta < 0) : '',
                 r.classQuestDelta ? deltaChip(signed(r.classQuestDelta), '🗺️', 'Quest Bonus', r.classQuestDelta < 0) : '',
                 (r.artifactsGranted || r.artifactsRemoved)
@@ -3249,7 +3374,7 @@ function _renderWheelSummary() {
                         ${emblemUrl ? `<img src="${emblemUrl}" alt="${guildDef?.name || r.guildId}" class="fw-summary-emblem">` : ''}
                         <span>${guildDef?.name || r.guildId}${r.envoy ? ' <small>Envoy</small>' : ''}</span>
                     </div>
-                    <div class="fw-summary-result">${r.segmentLabel}</div>
+                    <div class="fw-summary-result">${String(r.segmentLabel || '').replace(/🪙|💰/gu, GOLD_COIN_HTML)}</div>
                     <div class="fw-summary-rarity">${r.envoy ? "The Envoy's fate" : rarityConf.label}</div>
                     <div class="fw-summary-desc">${r.description || r.segmentDescription}</div>
                     ${deltas ? `<div class="fw-summary-deltas">${deltas}</div>` : ''}

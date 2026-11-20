@@ -13,6 +13,8 @@
     "test:rules": "node node_modules/firebase-tools/lib/bin/firebase.js emulators:exec --only firestore,storage --project demo-gcq \"node --test tests/rules/firestore.rules.test.cjs\"",
     "deploy:functions": "node scripts/deploy-functions.cjs",
     "functions:gen2": "node scripts/migrate-functions-gen2.cjs",
+    "data:move": "node scripts/migrate-data-europe.cjs",
+    "test:data-move": "node node_modules/firebase-tools/lib/bin/firebase.js emulators:exec --only firestore --project demo-gcq \"node --test tests/emulator/data-move-dump.cjs tests/emulator/data-move-readonly-rules.cjs\"",
     "audit:prod": "node scripts/audit-production.cjs",
     "set-subscription": "node scripts/set-subscription.js",
     "migrate:secretary-admin": "node scripts/migrate-secretary-admin.cjs",

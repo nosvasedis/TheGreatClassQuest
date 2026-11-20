@@ -49,11 +49,25 @@ import {
     httpsCallable
 } from "firebase/functions";
 
-import { FIREBASE_FUNCTIONS_REGION } from './constants.js';
+import { FIREBASE_FUNCTIONS_REGION, FIRESTORE_DATA_EPOCH } from './constants.js';
 import { getDeviceCacheChoice } from './utils/deviceCache.js';
 import { recordMetric } from './utils/runtimeMetrics.js';
+import { resetFirestoreCacheIfEpochChanged } from './utils/firestoreCacheEpoch.mjs';
 
 const usePersistentCache = getDeviceCacheChoice() === 'trusted';
+if (usePersistentCache && typeof window !== 'undefined') {
+    // Before Firestore opens its offline copy: drop it once if the database was replaced.
+    try {
+        resetFirestoreCacheIfEpochChanged({
+            projectId: app.options.projectId,
+            epoch: FIRESTORE_DATA_EPOCH,
+            storage: window.localStorage,
+            idb: window.indexedDB
+        });
+    } catch {
+        // Storage blocked: this browser keeps no offline copy to reset.
+    }
+}
 const db = initializeFirestore(app, {
     localCache: usePersistentCache
         ? persistentLocalCache({ tabManager: persistentMultipleTabManager() })

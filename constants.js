@@ -103,6 +103,12 @@ export const BILLING_SCHOOL_ID = (typeof window !== 'undefined' && window.__GCQ_
 /** Firebase Functions region for the privileged admin runtime. */
 export const FIREBASE_FUNCTIONS_REGION = (typeof window !== 'undefined' && window.__GCQ_FIREBASE_FUNCTIONS_REGION__) || 'europe-west1';
 export const APP_CHECK_SITE_KEY = (typeof window !== 'undefined' && window.__GCQ_APP_CHECK_SITE_KEY__) || '';
+/**
+ * Which database this browser's offline copy belongs to. Change it only when the database itself
+ * is replaced (the move to Europe: tools/DATA_MOVE_TO_EUROPE.md, then 'europe-west1'); every
+ * device then drops its offline copy once and downloads it fresh (utils/firestoreCacheEpoch.mjs).
+ */
+export const FIRESTORE_DATA_EPOCH = 'nam5';
 
 /**
  * Ordered Quest League catalogue. Keep league-specific behaviour here so a new

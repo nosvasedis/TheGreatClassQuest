@@ -1,10 +1,11 @@
 # Moving the database (and the files) to Europe: the plan
 
-Status: **plan only, nothing changed yet** (2026-11-20). The tooling described in step 6 is
-the next piece of work. Every number below was measured on production that afternoon. They
-are a snapshot for sizing: lessons keep adding stars, diary pages and pictures, so the move
-tool counts, dumps and hashes the live data at the moment of the move, and only that is
-compared 1:1.
+Status: **tool built and checked against production, the move not run yet** (2026-11-20).
+Location decided: `europe-west1`. Files stay in the US for now.
+
+Every number below was measured on production that afternoon. They are a snapshot for sizing:
+lessons keep adding stars, diary pages and pictures, so the move tool counts, copies and
+fingerprints the live data at the moment of the move, and only that is compared 1:1.
 
 ## 1. Why
 
@@ -20,7 +21,7 @@ the ocean for every screen.
 | | Today |
 |---|---|
 | Firestore documents | **11,741** (about 7 MB as JSON), 46 collections + 5 kinds of subcollection |
-| Composite indexes | 26 collection groups (`firestore.indexes.json`); no TTL policies |
+| Composite indexes | 64 live (65 in `firestore.indexes.json` after the 2026-11-20 fix, see section 6) + 1 field setting; no TTL policies |
 | Use | ~23,000 reads and ~1,000 writes a day (free tier: 50,000 / 20,000) |
 | Backups / point-in-time recovery / delete protection | none / off / off |
 | Storage files | **1,796 files, 307 MB**, bucket `the-great-class-quest.firebasestorage.app` |
@@ -118,38 +119,91 @@ export, the cross-region import and the checker all work, before anything is del
 - Before the export, deploy **"read-only" security rules** (all reads as today, every write
   refused). The app shows its normal "could not save" message, so nothing is half-saved and
   nothing is written after the export.
-- Functions use the admin SDK and are not stopped by rules. The window is set between the
-  nightly jobs (00:10 / 02:30 / 04:30 Athens). Before deleting, the tool lists every
-  document's update time again and stops if anything changed since the export started.
+- Functions use the admin SDK and are not stopped by rules. The tool **pauses the 4 nightly
+  jobs** for the whole move and resumes them at the end. After the export it reads every
+  document again and stops, before anything is deleted, if a single fingerprint changed.
 - **Phones and laptops** keep an offline copy of the data (`persistentLocalCache`). An app
   update shipped **before** the night clears that local copy once when the database changes,
   so no device can resend old data or hold a stale view. It re-downloads in seconds.
 
-**Rollback** at any point before the rules are reopened: delete the new `(default)`, create it
-again in `nam5`, import the same export (already proven by the rehearsal), reopen the rules.
-That puts everything back as it was, still free.
+**Rollback** at any point (`npm run data:move -- --rollback`, section 6). Before the delete
+step, it only reopens the rules. After it, it creates `(default)` again in `nam5`, imports the
+same export, checks it 1:1 and reopens. That puts everything back as it was, still free.
 
-## 6. The night, step by step (what the tool will run)
+## 6. The tool and the night
 
-`npm run data:move -- --check` (any time, changes nothing), `-- --rehearse`, `-- --go`,
-`-- --rollback`. Every step stops on the first surprise.
+Everything is one command: `npm run data:move` (`scripts/migrate-data-europe.cjs`). It keeps
+its notes, copies and logs in `%USERPROFILE%\.gcq-data-move\`, so a rerun continues where it
+stopped.
 
-| # | Step | Approx. time | App |
-|---|---|---|---|
-| 0 | Checks: login, counts, buckets, the cache-reset update is live, rehearsal passed | 2 min | normal |
-| 1 | Deploy read-only rules; wait for in-flight writes | 2 min | read-only |
-| 2 | Full dump + hashes (copy 3) | 3–5 min | read-only |
-| 3 | Managed export (copy 1), copy to Europe (copy 2), compare file lists | 5–10 min | read-only |
-| 4 | Re-list update times: nothing changed since step 2 | 1 min | read-only |
-| 5 | Delete `(default)` in `nam5`; wait 5+ minutes | 6 min | **offline** |
-| 6 | Create `(default)` in Europe; deploy indexes + read-only rules | 3–5 min | **offline** |
-| 7 | Import; wait for the indexes to be ready | 5–10 min | **offline** |
-| 8 | 1:1 check against the dump (every path, every hash) | 3–5 min | read-only |
-| 9 | Re-create the `reconcileSpecialQuestEffects` trigger | 3 min | read-only |
-| 10 | Deploy the normal rules; smoke test (sign in, award a star, Family Portal) | 5 min | normal |
+```powershell
+npm run data:move -- --check
+```
+Changes nothing. It checks the sign-in, that the database is in `nam5`, a test read, that the
+functions are 2nd gen, and the 4 nightly jobs. It checks that every live index is in
+`firestore.indexes.json`, compares the live rules with the repo, and compiles the read-only
+and normal rules. It also checks that the device cache reset is live on `origin/main`.
 
-Offline for about 15–20 minutes and read-only for about 45–60, done at night. The data is
-small, so export and import are quick.
+```powershell
+npm run data:move -- --rehearse
+```
+No downtime, costs a few cents. It makes the buckets, reads the live database, runs Google's
+export, reads it again, makes the European copy, imports it into a temporary database
+`gcq-move-rehearsal` in `europe-west1`, and checks every document. Documents that teachers
+changed while it ran are allowed to differ. Then it deletes the temporary database and prints
+how long each part took. The real move refuses to start without a rehearsal that passed in
+the last 14 days.
+
+```powershell
+npm run data:move -- --go
+```
+The real move. Type `MOVE` and it runs these steps:
+
+| # | Step | App |
+|---|---|---|
+| 1 | Pause the 4 nightly jobs (nothing on the server writes during the move) | normal |
+| 2 | Read-only rules; wait 90 s | read-only |
+| 3 | Full typed copy + SHA-256 per document (copy 3) | read-only |
+| 4 | Google export to `gs://the-great-class-quest-move-us` (copy 1) | read-only |
+| 5 | Read everything again: **stop if anything changed** | read-only |
+| 6 | Copy the export to `gs://the-great-class-quest-move-eu`, same sizes and checksums (copy 2) | read-only |
+| 7 | Upload the typed copy to the European bucket too | read-only |
+| 8 | **Delete `(default)` in `nam5`** | offline |
+| 9 | Create `(default)` in `europe-west1` (waits out Google's 5 minutes) | offline |
+| 10 | Indexes + read-only rules; wait until every index is ready | offline |
+| 11 | Import from the European copy; wait for the indexes | offline |
+| 12 | 1:1 check: every document's fingerprint equal to copy 3, **or it stays read-only** | read-only |
+| 13 | Re-create the `reconcileSpecialQuestEffects` trigger for the new database | read-only |
+| 14 | Normal rules back | normal |
+| 15 | Delete protection on | normal |
+| 16 | Resume the nightly jobs | normal |
+
+Then set `FIRESTORE_DATA_EPOCH = 'europe-west1'` in `constants.js`, commit and push, so each
+device drops its offline copy once and downloads it fresh.
+
+```powershell
+npm run data:move -- --rollback
+```
+It knows how far the move got. If the old database was never deleted, it puts the normal
+rules back and resumes the jobs, and no data is touched. If it was deleted, it creates
+`(default)` in `nam5` again, imports Google's export from the US bucket, checks every
+document against copy 3, re-creates the trigger, reopens the rules and resumes the jobs. It
+never deletes an intact original.
+
+**Tests:** `npm test` (fingerprints for every value type, the 1:1 check, the read-only rules,
+the step order and the cache reset) and `npm run test:data-move`. The second one runs in the
+emulator: real documents of every type, REST vs gRPC, a copy in a database with another name,
+a changed type / value / missing / extra document caught, and every read answered the same
+under the read-only rules while every allowed write is refused.
+
+**Found and fixed while building it (2026-11-20):**
+- Production had **4 composite indexes and 1 field setting that were not in
+  `firestore.indexes.json`** (made outside the file). The new database would have missed them
+  and those queries would have failed. They are in the file now, and `--check` refuses a move
+  if this happens again.
+- `firestore.rules` in the repo has one change that is not live yet (2 November, Ceremony of
+  the Month: a watched ceremony can move straight to locked). The move publishes it, and
+  `--check` says so.
 
 ## 7. Moving the files later (if you decide to)
 
@@ -171,22 +225,11 @@ small, so export and import are quick.
 5. Keep the old bucket untouched for 30+ days (old links in browser caches, the PWA picture
    cache, shared PDFs), then delete it.
 
-## 8. What I need from you
+## 8. What is decided, and what is left
 
-1. **Location:** `europe-west1` (recommended) or `eur3`.
-2. **Files:** leave them in the US for now (recommended), or move them too, on a separate night.
-3. **When:** a night for the rehearsal (no downtime) and a night for the move (about an hour,
-   ideally 21:30–23:30 on a Friday or Saturday).
-
-## 9. What gets built next (before any move)
-
-- `scripts/migrate-data-europe.cjs` + pure `scripts/lib/dataMovePlan.cjs`: the steps above, with
-  `--check / --rehearse / --go / --rollback` and a log file, like `npm run functions:gen2`.
-- `scripts/lib/firestoreDump.cjs`: a dump that keeps exact types, per-document hashes and the
-  1:1 checker, with unit tests for every Firestore type plus an emulator round-trip test
-  (dump → wipe → import → check).
-- `firestore.readonly.rules`: the read-only rules used during the move, with emulator tests
-  that reads still work and every write is refused.
-- App: a one-time local cache reset when `DATA_EPOCH` changes (`firebase.js`), shipped and live
-  before the night.
-- Storage tooling, only if section 4 says "move".
+- **Location:** `europe-west1` (decided 2026-11-20).
+- **Files:** stay in the US for now.
+- **Before the move:** push the device cache reset (`firebase.js` + `utils/firestoreCacheEpoch.mjs`)
+  and let it go live. Run `--check`, then `--rehearse` once (any time, no downtime).
+- **The night:** about an hour, at night after lessons. `--go`, then the `FIRESTORE_DATA_EPOCH`
+  push.

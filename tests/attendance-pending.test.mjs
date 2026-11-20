@@ -5,7 +5,8 @@ import {
     confirmAttendancePending,
     settleAttendancePending,
     withPendingAttendance,
-    clearAllPendingAttendance
+    clearAllPendingAttendance,
+    absentIdsOn,
 } from '../features/attendancePending.mjs';
 
 const today = '27-10-2026';
@@ -50,4 +51,17 @@ test('a saved mark the listener never confirms is dropped after the grace period
     const token = markAttendancePending('s1', { absent: true, date: today });
     confirmAttendancePending('s1', token, 0);
     assert.equal(withPendingAttendance([], 16000).length, 0);
+});
+
+test('absentIdsOn lists heroes away on that date, pending marks included', () => {
+    clearAllPendingAttendance();
+    const records = [
+        { studentId: 's1', date: '2026-11-20' },
+        { studentId: 's2', date: '2026-11-19' },
+        { studentId: 's3', date: '2026-11-20', status: 'present' }
+    ];
+    markAttendancePending('s4', { absent: true, date: '2026-11-20' });
+    const ids = absentIdsOn(records, '2026-11-20');
+    assert.deepEqual([...ids].sort(), ['s1', 's4']);
+    clearAllPendingAttendance();
 });

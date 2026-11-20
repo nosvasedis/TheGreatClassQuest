@@ -15,6 +15,7 @@ import {
 } from './prodigyHallView.js';
 import { showToast } from '../effects.js';
 import { renderBoonSponsorPicker } from '../boonSponsorPicker.js';
+import { absentIdsOn } from '../../features/attendancePending.mjs';
 import { isMonthFinaleLesson, monthFinaleContextFrom } from '../../features/monthFinale.js';
 import { playSound } from '../../audio.js';
 import {
@@ -775,6 +776,8 @@ export function openBestowBoonModal(receiverId) {
     } else {
         const monthKey = utils.getLocalMonthKey();
         const placeholder = '<option value="" disabled selected>-- Select a Sponsor --</option>';
+        // A hero who is away today is not in the room, so they cannot sponsor a boon.
+        const awayIds = absentIdsOn(state.get('allAttendanceRecords') || [], today);
         const optionsHtml = classmates.map(s => {
             const scoreData = scores.find(sc => sc.id === s.id);
             const gold = getLiveYearGoldFromAppState(scoreData, state);
@@ -783,7 +786,8 @@ export function openBestowBoonModal(receiverId) {
             const hasFreeBoon = isMonthFree || freeBoonUses > 0;
             const hasEnoughGold = gold >= PEER_BOON_COST;
             const isConsecutiveLimit = scoreData?.lastPeerBoonRecipientId === receiverId;
-            const isDisabled = isConsecutiveLimit || (!hasFreeBoon && !hasEnoughGold);
+            const isAway = awayIds.has(String(s.id));
+            const isDisabled = isAway || isConsecutiveLimit || (!hasFreeBoon && !hasEnoughGold);
             const patronGift = heroProgressionEnabled ? calculatePatronGiftEffects(s, scoreData) : null;
 
             pickerOptions.push({
@@ -791,8 +795,8 @@ export function openBestowBoonModal(receiverId) {
                 name: s.name,
                 avatar: s.avatar || '',
                 gold,
-                status: isDisabled ? 'locked' : (hasFreeBoon ? 'free' : 'ready'),
-                reason: isConsecutiveLimit ? 'Gave them the last one' : `Needs ${PEER_BOON_COST} Gold`,
+                status: isAway ? 'away' : (isDisabled ? 'locked' : (hasFreeBoon ? 'free' : 'ready')),
+                reason: isAway ? 'Away today' : (isConsecutiveLimit ? 'Gave them the last one' : `Needs ${PEER_BOON_COST} Gold`),
                 patronGoldBack: patronGift?.applies ? patronGift.giverGoldBonus : 0,
                 extraStars: patronGift?.applies ? patronGift.extraStarsForReceiver : 0
             });

@@ -56,3 +56,12 @@ export function withPendingAttendance(records = [], now = Date.now()) {
     }
     return out;
 }
+
+/** Ids of heroes marked away on `date` (unconfirmed marks included). Records exist only for absences. */
+export function absentIdsOn(records = [], date, now = Date.now()) {
+    const ids = new Set();
+    for (const r of withPendingAttendance(records, now)) {
+        if (r && r.date === date && (!r.status || r.status === 'absent')) ids.add(String(r.studentId));
+    }
+    return ids;
+}

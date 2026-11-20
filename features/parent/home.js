@@ -31,6 +31,7 @@ import { tr, bi, isGreek, countWord, STAR_WORDS, gameName } from './i18n.js';
 import { renderFortnight } from './calendar.js';
 import { renderInstallCard } from './phone.js';
 import { renderHomeTip } from './tips.js';
+import { renderJarArt } from './starJar.js';
 
 function formatStars(value) {
     const n = Number(value || 0);
@@ -189,34 +190,19 @@ function renderStarJar(snapshot, name) {
     const month = Number(progress.monthlyStars || 0);
     const history = Array.isArray(snapshot.starsHistory) ? snapshot.starsHistory : [];
     const best = history.reduce((top, item) => (Number(item.stars) > Number(top?.stars || 0) ? item : top), null);
-    const capacity = Math.max(20, Number(best?.stars || 0), month);
-    const fill = Math.max(0.04, Math.min(1, month / capacity));
-    // Jar interior spans y=30..128 in the drawing.
-    const top = 128 - Math.round(98 * fill);
-    const sparkles = Array.from({ length: Math.min(9, Math.ceil(month / 3)) }, (_, i) => {
-        const x = 34 + ((i * 23) % 52);
-        const y = Math.max(top + 10, 122 - Math.floor(i / 3) * 16 - (i % 2) * 5);
-        return `<path class="fp-jar__star" d="M${x} ${y - 5}l1.5 3.2 3.5.4-2.6 2.4.7 3.4-3.1-1.8-3.1 1.8.7-3.4-2.6-2.4 3.5-.4z"/>`;
-    }).join('');
+    const { svg, legend, split } = renderJarArt(snapshot, `${stars(month)} ${tr('this month', 'αυτόν τον μήνα')}`);
     const bestLine = best && Number(best.stars) > 0
         ? tr(`Best month so far: ${escapeHtml(monthShort(`${best.month}-01`))} with ${formatStars(best.stars)}.`,
             `Καλύτερος μήνας ως τώρα: ${escapeHtml(monthShort(`${best.month}-01`))} με ${formatStars(best.stars)}.`)
-        : tr('Every star this month lands in the jar.', 'Κάθε αστέρι του μήνα πέφτει στο βάζο.');
+        : '';
+    const howLine = month > 0
+        ? (split.coloured
+            ? tr('One star in the jar for every star this month, in the colour of the skill it was earned for.', 'Ένα αστέρι στο βάζο για κάθε αστέρι του μήνα, στο χρώμα της δεξιότητας που το κέρδισε.')
+            : tr('One star in the jar for every star this month.', 'Ένα αστέρι στο βάζο για κάθε αστέρι του μήνα.'))
+        : tr('The first star of the month will land here.', 'Το πρώτο αστέρι του μήνα θα πέσει εδώ.');
     return `
-        <article class="fp-card fp-jar-card fp-rise" style="--fp-delay:3">
-            <svg class="fp-jar" viewBox="0 0 120 140" role="img" aria-label="${stars(month)} ${tr('this month', 'αυτόν τον μήνα')}">
-                <defs><clipPath id="fp-jar-inside"><path d="M30 30h60v8c8 6 12 14 12 24v54c0 8-6 14-14 14H32c-8 0-14-6-14-14V62c0-10 4-18 12-24z"/></clipPath></defs>
-                <g clip-path="url(#fp-jar-inside)">
-                    <rect class="fp-jar__glow" x="0" y="${top}" width="120" height="${140 - top}"/>
-                    <rect class="fp-jar__fill" x="0" y="${top}" width="120" height="${140 - top}"/>
-                    <path class="fp-jar__surface" d="M0 ${top}q15 -4 30 0t30 0t30 0t30 0v4H0z"/>
-                    ${sparkles}
-                </g>
-                <path class="fp-jar__glass" d="M30 30h60v8c8 6 12 14 12 24v54c0 8-6 14-14 14H32c-8 0-14-6-14-14V62c0-10 4-18 12-24z"/>
-                <path class="fp-jar__shine" d="M28 66v44"/>
-                <rect class="fp-jar__lid" x="26" y="18" width="68" height="14" rx="5"/>
-                <path class="fp-jar__ribbon" d="M26 25h68"/>
-            </svg>
+        <article class="fp-card fp-jar-card fp-rise${month > 0 ? '' : ' is-empty'}" style="--fp-delay:3">
+            <div class="fp-jar-card__art">${svg}</div>
             <div class="fp-jar-card__copy">
                 <p class="fp-kicker">${tr('The star jar', 'Το βάζο με τα αστέρια')}</p>
                 <p class="fp-jar-card__big"><strong>${formatStars(month)}</strong> ${tr(month === 1 ? 'star' : 'stars', month === 1 ? 'αστέρι' : 'αστέρια')} ${tr('this month', 'αυτόν τον μήνα')}</p>
@@ -224,9 +210,10 @@ function renderStarJar(snapshot, name) {
                     <span><i class="fas fa-calendar-week" aria-hidden="true"></i>${formatStars(snapshot.weekStars || 0)} ${tr('this week', 'αυτή την εβδομάδα')}</span>
                     <span><i class="fas fa-star" aria-hidden="true"></i>${formatStars(progress.totalStars || 0)} ${tr('this year', 'φέτος')}</span>
                 </div>
-                <p class="fp-jar-card__note">${bestLine} ${tr('Stars are earned in class for effort, teamwork and kindness.', 'Τα αστέρια κερδίζονται στην τάξη για την προσπάθεια, την ομαδικότητα και την καλοσύνη.')}</p>
-                <button type="button" class="fp-link" data-parent-tab-link="progress">${isGreek() ? 'Δείτε όλη την πρόοδο' : `See ${escapeHtml(name)}'s progress`} <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+                <p class="fp-jar-card__note">${howLine}${bestLine ? ` ${bestLine}` : ''}</p>
             </div>
+            ${legend}
+            <button type="button" class="fp-link fp-jar-card__more" data-parent-tab-link="progress">${isGreek() ? 'Δείτε όλη την πρόοδο' : `See ${escapeHtml(name)}'s progress`} <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
         </article>`;
 }
 

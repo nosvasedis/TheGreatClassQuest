@@ -6,7 +6,7 @@
 import { escapeHtml } from '../utils/html.mjs';
 import { buildAwardCloudSvg } from '../features/awardCloudCard.mjs';
 
-const STATUS_ORDER = { free: 0, ready: 1, locked: 2 };
+const STATUS_ORDER = { free: 0, ready: 1, locked: 2, away: 3 };
 const SEARCH_THRESHOLD = 12;
 
 /** "+½", "+1", "+1½" for the star gift. */
@@ -31,6 +31,9 @@ function coinHtml() {
 }
 
 function tileStatusHtml(option) {
+    if (option.status === 'away') {
+        return `<span class="hb-tile__why hb-tile__why--away"><i class="fas fa-cloud-rain" aria-hidden="true"></i>Away today</span>`;
+    }
     if (option.status === 'locked') {
         return `<span class="hb-tile__why"><i class="fas fa-moon" aria-hidden="true"></i>${escapeHtml(option.reason)}</span>`;
     }
@@ -41,13 +44,13 @@ function tileStatusHtml(option) {
 }
 
 function tileHtml(option, selectedId) {
-    const locked = option.status === 'locked';
+    const locked = option.status === 'locked' || option.status === 'away';
     const selected = option.id === selectedId;
     const patron = option.patronGoldBack > 0 && !locked
         ? `<span class="hb-tile__patron" title="Patron: gets ${option.patronGoldBack} Gold back"><i class="fas fa-hand-holding-heart" aria-hidden="true"></i></span>`
         : '';
     const label = locked
-        ? `${option.name}: ${option.reason}`
+        ? `${option.name}: ${option.status === 'away' ? 'away today, cannot give a boon' : option.reason}`
         : `${option.name}, ${option.status === 'free' ? 'free boon' : `${option.gold} Gold`}`;
     return `<button type="button" role="radio" class="hb-tile hb-tile--${option.status}${selected ? ' is-selected' : ''}"
             data-id="${escapeHtml(option.id)}" aria-checked="${selected}" aria-label="${escapeHtml(label)}"
@@ -124,8 +127,9 @@ export function renderBoonSponsorPicker(options, context = {}) {
 
     const sorted = [...options].sort((a, b) =>
         (STATUS_ORDER[a.status] - STATUS_ORDER[b.status]) || (b.gold - a.gold) || a.name.localeCompare(b.name));
-    const available = sorted.filter((o) => o.status !== 'locked');
+    const available = sorted.filter((o) => o.status !== 'locked' && o.status !== 'away');
     const resting = sorted.filter((o) => o.status === 'locked');
+    const away = sorted.filter((o) => o.status === 'away');
     const showSearch = sorted.length > SEARCH_THRESHOLD;
     const withCost = (o) => (o ? { ...o, cost } : null);
 
@@ -141,12 +145,16 @@ export function renderBoonSponsorPicker(options, context = {}) {
             <div class="hb-tiles" role="radiogroup" aria-labelledby="boon-sender-label"></div>
             <p class="hb-rest-label hidden"><span>Resting this time</span></p>
             <div class="hb-tiles hb-tiles--resting" aria-label="Cannot sponsor right now"></div>
+            <p class="hb-rest-label hb-rest-label--away hidden"><i class="fas fa-cloud-rain" aria-hidden="true"></i><span>Away today · can't give a boon</span></p>
+            <div class="hb-tiles hb-tiles--resting hb-tiles--away" aria-label="Away today, cannot sponsor"></div>
             <p class="hb-picker__empty hidden">No classmate by that name</p>
         </div>`;
 
     const tiles = root.querySelector('.hb-tiles:not(.hb-tiles--resting)');
-    const restTiles = root.querySelector('.hb-tiles--resting');
-    const restLabel = root.querySelector('.hb-rest-label');
+    const restTiles = root.querySelector('.hb-tiles--resting:not(.hb-tiles--away)');
+    const restLabel = root.querySelector('.hb-rest-label:not(.hb-rest-label--away)');
+    const awayTiles = root.querySelector('.hb-tiles--away');
+    const awayLabel = root.querySelector('.hb-rest-label--away');
     const empty = root.querySelector('.hb-picker__empty');
     const search = root.querySelector('.hb-search input');
 
@@ -168,11 +176,14 @@ export function renderBoonSponsorPicker(options, context = {}) {
         const match = (o) => !q || o.name.toLowerCase().includes(q);
         const shownAvailable = available.filter(match);
         const shownResting = resting.filter(match);
+        const shownAway = away.filter(match);
         tiles.innerHTML = shownAvailable.map((o) => tileHtml(o, select.value)).join('');
         restTiles.innerHTML = shownResting.map((o) => tileHtml(o, select.value)).join('');
+        awayTiles.innerHTML = shownAway.map((o) => tileHtml(o, select.value)).join('');
         restLabel.classList.toggle('hidden', !shownResting.length);
+        awayLabel.classList.toggle('hidden', !shownAway.length);
         tiles.classList.toggle('hidden', !shownAvailable.length);
-        empty.classList.toggle('hidden', !!(shownAvailable.length || shownResting.length) || !sorted.length);
+        empty.classList.toggle('hidden', !!(shownAvailable.length || shownResting.length || shownAway.length) || !sorted.length);
         if (!sorted.length) {
             empty.textContent = 'No other heroes in this class yet';
             empty.classList.remove('hidden');

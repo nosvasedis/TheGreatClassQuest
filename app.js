@@ -539,6 +539,7 @@ function hideAuthScreen(authScreen) {
 
 function hideAllExperienceScreens() {
     document.getElementById('parent-screen')?.classList.add('hidden');
+    document.body.classList.remove('gcq-family');
     // The Family Portal tints the browser's bar; give the app its own colour back.
     const bar = document.querySelector('meta[name="theme-color"]');
     if (bar?.dataset.appColour) bar.setAttribute('content', bar.dataset.appColour);
@@ -600,6 +601,7 @@ async function openParentPortal({ loadingScreen, authScreen }) {
     hideAuthScreen(authScreen);
     const parentScreen = document.getElementById('parent-screen');
     if (parentScreen) parentScreen.classList.remove('hidden');
+    document.body.classList.add('gcq-family');
     activateParentTab('home');
     renderParentPortal();
     resetAuthSubmitState();

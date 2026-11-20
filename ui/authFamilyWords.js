@@ -23,6 +23,7 @@ const EXACT = {
     'Welcome to your child’s quest. Sign in below to follow it from home.': 'Καλώς ήρθατε στην περιπέτεια του παιδιού σας. Συνδεθείτε παρακάτω για να τη βλέπετε από το σπίτι.',
     'Welcome to': 'Καλώς ήρθατε στο',
     'Your username is already filled in. Just type your password.': 'Το όνομα χρήστη σας είναι ήδη συμπληρωμένο. Γράψτε μόνο τον κωδικό σας.',
+    'Your slip has your details. Signing you in…': 'Το χαρτάκι σας έχει τα στοιχεία σας. Σας συνδέουμε…',
     'Not a parent? Teacher or office sign-in': 'Δεν είστε γονέας; Είσοδος εκπαιδευτικών ή γραμματείας',
     'Greek letters? Switch the keyboard to English (Latin) letters.': 'Βλέπουμε ελληνικά γράμματα. Αλλάξτε το πληκτρολόγιο σε αγγλικά (λατινικά) γράμματα.',
 

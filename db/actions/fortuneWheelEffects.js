@@ -203,7 +203,12 @@ export async function applyWheelStudentEffects({
     };
 }
 
-export async function applyClassQuestBonusDelta(classId, delta, note = '') {
+/**
+ * Moves the class on this month's Team Quest map. `floor` is the lowest the bonus may reach:
+ * 0 by default (gifts only), or minus the heroes' own stars for a setback, so the map never
+ * goes back past its start. A setback never raises a bonus that is already below the floor.
+ */
+export async function applyClassQuestBonusDelta(classId, delta, note = '', { floor = 0 } = {}) {
     if (!classId || !delta) {
         return { classQuestDelta: 0, description: '' };
     }
@@ -218,7 +223,8 @@ export async function applyClassQuestBonusDelta(classId, delta, note = '') {
         if (!snap.exists()) return;
         const data = snap.data() || {};
         const current = Number(data.teamQuestBonuses?.[monthKey]) || 0;
-        const next = Math.max(0, current + delta);
+        const low = Math.min(0, Number(floor) || 0);
+        const next = delta < 0 ? Math.min(current, Math.max(low, current + delta)) : current + delta;
         appliedDelta = next - current;
         if (appliedDelta === 0) return;
         transaction.update(classRef, {

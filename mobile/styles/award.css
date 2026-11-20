@@ -267,7 +267,7 @@ body.gcq-mobile .aw-sky-grid > .award-card-mount {
 
 body.gcq-mobile .aw-sky-grid > .aw-empty { flex: 0 0 calc(100% - 1.4rem); margin: 2rem 0.7rem; }
 
-/* The classic hand-drawn cloud, one per stage. */
+/* The same hand-drawn clouds as on laptops, one per stage. */
 body.gcq-mobile .aw-card {
     width: 100%;
     max-width: 23rem;
@@ -279,43 +279,8 @@ body.gcq-mobile .aw-card {
     transition: none;
 }
 body.gcq-mobile .aw-card:hover { transform: scale(var(--aw-fit, 1)); }
-body.gcq-mobile .aw-cloud--stage { inset: -0.9rem -1.4rem -1.8rem; }
+body.gcq-mobile .aw-cloud { inset: -0.9rem -1.45rem -1.5rem; }
 
-/* Portrait on top in the big puff, Gold beside it, the name underneath. */
-body.gcq-mobile .aw-card__head {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-    min-height: 0;
-    margin-top: 0.75rem;
-    padding: 0 2.9rem;
-}
-body.gcq-mobile .aw-card__head .aw-portrait { width: 5.2rem; height: 5.2rem; }
-body.gcq-mobile .aw-card__head .aw-card__nameplate { align-items: center; width: 100%; gap: 0.25rem; }
-body.gcq-mobile .aw-card__tags { justify-content: center; }
-body.gcq-mobile .aw-card__head .aw-purse {
-    position: absolute;
-    left: calc(50% + 2.75rem);
-    top: 0.55rem;
-}
-body.gcq-mobile .aw-card__head .aw-card__name {
-    text-align: center;
-    font-size: 1.45rem;
-    -webkit-line-clamp: 2;
-}
-body.gcq-mobile .aw-card__head .aw-card__name--long { font-size: 1.3rem; }
-body.gcq-mobile .aw-card__head .aw-card__name--xlong { font-size: 1.18rem; }
-body.gcq-mobile .aw-card__head .aw-card__honours { justify-content: center; }
-body.gcq-mobile .aw-card__head .aw-familiar,
-body.gcq-mobile .aw-card--prodigy .aw-card__head .aw-familiar {
-    left: auto;
-    right: calc(50% + 2.9rem);
-    top: 2.9rem;
-    bottom: auto;
-}
-
-body.gcq-mobile .aw-card__corner { top: 2.2rem; }
 body.gcq-mobile .aw-card__corner--left { left: 0.7rem; }
 body.gcq-mobile .aw-card__corner--right { right: 0.7rem; }
 body.gcq-mobile .aw-boon,
@@ -325,6 +290,5 @@ body.gcq-mobile .aw-undo { width: 2.45rem; height: 2.45rem; min-height: 0 !impor
 @media (max-width: 370px) {
     body.gcq-mobile .aw-sky-grid > .award-card-mount { padding-left: 1.3rem; padding-right: 1.3rem; }
     body.gcq-mobile .aw-card { padding-left: 0.7rem; padding-right: 0.7rem; }
-    body.gcq-mobile .aw-card__head { padding: 0 2.6rem; }
     .aw-dock__head { font-size: 0.85rem; gap: 0.35rem; }
 }

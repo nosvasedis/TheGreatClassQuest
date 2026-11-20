@@ -20,6 +20,7 @@ import { canUseFeature } from '../utils/subscription.js';
 import { withSchoolYear } from '../utils/schoolYear.js';
 import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 import { monthlyStarsChange } from '../db/actions/monthlyStars.js';
+import { absentIdsOn } from './attendancePending.mjs';
 
 export const TEACHER_BOON_PRESETS = [
     { key: 'leadership', label: 'Leadership', icon: '👑', accent: 'from-fuchsia-500 via-rose-500 to-orange-400' },
@@ -59,8 +60,14 @@ export async function handleBestowBoon(senderId, receiverId) {
     const sender = state.get('allStudents').find(s => s.id === senderId);
     const receiver = state.get('allStudents').find(s => s.id === receiverId);
 
-    // Enforce 4-per-class-per-day peer boon limit before entering the transaction
     const todayStr = utils.getTodayDateString();
+    // Only a hero who is in the room today can sponsor a boon.
+    if (absentIdsOn(state.get('allAttendanceRecords') || [], todayStr).has(String(senderId))) {
+        showToast(`${sender?.name || 'This hero'} is away today, so they cannot give a boon.`, 'error');
+        return false;
+    }
+
+    // Enforce 4-per-class-per-day peer boon limit before entering the transaction
     const logsQuery = query(
         collection(db, `${PUBLIC_DATA_PATH}/award_log`),
         where('classId', '==', receiver.classId),

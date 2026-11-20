@@ -176,7 +176,7 @@ async function gatherQuestYear(classIds, monthsWithLogs) {
             const fromLogs = m.logs.filter((log) => log.classId === c.id).reduce((sum, log) => sum + getAwardLogMonthlyStarCredit(log), 0);
             const fromArchive = Object.keys(m.archived).filter((id) => ids.has(id)).reduce((sum, id) => sum + (Number(m.archived[id]) || 0), 0);
             const bonus = Number(c.teamQuestBonuses?.[m.monthKey]) || 0;
-            const stars = Math.round(Math.max(fromLogs, fromArchive) + bonus);
+            const stars = Math.max(0, Math.round(Math.max(fromLogs, fromArchive) + bonus));
             let goal = 0;
             try {
                 goal = studentCount ? utils.calculateMonthlyClassGoalForDate(c, studentCount, holidays, overrides, new Date(m.year, m.monthIndex, 15)) : 0;

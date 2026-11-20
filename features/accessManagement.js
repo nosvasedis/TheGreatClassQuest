@@ -12,10 +12,13 @@ import { friendlyActionError } from '../utils/friendlyErrors.js';
 import { generateFamilyPassword, printClassQrSheet, printFamilySlips, suggestFamilyUsername } from './familyAccessKit.js';
 import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 
+const loadStudentPicker = () => import('./familyStudentPicker.js');
+
 
 let selectedStudentId = '';
 // The details just saved, kept only so the teacher can print the family's slip; never stored.
 let lastIssued = null;
+let slipAsk = null; // the student whose "new slip" confirm is open
 let accessData = {
     parentLinksByStudent: {}
 };
@@ -97,14 +100,7 @@ export function renderParentAccessCard(data = accessData) {
         <article class="ts-access">
             ${students.length ? `
                 <div class="ts-access__who">
-                    <label class="ts-field" for="options-access-student-select">
-                        <span class="ts-label">Student</span>
-                        <select id="options-access-student-select" class="ts-input">
-                            ${students.map((student) => `
-                                <option value="${student.id}" ${selectedStudent?.id === student.id ? 'selected' : ''}>${escapeHtml(student.name)}</option>
-                            `).join('')}
-                        </select>
-                    </label>
+                    ${renderStudentPickerButton(selectedStudent, students.length, link)}
                     <div class="ts-keytag ts-keytag--${statusTone}">
                         <span class="ts-keytag__hole" aria-hidden="true"></span>
                         <span class="ts-keytag__icon" aria-hidden="true"><i class="fas ${link ? 'fa-key' : 'fa-lock-open'}"></i></span>
@@ -132,7 +128,17 @@ export function renderParentAccessCard(data = accessData) {
                         <div class="ts-access__issued" role="status">
                             <span><i class="fas fa-circle-check" aria-hidden="true"></i> Ready: <code>${escapeHtml(issued.username)}</code> / <code>${escapeHtml(issued.password)}</code></span>
                             <button type="button" id="options-parent-print-btn" class="ts-btn ts-btn--quiet bubbly-button"><i class="fas fa-print"></i> Print family slip</button>
-                        </div>` : ''}
+                        </div>` : (link && status === 'active' ? `
+                        <div class="ts-access__issued ts-access__issued--slip">
+                            ${slipAsk === selectedStudent?.id
+                                ? `<span><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> A new slip comes with a new password. The family's old slip and password stop working.</span>
+                                   <span class="ts-access__slipbtns">
+                                       <button type="button" id="options-parent-slip-cancel" class="ts-btn ts-btn--quiet bubbly-button">Cancel</button>
+                                       <button type="button" id="options-parent-slip-go" class="ts-btn bubbly-button"><i class="fas fa-print"></i> New password and print</button>
+                                   </span>`
+                                : `<span><i class="fas fa-receipt" aria-hidden="true"></i> Lost the slip? Passwords are never stored, so a new slip gets a new easy password.</span>
+                                   <button type="button" id="options-parent-slip-btn" class="ts-btn ts-btn--quiet bubbly-button"><i class="fas fa-print"></i> Print a new slip</button>`}
+                        </div>` : '')}
                     <div class="ts-actions">
                         <button type="button" id="options-parent-suggest-btn" class="ts-btn ts-btn--quiet bubbly-button" title="Make an easy password"><i class="fas fa-dice"></i> Easy password</button>
                         <button type="button" id="options-parent-create-btn" class="ts-btn bubbly-button"><i class="fas fa-save"></i> Save Parent Account</button>
@@ -145,6 +151,33 @@ export function renderParentAccessCard(data = accessData) {
             ` : '<div class="parent-empty ts-empty"><div class="ts-empty__icon" aria-hidden="true">👪</div><p class="ts-empty__text">Create students first, then parent accounts can be linked here.</p></div>'}
         </article>
     `;
+}
+
+function pickerInitials(name) {
+    const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    return ((parts[0]?.[0] || '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase() || '?';
+}
+
+/** The closed student picker: who is picked, their class and key colour. Opens the class roll (features/familyStudentPicker.js). */
+function renderStudentPickerButton(student, total, link) {
+    const classData = student ? classesById().get(student.classId) : null;
+    const tone = !link ? 'none' : String(link.status || 'active') === 'active' ? 'active' : 'off';
+    const face = student?.avatar
+        ? `<span class="fsp-trigger__face"><img src="${escapeHtml(student.avatar)}" alt="" loading="lazy" decoding="async"></span>`
+        : `<span class="fsp-trigger__face fsp-trigger__face--initials" aria-hidden="true">${escapeHtml(pickerInitials(student?.name))}</span>`;
+    return `
+        <div class="ts-field fsp-field">
+            <span class="ts-label" id="fsp-label">Student</span>
+            <button type="button" class="fsp-trigger" id="options-access-student-trigger" aria-haspopup="dialog" aria-expanded="false" aria-labelledby="fsp-label fsp-trigger-name" title="Choose from ${total} students">
+                ${face}
+                <span class="fsp-trigger__text">
+                    <span class="fsp-trigger__name" id="fsp-trigger-name">${escapeHtml(student?.name || 'Choose a student')}</span>
+                    ${classData ? `<span class="fsp-trigger__class">${escapeHtml(classData.logo || '')} ${escapeHtml(classData.name || '')}</span>` : ''}
+                </span>
+                <span class="fsp-dot fsp-dot--${tone}" aria-hidden="true"></span>
+                <span class="fsp-trigger__open" aria-hidden="true"><i class="fas fa-chevron-down"></i></span>
+            </button>
+        </div>`;
 }
 
 function classesById() {
@@ -206,8 +239,37 @@ export async function renderAccessCenterUi() {
         return;
     }
 
-    await loadAccessData();
+    const [picker] = await Promise.all([loadStudentPicker(), loadAccessData()]);
+    await picker.loadFamilyPickerStyles().catch(() => {});
+    picker.closeFamilyStudentPicker();
     container.innerHTML = renderParentAccessCard();
+}
+
+/** Picking a student only redraws the card from the logins already loaded. */
+function showPickedStudent(studentId) {
+    selectedStudentId = studentId;
+    lastIssued = null;
+    const container = document.getElementById('options-access-content');
+    if (!container) return;
+    container.innerHTML = renderParentAccessCard();
+    container.querySelector('#options-access-student-trigger')?.focus({ preventScroll: true });
+}
+
+async function openStudentPicker(trigger) {
+    try {
+        const { openFamilyStudentPicker } = await loadStudentPicker();
+        await openFamilyStudentPicker({
+            trigger,
+            students: getManageableStudents(),
+            classes: classesById(),
+            links: accessData.parentLinksByStudent || {},
+            selectedId: getSelectedStudent()?.id || '',
+            onPick: showPickedStudent
+        });
+    } catch (error) {
+        console.error('Could not open the student list:', error);
+        showToast('Could not open the student list. Try again.', 'error');
+    }
 }
 
 export function openAccessCenterForStudent(studentId) {
@@ -215,17 +277,15 @@ export function openAccessCenterForStudent(studentId) {
 }
 
 export function wireAccessCenterEvents() {
-    document.getElementById('options-tab')?.addEventListener('change', (event) => {
-        if (event.target.id === 'options-access-student-select') {
-            selectedStudentId = event.target.value;
-            lastIssued = null;
-            renderAccessCenterUi().catch((error) => console.error('Could not refresh access center:', error));
-        }
-    });
-
     document.getElementById('options-tab')?.addEventListener('click', async (event) => {
         const selectedStudent = getSelectedStudent();
         const currentLink = selectedStudent ? accessData.parentLinksByStudent[selectedStudent.id] : null;
+
+        const pickerTrigger = event.target.closest('#options-access-student-trigger');
+        if (pickerTrigger) {
+            void openStudentPicker(pickerTrigger);
+            return;
+        }
 
         if (event.target.closest('#options-parent-suggest-btn')) {
             const input = document.getElementById('options-parent-password');
@@ -240,6 +300,42 @@ export function wireAccessCenterEvents() {
         const qrSheetBtn = event.target.closest('[data-access-qr-sheet]');
         if (qrSheetBtn) {
             void printQrSheetForClass(qrSheetBtn);
+            return;
+        }
+
+        if (event.target.closest('#options-parent-slip-btn')) {
+            slipAsk = selectedStudent?.id || null;
+            await renderAccessCenterUi();
+            document.getElementById('options-parent-slip-go')?.focus();
+            return;
+        }
+
+        if (event.target.closest('#options-parent-slip-cancel')) {
+            slipAsk = null;
+            await renderAccessCenterUi();
+            return;
+        }
+
+        if (event.target.closest('#options-parent-slip-go')) {
+            const button = event.target.closest('#options-parent-slip-go');
+            if (!selectedStudent || !currentLink) return;
+            const password = generateFamilyPassword();
+            try {
+                setBusyState(button, true, 'Making the slip...');
+                await resetParentAccessPassword({ studentId: selectedStudent.id, password });
+                lastIssued = { studentId: selectedStudent.id, username: currentLink.username, password };
+                slipAsk = null;
+                const classData = (state.get('allSchoolClasses') || state.get('allTeachersClasses') || []).find((item) => item.id === selectedStudent.classId);
+                await printFamilySlips({
+                    schoolName: state.get('schoolName') || '',
+                    slips: [{ studentName: selectedStudent.name, className: classData?.name || '', username: currentLink.username, password }]
+                }).catch(() => showToast('Could not open printing. Use Print family slip to try again.', 'error'));
+                await renderAccessCenterUi();
+            } catch (error) {
+                console.error('Could not make a new family slip:', error);
+                showToast(friendlyActionError(error, 'Could not make a new slip.'), 'error');
+                setBusyState(button, false);
+            }
             return;
         }
 

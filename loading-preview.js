@@ -23,7 +23,7 @@ const opts = {
 };
 if (params.get('shot') === '1') document.body.classList.add('pv-shot');
 
-const NAMES = { teacher: 'Ms Maria Papadopoulou', secretary: 'Eleni Georgiou', parent: 'Family of Nikos' };
+const NAMES = { teacher: 'Ms Maria Papadopoulou', secretary: 'Eleni Georgiou', parent: 'Parent of Nikos Papadakis' };
 const TIMES = { fast: { auth: 350, profile: 800, ready: 1800 }, slow: { auth: 1400, profile: 3600, ready: 7000 } };
 
 const t0 = performance.now();

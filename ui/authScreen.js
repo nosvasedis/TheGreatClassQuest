@@ -84,6 +84,7 @@ function writeStorage(key, value) {
 }
 
 let linkedUsername = '';
+let linkedKey = '';
 
 /** The username a family's QR code carried, handed over once. */
 export function takeLinkedAuthUsername() {
@@ -106,10 +107,15 @@ export function consumeAuthDeepLinkRole() {
     if (!role) return '';
     // A family's own slip or notebook card also carries its username (?u=maria.p), so only the password is left to type.
     linkedUsername = String(url.searchParams.get('u') || '').trim().toLowerCase().replace(/[^a-z0-9._-]/g, '').slice(0, 40);
+    // A printed slip (which already shows the password) also carries it after the # (#k=...), so
+    // the family is signed straight in. After the # it never reaches a server or its logs.
+    // Notebook QR cards never carry it.
+    const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));
+    linkedKey = linkedUsername && role === ROLE_PARENT ? String(hashParams.get('k') || '').slice(0, 128) : '';
     url.searchParams.delete('login');
     url.searchParams.delete('role');
     url.searchParams.delete('u');
-    if (fromHash) url.hash = '';
+    if (fromHash || hashParams.has('k')) url.hash = '';
     try {
         window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
     } catch (_) { /* address bar stays as it was */ }
@@ -200,19 +206,38 @@ function paintFamilyLangPill(show) {
 
 /** The QR code already carried the username: say so, and send the cursor to the password. */
 export function noteLinkedUsernameArrival() {
+    const key = linkedKey;
+    linkedKey = '';
     const text = document.querySelector('[data-auth-arrival-text]');
-    if (text) text.textContent = 'Your username is already filled in. Just type your password.';
+    if (text) text.textContent = key ? 'Your slip has your details. Signing you in…' : 'Your username is already filled in. Just type your password.';
     document.getElementById('auth-screen')?.classList.add('auth-screen--username-ready');
     // The gate may still be rising behind the loading screen: wait until the field can be seen.
     let tries = 0;
-    const focusWhenVisible = () => {
+    const whenVisible = () => {
         const field = document.getElementById('login-password');
         const screen = document.getElementById('auth-screen');
         if (field && field.getClientRects().length && !screen?.classList.contains('hidden') && getComputedStyle(screen).opacity > 0.9) {
-            if (!field.value) field.focus({ preventScroll: true });
-        } else if (++tries < 40) setTimeout(focusWhenVisible, 150);
+            if (key && !field.value) {
+                // Signed straight in. A wrong or changed password shows the usual message and
+                // leaves the box empty for the family to type.
+                field.value = key;
+                const box = document.getElementById('auth-error');
+                if (box) {
+                    const watch = new MutationObserver(() => {
+                        if (!box.textContent.trim()) return;
+                        watch.disconnect();
+                        field.value = '';
+                        if (text) text.textContent = 'Your username is already filled in. Just type your password.';
+                        field.focus({ preventScroll: true });
+                    });
+                    watch.observe(box, { childList: true, subtree: true, characterData: true });
+                    setTimeout(() => watch.disconnect(), 30000);
+                }
+                document.getElementById('login-form')?.requestSubmit();
+            } else if (!field.value) field.focus({ preventScroll: true });
+        } else if (++tries < 40) setTimeout(whenVisible, 150);
     };
-    setTimeout(focusWhenVisible, 300);
+    setTimeout(whenVisible, 300);
 }
 
 function wireFamilyLanguage(screen) {

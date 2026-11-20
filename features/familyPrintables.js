@@ -111,10 +111,10 @@ const SLIP_COPY = {
     steps: [
         { el: 'Ανοίξτε την κάμερα του κινητού σας και στρέψτε τη στον κωδικό QR.', en: 'Open your phone’s camera and point it at the QR code.' },
         { el: 'Πατήστε τον σύνδεσμο που εμφανίζεται. Η σελίδα γονέα ανοίγει μόνη της.', en: 'Tap the link that appears. The Parent page opens by itself.' },
-        { el: 'Γράψτε τον κωδικό ακριβώς όπως είναι εδώ και πατήστε «Sign in».', en: 'Type the password exactly as written and tap “Sign in”.' }
+        { el: 'Συνδέεστε αμέσως. Αν σας ζητηθεί κωδικός, γράψτε τον ακριβώς όπως είναι εδώ.', en: 'You are signed in straight away. If it asks for the password, type it exactly as written.' }
     ],
     scan: { el: 'Σκανάρετε για σύνδεση', en: 'Scan to sign in' },
-    keep: { el: 'Κρατήστε αυτό το χαρτί σε ασφαλές μέρος.', en: 'Keep this slip private.' },
+    keep: { el: 'Κρατήστε αυτό το χαρτί σε ασφαλές μέρος: ο κωδικός QR συνδέει όποιον τον σκανάρει.', en: 'Keep this slip private: its QR code signs in whoever scans it.' },
     orType: { el: 'Ή γράψτε:', en: 'Or type:' }
 };
 
@@ -322,13 +322,14 @@ export async function printFamilyPoster({ schoolName, lang = 'en' } = {}) {
 }
 
 
-const qrFor = (username) => renderQrSvg(getFamilyLoginUrl(username), { title: 'Family sign-in QR code' });
+const qrFor = (username, key = '') => renderQrSvg(getFamilyLoginUrl(username, undefined, undefined, { key }), { title: 'Family sign-in QR code' });
 
 /** Prints one or many family slips: slips = [{ studentName, className, username, password }]. */
 export async function printFamilySlips({ schoolName, slips = [] } = {}) {
     if (!slips.length) return;
     const url = getParentLoginUrl();
-    const withQr = await Promise.all(slips.map(async (item) => ({ ...item, qrSvg: await qrFor(item.username) })));
+    // A slip already shows the password, so its QR signs the family straight in.
+    const withQr = await Promise.all(slips.map(async (item) => ({ ...item, qrSvg: await qrFor(item.username, item.password) })));
     await printHtml(buildFamilySlipsHtml({ schoolName, slips: withQr, url }));
 }
 

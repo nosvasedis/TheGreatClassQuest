@@ -59,7 +59,27 @@ const GAME_NAMES = {
     Scholar: 'Λόγιος',
     Nomad: 'Ταξιδευτής',
     Patron: 'Προστάτης',
-    Vanguard: 'Πρωτοπόρος'
+    Vanguard: 'Πρωτοπόρος',
+    // Hero path titles, one per hero level.
+    Sentinel: 'Σκοπός', Warden: 'Φρουρός', Protector: 'Υπερασπιστής', Champion: 'Πρωταθλητής', 'Eternal Guardian': 'Αιώνιος Φύλακας',
+    Apprentice: 'Μαθητευόμενος', Mystic: 'Μύστης', Archmage: 'Αρχιμάγος', 'Elder Sage': 'Γέροντας Σοφός',
+    Squire: 'Ακόλουθος', Knight: 'Ευγενής Ιππότης', Crusader: 'Ιππότης του Φωτός', Marshal: 'Στρατάρχης', 'High Paladin': 'Ύπατος Ιππότης',
+    Tinkerer: 'Μαστοράκος', Engineer: 'Μηχανικός', Inventor: 'Εφευρέτης', Mastermind: 'Ιθύνων Νους', 'Grand Artificer': 'Μέγας Τεχνίτης',
+    Scribe: 'Γραφέας', 'Research Mentor': 'Μέντορας της Έρευνας', 'Grand Scholar': 'Μέγας Λόγιος',
+    Recruit: 'Νεοσύλλεκτος', Scout: 'Ανιχνευτής', Ranger: 'Ιχνηλάτης', Captain: 'Λοχαγός', 'High Vanguard': 'Ύπατος Πρωτοπόρος',
+    Wanderer: 'Περιπλανώμενος', Pathfinder: 'Οδηγός των Μονοπατιών', 'Legendary Nomad': 'Θρυλικός Ταξιδευτής',
+    Giver: 'Δωρητής', Benefactor: 'Ευεργέτης', 'Grand Patron': 'Μέγας Προστάτης',
+    // Familiars and their five forms.
+    Emberfang: 'Φλογόδοντος', Hatchling: 'Δρακάκι', 'Flame Drake': 'Δράκος της Φλόγας', 'Inferno Dragon': 'Δράκος της Πυράς', 'Magma Wyrm': 'Δράκος του Μάγματος', 'Sunfire Elder': 'Γέροντας της Ηλιοφωτιάς',
+    Frostpaw: 'Παγοπατούσα', 'Ice Cub': 'Αρκουδάκι του Πάγου', 'Snow Fox': 'Αλεπού του Χιονιού', 'Frost Guardian': 'Φύλακας της Παγωνιάς', 'Aurora Kitsune': 'Αλεπού του Σέλαος', 'Starfrost Sovereign': 'Άρχοντας της Αστροπαγωνιάς',
+    Thornback: 'Αγκαθόραχος', 'Moss Toad': 'Βάτραχος των Βρύων', 'Bark Bear': 'Αρκούδα του Φλοιού', 'Ancient Treant': 'Αρχαίο Δεντρόπνευμα', 'Grove Warden': 'Φύλακας του Άλσους', 'World-Tree Elder': 'Γέροντας του Κοσμόδεντρου',
+    Veilshade: 'Πεπλόσκιος', 'Shadow Wisp': 'Σκιερή Φλογίτσα', 'Phantom Cat': 'Γάτα-Φάντασμα', 'Void Stalker': 'Κυνηγός του Κενού', 'Eclipse Lynx': 'Λύγκας της Έκλειψης', 'Moonveil Sphinx': 'Σφίγγα του Φεγγαριού',
+    Sparkling: 'Σπιθούλα', 'Sun Sprite': 'Ξωτικό του Ήλιου', 'Dawn Fairy': 'Νεράιδα της Αυγής', 'Solar Phoenix': 'Ηλιακός Φοίνικας', 'Radiant Phoenix': 'Λαμπερός Φοίνικας', 'Eternal Sunbird': 'Αιώνιο Πουλί του Ήλιου',
+    Tidefin: 'Κυματόπτερος', 'Bubble Pup': 'Φουσκοκουτάβι', 'River Otter': 'Βίδρα του Ποταμού', 'Tide Otter': 'Βίδρα της Παλίρροιας', 'Coral Selkie': 'Σέλκι των Κοραλλιών', Tidecaller: 'Άρχοντας των Κυμάτων',
+    Stormwing: 'Θυελλόφτερος', 'Puffball Owlet': 'Χνουδωτό Κουκουβαγάκι', 'Storm Owl': 'Κουκουβάγια της Θύελλας', 'Thunder Owl': 'Κουκουβάγια της Βροντής', 'Tempest Owl': 'Κουκουβάγια της Τρικυμίας', Thunderbird: 'Πουλί της Βροντής',
+    Gemshell: 'Πετρόκελυφος', 'Pebble Tortle': 'Χελωνάκι-Βότσαλο', 'Crystal Tortoise': 'Κρυστάλλινη Χελώνα', 'Geode Guardian': 'Φύλακας των Κρυστάλλων', 'Mountain Tortoise': 'Χελώνα-Βουνό', 'Prism Colossus': 'Κολοσσός του Πρίσματος',
+    Starfoal: 'Αστροπουλάρι', 'Star Foal': 'Αστροπουλάρι', 'Comet Pony': 'Πόνι του Κομήτη', 'Nebula Steed': 'Άτι του Νεφελώματος', 'Astral Unicorn': 'Αστρικός Μονόκερος', 'Galaxy Alicorn': 'Φτερωτός Μονόκερος του Γαλαξία',
+    Cloverhop: 'Τριφυλλοπηδούλης', 'Clover Kit': 'Τριφυλλάκι', 'Meadow Hare': 'Λαγός του Λιβαδιού', 'Lucky Jackalope': 'Τυχερός Κερατόλαγος', 'Fortune Jackalope': 'Κερατόλαγος της Τύχης', 'Golden Luckbringer': 'Χρυσός Τυχοφέρνης'
 };
 
 /** A guild, hero class or motto in Greek, or the English name when there is none. */

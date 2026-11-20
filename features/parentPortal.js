@@ -12,6 +12,7 @@ import { getLang, setLang, tr } from './parent/i18n.js';
 import '../styles/family_portal_lang.css';
 import '../styles/family_portal_more.css';
 import '../styles/family_portal_tips.css';
+import '../styles/family_portal_progress.css';
 import { showTreasureDetail, hydrateTreasures } from './parent/treasures.js';
 import { handleInstallClick, wirePullToRefresh, wireKeyboardRoom, confirmLogout } from './parent/phone.js';
 import {

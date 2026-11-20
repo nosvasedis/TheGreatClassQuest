@@ -1,7 +1,6 @@
 // features/parent/calendar.js — the next two weeks at a glance: lesson days, test days and school holidays
-import * as state from '../../state.js';
 import { describeSchoolDay, upcomingSchoolDays, isoOf } from '../../utils/schoolCalendar.mjs';
-import { escapeHtml, getSnapshot, toDate, splitHomework, shortDate, monthShort, tr, isGreek } from './helpers.js';
+import { escapeHtml, getSnapshot, familyHomework, toDate, splitHomework, shortDate, monthShort, tr, isGreek } from './helpers.js';
 
 const DAYS_SHOWN = 14;
 const WEEKDAY_LETTERS = {
@@ -17,7 +16,7 @@ function holidayName(special, range) {
 /** Upcoming test dates from the homework feed, keyed by YYYY-MM-DD. */
 function testsByDay() {
     const map = new Map();
-    (state.get('currentParentHomework') || []).forEach((item) => {
+    familyHomework().forEach((item) => {
         const test = splitHomework(item).test;
         const date = test ? toDate(test.date) : null;
         if (date) map.set(isoOf(date), test.title);

@@ -1935,6 +1935,9 @@ body.gcq-mobile #m-options-subtab-dropdown .m-subtab-dropdown__trigger {
 }
 #options-tab .ts-access__issued i { color: #059669; }
 #options-tab .ts-access__issued code { padding: 0.05rem 0.4rem; border-radius: 0.35rem; background: #fff; font-weight: 800; color: #1f2a44; }
+#options-tab .ts-access__issued--slip { border-style: solid; border-color: #f1dcb0; background: #fffdf7; color: #6b4a1e; }
+#options-tab .ts-access__issued--slip > span > i { color: #c98a14; margin-right: 0.3rem; }
+#options-tab .ts-access__slipbtns { display: inline-flex; flex-wrap: wrap; gap: 0.4rem; }
 
 /* Notebook QR cards: one print button per class, across the whole card. */
 #options-tab .ts-access__qr-sheets {

@@ -1569,3 +1569,15 @@
     .tb-reason,
     .tb-panel.is-active { animation-duration: 1ms; }
 }
+
+/* Away today: heroes marked absent cannot sponsor. A soft rain-cloud lane, sky tinted. */
+.hb-rest-label--away { color: #0369a1; }
+.hb-rest-label--away > .fa-cloud-rain { font-size: 0.8rem; order: 0; }
+.hb-rest-label--away::before { order: -1; }
+.hb-tiles--away .hb-tile {
+    background: linear-gradient(180deg, rgba(224, 242, 254, 0.75), rgba(241, 245, 249, 0.75));
+    border-color: rgba(56, 189, 248, 0.45);
+}
+.hb-tiles--away .hb-tile__face { filter: grayscale(0.55); }
+.hb-tile__why--away { color: #0369a1; }
+.hb-tile__why--away .fa-cloud-rain { font-size: 0.6rem; }

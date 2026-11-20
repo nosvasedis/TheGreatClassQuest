@@ -1,5 +1,4 @@
 // features/parent/homework.js — homework pinned to the family fridge
-import * as state from '../../state.js';
 import {
     escapeHtml,
     getSnapshot,
@@ -13,6 +12,7 @@ import {
     toDate,
     toMillis,
     isHomeworkNew,
+    familyHomework,
     getNextLesson,
     onWeekday,
     tr,
@@ -21,7 +21,7 @@ import {
 import { bi } from './i18n.js';
 
 function sortedHomework() {
-    return (state.get('currentParentHomework') || [])
+    return familyHomework()
         .slice()
         .sort((a, b) => toMillis(b.publishedAt || b.updatedAt) - toMillis(a.publishedAt || a.updatedAt));
 }
@@ -110,7 +110,7 @@ function icsText(value) {
 
 /** Downloads an all-day calendar event for the homework's test. */
 export function downloadTestCalendarEvent(homeworkId) {
-    const item = (state.get('currentParentHomework') || []).find((entry) => entry.id === homeworkId);
+    const item = familyHomework().find((entry) => entry.id === homeworkId);
     const test = item ? splitHomework(item).test : null;
     const date = test ? toDate(test.date) : null;
     if (!date) return false;

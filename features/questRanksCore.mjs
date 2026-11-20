@@ -151,7 +151,7 @@ export function evaluatePortal({ level = 1, goal = 0, heroStars = [], classBonus
     const lvl = Math.max(1, Math.floor(num(level)) || 1);
     const heroes = heroStars.length;
     const ownStars = heroStars.reduce((sum, s) => sum + num(s), 0);
-    const totalStars = ownStars + num(classBonus);
+    const totalStars = Math.max(0, ownStars + num(classBonus));
     const goalStars = num(goal);
     const starsMet = goalStars > 0 && totalStars >= goalStars;
     const runes = runesForLevel(lvl).map((rune) => {

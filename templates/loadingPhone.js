@@ -26,12 +26,12 @@
 import { resolveSkyScene } from '../features/skyWeather.mjs';
 import { loadingSkyPlan } from '../features/skyMemory.mjs';
 import { LOADING_TIPS, FAMILY_LOADING_TIPS, OFFICE_LOADING_TIPS, createTipDeck } from './loadingTips.mjs';
+import { getFamilyLang } from '../utils/familyLang.js';
 
 export const PHONE_LOADING_QUERY = '(max-width: 1023px)';
 
 const ROLES = ['teacher', 'parent', 'secretary'];
 const LAST_ROLE_KEY = 'gcq.lastAuthRole'; // ui/authScreen.js remembers it
-const FAMILY_LANG_KEY = 'gcq_family_lang_v1'; // features/parent/i18n.js
 const DEEP_LINK_ROLES = {
     parent: 'parent', parents: 'parent', family: 'parent', families: 'parent',
     teacher: 'teacher', teachers: 'teacher',
@@ -114,17 +114,18 @@ function guessRole() {
 }
 
 /** guessRole, or in the dev preview (loading-preview.html) ?guess= or ?role=. */
-function startingRole() {
+export function startingRole() {
     const forced = previewParam('guess') ?? previewParam('role');
     if (forced !== null) return ROLES.includes(forced) ? forced : '';
     return guessRole();
 }
 
 /** Families read the portal in English or Greek; the loading screen follows. */
-function familyLang() {
-    // Families are Greek first (utils/familyLang.js); "both" shows Greek here.
-    const saved = previewParam('lang') || read(FAMILY_LANG_KEY);
-    return saved === 'en' ? 'en' : 'el';
+export function familyLang() {
+    // The family's own choice, else the phone's language (utils/familyLang.js); "both" shows Greek here.
+    const forced = previewParam('lang');
+    if (forced) return forced === 'en' ? 'en' : 'el';
+    return getFamilyLang() === 'en' ? 'en' : 'el';
 }
 
 /** day, golden (dawn and the last light) or night, from the real sky. */
@@ -478,11 +479,25 @@ export function phoneMarkStage(step) {
 }
 
 /** The account has loaded: the scene becomes theirs, and the Welcome shows. */
+/**
+ * A family's account is named "Parent of <child>" (functions/index.js). On the welcome it reads
+ * "Οικογένεια <child>" / "Family of <child>", with the child's initial in the badge.
+ */
+export function familyWelcome(name, lang = familyLang()) {
+    const match = /^parent of\s+(.+)$/i.exec(String(name || '').trim());
+    if (!match) return null;
+    const child = match[1].trim();
+    return { name: lang === 'en' ? `Family of ${child}` : `Οικογένεια ${child}`, initial: Array.from(child)[0]?.toUpperCase() || '' };
+}
+
 export function phoneStagePersonalization(name, role) {
     const displayName = String(name || '').trim().replace(/\s+/g, ' ');
     const HONORIFICS = /^(mr|mrs|ms|miss|dr|prof|rev|sir|lord|lady|κ)\.?$/i;
     const first = displayName.split(' ').find((p) => !HONORIFICS.test(p)) || '';
-    _staged = { name: displayName, role: ROLES.includes(role) ? role : '', initial: Array.from(first || displayName)[0]?.toUpperCase() || '' };
+    const family = role === 'parent' ? familyWelcome(displayName) : null;
+    _staged = family
+        ? { name: family.name, role, initial: family.initial }
+        : { name: displayName, role: ROLES.includes(role) ? role : '', initial: Array.from(first || displayName)[0]?.toUpperCase() || '' };
     applyRole(_staged.role);
     phoneMarkStage(2);
     const wait = Math.max(0, _times.arrive - (performance.now() - _shownAt));

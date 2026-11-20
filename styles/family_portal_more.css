@@ -492,3 +492,21 @@
     #parent-refresh-btn { display: none; }
     .fp-header__actions { gap: 0.3rem; }
 }
+
+
+/* ---------- Phone browsers whose bars slide away (Samsung Internet, Xiaomi, Huawei) ----------
+   The phone shell is sized to the small viewport (100svh, mobile/styles/mobile.css). When the
+   browser's bottom bar hides, the page grows and the portal stopped short, leaving a strip of
+   bare page under the tab bar. The family shell follows the live viewport instead, so the tab
+   bar always sits on the real bottom edge; and the page behind it is the tab bar's own paper,
+   so even the moment a bar is sliding shows no seam. */
+body.gcq-mobile #parent-screen:not(.hidden) {
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+}
+html:has(body.gcq-family),
+body.gcq-family {
+    background: #fffcf6;
+}

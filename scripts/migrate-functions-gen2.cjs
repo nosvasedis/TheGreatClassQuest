@@ -27,7 +27,7 @@ const plan = require('./lib/functionsGen2Plan.cjs');
 const args = new Set(process.argv.slice(2));
 const MODE = args.has('--rollback') ? 'rollback' : args.has('--check') ? 'check' : 'migrate';
 const PROJECT = JSON.parse(fs.readFileSync(path.join(repoRoot, '.firebaserc'), 'utf8')).projects.default;
-const ROLLBACK_DIR = path.join(os.tmpdir(), `gcq-functions-gen1-${plan.ROLLBACK_REF}`);
+let ROLLBACK_DIR = ''; // set by prepareRollbackCopy: <tmp>/gcq-functions-gen1-<current commit>
 const LOG_FILE = path.join(os.tmpdir(), `gcq-functions-gen2-${new Date().toISOString().replace(/[:.]/g, '-')}.log`);
 const startedAt = Date.now();
 
@@ -172,14 +172,26 @@ async function removeOldScheduleJobs(names) {
 
 // ---------- rollback copy ----------
 async function prepareRollbackCopy(codeIds) {
-  if (!fs.existsSync(path.join(ROLLBACK_DIR, 'functions', 'index.js'))) {
+  // The 1st gen copy = this commit with only the 2nd gen move reversed (plan.PORT_COMMIT), so a
+  // rollback keeps everyone's later work on the functions.
+  const head = (await run('git', ['rev-parse', 'HEAD'], { cwd: repoRoot })).stdout.trim();
+  if (!/^[0-9a-f]{40}$/.test(head)) fail('Could not read the current git commit');
+  const ancestor = await run('git', ['merge-base', '--is-ancestor', plan.PORT_COMMIT, head], { cwd: repoRoot });
+  if (ancestor.status !== 0) fail(`The 2nd gen move (${plan.PORT_COMMIT.slice(0, 7)}) is not in this branch`);
+  ROLLBACK_DIR = path.join(os.tmpdir(), `gcq-functions-gen1-${head.slice(0, 7)}`);
+  const marker = path.join(ROLLBACK_DIR, '.gcq-rollback-of');
+  const ready = fs.existsSync(marker) && fs.readFileSync(marker, 'utf8').trim() === head;
+  if (!ready) {
+    await run('git', ['worktree', 'remove', '--force', ROLLBACK_DIR], { cwd: repoRoot });
     await run('git', ['worktree', 'prune'], { cwd: repoRoot });
-    const added = await run('git', ['worktree', 'add', '--detach', ROLLBACK_DIR, plan.ROLLBACK_REF], { cwd: repoRoot });
+    const added = await run('git', ['worktree', 'add', '--detach', ROLLBACK_DIR, head], { cwd: repoRoot });
     if (added.status !== 0) fail(`Could not make the rollback copy:\n${added.stderr}`);
+    const reverted = await run('git', ['revert', '--no-commit', plan.PORT_COMMIT], { cwd: ROLLBACK_DIR });
+    if (reverted.status !== 0) fail(`Could not reverse the 2nd gen move in the rollback copy (later edits overlap it):\n${reverted.stderr || reverted.stdout}`);
+    fs.writeFileSync(marker, head);
   }
-  const head = (await run('git', ['rev-parse', 'HEAD'], { cwd: ROLLBACK_DIR })).stdout.trim();
-  const want = (await run('git', ['rev-parse', plan.ROLLBACK_REF], { cwd: repoRoot })).stdout.trim();
-  if (!head || head !== want) fail(`${ROLLBACK_DIR} is not at ${plan.ROLLBACK_REF}; delete that folder and run again`);
+  const dirty = (await run('git', ['status', '--porcelain', '--', 'functions'], { cwd: repoRoot })).stdout.trim();
+  if (dirty) warn(`uncommitted changes in functions/ will be deployed but are not in the rollback copy:\n${dirty}`);
   // Settings that are not in git (Stripe on, prices, tax rate) must match what is live.
   fs.copyFileSync(path.join(repoRoot, 'functions', '.env'), path.join(ROLLBACK_DIR, 'functions', '.env'));
   if (!fs.existsSync(path.join(ROLLBACK_DIR, 'functions', 'node_modules', 'firebase-functions'))) {
@@ -194,7 +206,7 @@ async function prepareRollbackCopy(codeIds) {
   }
   const notGen1 = old.filter((e) => e.platform !== 'gcfv1' && e.id !== 'reconcileSpecialQuestEffects');
   if (notGen1.length) fail(`Rollback copy has non-1st-gen functions: ${notGen1.map((e) => e.id).join(', ')}`);
-  ok(`rollback copy ready (${plan.ROLLBACK_REF}, 1st gen, Node.js 22): ${ROLLBACK_DIR}`);
+  ok(`rollback copy ready (this commit with the 2nd gen move reversed: 1st gen, Node.js 22): ${ROLLBACK_DIR}`);
   return old;
 }
 
@@ -243,10 +255,6 @@ async function preflight() {
   const old = await prepareRollbackCopy(code.map((e) => e.id));
   old.forEach((e) => { if (!kinds.has(e.id)) kinds.set(e.id, e.kind); });
 
-  const changed = (await run('git', ['diff', '--name-only', plan.ROLLBACK_REF, '--', 'functions'], { cwd: repoRoot })).stdout.trim().split(/\r?\n/).filter(Boolean);
-  const expected = ['functions/index.js', 'functions/adventurePicture.js', 'functions/avatarForge.js', 'functions/package.json', 'functions/package-lock.json'];
-  const extra = changed.filter((f) => !expected.includes(f));
-  if (extra.length) warn(`functions files changed since ${plan.ROLLBACK_REF} besides the move itself (a rollback would undo them too): ${extra.join(', ')}`);
 
   if (MODE !== 'rollback') {
     log('  ... running the test suite');

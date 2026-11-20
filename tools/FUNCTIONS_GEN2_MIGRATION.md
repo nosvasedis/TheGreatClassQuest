@@ -98,7 +98,7 @@ message says what failed, and the log file path is printed at the start and the 
 npm run functions:gen2 -- --rollback
 ```
 
-This puts every function back on 1st gen / Node.js 22 from commit `3853279`, batch by batch
+This puts every function back on 1st gen / Node.js 22, batch by batch. The 1st gen copy is the current commit with only the 2nd gen move reversed, so later work on the functions (such as the Family Portal changes) is kept
 (type `ROLLBACK`). The code in the folder stays the 2nd gen version, so revert it with git
 before the next normal deploy.
 

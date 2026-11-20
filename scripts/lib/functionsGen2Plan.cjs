@@ -12,8 +12,9 @@
 const REGION = 'europe-west1';
 const TARGET_RUNTIME = 'nodejs24';
 
-// The last commit whose functions are all 1st gen (deployed 2026-11-20 12:39 UTC).
-const ROLLBACK_REF = '3853279';
+// The commit that moved the functions to 2nd gen. The rollback copy is the current commit with
+// only this commit reversed, so a rollback keeps everyone else's later work on the functions.
+const PORT_COMMIT = '0fe33ff46b72084e2b14c8f4c4c09e62c5cdb76f';
 
 // Order matters: prove the new setup on functions nobody waits on, then the nightly jobs,
 // then payments, then everything else.
@@ -103,7 +104,7 @@ function schedulerJobName(id) {
 module.exports = {
   REGION,
   TARGET_RUNTIME,
-  ROLLBACK_REF,
+  PORT_COMMIT,
   CANARY,
   NIGHTLY,
   PAYMENTS,

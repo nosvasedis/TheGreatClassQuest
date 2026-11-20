@@ -72,6 +72,41 @@ function reduceMotion() {
     return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 }
 
+let glide = null;
+
+/**
+ * Glides the stage to `left`. Our own short tween with snapping switched off while it runs:
+ * a smooth scrollTo inside a snapping track lets the browser snap mid-way (the stage flicked
+ * to the neighbour and back before settling), and the dock read every hero it passed.
+ */
+function glideTo(track, left, smooth) {
+    if (glide) cancelAnimationFrame(glide.frame);
+    if (!smooth) {
+        glide = null;
+        track.scrollLeft = left;
+        return;
+    }
+    const from = track.scrollLeft;
+    const distance = left - from;
+    if (Math.abs(distance) < 1) return;
+    const duration = Math.min(560, 320 + Math.abs(distance) * 0.06);
+    const start = performance.now();
+    track.classList.add('is-gliding');
+    const step = (now) => {
+        const t = Math.min(1, (now - start) / duration);
+        const eased = 1 - (1 - t) ** 3;
+        track.scrollLeft = from + distance * eased;
+        if (t < 1) {
+            glide.frame = requestAnimationFrame(step);
+        } else {
+            track.scrollLeft = left;
+            track.classList.remove('is-gliding');
+            glide = null;
+        }
+    };
+    glide = { frame: requestAnimationFrame(step) };
+}
+
 /** Shows the hero at `index` on the stage. */
 function goTo(index, { smooth = true } = {}) {
     const track = trackEl();
@@ -79,8 +114,8 @@ function goTo(index, { smooth = true } = {}) {
     const list = mounts(track);
     if (!list.length) return;
     const i = Math.max(0, Math.min(list.length - 1, index));
-    track.scrollTo({ left: list[i].offsetLeft, behavior: smooth && !reduceMotion() ? 'smooth' : 'auto' });
     setCurrent(list[i].querySelector('.student-cloud-card')?.dataset.studentid || null);
+    glideTo(track, list[i].offsetLeft, smooth && !reduceMotion());
 }
 
 /** Marks the hero on stage on the dock. */
@@ -113,6 +148,7 @@ function setCurrent(id) {
 /** Which cloud fills the stage, read from the scroll position. */
 function readCurrentFromScroll() {
     scrollFrame = 0;
+    if (glide) return; // a ‹ › glide already shows where it is going
     const track = trackEl();
     if (!track) return;
     const list = mounts(track);
@@ -123,9 +159,40 @@ function readCurrentFromScroll() {
     if (id !== currentId) setCurrent(id);
 }
 
+/**
+ * The stage never scrolls up and down: a cloud taller than the room it has (an open absent
+ * desk on a short phone) is scaled down to fit instead.
+ */
+let fitFrame = 0;
+export function fitAwardPhoneStage() {
+    if (fitFrame || !isAwardPhoneStage()) return;
+    fitFrame = requestAnimationFrame(() => {
+        fitFrame = 0;
+        const track = trackEl();
+        if (!track) return;
+        mounts(track).forEach((mount) => {
+            const card = mount.querySelector('.aw-card');
+            if (!card) return;
+            const room = mount.clientHeight - 8;
+            // The cloud reaches about 3rem past the card (top puffs, shelf); count that in.
+            const need = card.offsetHeight + 48;
+            const scale = room > 0 ? Math.max(0.5, Math.min(1, room / need)) : 1;
+            card.style.setProperty('--aw-fit', scale.toFixed(3));
+        });
+    });
+}
+
+let fitObserver = null;
 function bindTrack(track) {
     if (boundTrack === track) return;
     boundTrack = track;
+    if (typeof ResizeObserver !== 'undefined') {
+        fitObserver?.disconnect();
+        fitObserver = new ResizeObserver(() => fitAwardPhoneStage());
+        fitObserver.observe(track);
+    }
+    // Cards grow when a virtue opens its stars or a desk opens: refit after any tap.
+    track.addEventListener('click', () => setTimeout(fitAwardPhoneStage, 450));
     track.addEventListener('scroll', () => {
         if (!scrollFrame) scrollFrame = requestAnimationFrame(readCurrentFromScroll);
     }, { passive: true });
@@ -198,6 +265,7 @@ export function syncAwardPhoneStage({ reset = false } = {}) {
     let index = currentId ? mountIndexOf(track, currentId) : -1;
     if (index < 0) index = 0;
     const want = list[index].offsetLeft;
-    if (Math.abs(track.scrollLeft - want) > 2) track.scrollTo({ left: want, behavior: 'auto' });
+    if (!glide && Math.abs(track.scrollLeft - want) > 2) track.scrollLeft = want;
+    fitAwardPhoneStage();
     setCurrent(list[index].querySelector('.student-cloud-card')?.dataset.studentid || null);
 }

@@ -50,8 +50,8 @@ document.getElementById('app-root').innerHTML = `
         </div>
         ${awardImmersiveSkyHTML}
         <main id="preview-main">
-            <div id="pv-home" class="w-full max-w-7xl mx-auto p-4"><div id="pv-home-grid" class="horizons-grid"></div></div>
-            <div id="pv-award" class="hidden">${awardTabHTML}</div>
+            <div id="pv-home" class="w-full max-w-7xl mx-auto p-4${params.get('mobile') === '1' && params.get('heroes') ? ' hidden' : ''}"><div id="pv-home-grid" class="horizons-grid"></div></div>
+            ${params.get('mobile') === '1' && params.get('heroes') ? awardTabHTML : `<div id="pv-award" class="hidden">${awardTabHTML}</div>`}
         </main>
     </div>
     ${wallpaperHTML}`;
@@ -211,7 +211,7 @@ function render() {
     const app = document.getElementById('app-screen');
     app.classList.toggle('award-sky-active', state.sky);
     document.getElementById('pv-home').classList.toggle('hidden', state.sky);
-    document.getElementById('pv-award').classList.toggle('hidden', !state.sky);
+    document.getElementById('pv-award')?.classList.toggle('hidden', !state.sky);
 
     const wall = document.getElementById('dynamic-wallpaper-screen');
     wall.classList.toggle('hidden', !state.wall);

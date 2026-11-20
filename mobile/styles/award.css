@@ -8,11 +8,37 @@ body.gcq-mobile #award-sky-summary { display: none !important; }
 
 /* ───────────────────────── The dock ───────────────────────── */
 
+/* The tab fills the screen between the header and the bottom bar and never scrolls up and
+   down: the sign gives way (the bottom bar already says Award), the dock sits on top, and the
+   stage takes the rest. */
+body.gcq-mobile #app-screen main:has(> #award-stars-tab:not(.hidden)) {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+body.gcq-mobile #award-stars-tab:not(.hidden) {
+    flex: 1;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+body.gcq-mobile #award-stars-tab > .aw-stage-wide {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+body.gcq-mobile #award-stars-tab .tab-sign--award { display: none; }
+body.gcq-mobile #award-stars-tab .award-stars-toolbar { margin: 0 0 0.45rem; }
+body.gcq-mobile #award-stars-tab .award-stars-toolbar:not(:has(.teacher-boon-launch-btn:not(.hidden))) { display: none; }
+
 body.gcq-mobile #award-phone-dock {
-    position: sticky;
-    top: 0.25rem;
+    position: relative;
     z-index: 30;
-    margin: 0 0 0.35rem;
+    flex: none;
+    margin: 0 0 0.2rem;
 }
 
 body.gcq-mobile #award-phone-dock.hidden { display: none; }
@@ -204,28 +230,37 @@ body.gcq-mobile .aw-dock .aw-dock__seg.is-current { flex-grow: 2.2; max-width: 2
 
 body.gcq-mobile #award-stars-student-list.aw-sky-grid {
     position: relative;
+    flex: 1;
+    min-height: 0;
     display: flex;
-    align-items: flex-start;
+    align-items: stretch;
     gap: 0;
     margin: 0 -0.7rem;
-    padding: 0 0 5.5rem;
+    /* clear the floating bottom bar */
+    padding: 0 0 calc(var(--m-dock-clearance, 5.5rem) * 0.85);
     overflow-x: auto;
     overflow-y: hidden;
     scroll-snap-type: x mandatory;
     overscroll-behavior-x: contain;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
 }
+/* While a ‹ › glide runs, snapping waits (see glideTo in ui/awardPhoneStage.js). */
+body.gcq-mobile #award-stars-student-list.aw-sky-grid.is-gliding { scroll-snap-type: none; }
 body.gcq-mobile #award-stars-student-list.aw-sky-grid::-webkit-scrollbar { display: none; }
 
 body.gcq-mobile .aw-sky-grid > .award-card-mount {
     flex: 0 0 100%;
     width: 100%;
     max-width: none;
+    height: 100%;
     margin: 0 !important;
-    padding: 2.6rem 1.55rem 2.4rem;
+    padding: 0.6rem 1.55rem 0.4rem;
     display: flex;
     justify-content: center;
+    align-items: center;
+    overflow: hidden;
     scroll-snap-align: center;
     scroll-snap-stop: always;
 }
@@ -236,9 +271,14 @@ body.gcq-mobile .aw-sky-grid > .aw-empty { flex: 0 0 calc(100% - 1.4rem); margin
 body.gcq-mobile .aw-card {
     width: 100%;
     max-width: 23rem;
+    flex: none;
     padding: 0.4rem 1.05rem 1.9rem;
+    /* --aw-fit (set by ui/awardPhoneStage.js) shrinks a cloud that is taller than the stage. */
+    transform: scale(var(--aw-fit, 1));
+    transform-origin: 50% 50%;
+    transition: none;
 }
-body.gcq-mobile .aw-card:hover { transform: none; }
+body.gcq-mobile .aw-card:hover { transform: scale(var(--aw-fit, 1)); }
 body.gcq-mobile .aw-cloud--stage { inset: -0.9rem -1.4rem -1.8rem; }
 
 /* Portrait on top in the big puff, Gold beside it, the name underneath. */

@@ -78,7 +78,8 @@ const familyHeader = `
     </header>`;
 
 // Lumi's star for the Tips tab: one flat path so it takes the tab's colour.
-const NAV_LUMI = '<svg class="fp-nav__lumi" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path d="M45.4 8.7Q50 0 54.6 8.7L60.7 20.3Q65.3 29 75 30.6L87.9 32.9Q97.6 34.5 90.7 41.6L81.6 51Q74.7 58 76.1 67.8L78 80.7Q79.4 90.5 70.6 86.1L58.8 80.3Q50 76 41.2 80.3L29.4 86.1Q20.6 90.5 22 80.7L23.9 67.8Q25.3 58 18.4 51L9.3 41.6Q2.4 34.5 12.1 32.9L25 30.6Q34.7 29 39.3 20.3Z" fill="currentColor"/><circle cx="42" cy="52" r="4.5" fill="var(--fp-nav-face, #fffcf6)"/><circle cx="58" cy="52" r="4.5" fill="var(--fp-nav-face, #fffcf6)"/><path d="M44 62q6 5 12 0" stroke="var(--fp-nav-face, #fffcf6)" stroke-width="4" fill="none" stroke-linecap="round"/></svg>';
+// Lumi as a tab icon: one solid colour like the other icons, the face cut out of the star.
+const NAV_LUMI = '<svg class="fp-nav__lumi" viewBox="0 3 100 90" aria-hidden="true" focusable="false"><defs><mask id="fp-nav-lumi-face"><rect x="0" y="0" width="100" height="100" fill="#fff"/><circle cx="42" cy="53" r="5" fill="#000"/><circle cx="58" cy="53" r="5" fill="#000"/><path d="M43 63q7 5.5 14 0" stroke="#000" stroke-width="4.5" fill="none" stroke-linecap="round"/></mask></defs><path mask="url(#fp-nav-lumi-face)" d="M45.4 8.7Q50 0 54.6 8.7L60.7 20.3Q65.3 29 75 30.6L87.9 32.9Q97.6 34.5 90.7 41.6L81.6 51Q74.7 58 76.1 67.8L78 80.7Q79.4 90.5 70.6 86.1L58.8 80.3Q50 76 41.2 80.3L29.4 86.1Q20.6 90.5 22 80.7L23.9 67.8Q25.3 58 18.4 51L9.3 41.6Q2.4 34.5 12.1 32.9L25 30.6Q34.7 29 39.3 20.3Z" fill="currentColor"/></svg>';
 
 const familyNav = `
     <nav id="parent-bottom-nav" class="fp-nav" aria-label="Πύλη γονέων">

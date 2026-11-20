@@ -949,6 +949,7 @@
 
 .fp-doorframe {
     display: flex;
+    flex-direction: row-reverse; /* newest month is first in the markup, drawn on the right */
     gap: 0.4rem;
     margin-top: 1rem;
     padding: 0.4rem 0.6rem 0;
@@ -956,6 +957,32 @@
     border-right: 6px solid #f3e6d3;
     border-radius: 0.4rem 0.4rem 0 0;
 }
+
+.fp-doorframe--wide {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding-top: 1.7rem;
+    /* soft left edge: there are earlier months to swipe to */
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 1.4rem);
+    mask-image: linear-gradient(90deg, transparent, #000 1.4rem);
+}
+
+.fp-doorframe--wide::-webkit-scrollbar { display: none; }
+
+.fp-doorframe--wide .fp-doorframe__col {
+    flex: 0 0 3.1rem;
+    scroll-snap-align: end;
+}
+
+.fp-doorframe__col.is-best:not(.is-current) .fp-doorframe__mark {
+    border-top-color: #c99a1e;
+    background: linear-gradient(180deg, #fbe7a6, #f6efd8);
+}
+
+.fp-growth .fp-card__foot .fa-crown { color: #c99a1e; }
 
 .fp-doorframe__col {
     flex: 1;

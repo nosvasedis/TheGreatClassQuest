@@ -29,13 +29,45 @@ function currentMonthKey() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 
-/** Past months plus this month, as pencil marks on a doorframe. */
+function nextMonthKey(key) {
+    const [y, m] = key.split('-').map(Number);
+    return m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, '0')}`;
+}
+
+/**
+ * This school year's finished months, oldest first. The server lists every month since
+ * September (0 when no stars were earned); an older summary may skip quiet months, so gaps
+ * between two known months are filled with 0 here.
+ */
+function schoolYearMonths(snapshot) {
+    const now = new Date();
+    const yearStart = `${now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1}-09`;
+    const thisMonth = currentMonthKey();
+    const known = new Map();
+    (Array.isArray(snapshot.starsHistory) ? snapshot.starsHistory : []).forEach((item) => {
+        const key = String(item?.month || '');
+        if (/^\d{4}-\d{2}$/.test(key) && key >= yearStart && key < thisMonth) known.set(key, Number(item.stars || 0));
+    });
+    const keys = [...known.keys()].sort();
+    if (!keys.length) return [];
+    const months = [];
+    for (let key = keys[0]; key <= keys[keys.length - 1]; key = nextMonthKey(key)) {
+        const month = Number(key.slice(5));
+        if ((month === 7 || month === 8) && !known.has(key)) continue;
+        months.push({ month: key, stars: known.get(key) || 0 });
+    }
+    return months;
+}
+
+/** Every month of the school year so far, as pencil marks on a doorframe. */
 function renderGrowthChart(snapshot, name) {
-    const history = (Array.isArray(snapshot.starsHistory) ? snapshot.starsHistory : [])
-        .filter((item) => item.month !== currentMonthKey())
-        .slice(-5);
+    const history = schoolYearMonths(snapshot);
     const months = [...history, { month: currentMonthKey(), stars: Number(snapshot.progress?.monthlyStars || 0), current: true }];
     const max = Math.max(10, ...months.map((item) => Number(item.stars || 0)));
+    const best = history.reduce((top, item) => (item.stars > (top?.stars || 0) ? item : top), null);
+    const monthName = (key) => monthShort(`${key}-01`);
+    // Newest on the right; with many months the row scrolls and opens on this month.
+    const wide = months.length > 6;
     return `
         <article class="fp-card fp-growth fp-rise" style="--fp-delay:1">
             <div class="fp-card__row">
@@ -45,19 +77,23 @@ function renderGrowthChart(snapshot, name) {
                 </div>
                 <span class="fp-pill"><i class="fas fa-star" aria-hidden="true"></i> ${formatStars(snapshot.progress?.totalStars || 0)} ${tr('this year', 'φέτος')}</span>
             </div>
-            <div class="fp-doorframe" role="img" aria-label="${months.map((m) => `${monthShort(`${m.month}-01`)}: ${countWord(m.stars, STAR_WORDS, formatStars)}`).join(', ')}">
-                ${months.map((item, index) => {
+            <div class="fp-doorframe${wide ? ' fp-doorframe--wide' : ''}" role="img" aria-label="${months.map((m) => `${monthName(m.month)}: ${countWord(m.stars, STAR_WORDS, formatStars)}`).join(', ')}">
+                ${months.slice().reverse().map((item, index) => {
                     const height = Math.max(4, Math.round((Number(item.stars || 0) / max) * 100));
                     return `
-                        <div class="fp-doorframe__col${item.current ? ' is-current' : ''}" style="--h:${height}%;--i:${index}">
+                        <div class="fp-doorframe__col${item.current ? ' is-current' : ''}${best && item.month === best.month ? ' is-best' : ''}" style="--h:${height}%;--i:${months.length - 1 - index}">
                             <div class="fp-doorframe__track">
                                 <span class="fp-doorframe__mark"><span class="fp-doorframe__value">${formatStars(item.stars)}</span></span>
                             </div>
-                            <span class="fp-doorframe__month">${escapeHtml(monthShort(`${item.month}-01`))}${item.current ? `<em>${tr('so far', 'ως τώρα')}</em>` : ''}</span>
+                            <span class="fp-doorframe__month">${escapeHtml(monthName(item.month))}${item.current ? `<em>${tr('so far', 'ως τώρα')}</em>` : ''}</span>
                         </div>`;
                 }).join('')}
             </div>
-            ${history.length ? '' : `<p class="fp-card__foot">${tr('Each month gets its own mark here, like a height chart on the kitchen door.', 'Κάθε μήνας παίρνει εδώ το δικό του σημάδι, σαν τις γραμμές ύψους στην πόρτα της κουζίνας.')}</p>`}
+            ${history.length
+                ? (best && best.stars > 0
+                    ? `<p class="fp-card__foot"><i class="fas fa-crown" aria-hidden="true"></i> ${escapeHtml(tr(`Best month so far: ${monthName(best.month)}, ${countWord(best.stars, STAR_WORDS, formatStars)}.`, `Καλύτερος μήνας ως τώρα: ${monthName(best.month)}, ${countWord(best.stars, STAR_WORDS, formatStars)}.`))}${wide ? ` ${escapeHtml(tr('Swipe to see earlier months.', 'Σύρετε για τους προηγούμενους μήνες.'))}` : ''}</p>`
+                    : '')
+                : `<p class="fp-card__foot">${tr('Each month of the school year gets its own mark here, like a height chart on the kitchen door.', 'Κάθε μήνας της σχολικής χρονιάς παίρνει εδώ το δικό του σημάδι, σαν τις γραμμές ύψους στην πόρτα της κουζίνας.')}</p>`}
         </article>`;
 }
 

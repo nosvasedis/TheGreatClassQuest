@@ -64,6 +64,70 @@ function savesInFlight() {
     return Number(window.__GCQ_SAVES_IN_FLIGHT__) || 0;
 }
 
+// --- Families never see an update button ---
+// Parents are not asked to update: a new version is simply there the next time the portal
+// opens or reloads. If one arrives while the portal is open, it is applied the moment the
+// family leaves the page (switches app, locks the phone), or right away while the page is
+// still opening and nothing has been typed.
+const BOOTED_AT = Date.now();
+const ARRIVED_AS_FAMILY = /[?&](login|role)=parent\b|#parent\b/i.test(`${window.location.search}${window.location.hash}`);
+const OPENING_WINDOW_MS = 45 * 1000;
+
+function isShown(id) {
+    const el = document.getElementById(id);
+    return Boolean(el && !el.classList.contains('hidden'));
+}
+
+function isFamilyAudience() {
+    if (isShown('parent-screen')) return true;
+    if (isShown('app-screen') || isShown('secretary-screen') || isShown('setup-screen')) return false;
+    const gate = document.getElementById('auth-screen');
+    if (gate && !gate.classList.contains('hidden') && gate.dataset.authRole) return gate.dataset.authRole === 'parent';
+    // Still loading: go by how this visit started, then by who used this device last.
+    if (ARRIVED_AS_FAMILY) return true;
+    try { return window.localStorage.getItem('gcq.lastAuthRole') === 'parent'; } catch { return false; }
+}
+
+function familyIsMidTask() {
+    if (savesInFlight() > 0) return true;
+    // A password typed, a message being written, or a sign-in on its way. (A username the QR
+    // card filled in does not count: it is carried over the reload below.)
+    if (document.getElementById('login-password')?.value) return true;
+    if (Array.from(document.querySelectorAll('#parent-screen textarea, #parent-screen input[type="text"]')).some((el) => el.value.trim())) return true;
+    return Boolean(document.querySelector('#auth-screen button[type="submit"][disabled], #auth-screen [aria-busy="true"]'));
+}
+
+// The sign-in gate cleans ?login=parent&u= out of the address bar; put it back before an
+// update reload so the family lands on the same door with the username still filled in.
+function keepFamilyDoorOverReload() {
+    const gate = document.getElementById('auth-screen');
+    if (!gate || gate.classList.contains('hidden') || gate.dataset.authRole !== 'parent') return;
+    try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('login', 'parent');
+        const username = String(document.getElementById('login-username')?.value || '').trim();
+        if (username) url.searchParams.set('u', username);
+        window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+    } catch { /* the gate opens on the remembered door instead */ }
+}
+
+let familyUpdateQueued = false;
+function applyUpdateForFamily(update) {
+    const apply = () => { keepFamilyDoorOverReload(); update(); };
+    const opening = Date.now() - BOOTED_AT < OPENING_WINDOW_MS;
+    if (document.visibilityState === 'hidden' || (opening && !familyIsMidTask())) {
+        apply();
+        return;
+    }
+    if (familyUpdateQueued) return;
+    familyUpdateQueued = true;
+    document.addEventListener('visibilitychange', function onHidden() {
+        if (document.visibilityState !== 'hidden') return;
+        document.removeEventListener('visibilitychange', onHidden);
+        apply();
+    });
+}
+
 let staleReloadWaiting = false;
 function recoverFromStaleBuild() {
     // A reload now would drop the saves still on their way to the database: wait for them
@@ -89,6 +153,10 @@ function recoverFromStaleBuild() {
         alreadyTried = sessionStorage.getItem(STALE_RELOAD_KEY) === window.__GCQ_BUILD_ID__;
     } catch { /* storage blocked: fall back to the button */ alreadyTried = true; }
     if (alreadyTried || isTeacherBusy()) {
+        if (isFamilyAudience()) {
+            if (!alreadyTried) applyUpdateForFamily(() => window.location.reload());
+            return;
+        }
         showStaleBuildReload();
         return;
     }
@@ -177,6 +245,11 @@ async function bootApplication() {
 
 function showUpdateAvailable(registration) {
     if (!registration?.waiting) return;
+    if (isFamilyAudience()) {
+        // controllerchange reloads once the new worker takes over.
+        applyUpdateForFamily(() => registration.waiting?.postMessage({ type: 'SKIP_WAITING' }));
+        return;
+    }
     showUpdateBadge({
         title: 'A new version is ready',
         onPress: () => {

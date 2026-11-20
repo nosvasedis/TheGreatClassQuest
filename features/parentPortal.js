@@ -7,7 +7,7 @@ import { renderParentHome, updateParentHeader } from './parent/home.js';
 import { renderParentHomework, downloadTestCalendarEvent } from './parent/homework.js';
 import { renderParentProgress } from './parent/progress.js';
 import { renderParentMessages, getActiveThread, absenceStarter } from './parent/messages.js';
-import { renderParentTips, toggleTipTried, showNextQuestion } from './parent/tips.js';
+import { renderParentTips, toggleTipTried, showNextQuestion, handleTipsControl } from './parent/tips.js';
 import { getLang, setLang, tr } from './parent/i18n.js';
 import '../styles/family_portal_lang.css';
 import '../styles/family_portal_more.css';
@@ -273,6 +273,11 @@ export function wireParentPortalListeners({ onLogout, onRefresh, onSelectThread 
     wirePullToRefresh(screen?.querySelector('.fp-main'), checkForNews);
     wireKeyboardRoom(screen);
 
+    // The class notes are read a moment after the corner first opens; Lumi then re-picks.
+    window.addEventListener('gcq:family-tips-ready', () => {
+        if (getActiveTabKey() === 'tips') renderParentTab('tips');
+    });
+
     screen?.addEventListener('click', (event) => {
         const itemBtn = event.target.closest('[data-parent-item]');
         if (itemBtn) {
@@ -287,6 +292,14 @@ export function wireParentPortalListeners({ onLogout, onRefresh, onSelectThread 
                 const card = document.querySelector(`[data-parent-tip-tried="${triedBtn.dataset.parentTipTried}"]`)?.closest('details');
                 if (card) { card.open = true; card.classList.add('is-celebrating'); }
             }
+            return;
+        }
+        const tipsChange = handleTipsControl(event.target);
+        if (tipsChange) {
+            renderParentTab('tips');
+            // Stay on the shelf the family is browsing (an age change starts it from the top).
+            document.querySelector('.fp-tip-shelf')?.scrollIntoView({ block: 'start' });
+            document.querySelector('.fp-tip-chip.is-on')?.scrollIntoView({ block: 'nearest', inline: 'center' });
             return;
         }
         if (event.target.closest('[data-parent-next-question]')) {

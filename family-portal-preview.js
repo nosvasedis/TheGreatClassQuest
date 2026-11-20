@@ -39,14 +39,16 @@ const snapshot = empty ? {
     classLogo: '🦉',
     guildId: 'owl_wisdom',
     teacherName: 'Ms Eleni',
-    questLevel: 'Junior B',
+    questLevel: params.get('level') || 'Junior B', // ?level=Pre-Junior | Junior A | A | C ...
     heroClass: 'Sage',
     scheduleDays: [tomorrowDay, otherDay],
     timeStart: '17:00',
     timeEnd: '18:30',
     progress: { totalStars: 86, monthlyStars: 14, heroLevel: 4, gold: 23 },
     weekStars: 5,
-    starsHistory: [5, 4, 3, 2, 1].map((b, i) => ({ month: monthKey(b), stars: [9, 12, 17, 11, 15][i] })),
+    // ?months=N: N finished months (default 5), to see a long school year on the doorframe.
+    starsHistory: Array.from({ length: Number(params.get('months') || 5) }, (_, i) => Number(params.get('months') || 5) - i)
+        .map((b, i) => ({ month: monthKey(b), stars: [9, 12, 17, 11, 15, 8, 20, 13, 6, 16][i % 10] })),
     attendanceSummary: { absences: 2, absenceDates: [iso(-12), iso(-30)] },
     latestGrade: { label: '18 / 20', title: 'Unit 2 Test', type: 'test', percent: 90 },
     gradeAveragePercent: 84,
@@ -62,7 +64,10 @@ const snapshot = empty ? {
         { reason: 'quiet_dragon', stars: 0.5, note: '', date: iso(-6) },
         { reason: 'focus', stars: 1, note: 'Finished the whole worksheet', date: iso(-8) }
     ],
-    publishedNotes: [
+    // ?note=spelling: a recent note about spelling, to see Lumi follow the class notes.
+    publishedNotes: params.get('note') === 'spelling' ? [
+        { body: 'Μερικά λάθη στην ορθογραφία αυτή την εβδομάδα και ξεχνάει συχνά το τετράδιο. Με λίγη επανάληψη θα τα πάει μια χαρά!', createdAt: day(-2).toISOString(), label: 'Parent Summary' }
+    ] : [
         { body: 'Maria read her part in the class play with real confidence today. Please keep reading together at home: ten minutes is plenty.', createdAt: day(-1).toISOString(), label: 'Parent Summary' },
         { body: 'A lovely start to the year.', createdAt: day(-20).toISOString(), label: 'Parent Summary' }
     ],

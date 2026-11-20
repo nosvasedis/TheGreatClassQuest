@@ -668,15 +668,40 @@ function summarizeAwardLogs(logs) {
   return { weekStars: Math.round(weekStars * 10) / 10, recentCelebrations };
 }
 
-async function getStarsHistory(studentId) {
+// Months of this school year that are already over, oldest first, for the family's growth chart.
+// monthly_history only gets a month when the next month's first star rolls the counter over, so:
+//  - a counter still stamped with a past month holds that month's stars (no star yet this month);
+//  - a month with no history doc and no counter had no stars at all, so it shows as 0;
+//  - older school years stay out.
+async function getStarsHistory(studentId, score = {}, schoolYearKey = '') {
   const snap = await db.collection(`${dataRoot()}/student_scores/${studentId}/monthly_history`)
     .orderBy(FieldPath.documentId(), 'desc')
-    .limit(6)
+    .limit(12)
     .get();
-  return snap.docs
-    .map((docSnap) => ({ month: String(docSnap.data()?.month || docSnap.id), stars: Number(docSnap.data()?.stars || 0) }))
-    .filter((item) => /^\d{4}-\d{2}$/.test(item.month))
-    .reverse();
+  const { year, month } = schoolDateParts();
+  const thisMonth = `${year}-${String(month).padStart(2, '0')}`;
+  const startYear = month >= 9 ? year : year - 1;
+  const yearStart = `${startYear}-09`;
+  const byMonth = new Map();
+  snap.docs.forEach((docSnap) => {
+    const data = docSnap.data() || {};
+    const key = String(data.month || docSnap.id);
+    if (!/^\d{4}-\d{2}$/.test(key) || key >= thisMonth || key < yearStart) return;
+    if (schoolYearKey && data.schoolYearKey && data.schoolYearKey !== schoolYearKey) return;
+    byMonth.set(key, Number(data.stars || 0));
+  });
+  const stamp = String(score?.lastMonthlyResetDate || '').slice(0, 7);
+  if (/^\d{4}-\d{2}$/.test(stamp) && stamp < thisMonth && stamp >= yearStart && !byMonth.has(stamp)) {
+    byMonth.set(stamp, Number(score.monthlyStars || 0));
+  }
+  const months = [];
+  for (let y = startYear, m = 9; `${y}-${String(m).padStart(2, '0')}` < thisMonth; m === 12 ? (y += 1, m = 1) : (m += 1)) {
+    const key = `${y}-${String(m).padStart(2, '0')}`;
+    // July and August are holidays: listed only if stars were really earned then.
+    if ((m === 7 || m === 8) && !byMonth.has(key)) continue;
+    months.push({ month: key, stars: byMonth.get(key) || 0 });
+  }
+  return months;
 }
 
 // monthlyStars is only reset when a teacher opens the app in a new month; until then it still holds last month.
@@ -790,14 +815,15 @@ async function buildParentSnapshot(studentId, extra = {}) {
   // Everything except the class is read at once; the class waits only for the student record.
   const studentPromise = getStudent(studentId);
   const classPromise = studentPromise.then((student) => db.doc(`${dataRoot()}/classes/${student.classId}`).get());
+  const scorePromise = getScore(studentId);
   const [student, classSnap, score, assessments, attendanceSummary, awardLogs, starsHistory, parentLink, schoolSettings, homeworkCount, previousSnap] = await Promise.all([
     studentPromise,
     classPromise,
-    getScore(studentId),
+    scorePromise,
     getRecentAssessments(studentId),
     getAttendanceSummary(studentId),
     getRecentAwardLogs(studentId),
-    getStarsHistory(studentId).catch(() => []),
+    Promise.all([studentPromise, scorePromise]).then(([student, score]) => getStarsHistory(studentId, score, student.activeSchoolYearKey || '')).catch(() => []),
     getParentLink(studentId),
     getSchoolSettings(),
     countPublishedHomework(studentId),

@@ -12,6 +12,8 @@ import { friendlyActionError } from '../utils/friendlyErrors.js';
 import { generateFamilyPassword, printClassQrSheet, printFamilySlips, suggestFamilyUsername } from './familyAccessKit.js';
 import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 
+const loadStudentPicker = () => import('./familyStudentPicker.js');
+
 
 let selectedStudentId = '';
 // The details just saved, kept only so the teacher can print the family's slip; never stored.
@@ -97,14 +99,7 @@ export function renderParentAccessCard(data = accessData) {
         <article class="ts-access">
             ${students.length ? `
                 <div class="ts-access__who">
-                    <label class="ts-field" for="options-access-student-select">
-                        <span class="ts-label">Student</span>
-                        <select id="options-access-student-select" class="ts-input">
-                            ${students.map((student) => `
-                                <option value="${student.id}" ${selectedStudent?.id === student.id ? 'selected' : ''}>${escapeHtml(student.name)}</option>
-                            `).join('')}
-                        </select>
-                    </label>
+                    ${renderStudentPickerButton(selectedStudent, students.length, link)}
                     <div class="ts-keytag ts-keytag--${statusTone}">
                         <span class="ts-keytag__hole" aria-hidden="true"></span>
                         <span class="ts-keytag__icon" aria-hidden="true"><i class="fas ${link ? 'fa-key' : 'fa-lock-open'}"></i></span>
@@ -145,6 +140,33 @@ export function renderParentAccessCard(data = accessData) {
             ` : '<div class="parent-empty ts-empty"><div class="ts-empty__icon" aria-hidden="true">👪</div><p class="ts-empty__text">Create students first, then parent accounts can be linked here.</p></div>'}
         </article>
     `;
+}
+
+function pickerInitials(name) {
+    const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    return ((parts[0]?.[0] || '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase() || '?';
+}
+
+/** The closed student picker: who is picked, their class and key colour. Opens the class roll (features/familyStudentPicker.js). */
+function renderStudentPickerButton(student, total, link) {
+    const classData = student ? classesById().get(student.classId) : null;
+    const tone = !link ? 'none' : String(link.status || 'active') === 'active' ? 'active' : 'off';
+    const face = student?.avatar
+        ? `<span class="fsp-trigger__face"><img src="${escapeHtml(student.avatar)}" alt="" loading="lazy" decoding="async"></span>`
+        : `<span class="fsp-trigger__face fsp-trigger__face--initials" aria-hidden="true">${escapeHtml(pickerInitials(student?.name))}</span>`;
+    return `
+        <div class="ts-field fsp-field">
+            <span class="ts-label" id="fsp-label">Student</span>
+            <button type="button" class="fsp-trigger" id="options-access-student-trigger" aria-haspopup="dialog" aria-expanded="false" aria-labelledby="fsp-label fsp-trigger-name" title="Choose from ${total} students">
+                ${face}
+                <span class="fsp-trigger__text">
+                    <span class="fsp-trigger__name" id="fsp-trigger-name">${escapeHtml(student?.name || 'Choose a student')}</span>
+                    ${classData ? `<span class="fsp-trigger__class">${escapeHtml(classData.logo || '')} ${escapeHtml(classData.name || '')}</span>` : ''}
+                </span>
+                <span class="fsp-dot fsp-dot--${tone}" aria-hidden="true"></span>
+                <span class="fsp-trigger__open" aria-hidden="true"><i class="fas fa-chevron-down"></i></span>
+            </button>
+        </div>`;
 }
 
 function classesById() {
@@ -206,8 +228,37 @@ export async function renderAccessCenterUi() {
         return;
     }
 
-    await loadAccessData();
+    const [picker] = await Promise.all([loadStudentPicker(), loadAccessData()]);
+    await picker.loadFamilyPickerStyles().catch(() => {});
+    picker.closeFamilyStudentPicker();
     container.innerHTML = renderParentAccessCard();
+}
+
+/** Picking a student only redraws the card from the logins already loaded. */
+function showPickedStudent(studentId) {
+    selectedStudentId = studentId;
+    lastIssued = null;
+    const container = document.getElementById('options-access-content');
+    if (!container) return;
+    container.innerHTML = renderParentAccessCard();
+    container.querySelector('#options-access-student-trigger')?.focus({ preventScroll: true });
+}
+
+async function openStudentPicker(trigger) {
+    try {
+        const { openFamilyStudentPicker } = await loadStudentPicker();
+        await openFamilyStudentPicker({
+            trigger,
+            students: getManageableStudents(),
+            classes: classesById(),
+            links: accessData.parentLinksByStudent || {},
+            selectedId: getSelectedStudent()?.id || '',
+            onPick: showPickedStudent
+        });
+    } catch (error) {
+        console.error('Could not open the student list:', error);
+        showToast('Could not open the student list. Try again.', 'error');
+    }
 }
 
 export function openAccessCenterForStudent(studentId) {
@@ -215,17 +266,15 @@ export function openAccessCenterForStudent(studentId) {
 }
 
 export function wireAccessCenterEvents() {
-    document.getElementById('options-tab')?.addEventListener('change', (event) => {
-        if (event.target.id === 'options-access-student-select') {
-            selectedStudentId = event.target.value;
-            lastIssued = null;
-            renderAccessCenterUi().catch((error) => console.error('Could not refresh access center:', error));
-        }
-    });
-
     document.getElementById('options-tab')?.addEventListener('click', async (event) => {
         const selectedStudent = getSelectedStudent();
         const currentLink = selectedStudent ? accessData.parentLinksByStudent[selectedStudent.id] : null;
+
+        const pickerTrigger = event.target.closest('#options-access-student-trigger');
+        if (pickerTrigger) {
+            void openStudentPicker(pickerTrigger);
+            return;
+        }
 
         if (event.target.closest('#options-parent-suggest-btn')) {
             const input = document.getElementById('options-parent-password');

@@ -454,7 +454,7 @@ function renderManage(student, link) {
             ${keyCard(student, link)}
             ${credentialFields({
                 passwordLabel: 'New password',
-                passwordHint: 'Passwords are never shown again, so saving gives you a fresh slip to print.'
+                passwordHint: 'Lost the slip? Passwords are never stored, so saving this easy password gives a fresh slip to print. The old slip stops working.'
             })}
             <div class="family-danger-row">
                 ${off ? '' : '<button type="button" class="office-btn office-btn--quiet office-btn--small" data-family-ask-off><i class="fas fa-power-off" aria-hidden="true"></i> Switch off</button>'}
@@ -471,7 +471,7 @@ function renderManage(student, link) {
 function manageSaveLabel(link) {
     const changedName = normalizeFamilyUsername(dialog.username) !== String(link?.username || '');
     if (linkStatus(link) === 'off') return changedName ? 'Save and switch on' : 'Switch back on';
-    return changedName ? 'Save new username' : 'Save new password';
+    return changedName ? 'Save new username' : 'New password and slip';
 }
 
 function syncManageButtons() {

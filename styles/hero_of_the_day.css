@@ -464,7 +464,7 @@
 }
 .hod-reason {
     margin: 14px 0 0;
-    font-family: 'Lora', serif;
+    font-family: var(--gcq-font-serif);
     font-style: italic;
     font-size: 1rem;
     color: #f8edd0;

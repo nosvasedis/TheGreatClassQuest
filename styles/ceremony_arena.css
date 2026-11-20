@@ -25,7 +25,7 @@
     overflow: hidden;
     color: var(--cer-ink);
     background: #0b0716;
-    font-family: 'Open Sans', system-ui, sans-serif;
+    font-family: var(--gcq-font-body);
     opacity: 0;
     transition: opacity 0.5s ease;
     contain: layout paint;

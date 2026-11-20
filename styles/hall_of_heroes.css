@@ -112,7 +112,7 @@
 .hoh-plaque::after { right: 0.5rem; }
 
 .hoh-plaque__value {
-    font-family: 'Cinzel', Georgia, serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: 1.6rem;
     line-height: 1;
@@ -196,7 +196,7 @@
 }
 
 .hoh-portrait__initial {
-    font-family: 'Cinzel', Georgia, serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: 3rem;
     color: rgba(248, 241, 220, 0.85);
@@ -226,7 +226,7 @@
     border-radius: 999px;
     background: #7f1d1d;
     color: var(--hoh-gold-light);
-    font-family: 'Cinzel', Georgia, serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: 0.7rem;
     letter-spacing: 0.12em;
@@ -250,7 +250,7 @@
 
 .hoh-plate__name {
     margin: 0;
-    font-family: 'Cinzel', Georgia, serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: 1rem;
     line-height: 1.15;
@@ -285,7 +285,7 @@
 }
 
 .hoh-frame__count {
-    font-family: 'Cinzel', Georgia, serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: 1.8rem;
     line-height: 1;
@@ -349,7 +349,7 @@
     align-items: center;
     gap: 0.8rem;
     margin: 0.4rem 0 1.2rem;
-    font-family: 'Cinzel', Georgia, serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: 0.9rem;
     letter-spacing: 0.14em;
@@ -430,7 +430,7 @@
 
 #history-modal.is-hoh .hoh-loading { min-height: 20rem; justify-content: center; }
 .hoh-loading i { font-size: 2.6rem; color: #e9c46a; animation: hoh-float 2.4s ease-in-out infinite; }
-.hoh-loading p { margin: 0; font-family: 'Cinzel', Georgia, serif; font-size: 1.1rem; color: #e9c46a; }
+.hoh-loading p { margin: 0; font-family: var(--gcq-font-rune); font-size: 1.1rem; color: #e9c46a; }
 
 @keyframes hoh-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 
@@ -449,7 +449,7 @@
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5);
 }
 
-.hoh-empty__title { margin: 0.4rem 0 0; font-family: 'Cinzel', Georgia, serif; font-weight: 700; font-size: 1.15rem; color: var(--hoh-gold); }
+.hoh-empty__title { margin: 0.4rem 0 0; font-family: var(--gcq-font-rune); font-weight: 700; font-size: 1.15rem; color: var(--hoh-gold); }
 .hoh-empty__body { margin: 0; max-width: 26rem; font-size: 0.9rem; color: var(--hoh-muted); }
 
 @media (max-width: 720px) {

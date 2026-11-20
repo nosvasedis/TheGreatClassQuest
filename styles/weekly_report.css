@@ -136,7 +136,7 @@
 
 .wr-title {
     margin: 0.1rem 0 0;
-    font-family: 'Cinzel', 'Fredoka One', serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: clamp(1.5rem, 3vw, 2.1rem);
     line-height: 1.1;
@@ -431,7 +431,7 @@
     align-items: center;
     gap: 0.5rem;
     margin: 0 0 0.8rem;
-    font-family: 'Cinzel', 'Fredoka', serif;
+    font-family: var(--gcq-font-rune);
     font-size: 0.95rem;
     font-weight: 700;
     letter-spacing: 0.04em;
@@ -866,7 +866,7 @@
 
 .wr-reading__title {
     margin: 0;
-    font-family: 'Cinzel', 'Fredoka One', serif;
+    font-family: var(--gcq-font-rune);
     font-size: 1.3rem;
     font-weight: 700;
     color: var(--wr-ink);
@@ -978,7 +978,7 @@
 
 .wr-quest__name {
     margin: 0.1rem 0 0.5rem;
-    font-family: 'Cinzel', 'Fredoka One', serif;
+    font-family: var(--gcq-font-rune);
     font-size: 1.2rem;
     font-weight: 700;
     color: #fff;
@@ -1104,7 +1104,7 @@
 
 .wr-emptyweek h3 {
     margin: 0;
-    font-family: 'Cinzel', 'Fredoka One', serif;
+    font-family: var(--gcq-font-rune);
     font-size: 1.4rem;
     color: var(--wr-ink);
 }

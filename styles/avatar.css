@@ -530,7 +530,7 @@
     min-height: 1.25rem;
     max-width: 100%;
     text-align: center;
-    font-family: 'Lora', serif;
+    font-family: var(--gcq-font-serif);
     font-style: italic;
     font-size: 0.88rem;
     color: var(--af-muted);

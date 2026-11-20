@@ -174,7 +174,7 @@
 }
 .cer-mom__value em {
     display: block;
-    font-family: 'Open Sans', system-ui, sans-serif;
+    font-family: var(--gcq-font-body);
     font-style: normal;
     font-size: clamp(0.72rem, 1.6vh, 0.9rem);
     font-weight: 700;

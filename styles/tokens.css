@@ -18,6 +18,7 @@
     --gcq-font-serif: 'Lora', Georgia, serif;
     --gcq-font-rune: 'Cinzel', serif;
     --gcq-font-hand: 'Caveat', cursive;
+    --gcq-font-book: Georgia, 'Times New Roman', serif;
 
     /* Motion */
     --gcq-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -48,4 +49,58 @@
     --gcq-tone-info: #0284c7;
     --gcq-tone-warn: #d97706;
     --gcq-tone-error: #dc2626;
+}
+
+/*
+ * Greek letters in Fredoka's voice. Fredoka has no Greek, so Greek words fell back to the
+ * phone's system font. These faces join the Fredoka families for Greek letters only
+ * (unicode-range), drawn from M PLUS Rounded 1c (SIL Open Font License), a rounded face that
+ * sits beside Fredoka. Same weight descriptors as Google's Fredoka faces, so they merge into
+ * one family; each file is ~8 KB and only downloads when Greek text is on screen.
+ */
+@font-face { font-family: 'Fredoka'; font-style: normal; font-weight: 400; font-display: swap; src: url('../assets/fonts/mplus-rounded-greek-500.woff2') format('woff2'); unicode-range: U+0370-03FF; }
+@font-face { font-family: 'Fredoka'; font-style: normal; font-weight: 500; font-display: swap; src: url('../assets/fonts/mplus-rounded-greek-700.woff2') format('woff2'); unicode-range: U+0370-03FF; }
+@font-face { font-family: 'Fredoka'; font-style: normal; font-weight: 600; font-display: swap; src: url('../assets/fonts/mplus-rounded-greek-700.woff2') format('woff2'); unicode-range: U+0370-03FF; }
+@font-face { font-family: 'Fredoka'; font-style: normal; font-weight: 700; font-display: swap; src: url('../assets/fonts/mplus-rounded-greek-800.woff2') format('woff2'); unicode-range: U+0370-03FF; }
+@font-face { font-family: 'Fredoka One'; font-style: normal; font-weight: 400; font-display: swap; src: url('../assets/fonts/mplus-rounded-greek-800.woff2') format('woff2'); unicode-range: U+0370-03FF; }
+
+/*
+ * Phones (the mobile shell's own breakpoint, MOBILE_MEDIA_QUERY in mobile/index.js): one
+ * rounded voice everywhere. Every font token, and the feature sheets' own font variables,
+ * become Fredoka; titles keep Fredoka One. Desktop keeps Open Sans, Lora, Cinzel and Caveat.
+ * The big ceremony title faces (Cinzel Decorative, Uncial Antiqua) stay: they are projector scenes.
+ */
+@media (max-width: 1023px) {
+    :root {
+        --gcq-font-display: 'Fredoka', 'Fredoka One', sans-serif;
+        --gcq-font-body: 'Fredoka', sans-serif;
+        --gcq-font-serif: 'Fredoka', sans-serif;
+        --gcq-font-rune: 'Fredoka', 'Fredoka One', sans-serif;
+        --gcq-font-hand: 'Fredoka', sans-serif;
+        --gcq-font-book: 'Fredoka', sans-serif;
+        /* Tailwind's font-sans / font-serif (and the page default) */
+        --font-sans: 'Fredoka', sans-serif;
+        --font-serif: 'Fredoka', sans-serif;
+        --default-font-family: 'Fredoka', sans-serif;
+        --qr-caps: 'Fredoka One', 'Fredoka', sans-serif;
+    }
+    /* Feature sheets that set their own font variables on their own roots */
+    .diary-chooser-overlay, .sf-overlay, #quest-assignment-modal, #quest-test-modal,
+    #scholars-scroll-tab, #attendance-chronicle-modal, #adventure-log-tab,
+    .adventure-log-editor-overlay, #note-modal, #trial-history-modal, .qdp-layer {
+        --dc-hand: 'Fredoka', sans-serif !important;
+        --qb-hand: 'Fredoka', sans-serif !important;
+        --ar-hand: 'Fredoka', sans-serif !important;
+        --dl-hand: 'Fredoka', sans-serif !important;
+        --qdp-hand: 'Fredoka', sans-serif !important;
+        --dl-serif: 'Fredoka', sans-serif !important;
+        --sf-serif: 'Fredoka', sans-serif !important;
+        --ss-serif: 'Fredoka', sans-serif !important;
+        --th-serif: 'Fredoka', sans-serif !important;
+        --sf-kicker: 'Fredoka', 'Fredoka One', sans-serif !important;
+        --ss-kicker: 'Fredoka', 'Fredoka One', sans-serif !important;
+        --th-kicker: 'Fredoka', 'Fredoka One', sans-serif !important;
+    }
+    /* Family Portal sets its body face on its own shell */
+    #parent-screen.fp-shell { font-family: var(--gcq-font-body); }
 }

@@ -138,7 +138,7 @@
 
 .hs-sum__kicker {
     margin: 0;
-    font-family: 'Cinzel', 'Fredoka One', serif;
+    font-family: var(--gcq-font-rune);
     font-size: 0.72rem;
     letter-spacing: 0.18em;
     text-transform: uppercase;
@@ -197,7 +197,7 @@
 
 .hs-sum__class {
     margin: 0.35rem 0 -0.2rem;
-    font-family: 'Cinzel', 'Fredoka One', serif;
+    font-family: var(--gcq-font-rune);
     font-size: 0.74rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;

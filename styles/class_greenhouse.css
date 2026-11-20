@@ -369,7 +369,7 @@
 .gh-quote {
     display: block; margin-top: 3px; padding: 2px 0 2px 9px;
     border-left: 3px solid var(--t, #b9d0b1);
-    font-family: 'Georgia', 'Times New Roman', serif; font-style: italic; font-weight: 400;
+    font-family: var(--gcq-font-book); font-style: italic; font-weight: 400;
     font-size: 0.82rem; line-height: 1.4; color: #4a5a50;
 }
 .gh-quote::before { content: '“'; }
@@ -505,7 +505,7 @@
 .gh-hook { padding: 6px 0; border-bottom: 1px dashed #e6e0c8; font-size: 0.88rem; }
 .gh-hook small { color: var(--gh-ink-soft); font-weight: 600; }
 .gh-hook__words { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
-.gh-hook__words span { padding: 2px 9px; border-radius: 6px; background: #f6efda; border: 1px solid #e8dcb6; font-size: 0.76rem; font-weight: 700; color: #6d5521; font-family: 'Georgia', serif; }
+.gh-hook__words span { padding: 2px 9px; border-radius: 6px; background: #f6efda; border: 1px solid #e8dcb6; font-size: 0.76rem; font-weight: 700; color: #6d5521; font-family: var(--gcq-font-book); }
 
 /* ---------------------------------------------------------------- next lesson */
 .gh-lesson-head { display: flex; align-items: center; gap: 12px; justify-content: space-between; flex-wrap: wrap; }
@@ -616,7 +616,7 @@
 }
 .gh-almanac__kicker { font-size: 0.7rem; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase; color: #8a6a3a; }
 .gh-almanac__title { font-size: 1.8rem; color: #3b2a12; }
-.gh-almanac__lede { font-family: Georgia, 'Times New Roman', serif; font-style: italic; color: #5b4a2c; font-size: 0.95rem; }
+.gh-almanac__lede { font-family: var(--gcq-font-book); font-style: italic; color: #5b4a2c; font-size: 0.95rem; }
 .gh-counsels { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .gh-counsel {
     position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
@@ -634,7 +634,7 @@
     min-height: 180px; padding: 18px 22px;
     background: #fffdf5; border: 1px solid #ece2c6; border-radius: 6px 6px 18px 18px;
     box-shadow: 0 14px 26px -22px rgba(107, 74, 34, 0.9);
-    font-family: Georgia, 'Times New Roman', serif; color: #3b2a12;
+    font-family: var(--gcq-font-book); color: #3b2a12;
 }
 .gh-almanac__wait { display: flex; align-items: center; gap: 10px; color: #8a6a3a; font-style: italic; }
 .gh-almanac__wait.is-error { color: #9c4a2a; }

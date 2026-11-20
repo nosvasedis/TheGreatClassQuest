@@ -181,7 +181,7 @@
 
 .hc-cover__name {
     margin: 0.2rem 0 0;
-    font-family: 'Lora', serif;
+    font-family: var(--gcq-font-serif);
     font-style: italic;
     font-weight: 700;
     font-size: 1rem;
@@ -600,7 +600,7 @@
 
 .hc-entry__text {
     margin: 0;
-    font-family: 'Lora', serif;
+    font-family: var(--gcq-font-serif);
     font-size: 0.95rem;
     line-height: 1.55;
     color: var(--hc-ink);
@@ -797,7 +797,7 @@
         repeating-linear-gradient(180deg, transparent 0, transparent calc(1.75rem - 1px), rgba(124, 84, 40, 0.18) calc(1.75rem - 1px), rgba(124, 84, 40, 0.18) 1.75rem);
     background-attachment: local;
     padding-left: 2.6rem;
-    font-family: 'Lora', serif;
+    font-family: var(--gcq-font-serif);
     font-size: 0.95rem;
     line-height: 1.75rem;
     color: var(--hc-ink);
@@ -929,13 +929,13 @@
 }
 
 #hero-chronicle-content-oaths .eo-chron-text {
-    font-family: 'Lora', serif;
+    font-family: var(--gcq-font-serif);
     font-size: 1rem;
     color: #3b2414;
 }
 
 #hero-chronicle-content-oaths .eo-chron-reflection {
-    font-family: 'Lora', serif;
+    font-family: var(--gcq-font-serif);
     font-style: italic;
 }
 
@@ -1171,7 +1171,7 @@
         radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.9), transparent 70%),
         linear-gradient(180deg, #fdf9f0, #f4eefc);
     color: #2e2445;
-    font-family: 'Lora', serif;
+    font-family: var(--gcq-font-serif);
     font-size: 0.98rem;
     line-height: 1.6;
     box-shadow:

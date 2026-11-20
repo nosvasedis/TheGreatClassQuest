@@ -181,7 +181,7 @@ export const attendanceModalsHTML = `
                 style="font-family: 'Fredoka One', 'Fredoka', sans-serif; font-size: 50px; color: #3730A3; text-align: center; margin-bottom: 20px;">
             </h1>
             <div id="signature-student-list"
-                style="display: flex; flex-wrap: wrap; justify-content: center; gap: 5px 15px; font-family: 'Georgia', serif; font-size: 18px; color: #4C1D95;">
+                style="display: flex; flex-wrap: wrap; justify-content: center; gap: 5px 15px; font-family: var(--gcq-font-book); font-size: 18px; color: #4C1D95;">
             </div>
             <p id="signature-school-name" style="font-size: 14px; color: #6D28D9; margin-top: auto;">Prodigies Language
                 School</p>

@@ -93,7 +93,7 @@
 
 .ssf-call__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.15rem; }
 .ssf-call__kicker {
-    font-family: 'Cinzel', 'Fredoka', serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: 0.72rem;
     letter-spacing: 0.28em;

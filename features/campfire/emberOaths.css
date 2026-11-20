@@ -57,7 +57,7 @@
 .eo-shell *{box-sizing:border-box}
 :where(.eo-shell) button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .eo-shell button:focus-visible,.eo-shell input:focus-visible,.eo-shell textarea:focus-visible,.eo-shell summary:focus-visible{outline:3px solid #ffb347;outline-offset:3px}
-.eo-shell h2,.eo-shell h3,.eo-shell h4{font-family:'Fredoka',sans-serif;font-weight:600;letter-spacing:.005em}
+.eo-shell h2,.eo-shell h3,.eo-shell h4{font-family:var(--gcq-font-display);font-weight:600;letter-spacing:.005em}
 .eo-shell input,.eo-shell textarea{font:500 1rem 'Fredoka',sans-serif;width:100%;padding:.78rem 1rem;border-radius:1rem;border:1.5px solid #f3d6b4;background:#fffaf2;color:var(--eo-ink)}
 .eo-shell input::placeholder,.eo-shell textarea::placeholder{color:#b49a8c}
 

@@ -318,7 +318,7 @@
 
 .sfl-eyebrow {
     margin: 0;
-    font-family: 'Cinzel', 'Fredoka', serif;
+    font-family: var(--gcq-font-rune);
     font-weight: 700;
     font-size: 0.78rem;
     letter-spacing: 0.32em;

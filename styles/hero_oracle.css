@@ -476,7 +476,7 @@
     align-items: center;
     gap: 0.5rem;
     margin: 1.15rem 0 0.45rem;
-    font-family: 'Cinzel', 'Lora', serif;
+    font-family: var(--gcq-font-rune);
     font-size: 1.12rem;
     color: var(--hco-violet);
 }

@@ -398,7 +398,7 @@ html[data-wx-light="twilight"] .gcq-cd__cloud {
     font-size: 0.7rem;
     color: #0369a1;
     line-height: 1.3;
-    font-family: 'Open Sans', system-ui, sans-serif;
+    font-family: var(--gcq-font-body);
 }
 
 .gcq-cd-follow__hint b {

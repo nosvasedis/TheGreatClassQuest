@@ -500,7 +500,7 @@
 }
 .fam-hab.is-mythic .fam-hab-form { color: #1a1026; background: linear-gradient(135deg, #fffbeb, #fde047); border-color: transparent; }
 .fam-hab .fam-modal-species {
-    font-family: 'Cinzel', 'Lora', Georgia, serif;
+    font-family: var(--gcq-font-rune);
     font-size: 0.7rem;
     font-weight: 700;
     letter-spacing: 0.18em;

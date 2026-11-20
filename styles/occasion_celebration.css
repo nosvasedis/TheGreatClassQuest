@@ -101,7 +101,7 @@
 .occ-cake { display: block; width: 100%; height: auto; overflow: visible; }
 .occ-cake__glow { animation: occ-glow 2.8s ease-in-out infinite; transform-origin: 100px 70px; }
 .occ-cake__name {
-    font-family: 'Caveat', 'Fredoka', cursive;
+    font-family: var(--gcq-font-hand);
     font-weight: 700;
     font-size: 25px;
     fill: #fff;

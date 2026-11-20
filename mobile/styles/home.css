@@ -118,7 +118,7 @@ body.gcq-mobile {
     position: absolute;
     left: 0.6rem;
     top: 0.15rem;
-    font-family: Georgia, 'Times New Roman', serif;
+    font-family: var(--gcq-font-book);
     font-size: 2.3rem;
     line-height: 1;
     color: #f59e0b;
@@ -139,7 +139,7 @@ body.gcq-mobile {
 
 .m-hquote__text {
     margin: 0;
-    font-family: Georgia, 'Times New Roman', serif;
+    font-family: var(--gcq-font-book);
     font-style: italic;
     font-size: 0.86rem;
     line-height: 1.38;
@@ -434,7 +434,7 @@ body.gcq-mobile .m-home-slot--road .home-section-title__icon {
 }
 
 .m-hpage--story .m-hpage__text {
-    font-family: Georgia, 'Times New Roman', serif;
+    font-family: var(--gcq-font-book);
     font-style: italic;
     font-size: 0.88rem;
 }

@@ -170,7 +170,7 @@
 }
 
 .hcs-for-label {
-    font-family: 'Lora', serif;
+    font-family: var(--gcq-font-serif);
     font-style: italic;
 }
 
@@ -509,7 +509,7 @@
 }
 
 .hcs-reading-prompt {
-    font-family: 'Lora', serif;
+    font-family: var(--gcq-font-serif);
     font-style: italic;
     font-size: 1rem;
     color: #fff6e0;
@@ -547,7 +547,7 @@
 
 .hcs-reading-motto {
     margin-top: 0.25rem;
-    font-family: 'Lora', serif;
+    font-family: var(--gcq-font-serif);
     font-style: italic;
     font-size: 0.9rem;
     line-height: 1.4;

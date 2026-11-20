@@ -635,7 +635,7 @@
 
 .ag-welcome .ag-welcome__hello {
     margin-bottom: 0.3rem;
-    font-family: 'Caveat', 'Lora', cursive;
+    font-family: var(--gcq-font-hand);
     font-size: 1.75rem;
     font-weight: 700;
     line-height: 1.1;
@@ -660,7 +660,7 @@
 
 .ag-margin-note {
     margin: 0.9rem 0 0;
-    font-family: 'Caveat', 'Lora', cursive;
+    font-family: var(--gcq-font-hand);
     font-size: 1.25rem;
     line-height: 1.25;
     color: #6b5a33;

@@ -702,7 +702,7 @@ button.tg-stolen:disabled { cursor: default; }
     100% { scale: 1; rotate: 0deg; }
 }
 .tg-mappiece__q { font-family: "Fredoka One", sans-serif; font-size: 44px; fill: rgba(253, 230, 138, 0.45); }
-.tg-map__name { font-family: "Cinzel", "Fredoka One", serif; font-weight: 700; font-size: 15px; fill: #fde68a; letter-spacing: 0.06em; }
+.tg-map__name { font-family: var(--gcq-font-rune); font-weight: 700; font-size: 15px; fill: #fde68a; letter-spacing: 0.06em; }
 .tg-map.is-complete { filter: drop-shadow(0 0 22px rgba(252, 211, 77, 0.45)); }
 
 .tg-riddle__ask {

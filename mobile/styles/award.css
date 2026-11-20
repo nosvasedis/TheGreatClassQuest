@@ -279,6 +279,7 @@ body.gcq-mobile .aw-card {
     transition: none;
 }
 body.gcq-mobile .aw-card:hover { transform: scale(var(--aw-fit, 1)); }
+body.gcq-mobile .aw-cloud { inset: -0.9rem -1.45rem -1.5rem; }
 
 body.gcq-mobile .aw-card__corner--left { left: 0.7rem; }
 body.gcq-mobile .aw-card__corner--right { right: 0.7rem; }

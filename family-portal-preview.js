@@ -44,7 +44,9 @@ const snapshot = empty ? {
     scheduleDays: [tomorrowDay, otherDay],
     timeStart: '17:00',
     timeEnd: '18:30',
-    progress: { totalStars: 86, monthlyStars: 14, heroLevel: 4, gold: 23 },
+    // ?stars=N sets this month's stars; ?mix=old drops the per-skill tally (an older server).
+    progress: { totalStars: 86, monthlyStars: Number(params.get('stars') ?? 14), heroLevel: 4, gold: 23 },
+    monthReasons: params.get('mix') === 'old' ? undefined : { teamwork: 5, creativity: 3, respect: 2.5, focus: 4, quiet_dragon: 0.5, torn_map: 1, correction: -1 },
     weekStars: 5,
     // ?months=N: N finished months (default 5), to see a long school year on the doorframe.
     starsHistory: Array.from({ length: Number(params.get('months') || 5) }, (_, i) => Number(params.get('months') || 5) - i)

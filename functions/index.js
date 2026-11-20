@@ -738,8 +738,8 @@ async function getStarsHistory(studentId, score = {}, scope) {
     .map(({ key }) => ({ month: key, stars: Math.round((byMonth.get(key) || 0) * 10) / 10 }));
 }
 
-/** Stars a child earned in one month, from the award log (for a month with no history doc). */
-async function monthStarsFromLog(studentId, year, month) {
+/** This month's award log lines for a child (positive and negative), dated within the month. */
+async function monthAwardLogs(studentId, year, month) {
   // Athens is UTC+2/+3: start a few hours early and keep only the month's own dates below.
   const from = new Date(Date.UTC(year, month - 1, 1) - 4 * 3600 * 1000);
   const to = new Date(Date.UTC(month === 12 ? year + 1 : year, month === 12 ? 0 : month, 1) + 4 * 3600 * 1000);
@@ -750,12 +750,32 @@ async function monthStarsFromLog(studentId, year, month) {
     .orderBy('createdAt', 'desc') // the (studentId, createdAt desc) index the portal already uses
     .get();
   const prefix = `${year}-${String(month).padStart(2, '0')}`;
-  return snap.docs.reduce((sum, docSnap) => {
-    const data = docSnap.data() || {};
-    const iso = toIsoDateKey(data.date);
-    if (iso && !iso.startsWith(prefix)) return sum;
-    return sum + (Number(data.stars) || 0);
-  }, 0);
+  return snap.docs
+    .map((docSnap) => docSnap.data() || {})
+    .filter((data) => {
+      const iso = toIsoDateKey(data.date);
+      return !iso || iso.startsWith(prefix);
+    });
+}
+
+/** Stars a child earned in one month, from the award log (for a month with no history doc). */
+async function monthStarsFromLog(studentId, year, month) {
+  const logs = await monthAwardLogs(studentId, year, month);
+  return logs.reduce((sum, data) => sum + (Number(data.stars) || 0), 0);
+}
+
+/** This month's positive stars per award reason, so the family's star jar can colour each star. */
+async function getMonthReasons(studentId) {
+  const { year, month } = schoolDateParts();
+  const logs = await monthAwardLogs(studentId, year, month);
+  const reasons = {};
+  logs.forEach((data) => {
+    const stars = Number(data.stars) || 0;
+    if (stars <= 0 || NON_CELEBRATION_REASONS.has(data.reason)) return;
+    const key = String(data.reason || 'excellence').slice(0, 40);
+    reasons[key] = Math.round(((reasons[key] || 0) + stars) * 10) / 10;
+  });
+  return reasons;
 }
 
 // monthlyStars is only reset when a teacher opens the app in a new month; until then it still holds last month.
@@ -871,7 +891,7 @@ async function buildParentSnapshot(studentId, extra = {}) {
   const classPromise = studentPromise.then((student) => db.doc(`${dataRoot()}/classes/${student.classId}`).get());
   const scorePromise = getScore(studentId);
   const scopePromise = familyYearScope();
-  const [student, classSnap, score, assessments, attendanceSummary, awardLogs, starsHistory, parentLink, schoolSettings, homeworkCount, previousSnap] = await Promise.all([
+  const [student, classSnap, score, assessments, attendanceSummary, awardLogs, starsHistory, monthReasons, parentLink, schoolSettings, homeworkCount, previousSnap] = await Promise.all([
     studentPromise,
     classPromise,
     scorePromise,
@@ -881,6 +901,10 @@ async function buildParentSnapshot(studentId, extra = {}) {
     Promise.all([scorePromise, scopePromise]).then(([score, scope]) => getStarsHistory(studentId, score, scope)).catch((error) => {
       console.error('Family stars history failed:', error?.message || error);
       return [];
+    }),
+    getMonthReasons(studentId).catch((error) => {
+      console.error('Family star jar reasons failed:', error?.message || error);
+      return null;
     }),
     getParentLink(studentId),
     getSchoolSettings(),
@@ -926,6 +950,7 @@ async function buildParentSnapshot(studentId, extra = {}) {
     },
     weekStars,
     starsHistory,
+    monthReasons,
     // Hero of the Day crowns count for this school year only.
     heroOfDayWins: (!score.heroOfDayWinsYearKey || !student.activeSchoolYearKey || score.heroOfDayWinsYearKey === student.activeSchoolYearKey)
       ? Number(score.heroOfDayWins || 0)

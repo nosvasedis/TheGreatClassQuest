@@ -7,6 +7,7 @@ import { friendlyAuthError } from '../utils/friendlyErrors.js';
 import { normalizeUsername, ROLE_PARENT, ROLE_SECRETARY, ROLE_TEACHER } from '../utils/roles.js';
 import { getFamilyLang, setFamilyLang } from '../utils/familyLang.js';
 import { watchAuthFamilyLanguage, syncAuthFamilyLanguage } from './authFamilyWords.js';
+import { morphAuthGate } from './authRoleMorph.js';
 
 const LAST_ROLE_KEY = 'gcq.lastAuthRole';
 const LAST_USERNAME_KEY = 'gcq_lastAuthUsername';
@@ -243,14 +244,19 @@ export function noteLinkedUsernameArrival() {
 function wireFamilyLanguage(screen) {
     watchAuthFamilyLanguage();
     document.getElementById('auth-family-lang')?.addEventListener('click', () => {
-        setFamilyLang(getFamilyLang() === 'en' ? 'el' : 'en');
-        paintFamilyLangPill(true);
-        syncAuthFamilyLanguage();
+        const nextLang = getFamilyLang() === 'en' ? 'el' : 'en';
+        morphAuthGate(() => {
+            setFamilyLang(nextLang);
+            paintFamilyLangPill(true);
+            syncAuthFamilyLanguage();
+        });
     });
     document.getElementById('auth-other-door')?.addEventListener('click', () => {
         screen.dataset.otherDoorOpened = '1';
-        screen.classList.remove('auth-screen--family-link');
-        document.getElementById('auth-role-switcher')?.querySelector('[data-auth-role="teacher"]')?.focus({ preventScroll: true });
+        morphAuthGate(() => {
+            screen.classList.remove('auth-screen--family-link');
+            document.getElementById('auth-role-switcher')?.querySelector('[data-auth-role="teacher"]')?.focus({ preventScroll: true });
+        });
     });
 }
 

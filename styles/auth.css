@@ -7,7 +7,19 @@
    Phones share this file (see the max-width 1023px block at the end).
    ═══════════════════════════════════════════════════════════════════════════ */
 
+/* The role colours are registered so they drift from one to the next instead of
+   snapping (every gradient, ring and glow that uses them follows along). */
+@property --auth-accent { syntax: '<color>'; inherits: true; initial-value: #0284c7; }
+@property --auth-accent-bright { syntax: '<color>'; inherits: true; initial-value: #38bdf8; }
+@property --auth-accent-deep { syntax: '<color>'; inherits: true; initial-value: #075985; }
+@property --auth-accent-text { syntax: '<color>'; inherits: true; initial-value: #0369a1; }
+@property --auth-accent-soft { syntax: '<color>'; inherits: true; initial-value: rgba(56, 189, 248, 0.2); }
+@property --auth-accent-wash { syntax: '<color>'; inherits: true; initial-value: #f0f9ff; }
+
 #auth-screen {
+    transition-property: opacity, --auth-accent, --auth-accent-bright, --auth-accent-deep, --auth-accent-text, --auth-accent-soft, --auth-accent-wash;
+    transition-duration: 0.5s;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     --auth-accent: #0284c7;
     --auth-accent-bright: #38bdf8;
     --auth-accent-deep: #075985;
@@ -294,6 +306,10 @@
     color: var(--auth-ink-soft);
 }
 
+/* The changing part of the card. flow-root keeps its children's margins inside it,
+   so the arch measures the same while it glides to a new size as after it lands. */
+#auth-interactive { display: flow-root; }
+
 /* ── Role doors ──────────────────────────────────────────────────────────── */
 .auth-role-switcher {
     display: grid;
@@ -318,7 +334,7 @@
     letter-spacing: 0.01em;
     cursor: pointer;
     box-shadow: 0 3px 0 #e2e8f0;
-    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+    transition: transform 0.28s cubic-bezier(0.34, 1.4, 0.64, 1), box-shadow 0.3s ease, color 0.3s ease, border-color 0.3s ease;
     -webkit-tap-highlight-color: transparent;
 }
 #auth-screen .auth-role-btn:hover {
@@ -333,16 +349,40 @@
     border-radius: 0.7rem;
     font-size: 0.95rem;
     background: #f1f5f9;
-    transition: background 0.25s ease, color 0.25s ease;
+    transition: background 0.3s ease, color 0.3s ease;
 }
 .auth-role-btn[data-auth-role="teacher"] .auth-role-btn__icon { color: #0284c7; }
 .auth-role-btn[data-auth-role="parent"] .auth-role-btn__icon { color: #d97706; }
 .auth-role-btn[data-auth-role="secretary"] .auth-role-btn__icon { color: #7c3aed; }
 
+/* The lit door's colour is a layer that fades in and out, so moving between doors
+   is a soft hand-over instead of one button snapping white and another snapping blue. */
+#auth-screen .auth-role-btn {
+    position: relative;
+    isolation: isolate;
+}
+#auth-screen .auth-role-btn::before {
+    content: '';
+    position: absolute;
+    inset: -1.5px;
+    z-index: -1;
+    border-radius: inherit;
+    background: linear-gradient(160deg, #38bdf8 0%, #0284c7 100%);
+    opacity: 0;
+    transform: scale(0.94);
+    transition: opacity 0.32s ease, transform 0.42s cubic-bezier(0.34, 1.4, 0.64, 1);
+    pointer-events: none;
+}
+#auth-screen .auth-role-btn[data-auth-role="parent"]::before { background: linear-gradient(160deg, #fbbf24 0%, #d97706 100%); }
+#auth-screen .auth-role-btn[data-auth-role="secretary"]::before { background: linear-gradient(160deg, #a78bfa 0%, #7c3aed 100%); }
+#auth-screen .auth-role-btn.auth-role-btn-active::before {
+    opacity: 1;
+    transform: none;
+}
 #auth-screen .auth-role-btn.auth-role-btn-active {
     color: #ffffff;
     border-color: transparent;
-    background: linear-gradient(160deg, var(--auth-accent-bright) 0%, var(--auth-accent) 100%) !important;
+    background: #ffffff;
     box-shadow: 0 3px 0 var(--auth-accent-deep), 0 12px 20px -10px var(--auth-accent) !important;
     transform: translateY(-2px);
 }
@@ -837,6 +877,7 @@
     -webkit-backdrop-filter: blur(6px);
 }
 .auth-footnote:empty { display: none; }
+.auth-footnote.auth-morph-hold:empty { display: block; }
 
 /* ── School-activation gate (replaces the form until the Secretary activates the school) ─ */
 #login-form-container.auth-card--gated {
@@ -967,6 +1008,11 @@
     .auth-cloud-layer { display: none; }
 }
 
+@media (prefers-reduced-motion: reduce) {
+    #auth-screen { transition-property: opacity; }
+    #auth-screen .auth-role-btn,
+    #auth-screen .auth-role-btn::before { transition: none; }
+}
 @media (prefers-reduced-motion: reduce) {
     .auth-cloud,
     .auth-scene__sun,

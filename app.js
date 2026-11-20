@@ -2,6 +2,7 @@
 
 import { injectHTML } from './templates/index.js';
 import { stageLoadingPersonalization, reopenLoadingScreen, markLoadingStage, playLoadingExit, loadingRevealEta } from './templates/loading.js';
+import { morphAuthGate } from './ui/authRoleMorph.js';
 import { playAuthGateEntrance, cancelAuthGate, playAuthGateArrival, playAuthGateExit, consumeGateExit, walkOutThroughGate } from './ui/authGate.js';
 import { DEFAULT_SCHOOL_ID, FOUNDING_SCHOOL_NAME, FOUNDING_SCHOOL_SHORT_NAME, PUBLIC_DATA_PATH, getSchoolId, normalizeSchoolId, resolveProfileSchoolId, setSchoolId } from './utils/tenant.mjs';
 import { readDeviceSchoolId, rememberDeviceSchoolId } from './utils/deviceSchool.mjs';
@@ -981,26 +982,50 @@ async function initializeAuthAvailability() {
     return authAvailabilityPromise;
 }
 
-function setAuthRole(role) {
+function setAuthRole(role, { animate = false } = {}) {
     const nextRole = role || ROLE_TEACHER;
     const changed = nextRole !== activeAuthRole;
     activeAuthRole = nextRole;
-    if (changed) {
-        clearAuthError();
-        hideForgotPanel();
-        prefillRememberedUsername();
+    const apply = () => {
+        if (changed) {
+            clearAuthError();
+            hideForgotPanel();
+            prefillRememberedUsername();
+        }
+        syncAuthRoleUi();
+    };
+    if (!animate || !changed) {
+        apply();
+        return;
     }
-    syncAuthRoleUi();
+    // The tapped door lights up and the colours start to drift at once; the words follow softly.
+    previewAuthRoleChoice(nextRole);
+    morphAuthGate(apply);
+}
+
+function previewAuthRoleChoice(role) {
+    const screen = document.getElementById('auth-screen');
+    if (screen && screen.dataset.authRole !== 'activation') screen.dataset.authRole = role;
+    document.querySelectorAll('.auth-role-btn').forEach((btn) => {
+        const on = btn.dataset.authRole === role;
+        btn.classList.toggle('auth-role-btn-active', on);
+        btn.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
 }
 
 function setAuthMode(mode) {
     const nextMode = mode === 'signup' ? 'signup' : 'login';
-    if (nextMode !== activeAuthMode) {
-        clearAuthError();
-        hideForgotPanel();
-    }
+    const changed = nextMode !== activeAuthMode;
     activeAuthMode = nextMode;
-    syncAuthRoleUi();
+    const apply = () => {
+        if (changed) {
+            clearAuthError();
+            hideForgotPanel();
+        }
+        syncAuthRoleUi();
+    };
+    if (changed) morphAuthGate(apply);
+    else apply();
 }
 
 function prefillRememberedUsername() {
@@ -1062,7 +1087,7 @@ function setupAuthListeners() {
     document.querySelectorAll('.auth-role-btn').forEach((btn) => {
         btn.addEventListener('click', () => {
             authArrivedByLink = false;
-            setAuthRole(btn.dataset.authRole || ROLE_TEACHER);
+            setAuthRole(btn.dataset.authRole || ROLE_TEACHER, { animate: true });
         });
     });
 

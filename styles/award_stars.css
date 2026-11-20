@@ -24,6 +24,8 @@
  */
 
 .aw-sky-summary {
+    position: relative;
+    z-index: 3; /* stays in front of the first cloud's top puffs */
     max-width: 58rem;
     margin: -0.5rem auto 1rem;
     display: flex;
@@ -2353,7 +2355,7 @@ body.gcq-mobile .aw-sky-grid {
     grid-template-columns: minmax(0, 1fr);
     justify-items: start;
     gap: 5rem;
-    padding: 4.5rem 0.35rem 7rem;
+    padding: 6rem 0.35rem 7rem;
 }
 
 /* Each phone cloud fits the screen whole: the card takes the width left once its own
@@ -2367,7 +2369,11 @@ body.gcq-mobile .aw-sky-grid > .award-card-mount {
 body.gcq-mobile .aw-sky-grid > .award-card-mount { margin-top: 0 !important; }
 body.gcq-mobile .aw-sky-summary { margin: 0 0.75rem 0.5rem; }
 body.gcq-mobile .aw-roll { border-radius: 1.2rem; padding: 0.4rem 0.7rem; gap: 0.3rem 0.55rem; }
-body.gcq-mobile .aw-roll__beads { border-radius: 0.9rem; }
+body.gcq-mobile .aw-roll__beads { border-radius: 0.9rem; gap: 7px; padding: 0.4rem 0.65rem; }
+/* The phone shell gives every tab button a 2.5rem min-height, which stretched the
+   round beads into tall ovals. Beads stay perfect circles, a little bigger to tap. */
+body.gcq-mobile .aw-roll .aw-roll__bead { width: 18px; height: 18px; min-height: 0 !important; min-width: 0; aspect-ratio: 1; }
+body.gcq-mobile .aw-roll .aw-roll__bead.is-away { width: 21px; aspect-ratio: auto; }
 
 @media (max-width: 380px) {
     .aw-tally__item { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; padding: 0.4rem 0.3rem; }

@@ -108,7 +108,7 @@ export const APP_CHECK_SITE_KEY = (typeof window !== 'undefined' && window.__GCQ
  * is replaced (the move to Europe: tools/DATA_MOVE_TO_EUROPE.md, then 'europe-west1'); every
  * device then drops its offline copy once and downloads it fresh (utils/firestoreCacheEpoch.mjs).
  */
-export const FIRESTORE_DATA_EPOCH = 'nam5';
+export const FIRESTORE_DATA_EPOCH = 'europe-west1';
 
 /**
  * Ordered Quest League catalogue. Keep league-specific behaviour here so a new

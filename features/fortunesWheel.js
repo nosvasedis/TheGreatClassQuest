@@ -23,7 +23,7 @@ import { showAnimatedModal, hideModal } from '../ui/modals/base.js';
 import { PUBLIC_DATA_PATH } from '../utils/tenant.mjs';
 import { tailwindGlyphSvg, tailwindPipsHtml } from './tailwindArt.js';
 import { GOLD_COIN_HTML } from '../utils/goldCoin.js';
-import { getTodayDateString } from '../utils.js';
+import { getTodayDateString, getClassMonthlyQuestStars } from '../utils.js';
 import { wheelSound, warmWheelSounds, landingSoundFor } from './wheelSounds.js';
 
 /**
@@ -143,8 +143,8 @@ const ALL_SEGMENTS = [
     { id: 'focus_aura',        emoji: '🎯', label: 'Focus Aura',         description: '+1 star to 1 random guildmate!',                        rarity: 'uncommon',  category: 'perk',  effect: (ctx) => randomStars(ctx, 1, 1) },
     { id: 'spotlight',         emoji: '🌟', label: 'Spotlight',          description: '1 random guildmate receives a Legendary Artifact!',     rarity: 'uncommon',  category: 'perk',  effect: (ctx) => randomArtifact(ctx, 1) },
     { id: 'aurum_blossom',     emoji: '🪙', label: 'Aurum Blossom',      description: '3 random guildmates get +20 gold each!',                rarity: 'uncommon',  category: 'perk',  effect: (ctx) => randomGold(ctx, 3, 20) },
-    { id: 'scholars_blessing', emoji: '📚', label: "Scholar's Blessing", description: '+5 Team Quest bonus stars (this month)!',               rarity: 'uncommon',  category: 'perk',  effect: (ctx) => classQuestBonus(ctx, 5) },
-    { id: 'time_warp',         emoji: '⏰', label: 'Time Warp',          description: '+10 Team Quest bonus stars (this month)!',              rarity: 'uncommon',  category: 'perk',  effect: (ctx) => classQuestBonus(ctx, 10) },
+    { id: 'scholars_blessing', emoji: '📚', label: "Scholar's Blessing", description: 'The class moves +2 steps on the Team Quest map (this month)!', rarity: 'uncommon',  category: 'perk',  effect: (ctx) => classQuestBonus(ctx, 2) },
+    { id: 'time_warp',         emoji: '⏰', label: 'Time Warp',          description: 'The class moves +3 steps on the Team Quest map (this month)!', rarity: 'uncommon',  category: 'perk',  effect: (ctx) => classQuestBonus(ctx, 3) },
 
     // ── Rare ──────────────────────────────────────────────────────────────────
     { id: 'glory_fountain',    emoji: '⚜️', label: 'Glory Fountain',     description: '+3 Glory for each guildmate in this class.',            rarity: 'rare',      category: 'glory', effect: (ctx) => classGlory(ctx, 3) },
@@ -152,7 +152,7 @@ const ALL_SEGMENTS = [
     { id: 'star_storm',        emoji: '⭐', label: 'Star Shower Royale', description: '5 random guildmates get +1 star each!',                 rarity: 'rare',      category: 'perk',  effect: (ctx) => randomStars(ctx, 5, 1) },
     { id: 'treasury_overflow', emoji: '🪙', label: 'Treasury Overflow',  description: 'Every guildmate here gets +10 gold!',                    rarity: 'rare',      category: 'perk',  effect: (ctx) => randomGold(ctx, ctx.memberCount, 10) },
     { id: 'mystery_gift',      emoji: '🎒', label: 'Mystery Gift',       description: '1 random guildmate gets a free Legendary Artifact!',    rarity: 'rare',      category: 'perk',  effect: (ctx) => randomArtifact(ctx, 1) },
-    { id: 'quest_surge',       emoji: '🗺️', label: 'Quest Surge',        description: '+15 Team Quest bonus stars (this month)!',              rarity: 'rare',      category: 'perk',  effect: (ctx) => classQuestBonus(ctx, 15) },
+    { id: 'quest_surge',       emoji: '🗺️', label: 'Quest Surge',        description: 'The class moves +5 steps on the Team Quest map (this month)!', rarity: 'rare',      category: 'perk',  effect: (ctx) => classQuestBonus(ctx, 5) },
     { id: 'star_cascade',      emoji: '🌠', label: 'Star Cascade',       description: '4 random guildmates get +1 star and +10 gold each!',    rarity: 'rare',      category: 'perk',  effect: (ctx) => starsAndGold(ctx, 4, 1, 10) },
     { id: 'castle_feast',      emoji: '🍗', label: 'Castle Feast',       description: 'A feast in the great hall: every guildmate here gets +10 gold and +1 Glory!', rarity: 'rare', category: 'fun', effect: (ctx) => combo(ctx, [(c) => randomGold(c, c.memberCount, 10), (c) => classGlory(c, 1, '', 'feast')], 'A feast in the great hall! Every guildmate here gets +10 gold and +1 Glory.') },
 
@@ -171,8 +171,8 @@ const ALL_SEGMENTS = [
 
     // ── Mythic ────────────────────────────────────────────────────────────────
     { id: 'glory_miracle',     emoji: '👑', label: 'Glory Miracle',      description: '+5 Glory and +20 gold for each guildmate here!',        rarity: 'mythic',    category: 'glory', isPrismatic: true, effect: (ctx) => combo(ctx, [(c) => classGlory(c, 5), (c) => randomGold(c, c.memberCount, 20)], 'A Glory Miracle! Every guildmate here gets +5 Glory and +20 gold!') },
-    { id: 'mythic_relic',      emoji: '🏆', label: 'Relic of Triumph',   description: '+30 Team Quest bonus stars & an Artifact for 5 guildmates!', rarity: 'mythic', category: 'perk', effect: (ctx) => mythicRelic(ctx) },
-    { id: 'celestial_convergence', emoji: '✨', label: 'Celestial Convergence', description: '+20 Team Quest bonus, and every guildmate here gets +1 star & +30 gold!', rarity: 'mythic', category: 'perk', isPrismatic: true, effect: (ctx) => combo(ctx, [(c) => classQuestBonus(c, 20), (c) => starsAndGold(c, c.memberCount, 1, 30)], 'Celestial convergence! +20 Team Quest bonus stars, and every guildmate here gets +1 star and +30 gold!') },
+    { id: 'mythic_relic',      emoji: '🏆', label: 'Relic of Triumph',   description: '+8 steps on the Team Quest map & an Artifact for 5 guildmates!', rarity: 'mythic', category: 'perk', effect: (ctx) => mythicRelic(ctx) },
+    { id: 'celestial_convergence', emoji: '✨', label: 'Celestial Convergence', description: '+5 steps on the Team Quest map, and every guildmate here gets +1 star & +30 gold!', rarity: 'mythic', category: 'perk', isPrismatic: true, effect: (ctx) => combo(ctx, [(c) => classQuestBonus(c, 5), (c) => starsAndGold(c, c.memberCount, 1, 30)], 'Celestial convergence! +5 steps on the Team Quest map, and every guildmate here gets +1 star and +30 gold!') },
 
     // ── Twists: the drama ─────────────────────────────────────────────────────
     { id: 'trickster',         emoji: '🎭', label: 'Trickster',          description: 'It looks like a win… then it turns out to be nothing!', rarity: 'twist', category: 'twist', stage: 'trickster', weight: 2, favoredOk: false, effect: () => ({ gloryDelta: 0, echo: { kind: 'none' }, description: 'The Trickster laughs! No treasure, and nothing was lost.' }) },
@@ -196,6 +196,8 @@ const ALL_SEGMENTS = [
     { id: 'rockslide',         emoji: '🪨', label: 'Rockslide',          description: '−1 Glory each, and 2 guildmates drop 5 gold.',           rarity: 'storm', category: 'storm', stage: 'storm', brave: true,  weight: 2, favoredOk: false, effect: (ctx, d) => (d?.braved ? braved(ctx, 'The rocks roll past the guild!') : combo(ctx, [(c) => stormGlory(c, 1), (c) => loseGold(c, 2, 5)], 'Rockslide! A little Glory and gold tumble away.')) },
     { id: 'thunderclap',       emoji: '⛈️', label: 'Thunderclap',        description: '−3 Glory for each guildmate here. No shelter from this one!', rarity: 'storm', category: 'storm', stage: 'storm', brave: false, weight: 1, favoredOk: false, effect: (ctx) => stormGlory(ctx, 3, 'Thunder shakes the hall!') },
 
+    { id: 'wrong_turn',        emoji: '🧭', label: 'Wrong Turn',         description: 'The class takes a wrong turn: −10 steps on the Team Quest map. Answer together to find the road again!', rarity: 'storm', category: 'storm', stage: 'storm', brave: true, weight: 1, favoredOk: false, effect: (ctx, d) => (d?.braved ? braved(ctx, 'The guild read the map right. The class stays on the road!') : classQuestSetback(ctx, 10, 'A wrong turn!')) },
+
     // ── Omens: super rare, big swings of Glory ────────────────────────────────
     { id: 'wishing_star',      emoji: '🌠', label: 'Wishing Star',       description: 'The rarest light in the sky: +8 Glory for each guildmate here!', rarity: 'omen', category: 'omen', weight: 1, effect: (ctx) => classGlory(ctx, 8, 'A wishing star falls into the guild hall!', 'wish') },
     { id: 'golden_dawn',       emoji: '🌅', label: 'Golden Dawn',        description: '+4 Glory for each guildmate here, and +1 Glory for every other hero in the class!', rarity: 'omen', category: 'omen', weight: 2, effect: (ctx) => goldenDawn(ctx) },
@@ -208,6 +210,7 @@ const ALL_SEGMENTS = [
     { id: 'swap_of_fates',     emoji: '🔄', label: 'Swap of Fates',      description: 'This guild and another guild here trade places: their Glory this month swaps (up to 8 per hero). Lucky if you are behind!', rarity: 'omen', category: 'omen', harsh: true, weight: 1, favoredOk: false, effect: (ctx) => swapOfFates(ctx) },
     { id: 'topsy_turvy',       emoji: '🙃', label: 'Topsy-Turvy',        description: 'The top and bottom guilds in this class swap their Glory this month (up to 8 per hero)!', rarity: 'omen', category: 'omen', harsh: true, weight: 1, favoredOk: false, effect: (ctx) => topsyTurvy(ctx) },
     { id: 'the_void',          emoji: '🌌', label: 'The Void',           description: 'The rarest dark sky: the Void swallows half of each guildmate\'s Glory this month (up to 8 each).', rarity: 'omen', category: 'omen', harsh: true, weight: 1, favoredOk: false, effect: (ctx) => theVoid(ctx) },
+    { id: 'torn_map',          emoji: '🗺️', label: 'The Torn Map',       description: 'A gust tears the class map in two: −20 steps on the Team Quest map (never back past the start)!', rarity: 'omen', category: 'omen', harsh: true, weight: 1, favoredOk: false, effect: (ctx) => classQuestSetback(ctx, 20, 'The map is torn!') },
     // ── The Envoy's wheel: a guild with no heroes here sends its Envoy, a rival who mostly brings small mischief ──
     // Mischief (`harsh`) fills most of the wheel and is always small. Gifts (`envoyGift`) show up once each, so only two wedges in fourteen give.
     { id: 'envoy_toll',        emoji: '🧾', label: "Envoy's Toll",       description: 'The rival envoy collects a toll: −1 Glory from every hero in this class (only Glory earned this month).', rarity: 'envoy', category: 'envoy', harsh: true, weight: 2, effect: (ctx) => envoyToll(ctx, 1) },
@@ -216,6 +219,8 @@ const ALL_SEGMENTS = [
     { id: 'envoy_fog',         emoji: '🌫️', label: 'Sour Fog',           description: 'A fog rolls in from far away: one hero from every guild here drops 5 gold.', rarity: 'envoy', category: 'envoy', harsh: true, weight: 2, effect: (ctx) => envoyFog(ctx, 5) },
     { id: 'envoy_gate',         emoji: '🏰', label: 'Border Guards',      description: 'The envoy\'s guards stop 3 heroes at the border: each pays 5 gold.', rarity: 'envoy', category: 'envoy', harsh: true, weight: 2, effect: (ctx) => envoyGuards(ctx, 3, 5) },
     { id: 'envoy_trick',       emoji: '🃏', label: "Envoy's Trick",      description: 'The rarest card in the envoy\'s sleeve: the top and bottom guilds in this class swap their Glory this month (up to 8 per hero)!', rarity: 'envoy', category: 'envoy', harsh: true, envoyRare: true, weight: 1, effect: (ctx) => topsyTurvy(ctx, 'envoy_trick') },
+    { id: 'envoy_detour',      emoji: '🪧', label: "Envoy's Detour",     description: 'The envoy swaps the signposts: −10 steps on the Team Quest map for this class.', rarity: 'envoy', category: 'envoy', harsh: true, weight: 1, effect: (ctx) => classQuestSetback(ctx, 10, 'The signposts point the wrong way!', { envoy: true }) },
+    { id: 'envoy_stolen_map',  emoji: '🗺️', label: 'Stolen Map',         description: 'The rarest theft: the envoy steals the class map! −20 steps on the Team Quest map.', rarity: 'envoy', category: 'envoy', harsh: true, envoyRare: true, weight: 1, effect: (ctx) => classQuestSetback(ctx, 20, 'The envoy runs off with the map!', { envoy: true }) },
     { id: 'envoy_jest',        emoji: '🤹', label: "Envoy's Juggling",   description: 'The envoy juggles for the class. Big laughs, and nothing else changes!', rarity: 'envoy', category: 'envoy', weight: 2, effect: () => ({ gloryDelta: 0, echo: { kind: 'none' }, description: 'The envoy juggles three apples and a teapot. The whole class laughs, and nothing else changes!' }) },
     { id: 'envoy_letter',      emoji: '📜', label: 'Letter from Afar',   description: 'A friendly letter after all: 2 heroes in this class get +5 gold.', rarity: 'envoy', category: 'envoy', envoyGift: true, weight: 1, effect: (ctx) => envoyGold(ctx, 2, 5) },
     { id: 'envoy_banner',      emoji: '🚩', label: 'Distant Banner',     description: 'The envoy cheers for the underdog: +1 Glory for each hero of the guild that is last in this class this month.', rarity: 'envoy', category: 'envoy', envoyGift: true, weight: 1, effect: (ctx) => envoyBanner(ctx, 1) },
@@ -1053,12 +1058,35 @@ async function classQuestBonus(ctx, delta) {
     return {
         gloryDelta: 0,
         ...outcome,
-        description: `The class gains +${outcome.classQuestDelta} Team Quest bonus star${outcome.classQuestDelta === 1 ? '' : 's'} this month!`
+        description: `The class moves +${outcome.classQuestDelta} step${outcome.classQuestDelta === 1 ? '' : 's'} on the Team Quest map this month!`
+    };
+}
+
+/**
+ * A map setback: the class steps back `steps` on this month's Team Quest map. The class's
+ * bonus may go below 0, but never past the heroes' own stars, so the map never goes back
+ * past its start. The map is the whole class's, so the Mirror never copies a setback.
+ */
+async function classQuestSetback(ctx, steps, lead = '', { envoy = false } = {}) {
+    const students = (state.get('allStudents') || []).filter((s) => s.classId === ctx.classId);
+    const { studentStars } = getClassMonthlyQuestStars({}, students, state.get('allStudentScores') || []);
+    const outcome = await wheelIo.questBonus(ctx.classId, -Math.abs(steps), 'Wheel map setback', { floor: -Math.max(0, Number(studentStars) || 0) });
+    const lost = Math.abs(Number(outcome.classQuestDelta) || 0);
+    return {
+        gloryDelta: 0,
+        classQuestDelta: -lost,
+        // The Envoy's guild has no heroes here, so its setback never calms that guild's next wheel.
+        stormHit: !envoy && lost > 0,
+        loss: lost > 0,
+        echo: { kind: 'none' },
+        description: lost > 0
+            ? `${lead ? `${lead} ` : ''}The class goes back ${lost} step${lost === 1 ? '' : 's'} on the Team Quest map this month.`
+            : `${lead ? `${lead} ` : ''}The class is still at the start of the map, so there is nowhere to go back to!`,
     };
 }
 
 async function mythicRelic(ctx) {
-    const quest = await wheelIo.questBonus(ctx.classId, 30, 'Relic of Triumph');
+    const quest = await wheelIo.questBonus(ctx.classId, 8, 'Relic of Triumph');
     const artifacts = await _studentEffects({
         classId: ctx.classId,
         students: ctx.guildStudents || [],
@@ -1079,7 +1107,7 @@ async function mythicRelic(ctx) {
         artifactsRemoved: 0,
         starsDelta: 0,
         goldDelta: 0,
-        description: `The Relic of Triumph surges: +${quest.classQuestDelta || 0} Team Quest bonus stars, plus artifacts for ${artifacts.affectedStudents?.length || 0} heroes!`
+        description: `The Relic of Triumph surges: +${quest.classQuestDelta || 0} steps on the Team Quest map, plus artifacts for ${artifacts.affectedStudents?.length || 0} heroes!`
     };
 }
 
@@ -3551,7 +3579,7 @@ function _renderWheelResult(segment, result, guildDef) {
             ? { icon: '⭐', label: 'Stars',       displayStr: `${result.starsDelta >= 0 ? '+' : ''}${result.starsDelta}`,           isNeg: result.starsDelta < 0 }
             : null,
         result.classQuestDelta
-            ? { icon: '🗺️', label: 'Quest Bonus', displayStr: `${result.classQuestDelta >= 0 ? '+' : ''}${result.classQuestDelta}`, isNeg: result.classQuestDelta < 0 }
+            ? { icon: '🗺️', label: 'Team Quest map', displayStr: `${result.classQuestDelta >= 0 ? '+' : ''}${result.classQuestDelta}`, isNeg: result.classQuestDelta < 0 }
             : null,
         showArtifactTile
             ? { icon: '🎒', label: 'Artifacts',
@@ -3785,7 +3813,7 @@ function _renderWheelSummary() {
                     .map(([gid, n]) => deltaChip(signed(n), _crestIcon(gid), `${getGuildById(gid)?.name || 'Guild'} Glory`, n < 0)),
                 r.goldDelta ? deltaChip(signed(r.goldDelta), GOLD_COIN_HTML, 'Gold', r.goldDelta < 0) : '',
                 r.starsDelta ? deltaChip(signed(r.starsDelta), '⭐', 'Stars', r.starsDelta < 0) : '',
-                r.classQuestDelta ? deltaChip(signed(r.classQuestDelta), '🗺️', 'Quest Bonus', r.classQuestDelta < 0) : '',
+                r.classQuestDelta ? deltaChip(signed(r.classQuestDelta), '🗺️', 'Team Quest map', r.classQuestDelta < 0) : '',
                 (r.artifactsGranted || r.artifactsRemoved)
                     ? deltaChip(`${r.artifactsGranted ? `+${r.artifactsGranted}` : ''}${r.artifactsGranted && r.artifactsRemoved ? ' / ' : ''}${r.artifactsRemoved ? `-${r.artifactsRemoved}` : ''}`, '🎒', 'Artifacts', (r.artifactsRemoved || 0) > 0)
                     : '',

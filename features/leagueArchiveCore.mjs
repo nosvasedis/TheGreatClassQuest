@@ -246,7 +246,7 @@ export function collectArchiveCrossings(classes = [], questHistory = []) {
  * Progress is never clamped: a party that ran on past its goal shows how far.
  */
 export function buildArchiveMonthEntry({ heroStars = 0, classBonus = 0, goal = 0, crossing = null, lockedGoal = 0 } = {}) {
-    const counted = num(heroStars) + num(classBonus);
+    const counted = Math.max(0, num(heroStars) + num(classBonus));
     const crossed = Boolean(crossing);
     // Stars never go below what the party had when it stepped through.
     const totalStars = crossed ? Math.max(counted, num(crossing.starsEarned)) : counted;

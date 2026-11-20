@@ -1123,7 +1123,8 @@ export function getClassMonthlyQuestStars(classData, studentsInClass, allStudent
     return {
         studentStars,
         classBonus,
-        totalStars: studentStars + classBonus
+        // A Wheel setback can make the bonus negative, but the map never goes back past its start.
+        totalStars: Math.max(0, studentStars + classBonus)
     };
 }
 

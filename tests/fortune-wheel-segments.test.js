@@ -130,7 +130,9 @@ test('storms are small: never stars or artifacts, and never on a gilded wheel', 
     assert.equal(storm.favoredOk, false, `${storm.id} stays off Fortune's Favor wheels`);
     assert.equal(storm.stage, 'storm');
     assert.doesNotMatch(storm.line, /randomStars|randomArtifact|starsAndGold|starsDelta|artifact/i, `${storm.id} touches only Glory or gold`);
-    assert.match(storm.line, /stormGlory\(|loseGold\(/, `${storm.id} is a small loss`);
+    assert.match(storm.line, /stormGlory\(|loseGold\(|classQuestSetback\(/, `${storm.id} is a small loss`);
+    const steps = [...storm.line.matchAll(/classQuestSetback\(\w+, (\d+)/g)].map((m) => Number(m[1]));
+    steps.forEach((n) => assert.ok(n <= 10, `${storm.id} moves the map back at most 10 steps`));
     const losses = [...storm.line.matchAll(/stormGlory\(\w+, (\d+)/g)].map((m) => Number(m[1]));
     losses.forEach((n) => assert.ok(n <= 3, `${storm.id} takes at most 3 Glory each`));
     const gold = [...storm.line.matchAll(/loseGold\(\w+, (\d+), (\d+)/g)].map((m) => Number(m[1]) * Number(m[2]));
@@ -293,7 +295,8 @@ test('live Omens: big but capped at OMEN_MAX_SWING, harsh ones only take this mo
   assert.ok(harsh.length > envoy.length / 2, 'the Envoy is a rival: mostly mischief');
   assert.ok(envoy.filter((w) => /envoyGift: true/.test(w.line)).length <= 2, 'only a gift or two');
   envoy.filter((w) => /envoyGift: true/.test(w.line)).forEach((w) => assert.doesNotMatch(w.line, /harsh: true|star/i, `${w.id} is a small gift, never stars`));
-  assert.equal(envoy.filter((w) => /envoyRare: true/.test(w.line)).length, 1);
+  const rare = envoy.filter((w) => /envoyRare: true/.test(w.line));
+  assert.ok(rare.length >= 1 && rare.length <= 2, 'one or two rare tricks');
   envoy.filter((w) => !/harsh: true/.test(w.line)).forEach((w) => assert.doesNotMatch(w.line, /Toll|Spy|Fog|Rumour|Guards|topsy/i, `${w.id} is not mischief`));
 });
 
@@ -352,4 +355,18 @@ test('the wheel shows the Tailwind each Glory write brought, apart from the fate
   assert.match(wheelSrc, /_wheelState\.wind = _wheelState\.envoy \? null : wheelIo\.wind\(guildId\)/);
   assert.match(wheelSrc, /fw-wind-card/);
   assert.match(wheelSrc, /fw-result-wind/);
+});
+
+test('Team Quest map moves stay small, and setbacks never go back past the start', () => {
+  const gifts = [...catalogSrc.matchAll(/classQuestBonus\(\w+, (\d+)\)/g)].map((m) => Number(m[1]));
+  assert.ok(gifts.length >= 3, 'map gifts were read');
+  gifts.forEach((n) => assert.ok(n <= 5, `a map gift moves at most 5 steps (${n})`));
+  assert.match(wheelSrc, /questBonus\(ctx\.classId, 8, 'Relic of Triumph'\)/);
+  const setbacks = wedges.filter((w) => /classQuestSetback\(/.test(w.line));
+  assert.deepEqual(setbacks.map((w) => w.rarity).sort(), ['envoy', 'envoy', 'omen', 'storm']);
+  setbacks.forEach((w) => assert.match(w.line, /harsh: true|rarity: 'storm'/, `${w.id} is harsh`));
+  setbacks.forEach((w) => assert.match(w.line, /favoredOk: false|rarity: 'envoy'/, `${w.id} stays off gilded wheels`));
+  const io = fs.readFileSync(path.join(__dirname, '..', 'db', 'actions', 'fortuneWheelEffects.js'), 'utf8');
+  assert.match(io, /Math\.min\(current, Math\.max\(low, current \+ delta\)\)/, 'a setback stops at the floor and never raises the bonus');
+  assert.match(wheelSrc, /floor: -Math\.max\(0, Number\(studentStars\) \|\| 0\)/, 'the floor is the heroes\' own stars this month');
 });

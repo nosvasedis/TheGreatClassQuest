@@ -1,6 +1,7 @@
 // features/parent/treasures.js — what the class game has given the child: the familiar and the Satchel.
 // The familiar's drawing and legendary relic art load on demand once the tab is on screen.
 import { escapeHtml, getSnapshot, firstName, relativeDay, tr, isGreek } from './helpers.js';
+import { bi } from './i18n.js';
 
 const TIER_WORDS = {
     common: ['Common', 'Κοινό'],
@@ -28,7 +29,7 @@ function renderSatchel(items, name) {
             <div class="fp-satchel__head">
                 <span class="fp-satchel__bag" aria-hidden="true">🎒</span>
                 <div>
-                    <h4 class="fp-satchel__title">${tr('Satchel', 'Σακίδιο (Satchel)')}</h4>
+                    <h4 class="fp-satchel__title">${bi('Satchel', 'Σακίδιο (Satchel)')}</h4>
                     <p class="fp-satchel__sub">${items.length
                         ? (isGreek() ? `${items.length} ${items.length === 1 ? 'θησαυρός' : 'θησαυροί'} από την αγορά και τις περιπέτειες της τάξης.` : `${items.length} treasure${items.length === 1 ? '' : 's'} ${escapeHtml(name)} has earned with class Gold and adventures.`)
                         : tr('Treasures bought with class Gold will be kept here.', 'Οι θησαυροί που αγοράζονται με χρυσό της τάξης φυλάγονται εδώ.')}</p>
@@ -55,7 +56,7 @@ function renderFamiliar(familiar, name) {
             <div class="fp-familiar__stage" data-fp-familiar aria-hidden="true"><span class="fp-familiar__wait">${egg ? '🥚' : '🐾'}</span></div>
             <div class="fp-familiar__copy">
                 <p class="fp-kicker">${tr('Class companion', 'Σύντροφος της τάξης')}</p>
-                <h4 class="fp-familiar__name" data-fp-familiar-name>${escapeHtml(familiar.name || tr('A familiar', 'Ένα ξωτικό ζωάκι'))}</h4>
+                <h4 class="fp-familiar__name" data-fp-familiar-name>${escapeHtml(familiar.name || tr('A familiar', 'Ένα ζωάκι-σύντροφος'))}</h4>
                 <p class="fp-familiar__form" data-fp-familiar-form>${egg ? tr('Still an egg', 'Ακόμη αυγό') : ''}</p>
                 <p class="fp-familiar__note">${egg
                     ? (isGreek() ? 'Θα εκκολαφθεί καθώς κερδίζει αστέρια στην τάξη.' : `It hatches as ${escapeHtml(name)} earns stars in class.`)

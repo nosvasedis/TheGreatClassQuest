@@ -18,6 +18,7 @@ import {
     tr,
     isGreek
 } from './helpers.js';
+import { bi } from './i18n.js';
 
 export function getActiveThread() {
     const threads = state.get('currentCommunicationThreads') || [];
@@ -38,14 +39,14 @@ function renderInbox() {
         <header class="fp-pagehead fp-rise">
             <span class="fp-pagehead__icon fp-pagehead__icon--rose" aria-hidden="true"><i class="fas fa-envelope"></i></span>
             <div>
-                <h2 class="fp-pagehead__title">${tr('Messages', 'Μηνύματα')}</h2>
+                <h2 class="fp-pagehead__title">${bi('Messages', 'Μηνύματα')}</h2>
                 <p class="fp-pagehead__sub">${isGreek() ? 'Μηνύματα ανάμεσα στο σπίτι και το σχολείο.' : `Notes between home and school about ${escapeHtml(name)}.`}</p>
             </div>
         </header>
         <button type="button" class="fp-write fp-rise" style="--fp-delay:1" data-parent-message-view="compose">
             <span class="fp-write__icon" aria-hidden="true"><i class="fas fa-pen-nib"></i></span>
             <span class="fp-write__copy">
-                <span class="fp-write__title">${tr('Write to the school', 'Γράψτε στο σχολείο')}</span>
+                <span class="fp-write__title">${bi('Write to the school', 'Γράψτε στο σχολείο')}</span>
                 <span class="fp-write__sub">${tr('Ask a question, ask to meet, or let us know about an absence.', 'Κάντε μια ερώτηση, ζητήστε συνάντηση ή ενημερώστε μας για μια απουσία.')}</span>
             </span>
             <i class="fas fa-chevron-right fp-write__chev" aria-hidden="true"></i>
@@ -147,7 +148,7 @@ function renderCompose() {
             <header class="fp-thread__head">
                 <button type="button" class="fp-icon-btn fp-icon-btn--ink" data-parent-message-view="inbox" aria-label="${tr('Back to messages', 'Πίσω στα μηνύματα')}"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
                 <div>
-                    <h2 class="fp-thread__title">${tr('Write to the school', 'Γράψτε στο σχολείο')}</h2>
+                    <h2 class="fp-thread__title">${bi('Write to the school', 'Γράψτε στο σχολείο')}</h2>
                     <p class="fp-thread__sub">${isGreek()
                         ? `Θα το διαβάσουν ${snapshot.teacherName ? `${escapeHtml(snapshot.teacherName)} και ` : 'η τάξη και '}η γραμματεία.`
                         : `${escapeHtml(snapshot.teacherName || 'The teacher')} and the school office will read it.`}</p>

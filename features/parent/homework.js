@@ -18,6 +18,7 @@ import {
     tr,
     isGreek
 } from './helpers.js';
+import { bi } from './i18n.js';
 
 function sortedHomework() {
     return (state.get('currentParentHomework') || [])
@@ -79,7 +80,7 @@ export function renderParentHomework() {
         <header class="fp-pagehead fp-rise">
             <span class="fp-pagehead__icon fp-pagehead__icon--amber" aria-hidden="true"><i class="fas fa-book-open"></i></span>
             <div>
-                <h2 class="fp-pagehead__title">${tr('Homework', 'Εργασίες')}</h2>
+                <h2 class="fp-pagehead__title">${bi('Homework', 'Εργασίες')}</h2>
                 <p class="fp-pagehead__sub">${isGreek() ? 'Τι χρειάζεται να γίνει πριν από το επόμενο μάθημα.' : `What ${escapeHtml(name)} needs to do before the next lesson.`}</p>
             </div>
         </header>
@@ -87,7 +88,7 @@ export function renderParentHomework() {
             ${current ? renderNote(current, { main: true }) : `
                 <div class="fp-note fp-note--empty fp-rise">
                     <span class="fp-note__magnet" aria-hidden="true"></span>
-                    <h3 class="fp-note__title">${tr('Nothing pinned yet', 'Τίποτα καρφιτσωμένο ακόμη')}</h3>
+                    <h3 class="fp-note__title">${bi('Nothing pinned yet', 'Τίποτα καρφιτσωμένο ακόμη')}</h3>
                     <p class="fp-note__body">${tr('When the teacher sets homework after a lesson, it appears here.', 'Όταν δοθεί εργασία μετά το μάθημα, θα εμφανιστεί εδώ.')}</p>
                 </div>`}
             ${earlier.length ? `

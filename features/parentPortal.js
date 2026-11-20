@@ -7,9 +7,11 @@ import { renderParentHome, updateParentHeader } from './parent/home.js';
 import { renderParentHomework, downloadTestCalendarEvent } from './parent/homework.js';
 import { renderParentProgress } from './parent/progress.js';
 import { renderParentMessages, getActiveThread, absenceStarter } from './parent/messages.js';
+import { renderParentTips, toggleTipTried, showNextQuestion } from './parent/tips.js';
 import { getLang, setLang, tr } from './parent/i18n.js';
 import '../styles/family_portal_lang.css';
 import '../styles/family_portal_more.css';
+import '../styles/family_portal_tips.css';
 import { showTreasureDetail, hydrateTreasures } from './parent/treasures.js';
 import { handleInstallClick, wirePullToRefresh, wireKeyboardRoom, confirmLogout } from './parent/phone.js';
 import {
@@ -27,6 +29,7 @@ const TAB_RENDERERS = {
     home: renderParentHome,
     homework: renderParentHomework,
     progress: renderParentProgress,
+    tips: renderParentTips,
     messages: renderParentMessages
 };
 
@@ -115,6 +118,7 @@ const SHELL_WORDS = {
     home: ['Home', 'Αρχική'],
     homework: ['Homework', 'Εργασίες'],
     progress: ['Progress', 'Πρόοδος'],
+    tips: ['Tips', 'Συμβουλές'],
     messages: ['Messages', 'Μηνύματα']
 };
 
@@ -123,8 +127,9 @@ function applyShellLanguage() {
     const screen = document.getElementById('parent-screen');
     if (!screen) return;
     const lang = getLang();
-    screen.lang = lang;
-    screen.dataset.lang = lang;
+    screen.lang = lang === 'en' ? 'en' : 'el';
+    screen.dataset.lang = lang === 'en' ? 'en' : 'el';
+    screen.dataset.bilingual = lang === 'bi' ? 'true' : 'false';
     screen.querySelectorAll('[data-parent-i18n]').forEach((el) => {
         const words = SHELL_WORDS[el.dataset.parentI18n];
         if (words) el.textContent = tr(...words);
@@ -136,15 +141,67 @@ function applyShellLanguage() {
     };
     label(document.getElementById('parent-refresh-btn'), 'Check for news', 'Έλεγχος για νέα');
     label(document.getElementById('parent-logout-btn'), 'Log out', 'Αποσύνδεση');
+    label(document.getElementById('parent-lang-btn'), 'Language: English. Change language', 'Γλώσσα: ' + (lang === 'bi' ? 'Ελληνικά και Αγγλικά' : 'Ελληνικά') + '. Αλλαγή γλώσσας');
     document.getElementById('parent-bottom-nav')?.setAttribute('aria-label', tr(...SHELL_WORDS.portal));
-    document.querySelectorAll('[data-lang-opt]').forEach((opt) => opt.classList.toggle('is-on', opt.dataset.langOpt === lang));
-    const langBtn = document.getElementById('parent-lang-btn');
-    langBtn?.setAttribute('aria-label', lang === 'el' ? 'Switch to English' : 'Αλλαγή σε Ελληνικά');
-    langBtn?.setAttribute('title', lang === 'el' ? 'English' : 'Ελληνικά');
+    screen.querySelector('.fp-header')?.setAttribute('aria-label', tr(...SHELL_WORDS.portal));
+    const code = screen.querySelector('[data-lang-code]');
+    if (code) code.textContent = { el: 'ΕΛ', en: 'EN', bi: 'ΕΛ+EN' }[lang] || 'ΕΛ';
 }
 
-function switchLanguage() {
-    setLang(getLang() === 'el' ? 'en' : 'el');
+const LANG_CHOICES = [
+    { key: 'el', flag: 'ΕΛ', title: 'Ελληνικά', note: 'Όλα στα ελληνικά' },
+    { key: 'bi', flag: 'ΕΛ+EN', title: 'Ελληνικά + English', note: 'Ελληνικά, με τα αγγλικά από κάτω' },
+    { key: 'en', flag: 'EN', title: 'English', note: 'Everything in English' }
+];
+
+/** A small sheet with three big, plainly named choices. Remembered on this phone. */
+function openLanguageSheet() {
+    if (document.getElementById('fp-lang-sheet')) return;
+    const current = getLang();
+    const sheet = document.createElement('div');
+    sheet.id = 'fp-lang-sheet';
+    sheet.className = 'fp-lang-sheet';
+    sheet.setAttribute('role', 'dialog');
+    sheet.setAttribute('aria-modal', 'true');
+    sheet.setAttribute('aria-labelledby', 'fp-lang-sheet-title');
+    sheet.innerHTML = `
+        <div class="fp-lang-sheet__card">
+            <span class="fp-lang-sheet__grip" aria-hidden="true"></span>
+            <h2 class="fp-lang-sheet__title" id="fp-lang-sheet-title"><i class="fas fa-globe" aria-hidden="true"></i> Γλώσσα <span lang="en">· Language</span></h2>
+            <div class="fp-lang-sheet__list" role="radiogroup" aria-labelledby="fp-lang-sheet-title">
+                ${LANG_CHOICES.map((choice) => `
+                    <button type="button" class="fp-lang-sheet__opt${choice.key === current ? ' is-on' : ''}" role="radio" aria-checked="${choice.key === current}" data-lang-choice="${choice.key}" lang="${choice.key === 'en' ? 'en' : 'el'}">
+                        <span class="fp-lang-sheet__flag" aria-hidden="true">${choice.flag}</span>
+                        <span class="fp-lang-sheet__words"><strong>${choice.title}</strong><span>${choice.note}</span></span>
+                        <i class="fas ${choice.key === current ? 'fa-circle-check' : 'fa-circle'} fp-lang-sheet__check" aria-hidden="true"></i>
+                    </button>`).join('')}
+            </div>
+            <p class="fp-lang-sheet__foot">Η επιλογή σας αποθηκεύεται σε αυτή τη συσκευή. <span lang="en">Saved on this device.</span></p>
+        </div>`;
+    const close = () => {
+        sheet.classList.remove('is-open');
+        setTimeout(() => sheet.remove(), 220);
+        document.removeEventListener('keydown', onKey);
+        document.getElementById('parent-lang-btn')?.focus({ preventScroll: true });
+    };
+    const onKey = (event) => { if (event.key === 'Escape') close(); };
+    sheet.addEventListener('click', (event) => {
+        const opt = event.target.closest('[data-lang-choice]');
+        if (opt) {
+            if (opt.dataset.langChoice !== getLang()) switchLanguage(opt.dataset.langChoice);
+            close();
+            return;
+        }
+        if (!event.target.closest('.fp-lang-sheet__card')) close();
+    });
+    document.addEventListener('keydown', onKey);
+    document.getElementById('parent-screen')?.appendChild(sheet);
+    requestAnimationFrame(() => sheet.classList.add('is-open'));
+    sheet.querySelector('.fp-lang-sheet__opt.is-on')?.focus({ preventScroll: true });
+}
+
+function switchLanguage(lang) {
+    setLang(lang);
     applyShellLanguage();
     renderParentPortal();
     // Mid tab-change the old panel can still be the visible one; redraw the chosen tab too.
@@ -194,7 +251,7 @@ export function wireParentPortalListeners({ onLogout, onRefresh, onSelectThread 
     document.getElementById('parent-logout-btn')?.addEventListener('click', async () => {
         if (await confirmLogout()) onLogout?.();
     });
-    document.getElementById('parent-lang-btn')?.addEventListener('click', switchLanguage);
+    document.getElementById('parent-lang-btn')?.addEventListener('click', openLanguageSheet);
     const checkForNews = async () => {
         const button = document.getElementById('parent-refresh-btn');
         if (button?.classList.contains('is-busy')) return;
@@ -220,6 +277,20 @@ export function wireParentPortalListeners({ onLogout, onRefresh, onSelectThread 
         const itemBtn = event.target.closest('[data-parent-item]');
         if (itemBtn) {
             showTreasureDetail(itemBtn);
+            return;
+        }
+        const triedBtn = event.target.closest('[data-parent-tip-tried]');
+        if (triedBtn) {
+            const done = toggleTipTried(triedBtn.dataset.parentTipTried);
+            renderParentTab('tips');
+            if (done) {
+                const card = document.querySelector(`[data-parent-tip-tried="${triedBtn.dataset.parentTipTried}"]`)?.closest('details');
+                if (card) { card.open = true; card.classList.add('is-celebrating'); }
+            }
+            return;
+        }
+        if (event.target.closest('[data-parent-next-question]')) {
+            showNextQuestion(event.target.closest('[data-parent-next-question]'));
             return;
         }
         if (event.target.closest('[data-parent-install]')) {

@@ -5,6 +5,8 @@
 import { escapeHtml } from '../utils/html.mjs';
 import { friendlyAuthError } from '../utils/friendlyErrors.js';
 import { normalizeUsername, ROLE_PARENT, ROLE_SECRETARY, ROLE_TEACHER } from '../utils/roles.js';
+import { getFamilyLang, setFamilyLang } from '../utils/familyLang.js';
+import { watchAuthFamilyLanguage, syncAuthFamilyLanguage } from './authFamilyWords.js';
 
 const LAST_ROLE_KEY = 'gcq.lastAuthRole';
 const LAST_USERNAME_KEY = 'gcq_lastAuthUsername';
@@ -170,12 +172,61 @@ export function paintAuthRoleCopy(role, { mode = 'login', activation = false, ar
     });
     const usernameInput = document.getElementById('login-username');
     if (usernameInput) usernameInput.placeholder = role === ROLE_SECRETARY ? 'e.g. office' : 'e.g. maria.p';
-    document.getElementById('auth-arrival')?.classList.toggle('hidden', !(arrivedByLink && role === ROLE_PARENT && !activation));
+    const familyLink = arrivedByLink && role === ROLE_PARENT && !activation;
+    document.getElementById('auth-arrival')?.classList.toggle('hidden', !familyLink);
+    // A family that scanned its QR code only needs the Parent door: the other two step aside.
+    if (screen && !familyLink) screen.classList.remove('auth-screen--family-link');
+    else if (screen && familyLink && !screen.dataset.otherDoorOpened) screen.classList.add('auth-screen--family-link');
+    paintFamilyLangPill(role === ROLE_PARENT && !activation);
 
     const forgot = document.getElementById('auth-forgot-btn');
     if (forgot) forgot.classList.toggle('hidden', activation || mode !== 'login');
     if (activation) return null;
     return (mode === 'signup' && copy.signup) || copy.login;
+}
+
+// ── Families: Greek first, one tap to English ──────────────────────────────
+
+function paintFamilyLangPill(show) {
+    const pill = document.getElementById('auth-family-lang');
+    if (!pill) return;
+    pill.classList.toggle('hidden', !show);
+    const english = getFamilyLang() === 'en';
+    const label = pill.querySelector('[data-auth-family-lang-label]');
+    if (label) label.textContent = english ? 'Ελληνικά' : 'English';
+    pill.lang = english ? 'el' : 'en';
+    pill.setAttribute('aria-label', english ? 'Ελληνικά' : 'Read in English');
+}
+
+/** The QR code already carried the username: say so, and send the cursor to the password. */
+export function noteLinkedUsernameArrival() {
+    const text = document.querySelector('[data-auth-arrival-text]');
+    if (text) text.textContent = 'Your username is already filled in. Just type your password.';
+    document.getElementById('auth-screen')?.classList.add('auth-screen--username-ready');
+    // The gate may still be rising behind the loading screen: wait until the field can be seen.
+    let tries = 0;
+    const focusWhenVisible = () => {
+        const field = document.getElementById('login-password');
+        const screen = document.getElementById('auth-screen');
+        if (field && field.getClientRects().length && !screen?.classList.contains('hidden') && getComputedStyle(screen).opacity > 0.9) {
+            if (!field.value) field.focus({ preventScroll: true });
+        } else if (++tries < 40) setTimeout(focusWhenVisible, 150);
+    };
+    setTimeout(focusWhenVisible, 300);
+}
+
+function wireFamilyLanguage(screen) {
+    watchAuthFamilyLanguage();
+    document.getElementById('auth-family-lang')?.addEventListener('click', () => {
+        setFamilyLang(getFamilyLang() === 'en' ? 'el' : 'en');
+        paintFamilyLangPill(true);
+        syncAuthFamilyLanguage();
+    });
+    document.getElementById('auth-other-door')?.addEventListener('click', () => {
+        screen.dataset.otherDoorOpened = '1';
+        screen.classList.remove('auth-screen--family-link');
+        document.getElementById('auth-role-switcher')?.querySelector('[data-auth-role="teacher"]')?.focus({ preventScroll: true });
+    });
 }
 
 // ── Friendly errors ─────────────────────────────────────────────────────────
@@ -267,6 +318,12 @@ export function updateUsernameHint() {
     const hint = document.getElementById('login-username-hint');
     if (!input || !hint) return;
     const typed = input.value.trim();
+    // Greek phones often start on the Greek keyboard; usernames are always Latin letters.
+    if (/[\u0370-\u03ff\u1f00-\u1fff]/.test(typed)) {
+        hint.classList.remove('hidden');
+        hint.textContent = 'Greek letters? Switch the keyboard to English (Latin) letters.';
+        return;
+    }
     const normalized = normalizeUsername(typed);
     if (!typed || typed === normalized) {
         hint.classList.add('hidden');
@@ -283,6 +340,7 @@ export function wireAuthFieldHelpers() {
     const screen = document.getElementById('auth-screen');
     if (!screen || screen.dataset.helpersWired) return;
     screen.dataset.helpersWired = '1';
+    wireFamilyLanguage(screen);
 
     screen.addEventListener('click', (event) => {
         const peek = event.target.closest('[data-auth-peek]');

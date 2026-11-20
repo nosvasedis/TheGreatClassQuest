@@ -772,8 +772,13 @@ const TEACHER_LINES = {
     night: 'The stars are out for you',
 };
 
+// Families read Greek first (utils/familyLang.js); only an explicit English choice changes it.
+function familyEnglish() {
+    try { return localStorage.getItem('gcq_family_lang_v1') === 'en'; } catch { return false; }
+}
+
 function welcomeLine(role, dayPart) {
-    if (role === 'parent') return 'Your hero’s story awaits';
+    if (role === 'parent') return familyEnglish() ? 'Your hero’s story awaits' : 'Η ιστορία του ήρωά σας συνεχίζεται';
     if (role === 'secretary') return 'Your School Office is ready';
     return TEACHER_LINES[dayPart] || TEACHER_LINES.afternoon;
 }
@@ -886,7 +891,7 @@ export function revealStagedLoadingPersonalization({ schoolName = '', dayPart = 
     if (schoolEl) {
         schoolEl.hidden = !school;
         schoolEl.innerHTML = school
-            ? `<span class="loading-ribbon"><span class="loading-ribbon__eyebrow">Welcome to</span><span class="loading-ribbon__name">${escapeHTML(school)}</span></span>`
+            ? `<span class="loading-ribbon"><span class="loading-ribbon__eyebrow">${role === 'parent' && !familyEnglish() ? 'Καλώς ήρθατε στο' : 'Welcome to'}</span><span class="loading-ribbon__name">${escapeHTML(school)}</span></span>`
             : '';
     }
     if (personEl) {

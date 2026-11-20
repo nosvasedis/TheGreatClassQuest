@@ -27,9 +27,10 @@ import {
     sinceLastVisit,
     whenPhrase
 } from './helpers.js';
-import { tr, isGreek, countWord, STAR_WORDS } from './i18n.js';
+import { tr, bi, isGreek, countWord, STAR_WORDS, gameName } from './i18n.js';
 import { renderFortnight } from './calendar.js';
 import { renderInstallCard } from './phone.js';
+import { renderHomeTip } from './tips.js';
 
 function formatStars(value) {
     const n = Number(value || 0);
@@ -71,7 +72,7 @@ function buildSummary(snapshot, name, lesson, test) {
     const latest = snapshot.latestGrade;
     if (latest?.label && snapshotAssessmentUses(snapshot).any) {
         const isDictation = latest.type === 'dictation' && (!latest.title || latest.title === 'dictation');
-        const title = isDictation ? tr('dictation', 'υπαγόρευση') : latest.title;
+        const title = isDictation ? tr('dictation', 'ορθογραφία') : latest.title;
         // "?" is what the teacher writes when a paper could not be marked at all.
         const unmarkable = latest.label === '?';
         // "18 / 20" stays on one line.
@@ -133,7 +134,7 @@ function renderNextLessonTile(lesson) {
                 <span class="fp-leaf fp-leaf--sage" aria-hidden="true"><span class="fp-leaf__month">${tr('Class', 'Τάξη')}</span><span class="fp-leaf__day"><i class="fas fa-school"></i></span></span>
                 <div class="fp-tile__copy">
                     <p class="fp-tile__kicker">${tr('Next lesson', 'Επόμενο μάθημα')}</p>
-                    <p class="fp-tile__title">${tr('Timetable coming soon', 'Το πρόγραμμα έρχεται σύντομα')}</p>
+                    <p class="fp-tile__title">${bi('Timetable coming soon', 'Το πρόγραμμα έρχεται σύντομα')}</p>
                     <p class="fp-tile__meta">${tr('The school will add the lesson days.', 'Το σχολείο θα προσθέσει τις μέρες των μαθημάτων.')}</p>
                 </div>
             </div>`;
@@ -177,7 +178,7 @@ function renderSecondTile(homework, parts) {
             <span class="fp-leaf fp-leaf--amber" aria-hidden="true"><span class="fp-leaf__month">${tr('Home', 'Σπίτι')}</span><span class="fp-leaf__day"><i class="fas fa-pencil"></i></span></span>
             <div class="fp-tile__copy">
                 <p class="fp-tile__kicker">${tr('Homework', 'Εργασία')}</p>
-                <p class="fp-tile__title">${tr('Nothing set yet', 'Δεν έχει δοθεί ακόμη')}</p>
+                <p class="fp-tile__title">${bi('Nothing set yet', 'Δεν έχει δοθεί ακόμη')}</p>
                 <p class="fp-tile__meta">${tr('It appears here after a lesson.', 'Εμφανίζεται εδώ μετά το μάθημα.')}</p>
             </div>
         </div>`;
@@ -291,16 +292,16 @@ function renderMoments(snapshot, name) {
 /** Three big, plainly named doors for the things families come to do most. */
 function renderQuickActions() {
     const actions = [
-        { attrs: 'data-parent-tab-link="homework"', icon: 'fa-book-open', tone: 'amber', label: tr('See homework', 'Δείτε την εργασία') },
-        { attrs: 'data-parent-compose="question"', icon: 'fa-pen-nib', tone: 'sky', label: tr('Write to the school', 'Γράψτε στο σχολείο') },
-        { attrs: 'data-parent-compose="absence"', icon: 'fa-bed', tone: 'rose', label: tr('Report an absence', 'Δηλώστε απουσία') }
+        { attrs: 'data-parent-tab-link="homework"', icon: 'fa-book-open', tone: 'amber', label: bi('See homework', 'Δείτε την εργασία') },
+        { attrs: 'data-parent-compose="question"', icon: 'fa-pen-nib', tone: 'sky', label: bi('Write to the school', 'Γράψτε στο σχολείο') },
+        { attrs: 'data-parent-compose="absence"', icon: 'fa-bed', tone: 'rose', label: bi('Report an absence', 'Δηλώστε απουσία') }
     ];
     return `
         <nav class="fp-quick fp-rise" style="--fp-delay:1" aria-label="${tr('What would you like to do?', 'Τι θα θέλατε να κάνετε;')}">
             ${actions.map((action) => `
                 <button type="button" class="fp-quick__btn fp-quick__btn--${action.tone}" ${action.attrs}>
                     <span class="fp-quick__icon" aria-hidden="true"><i class="fas ${action.icon}"></i></span>
-                    <span class="fp-quick__label">${escapeHtml(action.label)}</span>
+                    <span class="fp-quick__label">${action.label}</span>
                 </button>`).join('')}
         </nav>`;
 }
@@ -311,6 +312,7 @@ function renderHowTo() {
         ['fa-house', tr('<strong>Home</strong> shows this week: stars, the next lesson and any news.', '<strong>Αρχική</strong>: η εβδομάδα με μια ματιά, αστέρια, επόμενο μάθημα και νέα.')],
         ['fa-book-open', tr('<strong>Homework</strong> shows what to do before the next lesson.', '<strong>Εργασίες</strong>: τι πρέπει να γίνει πριν από το επόμενο μάθημα.')],
         ['fa-seedling', tr('<strong>Progress</strong> shows stars by month, test results and attendance.', '<strong>Πρόοδος</strong>: αστέρια ανά μήνα, βαθμοί και παρουσίες.')],
+        ['fa-star', tr('<strong>Tips</strong> has Lumi’s short ideas for helping with English at home.', '<strong>Συμβουλές</strong>: σύντομες ιδέες της Lumi για να βοηθάτε στα Αγγλικά από το σπίτι.')],
         ['fa-envelope', tr('<strong>Messages</strong> is where you write to the school and read replies.', '<strong>Μηνύματα</strong>: γράφετε στο σχολείο και διαβάζετε τις απαντήσεις.')],
         ['fa-rotate', tr('New things arrive by themselves. To check now, tap <i class="fas fa-rotate" aria-hidden="true"></i> at the top or pull the page down.', 'Τα νέα έρχονται μόνα τους. Για έλεγχο τώρα, πατήστε <i class="fas fa-rotate" aria-hidden="true"></i> επάνω ή τραβήξτε τη σελίδα προς τα κάτω.')]
     ];
@@ -342,7 +344,7 @@ export function renderParentHome() {
             <article class="fp-hello fp-rise" style="--fp-delay:0">
                 <span class="fp-hello__stamp" aria-hidden="true">${escapeHtml(snapshot.classLogo || getGuildById(snapshot.guildId)?.emoji || '⭐')}</span>
                 <p class="fp-hello__greet">${escapeHtml(greeting())},</p>
-                <h2 class="fp-hello__title">${isGreek() ? 'να τι έγινε αυτή την εβδομάδα' : `here is ${escapeHtml(name)}'s week`}</h2>
+                <h2 class="fp-hello__title">${isGreek() ? bi(`here is ${escapeHtml(name)}'s week`, 'να τι έγινε αυτή την εβδομάδα') : `here is ${escapeHtml(name)}'s week`}</h2>
                 <p class="fp-hello__summary">${escapeHtml(buildSummary(snapshot, name, lesson, parts?.test))}</p>
                 ${renderNews(snapshot, homework)}
             </article>
@@ -351,6 +353,7 @@ export function renderParentHome() {
                 ${renderNextLessonTile(lesson)}
                 ${renderSecondTile(homework, parts)}
             </div>
+            ${renderHomeTip(snapshot)}
             ${renderFortnight()}
             ${renderStarJar(snapshot, name)}
             ${renderLetter(snapshot)}
@@ -360,10 +363,21 @@ export function renderParentHome() {
         </div>`;
 }
 
+// Chrome, Samsung Internet, Mi Browser and Huawei Browser colour their own top bar from
+// theme-color: match it to the porch sky so the phone's bar and the header read as one.
+const BAR_COLOURS = { morning: '#fdf4dc', day: '#ffe9c9', evening: '#f8c297', night: '#27325a' };
+function tintBrowserBar(time) {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) return;
+    if (!meta.dataset.appColour) meta.dataset.appColour = meta.getAttribute('content') || '';
+    meta.setAttribute('content', BAR_COLOURS[time] || BAR_COLOURS.day);
+}
+
 /** Header: portrait, first name, class and guild; the sky follows the time of day. */
 export function updateParentHeader(snapshot = getSnapshot()) {
     const screen = document.getElementById('parent-screen');
     if (screen) screen.dataset.time = timeOfDay();
+    tintBrowserBar(screen?.dataset.time);
     const name = snapshot.studentName || '';
     const titleEl = document.querySelector('[data-parent-title]');
     const subtitleEl = document.querySelector('[data-parent-student-name]');
@@ -378,8 +392,8 @@ export function updateParentHeader(snapshot = getSnapshot()) {
         // The hero class is the first thing to go when a phone runs out of room.
         const bits = [
             snapshot.className ? escapeHtml(snapshot.className) : '',
-            guild ? `${escapeHtml(guild.emoji)}<span class="fp-sub-guild"> ${escapeHtml(guild.name)}</span>` : '',
-            hero ? `<span class="fp-sub-hero">${escapeHtml(hero.icon)} ${escapeHtml(normalizeHeroClass(snapshot.heroClass))}</span>` : ''
+            guild ? `${escapeHtml(guild.emoji)}<span class="fp-sub-guild"> ${escapeHtml(gameName(guild.name))}</span>` : '',
+            hero ? `<span class="fp-sub-hero">${escapeHtml(hero.icon)} ${escapeHtml(gameName(normalizeHeroClass(snapshot.heroClass)))}</span>` : ''
         ].filter(Boolean);
         subtitleEl.innerHTML = name
             ? bits.map((bit, i) => (i && bit.startsWith('<span') ? `<span class="fp-sub-hero"> · </span>${bit}` : `${i ? ' · ' : ''}${bit}`)).join('')

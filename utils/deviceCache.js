@@ -1,3 +1,5 @@
+import { FAMILY_LANG_KEY } from './familyLang.js';
+
 const CACHE_CHOICE_KEY = 'gcq_device_cache_choice_v1';
 
 export function getDeviceCacheChoice() {
@@ -28,12 +30,15 @@ export function saveDeviceCacheChoice(choice) {
 export function clearLocalAppData() {
     if (typeof window === 'undefined') return;
     const preservedCacheChoice = window.localStorage.getItem(CACHE_CHOICE_KEY);
+    // The language a family chose is not personal data: keep it so the next sign-in speaks it too.
+    const preservedFamilyLang = window.localStorage.getItem(FAMILY_LANG_KEY);
     Object.keys(window.localStorage)
         .filter((key) => key.startsWith('gcq_') || key.startsWith('quest_') || key.startsWith('dismissed_makeups_'))
         .forEach((key) => window.localStorage.removeItem(key));
     if (preservedCacheChoice === 'shared') {
         window.localStorage.setItem(CACHE_CHOICE_KEY, 'shared');
     }
+    if (preservedFamilyLang) window.localStorage.setItem(FAMILY_LANG_KEY, preservedFamilyLang);
     window.sessionStorage.clear();
 }
 

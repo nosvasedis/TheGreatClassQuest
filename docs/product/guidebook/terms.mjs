@@ -370,7 +370,7 @@ export const TERMS = [
     aliases: ["scholar's scroll", 'scholars scroll'],
     def: {
       en: 'Pro tab for tests and dictations. High scores can grant Scholar’s Bonus via Starfall. Not an Award Stars reason button.',
-      el: 'Καρτέλα Pro για διαγωνίσματα και υπαγορεύσεις. Οι υψηλοί βαθμοί μπορούν να δώσουν Scholar’s Bonus μέσω Starfall.'
+      el: 'Καρτέλα Pro για διαγωνίσματα και ορθογραφίες. Οι υψηλοί βαθμοί μπορούν να δώσουν Scholar’s Bonus μέσω Starfall.'
     },
     confuse: { en: 'Award Stars, Quiz of the Week', el: 'Award Stars, Quiz of the Week' }
   },
@@ -382,7 +382,7 @@ export const TERMS = [
     aliases: ['starfall bonus'],
     def: {
       en: 'Bonus stars you confirm after a very high test (95% or more → +1) or a run of strong dictations (above 85%, with a few conditions). They are recorded as Scholar’s Bonus, not as a fifth Award Stars virtue. Lives on Scholar’s Scroll.',
-      el: 'Έξτρα αστέρια που επιβεβαιώνεις μετά από πολύ υψηλό διαγώνισμα (95% ή περισσότερο → +1) ή σειρά δυνατών υπαγορεύσεων. Καταγράφονται ως Scholar’s Bonus — όχι πέμπτη αρετή στο Award Stars. Ζει στο Scholar’s Scroll.'
+      el: 'Έξτρα αστέρια που επιβεβαιώνεις μετά από πολύ υψηλό διαγώνισμα (95% ή περισσότερο → +1) ή σειρά δυνατών ορθογραφιών. Καταγράφονται ως Scholar’s Bonus — όχι πέμπτη αρετή στο Award Stars. Ζει στο Scholar’s Scroll.'
     },
     confuse: { en: 'Award Stars virtue buttons', el: 'Κουμπιά αρετών στο Award Stars' }
   },

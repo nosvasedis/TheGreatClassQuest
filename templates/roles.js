@@ -50,7 +50,7 @@ const bottomNav = (role, items) => `
 
 // The Family Portal has its own home-like shell (header and tab bar) on every screen size.
 const familyHeader = `
-    <header class="fp-header" aria-label="Family Portal">
+    <header class="fp-header" aria-label="Πύλη γονέων">
         <div class="fp-header__town" aria-hidden="true">
             <span class="fp-town fp-town--back"></span>
             <span class="fp-town fp-town--front"></span>
@@ -59,34 +59,38 @@ const familyHeader = `
         <div class="fp-header__row">
             <div class="fp-portrait" data-parent-portrait aria-hidden="true"><span>?</span></div>
             <div class="fp-header__copy">
-                <p class="fp-header__eyebrow"><i class="fas fa-house-chimney-window" aria-hidden="true"></i> <span data-parent-i18n="portal">Family Portal</span><span class="fp-header__school" data-parent-school></span></p>
-                <h1 class="fp-header__title" data-parent-title>Loading…</h1>
+                <p class="fp-header__eyebrow"><i class="fas fa-house-chimney-window" aria-hidden="true"></i> <span data-parent-i18n="portal">Πύλη γονέων</span><span class="fp-header__school" data-parent-school></span></p>
+                <h1 class="fp-header__title" data-parent-title>Φόρτωση…</h1>
                 <p class="fp-header__sub" data-parent-student-name></p>
             </div>
             <div class="fp-header__actions">
-                <button type="button" id="parent-lang-btn" class="fp-lang" aria-label="Ελληνικά / English" title="Ελληνικά / English">
-                    <span class="fp-lang__opt" data-lang-opt="el" lang="el">ΕΛ</span><span class="fp-lang__opt" data-lang-opt="en" lang="en">EN</span>
+                <button type="button" id="parent-lang-btn" class="fp-lang" aria-label="Γλώσσα / Language" title="Γλώσσα / Language" aria-haspopup="dialog">
+                    <i class="fas fa-globe" aria-hidden="true"></i><span class="fp-lang__code" data-lang-code>ΕΛ</span>
                 </button>
-                <button type="button" id="parent-refresh-btn" class="fp-icon-btn" title="Check for news" aria-label="Check for news">
+                <button type="button" id="parent-refresh-btn" class="fp-icon-btn" title="Έλεγχος για νέα" aria-label="Έλεγχος για νέα">
                     <i class="fas fa-rotate" aria-hidden="true"></i>
                 </button>
-                <button type="button" id="parent-logout-btn" class="fp-icon-btn fp-icon-btn--quiet" title="Log out" aria-label="Log out">
+                <button type="button" id="parent-logout-btn" class="fp-icon-btn fp-icon-btn--quiet" title="Αποσύνδεση" aria-label="Αποσύνδεση">
                     <i class="fas fa-arrow-right-from-bracket" aria-hidden="true"></i>
                 </button>
             </div>
         </div>
     </header>`;
 
+// Lumi's star for the Tips tab: one flat path so it takes the tab's colour.
+const NAV_LUMI = '<svg class="fp-nav__lumi" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path d="M45.4 8.7Q50 0 54.6 8.7L60.7 20.3Q65.3 29 75 30.6L87.9 32.9Q97.6 34.5 90.7 41.6L81.6 51Q74.7 58 76.1 67.8L78 80.7Q79.4 90.5 70.6 86.1L58.8 80.3Q50 76 41.2 80.3L29.4 86.1Q20.6 90.5 22 80.7L23.9 67.8Q25.3 58 18.4 51L9.3 41.6Q2.4 34.5 12.1 32.9L25 30.6Q34.7 29 39.3 20.3Z" fill="currentColor"/><circle cx="42" cy="52" r="4.5" fill="var(--fp-nav-face, #fffcf6)"/><circle cx="58" cy="52" r="4.5" fill="var(--fp-nav-face, #fffcf6)"/><path d="M44 62q6 5 12 0" stroke="var(--fp-nav-face, #fffcf6)" stroke-width="4" fill="none" stroke-linecap="round"/></svg>';
+
 const familyNav = `
-    <nav id="parent-bottom-nav" class="fp-nav" aria-label="Family Portal">
+    <nav id="parent-bottom-nav" class="fp-nav" aria-label="Πύλη γονέων">
         ${[
-            { key: 'home', icon: 'fa-house', label: 'Home' },
-            { key: 'homework', icon: 'fa-book-open', label: 'Homework' },
-            { key: 'progress', icon: 'fa-seedling', label: 'Progress' },
-            { key: 'messages', icon: 'fa-envelope', label: 'Messages' }
+            { key: 'home', icon: 'fa-house', label: 'Αρχική' },
+            { key: 'homework', icon: 'fa-book-open', label: 'Εργασίες' },
+            { key: 'progress', icon: 'fa-seedling', label: 'Πρόοδος' },
+            { key: 'tips', icon: 'lumi', label: 'Συμβουλές' },
+            { key: 'messages', icon: 'fa-envelope', label: 'Μηνύματα' }
         ].map(({ key, icon, label }, index) => `
-            <button type="button" class="fp-nav__btn${index === 0 ? ' active' : ''}" data-parent-tab="${key}" aria-current="${index === 0 ? 'page' : 'false'}">
-                <span class="fp-nav__icon"><i class="fas ${icon}" aria-hidden="true"></i><span class="fp-nav__badge hidden" data-parent-badge="${key}"></span></span>
+            <button type="button" class="fp-nav__btn fp-nav__btn--${key}${index === 0 ? ' active' : ''}" data-parent-tab="${key}" aria-current="${index === 0 ? 'page' : 'false'}">
+                <span class="fp-nav__icon">${icon === 'lumi' ? NAV_LUMI : `<i class="fas ${icon}" aria-hidden="true"></i>`}<span class="fp-nav__badge hidden" data-parent-badge="${key}"></span></span>
                 <span class="fp-nav__label" data-parent-i18n="${key}">${label}</span>
             </button>
         `).join('')}
@@ -99,6 +103,7 @@ export const roleShellsHTML = `
             <section class="fp-tab" data-parent-section="home"></section>
             <section class="fp-tab hidden" data-parent-section="homework"></section>
             <section class="fp-tab hidden" data-parent-section="progress"></section>
+            <section class="fp-tab hidden" data-parent-section="tips"></section>
             <section class="fp-tab hidden" data-parent-section="messages"></section>
         </main>
         ${familyNav}

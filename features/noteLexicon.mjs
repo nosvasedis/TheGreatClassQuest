@@ -280,7 +280,7 @@ export const LEXICON_THEMES = [
         en: ['spell', 'misspel'], gr: ['ορθογραφ', 'ανορθογραφ', 'λαθη στις λεξεις'],
         techniques: ['look-cover-write', 'phonics-chunks'],
         action: (n) => `Three tricky words for ${n} with look, say, cover, write, check.`,
-        examples: [['Excellent spelling in the dictation!', 'strength'], ['Struggles with spelling, many mistakes.', 'worry'], ['Πολλά ορθογραφικά λάθη στην υπαγόρευση.', 'worry']] },
+        examples: [['Excellent spelling in the dictation!', 'strength'], ['Struggles with spelling, many mistakes.', 'worry'], ['Πολλά λάθη στην ορθογραφία.', 'worry']] },
 
     { id: 'reading', kind: 'learning', sev: 1, group: 'learning', domain: 'learning', label: 'Reading', labelEl: 'Ανάγνωση', icon: 'fa-book-open-reader', paper: 'test',
         en: ['reading', 'reads? (slow|well|aloud|fluent|word by word)', 'decod'],

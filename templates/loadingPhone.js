@@ -122,14 +122,9 @@ function startingRole() {
 
 /** Families read the portal in English or Greek; the loading screen follows. */
 function familyLang() {
+    // Families are Greek first (utils/familyLang.js); "both" shows Greek here.
     const saved = previewParam('lang') || read(FAMILY_LANG_KEY);
-    if (saved === 'el' || saved === 'en') return saved;
-    try {
-        const prefs = [...(navigator.languages || []), navigator.language].filter(Boolean);
-        return prefs.some((code) => /^el\b/i.test(code)) ? 'el' : 'en';
-    } catch {
-        return 'en';
-    }
+    return saved === 'en' ? 'en' : 'el';
 }
 
 /** day, golden (dawn and the last light) or night, from the real sky. */

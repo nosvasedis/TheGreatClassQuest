@@ -13,7 +13,7 @@ import {
     tr,
     isGreek
 } from './helpers.js';
-import { countWord, STAR_WORDS, LESSON_WORDS } from './i18n.js';
+import { countWord, STAR_WORDS, LESSON_WORDS, bi, gameName, gameNameHtml } from './i18n.js';
 import { renderTreasures } from './treasures.js';
 import { GOLD_COIN_HTML } from '../../utils/goldCoin.js';
 
@@ -69,7 +69,7 @@ function toneForPercent(percent) {
 }
 
 function typeLabel(type) {
-    if (type === 'dictation') return tr('Dictation', 'Υπαγόρευση');
+    if (type === 'dictation') return tr('Dictation', 'Ορθογραφία');
     if (type === 'test') return tr('Test', 'Διαγώνισμα');
     return tr('Result', 'Αποτέλεσμα');
 }
@@ -77,7 +77,7 @@ function typeLabel(type) {
 function renderResults(snapshot) {
     const uses = snapshotAssessmentUses(snapshot);
     if (!uses.any) {
-        return `<p class="fp-tip fp-rise" style="--fp-delay:2"><i class="fas fa-circle-info" aria-hidden="true"></i> ${tr('This class does not record tests or dictations, so progress is told through stars and attendance.', 'Αυτό το τμήμα δεν καταγράφει διαγωνίσματα ή υπαγορεύσεις, οπότε η πρόοδος φαίνεται από τα αστέρια και τις παρουσίες.')}</p>`;
+        return `<p class="fp-tip fp-rise" style="--fp-delay:2"><i class="fas fa-circle-info" aria-hidden="true"></i> ${tr('This class does not record tests or dictations, so progress is told through stars and attendance.', 'Αυτό το τμήμα δεν καταγράφει διαγωνίσματα ή ορθογραφίες, οπότε η πρόοδος φαίνεται από τα αστέρια και τις παρουσίες.')}</p>`;
     }
     const history = Array.isArray(snapshot.gradeHistory) ? snapshot.gradeHistory : [];
     const showAll = state.get('parentView')?.showAllResults === true;
@@ -90,7 +90,7 @@ function renderResults(snapshot) {
             <div class="fp-card__row">
                 <div>
                     <p class="fp-kicker">${tr('Report card', 'Βαθμολογίες')}</p>
-                    <h3 class="fp-card__title">${uses.tests && uses.dictations ? tr('Recent tests and dictations', 'Πρόσφατα διαγωνίσματα και υπαγορεύσεις') : uses.tests ? tr('Recent tests', 'Πρόσφατα διαγωνίσματα') : tr('Recent dictations', 'Πρόσφατες υπαγορεύσεις')}</h3>
+                    <h3 class="fp-card__title">${uses.tests && uses.dictations ? tr('Recent tests and dictations', 'Πρόσφατα διαγωνίσματα και ορθογραφίες') : uses.tests ? tr('Recent tests', 'Πρόσφατα διαγωνίσματα') : tr('Recent dictations', 'Πρόσφατες ορθογραφίες')}</h3>
                 </div>
                 ${average !== null ? `
                     <span class="fp-ring fp-ring--${toneForPercent(average)}" style="--p:${average}" role="img" aria-label="${tr('Average', 'Μέσος όρος')} ${average}%">
@@ -133,11 +133,11 @@ function renderAttendance(snapshot, name) {
                 <div class="fp-attendance__perfect">
                     <span class="fp-bubble fp-bubble--sage fp-bubble--lg"><i class="fas fa-calendar-check" aria-hidden="true"></i></span>
                     <div>
-                        <h3 class="fp-card__title">${tr('At every lesson so far', 'Σε όλα τα μαθήματα ως τώρα')}</h3>
+                        <h3 class="fp-card__title">${bi('At every lesson so far', 'Σε όλα τα μαθήματα ως τώρα')}</h3>
                         <p class="fp-card__foot">${isGreek() ? 'Δεν έχει χάσει κανένα μάθημα φέτος.' : `${escapeHtml(name)} has not missed a lesson this year.`}</p>
                     </div>
                 </div>` : `
-                <h3 class="fp-card__title">${tr(`Missed ${countWord(absences, LESSON_WORDS)} this year`, `Έχασε ${countWord(absences, LESSON_WORDS)} φέτος`)}</h3>
+                <h3 class="fp-card__title">${bi(`Missed ${countWord(absences, LESSON_WORDS)} this year`, `Έχασε ${countWord(absences, LESSON_WORDS)} φέτος`)}</h3>
                 ${dates.length ? `<div class="fp-date-chips">${dates.map((date) => `<span class="fp-date-chip">${escapeHtml(shortDate(date))}</span>`).join('')}</div>` : ''}
                 <p class="fp-card__foot">${isGreek()
                     ? 'Αν πρόκειται να χάσει κάποιο μάθημα, στείλτε ένα <button type="button" class="fp-inline-link" data-parent-compose="absence">σημείωμα απουσίας</button>.'
@@ -155,24 +155,24 @@ function renderHeroCard(snapshot, name) {
             <div class="fp-hero__grid">
                 <div class="fp-hero__item">
                     <span class="fp-hero__badge" aria-hidden="true">${hero ? hero.icon : '🌱'}</span>
-                    <span class="fp-hero__label">${tr('Hero class', 'Τάξη ήρωα')}</span>
-                    <span class="fp-hero__value">${escapeHtml(normalizeHeroClass(snapshot.heroClass) || tr('Not chosen yet', 'Δεν έχει επιλεγεί'))}</span>
+                    <span class="fp-hero__label">${bi('Hero class', 'Ρόλος ήρωα')}</span>
+                    <span class="fp-hero__value">${snapshot.heroClass && normalizeHeroClass(snapshot.heroClass) ? gameNameHtml(normalizeHeroClass(snapshot.heroClass), escapeHtml) : escapeHtml(tr('Not chosen yet', 'Δεν έχει επιλεγεί'))}</span>
                     ${hero ? `<span class="fp-hero__hint">${escapeHtml(hero.gift)}</span>` : ''}
                 </div>
                 <div class="fp-hero__item">
                     ${guild ? `<img class="fp-hero__emblem" src="${escapeHtml(guild.emblem)}" alt="" loading="lazy" decoding="async">` : '<span class="fp-hero__badge" aria-hidden="true">🏰</span>'}
-                    <span class="fp-hero__label">${tr('Guild', 'Συντεχνία')}</span>
-                    <span class="fp-hero__value">${escapeHtml(guild?.name || tr('Not sorted yet', 'Δεν έχει μπει ακόμη'))}</span>
-                    ${guild?.motto ? `<span class="fp-hero__hint">“${escapeHtml(guild.motto)}”</span>` : ''}
+                    <span class="fp-hero__label">${bi('Guild', 'Συντεχνία')}</span>
+                    <span class="fp-hero__value">${guild?.name ? gameNameHtml(guild.name, escapeHtml) : escapeHtml(tr('Not sorted yet', 'Δεν έχει μπει ακόμη'))}</span>
+                    ${guild?.motto ? `<span class="fp-hero__hint">“${escapeHtml(gameName(guild.motto))}”</span>` : ''}
                 </div>
                 <div class="fp-hero__item">
                     <span class="fp-hero__badge" aria-hidden="true">⭐</span>
-                    <span class="fp-hero__label">${tr('Hero level', 'Επίπεδο ήρωα')}</span>
+                    <span class="fp-hero__label">${bi('Hero level', 'Επίπεδο ήρωα')}</span>
                     <span class="fp-hero__value">${Number(progress.heroLevel || 0)}</span>
                 </div>
                 <div class="fp-hero__item">
                     <span class="fp-hero__badge" aria-hidden="true">${GOLD_COIN_HTML}</span>
-                    <span class="fp-hero__label">${tr('Gold', 'Χρυσός')}</span>
+                    <span class="fp-hero__label">${bi('Gold', 'Χρυσός')}</span>
                     <span class="fp-hero__value">${formatStars(progress.gold || 0)}</span>
                     <span class="fp-hero__hint">${tr('to spend in the class market', 'για την αγορά της τάξης')}</span>
                 </div>
@@ -208,7 +208,7 @@ export function renderParentProgress() {
         <header class="fp-pagehead fp-rise">
             <span class="fp-pagehead__icon fp-pagehead__icon--sage" aria-hidden="true"><i class="fas fa-seedling"></i></span>
             <div>
-                <h2 class="fp-pagehead__title">${tr('Progress', 'Πρόοδος')}</h2>
+                <h2 class="fp-pagehead__title">${bi('Progress', 'Πρόοδος')}</h2>
                 <p class="fp-pagehead__sub">${isGreek() ? 'Πώς προχωρά φέτος.' : `How ${escapeHtml(name)} is growing this year.`}</p>
             </div>
         </header>

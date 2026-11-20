@@ -356,3 +356,20 @@ body.gcq-lite .dcp-lantern,
 body.gcq-lite .dcp-lantern-halo,
 body.gcq-lite .dcp-flame,
 body.gcq-lite .dcp-bolt { animation: none !important; }
+
+/* Families in "both languages" mode: the English sits small under the Greek. */
+.dcp-en {
+    display: block;
+    margin-top: 0.15em;
+    font-family: 'Open Sans', system-ui, sans-serif;
+    font-size: 0.62em;
+    font-weight: 600;
+    letter-spacing: 0;
+    opacity: 0.72;
+}
+/* Greek runs longer: let the title wrap softly instead of squeezing. */
+.dcp-backdrop[lang="el"] .dcp-title { text-wrap: balance; }
+.dcp-backdrop { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+.dcp-backdrop[lang="el"] :is(.dcp-title, .dcp-choice-title, .dcp-choice-cta, .dcp-ask, .dcp-badge, .dcp-kicker) {
+    font-family: 'Fredoka', 'M PLUS Rounded 1c', 'Open Sans', sans-serif;
+}

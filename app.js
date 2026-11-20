@@ -36,6 +36,7 @@ import {
     clearAuthError,
     consumeAuthDeepLinkRole,
     takeLinkedAuthUsername,
+    noteLinkedUsernameArrival,
     hideForgotPanel,
     paintAuthRoleCopy,
     readRememberedAuthRole,
@@ -49,6 +50,7 @@ import {
     wireAuthFieldHelpers
 } from './ui/authScreen.js';
 import { clearLocalAppData, getDeviceCacheChoice, offerDeviceCacheChoice } from './utils/deviceCache.js';
+import { familySpeaksGreek } from './utils/familyLang.js';
 import { recordModuleLoaded, quietly } from './utils/runtimeMetrics.js';
 import { onSecond } from './utils/clock.mjs';
 
@@ -537,6 +539,9 @@ function hideAuthScreen(authScreen) {
 
 function hideAllExperienceScreens() {
     document.getElementById('parent-screen')?.classList.add('hidden');
+    // The Family Portal tints the browser's bar; give the app its own colour back.
+    const bar = document.querySelector('meta[name="theme-color"]');
+    if (bar?.dataset.appColour) bar.setAttribute('content', bar.dataset.appColour);
     document.getElementById('secretary-screen')?.classList.add('hidden');
     document.getElementById('app-screen')?.classList.add('hidden');
     document.getElementById('setup-screen')?.classList.add('hidden');
@@ -633,6 +638,10 @@ const PLAN_SCREEN_COPY = {
     family: {
         eyebrow: 'A short pause',
         paused: 'Your child’s school has paused The Great Class Quest for a little while. Every star and story is safe. Please contact the school office for more.'
+    },
+    familyGreek: {
+        eyebrow: 'Μια μικρή παύση',
+        paused: 'Το σχολείο του παιδιού σας έχει σταματήσει για λίγο το The Great Class Quest. Όλα τα αστέρια και οι ιστορίες είναι ασφαλή. Για περισσότερα, επικοινωνήστε με τη γραμματεία.'
     }
 };
 
@@ -649,8 +658,11 @@ function showSubscribeScreen(loadingScreen, authScreen, { audience = 'staff' } =
     const accessState = getSchoolAccessState();
     const situation = audience === 'family' ? 'family' : (accessState === 'suspended' ? 'suspended' : accessState === 'expired' ? 'expired' : 'pending');
     const canBuy = situation === 'pending' || situation === 'expired';
-    const copy = PLAN_SCREEN_COPY[situation];
+    const familyGreek = situation === 'family' && familySpeaksGreek();
+    const copy = PLAN_SCREEN_COPY[familyGreek ? 'familyGreek' : situation];
     byId('subscribe-eyebrow').textContent = copy.eyebrow;
+    const signOutBtn = byId('subscribe-signout-btn');
+    if (signOutBtn) signOutBtn.innerHTML = `<i class="fas fa-arrow-right-from-bracket mr-1.5" aria-hidden="true"></i>${familyGreek ? 'Αποσύνδεση' : 'Sign out'}`;
     byId('subscribe-headline').classList.toggle('hidden', !canBuy);
     byId('subscribe-lead').classList.toggle('hidden', !canBuy);
     if (canBuy) {
@@ -992,8 +1004,10 @@ function setAuthMode(mode) {
 function prefillRememberedUsername() {
     const input = document.getElementById('login-username');
     if (!input || input.value.trim() || !isRoleLogin(activeAuthRole)) return;
-    input.value = (activeAuthRole === ROLE_PARENT && takeLinkedAuthUsername()) || readRememberedUsername(activeAuthRole);
+    const linked = activeAuthRole === ROLE_PARENT ? takeLinkedAuthUsername() : '';
+    input.value = linked || readRememberedUsername(activeAuthRole);
     updateUsernameHint();
+    if (linked) noteLinkedUsernameArrival();
 }
 
 // The door the sign-in screen opens on: a QR code or link first, then the role this device used last.
@@ -1386,8 +1400,8 @@ function setupAuthListeners() {
                 }).catch(quietly('app.js'));
             }
             appScreen.classList.add('hidden');
-            document.getElementById('parent-screen')?.classList.add('hidden');
-            document.getElementById('secretary-screen')?.classList.add('hidden');
+            hideAllExperienceScreens();
+            appScreen.classList.add('hidden');
             const subScreen = document.getElementById('subscribe-screen');
             if (subScreen) subScreen.classList.add('hidden');
             authScreen.classList.remove('hidden');

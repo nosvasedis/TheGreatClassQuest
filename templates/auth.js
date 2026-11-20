@@ -139,7 +139,7 @@ export const authHTML = `
 
                         <div id="auth-arrival" class="auth-arrival hidden" role="note">
                             <span class="auth-arrival__wave" aria-hidden="true">👋</span>
-                            <span><strong>Hello, family!</strong> Welcome to your child’s quest. Sign in below to follow it from home.</span>
+                            <span><strong>Hello, family!</strong> <span data-auth-arrival-text>Welcome to your child’s quest. Sign in below to follow it from home.</span></span>
                         </div>
 
                         <h2 id="auth-title" class="font-title auth-card-title">Teacher sign in</h2>
@@ -222,6 +222,15 @@ export const authHTML = `
                                 <span class="auth-submit-label">Create my account</span>
                             </button>
                         </form>
+
+                        <div class="auth-family-lang-wrap">
+                            <button type="button" id="auth-family-lang" class="auth-family-lang hidden" lang="en" aria-label="Read in English">
+                                <i class="fas fa-globe" aria-hidden="true"></i><span data-auth-family-lang-label>English</span>
+                            </button>
+                        </div>
+                        <div class="auth-other-door-wrap">
+                            <button type="button" id="auth-other-door" class="auth-toggle-link auth-other-door">Not a parent? Teacher or office sign-in</button>
+                        </div>
 
                         <div class="auth-switch">
                             <button id="toggle-auth-mode" type="button" class="auth-toggle-link">New teacher? Create an account</button>

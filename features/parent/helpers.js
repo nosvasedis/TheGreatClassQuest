@@ -180,7 +180,7 @@ const REASONS = {
     respect: { label: 'Respect', el: 'Σεβασμός', icon: 'fa-handshake', tone: 'sage' },
     focus: { label: 'Focus', el: 'Συγκέντρωση', icon: 'fa-bullseye', tone: 'amber' },
     excellence: { label: 'Great work', el: 'Εξαιρετική δουλειά', icon: 'fa-star', tone: 'amber' },
-    welcome_back: { label: 'Welcome back', el: 'Καλώς ήρθες πίσω', icon: 'fa-door-open', tone: 'sky' },
+    welcome_back: { label: 'Welcome back', el: 'Επιστροφή στην τάξη', icon: 'fa-door-open', tone: 'sky' },
     story_weaver: { label: 'Story writing', el: 'Γράψιμο ιστορίας', icon: 'fa-book-open', tone: 'violet' },
     vanishing_hoard: { label: 'Focus game', el: 'Παιχνίδι συγκέντρωσης', icon: 'fa-eye', tone: 'amber' },
     torn_map: { label: 'Teamwork game', el: 'Παιχνίδι ομαδικότητας', icon: 'fa-compass', tone: 'violet' },

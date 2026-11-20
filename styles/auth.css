@@ -1239,3 +1239,49 @@
 @media (prefers-reduced-motion: reduce) {
     .gate-daylight-veil { transition: none !important; }
 }
+
+/* ── Families: Greek first, one tap to English ─────────────────────────── */
+#auth-screen { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+.auth-family-lang-wrap { margin-top: 0.85rem; text-align: center; }
+.auth-family-lang {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 2.75rem;
+    padding: 0 1.1rem;
+    border: 1.5px solid var(--auth-accent-soft, #fcd9a0);
+    border-radius: 999px;
+    background: #fff;
+    color: #92400e;
+    font: 700 0.9rem/1 'Fredoka', 'Open Sans', sans-serif;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+.auth-family-lang:active { transform: scale(0.96); }
+.auth-family-lang:focus-visible { outline: 3px solid #f59e0b; outline-offset: 2px; }
+
+/* A family that scanned its own QR code sees only the Parent door. */
+.auth-other-door-wrap { display: none; margin-top: 0.6rem; text-align: center; }
+.auth-other-door { font-size: 0.82rem; font-weight: 600; opacity: 0.85; }
+#auth-screen.auth-screen--family-link #auth-role-switcher { display: none; }
+#auth-screen.auth-screen--family-link .auth-other-door-wrap { display: block; }
+#auth-screen.auth-screen--family-link .auth-arrival { margin-top: 0.2rem; }
+
+/* The QR code filled the username: it is already right, the password is next. */
+#auth-screen.auth-screen--username-ready #login-username-wrap .auth-field-input-wrap {
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.45);
+    border-radius: 1rem;
+}
+#auth-screen.auth-screen--username-ready #login-username-wrap .auth-field-icon { color: #16a34a; }
+
+/* Greek words run longer: the role tabs and title wrap gracefully on phones. */
+#auth-screen[lang="el"] .auth-role-btn__label { font-size: 0.8rem; letter-spacing: -0.01em; }
+#auth-screen[lang="el"] .auth-card-title { text-wrap: balance; }
+
+/* Fredoka has no Greek letters: Greek falls through to a rounded face of the same spirit
+   (self-hosted Greek subset, styles/tokens.css). */
+#auth-screen[lang="el"] :is(.auth-card-title, .auth-submit-btn, .auth-role-btn__label, .auth-welcome__kicker, .auth-school-banner__kicker, .auth-family-lang) {
+    font-family: 'Fredoka', 'M PLUS Rounded 1c', 'Open Sans', sans-serif;
+}
+#auth-screen[lang="el"] .auth-card-title { font-weight: 800; }
+#auth-screen[lang="el"] .auth-submit-btn { font-weight: 800; }

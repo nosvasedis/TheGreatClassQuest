@@ -1,6 +1,6 @@
 // features/parent/phone.js — the Family Portal on a phone: keep it on the home screen, pull down
 // for news, and give the keyboard room while a family is writing.
-import { tr } from './i18n.js';
+import { tr, bi } from './i18n.js';
 
 const INSTALL_KEY = 'gcq_family_install_v1';
 let deferredPrompt = null;
@@ -54,7 +54,7 @@ export function renderInstallCard({ force = false } = {}) {
         <aside class="fp-install fp-rise" style="--fp-delay:6" data-parent-install>
             <span class="fp-install__icon" aria-hidden="true"><i class="fas fa-mobile-screen-button"></i></span>
             <div class="fp-install__copy">
-                <p class="fp-install__title">${tr('Keep the portal on your phone', 'Κρατήστε την πύλη στο κινητό σας')}</p>
+                <p class="fp-install__title">${bi('Keep the portal on your phone', 'Κρατήστε την πύλη στο κινητό σας')}</p>
                 <p class="fp-install__steps">${steps}</p>
                 <div class="fp-install__actions">
                     <button type="button" class="fp-btn fp-btn--primary fp-btn--sm${deferredPrompt ? '' : ' hidden'}" data-parent-install-go><i class="fas fa-download" aria-hidden="true"></i> ${tr('Add it now', 'Προσθήκη τώρα')}</button>
@@ -179,8 +179,8 @@ export function confirmLogout() {
         sheet.innerHTML = `
             <div class="fp-sheet__card">
                 <span class="fp-sheet__icon" aria-hidden="true"><i class="fas fa-door-open"></i></span>
-                <h2 class="fp-sheet__title" id="fp-sheet-title">${tr('Log out?', 'Αποσύνδεση;')}</h2>
-                <p class="fp-sheet__text">${tr('You will need your email and password to come back in.', 'Για να ξαναμπείτε θα χρειαστείτε το email και τον κωδικό σας.')}</p>
+                <h2 class="fp-sheet__title" id="fp-sheet-title">${bi('Log out?', 'Αποσύνδεση;')}</h2>
+                <p class="fp-sheet__text">${tr('You will need your username and password to come back in.', 'Για να ξαναμπείτε θα χρειαστείτε το όνομα χρήστη και τον κωδικό σας.')}</p>
                 <div class="fp-sheet__actions">
                     <button type="button" class="fp-btn fp-btn--primary" data-sheet-stay>${tr('Stay here', 'Μένω εδώ')}</button>
                     <button type="button" class="fp-btn fp-btn--soft" data-sheet-leave><i class="fas fa-arrow-right-from-bracket" aria-hidden="true"></i> ${tr('Log out', 'Αποσύνδεση')}</button>

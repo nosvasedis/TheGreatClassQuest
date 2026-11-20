@@ -9,6 +9,7 @@
  */
 import { ROLE_PARENT, ROLE_SECRETARY, ROLE_TEACHER } from '../../utils/roles.js';
 import { saveDeviceCacheChoice } from '../../utils/deviceCache.js';
+import { getFamilyLang } from '../../utils/familyLang.js';
 import '../../styles/device_cache_prompt.css';
 
 // Wording adapts to who is actually signed in, since this prompt fires for
@@ -53,6 +54,38 @@ const ROLE_COPY = {
         noPoints: ['Nothing is kept after you sign out', 'Loads fresh each time, a little slower'],
     },
 };
+
+// Families see this in Greek first (utils/familyLang.js). Plain words, one question,
+// two big answers: many parents are not "tech" people and should not have to think.
+const PARENT_COPY_EL = {
+    title: 'Ποιος χρησιμοποιεί αυτό το κινητό;',
+    lede: 'Μία ερώτηση, μόνο την πρώτη φορά. Έτσι η πύλη ξέρει αν μπορεί να θυμάται τη σύνδεσή σας.',
+    ask: 'Διαλέξτε ό,τι ισχύει για εσάς:',
+    kicker: 'Ρωτάμε μόνο μία φορά',
+    badge: 'Προτείνεται',
+    safe: 'Δεν αλλάζει τίποτα στον λογαριασμό σας. Αφορά μόνο αυτή τη συσκευή.',
+    yesTitle: 'Μόνο η οικογένειά μας',
+    yesWho: 'Τη συσκευή τη χρησιμοποιούμε μόνο εμείς.',
+    yesLabel: 'Ναι, είναι δικό μας',
+    yesPoints: ['Ανοίγει πιο γρήγορα κάθε φορά', 'Θυμάται το όνομα χρήστη'],
+    noTitle: 'Και άλλοι άνθρωποι',
+    noWho: 'Τη συσκευή τη χρησιμοποιούν κι άλλοι (π.χ. κοινόχρηστος υπολογιστής).',
+    noLabel: 'Όχι, είναι κοινόχρηστο',
+    noPoints: ['Δεν μένει τίποτα μετά την αποσύνδεση', 'Φορτώνει λίγο πιο αργά'],
+};
+
+const PARENT_DONE_EL = {
+    trusted: { title: 'Έτοιμο! Το φανάρι μένει αναμμένο.', text: 'Την επόμενη φορά η πύλη θα ανοίξει πιο γρήγορα σε αυτή τη συσκευή.' },
+    shared: { title: 'Εντάξει. Η συσκευή μένει καθαρή.', text: 'Ό,τι αποθηκεύεται εδώ σβήνεται κάθε φορά που αποσυνδέεστε.' },
+};
+
+// "Both languages": Greek first, the English underneath in small type.
+function familyCopy(lang) {
+    if (lang === 'en') return ROLE_COPY[ROLE_PARENT];
+    if (lang !== 'bi') return PARENT_COPY_EL;
+    const en = ROLE_COPY[ROLE_PARENT];
+    return { ...PARENT_COPY_EL, enTitle: en.title, enYesTitle: en.yesTitle, enNoTitle: en.noTitle };
+}
 
 const DONE_COPY = {
     trusted: {
@@ -141,36 +174,37 @@ function promptHtml(copy) {
                 <span class="dcp-star" style="--x:90%;--y:58%;--d:1.7s"></span>
                 <span class="dcp-star" style="--x:66%;--y:76%;--d:2.3s"></span>
                 ${LANTERN_SVG}
-                <p class="dcp-kicker">Asked once on this browser</p>
-                <h2 id="gcq-device-cache-title" class="dcp-title">${escapeHtml(copy.title)}</h2>
+                <p class="dcp-kicker">${escapeHtml(copy.kicker || 'Asked once on this browser')}</p>
+                <h2 id="gcq-device-cache-title" class="dcp-title">${escapeHtml(copy.title)}${copy.enTitle ? `<span class="dcp-en" lang="en">${escapeHtml(copy.enTitle)}</span>` : ''}</h2>
                 <p class="dcp-lede">${escapeHtml(copy.lede)}</p>
             </header>
             <div class="dcp-body">
                 <p class="dcp-ask" id="gcq-device-cache-ask">${escapeHtml(copy.ask || 'Who uses this browser?')}</p>
                 <div class="dcp-choices" role="group" aria-labelledby="gcq-device-cache-ask">
                     <button type="button" class="dcp-choice" data-cache-choice="trusted" data-tone="home" aria-label="${escapeHtml(copy.yesLabel)}. ${escapeHtml(copy.yesWho)}">
-                        <span class="dcp-badge">Recommended</span>
+                        <span class="dcp-badge">${escapeHtml(copy.badge || 'Recommended')}</span>
                         <span class="dcp-choice-icon">${HOME_ICON}</span>
-                        <span class="dcp-choice-title">${escapeHtml(copy.yesTitle)}</span>
+                        <span class="dcp-choice-title">${escapeHtml(copy.yesTitle)}${copy.enYesTitle ? `<span class="dcp-en" lang="en">${escapeHtml(copy.enYesTitle)}</span>` : ''}</span>
                         <span class="dcp-choice-who">${escapeHtml(copy.yesWho)}</span>
                         <ul class="dcp-points">${pointsHtml(copy.yesPoints)}</ul>
                         <span class="dcp-choice-cta">${escapeHtml(copy.yesLabel)}</span>
                     </button>
                     <button type="button" class="dcp-choice" data-cache-choice="shared" data-tone="shared" aria-label="${escapeHtml(copy.noLabel)}. ${escapeHtml(copy.noWho)}">
                         <span class="dcp-choice-icon">${DOOR_ICON}</span>
-                        <span class="dcp-choice-title">${escapeHtml(copy.noTitle)}</span>
+                        <span class="dcp-choice-title">${escapeHtml(copy.noTitle)}${copy.enNoTitle ? `<span class="dcp-en" lang="en">${escapeHtml(copy.enNoTitle)}</span>` : ''}</span>
                         <span class="dcp-choice-who">${escapeHtml(copy.noWho)}</span>
                         <ul class="dcp-points">${pointsHtml(copy.noPoints)}</ul>
                         <span class="dcp-choice-cta">${escapeHtml(copy.noLabel)}</span>
                     </button>
                 </div>
-                <p class="dcp-safe">${SHIELD_ICON}<span>This changes local caching only, not login, permissions, school-year data, or app features.</span></p>
+                <p class="dcp-safe">${SHIELD_ICON}<span>${escapeHtml(copy.safe || 'This changes local caching only, not login, permissions, school-year data, or app features.')}</span></p>
             </div>
         </div>`;
 }
 
-function doneHtml(choice) {
-    const done = DONE_COPY[choice] || DONE_COPY.shared;
+function doneHtml(choice, greek) {
+    const table = greek ? PARENT_DONE_EL : DONE_COPY;
+    const done = table[choice] || table.shared;
     return `
         <header class="dcp-sky dcp-sky--done">
             ${choice === 'trusted' ? LANTERN_SVG : `<span class="dcp-done-door">${DOOR_ICON}</span>`}
@@ -182,7 +216,9 @@ function doneHtml(choice) {
 export function openDeviceCachePrompt(role) {
     if (document.getElementById('gcq-device-cache-choice')) return;
 
-    const copy = ROLE_COPY[role] || ROLE_COPY[ROLE_TEACHER];
+    const familyLang = role === ROLE_PARENT ? getFamilyLang() : 'en';
+    const greek = familyLang !== 'en';
+    const copy = role === ROLE_PARENT ? familyCopy(familyLang) : (ROLE_COPY[role] || ROLE_COPY[ROLE_TEACHER]);
     const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
     const panel = document.createElement('section');
@@ -192,6 +228,7 @@ export function openDeviceCachePrompt(role) {
     panel.setAttribute('role', 'dialog');
     panel.setAttribute('aria-modal', 'true');
     panel.setAttribute('aria-labelledby', 'gcq-device-cache-title');
+    panel.lang = greek ? 'el' : 'en';
     panel.innerHTML = promptHtml(copy);
 
     const card = panel.querySelector('.dcp-card');
@@ -215,7 +252,7 @@ export function openDeviceCachePrompt(role) {
         const swap = () => {
             card.dataset.stage = 'done';
             card.dataset.choice = choice;
-            card.innerHTML = doneHtml(choice);
+            card.innerHTML = doneHtml(choice, greek);
             card.classList.remove('is-swapping');
         };
         if (reduceMotion) swap();

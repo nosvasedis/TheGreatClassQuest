@@ -4,7 +4,7 @@ import { roleShellsHTML } from './templates/roles.js';
 import * as state from './state.js';
 
 const params = new URLSearchParams(location.search);
-try { localStorage.setItem('gcq_family_lang_v1', params.get('lang') === 'el' ? 'el' : 'en'); } catch { /* preview */ }
+try { localStorage.setItem('gcq_family_lang_v1', ['en', 'bi'].includes(params.get('lang')) ? params.get('lang') : 'el'); } catch { /* preview */ }
 if (params.get('seen') !== '1') {
     try { Object.keys(localStorage).filter((k) => k.startsWith('gcq_family_')).forEach((k) => k !== 'gcq_family_lang_v1' && localStorage.removeItem(k)); } catch { /* preview */ }
 }

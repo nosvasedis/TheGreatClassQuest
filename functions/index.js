@@ -876,10 +876,20 @@ function familySatchel(inventory) {
     .slice(0, 40);
 }
 
+function familyPathStars(byReason) {
+  if (!byReason || typeof byReason !== 'object') return {};
+  const out = {};
+  Object.entries(byReason).slice(0, 12).forEach(([key, value]) => {
+    const n = Number(value);
+    if (Number.isFinite(n) && n > 0) out[String(key).slice(0, 40)] = Math.round(n * 10) / 10;
+  });
+  return out;
+}
+
 function familyFamiliar(familiar) {
   if (!familiar || typeof familiar !== 'object' || !familiar.typeId) return null;
   const pick = {};
-  ['typeId', 'level', 'state', 'seenLevel', 'name', 'look', 'variant', 'variantKey', 'hatchStars', 'starsAtHatch', 'eggStars'].forEach((key) => {
+  ['typeId', 'level', 'state', 'seenLevel', 'name', 'look', 'variant', 'variantKey', 'hatchStars', 'starsAtHatch', 'eggStars', 'bond', 'purchasedAt', 'starsWhenPurchased'].forEach((key) => {
     if (familiar[key] !== undefined) pick[key] = familiar[key];
   });
   return pick;
@@ -946,7 +956,9 @@ async function buildParentSnapshot(studentId, extra = {}) {
       totalStars: score.totalStars || 0,
       monthlyStars: currentMonthStars(score),
       heroLevel: score.heroLevel || 0,
-      gold: score.gold || 0
+      gold: score.gold || 0,
+      // Stars on the hero class's own path (hero level thresholds), e.g. { respect: 34 }.
+      heroPathStars: familyPathStars(score.starsByReason)
     },
     weekStars,
     starsHistory,

@@ -208,23 +208,27 @@ export function packJar(n, seed = 1) {
 
 const GLASS = 'M30 30h60v8c8 6 12 14 12 24v54c0 8-6 14-14 14H32c-8 0-14-6-14-14V62c0-10 4-18 12-24z';
 
-function defs() {
+function skillDefs(prefix = 'fp-jar') {
     const gradients = JAR_SKILLS.map((skill) => `
-        <linearGradient id="fp-jar-g-${skill.id}" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id="${prefix}-g-${skill.id}" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" stop-color="${skill.from}"/><stop offset="1" stop-color="${skill.to}"/>
         </linearGradient>`).join('');
     const shapes = JAR_SKILLS.map((skill) => `
-        <g id="fp-jar-s-${skill.id}">
-            <path d="${SHAPES[skill.id]}" fill="url(#fp-jar-g-${skill.id})" stroke="${skill.edge}" stroke-width="1.3" stroke-linejoin="round" fill-rule="evenodd"/>
+        <g id="${prefix}-s-${skill.id}">
+            <path d="${SHAPES[skill.id]}" fill="url(#${prefix}-g-${skill.id})" stroke="${skill.edge}" stroke-width="1.3" stroke-linejoin="round" fill-rule="evenodd"/>
             <path d="${GLINTS[skill.id]}" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity="0.85"/>
         </g>`).join('');
+    return `${gradients}${shapes}`;
+}
+
+function defs() {
     return `
         <clipPath id="fp-jar-inside"><path d="${GLASS}"/></clipPath>
         <clipPath id="fp-jar-half"><rect x="-12" y="-12" width="12" height="24"/></clipPath>
         <radialGradient id="fp-jar-warm" cx="0.5" cy="0.95" r="0.75">
             <stop offset="0" stop-color="#ffe9b0" stop-opacity="0.95"/><stop offset="1" stop-color="#fff7e4" stop-opacity="0"/>
         </radialGradient>
-        ${gradients}${shapes}`;
+        ${skillDefs()}`;
 }
 
 /** The order colours fall in: mixed, like a real jar filled day by day, and the same on every visit. */
@@ -246,8 +250,13 @@ export function skillName(skill) {
 }
 
 /** A small copy of a skill's star for the legend (the shapes live in the jar's own drawing). */
-export function miniStar(id) {
-    return `<svg class="fp-jar-key__star" viewBox="-12 -12 24 24" aria-hidden="true"><use href="#fp-jar-s-${id}"/></svg>`;
+export function miniStar(id, prefix = 'fp-jar', className = 'fp-jar-key__star') {
+    return `<svg class="${className}" viewBox="-12 -12 24 24" aria-hidden="true"><use href="#${prefix}-s-${id}"/></svg>`;
+}
+
+/** The skill stars' shapes for a page without the jar (hidden; drawn through <use>). */
+export function skillStarDefs(prefix) {
+    return `<svg class="fp-sr-defs" width="0" height="0" aria-hidden="true" focusable="false"><defs>${skillDefs(prefix)}</defs></svg>`;
 }
 
 /**

@@ -96,10 +96,16 @@ export function getParentLoginUrl(baseHref = globalThis.location?.href || '', sc
 }
 
 /** The Parent sign-in address with the family's username already filled in, for a slip or a notebook card. */
-export function getFamilyLoginUrl(username = '', baseHref, schoolId) {
+/**
+ * A family's own sign-in link. With `key` (only for a printed slip, which shows the password
+ * anyway) the password rides after the #, so scanning signs the family straight in; the part
+ * after # is never sent to a server.
+ */
+export function getFamilyLoginUrl(username = '', baseHref, schoolId, { key = '' } = {}) {
     const url = getParentLoginUrl(baseHref, schoolId);
     const user = normalizeFamilyUsername(username);
-    return user ? `${url}&u=${encodeURIComponent(user)}` : url;
+    if (!user) return url;
+    return `${url}&u=${encodeURIComponent(user)}${key ? `#k=${encodeURIComponent(key)}` : ''}`;
 }
 
 let qrLibPromise = null;

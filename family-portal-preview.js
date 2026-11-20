@@ -83,14 +83,27 @@ const snapshot = empty ? {
         ]
     })
 };
+// ?lastyear=1: a child who moved up keeps last year's records; none of them may show.
+const lastYear = params.get('lastyear') === '1';
+if (lastYear) {
+    snapshot.classId = 'class_jb';
+    snapshot.gradeHistory = [...(snapshot.gradeHistory || []), { title: 'dictation', type: 'dictation', date: '2026-05-20', scoreLabel: '9 / 20', percent: 45 }];
+    if (!snapshot.gradeHistory.some((g) => g.date >= '2026-08-20')) snapshot.latestGrade = { label: '9 / 20', title: 'dictation', type: 'dictation', percent: 45 };
+    snapshot.attendanceSummary = { absences: 4, absenceDates: [...(snapshot.attendanceSummary?.absenceDates || []), '2026-05-12', '2026-04-02'] };
+    snapshot.recentCelebrations = [...(snapshot.recentCelebrations || []), { reason: 'focus', stars: 1, note: 'Last June', date: '2026-06-10' }];
+}
 state.setCurrentParentSnapshot(snapshot);
 state.setCurrentParentHomework(empty ? [] : [
+    ...(lastYear ? [{
+        id: 'hw-old', classId: 'class_keys', sourceClassId: 'class_keys', title: 'Quest Assignment: Homework', publishedAt: '2026-06-05T10:00:00.000Z', updatedAt: '2026-06-05T10:00:00.000Z',
+        body: 'Junior Keys revision.\nUpcoming test: dictation on Friday.', sourceTestDate: '2026-06-12'
+    }] : []),
     {
         id: 'hw1', title: 'Quest Assignment: Homework', publishedAt: day(-1).toISOString(),
         body: 'Workbook page 24, exercises 1 to 3.\nLearn the new words on page 22.\nUpcoming test: Unit 3 Test on Tuesday.\nCurriculum: Unit 3 vocabulary, past simple',
-        sourceTestDate: iso(6)
+        sourceTestDate: iso(6), ...(lastYear ? { classId: 'class_jb' } : {})
     },
-    { id: 'hw2', title: 'Quest Assignment: Homework', publishedAt: day(-5).toISOString(), body: 'Read pages 18-19 aloud to someone at home.' }
+    { id: 'hw2', ...(lastYear ? { classId: 'class_jb' } : {}), title: 'Quest Assignment: Homework', publishedAt: day(-5).toISOString(), body: 'Read pages 18-19 aloud to someone at home.' }
 ]);
 const threads = empty ? [] : [
     { id: 't1', threadType: 'progress-share', previewText: 'Maria read her part in the class play with real confidence today.', lastMessageAt: day(-1, 19).toISOString(), lastAuthorRole: 'teacher' },

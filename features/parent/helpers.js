@@ -27,8 +27,74 @@ const MONTHS_SHORT = {
 };
 const lang = () => (isGreek() ? 'el' : 'en');
 
+// ---------------------------------------------------------------- this school year only
+// A child who moved up keeps last year's records (grades, absences, homework of the old class).
+// Families see this school year only. The server summary filters too; this also covers a
+// summary written before that, and homework, which is read straight from the database.
+
+/** Start of the current school year (20 August, so schools that open early are covered). */
+export function schoolYearStart(now = new Date()) {
+    const late = now.getMonth() > 7 || (now.getMonth() === 7 && now.getDate() >= 20);
+    return new Date(late ? now.getFullYear() : now.getFullYear() - 1, 7, 20);
+}
+
+function inThisYear(value, start) {
+    const date = toDate(value);
+    return !date || date >= start;
+}
+
+function thisYearOnly(raw) {
+    if (!raw || !Object.keys(raw).length) return raw || {};
+    const start = schoolYearStart();
+    const out = { ...raw };
+    if (Array.isArray(raw.gradeHistory)) {
+        const grades = raw.gradeHistory.filter((item) => item?.date && inThisYear(item.date, start));
+        if (grades.length !== raw.gradeHistory.length) {
+            out.gradeHistory = grades;
+            const latest = grades[0];
+            out.latestGrade = latest
+                ? { label: latest.scoreLabel, title: latest.title, type: latest.type, percent: latest.percent }
+                : null;
+            const percents = grades.map((g) => g.percent).filter((p) => Number.isFinite(p));
+            out.gradeAveragePercent = percents.length ? Math.round(percents.reduce((a, b) => a + b, 0) / percents.length) : null;
+            out.gradeAverageLabel = out.gradeAveragePercent === null ? 'N/A' : `${out.gradeAveragePercent}%`;
+        }
+    }
+    const attendance = raw.attendanceSummary;
+    if (attendance && Array.isArray(attendance.absenceDates)) {
+        const dates = attendance.absenceDates.filter((d) => inThisYear(d, start));
+        if (dates.length !== attendance.absenceDates.length) {
+            const removed = attendance.absenceDates.length - dates.length;
+            out.attendanceSummary = { ...attendance, absenceDates: dates, absences: Math.max(dates.length, Number(attendance.absences || 0) - removed) };
+        }
+    }
+    if (Array.isArray(raw.recentCelebrations)) {
+        out.recentCelebrations = raw.recentCelebrations.filter((item) => inThisYear(item?.date, start));
+    }
+    return out;
+}
+
+let yearView = { raw: null, out: {} };
+
 export function getSnapshot() {
-    return state.get('currentParentSnapshot') || {};
+    const raw = state.get('currentParentSnapshot') || {};
+    if (raw !== yearView.raw) yearView = { raw, out: thisYearOnly(raw) };
+    return yearView.out;
+}
+
+/**
+ * The family's homework feed: this child's current class, this school year. Last year's class
+ * (and its old tests and ορθογραφίες) never shows.
+ */
+export function familyHomework() {
+    const raw = state.get('currentParentHomework') || [];
+    const classId = (state.get('currentParentSnapshot') || {}).classId || '';
+    const start = schoolYearStart().getTime();
+    return raw.filter((item) => {
+        if (classId && (item.classId || item.sourceClassId) && item.classId !== classId && item.sourceClassId !== classId) return false;
+        const when = toMillis(item.publishedAt) || toMillis(item.updatedAt) || toMillis(item.lessonDate);
+        return !when || when >= start;
+    });
 }
 
 export function firstName(name) {
@@ -337,7 +403,7 @@ export function unreadThreadCount() {
 }
 
 export function newestHomework() {
-    return (state.get('currentParentHomework') || [])
+    return familyHomework()
         .slice()
         .sort((a, b) => toMillis(b.publishedAt || b.updatedAt) - toMillis(a.publishedAt || a.updatedAt))[0] || null;
 }
@@ -349,7 +415,7 @@ export function isHomeworkNew(item) {
 }
 
 export function markHomeworkSeen() {
-    const items = state.get('currentParentHomework') || [];
+    const items = familyHomework();
     if (!items.length) return;
     const seen = readSeen();
     const homework = { ...(seen.homework || {}) };

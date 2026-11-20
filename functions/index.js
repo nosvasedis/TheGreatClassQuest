@@ -596,6 +596,26 @@ function toIsoDateKey(value) {
   return '';
 }
 
+// The school year a family summary covers: last year's grades, absences, homework and stars
+// must never show (a child moved up from last year's class still has those records).
+async function familyYearScope() {
+  let key = '';
+  try { key = await getActiveSchoolYearKey(); } catch { key = ''; }
+  const { year, month, day } = schoolDateParts();
+  const fromKey = /^(\d{4})-\d{4}$/.exec(key);
+  const startYear = fromKey ? Number(fromKey[1]) : ((month > 8 || (month === 8 && day >= 20)) ? year : year - 1);
+  // A few late-August days count, for schools that open early.
+  return { key, startYear, startIso: `${startYear}-08-20` };
+}
+
+/** True when a record belongs to this school year: by its date, or by its year tag when it has no date. */
+function inFamilyYear(scope, yearTag, dateValue) {
+  const iso = toIsoDateKey(dateValue);
+  if (iso) return iso >= scope.startIso;
+  if (scope.key && yearTag) return String(yearTag) === scope.key;
+  return false;
+}
+
 function isoDaysAgo(days) {
   const { year, month, day } = schoolDateParts();
   const date = new Date(Date.UTC(year, month - 1, day - days));
@@ -608,11 +628,18 @@ async function getAttendanceSummary(studentId) {
     .where('studentId', '==', studentId)
     .limit(60)
     .get();
-  const absenceDates = snap.docs
-    .map((docSnap) => toIsoDateKey(docSnap.data()?.date))
-    .filter(Boolean)
-    .sort()
-    .reverse();
+  const records = snap.docs
+    .map((docSnap) => ({ date: toIsoDateKey(docSnap.data()?.date), schoolYearKey: docSnap.data()?.schoolYearKey || '' }))
+    .filter((item) => item.date)
+    .sort((a, b) => b.date.localeCompare(a.date));
+  return { records };
+}
+
+/** This school year's absences only, in the shape the Family Portal reads. */
+function yearAttendance(summary, scope) {
+  const absenceDates = (summary?.records || [])
+    .filter((item) => inFamilyYear(scope, item.schoolYearKey, item.date))
+    .map((item) => item.date);
   const absences = absenceDates.length;
   return {
     absences,
@@ -671,37 +698,64 @@ function summarizeAwardLogs(logs) {
 // Months of this school year that are already over, oldest first, for the family's growth chart.
 // monthly_history only gets a month when the next month's first star rolls the counter over, so:
 //  - a counter still stamped with a past month holds that month's stars (no star yet this month);
-//  - a month with no history doc and no counter had no stars at all, so it shows as 0;
-//  - older school years stay out.
-async function getStarsHistory(studentId, score = {}, schoolYearKey = '') {
-  const snap = await db.collection(`${dataRoot()}/student_scores/${studentId}/monthly_history`)
-    .orderBy(FieldPath.documentId(), 'desc')
-    .limit(12)
-    .get();
+//  - a month with neither is added up from that month's award log (usually 0, a cheap read);
+//  - other school years stay out.
+async function getStarsHistory(studentId, score = {}, scope) {
+  // Each child has a handful of history docs (one per month), so read them all: no ordering
+  // or index to go wrong.
+  const snap = await db.collection(`${dataRoot()}/student_scores/${studentId}/monthly_history`).get();
   const { year, month } = schoolDateParts();
   const thisMonth = `${year}-${String(month).padStart(2, '0')}`;
-  const startYear = month >= 9 ? year : year - 1;
+  const startYear = scope?.startYear || (month >= 9 ? year : year - 1);
   const yearStart = `${startYear}-09`;
   const byMonth = new Map();
   snap.docs.forEach((docSnap) => {
     const data = docSnap.data() || {};
     const key = String(data.month || docSnap.id);
+    // The month key names its year, so it alone decides; a stale year tag on the doc must not hide it.
     if (!/^\d{4}-\d{2}$/.test(key) || key >= thisMonth || key < yearStart) return;
-    if (schoolYearKey && data.schoolYearKey && data.schoolYearKey !== schoolYearKey) return;
     byMonth.set(key, Number(data.stars || 0));
   });
   const stamp = String(score?.lastMonthlyResetDate || '').slice(0, 7);
   if (/^\d{4}-\d{2}$/.test(stamp) && stamp < thisMonth && stamp >= yearStart && !byMonth.has(stamp)) {
     byMonth.set(stamp, Number(score.monthlyStars || 0));
   }
-  const months = [];
+  const keys = [];
   for (let y = startYear, m = 9; `${y}-${String(m).padStart(2, '0')}` < thisMonth; m === 12 ? (y += 1, m = 1) : (m += 1)) {
-    const key = `${y}-${String(m).padStart(2, '0')}`;
-    // July and August are holidays: listed only if stars were really earned then.
-    if ((m === 7 || m === 8) && !byMonth.has(key)) continue;
-    months.push({ month: key, stars: byMonth.get(key) || 0 });
+    keys.push({ key: `${y}-${String(m).padStart(2, '0')}`, y, m });
   }
-  return months;
+  const missing = keys.filter(({ key, m }) => !byMonth.has(key) && m !== 7 && m !== 8);
+  await Promise.all(missing.map(async ({ key, y, m }) => {
+    const total = await monthStarsFromLog(studentId, y, m).catch((error) => {
+      console.warn('Family stars: could not add up', key, error?.message || error);
+      return null;
+    });
+    if (total !== null) byMonth.set(key, total);
+  }));
+  return keys
+    // July and August are holidays: listed only if stars were really earned then.
+    .filter(({ key, m }) => !((m === 7 || m === 8) && !byMonth.get(key)))
+    .map(({ key }) => ({ month: key, stars: Math.round((byMonth.get(key) || 0) * 10) / 10 }));
+}
+
+/** Stars a child earned in one month, from the award log (for a month with no history doc). */
+async function monthStarsFromLog(studentId, year, month) {
+  // Athens is UTC+2/+3: start a few hours early and keep only the month's own dates below.
+  const from = new Date(Date.UTC(year, month - 1, 1) - 4 * 3600 * 1000);
+  const to = new Date(Date.UTC(month === 12 ? year + 1 : year, month === 12 ? 0 : month, 1) + 4 * 3600 * 1000);
+  const snap = await db.collection(`${dataRoot()}/award_log`)
+    .where('studentId', '==', studentId)
+    .where('createdAt', '>=', from)
+    .where('createdAt', '<', to)
+    .orderBy('createdAt', 'desc') // the (studentId, createdAt desc) index the portal already uses
+    .get();
+  const prefix = `${year}-${String(month).padStart(2, '0')}`;
+  return snap.docs.reduce((sum, docSnap) => {
+    const data = docSnap.data() || {};
+    const iso = toIsoDateKey(data.date);
+    if (iso && !iso.startsWith(prefix)) return sum;
+    return sum + (Number(data.stars) || 0);
+  }, 0);
 }
 
 // monthlyStars is only reset when a teacher opens the app in a new month; until then it still holds last month.
@@ -816,6 +870,7 @@ async function buildParentSnapshot(studentId, extra = {}) {
   const studentPromise = getStudent(studentId);
   const classPromise = studentPromise.then((student) => db.doc(`${dataRoot()}/classes/${student.classId}`).get());
   const scorePromise = getScore(studentId);
+  const scopePromise = familyYearScope();
   const [student, classSnap, score, assessments, attendanceSummary, awardLogs, starsHistory, parentLink, schoolSettings, homeworkCount, previousSnap] = await Promise.all([
     studentPromise,
     classPromise,
@@ -823,7 +878,10 @@ async function buildParentSnapshot(studentId, extra = {}) {
     getRecentAssessments(studentId),
     getAttendanceSummary(studentId),
     getRecentAwardLogs(studentId),
-    Promise.all([studentPromise, scorePromise]).then(([student, score]) => getStarsHistory(studentId, score, student.activeSchoolYearKey || '')).catch(() => []),
+    Promise.all([scorePromise, scopePromise]).then(([score, scope]) => getStarsHistory(studentId, score, scope)).catch((error) => {
+      console.error('Family stars history failed:', error?.message || error);
+      return [];
+    }),
     getParentLink(studentId),
     getSchoolSettings(),
     countPublishedHomework(studentId),
@@ -831,14 +889,15 @@ async function buildParentSnapshot(studentId, extra = {}) {
   ]);
   const classData = classSnap.exists ? classSnap.data() : {};
   const assessmentUses = resolveClassAssessmentUses(classData, schoolSettings);
-  const visibleAssessments = assessments.filter((item) => {
+  const scope = await scopePromise;
+  const visibleAssessments = assessments.filter((item) => inFamilyYear(scope, item.schoolYearKey, item.date)).filter((item) => {
     if (item.type === 'dictation') return assessmentUses.dictations;
     if (item.type === 'test') return assessmentUses.tests;
     return assessmentUses.tests || assessmentUses.dictations;
   });
   const latestGrade = visibleAssessments[0] || null;
   const existing = previousSnap.exists ? previousSnap.data() : {};
-  const { weekStars, recentCelebrations } = summarizeAwardLogs(awardLogs);
+  const { weekStars, recentCelebrations } = summarizeAwardLogs(awardLogs.filter((item) => inFamilyYear(scope, item.schoolYearKey, item.date)));
   const percents = visibleAssessments.map(assessmentPercent).filter((value) => value !== null);
   const gradeAveragePercent = percents.length
     ? Math.round(percents.reduce((sum, value) => sum + value, 0) / percents.length)
@@ -873,7 +932,7 @@ async function buildParentSnapshot(studentId, extra = {}) {
       : 0,
     familiar: familyFamiliar(score.familiar),
     satchel: familySatchel(score.inventory),
-    attendanceSummary,
+    attendanceSummary: yearAttendance(attendanceSummary, scope),
     latestGrade: latestGrade
       ? {
           label: assessmentScoreLabel(latestGrade),

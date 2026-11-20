@@ -1,9 +1,11 @@
 import { detectLowPowerTier as sharedLowPowerTier } from '../utils/devicePerformance.mjs';
 import { paintLoadingSky } from './loadingSky.js';
-import { createTipDeck } from './loadingTips.mjs';
+import { getFamilyLang } from '../utils/familyLang.js';
+import { createTipDeck, FAMILY_LOADING_TIPS } from './loadingTips.mjs';
 import {
     wantsPhoneLoading, isPhoneLoading, phoneLoadingHTML, initPhoneLoading, phoneMarkStage,
     phoneStagePersonalization, phoneLoadingExit, phoneReopen, phoneRevealEta,
+    startingRole, familyLang, familyWelcome,
 } from './loadingPhone.js';
 // templates/loading.js
 //
@@ -308,6 +310,23 @@ const MOON_SVG = `
 
 const LOADING_TITLE_TEXT = 'The Great Class Quest';
 const LOADING_TAGLINE = 'Where every lesson becomes an adventure';
+const FAMILY_TAGLINE = { en: 'Stars, homework and news from school', el: 'Αστέρια, εργασίες και νέα από το σχολείο' };
+
+/** A family is (probably) signing in: their door was used last, or a QR opened it. */
+function familyLoading() {
+    try { return startingRole() === 'parent'; } catch { return false; }
+}
+
+function loadingTagline() {
+    return familyLoading() ? FAMILY_TAGLINE[familyLang()] : LOADING_TAGLINE;
+}
+
+/** The tips for whoever is signing in: families get theirs, in their language. */
+function loadingTipDeck(storage) {
+    if (!familyLoading()) return createTipDeck({ storage });
+    const lang = familyLang();
+    return createTipDeck({ storage, storageKey: `gcq-loading-tip-deck-family-${lang}`, tips: FAMILY_LOADING_TIPS.map((pair) => (lang === 'el' ? pair[1] : pair[0])) });
+}
 
 /**
  * Words as letters, one span each, so they can rise one by one. Words stay
@@ -412,7 +431,7 @@ export const loadingHTML = `
                         <span class="loading-crest__line"></span>
                     </div>
                     <div class="loading-sub">
-                        <p class="loading-tagline"><span class="loading-tagline__text">${LOADING_TAGLINE}</span></p>
+                        <p class="loading-tagline"${familyLoading() ? ` lang="${familyLang()}"` : ''}><span class="loading-tagline__text">${loadingTagline()}</span></p>
                         <div id="loading-greeting" class="loading-welcome">
                             <div id="loading-greeting-text" class="loading-welcome__line"></div>
                             <div id="loading-greeting-school" class="loading-welcome__school"></div>
@@ -526,7 +545,7 @@ export function initLoadingTips() {
     stopTipRotation();
     let storage = null;
     try { storage = window.localStorage; } catch { /* blocked storage: deal without memory */ }
-    const deck = createTipDeck({ storage });
+    const deck = loadingTipDeck(storage);
     tipEl.textContent = deck.next();
 
     const nextTip = () => {
@@ -772,9 +791,9 @@ const TEACHER_LINES = {
     night: 'The stars are out for you',
 };
 
-// Families read Greek first (utils/familyLang.js); only an explicit English choice changes it.
+// Families read their own choice, else the phone's language (utils/familyLang.js).
 function familyEnglish() {
-    try { return localStorage.getItem('gcq_family_lang_v1') === 'en'; } catch { return false; }
+    return getFamilyLang() === 'en';
 }
 
 function welcomeLine(role, dayPart) {
@@ -784,6 +803,8 @@ function welcomeLine(role, dayPart) {
 }
 
 function buildPersonalizedCopy(name, role) {
+    const family = role === 'parent' ? familyWelcome(name) : null;
+    if (family) return { role, name: family.name, initial: family.initial };
     const HONORIFICS = /^(mr|mrs|ms|miss|dr|prof|rev|sir|lord|lady|κ)\.?$/i;
     const displayName = (name || '').trim().replace(/\s+/g, ' ');
     const firstName = displayName.split(' ').find(p => !HONORIFICS.test(p)) || '';

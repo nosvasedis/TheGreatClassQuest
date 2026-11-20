@@ -40,6 +40,7 @@ import { withPendingAwards } from '../../features/awardPending.mjs';
 import { withPendingAttendance } from '../../features/attendancePending.mjs';
 import { isMonthFinaleLesson, monthFinaleContextFrom } from '../../features/monthFinale.js';
 import { playAttendanceTurn, readCloudPalette } from '../awardFx.js';
+import { renderAwardPhoneStage, syncAwardPhoneStage } from '../awardPhoneStage.js';
 import { bindAwardRollTips, hideAwardRollTip, refreshAwardRollTip, registerAwardTipBuilder } from '../awardRollTip.js';
 import { classHeroBoonEligibility } from '../../features/heroMonthStandings.js';
 
@@ -405,6 +406,7 @@ function renderAwardSkySummary(classId) {
         el.classList.add('hidden');
         el.innerHTML = '';
         awardSkySummaryHtml = null;
+        renderAwardPhoneStage({ classId: null });
         return;
     }
     bindAwardSkySummary(el);
@@ -421,6 +423,14 @@ function renderAwardSkySummary(classId) {
             stars: day.starsToday,
             status: resolveAwardRollStatus(day)
         };
+    });
+    // Phones: the sticky dock over the one-cloud stage, heroes in the clouds' order.
+    const byId = new Map(heroes.map((h) => [h.id, h]));
+    renderAwardPhoneStage({
+        classId,
+        heroes: sortStudentsByAwardOrder(classId, students).map((s) => byId.get(s.id)).filter(Boolean),
+        starsToday,
+        modifier: ctx.modifier
     });
     const html = buildAwardSkySummaryHtml({ heroes, starsToday, modifier: ctx.modifier });
     if (html !== awardSkySummaryHtml || !el.firstChild) {
@@ -799,6 +809,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
             awardCardSignatures.clear();
             views.forEach((view) => awardCardSignatures.set(String(view.id), awardCardSignature(view)));
             observeAwardFloat(listContainer);
+            syncAwardPhoneStage({ reset: true });
         } else {
             // Live updates (often another teacher's change) patch only the clouds that
             // changed, so an open cloud never snaps shut or flashes under the teacher.
@@ -806,6 +817,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
             patchAwardCloudList(listContainer, views);
             syncAwardBoonButtons(ctx);
             if (!hadCards) observeAwardFloat(listContainer);
+            syncAwardPhoneStage();
         }
 
         // Last month's Prodigy comes from the network on the first visit of a month:

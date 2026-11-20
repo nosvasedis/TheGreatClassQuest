@@ -85,6 +85,18 @@ function richCard(i) {
     }).replace(' tab-mount-rise', '');
 }
 if (list && params.get('heroes')) list.innerHTML = Array.from({ length: Number(params.get('heroes')) }, (_, i) => richCard(i)).join('');
+if (list && params.get('heroes') && params.get('mobile') === '1') {
+    // The phone dock over the one-cloud stage, fed from the same mock class.
+    const { renderAwardPhoneStage, syncAwardPhoneStage } = await import('./ui/awardPhoneStage.js');
+    const heroes = [...list.querySelectorAll('.aw-card')].map((c) => ({
+        id: c.dataset.studentid,
+        name: c.getAttribute('aria-label'),
+        stars: c.classList.contains('is-locked') ? 2 : 0,
+        status: c.classList.contains('is-locked') ? 'shining' : c.classList.contains('is-absent') ? 'away' : 'waiting'
+    }));
+    renderAwardPhoneStage({ classId: 'pv', heroes, starsToday: heroes.filter((h) => h.status === 'shining').length * 2 });
+    syncAwardPhoneStage({ reset: true });
+}
 if (list) {
     // Same as ui/tabs/award.js: only clouds on screen count as afloat.
     const io = new IntersectionObserver((es) => es.forEach((e) => e.target.classList.toggle('is-afloat', e.isIntersecting)), { rootMargin: '80px 0px' });

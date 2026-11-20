@@ -50,6 +50,7 @@ export const awardTabHTML = `
                     </div>
 
                     <div id="award-sky-summary" class="aw-sky-summary hidden" aria-live="polite"></div>
+                    <div id="award-phone-dock" class="aw-dock-wrap hidden"></div>
 
                     <div id="award-stars-student-list" class="aw-sky-grid">
                         <p class="aw-empty col-span-full"><i class="fas fa-cloud" aria-hidden="true"></i> Please choose a class from the header to award stars.</p>

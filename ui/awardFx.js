@@ -321,7 +321,8 @@ function meltOldCloud(card, { toAbsent, wasPalette, cloud }, duration) {
     const cloudEl = card.querySelector('.aw-cloud');
     if (!cloudEl || !wasPalette) return;
     const ghost = document.createElement('div');
-    ghost.className = `aw-cloud aw-turn-was${toAbsent ? '' : ' aw-turn-was--rain'}`;
+    // Same classes as the cloud it covers (the phone stage cloud sits differently).
+    ghost.className = `${cloudEl.className} aw-turn-was${toAbsent ? '' : ' aw-turn-was--rain'}`;
     ghost.setAttribute('aria-hidden', 'true');
     if (cloudEl.style.inset) ghost.style.inset = cloudEl.style.inset;
     for (const [name, value] of Object.entries(wasPalette)) ghost.style.setProperty(name, value);

@@ -2332,48 +2332,12 @@ button.aw-roll__bead:focus-visible .aw-roll__ring { box-shadow: inset 0 0 0 2px 
 .aw-card__finale,
 .aw-stage { min-height: 3.6rem; }
 
-body.gcq-mobile .award-card-mount { max-width: none; }
-body.gcq-mobile .aw-card { padding: 0.3rem 0 1.5rem; }
-body.gcq-mobile .aw-card__head { padding: 0 2.6rem 0 2.85rem; column-gap: 0.65rem; min-height: 4.8rem; }
-body.gcq-mobile .aw-card__corner--left { left: 0; }
-body.gcq-mobile .aw-card__corner--right { right: 0; }
-body.gcq-mobile .aw-card__head .aw-portrait { width: 3.9rem; height: 3.9rem; }
-body.gcq-mobile .aw-card__head .aw-portrait__img--initial { font-size: 1.7rem; }
-body.gcq-mobile .aw-card__head .aw-card__name { font-size: 1.22rem; }
-body.gcq-mobile .aw-card__head .aw-card__name--long { font-size: 1.08rem; }
-body.gcq-mobile .aw-card__head .aw-card__name--xlong { font-size: 1rem; }
-body.gcq-mobile .aw-boon, body.gcq-mobile .aw-att, body.gcq-mobile .aw-undo { width: 2.2rem; height: 2.2rem; }
-
 /* Weak machines (html[data-wx-lite="1"], set by the sky engine) and reduced motion: the sky keeps
    still, clouds stop drifting; everything stays drawn. */
 html[data-wx-lite="1"] .aw-card.is-afloat .aw-boon--ready .aw-boon__heart,
 html[data-wx-lite="1"] .aw-card.is-afloat:is(:hover, :focus-within) .aw-portrait__levelup { animation: none; }
 
-/* ───────────────────────── Phones ───────────────────────── */
-
-body.gcq-mobile .aw-sky-grid {
-    grid-template-columns: minmax(0, 1fr);
-    justify-items: start;
-    gap: 5rem;
-    padding: 6rem 0.35rem 7rem;
-}
-
-/* Each phone cloud fits the screen whole: the card takes the width left once its own
-   cloud's side puffs (--aw-reach-l/-r, set per shape) are counted, and moves over so
-   the cloud is centred. */
-body.gcq-mobile .aw-sky-grid > .award-card-mount {
-    width: calc(100% / (1 + var(--aw-reach-l, 0.12) + var(--aw-reach-r, 0.12)));
-    margin-left: calc(100% * var(--aw-reach-l, 0.12) / (1 + var(--aw-reach-l, 0.12) + var(--aw-reach-r, 0.12)));
-}
-
-body.gcq-mobile .aw-sky-grid > .award-card-mount { margin-top: 0 !important; }
-body.gcq-mobile .aw-sky-summary { margin: 0 0.75rem 0.5rem; }
-body.gcq-mobile .aw-roll { border-radius: 1.2rem; padding: 0.4rem 0.7rem; gap: 0.3rem 0.55rem; }
-body.gcq-mobile .aw-roll__beads { border-radius: 0.9rem; gap: 7px; padding: 0.4rem 0.65rem; }
-/* The phone shell gives every tab button a 2.5rem min-height, which stretched the
-   round beads into tall ovals. Beads stay perfect circles, a little bigger to tap. */
-body.gcq-mobile .aw-roll .aw-roll__bead { width: 18px; height: 18px; min-height: 0 !important; min-width: 0; aspect-ratio: 1; }
-body.gcq-mobile .aw-roll .aw-roll__bead.is-away { width: 21px; aspect-ratio: auto; }
+/* Phones: the one-cloud stage and sticky dock live in mobile/styles/award.css (phones only). */
 
 @media (max-width: 380px) {
     .aw-tally__item { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; padding: 0.4rem 0.3rem; }

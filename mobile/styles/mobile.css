@@ -9,6 +9,7 @@
 @import './auth-loading.css';
 @import './guilds.css';
 @import './calendar.css';
+@import './award.css';
 
 #m-teacher-header,
 #m-teacher-dock,

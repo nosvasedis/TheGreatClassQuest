@@ -9,7 +9,7 @@
 // #student-gold-display-<id>, .enlargeable-avatar.
 import { escapeHtml as esc } from '../utils/html.mjs';
 import { GOLD_COIN_HTML } from '../utils/goldCoin.js';
-import { AWARD_CLOUD_FAMILIES, AWARD_CLOUD_HUES, awardCloudInsetCss, awardCloudSideReach, buildAwardCloudArtSvg } from './awardCloudShape.mjs';
+import { AWARD_CLOUD_FAMILIES, AWARD_CLOUD_HUES, awardCloudInsetCss, buildAwardCloudArtSvg } from './awardCloudShape.mjs';
 
 export { AWARD_CLOUD_FAMILIES, AWARD_CLOUD_HUES };
 
@@ -396,12 +396,15 @@ export function buildAwardCloudCardHtml(view) {
     const board = view.board === 'tall' ? 'tall' : 'wide';
     const float = Number.isFinite(view.floatDelay) ? view.floatDelay : 0;
 
-    const reach = awardCloudSideReach(family, board);
-    // Phones size each mount from these so the whole cloud, puffs and all, fits the screen.
-    return `<div class="award-card-mount tab-mount-rise" style="--tab-rise-delay:${rise}ms;--aw-reach-l:${reach.left};--aw-reach-r:${reach.right}">`
+    // Phones show one cloud at a time on a stage of its own, drawn with the classic
+    // hand-placed clouds (a big puff behind the portrait); laptops get the wide families.
+    const art = board === 'tall'
+        ? `<div class="aw-cloud aw-cloud--stage" aria-hidden="true"><span class="aw-cloud__halo"></span>${buildAwardCloudSvg(family, id)}</div>`
+        : `<div class="aw-cloud" aria-hidden="true" style="inset:${awardCloudInsetCss(family, board)}"><span class="aw-cloud__halo"></span>${buildAwardCloudArtSvg(family, board, id)}</div>`;
+    return `<div class="award-card-mount tab-mount-rise" style="--tab-rise-delay:${rise}ms">`
         + `<article class="${cardClasses}" data-studentid="${esc(id)}" data-cloud="${family}" data-hue="${hue}"${locked && view.todayReason ? ` data-awarded="${esc(view.todayReason)}"` : ''} style="--aw-float-delay:-${float}ms" aria-label="${esc(view.name)}">`
         + `<div class="aw-card__lift">`
-        + `<div class="aw-cloud" aria-hidden="true" style="inset:${awardCloudInsetCss(family, board)}"><span class="aw-cloud__halo"></span>${buildAwardCloudArtSvg(family, board, id)}</div>`
+        + art
         + `<div class="aw-card__corner aw-card__corner--left">${buildAwardBoonButtonHtml(id, view.boon || {})}</div>`
         + `<div class="aw-card__corner aw-card__corner--right"><div class="absence-controls">${cornerAttendance}</div>`
         + `<button type="button" id="post-award-undo-${esc(id)}" class="post-award-undo-btn aw-undo${locked ? '' : ' hidden'}" title="Undo today's award" aria-label="Undo today's award"><i class="fas fa-rotate-left" aria-hidden="true"></i><span class="aw-undo__tip">Undo</span></button></div>`

@@ -172,13 +172,6 @@ export function getAwardCloudShape(family, boardKey = 'wide') {
     return board[family] || board[AWARD_CLOUD_FAMILIES[0]];
 }
 
-/** How far the art reaches past the content box on each side, as fractions of its width. */
-export function awardCloudSideReach(family, boardKey = 'wide') {
-    const B = AWARD_CLOUD_BOARDS[boardKey] || AWARD_CLOUD_BOARDS.wide;
-    const [vx, , vw] = getAwardCloudShape(family, boardKey).view;
-    return { left: Math.round((-vx / B.w) * 1000) / 1000, right: Math.round(((vx + vw - B.w) / B.w) * 1000) / 1000 };
-}
-
 /** Where the art sits round the content box, as CSS insets in percent (top right bottom left; negative = outside). */
 export function awardCloudInsetCss(family, boardKey = 'wide') {
     const B = AWARD_CLOUD_BOARDS[boardKey] || AWARD_CLOUD_BOARDS.wide;

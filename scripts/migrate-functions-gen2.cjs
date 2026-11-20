@@ -187,7 +187,7 @@ async function prepareRollbackCopy(codeIds) {
     const added = await run('git', ['worktree', 'add', '--detach', ROLLBACK_DIR, head], { cwd: repoRoot });
     if (added.status !== 0) fail(`Could not make the rollback copy:\n${added.stderr}`);
     // Only functions/ is reversed: the scripts and tests of the move may have changed since.
-    const reverted = await run(`git diff ${plan.PORT_COMMIT}^ ${plan.PORT_COMMIT} -- functions | git apply -R --index`, [], { cwd: ROLLBACK_DIR, shell: true });
+    const reverted = await run(`git diff ${plan.PORT_COMMIT}~1 ${plan.PORT_COMMIT} -- functions | git apply -R --index`, [], { cwd: ROLLBACK_DIR, shell: true });
     if (reverted.status !== 0) fail(`Could not reverse the 2nd gen move in the rollback copy (later edits overlap it):\n${reverted.stderr || reverted.stdout}`);
     fs.writeFileSync(marker, head);
   }

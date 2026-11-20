@@ -9,9 +9,6 @@
 // #student-gold-display-<id>, .enlargeable-avatar.
 import { escapeHtml as esc } from '../utils/html.mjs';
 import { GOLD_COIN_HTML } from '../utils/goldCoin.js';
-import { AWARD_CLOUD_FAMILIES, AWARD_CLOUD_HUES, awardCloudInsetCss, buildAwardCloudArtSvg } from './awardCloudShape.mjs';
-
-export { AWARD_CLOUD_FAMILIES, AWARD_CLOUD_HUES };
 
 /** The four life skills a teacher can name on a cloud, in button order. */
 export const AWARD_VIRTUES = [
@@ -31,10 +28,9 @@ export const AWARD_STAR_TIERS = [
 ];
 
 /**
- * Legacy cloud silhouettes for the small clouds in other places (Teacher Boon card, boon sponsor
- * picker). The Award tab's own clouds come from features/awardCloudShape.mjs (buildAwardCloudArtSvg).
- * Drawn on a 400 x 440 board: one body plus puffs (cx, cy, r).
- * Every shape keeps a central dome near (200, 92) so the portrait always sits on cloud.
+ * Cloud silhouettes, drawn on a 400 x 440 board: one body plus puffs (cx, cy, r).
+ * Every shape keeps a central dome near (200, 92) so the portrait always sits on cloud;
+ * the ten differ in their edges: crowns, towers, scallops, billows, drifts and domes.
  */
 export const AWARD_CLOUD_SHAPES = {
     a: {
@@ -56,11 +52,49 @@ export const AWARD_CLOUD_SHAPES = {
         body: [28, 100, 344, 294, 88],
         puffs: [[104, 118, 62], [200, 90, 86], [300, 124, 64], [36, 208, 42], [46, 290, 52], [364, 226, 46], [354, 318, 44], [94, 390, 44], [172, 400, 50], [254, 396, 52], [330, 380, 42]],
         glints: [[58, 158], [346, 178], [150, 414]]
+    },
+    // Twin: two big round bumps side by side.
+    e: {
+        body: [30, 108, 340, 288, 96],
+        puffs: [[140, 108, 82], [262, 98, 90], [48, 236, 58], [352, 228, 62], [50, 322, 50], [352, 318, 52], [118, 382, 56], [232, 392, 62], [322, 374, 48]],
+        glints: [[72, 120], [350, 130], [180, 430]]
+    },
+    // Tower: one tall bump rising over small shoulders.
+    f: {
+        body: [30, 112, 340, 284, 92],
+        puffs: [[200, 80, 98], [96, 152, 58], [308, 142, 62], [362, 212, 40], [38, 252, 52], [362, 280, 50], [96, 380, 54], [200, 398, 60], [304, 382, 54]],
+        glints: [[110, 80], [344, 158], [40, 340]]
+    },
+    // Flat-bottomed: bumps on top, a long smooth base.
+    g: {
+        body: [30, 124, 340, 282, 120],
+        puffs: [[178, 94, 90], [292, 128, 66], [86, 152, 58], [40, 248, 56], [360, 242, 56], [74, 344, 62], [326, 344, 62]],
+        glints: [[76, 110], [354, 166], [330, 410]]
+    },
+    // Billow: a few huge, soft puffs.
+    h: {
+        body: [36, 112, 328, 276, 110],
+        puffs: [[200, 90, 84], [106, 130, 74], [298, 124, 78], [44, 262, 64], [360, 252, 62], [128, 384, 66], [272, 388, 64], [200, 400, 50]],
+        glints: [[50, 158], [366, 172], [200, 418]]
+    },
+    // Side puff: a little knob of cloud on one side, like a breath of wind.
+    i: {
+        body: [36, 108, 334, 288, 92],
+        puffs: [[210, 90, 86], [120, 134, 60], [302, 128, 66], [20, 236, 32], [56, 258, 48], [362, 250, 56], [58, 330, 46], [354, 330, 46], [116, 386, 52], [214, 398, 58], [306, 382, 52]],
+        glints: [[16, 196], [356, 160], [120, 70]]
+    },
+    // Dome: one great round top over a rounded belly.
+    j: {
+        body: [30, 112, 340, 284, 100],
+        puffs: [[200, 86, 104], [84, 152, 54], [316, 152, 54], [40, 242, 50], [360, 242, 50], [52, 322, 48], [348, 322, 48], [128, 388, 56], [272, 388, 56], [200, 402, 48]],
+        glints: [[110, 66], [300, 70], [40, 300]]
     }
 };
 
-/** The cloud families a hero's cloud can take (see features/awardCloudShape.mjs). */
-export const AWARD_CLOUD_KEYS = AWARD_CLOUD_FAMILIES;
+export const AWARD_CLOUD_KEYS = Object.keys(AWARD_CLOUD_SHAPES);
+
+/** Soft per-cloud tints for ordinary clouds (heroes, prodigies, birthdays and the absent keep theirs). */
+export const AWARD_CLOUD_HUES = ['snow', 'lilac', 'aqua', 'dawn', 'mist'];
 
 /** Stars can be fractional (Welcome Back, peer boons); show at most one decimal. */
 export function formatAwardStars(value) {
@@ -78,18 +112,24 @@ function cloudShapesSvg(shape) {
     return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}"/>${puffs}`;
 }
 
+function nameSizeClass(name) {
+    const length = String(name || '').length;
+    return length > 22 ? ' aw-card__name--xlong' : length > 17 ? ' aw-card__name--long' : '';
+}
+
 function sparkPath(cx, cy, s) {
     const k = s * 0.28;
     return `M${cx} ${cy - s}Q${cx + k} ${cy - k} ${cx + s} ${cy}Q${cx + k} ${cy + k} ${cx} ${cy + s}Q${cx - k} ${cy + k} ${cx - s} ${cy}Q${cx - k} ${cy - k} ${cx} ${cy - s}Z`;
 }
 
 /**
- * The cloud art: a soft shelf underneath, a rim, the body with a sky gradient, a virtue tint
+ * The cloud art: a faint shadow and a soft shelf underneath, a rim, a shaded belly, the body
+ * with a sky gradient, a virtue tint
  * that fades in when a reason is picked, a sheen along the top puffs and a few glints.
  * Drawn once and never animated from inside, so it rasterises once per card.
  */
 export function buildAwardCloudSvg(cloudKey, uid) {
-    const shape = AWARD_CLOUD_SHAPES[cloudKey] || AWARD_CLOUD_SHAPES['abcd'[Math.max(0, AWARD_CLOUD_FAMILIES.indexOf(cloudKey)) % 4]];
+    const shape = AWARD_CLOUD_SHAPES[cloudKey] || AWARD_CLOUD_SHAPES.a;
     const id = `awc-${safeIdPart(uid)}`;
     const topPuffs = shape.puffs.filter(([, cy]) => cy < 140);
     const sheen = topPuffs.map(([cx, cy, r]) => {
@@ -98,12 +138,17 @@ export function buildAwardCloudSvg(cloudKey, uid) {
     }).join('');
     const glints = shape.glints.map(([cx, cy], i) => `<path d="${sparkPath(cx, cy, i === 1 ? 9 : 7)}"/>`).join('');
     return `<svg class="aw-cloud__art" viewBox="0 0 400 440" preserveAspectRatio="none" aria-hidden="true" focusable="false">`
-        + `<defs><g id="${id}-s">${cloudShapesSvg(shape)}</g>`
+        + `<defs><g id="${id}-s">${cloudShapesSvg(shape)}</g><clipPath id="${id}-c">${cloudShapesSvg(shape)}</clipPath>`
         + `<linearGradient id="${id}-g" gradientUnits="userSpaceOnUse" x1="0" y1="10" x2="0" y2="440">`
         + `<stop offset="0" style="stop-color:var(--awc-top)"/><stop offset="0.55" style="stop-color:var(--awc-mid)"/><stop offset="1" style="stop-color:var(--awc-bot)"/></linearGradient></defs>`
+        // A faint drop shadow and a soft shelf: plain fills, no blur, so they cost nothing to draw.
+        + `<use href="#${id}-s" class="aw-cloud__shadow" transform="translate(6 26)"/>`
         + `<use href="#${id}-s" class="aw-cloud__shelf" transform="translate(0 14)"/>`
         + `<use href="#${id}-s" class="aw-cloud__rim"/>`
-        + `<use href="#${id}-s" fill="url(#${id}-g)"/>`
+        // A soft belly under the lit cloud: the cloud drawn in its shade colour, the lit cloud
+        // lifted a little inside it, so a light band shows along every bump of the bottom edge.
+        + `<use href="#${id}-s" class="aw-cloud__belly"/>`
+        + `<g clip-path="url(#${id}-c)"><use href="#${id}-s" fill="url(#${id}-g)" transform="translate(0 -18)"/></g>`
         + `<use href="#${id}-s" class="aw-cloud__tint"/>`
         + `<g class="aw-cloud__sheen">${sheen}</g>`
         + `<g class="aw-cloud__rain"><path d="M118 424l-6 14M168 430l-6 14M222 428l-6 14M276 424l-6 14"/></g>`
@@ -388,32 +433,20 @@ export function buildAwardCloudCardHtml(view) {
     const cornerAttendance = mode === 'absent-offer' ? buildAwardAttendanceHtml(mode, view.firstName) : '';
     const desk = deskOpen ? buildAwardAttendanceHtml(mode, view.firstName) : '';
     const honoursHtml = buildAwardHonoursHtml(honours);
-    const nameLength = String(view.name || '').length;
-    const nameSize = nameLength > 22 ? ' aw-card__name--xlong' : nameLength > 17 ? ' aw-card__name--long' : '';
-    const family = AWARD_CLOUD_FAMILIES.includes(view.cloud) ? view.cloud : AWARD_CLOUD_FAMILIES[0];
-    const hue = AWARD_CLOUD_HUES.includes(view.hue) ? view.hue : AWARD_CLOUD_HUES[0];
     const rise = Number.isFinite(view.riseDelay) ? view.riseDelay : 0;
-    const board = view.board === 'tall' ? 'tall' : 'wide';
     const float = Number.isFinite(view.floatDelay) ? view.floatDelay : 0;
 
-    // Phones show one cloud at a time on a stage of its own, drawn with the classic
-    // hand-placed clouds (a big puff behind the portrait); laptops get the wide families.
-    const art = board === 'tall'
-        ? `<div class="aw-cloud aw-cloud--stage" aria-hidden="true"><span class="aw-cloud__halo"></span>${buildAwardCloudSvg(family, id)}</div>`
-        : `<div class="aw-cloud" aria-hidden="true" style="inset:${awardCloudInsetCss(family, board)}"><span class="aw-cloud__halo"></span>${buildAwardCloudArtSvg(family, board, id)}</div>`;
     return `<div class="award-card-mount tab-mount-rise" style="--tab-rise-delay:${rise}ms">`
-        + `<article class="${cardClasses}" data-studentid="${esc(id)}" data-cloud="${family}" data-hue="${hue}"${locked && view.todayReason ? ` data-awarded="${esc(view.todayReason)}"` : ''} style="--aw-float-delay:-${float}ms" aria-label="${esc(view.name)}">`
+        + `<article class="${cardClasses}" data-studentid="${esc(id)}" data-cloud="${esc(view.cloud || 'a')}" data-hue="${esc(AWARD_CLOUD_HUES.includes(view.hue) ? view.hue : 'snow')}"${locked && view.todayReason ? ` data-awarded="${esc(view.todayReason)}"` : ''} style="--aw-float-delay:-${float}ms" aria-label="${esc(view.name)}">`
         + `<div class="aw-card__lift">`
-        + art
+        + `<div class="aw-cloud" aria-hidden="true"><span class="aw-cloud__halo"></span>${buildAwardCloudSvg(view.cloud, id)}</div>`
         + `<div class="aw-card__corner aw-card__corner--left">${buildAwardBoonButtonHtml(id, view.boon || {})}</div>`
         + `<div class="aw-card__corner aw-card__corner--right"><div class="absence-controls">${cornerAttendance}</div>`
         + `<button type="button" id="post-award-undo-${esc(id)}" class="post-award-undo-btn aw-undo${locked ? '' : ' hidden'}" title="Undo today's award" aria-label="Undo today's award"><i class="fas fa-rotate-left" aria-hidden="true"></i><span class="aw-undo__tip">Undo</span></button></div>`
-        // A wide cloud: the portrait sits beside the name, so the card is broad and low like a real cloud.
-        + `<header class="aw-card__head">${familiarHtml(view)}${portraitHtml(view)}`
-        + `<div class="aw-card__nameplate"><div class="aw-card__tags">${heroRibbonHtml(view)}${purseHtml(view)}</div>`
-        + `<h3 class="aw-card__name font-title${nameSize}">${esc(view.name)}</h3>`
-        + `<div class="aw-card__honours">${honoursHtml}</div></div></header>`
+        + `<header class="aw-card__head">${familiarHtml(view)}${portraitHtml(view)}${purseHtml(view)}</header>`
         + `<div class="card-content-wrapper aw-card__body">`
+        + `<div class="aw-card__nameplate">${heroRibbonHtml(view)}<h3 class="aw-card__name font-title${nameSizeClass(view.name)}">${esc(view.name)}</h3>`
+        + `<div class="aw-card__honours">${honoursHtml}</div></div>`
         + tallyHtml(view)
         + `<div class="aw-card__desk">${desk}</div>`
         + buildAwardVirtuesHtml(view)

@@ -376,8 +376,6 @@ function buildStudentCloudView(student, ctx, index = 0) {
         familiarHtml: ctx.familiarsEnabled && scoreData.familiar ? renderFamiliarSprite(scoreData.familiar, 'small', student.id) : '',
         cloud: visual.cloud,
         hue: visual.hue,
-        // Phone cards are narrower and taller, so their clouds are drawn on the taller board.
-        board: document.body.classList.contains('gcq-mobile') || window.innerWidth < 640 ? 'tall' : 'wide',
         floatDelay: visual.floatDelay,
         riseDelay: Math.min(index * 38, 620)
     };

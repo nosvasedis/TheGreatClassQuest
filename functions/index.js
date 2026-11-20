@@ -3,13 +3,18 @@ const { getAuth } = require('firebase-admin/auth');
 const { FieldPath, FieldValue, Timestamp, getFirestore } = require('firebase-admin/firestore');
 const crypto = require('node:crypto');
 const { publicEmberNote, mergePublishedEmber } = require('./campfireCore.cjs');
-const functionsV1 = require('firebase-functions/v1');
+// Every function is 2nd gen (Cloud Run functions), which is what lets them run on Node.js 24.
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
-const { HttpsError } = require('firebase-functions/v1/https');
+const { onCall, onRequest, HttpsError } = require('firebase-functions/v2/https');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 
 initializeApp();
 
+// REST instead of gRPC for Firestore: the first call after a cold start opens one HTTPS
+// connection instead of loading and starting a gRPC channel, so a sleeping function answers
+// sooner. Functions never listen for live updates, the one thing REST cannot do.
 const db = getFirestore();
+db.settings({ preferRest: true });
 const auth = getAuth();
 // Cloud Storage is only needed by a few functions (portraits, market pictures, purges), so its
 // client loads on first use instead of slowing every function's cold start.
@@ -241,30 +246,61 @@ async function requireFeatureEnabled(featureKey) {
   throw new HttpsError('failed-precondition', 'This school plan does not include that access feature yet.');
 }
 
-// People wait on every callable, so each one runs on a 1GB instance: 1st gen functions get
-// CPU in proportion to memory, and the 256MB default made cold starts and work several times slower.
-const CALLABLE_MEMORY = '1GB';
+// People wait on every callable, so each one runs on a 1GiB instance.
+const CALLABLE_MEMORY = '1GiB';
+
+// How every function runs (2nd gen, since 2026-11-20). Chosen from 30 days of real use
+// (~2,000 calls, ~3,600 busy seconds a month, about 2% of the monthly free allowance):
+// - one full CPU: cold starts and work run ~70% faster than 1st gen's share of a CPU;
+// - light callables share a warm instance (up to 16 calls at once), so a burst of people
+//   opening the app does not wake a new instance for each of them. Module state is safe to
+//   share: the school of each call lives in AsyncLocalStorage (tenant.js) and the caches are
+//   keyed by school;
+// - heavy work (pictures, exports, purges, nightly jobs: anything allowed over 60 s, or marked
+//   heavy) keeps one request per instance, so it never competes for memory;
+// - at most 20 instances per function: a runaway client can never run up a bill.
+// Instances scale to zero (nothing is kept warm), so an idle function costs nothing.
+const RUNTIME_DEFAULTS = Object.freeze({ cpu: 1, maxInstances: 20 });
+const LIGHT_CONCURRENCY = 16;
+const HEAVY_CONCURRENCY = 1;
+
+function isHeavy(options = {}) {
+  return options.heavy === true || Number(options.timeoutSeconds || 60) > 60;
+}
+
+function functionOptions(options = {}, defaults = {}) {
+  const result = {
+    region: FUNCTIONS_REGION,
+    ...RUNTIME_DEFAULTS,
+    concurrency: isHeavy(options) ? HEAVY_CONCURRENCY : LIGHT_CONCURRENCY,
+    ...defaults
+  };
+  if (options.memory) result.memory = options.memory;
+  if (options.timeoutSeconds) result.timeoutSeconds = options.timeoutSeconds;
+  if (options.secrets) result.secrets = options.secrets;
+  return result;
+}
 
 function callable(handler, options = {}) {
-  let builder = functionsV1.region(FUNCTIONS_REGION);
-  const runWith = { memory: CALLABLE_MEMORY };
-  if (options.timeoutSeconds) runWith.timeoutSeconds = options.timeoutSeconds;
-  if (options.memory) runWith.memory = options.memory;
-  if (options.secrets) runWith.secrets = options.secrets;
-  if (Object.keys(runWith).length) {
-    builder = builder.runWith(runWith);
-  }
-  return builder.https.onCall(async (data, context) => {
+  return onCall(functionOptions(options, { memory: CALLABLE_MEMORY }), async (callRequest) => {
     const request = {
-      data,
-      auth: context.auth || null,
-      rawRequest: context.rawRequest || null
+      data: callRequest.data,
+      auth: callRequest.auth || null,
+      rawRequest: callRequest.rawRequest || null
     };
     const schoolId = await resolveCallSchoolId(request);
     return runInSchool(schoolId, () => {
       prefetchCallerReads(request);
       return handler(request);
     });
+  });
+}
+
+// Nightly jobs. Cloud Scheduler calls them over HTTPS; a failed night is never retried (the
+// next night picks up the work), as with the 1st gen Pub/Sub schedules they replaced.
+function scheduled({ schedule, timeZone, ...options }, job) {
+  return onSchedule({ ...functionOptions({ ...options, heavy: true }), schedule, timeZone, retryCount: 0 }, async () => {
+    await job();
   });
 }
 
@@ -1768,7 +1804,7 @@ exports.backfillRoleAccessData = callable(async (request) => {
     ok: true,
     parentSnapshotsUpdated: snapshotCount
   };
-}, { timeoutSeconds: 540, memory: '1GB' });
+}, { timeoutSeconds: 540, memory: '1GiB' });
 
 function withYear(payload, yearKey) {
   const resolved = String(payload.schoolYearKey || yearKey || '').trim();
@@ -3067,13 +3103,14 @@ exports.purgeStudent = callable(async (request) => {
   await requireStudentManager(request, studentId);
   const result = await purgeStudentData(studentId);
   return result;
-}, { timeoutSeconds: 120, memory: '512MB' });
+}, { timeoutSeconds: 120, memory: '512MiB' });
 
-exports.purgeLeftSchoolStudents = functionsV1.region(FUNCTIONS_REGION)
-  .runWith({ timeoutSeconds: 540, memory: '512MB' })
-  .pubsub.schedule('every 24 hours')
-  .timeZone('Europe/Athens')
-  .onRun(() => forEachSchool(async () => {
+exports.purgeLeftSchoolStudents = scheduled({
+  schedule: 'every 24 hours',
+  timeZone: 'Europe/Athens',
+  timeoutSeconds: 540,
+  memory: '512MiB'
+}, () => forEachSchool(async () => {
     if (!AUTO_PURGE_LEFT_STUDENTS) {
       // Automatic deletion is off: clear any removal dates set by the old policy
       // so former students are only ever deleted by the Secretary.
@@ -3237,7 +3274,7 @@ exports.ensureShopStock = callable(async (request) => {
     mode
   });
   return { ok: true, ...result };
-}, { timeoutSeconds: 540, memory: '1GB', secrets: ['GCQ_AI_SERVICE_KEY'] });
+}, { timeoutSeconds: 540, memory: '1GiB', secrets: ['GCQ_AI_SERVICE_KEY'] });
 
 // The open year and its Market stalls for this school, or null (logged under `event`) when
 // the nightly shop work should skip it.
@@ -3262,13 +3299,15 @@ async function shopStallsForNightlyRun(event) {
   return { yearKey, stalls: await listShopStalls(yearKey) };
 }
 
-exports.maintainShopStock = functionsV1.region(FUNCTIONS_REGION)
-  .runWith({ timeoutSeconds: 540, memory: '1GB', secrets: ['GCQ_AI_SERVICE_KEY'] })
+exports.maintainShopStock = scheduled({
   // Just after midnight, Athens time, so a new month's stall and a festival's opening day are
   // stocked before the first lesson (the Market itself switches months at Athens midnight).
-  .pubsub.schedule('10 0 * * *')
-  .timeZone('Europe/Athens')
-  .onRun(() => forEachSchool(async () => {
+  schedule: '10 0 * * *',
+  timeZone: 'Europe/Athens',
+  timeoutSeconds: 540,
+  memory: '1GiB',
+  secrets: ['GCQ_AI_SERVICE_KEY']
+}, () => forEachSchool(async () => {
     const run = await shopStallsForNightlyRun('maintainShopStock');
     if (!run) return null;
     const { yearKey, stalls } = run;
@@ -3302,11 +3341,13 @@ exports.maintainShopStock = functionsV1.region(FUNCTIONS_REGION)
 // daily picture cap in shop/prepare.mjs), so the 1st only has to show it. It runs just after
 // Workers AI's allowance resets (00:00 UTC), so it spends a fresh day's neurons first and the
 // classroom keeps the rest. This month's stalls (00:10 Athens) keep their own, larger room in the cap.
-exports.prepareShopStock = functionsV1.region(FUNCTIONS_REGION)
-  .runWith({ timeoutSeconds: 540, memory: '1GB', secrets: ['GCQ_AI_SERVICE_KEY'] })
-  .pubsub.schedule('30 0 * * *')
-  .timeZone('UTC')
-  .onRun(() => forEachSchool(async () => {
+exports.prepareShopStock = scheduled({
+  schedule: '30 0 * * *',
+  timeZone: 'UTC',
+  timeoutSeconds: 540,
+  memory: '1GiB',
+  secrets: ['GCQ_AI_SERVICE_KEY']
+}, () => forEachSchool(async () => {
     const [calendar, prepare] = await Promise.all([import('./shop/calendar.mjs'), import('./shop/prepare.mjs')]);
     const target = prepare.preparationTarget({ day: calendar.shopZonedParts().day, monthKey: calendar.shopMonthKey() });
     if (!target) return null;
@@ -3356,7 +3397,7 @@ exports.manageShopItem = callable(async (request) => {
     console.error('manageShopItem failed:', error);
     throw new HttpsError('internal', 'The merchant could not finish that treasure.');
   }
-}, { timeoutSeconds: 180, memory: '1GB', secrets: ['GCQ_AI_SERVICE_KEY'] });
+}, { timeoutSeconds: 180, memory: '1GiB', secrets: ['GCQ_AI_SERVICE_KEY'] });
 
 // The Avatar Forge (and its AI client) loads only when a portrait is forged or saved.
 let avatarForge = null;
@@ -3375,11 +3416,12 @@ function getAvatarForge() {
 // report as CORS failures. These callables keep portrait generation and storage on the server.
 exports.forgeStudentAvatar = callable((request) => getAvatarForge().forgeStudentAvatar(request), {
   timeoutSeconds: 180,
-  memory: '1GB',
+  memory: '1GiB',
   secrets: ['GCQ_AI_SERVICE_KEY']
 });
 exports.saveStudentAvatar = callable((request) => getAvatarForge().saveStudentAvatar(request), {
-  timeoutSeconds: 60
+  timeoutSeconds: 60,
+  heavy: true // holds a whole portrait in memory while it is saved
 });
 
 // The Adventure Log's Auto picture is painted and stored on the server, so it finishes even
@@ -3400,7 +3442,7 @@ function getAdventurePicture() {
 }
 exports.paintAdventureLogPicture = callable((request) => getAdventurePicture().paintAdventureLogPicture(request), {
   timeoutSeconds: 300,
-  memory: '512MB',
+  memory: '512MiB',
   secrets: ['GCQ_AI_SERVICE_KEY']
 });
 
@@ -3503,13 +3545,18 @@ if (stripeEnabled()) {
   };
   exports.billingCreateCheckout = callable((request) => getBilling().createCheckout(request), { secrets: STRIPE_SECRETS });
   exports.billingCreatePortal = callable((request) => getBilling().createPortal(request), { secrets: STRIPE_SECRETS });
-  exports.stripeWebhook = functionsV1.region(FUNCTIONS_REGION)
-    .runWith({ secrets: STRIPE_SECRETS, memory: '256MB' })
-    .https.onRequest((req, res) => getBilling().handleWebhook(req, res));
+  // Same address as before (https://<region>-<project>.cloudfunctions.net/stripeWebhook), so the
+  // endpoint registered in Stripe keeps working. Stripe proves each call with its signature.
+  exports.stripeWebhook = onRequest(
+    functionOptions({ secrets: STRIPE_SECRETS, memory: '256MiB' }, { invoker: 'public' }),
+    (req, res) => getBilling().handleWebhook(req, res)
+  );
   // Monthly plans are free in July and August: pause their billing each summer.
-  exports.stripeSummerPause = functionsV1.region(FUNCTIONS_REGION)
-    .runWith({ secrets: STRIPE_SECRETS, memory: '256MB', timeoutSeconds: 300 })
-    .pubsub.schedule('30 4 * * *')
-    .timeZone('Europe/Athens')
-    .onRun(() => getBilling().pauseMonthlyPlansForSummer());
+  exports.stripeSummerPause = scheduled({
+    schedule: '30 4 * * *',
+    timeZone: 'Europe/Athens',
+    secrets: STRIPE_SECRETS,
+    memory: '256MiB',
+    timeoutSeconds: 300
+  }, () => getBilling().pauseMonthlyPlansForSummer());
 }

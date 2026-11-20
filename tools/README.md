@@ -18,6 +18,9 @@ its own `artifacts/{schoolId}/public/data`. There is nothing to deploy for a new
 
 Online payment (Stripe) is optional and off by default: see `tools/STRIPE_SETUP.md`.
 
+Cloud Functions run on 2nd gen / Node.js 24. The one-time move from 1st gen
+(`npm run functions:gen2`) is described in `tools/FUNCTIONS_GEN2_MIGRATION.md`.
+
 The local onboarding console, the Render billing server and `tools/billing-setup.html` were
 retired on 2026-10-06 (they are in git history).
 

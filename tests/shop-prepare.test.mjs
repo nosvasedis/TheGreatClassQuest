@@ -84,7 +84,7 @@ test('next month is painted in its own run just after the UTC reset', async () =
   const maintain = index.slice(index.indexOf('exports.maintainShopStock'), index.indexOf('exports.prepareShopStock'));
   assert.doesNotMatch(maintain, /preparationTarget/, 'the 00:10 Athens run only looks after this month');
   const prep = index.slice(index.indexOf('exports.prepareShopStock'));
-  assert.match(prep, /schedule\('30 0 \* \* \*'\)\s*\.timeZone\('UTC'\)/);
+  assert.match(prep, /schedule: '30 0 \* \* \*',\s*timeZone: 'UTC'/);
   assert.match(prep, /prepare\.preparationTarget\(/);
   assert.match(prep, /prepare: target/);
 });

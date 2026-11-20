@@ -196,7 +196,11 @@ test('a confirmed year close seeds the following planned year without overwritin
   assert.match(functions, /const followingYearKey = getFollowingSchoolYearKey\(nextYearKey\);/);
   assert.match(functions, /await ensurePlannedSchoolYearRecord\(followingYearKey\);/);
   assert.match(functions, /activeYearKey: nextYearKey,[\s\S]*nextYearKey: followingYearKey/);
-  assert.doesNotMatch(functions, /onSchedule|functions\.pubsub\.schedule|scheduler\.onSchedule/);
+  // The year is only ever closed by hand: the nightly jobs are the Market, the former-student
+  // tidy-up and the Stripe summer pause, never a year rollover.
+  const scheduledJobs = [...functions.matchAll(/exports\.(\w+) = scheduled\(/g)].map((match) => match[1]).sort();
+  assert.deepEqual(scheduledJobs, ['maintainShopStock', 'prepareShopStock', 'purgeLeftSchoolStudents', 'stripeSummerPause']);
+  assert.equal((functions.match(/onSchedule\(/g) || []).length, 1);
 });
 
 test('auth screen gates login behind school activation without the old signup badge', () => {

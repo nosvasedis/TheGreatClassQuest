@@ -339,7 +339,7 @@ test('festival treasures stay on the stall when the festival crosses into a new 
 
 test('the nightly Market restock runs just after Athens midnight', () => {
   const functions = fs.readFileSync(path.join(root, 'functions/index.js'), 'utf8');
-  assert.match(functions, /schedule\('10 0 \* \* \*'\)\s*\.timeZone\('Europe\/Athens'\)/);
+  assert.match(functions, /schedule: '10 0 \* \* \*',\s*timeZone: 'Europe\/Athens'/);
 });
 
 test('one shared stall per league: shared rows win, old stalls stay with their teacher', async () => {

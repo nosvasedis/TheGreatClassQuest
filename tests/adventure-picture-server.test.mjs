@@ -22,7 +22,7 @@ function harness({ page = {}, paint = async () => JPEG, caller = { uid: 'teacher
     class HttpsError extends Error { constructor(code, message) { super(message); this.code = code; } }
     const stubs = {
         'firebase-admin/firestore': { FieldValue: { serverTimestamp: () => 'ts' }, getFirestore: () => db },
-        'firebase-functions/v1/https': { HttpsError },
+        'firebase-functions/v2/https': { HttpsError },
         './shop/ai': { imageErrorIsRetryable, shopAiImage: async (...args) => { aiCalls.push(args); return paint(aiCalls.length); } }
     };
     const originalLoad = Module._load;

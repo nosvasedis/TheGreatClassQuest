@@ -2,7 +2,7 @@
 
 const crypto = require('node:crypto');
 const { FieldValue, getFirestore } = require('firebase-admin/firestore');
-const { HttpsError } = require('firebase-functions/v1/https');
+const { HttpsError } = require('firebase-functions/v2/https');
 const { shopAiImage, imageErrorIsRetryable } = require('./shop/ai');
 
 // The Auto diary picture is painted here rather than in the browser, so it finishes even

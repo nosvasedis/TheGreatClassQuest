@@ -2,7 +2,7 @@
 
 const crypto = require('node:crypto');
 const { FieldValue, getFirestore } = require('firebase-admin/firestore');
-const { HttpsError } = require('firebase-functions/v1/https');
+const { HttpsError } = require('firebase-functions/v2/https');
 const { shopAiImage } = require('./shop/ai');
 
 // The option lists and prompt builder live in avatarForgeRecipe.mjs so the modal and

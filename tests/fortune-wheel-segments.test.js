@@ -103,6 +103,9 @@ test('two wedges of the same family never sit side by side', async () => {
 // ─── The live catalogue (read from source: the module itself needs Firebase) ───
 
 const wheelSrc = fs.readFileSync(path.join(__dirname, '..', 'features', 'fortunesWheel.js'), 'utf8');
+// pure rules and markup moved out of the wheel module (features/fortuneWheelCore.mjs, features/fortuneWheelView.mjs)
+const coreSrc = fs.readFileSync(path.join(__dirname, '..', 'features', 'fortuneWheelCore.mjs'), 'utf8').replace(/\r\n/g, '\n');
+const viewSrc = fs.readFileSync(path.join(__dirname, '..', 'features', 'fortuneWheelView.mjs'), 'utf8').replace(/\r\n/g, '\n');
 const catalogSrc = wheelSrc.split('const ALL_SEGMENTS = [')[1].split('\n];')[0];
 const wedgeLines = catalogSrc.split('\n').filter((line) => /^\s*\{ id: '/.test(line));
 const wedges = wedgeLines.map((line) => ({
@@ -280,7 +283,7 @@ test('live Omens: big but capped at OMEN_MAX_SWING, harsh ones only take this mo
   ['shadow_thief', 'swap_of_fates', 'topsy_turvy', 'the_void'].forEach((id) => assert.ok(omens.some((w) => w.id === id && /harsh: true/.test(w.line) && /favoredOk: false/.test(w.line)), id));
   const known = new Set([...fs.readFileSync(path.join(__dirname, '..', 'features', 'wheelStages.js'), 'utf8').matchAll(/kind === '([a-z]+)'/g)].map((m) => m[1]));
   omens.filter((w) => w.stage).forEach((w) => assert.ok(known.has(w.stage), `${w.id} → ${w.stage}`));
-  const max = Number(wheelSrc.match(/export const OMEN_MAX_SWING = (\d+);/)[1]);
+  const max = Number(coreSrc.match(/export const OMEN_MAX_SWING = (\d+);/)[1]);
   assert.ok(max >= 5 && max <= 10, 'a big swing, still kind to kids');
   // every flat Glory loss goes through stormGlory and stays within the cap; varied ones through _takeEach, which clamps to it
   const effects = wheelSrc.split('// ── Omens ──')[1].split('// ── Treasure helpers')[0];
@@ -353,8 +356,8 @@ test('the wheel shows the Tailwind each Glory write brought, apart from the fate
   assert.doesNotMatch(wheelSrc, /wheel_comeback_wind/);
   assert.match(wheelSrc, /windOut: ctx\.windOut/);
   assert.match(wheelSrc, /_wheelState\.wind = _wheelState\.envoy \? null : wheelIo\.wind\(guildId\)/);
-  assert.match(wheelSrc, /fw-wind-card/);
-  assert.match(wheelSrc, /fw-result-wind/);
+  assert.match(viewSrc, /fw-wind-card/);
+  assert.match(viewSrc, /fw-result-wind/);
 });
 
 test('Team Quest map moves stay small, and setbacks never go back past the start', () => {

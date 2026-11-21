@@ -549,54 +549,34 @@
     transform: scale(0);
     opacity: 0;
     will-change: transform, opacity;
+    backface-visibility: hidden;
 }
 
-/* the night beyond the wheel: a warm light at its heart, the fates' colours, deep night, a gold edge */
+/* the night beyond the wheel: a warm light at its heart, the fates' colours, deep night, a gold
+   edge. One plain gradient (no masks, filters or blend modes on the big layers: cheap to draw). */
 .fw-portal__disk {
     background: radial-gradient(circle closest-side,
-        #fff7d6 0,
-        #fde68a 5%,
-        #f59e0b 11%,
-        #c2410c 18%,
-        #9d174d 27%,
-        #5b21b6 40%,
-        #2e1065 58%,
-        #120a33 80%,
+        #fef3c7 0,
+        #fde68a 4%,
+        #f59e0b 10%,
+        #c2410c 17%,
+        #9d174d 26%,
+        #5b21b6 39%,
+        #2e1065 57%,
+        #120a33 79%,
         #0b0620 96%,
         #7a5a12 100%);
 }
 
-/* a starfield that turns with the portal */
-.fw-portal__stars {
-    background:
-        radial-gradient(circle at 18% 30%, #fff 0 1.6px, transparent 2.4px),
-        radial-gradient(circle at 72% 22%, #fde68a 0 2px, transparent 3px),
-        radial-gradient(circle at 64% 74%, #fff 0 1.4px, transparent 2.2px),
-        radial-gradient(circle at 30% 80%, #c4b5fd 0 1.8px, transparent 2.6px),
-        radial-gradient(circle at 86% 52%, #fff 0 1.2px, transparent 2px),
-        radial-gradient(circle at 44% 12%, #fff 0 1.2px, transparent 2px),
-        radial-gradient(circle at 10% 58%, #fde68a 0 1.4px, transparent 2.2px);
-    background-size: 210px 210px, 260px 260px, 180px 180px, 300px 300px, 150px 150px, 240px 240px, 330px 330px;
-    -webkit-mask: radial-gradient(circle closest-side, transparent 0 22%, #000 44%, #000 92%, transparent 99%);
-    mask: radial-gradient(circle closest-side, transparent 0 22%, #000 44%, #000 92%, transparent 99%);
-    mix-blend-mode: screen;
-}
-
-/* the wheel's ring of lamps, just inside the rim */
-.fw-portal__lamps {
-    background: repeating-conic-gradient(from 0deg, #fff7d6 0deg 1.6deg, rgba(255, 247, 214, 0) 2.6deg 8.4deg, #fff7d6 10deg);
-    -webkit-mask: radial-gradient(circle closest-side, transparent 0 93.2%, #000 93.6%, #000 96.2%, transparent 96.6%);
-    mask: radial-gradient(circle closest-side, transparent 0 93.2%, #000 93.6%, #000 96.2%, transparent 96.6%);
-    filter: drop-shadow(0 0 6px #fbbf24);
-}
-
-/* the gold rim (drawn at full size, so it is fine near the button and bold as it sweeps out) */
+/* the gold rim, with the wheel's ring of lamps just inside it (a dotted outline follows the
+   circle). Drawn at full size, so it is fine near the button and bold as it sweeps out. */
 .fw-portal__rim {
     border: 14px solid #f5c95a;
+    outline: 7px dotted #fff7d6;
+    outline-offset: -30px;
     box-shadow:
         inset 0 0 0 3px #7a4b0c,
-        inset 0 0 46px 8px rgba(251, 191, 36, 0.85),
-        inset 0 0 120px rgba(192, 38, 211, 0.45),
+        inset 0 0 40px 6px rgba(251, 191, 36, 0.7),
         0 0 0 3px #3b2306;
 }
 

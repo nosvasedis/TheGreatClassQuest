@@ -1986,7 +1986,7 @@ export async function openFortunesWheel() {
     if (_flightOn()) modal.classList.add('fw--splashing');
     showAnimatedModal('fortunes-wheel-modal');
     const openedAt = performance.now();
-    const splashMs = _flyOpen(modal, from);
+    const portal = _flyOpen(modal, from);
 
     const { classId, leagueLevel } = _headerClass();
     // Lays the ceremony out now (same task as the card's first frame); waits only when the
@@ -1995,8 +1995,15 @@ export async function openFortunesWheel() {
     if (seq !== _openSeq) return;
     await _imagesSettled(card, 400);
     if (seq !== _openSeq) return;
+    if (portal) {
+        // The relic wakes as the portal clears (each step of the portal waits for the screen).
+        await portal;
+        if (seq !== _openSeq) return;
+        _awaken(card, seq);
+        return;
+    }
     // Let the card start rising before its contents awaken, so the two read as one movement.
-    const lead = Math.max(0, (splashMs || AWAKEN_LEAD_MS) - (performance.now() - openedAt));
+    const lead = Math.max(0, AWAKEN_LEAD_MS - (performance.now() - openedAt));
     setTimeout(() => _awaken(card, seq), lead);
 }
 
@@ -2639,19 +2646,25 @@ export async function closeFortunesWheel() {
 
 // ── Opening / closing portal ─────────────────────────────────────────────────
 // Like the guild anthem: the Wheel opens as a golden portal from the Guild Hall button. A disk of
-// starry night, ringed by the wheel's own gold rim and lamps, grows from the button's little wheel
-// to fill the screen (turning as it comes), the stage is put in place while it covers everything,
-// and then the portal dissolves into the waking relic. Closing runs it the other way with its own
-// motion: the portal gathers over the stage, then winds back down into the button, drawing a
-// spiral of sparks in after it, and the button catches it with a twinkle.
-// Only transform and opacity animate (WAAPI on a few full-size layers), so it stays on the GPU and
-// never redraws the card underneath; weak laptops get the disk and rim without the extras.
+// night, ringed by the wheel's own gold rim and lamps, grows from the button's little wheel to fill
+// the screen (turning as it comes), the stage is put in place while it covers everything, and then
+// the portal dissolves into the waking relic. Closing: the portal gathers over the stage, then winds
+// back down into the button with a spiral of sparks, and the button catches it with a twinkle.
+//
+// Smoothness rules (Nasos saw header artifacts and flashes in the first version):
+// - only TWO big layers (disk, rim), each a plain gradient/border: no blend modes, masks or filters
+//   on anything big, so every tile rasterises fast and nothing underneath has to be redrawn;
+// - the big layers are drawn once at full size before they move (a near-invisible first frame),
+//   so growing never waits for tiles (missing tiles were the flashes);
+// - every step waits for the one before it instead of a timer: the card is shown only once the
+//   disk really covers the screen, and the disk only dissolves (or shrinks) once the card has been
+//   painted (or hidden). A busy main thread can no longer let the page show through mid-way.
 
-const PORTAL_OPEN_MS = 1300;
-const PORTAL_COVER = 0.44;        // the disk covers the screen at this point of the opening
-const PORTAL_HANDOFF_MS = 640;    // the relic starts waking as the portal clears
-const PORTAL_CLOSE_MS = 980;
-const PORTAL_SEAL = 0.28;         // the card is put away under the disk at this point of the closing
+const PORTAL_GROW_MS = 600;       // button → covers the screen
+const PORTAL_HOLD_MS = 140;       // the card is painted under the covering disk
+const PORTAL_CLEAR_MS = 640;      // the disk dissolves into the relic
+const PORTAL_GATHER_MS = 380;     // closing: the disk fades in over the stage
+const PORTAL_WIND_MS = 680;       // closing: it winds back into the button
 let _flyLayer = null;
 
 function _flightOn() {
@@ -2684,11 +2697,15 @@ function _flyPiece(layer, cls, html = '') {
     return el;
 }
 
-/**
- * The portal's layers, all drawn at full size around (x, y) and scaled down to the button's
- * little wheel: night sky, starfield, the wheel's lamps and the gold rim.
- */
-function _portalPieces(layer, at, lite) {
+const _frames = (n = 2) => new Promise((resolve) => {
+    const step = () => (n-- <= 0 ? resolve() : requestAnimationFrame(step));
+    requestAnimationFrame(step);
+});
+const _ms = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const _done = (anim) => (anim?.finished || Promise.resolve()).catch(() => {});
+
+/** The portal's two layers, drawn at full size around (x, y): night disk and gold rim with lamps. */
+function _portalPieces(layer, at) {
     const r = Math.ceil(Math.hypot(Math.max(at.x, window.innerWidth - at.x), Math.max(at.y, window.innerHeight - at.y)) + 40);
     const box = { left: `${at.x - r}px`, top: `${at.y - r}px`, width: `${r * 2}px`, height: `${r * 2}px` };
     const make = (cls) => {
@@ -2696,91 +2713,76 @@ function _portalPieces(layer, at, lite) {
         Object.assign(el.style, box);
         return el;
     };
-    layer.style.setProperty('--fw-pr', `${r}px`);
     layer.style.setProperty('--fw-px', `${Math.round(at.x)}px`);
     layer.style.setProperty('--fw-py', `${Math.round(at.y)}px`);
     const disk = make('fw-portal__disk');
-    const stars = lite ? null : make('fw-portal__stars');
-    const lamps = lite ? null : make('fw-portal__lamps');
     const rim = make('fw-portal__rim');
     // It starts the size of the button's little wheel.
     const s0 = Math.max(0.004, ((at.size || 26) / 2) / r);
-    return { disk, stars, lamps, rim, s0 };
+    return { disk, rim, s0 };
 }
 
-/** Opening portal. Returns when the relic should start waking (ms), or 0 for no portal. */
+/** Draws the big layers once, unseen, so they are ready on the GPU before they move. */
+async function _portalWarm(pieces, opacity) {
+    pieces.forEach((el) => { el.style.transform = 'scale(1)'; el.style.opacity = String(opacity); });
+    await _frames(2);
+}
+
+/**
+ * Opening portal. Returns a promise that resolves when the relic should start waking (as the
+ * portal clears), or null when there is no portal.
+ */
 function _flyOpen(modal, from) {
     _flyLayer?.remove();
     _flyLayer = null;
-    if (!_flightOn()) { modal.classList.remove('fw--splashing'); return 0; }
+    if (!_flightOn()) { modal.classList.remove('fw--splashing'); return null; }
     const lite = _isLite();
     const at = from || { x: window.innerWidth / 2, y: window.innerHeight / 2, size: 30 };
     // The portal replaces the card's own rise (fw--revealing stays on until the next opening,
     // so the card's enter / backdrop fade never restart underneath).
     modal.querySelector('.fw-card')?.classList.remove('fw-card--enter');
     const layer = _flyLayerFresh();
-    layer.classList.add('fw-fly--open');
-    const { disk, stars, lamps, rim, s0 } = _portalPieces(layer, at, lite);
-    const D = PORTAL_OPEN_MS;
-    const C = PORTAL_COVER;
-    const grow = 'cubic-bezier(.65, 0, .25, 1)';
-    const small = (deg = 0) => `scale(${s0}) rotate(${deg}deg)`;
-    disk.animate([
-        { transform: small(), opacity: 1, easing: grow },
-        { transform: 'scale(1)', opacity: 1, offset: C },
-        { transform: 'scale(1)', opacity: 1, offset: C + 0.06, easing: 'ease-out' },
-        { transform: 'scale(1.04)', opacity: 0 },
-    ], { duration: D, fill: 'both' });
-    stars?.animate([
-        { transform: small(-70), opacity: 0.9, easing: grow },
-        { transform: 'scale(1) rotate(0deg)', opacity: 1, offset: C, easing: 'ease-out' },
-        { transform: 'scale(1.08) rotate(12deg)', opacity: 0 },
-    ], { duration: D, fill: 'both' });
-    // The wheel's lamps sweep out turning, like the rim of the wheel opening up around the room.
-    lamps?.animate([
-        { transform: small(-240), opacity: 1, easing: grow },
-        { transform: 'scale(1) rotate(0deg)', opacity: 1, offset: C, easing: 'ease-out' },
-        { transform: 'scale(1.06) rotate(8deg)', opacity: 0, offset: 0.66 },
-        { transform: 'scale(1.06) rotate(8deg)', opacity: 0 },
-    ], { duration: D, fill: 'both' });
-    rim.animate([
-        { transform: small(), opacity: 1, easing: grow },
-        { transform: 'scale(1)', opacity: 0.95, offset: C, easing: 'ease-out' },
-        { transform: 'scale(1.05)', opacity: 0, offset: 0.62 },
-        { transform: 'scale(1.05)', opacity: 0 },
-    ], { duration: D, fill: 'both' });
+    const { disk, rim, s0 } = _portalPieces(layer, at);
+    const small = (deg) => `scale(${s0}) rotate(${deg}deg)`;
+    const grow = 'cubic-bezier(.6, 0, .25, 1)';
+    const opts = (duration) => ({ duration, fill: 'forwards' });
 
-    if (!lite) {
-        // A flash of light on the button, a ring rolling out, and the fates' sparks flung wide.
-        const pulse = _flyPiece(layer, 'fw-portal__pulse');
-        pulse.animate([{ transform: 'scale(0.15)', opacity: 0.95 }, { transform: 'scale(1)', opacity: 0 }], { duration: 700, delay: 40, easing: 'ease-out', fill: 'both' });
-        const glyphs = ['✦', '✧', '★', '✦', '◆', '✧', '✦', '★', '✧', '◆', '✦', '✧'];
-        const reach = Math.min(window.innerWidth, window.innerHeight) * 0.42;
-        glyphs.forEach((g, i) => {
-            const el = _flyPiece(layer, `fw-portal__glyph${i % 4 === 0 ? ' fw-portal__glyph--gold' : ''}`, g);
-            const a = (i / glyphs.length) * Math.PI * 2 + 0.3;
-            const d = reach * (0.75 + (i % 3) * 0.18);
-            const x = at.x + Math.cos(a) * d;
-            const y = at.y + Math.sin(a) * d;
-            el.animate([
-                { transform: `translate(${at.x}px, ${at.y}px) scale(0.3) rotate(0deg)`, opacity: 0 },
-                { transform: `translate(${at.x + Math.cos(a) * d * 0.2}px, ${at.y + Math.sin(a) * d * 0.2}px) scale(1) rotate(40deg)`, opacity: 1, offset: 0.18 },
-                { transform: `translate(${x}px, ${y}px) scale(1.25) rotate(160deg)`, opacity: 0 },
-            ], { duration: 1150, delay: 50 + i * 32, easing: 'cubic-bezier(.15, .8, .3, 1)', fill: 'both' });
-        });
-    }
-
-    try { wheelSound('open'); } catch (_) { /* optional */ }
-
-    // While the disk covers the screen, the stage is put in place (no fade, nothing to redraw).
-    setTimeout(() => {
+    return (async () => {
+        await _portalWarm([disk, rim], 0.003);
+        if (_flyLayer !== layer) return;
+        try { wheelSound('open'); } catch (_) { /* optional */ }
+        // 1. From the button to the whole screen, turning as it comes.
+        const grown = disk.animate([{ transform: small(-120), opacity: 1 }, { transform: 'scale(1) rotate(0deg)', opacity: 1 }], { ...opts(PORTAL_GROW_MS), easing: grow });
+        rim.animate([{ transform: small(-120), opacity: 1 }, { transform: 'scale(1) rotate(0deg)', opacity: 1 }], { ...opts(PORTAL_GROW_MS), easing: grow });
+        if (!lite) {
+            const pulse = _flyPiece(layer, 'fw-portal__pulse');
+            pulse.animate([{ transform: 'scale(0.15)', opacity: 0.95 }, { transform: 'scale(1)', opacity: 0 }], { duration: 700, easing: 'ease-out', fill: 'forwards' });
+            const glyphs = ['✦', '✧', '★', '✦', '✧', '✦', '★', '✧', '✦', '✧'];
+            const reach = Math.min(window.innerWidth, window.innerHeight) * 0.42;
+            glyphs.forEach((g, i) => {
+                const el = _flyPiece(layer, `fw-portal__glyph${i % 4 === 0 ? ' fw-portal__glyph--gold' : ''}`, g);
+                const a = (i / glyphs.length) * Math.PI * 2 + 0.3;
+                const d = reach * (0.75 + (i % 3) * 0.18);
+                el.animate([
+                    { transform: `translate(${at.x}px, ${at.y}px) scale(0.3) rotate(0deg)`, opacity: 0 },
+                    { transform: `translate(${at.x + Math.cos(a) * d * 0.2}px, ${at.y + Math.sin(a) * d * 0.2}px) scale(1) rotate(40deg)`, opacity: 1, offset: 0.18 },
+                    { transform: `translate(${at.x + Math.cos(a) * d}px, ${at.y + Math.sin(a) * d}px) scale(1.25) rotate(160deg)`, opacity: 0 },
+                ], { duration: 1100, delay: 30 + i * 30, easing: 'cubic-bezier(.15, .8, .3, 1)', fill: 'both' });
+            });
+        }
+        await _done(grown);
+        if (_flyLayer !== layer) return;
+        // 2. It covers everything: the stage is put in place underneath and painted.
         modal.classList.add('fw--revealing');
         modal.classList.remove('fw--splashing');
-    }, Math.round(D * C));
-    setTimeout(() => {
-        if (_flyLayer === layer) { layer.remove(); _flyLayer = null; }
-    }, D + 120);
-    return PORTAL_HANDOFF_MS;
+        await _frames(2);
+        await _ms(PORTAL_HOLD_MS);
+        if (_flyLayer !== layer) return;
+        // 3. The portal dissolves into the waking relic.
+        const cleared = disk.animate([{ transform: 'scale(1)', opacity: 1 }, { transform: 'scale(1.04)', opacity: 0 }], { ...opts(PORTAL_CLEAR_MS), easing: 'cubic-bezier(.3, 0, .2, 1)' });
+        rim.animate([{ transform: 'scale(1)', opacity: 1 }, { transform: 'scale(1.06)', opacity: 0 }], { ...opts(Math.round(PORTAL_CLEAR_MS * 0.6)), easing: 'ease-out' });
+        _done(cleared).then(() => { if (_flyLayer === layer) { layer.remove(); _flyLayer = null; } });
+    })();
 }
 
 /** Closing portal: the stage is gathered into a disk that winds back down into the Guild Hall button. */
@@ -2791,45 +2793,32 @@ async function _closeWithSplash() {
     const lite = _isLite();
     const home = _flightOrigin() || { x: window.innerWidth / 2, y: window.innerHeight / 2, size: 30 };
     const layer = _flyLayerFresh();
-    layer.classList.add('fw-fly--close');
-    const { disk, stars, lamps, rim, s0 } = _portalPieces(layer, home, lite);
-    const D = PORTAL_CLOSE_MS;
-    const S = PORTAL_SEAL;
-    // the circle leaves the screen corners quickly, then settles gently onto the button
-    const shrink = 'cubic-bezier(.25, .55, .3, 1)';
-    const small = (deg = 0) => `scale(${s0}) rotate(${deg}deg)`;
-    disk.animate([
-        { transform: 'scale(1)', opacity: 0, easing: 'ease-in' },
-        { transform: 'scale(1)', opacity: 1, offset: S, easing: shrink },
-        { transform: small(), opacity: 1, offset: 0.94 },
-        { transform: small(), opacity: 0 },
-    ], { duration: D, fill: 'both' });
-    stars?.animate([
-        { transform: 'scale(1) rotate(0deg)', opacity: 0 },
-        { transform: 'scale(1) rotate(0deg)', opacity: 1, offset: S, easing: shrink },
-        { transform: small(90), opacity: 0.6, offset: 0.94 },
-        { transform: small(90), opacity: 0 },
-    ], { duration: D, fill: 'both' });
-    // The lamps wind the other way as it closes, like the wheel spinning down into the button.
-    lamps?.animate([
-        { transform: 'scale(1.04) rotate(0deg)', opacity: 0 },
-        { transform: 'scale(1) rotate(0deg)', opacity: 1, offset: S, easing: shrink },
-        { transform: small(300), opacity: 1, offset: 0.94 },
-        { transform: small(300), opacity: 0 },
-    ], { duration: D, fill: 'both' });
-    rim.animate([
-        { transform: 'scale(1)', opacity: 0 },
-        { transform: 'scale(1)', opacity: 1, offset: S, easing: shrink },
-        { transform: small(), opacity: 1, offset: 0.94 },
-        { transform: small(), opacity: 0 },
-    ], { duration: D, fill: 'both' });
+    const { disk, rim, s0 } = _portalPieces(layer, home);
+    const small = (deg) => `scale(${s0}) rotate(${deg}deg)`;
+    const opts = (duration) => ({ duration, fill: 'forwards' });
 
+    await _portalWarm([disk, rim], 0.003);
+    if (_flyLayer !== layer) return;
+    try { wheelSound('close'); } catch (_) { /* optional */ }
+    // 1. The portal gathers over the stage.
+    const gathered = disk.animate([{ opacity: 0.003 }, { opacity: 1 }], { ...opts(PORTAL_GATHER_MS), easing: 'ease-in-out' });
+    rim.animate([{ opacity: 0.003 }, { opacity: 1 }], { ...opts(PORTAL_GATHER_MS), easing: 'ease-in' });
+    await _done(gathered);
+    if (_flyLayer !== layer) return;
+    // 2. The stage is put away underneath (and the page behind it painted)...
+    modal.classList.add('fw--sealed');
+    hideModal('fortunes-wheel-modal');
+    await _frames(2);
+    if (_flyLayer !== layer) return;
+    // 3. ...then it winds back down into the button, a spiral of sparks drawn in after it.
+    const shrink = 'cubic-bezier(.3, .45, .3, 1)';
+    const wound = disk.animate([{ transform: 'scale(1) rotate(0deg)', opacity: 1 }, { transform: small(200), opacity: 1, offset: 0.92 }, { transform: small(200), opacity: 0 }], { ...opts(PORTAL_WIND_MS), easing: shrink });
+    rim.animate([{ transform: 'scale(1) rotate(0deg)', opacity: 1 }, { transform: small(200), opacity: 1, offset: 0.92 }, { transform: small(200), opacity: 0 }], { ...opts(PORTAL_WIND_MS), easing: shrink });
     if (!lite) {
-        // A spiral of sparks is drawn in after it.
-        const reach = Math.hypot(window.innerWidth, window.innerHeight) * 0.32;
-        for (let i = 0; i < 14; i += 1) {
+        const reach = Math.hypot(window.innerWidth, window.innerHeight) * 0.3;
+        for (let i = 0; i < 12; i += 1) {
             const el = _flyPiece(layer, `fw-portal__glyph${i % 3 === 0 ? ' fw-portal__glyph--gold' : ''}`, i % 2 ? '✦' : '✧');
-            const a = (i / 14) * Math.PI * 2;
+            const a = (i / 12) * Math.PI * 2;
             const d = reach * (0.7 + (i % 4) * 0.12);
             const sx = home.x + Math.cos(a) * d;
             const sy = home.y + Math.sin(a) * d;
@@ -2837,23 +2826,19 @@ async function _closeWithSplash() {
             const my = home.y + Math.sin(a + 1.3) * d * 0.4;
             el.animate([
                 { transform: `translate(${sx}px, ${sy}px) scale(1.1) rotate(0deg)`, opacity: 0 },
-                { transform: `translate(${sx}px, ${sy}px) scale(1.1) rotate(0deg)`, opacity: 1, offset: 0.3 },
-                { transform: `translate(${mx}px, ${my}px) scale(0.8) rotate(-160deg)`, opacity: 1, offset: 0.7 },
+                { transform: `translate(${sx}px, ${sy}px) scale(1.1) rotate(0deg)`, opacity: 1, offset: 0.12 },
+                { transform: `translate(${mx}px, ${my}px) scale(0.8) rotate(-160deg)`, opacity: 1, offset: 0.6 },
                 { transform: `translate(${home.x}px, ${home.y}px) scale(0.2) rotate(-280deg)`, opacity: 0 },
-            ], { duration: D, delay: i * 14, easing: 'cubic-bezier(.45, 0, .55, 1)', fill: 'both' });
+            ], { duration: PORTAL_WIND_MS, delay: i * 12, easing: 'cubic-bezier(.45, 0, .55, 1)', fill: 'both' });
         }
     }
+    await _done(wound);
+    if (_flyLayer !== layer) return;
 
-    try { wheelSound('close'); } catch (_) { /* optional */ }
-    await new Promise((r) => setTimeout(r, Math.round(D * S)));
-    modal.classList.add('fw--sealed');
-    hideModal('fortunes-wheel-modal');
-    await new Promise((r) => setTimeout(r, Math.round(D * (0.94 - S))));
-
-    // The button catches it: a twinkle of light and a little bounce.
+    // 4. The button catches it: a twinkle of light and a little bounce.
     if (!lite) {
-        const pulse = _flyPiece(layer, 'fw-portal__pulse fw-portal__pulse--catch');
-        pulse.animate([{ transform: 'scale(0.1)', opacity: 1 }, { transform: 'scale(0.55)', opacity: 0 }], { duration: 520, easing: 'ease-out', fill: 'both' });
+        const pulse = _flyPiece(layer, 'fw-portal__pulse');
+        pulse.animate([{ transform: 'scale(0.1)', opacity: 1 }, { transform: 'scale(0.5)', opacity: 0 }], { duration: 520, easing: 'ease-out', fill: 'forwards' });
         for (let i = 0; i < 8; i += 1) {
             const spark = _flyPiece(layer, 'fw-fly__spark');
             const a = (i / 8) * Math.PI * 2;
@@ -2865,7 +2850,7 @@ async function _closeWithSplash() {
     }
     const btn = document.getElementById('fortunes-wheel-btn');
     btn?.animate?.([{ transform: 'scale(1)' }, { transform: 'scale(1.1)' }, { transform: 'scale(1)' }], { duration: 460, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' });
-    setTimeout(() => { if (_flyLayer === layer) { layer.remove(); _flyLayer = null; } }, 600);
+    setTimeout(() => { if (_flyLayer === layer) { layer.remove(); _flyLayer = null; } }, 560);
 }
 
 /** The little wheel on the Guild Hall button whirls as the relic is opened. */

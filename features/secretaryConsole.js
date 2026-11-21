@@ -34,7 +34,7 @@ import {
     handleSchoolYearConsoleClick
 } from './schoolYearConsole.js';
 import { activateSecretaryTab as activateRoleSecretaryTab } from '../ui/roles/navigation.js';
-import { escapeHtml, setBusyState } from './roles/shared.js';
+import { setBusyState } from './roles/shared.js';
 import { renderSecretaryHome } from './secretary/home.js';
 import { renderSecretarySchool } from './secretary/school.js';
 import { renderSecretaryGrades, GRADES_PAGE_SIZE } from './secretary/grades.js';

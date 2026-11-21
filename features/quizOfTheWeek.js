@@ -1,19 +1,15 @@
 import { quietly } from '../utils/runtimeMetrics.js';
 import * as state from '../state.js';
 import * as utils from '../utils.js';
-import { getISOWeekKey, getTargetWeekKey } from '../features/guildScoring.js';
+import { getTargetWeekKey } from '../features/guildScoring.js';
 import { GUILDS } from './guilds.js';
 import { canUseFeature } from '../utils/subscription.js';
 import {
-    getQuizForClass,
-    getQuizParticipationHistory,
-    saveQuizCurriculum,
-    generateQuizQuestions,
-    updateQuizStatus,
-    logQuizAttempt,
-    markQuizCompleted,
-    distributeQuizRewards,
-    getQuizHistory
+  getQuizForClass,
+  getQuizParticipationHistory,
+  logQuizAttempt,
+  markQuizCompleted,
+  distributeQuizRewards
 } from '../db/actions/quizOfTheWeek.js';
 import { computeQuestionStats } from './quizReviewCore.mjs';
 import { expectedQuestionCount } from './quizCurriculumCore.mjs';

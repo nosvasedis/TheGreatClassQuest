@@ -2,19 +2,18 @@
 
 import { quietly } from '../utils/runtimeMetrics.js';
 import {
-    db,
-    doc,
-    collection,
-    getDoc,
-    getDocs,
-    setDoc,
-    updateDoc,
-    writeBatch,
-    runTransaction,
-    query,
-    where,
-    increment,
-    serverTimestamp,
+  db,
+  doc,
+  collection,
+  getDoc,
+  getDocs,
+  updateDoc,
+  writeBatch,
+  runTransaction,
+  query,
+  where,
+  increment,
+  serverTimestamp
 } from '../firebase.js';
 import * as state from '../state.js';
 import { GUILDS, GUILD_IDS } from './guilds.js';

@@ -90,12 +90,10 @@ async function playInnerClassSwap(inner, runRender) {
 
 // --- IMPORTS ---
 import '../styles/trial_history.css';
-import { db, doc, addDoc, updateDoc, collection, serverTimestamp, writeBatch, runTransaction } from '../firebase.js';
 
 import * as state from '../state.js';
 import * as utils from '../utils.js';
 import { showToast, showUndoToast } from '../ui/effects.js';
-import { playSound } from '../audio.js';
 import * as modals from '../ui/modals/index.js';
 import { wrapAvatarWithLevelUpIndicator } from '../ui/core/avatar.js';
 import { HERO_CLASSES } from '../features/heroClasses.js';

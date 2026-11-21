@@ -1,7 +1,6 @@
 import { quietly } from '../utils/runtimeMetrics.js';
 import { onSecond } from '../utils/clock.mjs';
 import { db, doc, getDoc } from '../firebase.js';
-import * as ceremony from '../features/ceremony.js';
 import { resolvePendingCeremonyMonth, ceremonyWatchedOnDay } from './ceremonyDomain.js';
 import { getCeremonyStarVerdict, ensureCeremonyStarVerdict } from './ceremonyStarCheck.js';
 import * as state from '../state.js';

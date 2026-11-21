@@ -29,7 +29,7 @@ import {
     updateProfile,
     signOut
 } from './firebaseAuth.js';
-import { updateDateTime, getTodayDateString, fetchSolarCycle } from './utils.js';
+import { updateDateTime, getTodayDateString } from './utils.js';
 import { playHeaderIntroWhenRevealed } from './ui/headerClock.js';
 import * as utils from './utils.js';
 import { buildSyntheticRoleEmail, getRoleFromSyntheticEmail, isRoleLogin, normalizeUsername, ROLE_PARENT, ROLE_SECRETARY, ROLE_TEACHER } from './utils/roles.js';

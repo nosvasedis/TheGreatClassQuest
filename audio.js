@@ -1,5 +1,4 @@
 import { quietly } from './utils/runtimeMetrics.js';
-import * as state from './state.js';
 import { loadTone } from './utils/lazyLibraries.js';
 import { VoicePool, guardMonoVoice, createVoiceBank, lazyVoices } from './utils/voiceBank.js';
 

@@ -686,7 +686,6 @@ async function loadGrowthCeremonyData() {
     const previousDate = new Date(year, month - 2, 1);
     const previousLogs = await fetchLogsForMonth(previousDate.getFullYear(), previousDate.getMonth() + 1).catch(() => []);
     const students = (state.get('allStudents') || []).filter((student) => student.classId === ceremonyData.classId && student.enrollmentStatus !== 'inactive');
-    const classData = (state.get('allSchoolClasses') || []).find((item) => item.id === ceremonyData.classId) || {};
     const attendance = state.get('allAttendanceRecords') || [];
     const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
     const lessonDates = [];

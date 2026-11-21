@@ -32,7 +32,7 @@ export default [
         },
         rules: {
             ...recommendedAsWarnings,
-            'no-unused-vars': ['warn', { args: 'none', caughtErrors: 'none', varsIgnorePattern: '^_' }],
+            'no-unused-vars': ['warn', { args: 'none', caughtErrors: 'none', ignoreRestSiblings: true, varsIgnorePattern: '^_' }],
             'no-empty': ['warn', { allowEmptyCatch: true }],
         },
     },
@@ -44,7 +44,7 @@ export default [
     {
         files: ['**/*.cjs', 'functions/**/*.js'],
         languageOptions: { sourceType: 'commonjs', globals: { ...globals.node } },
-        rules: { ...recommendedAsWarnings, 'no-unused-vars': ['warn', { args: 'none', caughtErrors: 'none' }] },
+        rules: { ...recommendedAsWarnings, 'no-unused-vars': ['warn', { args: 'none', caughtErrors: 'none', ignoreRestSiblings: true }] },
     },
     {
         // Playwright specs: code inside page.evaluate() runs in the browser.

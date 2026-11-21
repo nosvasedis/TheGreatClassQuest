@@ -1,23 +1,22 @@
 // /db/listeners.js
 
 import {
-    db,
-    collection,
-    query,
-    where,
-    onSnapshot as firebaseOnSnapshot,
-    orderBy,
-    doc,
-    getDoc,
-    collectionGroup,
-    limit,
-    updateDoc,
+  db,
+  collection,
+  query,
+  where,
+  onSnapshot as firebaseOnSnapshot,
+  orderBy,
+  doc,
+  getDoc,
+  limit,
+  updateDoc
 } from "../firebase.js";
 import { isLegacyHeroClass, normalizeHeroClass } from "../features/heroClassNames.mjs";
 import { buildTodaysStarsMap, changedTodaysStarIds } from "../features/awardPending.mjs";
 import { canUseFeature } from "../utils/subscription.js";
 import * as state from "../state.js";
-import { getStartOfMonthString, getTodayDateString } from "../utils.js";
+import { getTodayDateString } from "../utils.js";
 import {
     renderClassLeaderboardTab,
     renderManageClassesTab,
@@ -900,7 +899,6 @@ export async function setupDataListeners(
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const now = new Date();
     const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfMonthString = utils.getLocalIsoDateString(startOfCurrentMonth);
 
     // --- Define Queries ---
     const classesQuery = enforceActiveYearQueries
@@ -1171,7 +1169,6 @@ export async function setupDataListeners(
         onSnapshot(
             scoresQuery,
             (snapshot) => {
-                const currentMonthStart = getStartOfMonthString();
                 const allStudentScores = snapshot.docs
                     .map((doc) => ({
                         id: doc.id,

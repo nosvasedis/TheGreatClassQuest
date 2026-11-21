@@ -1,22 +1,19 @@
 // /db/actions/stars.js — scores, stars, award log
 import { quietly } from '../../utils/runtimeMetrics.js';
 import {
-    db,
-    doc,
-    addDoc,
-    updateDoc,
-    getDoc,
-    collection,
-    query,
-    where,
-    getDocs,
-    runTransaction,
-    writeBatch,
-    serverTimestamp,
-    increment,
-    deleteField,
-    orderBy,
-    limit,
+  db,
+  doc,
+  updateDoc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  runTransaction,
+  writeBatch,
+  serverTimestamp,
+  increment,
+  deleteField
 } from "../../firebase.js";
 import {
     shouldSkipPostCloseHeroReconcile,
@@ -24,29 +21,19 @@ import {
 } from "../../utils/schoolYear.js";
 import { getLiveYearGold, getLiveYearGoldContextFromState } from "../../utils/yearGold.js";
 import * as state from "../../state.js";
-import { showToast, showPraiseToast } from "../../ui/effects.js";
-import {
-    showStarfallModal,
-    showBatchStarfallModal,
-    hideModal,
-} from "../../ui/modals/index.js";
+import { showToast } from "../../ui/effects.js";
+import { hideModal } from "../../ui/modals/index.js";
 import { playSound } from "../../audio.js";
 import {
-    getTodayDateString,
-    getStartOfMonthString,
-    debounce,
-    parseDDMMYYYY,
-    datesMatch,
-    getClassMonthlyQuestStars,
-    calculateMonthlyClassGoal,
-    getMonthKey,
+  getTodayDateString,
+  getStartOfMonthString,
+  debounce,
+  parseDDMMYYYY,
+  datesMatch,
+  getMonthKey
 } from "../../utils.js";
 import { checkBountyProgress } from "./bounties.js";
-import {
-    calculateHeroGold,
-    canChangeHeroClass,
-    summarizePatronPathFromLogDates,
-} from "../../features/heroClasses.js";
+import { calculateHeroGold, summarizePatronPathFromLogDates } from "../../features/heroClasses.js";
 import { recordGuildGloryEvent, updateGuildScores } from "../../features/guildScoring.js";
 import {
     computeHeroLevel,

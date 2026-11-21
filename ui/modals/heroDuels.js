@@ -28,7 +28,6 @@ const STORE_KEY = 'gcq.heroDuels.v1';
 const PREF_KEY = 'gcq.heroDuels.prefs';
 const UNDO_KEEP = 40;
 const SOURCE_ICONS = { today: 'fa-calendar-check', guild: 'fa-shield-halved', stars: 'fa-scale-balanced', random: 'fa-dice' };
-const PLACE_WORDS = ['', '1st', '2nd', '3rd', '4th', '5th', '6th'];
 
 let ui = null;
 let session = null;

@@ -99,7 +99,7 @@ test('read-only rules handle mixed methods, strings with semicolons and comments
   assert.match(rules, /allow read: if request\.auth\.token\.email\.matches\('\.\*;x'\);/);
   assert.match(rules, /allow get, list: if f\(1, \[2;3\]\.size\(\) > 0\);/);
   assert.doesNotMatch(rules, /allow create|delete: if g/);
-  assert.match(rules, /\/\/ allow write: if true;   \(a comment, left alone\)/);
+  assert.match(rules, /\/\/ allow write: if true; {3}\(a comment, left alone\)/);
   assert.match(rules, /match \/a\/\{id\} \{ allow read: if/);
   assert.deepEqual(stats, { kept: 1, narrowed: 1, removed: 1 });
   assert.throws(() => makeReadonlyRules('allow destroy: if true;'), /Unknown rule method/);

@@ -2,17 +2,16 @@
 // Class management actions: create, delete, update classes
 
 import {
-    db,
-    addDoc,
-    updateDoc,
-    deleteDoc,
-    doc,
-    collection,
-    query,
-    where,
-    getDocs,
-    writeBatch,
-    serverTimestamp
+  db,
+  addDoc,
+  updateDoc,
+  doc,
+  collection,
+  query,
+  where,
+  getDocs,
+  writeBatch,
+  serverTimestamp
 } from '../../firebase.js';
 import * as state from '../../state.js';
 import { showToast } from '../../ui/effects.js';

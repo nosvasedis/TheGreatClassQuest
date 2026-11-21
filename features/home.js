@@ -1,7 +1,6 @@
 import { quietly } from '../utils/runtimeMetrics.js';
 import { onSecond } from '../utils/clock.mjs';
 import { db, doc, getDoc } from '../firebase.js';
-import * as ceremony from '../features/ceremony.js';
 import { resolvePendingCeremonyMonth, ceremonyWatchedOnDay } from './ceremonyDomain.js';
 import { getCeremonyStarVerdict, ensureCeremonyStarVerdict } from './ceremonyStarCheck.js';
 import * as state from '../state.js';
@@ -30,7 +29,6 @@ import {
     isUsableQuote
 } from '../utils/dailyQuote.mjs';
 import * as grandGuildCeremony from '../features/grandGuildCeremony.js';
-import { DEFAULT_SCHOOL_NAME } from '../constants.js';
 import { loadTeacherJourneyState, markTeacherGuideSeen } from './teacherJourney.js';
 import { getNextAssessmentOccurrenceForToday, getUpcomingScheduledAssessment } from './assessmentConfig.js';
 import { shouldShowQuizButton } from './quizOfTheWeek.js';
@@ -306,7 +304,6 @@ async function executeRenderHome() {
 
     // --- CONTEXT ---
     const activeClassId = state.get('globalSelectedClassId');
-    const schoolName = state.get('schoolName') || DEFAULT_SCHOOL_NAME;
 
     // Dynamic Weather/Theme. The sky already on screen is the source: opening Home
     // never repaints it (new weather arrives on the live timer and melts in, see
@@ -613,8 +610,6 @@ function getActiveDashboard(classData, theme, spice) {
     const scores = state.get('allStudentScores') || [];
 
     const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
 
     const { totalStars: monthlyStarsWithBonus, classBonus } = utils.getClassMonthlyQuestStars(classData, students, scores, now);
 

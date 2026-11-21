@@ -1004,7 +1004,7 @@ function animateWoosh(loadingScreen, plan) {
         });
     }
     const timing = { duration: total, fill: 'forwards', easing: 'linear' };
-    const flight = fly.animate(flyFrames, timing);
+    fly.animate(flyFrames, timing);
     pose.animate(poseFrames, timing);
     trail?.animate(trailFrames, timing);
 }

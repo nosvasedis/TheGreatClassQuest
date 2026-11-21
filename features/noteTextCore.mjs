@@ -29,7 +29,7 @@ const LATIN_WORD = /^[a-z][a-z0-9']*$/;
 
 /** Straight apostrophes and one kind of space, so "doesn’t" reads like "doesn't". */
 export function tidyText(text) {
-    return String(text || '').replace(/[‘’ʼ´`]/g, '\'').replace(/\r/g, '').replace(/[ \t ]+/g, ' ');
+    return String(text || '').replace(/[‘’ʼ´`]/g, '\'').replace(/\r/g, '').replace(/[ \t\u00a0]+/g, ' ');
 }
 
 /** Small stable hash: same text, same key, on any computer. */

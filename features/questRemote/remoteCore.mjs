@@ -366,7 +366,7 @@ export function createShakeDetector({ threshold = 14, needed = 3, windowMs = 900
 /** Trims a button's visible text into a short Wand label. */
 export function cleanPadLabel(text, max = 34) {
     const clean = String(text || '')
-        .replace(/[​-‍﻿]/g, '')
+        .replace(/[\u200b-‍\ufeff]/g, '')
         .replace(/\s+/g, ' ')
         .trim();
     if (!clean) return '';

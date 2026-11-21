@@ -373,44 +373,6 @@ function renderTimerBountyCard(bounty) {
         </div>`;
 }
 
-function renderStarBountyCard(bounty) {
-    const progressPercent = Math.min(100, (bounty.currentProgress / bounty.target) * 100);
-    const isReady = bounty.currentProgress >= bounty.target;
-    const actionBtn = isReady
-        ? `<button class="claim-bounty-btn rounded-full bg-emerald-500 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-white shadow-lg shadow-emerald-500/30 transition hover:scale-105" data-id="${bounty.id}" data-reward="${bounty.reward}">Claim</button>`
-        : `<span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-amber-700">${bounty.currentProgress}/${bounty.target} Stars</span>`;
-
-    return `
-        <div class="bounty-card mb-4 overflow-hidden rounded-[28px] border border-amber-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.95),_rgba(255,251,235,0.98)_48%,_rgba(254,243,199,0.96))] p-4 shadow-[0_18px_40px_rgba(251,191,36,0.16)]">
-            <div class="flex items-start gap-4">
-                <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-amber-300 via-yellow-300 to-orange-300 text-3xl text-amber-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_10px_18px_rgba(245,158,11,0.22)]">
-                    <i class="fas fa-stars"></i>
-                </div>
-                <div class="min-w-0 flex-1">
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <div class="flex flex-wrap items-center gap-2">
-                                <div class="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-amber-700">Star Bounty</div>
-                                ${audienceTag(bounty, 'light')}
-                            </div>
-                            <h4 class="mt-3 truncate font-title text-2xl leading-tight text-slate-800">${bounty.title}</h4>
-                        </div>
-                        <button class="delete-bounty-btn rounded-full bg-slate-200/70 px-3 py-2 text-slate-500 transition hover:bg-red-50 hover:text-red-500" data-id="${bounty.id}" title="Delete Bounty">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <div class="mt-4 overflow-hidden rounded-full bg-slate-200">
-                        <div class="h-3 rounded-full bg-linear-to-r from-amber-400 via-yellow-400 to-orange-400 transition-all duration-1000" style="width: ${progressPercent}%"></div>
-                    </div>
-                    <div class="mt-3 flex items-center justify-between gap-3">
-                        <p class="text-sm font-bold text-slate-500">Reward: <span class="text-slate-700">${bounty.reward}</span></p>
-                        ${actionBtn}
-                    </div>
-                </div>
-            </div>
-        </div>`;
-}
-
 export function renderActiveBounties() {
     const container = document.getElementById('bounty-board-container');
     if (!container) return;

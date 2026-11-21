@@ -46,6 +46,11 @@ export default defineConfig({
       },
     },
   ],
+  resolve: {
+    // jspdf lazily imports the old html2canvas for doc.html(). The app already ships
+    // html2canvas-pro (utils/lazyLibraries.js), so point that import there: one chunk, not two.
+    alias: [{ find: /^html2canvas$/, replacement: 'html2canvas-pro' }],
+  },
   build: {
     target: 'es2020',
     sourcemap: false,

@@ -29,7 +29,7 @@ import {
     updateProfile,
     signOut
 } from './firebaseAuth.js';
-import { updateDateTime, getTodayDateString, fetchSolarCycle } from './utils.js';
+import { updateDateTime, getTodayDateString } from './utils.js';
 import { playHeaderIntroWhenRevealed } from './ui/headerClock.js';
 import * as utils from './utils.js';
 import { buildSyntheticRoleEmail, getRoleFromSyntheticEmail, isRoleLogin, normalizeUsername, ROLE_PARENT, ROLE_SECRETARY, ROLE_TEACHER } from './utils/roles.js';
@@ -61,15 +61,12 @@ let setupParentSession;
 let watchCommunicationThread;
 let refreshParentPortalData;
 let setupUIListeners;
-let toggleWallpaperMode;
 let initializeHeaderQuote;
 let maybeAutoShowGuideForTeacher;
 let loadSubscription;
 let stopSubscription;
 let hasActiveSubscription;
 let canUseFeature;
-let getTier;
-let getSubscriptionSnapshot;
 let getSchoolAccessState;
 let showSetupScreen;
 let loadTeacherJourneyState;
@@ -330,9 +327,8 @@ async function loadAuthenticatedRuntime() {
         state = stateModule;
         ({ setupDataListeners, setupParentSession, watchCommunicationThread, refreshParentPortalData } = listenerModule);
         ({ setupUIListeners } = coreModule);
-        ({ toggleWallpaperMode } = wallpaperModule);
         ({ initializeHeaderQuote, maybeAutoShowGuideForTeacher } = homeModule);
-        ({ loadSubscription, stopSubscription, hasActiveSubscription, canUseFeature, getTier, getSubscriptionSnapshot, getSchoolAccessState } = subscriptionModule);
+        ({ loadSubscription, stopSubscription, hasActiveSubscription, canUseFeature, getSchoolAccessState } = subscriptionModule);
         ({ showSetupScreen } = schoolSetupModule);
         ({ loadTeacherJourneyState } = teacherJourneyModule);
         ({ requestCheckoutSession, isOnlineBillingAvailable } = billingModule);

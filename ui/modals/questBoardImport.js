@@ -7,7 +7,7 @@ import { showToast } from '../effects.js';
 import { escapeHtml } from '../../features/roles/shared.js';
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
 
-const LEGACY_DATE_PREFIX = /^\s*\d{1,2}[\/-]\d{1,2}[\/-]\d{4}\s*[:\-]?\s*/; // same as the Edit button strips
+const LEGACY_DATE_PREFIX = /^\s*\d{1,2}[/-]\d{1,2}[/-]\d{4}\s*[:-]?\s*/; // same as the Edit button strips
 
 let openForClassId = null;
 let loadToken = 0;

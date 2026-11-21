@@ -3,43 +3,16 @@
 // --- IMPORTS ---
 import '../../styles/confirm_dialog.css';
 import { isSecretaryOfficeActive, openOfficeModal, closeOfficeModal } from '../../features/secretary/officeModal.js';
-import { fetchLogsForDate, fetchAttendanceForMonth, fetchLogsForMonth } from '../../db/queries.js';
-import { db, doc, getDocs, collection, query, where, orderBy, limit } from '../../firebase.js';
 
 // State and Constants
 import * as state from '../../state.js';
-import { fetchMonthlyHistory } from '../../state.js';
 import * as constants from '../../constants.js';
-import * as utils from '../../utils.js';
-import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { leaguePickerFollowHtml, renderLeaguePickerHtml } from './leaguePickerView.mjs';
 import { loadLeagueControlStyles } from '../leagueControlsStyles.js';
 
 // Actions and Effects
 import { playSound } from '../../audio.js';
-import { callGeminiApi } from '../../api.js';
-import { showToast, showPraiseToast } from '../effects.js';
 import { isSpeaking, stopSpeech } from '../../features/tts.js';
-import {
-    deleteClass,
-    deleteStudent,
-    handleEditClass,
-    handleDeleteQuestEvent,
-    handleCancelLesson,
-    handleAddOneTimeLesson,
-    handleDeleteAwardLog,
-    saveAwardNote,
-    saveAdventureLogNote,
-    deleteAdventureLog,
-    handleDeleteTrial,
-    handleMarkAbsent,
-    handleAwardBonusStar,
-    handleBatchAwardBonus,
-    addOrUpdateHeroChronicleNote,
-    handleRemoveAttendanceColumn,
-    deleteHeroChronicleNote,
-    ensureHistoryLoaded
-} from '../../db/actions/index.js';
 
 // Helper function to populate date dropdowns
 export function populateDateDropdowns(monthSelectId, daySelectId, dateString) { // dateString is YYYY-MM-DD

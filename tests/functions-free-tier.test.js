@@ -18,7 +18,7 @@ test('callables start quickly: more CPU, on-demand storage, parallel permission 
     assert.match(index, /const CALLABLE_MEMORY = '1GiB'/);
     assert.doesNotMatch(index, /^const \{ getStorage \} = require/m);
     assert.doesNotMatch(index, /^const \{ createAvatarForgeHandlers \} = require/m);
-    assert.match(index, /db\.doc\(secretaryRoleDoc\(\)\)\.get\(\)\r?\n  \]\);/);
+    assert.match(index, /db\.doc\(secretaryRoleDoc\(\)\)\.get\(\)\r?\n {2}\]\);/);
     assert.match(index, /caller\.secretaryRoleSnap \|\|/);
 });
 
@@ -27,7 +27,7 @@ test('callables overlap their reads instead of waiting on each one in turn', () 
     // Every signed-in call starts its permission reads on arrival, and checks the caller once.
     // The caller's school comes first (from their own profile); the reads then start inside it.
     assert.match(index, /const schoolId = await resolveCallSchoolId\(request\);/);
-    assert.match(index, /prefetchCallerReads\(request\);\r?\n      return handler\(request\);/);
+    assert.match(index, /prefetchCallerReads\(request\);\r?\n {6}return handler\(request\);/);
     assert.match(index, /request\.profileRead \|\| db\.collection\(PROFILE_COLLECTION\)/);
     assert.match(index, /request\.callerPromise = resolveAuthedCaller\(request\)/);
     // Permission failures are always reported before anything the other reads found.

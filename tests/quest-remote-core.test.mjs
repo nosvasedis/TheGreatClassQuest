@@ -268,7 +268,7 @@ test('the Wand layout pins each part to its row (hiding the strip must not stret
     const css = read('styles/quest_remote_wand.css');
     assert.match(css, /grid-template-rows: auto auto 1fr auto/);
     for (const [part, row] of [['qw-top', 1], ['qw-now', 2], ['qw-main', 3], ['qw-modes', 4]]) {
-        assert.match(css, new RegExp(`\.qw > \.${part} \{ grid-row: ${row};`), part);
+        assert.match(css, new RegExp(`.qw > .${part} { grid-row: ${row};`), part);
     }
 });
 

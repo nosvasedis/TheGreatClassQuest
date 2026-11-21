@@ -1,9 +1,8 @@
 // /ui/core/shop.js
 import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
-import * as modals from '../modals/index.js';
 import { canUseFeature } from '../../utils/subscription.js';
-import { FAMILIAR_TYPES, FAMILIAR_LEVEL_THRESHOLDS, buildFamiliarInitData } from '../../features/familiars.js';
+import { FAMILIAR_TYPES, FAMILIAR_LEVEL_THRESHOLDS } from '../../features/familiars.js';
 import { getSeasonalShopPriceMeta, getLocalIsoDateString } from '../../utils.js';
 import { isGameplaySeasonLiveFromAppState } from '../../utils/schoolYear.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
@@ -28,16 +27,15 @@ import {
     goldNeeded
 } from '../../features/marketKeeperCore.mjs';
 import {
-    escapeShopHtml,
-    shopPriceMarkupPlain,
-    shopPriceMarkupDiscount,
-    shopBuyBtnClass,
-    shopBuyBtnInner,
-    renderShopItemCard,
-    renderLegendaryRelicCard,
-    renderFamiliarEggCard,
-    renderShelf,
-    renderMarketAisle
+  shopPriceMarkupPlain,
+  shopPriceMarkupDiscount,
+  shopBuyBtnClass,
+  shopBuyBtnInner,
+  renderShopItemCard,
+  renderLegendaryRelicCard,
+  renderFamiliarEggCard,
+  renderShelf,
+  renderMarketAisle
 } from './marketView.mjs';
 import { renderFestivalStall } from './festivalStall.mjs';
 import '../../styles/festival_stall.css';

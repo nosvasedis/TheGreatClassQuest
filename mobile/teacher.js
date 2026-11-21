@@ -57,7 +57,6 @@ function setSheetOpen(sheet, open) {
     // Force reflow so closing transition runs from open position
     if (panel) {
         panel.style.transform = 'translateY(0)';
-        // eslint-disable-next-line no-unused-expressions
         panel.offsetHeight;
         panel.style.transform = '';
     }

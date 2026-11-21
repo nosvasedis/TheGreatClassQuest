@@ -2,9 +2,8 @@
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { db, query, collection, where, orderBy, limit, getDocs } from '../../firebase.js';
-import { showAnimatedModal, showModal, hideModal, populateDateDropdowns } from './base.js';
+import { showAnimatedModal, hideModal, populateDateDropdowns } from './base.js';
 import { showToast } from '../effects.js';
-import { playSound } from '../../audio.js';
 import { handleAwardBonusStar, handleBatchAwardBonus } from '../../db/actions/index.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
@@ -33,7 +32,7 @@ import { setupLeagueHomeworkImport } from './questBoardImport.js';
 import { prepareStarfall } from './starfall.js';
 import { goldAmountHtml } from '../../utils/goldCoin.js';
 
-const LEGACY_ASSIGNMENT_DATE_PREFIX_REGEX = /^\s*\d{1,2}[\/-]\d{1,2}[\/-]\d{4}\s*[:\-]?\s*/;
+const LEGACY_ASSIGNMENT_DATE_PREFIX_REGEX = /^\s*\d{1,2}[/-]\d{1,2}[/-]\d{4}\s*[:-]?\s*/;
 
 function stripLegacyAssignmentDatePrefix(text) {
     if (typeof text !== 'string') return '';
@@ -731,7 +730,7 @@ export async function openQuestAssignmentModal() {
             const formatAssignmentText = (text) => {
                 const lines = text.split('\n');
                 // Numbered lines ("1. " or "1) ") become a checklist; anything else keeps its line breaks.
-                const hasList = lines.some(l => l.trim().match(/^(\d+)[\.\)]\s+/));
+                const hasList = lines.some(l => l.trim().match(/^(\d+)[.)]\s+/));
                 if (!hasList) {
                     return `<p class="qb-card__text">${escapeHtml(text)}</p>`;
                 }
@@ -739,7 +738,7 @@ export async function openQuestAssignmentModal() {
                 lines.forEach(line => {
                     const trimmed = line.trim();
                     if (!trimmed) return;
-                    const match = trimmed.match(/^(\d+)[\.\)]\s+(.*)/);
+                    const match = trimmed.match(/^(\d+)[.)]\s+(.*)/);
                     if (match) {
                         const [, num, content] = match;
                         html += `<li class="qb-card__item"><span class="qb-card__num">${num}</span><span>${escapeHtml(content)}</span></li>`;

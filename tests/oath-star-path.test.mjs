@@ -5,7 +5,7 @@ import { figureProgress, figureCompletedBy, FIGURE_SIZE, CONSTELLATION_FIGURES, 
 import { BONUS_ONLY_AWARD_REASONS, EMBER_OATH_AWARD_REASON, isBonusOnlyAwardLog } from '../features/awardLogReasonMeta.js';
 
 test('the Star Path grows with every promise kept and never shrinks', () => {
-    let lastStars = 0, lastGold = 0;
+    let lastGold = 0;
     for (let n = 1; n <= 30; n++) {
         const p = oathPerkFor(n);
         assert.ok(p.stars === 0 || p.stars === 1, 'bonus stars stay rare: ' + n);
@@ -13,7 +13,7 @@ test('the Star Path grows with every promise kept and never shrinks', () => {
         if (n <= 12) assert.ok(p.gold >= lastGold, 'gold ' + n);
         assert.ok(p.gold >= 5 && p.gold <= 30);
         assert.equal(p.goldTotal, p.gold + p.stars, 'each bonus star brings its Gold too');
-        lastStars = p.stars; lastGold = Math.max(lastGold, p.gold);
+        lastGold = Math.max(lastGold, p.gold);
     }
     assert.equal(starsForKept(1), 0); assert.equal(starsForKept(3), 1); assert.equal(starsForKept(9), 0); assert.equal(starsForKept(16), 1);
     assert.equal([...Array(12)].reduce((sum, _, i) => sum + starsForKept(i + 1), 0), 4, 'four bonus stars across the first twelve promises');

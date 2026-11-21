@@ -3,7 +3,7 @@
 // --- IMPORTS ---
 import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
-import { db, auth, signOut, doc, collection, query, where, getDocs, runTransaction, serverTimestamp } from '../../firebase.js';
+import { db, auth, signOut, doc, collection, runTransaction, serverTimestamp } from '../../firebase.js';
 import { walkOutThroughGate } from '../authGate.js';
 import { setupHomeListeners } from '../../features/home.js';
 import { wireHeaderClassSelector } from '../headerClassSelector.js';
@@ -11,15 +11,10 @@ import { wireHeaderClassSelector } from '../headerClassSelector.js';
 import * as modals from '../modals/index.js';
 import { setupSpecialQuestRunnerListeners } from '../modals/specialQuest.js';
 import { prepareBountyPoster, focusBountyPoster, setupBountyPoster, validateBountyPoster } from '../modals/bountyPoster.js';
-import {
-    handleGetQuestUpdate,
-    downloadCertificateAsPdf,
-    openAppInfoModal
-} from '../modals/index.js';
+import { downloadCertificateAsPdf } from '../modals/index.js';
 import * as tabs from '../tabs/index.js';
 import * as storyWeaver from '../../features/storyWeaver.js';
 import * as avatar from '../../features/avatar.js';
-import * as ceremony from '../../features/ceremony.js';
 import * as utils from '../../utils.js';
 import { playSound } from '../../audio.js';
 import { clearLocalAppData, getDeviceCacheChoice } from '../../utils/deviceCache.js';
@@ -31,34 +26,32 @@ import { confirmAwardPending, markAwardPending, runAwardWriteInOrder, settleAwar
 import { confirmAttendancePending, markAttendancePending, settleAttendancePending, withPendingAttendance } from '../../features/attendancePending.mjs';
 import { updateShopStudentDisplay, isShopSeasonLive } from './shop.js';
 import { setupCloudDock, chooseCloud } from './cloudDock.js';
-import { confirmWord, handleWordInputChange, updateStudentCardAttendanceState } from './misc.js';
+import { confirmWord, handleWordInputChange } from './misc.js';
 import {
-    handleAddClass,
-    handleAddStudent,
-    handleEditClass,
-    handleSaveTeacherName,
-    setStudentStarsForToday,
-    handleDeleteAwardLog,
-    saveAwardNote,
-    saveAdventureLogNote,
-    handleLogAdventure,
-    editAdventureLogEntry,
-    deleteAdventureLog,
-    handleBulkSaveTrial,
-    handleSaveQuestAssignment,
-    handleMarkAbsent,
-    handleAddQuestEvent,
-    handleDeleteQuestEvent,
-    handleAddOneTimeLesson,
-    handleCancelLesson,
-    handleEndStory,
-    addOrUpdateHeroChronicleNote,
-    deleteHeroChronicleNote,
-    applyReasonAwardScoreTransaction,
-    applyAwardOutwardSkillEffects,
-    showHeroLevelUpCelebration
+  handleAddClass,
+  handleAddStudent,
+  handleEditClass,
+  handleSaveTeacherName,
+  setStudentStarsForToday,
+  handleDeleteAwardLog,
+  saveAwardNote,
+  saveAdventureLogNote,
+  handleLogAdventure,
+  editAdventureLogEntry,
+  deleteAdventureLog,
+  handleBulkSaveTrial,
+  handleSaveQuestAssignment,
+  handleMarkAbsent,
+  handleAddQuestEvent,
+  handleDeleteQuestEvent,
+  handleAddOneTimeLesson,
+  handleEndStory,
+  addOrUpdateHeroChronicleNote,
+  deleteHeroChronicleNote,
+  applyReasonAwardScoreTransaction,
+  applyAwardOutwardSkillEffects,
+  showHeroLevelUpCelebration
 } from '../../db/actions/index.js';
-import { handleBestowBoon } from '../../features/boons.js';
 import { handleAvatarClick } from './avatar.js';
 import {
     reconcileFamiliarLifecycle,

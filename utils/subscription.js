@@ -3,7 +3,7 @@
 // before schools shared one project; every other school reads the `subscription` map on its
 // own schools/{schoolId} doc. A missing plan means "pending" (safe fallback).
 
-import { db, doc, getDoc, onSnapshot } from '../firebase.js';
+import { db, doc, onSnapshot } from '../firebase.js';
 import { auth } from '../firebaseAuth.js';
 import { DEFAULT_SCHOOL_ID, getSchoolId } from './tenant.mjs';
 

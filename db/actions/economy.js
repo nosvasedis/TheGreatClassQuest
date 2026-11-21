@@ -512,7 +512,6 @@ export async function handleBuyItem(studentId, itemId) {
     const scoreData = state.get('allStudentScores').find((score) => score.id === studentId);
     const heroOfDayWins = getYearScopedHeroOfDayWinsFromAppState(scoreData, state);
     const currentMonthKey = getLocalIsoDateString().substring(0, 7);
-    let finalPrice = item.price;
     let voucherUsed = false;
 
     // 2. UI Pre-check and Optimistic Update preparation
@@ -585,7 +584,6 @@ export async function handleBuyItem(studentId, itemId) {
             }
 
             appliedFinalPrice = calculatedPrice;
-            finalPrice = calculatedPrice;
 
             if (currentDbGold < calculatedPrice) throw "Not enough gold!";
 

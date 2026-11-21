@@ -20,7 +20,6 @@ const T = Date.now();
 const maria = { id: 'maria', name: 'Maria Papadopoulou', heroClass: 'Guardian', guildId: 'owl_wisdom', birthday: '2016-10-02' };
 const nikos = { id: 'nikos', name: 'Nikos Georgiou', heroClass: 'Sage', guildId: 'dragon_flame' };
 const eleni = { id: 'eleni', name: 'Eleni Dimitriou', guildId: 'phoenix_rising' };
-const kostas = { id: 'kostas', name: 'Kostas Ioannou', heroClass: 'Patron', guildId: 'grizzly_might' };
 
 const press = (date, note, ago, extra = {}) => ({ date, note, found: T - ago, ...extra });
 const mariaSeals = {

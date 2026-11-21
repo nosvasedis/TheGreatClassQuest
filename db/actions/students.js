@@ -1,19 +1,17 @@
 // /db/actions/students.js — student CRUD, move, teacher name, nameday
 import {
-    db,
-    doc,
-    collection,
-    runTransaction,
-    serverTimestamp,
-    getDocs,
-    query,
-    where,
-    updateDoc,
-    getDoc,
-    setDoc,
-    writeBatch,
-    auth,
-    updateProfile
+  db,
+  doc,
+  collection,
+  runTransaction,
+  serverTimestamp,
+  getDocs,
+  query,
+  where,
+  updateDoc,
+  writeBatch,
+  auth,
+  updateProfile
 } from '../../firebase.js';
 import * as state from '../../state.js';
 import { showToast } from '../../ui/effects.js';

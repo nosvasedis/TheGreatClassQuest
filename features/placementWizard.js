@@ -58,10 +58,6 @@ function rosterCounts() {
     return buildRosterCounts(state.get('allStudents') || []);
 }
 
-function studentById(studentId) {
-    return (state.get('allStudents') || []).find((student) => student.id === studentId) || null;
-}
-
 function classById(classId) {
     return (state.get('allSchoolClasses') || []).find((classData) => classData.id === classId) || null;
 }
@@ -586,7 +582,7 @@ function restoreSearchCaret(caret) {
 }
 
 function paintWizard({ searchCaret } = {}) {
-    const modal = ensureWizard();
+    ensureWizard();
     const title = document.getElementById('placement-wizard-title');
     const subtitle = document.getElementById('placement-wizard-subtitle');
     const steps = document.getElementById('placement-wizard-steps');

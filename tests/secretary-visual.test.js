@@ -65,7 +65,6 @@ test('Secretary Home plan badge has a colored Elite treatment and a visible icon
 test('Secretary Admin uses friendly labels and filled active navigation', () => {
     const admin = read('features/secretary/admin.js');
     const year = read('features/schoolYearConsole.js');
-    const css = read('styles/roles.css');
 
     const office = read('styles/secretary_office.css');
     assert.match(admin, /Students & Classes/);

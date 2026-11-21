@@ -1,5 +1,6 @@
 // /ui/modals/guildHeroes.js — the Guild Spotlight: one guild's month, heroes, Crown Road and Wheel finds
 
+import '../../styles/guild_spotlight.css';
 import { getGuildHeroAnalytics } from '../../features/guildHeroAnalytics.js';
 import { getCrownRoadKeys } from '../../features/guildScoring.js';
 import { getGuildById, getGuildEmblemUrl } from '../../features/guilds.js';

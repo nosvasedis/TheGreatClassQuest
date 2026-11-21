@@ -1,3 +1,4 @@
+import '../../styles/quiz_of_the_week.css';
 import { quietly } from '../../utils/runtimeMetrics.js';
 import '../../styles/quiz_show_stage.css';
 import { showAnimatedModal, hideModal } from './base.js';

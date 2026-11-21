@@ -1,6 +1,7 @@
 // /ui/modals/questBoardImport.js — Quest Board "Copy from league":
 // fills the notepad with the homework another class in the same league has right now.
 // It only fills the textarea; nothing is saved until the teacher presses Save.
+import '../../styles/quest_board.css';
 import * as state from '../../state.js';
 import { db, query, collection, where, getDocs } from '../../firebase.js';
 import { showToast } from '../effects.js';

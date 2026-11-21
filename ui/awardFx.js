@@ -5,6 +5,7 @@
 // Styles: styles/award_stars.css (.aw-fx-*). The Hero's Boon gift and the Hero of the Day
 // bonus (ui/awardMoments.js) share this layer and these helpers.
 
+import '../styles/award_stars.css';
 import { quietly } from '../utils/runtimeMetrics.js';
 import { playSound } from '../audio.js';
 import { buildAwardCloudSvg } from '../features/awardCloudCard.mjs';

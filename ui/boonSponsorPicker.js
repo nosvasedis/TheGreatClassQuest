@@ -3,6 +3,7 @@
 // The hidden native <select id="boon-sender-select"> stays the source of truth:
 // picking a tile sets its value and dispatches 'change', so existing listeners keep working.
 
+import '../styles/boons.css';
 import { escapeHtml } from '../utils/html.mjs';
 import { buildAwardCloudSvg } from '../features/awardCloudCard.mjs';
 

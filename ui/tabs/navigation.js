@@ -1,6 +1,7 @@
 // /ui/tabs/navigation.js
 
 // --- IMPORTS ---
+import '../../styles/teacher_settings.css';
 import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
 import { ensureHistoryLoaded } from '../../db/actions/index.js';

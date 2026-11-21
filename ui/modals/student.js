@@ -1,4 +1,6 @@
 // /ui/modals/student.js
+import '../../styles/student_profile.css';
+import '../../styles/quest_board.css';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { db, query, collection, where, orderBy, limit, getDocs } from '../../firebase.js';

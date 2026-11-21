@@ -2,6 +2,7 @@
 // The four pictures here are hand-drawn stand-ins; in the app they are drawn by the Elite image AI
 // once, when the quiz is generated.
 // /quiz-kinds-preview.html?view=loading|loading-error|intro|listen|listen-speaking|listen-heard|picture|picture-wrong|picture-solved|fix|fix-solved|choice|results|curtain-call[&shot=1]
+import './styles/quiz_of_the_week.css';
 import './styles/quiz_show_stage.css';
 import { quizIntroHtml, quizLoadErrorHtml, quizLoadingHtml, quizResultsHtml, quizSaveErrorHtml, quizStageShellHtml, quizTurnHtml, quizVerdictHtml } from './ui/modals/quizStageMarkup.js';
 import { computeQuestionStats } from './features/quizReviewCore.mjs';

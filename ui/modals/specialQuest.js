@@ -1,3 +1,4 @@
+import '../../styles/special_quests.css';
 import { escapeHtml as esc } from '../../utils/html.mjs';
 import { emptyStateHtml } from '../emptyStateView.mjs';
 import { showAnimatedModal, hideModal } from './base.js';

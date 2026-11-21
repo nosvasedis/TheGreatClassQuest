@@ -1,4 +1,5 @@
 // /ui/core/shop.js
+import '../../styles/mystic_market.css';
 import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
 import { canUseFeature } from '../../utils/subscription.js';

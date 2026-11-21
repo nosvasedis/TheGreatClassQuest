@@ -1,6 +1,7 @@
 // /ui/modals/emberOaths.js — Ember Oaths board (lazy). One modal under a night sky, four quick views:
 // the class board (what needs you tonight first), the choosing ceremony (one tap per child, auto-advance),
 // a promise's story (check-in, one-tap moments, keep), and the kept-promise celebration.
+import '../../styles/chronicle.css';
 import { quietly } from '../../utils/runtimeMetrics.js';
 import { escapeHtml as esc } from '../../utils/html.mjs';
 import '../../features/campfire/emberOaths.css';

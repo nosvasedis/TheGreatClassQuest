@@ -3,6 +3,7 @@
 // Shows where every party of the league stands relative to that realm, using
 // the same realm boundaries as the living map (features/questMapZones.mjs).
 
+import '../../styles/realm_overview.css';
 import { escapeHtml } from '../../utils/html.mjs';
 import '../../styles/quest_ranks.css';
 import * as state from '../../state.js';

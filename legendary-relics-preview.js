@@ -1,5 +1,6 @@
 // Legendary Artifacts preview: the relic shelf with sample shoppers, no Firebase.
 // /legendary-relics-preview.html?[before=1][&state=affordable|short][&forms=1][&shot=1]
+import './styles/mystic_market.css';
 import './styles/legendary_relics.css';
 import './styles/market_charms.css';
 import { shopTabHTML } from './templates/app/tabs/shop.js';

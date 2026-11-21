@@ -1,5 +1,6 @@
 // Festival Stall preview: every celebration's stall with sample wares, no Firebase.
 // /festival-stall-preview.html?fest=halloween[&preparing=1][&lite=1][&last=1][&feast=1][&shot=1]
+import './styles/mystic_market.css';
 import './styles/festival_stall.css';
 import { shopTabHTML } from './templates/app/tabs/shop.js';
 import { getFestivalWindow, SHOP_FESTIVAL_IDS } from './utils/shopCalendar.js';

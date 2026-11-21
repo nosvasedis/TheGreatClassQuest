@@ -199,7 +199,7 @@
 .qs-familiar-trick:hover { background: rgba(49, 46, 129, .9); }
 .qs-familiar-trick:disabled { opacity: .55; cursor: default; }
 .qs-familiar-trick__pet { width: 40px; height: 40px; flex-shrink: 0; }
-.qs-answer.is-trick-gone { opacity: .3; filter: grayscale(1); transform: scale(.97); transition: opacity .6s ease, transform .6s ease; }
+.qs-answer.is-tried.is-trick-gone { opacity: .3; filter: grayscale(1); transform: scale(.97); transition: opacity .6s ease, transform .6s ease; }
 @keyframes fam-trick-in { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: none; } }
 
 @media (prefers-reduced-motion: reduce) {

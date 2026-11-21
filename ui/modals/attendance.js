@@ -1,4 +1,5 @@
 // /ui/modals/attendance.js
+import '../../styles/attendance_register.css';
 import { emptyStateHtml } from '../emptyStateView.mjs';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';

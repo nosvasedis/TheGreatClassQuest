@@ -2,6 +2,7 @@
 // Open /guild-hall-preview.html under `npm run dev`. The buttons change the pretend guild_scores
 // the way the real listeners do, so the Hall's real patching and moments play.
 // ?lite=1 adds the weak-laptop look; ?shot=1 hides the toolbar.
+import './styles/guild_hall.css';
 import * as state from './state.js';
 import { guildsTabHTML } from './templates/app/tabs/guilds.js';
 import { renderGuildsTab, requestGuildHallRender } from './ui/tabs/guilds.js';

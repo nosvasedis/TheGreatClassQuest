@@ -1,4 +1,5 @@
 // /ui/modals/planner.js
+import '../../styles/quest_events.css';
 import { paintDayScene, dayCardHtml, specialDayFor, dayLook } from '../daySceneHeader.js';
 import { raidDayBannerHtml, wireRaidClicks } from '../tabs/raidCalendar.js';
 import * as constants from '../../constants.js';

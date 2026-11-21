@@ -1,6 +1,7 @@
 // /features/storyWeaver.js
 
 // --- IMPORTS ---
+import '../styles/story.css';
 import { quietly } from '../utils/runtimeMetrics.js';
 import { db, auth, doc, getDocs, collection, query, orderBy, setDoc, updateDoc, writeBatch, runTransaction, serverTimestamp, increment, limit, onSnapshot } from '../firebase.js';
 

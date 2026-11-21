@@ -9,6 +9,7 @@
 // notification; weak laptops get fewer particles and no full-screen glow.
 // Styles: styles/award_moments.css (.amx-*), loaded with this module. Sounds: audio.js playAwardMomentSfx.
 
+import '../styles/award_stars.css';
 import { quietly } from '../utils/runtimeMetrics.js';
 import { escapeHtml as esc } from '../utils/html.mjs';
 import '../styles/award_moments.css';

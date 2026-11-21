@@ -4,6 +4,8 @@
  * and what to do next; the plan form below opens when there is something to plan.
  * Wording and pure models: ui/tabs/quizSetupView.mjs.
  */
+import '../../styles/teacher_settings.css';
+import '../../styles/quiz_setup.css';
 import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';

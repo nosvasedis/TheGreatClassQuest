@@ -1,4 +1,5 @@
 // /ui/tabs/leaderboard.js
+import '../../styles/team_quest_cards.css';
 import * as state from '../../state.js';
 import { quietly } from '../../utils/runtimeMetrics.js';
 import { getLeaderboardEffectiveLeague } from '../../state.js';

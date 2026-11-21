@@ -1,3 +1,4 @@
+import '../styles/mystic_market.css';
 import { db, doc, runTransaction, increment, collection, serverTimestamp, arrayUnion } from '../firebase.js';
 import { awardGloryToStudents } from './guildScoring.js';
 import { chapterKeyFor } from './guildScoringCore.js';

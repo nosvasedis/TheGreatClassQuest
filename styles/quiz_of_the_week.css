@@ -1543,111 +1543,6 @@
     100% { transform: translateY(85vh) rotate(calc(var(--cr) + 540deg)) scale(0.6); opacity: 0; }
 }
 
-/* ═══════════════════════════════════════════════════════════════════
-   HOME LAUNCHER — a lit ticket on the weather card
-   ═══════════════════════════════════════════════════════════════════ */
-
-.quiz-week-btn-wrap {
-    display: inline-flex;
-    animation: quiz-launch-enter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-
-@keyframes quiz-launch-enter {
-    0% { opacity: 0; transform: translateY(10px) scale(0.6); }
-    100% { opacity: 1; transform: none; }
-}
-
-.quiz-week-btn {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.55rem;
-    padding: 0.32rem 0.95rem 0.32rem 0.32rem;
-    border-radius: 999px;
-    cursor: pointer;
-    color: #fff;
-    text-align: left;
-    background: linear-gradient(180deg, #33205f, #1c1445);
-    border: 1.5px solid #f6c453;
-    box-shadow: 0 0 0 2px rgba(28, 20, 69, 0.35), 0 8px 20px rgba(15, 10, 45, 0.35), 0 0 18px rgba(246, 196, 83, 0.35);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.quiz-week-btn::after {
-    content: '';
-    position: absolute;
-    inset: -1.5px;
-    border-radius: inherit;
-    pointer-events: none;
-    background: linear-gradient(110deg, transparent 30%, rgba(255, 244, 200, 0.55) 45%, transparent 60%) -120% 0 / 250% 100% no-repeat;
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-    padding: 1.5px;
-    animation: quiz-launch-shine 3.6s ease-in-out 1s infinite;
-}
-
-@keyframes quiz-launch-shine {
-    0%, 55% { background-position: -120% 0; }
-    100% { background-position: 220% 0; }
-}
-
-.quiz-week-btn:hover { transform: translateY(-2px) scale(1.03); box-shadow: 0 0 0 2px rgba(28, 20, 69, 0.35), 0 12px 26px rgba(15, 10, 45, 0.42), 0 0 28px rgba(246, 196, 83, 0.6); }
-.quiz-week-btn:active { transform: scale(0.97); }
-.quiz-week-btn:focus-visible { outline: 3px solid #fde68a; outline-offset: 3px; }
-
-.quiz-week-btn__gem {
-    flex: 0 0 auto;
-    display: grid;
-    place-items: center;
-    width: 2.1rem;
-    height: 2.1rem;
-    border-radius: 999px;
-    font-size: 0.95rem;
-    color: #3b1d00;
-    background: radial-gradient(circle at 35% 30%, #fff7d6, #fcd34d 55%, #d97706);
-    box-shadow: 0 0 12px rgba(251, 191, 36, 0.7);
-    animation: quiz-launch-bob 2.6s ease-in-out infinite;
-}
-
-@keyframes quiz-launch-bob {
-    0%, 100% { transform: rotate(-8deg); }
-    50% { transform: rotate(8deg) scale(1.06); }
-}
-
-.quiz-week-btn__copy { display: flex; flex-direction: column; line-height: 1.1; }
-
-.quiz-week-btn__kicker {
-    font-family: var(--gcq-font-display);
-    font-weight: 600;
-    font-size: 0.62rem;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: #fde68a;
-}
-
-.quiz-week-btn__title {
-    font-family: var(--gcq-font-title);
-    font-size: 0.92rem;
-    white-space: nowrap;
-}
-
-.quiz-week-btn.quiz-btn-completed {
-    border-color: rgba(110, 231, 183, 0.8);
-    box-shadow: 0 0 0 2px rgba(28, 20, 69, 0.3), 0 8px 18px rgba(15, 10, 45, 0.3);
-}
-
-.quiz-week-btn.quiz-btn-completed::after { display: none; }
-.quiz-week-btn.quiz-btn-completed .quiz-week-btn__gem { color: #fff; background: radial-gradient(circle at 35% 30%, #d1fae5, #34d399 55%, #047857); box-shadow: 0 0 10px rgba(52, 211, 153, 0.6); animation: none; }
-.quiz-week-btn.quiz-btn-completed .quiz-week-btn__kicker { color: #a7f3d0; }
-.quiz-week-btn.quiz-btn-completing { animation: quiz-launch-complete 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); }
-
-@keyframes quiz-launch-complete {
-    0% { transform: scale(1); }
-    40% { transform: scale(1.14); box-shadow: 0 0 36px rgba(52, 211, 153, 0.8); }
-    100% { transform: scale(1); }
-}
-
 /* ─── Question kinds: Listen and choose, Picture question, Fix the sentence ───
    Every kind still plays as four gems with A to D. Animations use only
    transform and opacity, so weak classroom laptops stay smooth.            */
@@ -2209,13 +2104,6 @@
     color: var(--qs-ink-soft);
 }
 
-/* The Home ticket answers the press at once while the stage gets ready. */
-.quiz-week-btn.is-opening { cursor: progress; transform: scale(0.97); }
-.quiz-week-btn.is-opening .quiz-week-btn__gem i { animation: qs-loading-spin 0.8s linear infinite; }
-
-@keyframes qs-loading-spin {
-    to { transform: rotate(360deg); }
-}
 
 /* The top of the show: the only heroes who earn a star. */
 .qs-hero.is-top { border-color: rgba(253, 230, 138, 0.6); }
@@ -2228,8 +2116,6 @@
     .qs-crest__rays,
     .qs-pip.is-current,
     .qs-tally__drum,
-    .quiz-week-btn::after,
-    .quiz-week-btn__gem,
     .qs-listen__ring,
     .qs-listen__icon,
     .qs-mix__sound i,
@@ -2240,8 +2126,7 @@
 
     .qs-listen.is-speaking { box-shadow: 0 0 0 8px rgba(14, 165, 233, 0.35), 0 10px 22px rgba(7, 89, 133, 0.35); }
 
-    .qs-stage *,
-    .quiz-week-btn-wrap {
+    .qs-stage * {
         animation-duration: 0.01s !important;
         animation-delay: 0s !important;
         transition-duration: 0.01s !important;

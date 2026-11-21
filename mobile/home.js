@@ -494,7 +494,6 @@ function attachHomeListeners() {
     const pop = (el) => {
         if (!el) return;
         el.classList.remove('m-home-pop');
-        // eslint-disable-next-line no-unused-expressions
         el.offsetWidth;
         el.classList.add('m-home-pop');
         window.setTimeout(() => el.classList.remove('m-home-pop'), 450);

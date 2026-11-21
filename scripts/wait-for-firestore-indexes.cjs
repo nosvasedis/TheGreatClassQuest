@@ -1,15 +1,12 @@
 #!/usr/bin/env node
 
-const path = require('path');
 const { spawnSync } = require('child_process');
 const { firebaseBin } = require('./lib/firebase-cli.cjs');
 const {
-  compareRequiredIndexes,
   formatRequiredIndexLabel,
   getActiveYearQueryIndexes,
 } = require('./lib/schoolAdmin.cjs');
 
-const repoRoot = path.resolve(__dirname, '..');
 const projectId = process.env.FIREBASE_PROJECT || 'the-great-class-quest';
 const maxAttempts = Number(process.env.INDEX_WAIT_ATTEMPTS || 40);
 const delayMs = Number(process.env.INDEX_WAIT_DELAY_MS || 15000);

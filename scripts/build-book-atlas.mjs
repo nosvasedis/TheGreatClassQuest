@@ -91,7 +91,7 @@ for (const c of closeup) {
     for (const line of raw.split(/\r?\n/)) {
         const p = line.match(/^(?:Reading |Vocabulary |Grammar |Listening |Speaking |Writing |Video |Use your English )?Pages?\s+(\d+)/i);
         if (p) currentPage = Number(p[1]);
-        const w = line.match(/^(\d+)\.\d+\s+(.+?)\s+\([a-zA-Z.,\s\/-]+\)/);
+        const w = line.match(/^(\d+)\.\d+\s+(.+?)\s+\([a-zA-Z.,\s/-]+\)/);
         if (w && currentPage) pageByWord.set(w[1] + ':' + w[2].trim(), currentPage);
     }
     for (const [u, words] of Object.entries(vocabulary.units)) for (const word of words) {

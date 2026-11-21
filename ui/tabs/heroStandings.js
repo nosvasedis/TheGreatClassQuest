@@ -64,17 +64,28 @@ export function writeStandingsSnapshot(boardKey, snapshot) {
     }
 }
 
-/** { sections: { [sectionId]: { order: [id], scores: { id: n }, ranks: { id: n } } } } */
+/** The lasting badges a hero wears (not the per-visit ▲/+N chips). */
+export function entryBadgeKinds(e) {
+    const html = `${e.roleBadgesHtml || ''}${e.titleBadgeHtml || ''}${e.pillsHtml || ''}`;
+    const kinds = [...html.matchAll(/data-hcs-badge="([^"]+)"/g)].map((m) => m[1]);
+    if (e.heroClass?.legend) kinds.push('legend');
+    return kinds;
+}
+
+/** { sections: { [sectionId]: { order: [id], scores: { id: n }, ranks: { id: n }, badges: { id: 'a,b' } } } } */
 export function buildStandingsSnapshot(sections) {
     const out = { sections: {} };
     sections.forEach((section) => {
         const scores = {};
         const ranks = {};
+        const badges = {};
         section.entries.forEach((e) => {
             scores[e.id] = e.score;
             ranks[e.id] = e.rank;
+            const kinds = entryBadgeKinds(e);
+            if (kinds.length) badges[e.id] = kinds.join(',');
         });
-        out.sections[section.id] = { order: section.entries.map((e) => e.id), scores, ranks };
+        out.sections[section.id] = { order: section.entries.map((e) => e.id), scores, ranks, badges };
     });
     return out;
 }
@@ -107,6 +118,11 @@ export function annotateStandingsChanges(sections, baseline, previous) {
                 e.fromScore = prev.scores[e.id] !== undefined ? prev.scores[e.id] : e.score;
                 e.fromRank = prev.ranks[e.id] || e.rank;
                 if (from !== slot || e.fromScore !== e.score) anyMotion = true;
+                // Badges earned since the last look arrive with their own effect.
+                if (prev.badges) {
+                    const had = new Set(String(prev.badges[e.id] || '').split(',').filter(Boolean));
+                    e.newBadges = entryBadgeKinds(e).filter((k) => !had.has(k));
+                }
             } else {
                 e.fromSlot = slot;
                 e.fromScore = e.score;
@@ -121,17 +137,17 @@ export function annotateStandingsChanges(sections, baseline, previous) {
 
 function moveChipHtml(e) {
     if (e.climb > 0) {
-        return `<span class="hcs-move hcs-move--up" title="Up ${e.climb} place${e.climb === 1 ? '' : 's'} since your last look"><i class="fas fa-caret-up" aria-hidden="true"></i>${e.climb}</span>`;
+        return `<span class="hcs-move hcs-move--up" data-hcs-badge="move-up" title="Up ${e.climb} place${e.climb === 1 ? '' : 's'} since your last look"><i class="fas fa-caret-up" aria-hidden="true"></i>${e.climb}</span>`;
     }
     if (e.climb < 0) {
-        return `<span class="hcs-move hcs-move--down" title="Down ${-e.climb} place${e.climb === -1 ? '' : 's'} since your last look"><i class="fas fa-caret-down" aria-hidden="true"></i>${-e.climb}</span>`;
+        return `<span class="hcs-move hcs-move--down" data-hcs-badge="move-down" title="Down ${-e.climb} place${e.climb === -1 ? '' : 's'} since your last look"><i class="fas fa-caret-down" aria-hidden="true"></i>${-e.climb}</span>`;
     }
     return '';
 }
 
 function gainChipHtml(e) {
     if (!(e.gain > 0)) return '';
-    return `<span class="hcs-gain" title="${formatStandingsStars(e.gain)} new ${starWord(e.gain)} since your last look">+${formatStandingsStars(e.gain)}</span>`;
+    return `<span class="hcs-gain" data-hcs-badge="gain" title="${formatStandingsStars(e.gain)} new ${starWord(e.gain)} since your last look">+${formatStandingsStars(e.gain)}</span>`;
 }
 
 function countHtml(e) {
@@ -201,7 +217,7 @@ function heroLineHtml(e, { gold = true, title = true } = {}) {
     const bits = [];
     const hc = title ? e.heroClass : null;
     if (hc?.legend) {
-        bits.push(`<span class="hcs-line__title hcs-line__title--legend" title="${escapeStandingsHtml(hc.legend)}"><i class="fas fa-crown" aria-hidden="true"></i>${escapeStandingsHtml(hc.title || hc.cls)}</span>`);
+        bits.push(`<span class="hcs-line__title hcs-line__title--legend" data-hcs-badge="legend" title="${escapeStandingsHtml(hc.legend)}"><i class="fas fa-crown" aria-hidden="true"></i>${escapeStandingsHtml(hc.title || hc.cls)}</span>`);
     } else if (hc && (hc.title || hc.cls)) {
         const tip = hc.title && hc.title !== hc.cls ? `${hc.title}, a ${hc.cls}` : hc.cls;
         bits.push(`<span class="hcs-line__title" style="--aura:${escapeStandingsHtml(hc.aura || '#7c3aed')}" title="${escapeStandingsHtml(tip)}">${escapeStandingsHtml(hc.title || hc.cls)}</span>`);
@@ -291,7 +307,7 @@ function longestWord(name) {
 
 function podiumFigureHtml(e, group, entries, k, packed) {
     const crown = e.rank === 1
-        ? '<span class="hcs-figure__crown" aria-hidden="true"><i class="fas fa-crown"></i></span>'
+        ? '<span class="hcs-figure__crown" data-hcs-badge="crown" aria-hidden="true"><i class="fas fa-crown"></i></span>'
         : '';
     const chips = `${moveChipHtml(e)}${podiumNoteHtml(e, group, entries)}`;
     const accent = e.accent ? `;--hcs-accent:${escapeStandingsHtml(e.accent)}` : '';
@@ -327,7 +343,7 @@ function crownBannerHtml(gold, metric) {
         ? '<span class="hcs-podium__banner-sub">Co-Prodigies if the month ended today</span>'
         : '<span class="hcs-podium__banner-sub">Level on every star</span>';
     return `
-        <div class="hcs-podium__banner" role="note">
+        <div class="hcs-podium__banner" data-hcs-badge="shared-crown" role="note">
             <i class="fas fa-crown" aria-hidden="true"></i>
             <span class="hcs-podium__banner-main">${n === 2 ? 'Two heroes share' : `${n} heroes share`} the crown</span>
             ${sub}
@@ -353,7 +369,7 @@ function podiumHtml(spots, metric) {
         const packed = packedEverywhere || n > 1;
         const figures = group.heroes.map((e, k) => podiumFigureHtml(e, group, spots, k, packed)).join('');
         return `
-            <div class="hcs-spot hcs-spot--${metal}${n > 1 ? ' hcs-spot--shared' : ''}" style="--n:${n}">
+            <div class="hcs-spot hcs-spot--${metal}${n > 1 ? ' hcs-spot--shared' : ''}" data-hcs-key="spot-${metal}" style="--n:${n}">
                 <div class="hcs-spot__heroes">${figures}</div>
                 <div class="hcs-pedestal" aria-hidden="true">
                     <span class="hcs-pedestal__cap"><span class="hcs-pedestal__gem"></span></span>
@@ -394,8 +410,8 @@ const SKILL_TONES = {
     pathfinder_map: 'indigo'
 };
 
-function traitHtml(tone, icon, text, title) {
-    return `<span class="hcs-trait hcs-trait--${tone}" title="${escapeStandingsHtml(title)}"><i class="fas ${icon}" aria-hidden="true"></i><span>${escapeStandingsHtml(text)}</span></span>`;
+function traitHtml(tone, icon, text, title, kind = tone) {
+    return `<span class="hcs-trait hcs-trait--${tone}" data-hcs-badge="${kind}" title="${escapeStandingsHtml(title)}"><i class="fas ${icon}" aria-hidden="true"></i><span>${escapeStandingsHtml(text)}</span></span>`;
 }
 
 /**
@@ -405,10 +421,10 @@ function traitHtml(tone, icon, text, title) {
  */
 export function renderHeroTraitsHtml({ prodigy = false, weekStars = 0, streak = 0, skill = null, egg = null } = {}) {
     const out = [];
-    if (prodigy) out.push(traitHtml('crown', 'fa-crown', 'Prodigy', 'Reigning Prodigy of the Month'));
+    if (prodigy) out.push(traitHtml('crown', 'fa-crown', 'Prodigy', 'Reigning Prodigy of the Month', 'prodigy'));
     if (weekStars > 0) out.push(traitHtml('fire', 'fa-fire', `+${weekStars} this week`, `${weekStars} star${weekStars === 1 ? '' : 's'} this week`));
     if (streak > 1) out.push(traitHtml('bolt', 'fa-bolt', `${streak} perfect`, `${streak} perfect 3-star lessons in a row`));
-    if (skill?.name) out.push(traitHtml(SKILL_TONES[skill.key] || 'sky', skill.icon || 'fa-star', skill.name, 'Top skill this month'));
+    if (skill?.name) out.push(traitHtml(SKILL_TONES[skill.key] || 'sky', skill.icon || 'fa-star', skill.name, 'Top skill this month', 'skill'));
     if (egg?.kind === 'ready') out.push(traitHtml('egg', 'fa-egg', 'Ready to hatch', 'This egg is ready to hatch now'));
     else if (egg?.kind === 'soon') out.push(traitHtml('egg', 'fa-egg', `${egg.remaining} to hatch`, `${egg.remaining} more star${egg.remaining === 1 ? '' : 's'} until the egg hatches`));
     return out.join('');
@@ -418,8 +434,8 @@ export function renderHeroTraitsHtml({ prodigy = false, weekStars = 0, streak = 
 export function renderHeroRoleBadgesHtml({ champion = false, topHero = false, color = '' } = {}) {
     const style = color ? ` style="--badge:${escapeStandingsHtml(color)}"` : '';
     let html = '';
-    if (champion) html += `<span class="hcs-badge hcs-badge--champion"${style} title="Guild Champion this month"><i class="fas fa-shield-alt" aria-hidden="true"></i>Champion</span>`;
-    if (topHero) html += '<span class="hcs-badge hcs-badge--top" title="Top Hero for this guild"><i class="fas fa-medal" aria-hidden="true"></i>Top Hero</span>';
+    if (champion) html += `<span class="hcs-badge hcs-badge--champion" data-hcs-badge="champion"${style} title="Guild Champion this month"><i class="fas fa-shield-alt" aria-hidden="true"></i>Champion</span>`;
+    if (topHero) html += '<span class="hcs-badge hcs-badge--top" data-hcs-badge="top-hero" title="Top Hero for this guild"><i class="fas fa-medal" aria-hidden="true"></i>Top Hero</span>';
     return html;
 }
 
@@ -689,7 +705,7 @@ export function renderStandingsHeraldHtml(sections, { byClass = true } = {}) {
 
 // --- Motion -----------------------------------------------------------------
 
-function reducedMotion() {
+export function reducedMotion() {
     try {
         return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     } catch {
@@ -697,7 +713,7 @@ function reducedMotion() {
     }
 }
 
-function countUp(el, from, to, duration) {
+export function countUp(el, from, to, duration) {
     if (from === to) {
         el.textContent = formatStandingsStars(to);
         return;
@@ -772,59 +788,99 @@ export function resumeStandingsEntrance(list) {
 function morphNode(from, to) {
     if (from.nodeType !== to.nodeType || from.nodeName !== to.nodeName) {
         from.replaceWith(to);
-        return;
+        return to;
     }
     if (from.nodeType === 3 || from.nodeType === 8) {
         if (from.nodeValue !== to.nodeValue) from.nodeValue = to.nodeValue;
-        return;
+        return from;
     }
-    if (from.nodeType !== 1) return;
+    if (from.nodeType !== 1) return from;
     for (const { name, value } of [...to.attributes]) {
-        if (from.getAttribute(name) !== value) from.setAttribute(name, value);
+        let next = value;
+        // Classes the motion adds while it plays (a crown that dropped, a hero
+        // mid-hop) stay on until the motion itself takes them off.
+        if (name === 'class') {
+            const keep = [...from.classList].filter((c) => KEEP_CLASSES.test(c) && !to.classList.contains(c));
+            if (keep.length) next = `${value} ${keep.join(' ')}`;
+        }
+        // Where a moved piece's entrance stands (set by the motion) stays too.
+        if (name === 'style') {
+            const skip = from.style.getPropertyValue('--hcs-skip');
+            if (skip && !/--hcs-skip/.test(value)) next = `${value}${value.trim().endsWith(';') || !value.trim() ? '' : ';'}--hcs-skip:${skip}`;
+        }
+        if (from.getAttribute(name) !== next) from.setAttribute(name, next);
     }
     for (const { name } of [...from.attributes]) {
         if (!to.hasAttribute(name)) from.removeAttribute(name);
     }
     morphChildren(from, to);
+    return from;
+}
+
+const KEEP_CLASSES = /^(?:hcs-crowned|hcs-fx-[\w-]+)$/;
+
+/**
+ * Who a child is: a hero (by id), a badge (by kind), a keyed piece (a
+ * pedestal), a section, or else its tag and first class (counted, so twins
+ * keep their order). Keyed children are matched by who they are, not where
+ * they stand, so a hero's node follows the hero when the order changes.
+ */
+function childKey(node, seen) {
+    if (node.nodeType !== 1) return '';
+    const d = node.dataset;
+    if (d.hcsId) return `id:${d.hcsId}`;
+    if (d.hcsBadge) return `b:${d.hcsBadge}`;
+    if (d.hcsKey) return `k:${d.hcsKey}`;
+    if (d.hcsSection) return `s:${d.hcsSection}`;
+    const base = `${node.nodeName}.${node.classList[0] || ''}`;
+    const n = seen.get(base) || 0;
+    seen.set(base, n + 1);
+    return `c:${base}#${n}`;
 }
 
 function morphChildren(from, to) {
+    // The motion layer (ghosts and sparkles) is not part of the markup.
+    const now = [...from.childNodes].filter((n) => !(n.nodeType === 1 && n.hasAttribute('data-hcs-fx-layer')));
     const next = [...to.childNodes];
-    const now = [...from.childNodes];
-    next.forEach((child, i) => {
-        if (i < now.length) morphNode(now[i], child);
-        else from.appendChild(child);
+    const oldSeen = new Map();
+    const newSeen = new Map();
+    const byKey = new Map();
+    const loose = [];
+    now.forEach((n) => {
+        const key = childKey(n, oldSeen);
+        if (!key) loose.push(n);
+        else if (!byKey.has(key)) byKey.set(key, n);
     });
-    for (let i = next.length; i < now.length; i++) now[i].remove();
-}
-
-function standingsKey(el) {
-    if (!el || el.nodeType !== 1) return '';
-    if (el.dataset.hcsSection) return `s:${el.dataset.hcsSection}`;
-    return el.className ? `c:${String(el.className).split(' ')[0]}` : '';
+    let li = 0;
+    const result = next.map((n) => {
+        const key = childKey(n, newSeen);
+        if (key) {
+            const match = byKey.get(key);
+            if (!match) return n;
+            byKey.delete(key);
+            return morphNode(match, n);
+        }
+        const match = loose[li++];
+        return match ? morphNode(match, n) : n;
+    });
+    const keep = new Set(result);
+    now.forEach((n) => { if (!keep.has(n) && n.parentNode === from) n.remove(); });
+    let ref = from.firstChild;
+    result.forEach((n) => {
+        while (ref && ref.nodeType === 1 && ref.hasAttribute('data-hcs-fx-layer')) ref = ref.nextSibling;
+        if (n === ref) {
+            ref = ref.nextSibling;
+            return;
+        }
+        from.insertBefore(n, ref || null);
+    });
 }
 
 /** Lays fresh board markup over the list, keyed by section. */
 export function morphStandingsList(list, html) {
     const tpl = document.createElement('template');
     tpl.innerHTML = html;
-    const fresh = [...tpl.content.children];
-    const old = new Map();
-    [...list.children].forEach((el) => old.set(standingsKey(el), el));
-    fresh.forEach((el, i) => {
-        const key = standingsKey(el);
-        const match = key ? old.get(key) : null;
-        let node = el;
-        if (match) {
-            old.delete(key);
-            morphNode(match, el);
-            node = match.isConnected ? match : el;
-        }
-        const at = list.children[i];
-        if (at !== node) list.insertBefore(node, at || null);
-    });
-    old.forEach((el) => el.remove());
-    while (list.children.length > fresh.length) list.lastElementChild.remove();
+    morphChildren(list, tpl.content);
 }
 
 // --- Switching boards (another league, class/league view, month/all-time) -----

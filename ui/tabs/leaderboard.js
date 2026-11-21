@@ -668,9 +668,15 @@ let _heroRenderSeq = 0;
 // The board's styles load with the tab, not at startup.
 let _heroBoardStyles = null;
 let _heroBoardStylesReady = false;
+// The board's motion (glides, hops, badge effects) also loads with the tab.
+// Without it the board still updates, just without the motion.
+let _heroMotion = null;
 function ensureHeroBoardStyles() {
     if (!_heroBoardStyles) {
-        _heroBoardStyles = import('../../styles/hero_board.css')
+        const motion = import('./heroStandingsMotion.js')
+            .then((m) => { _heroMotion = m; })
+            .catch((err) => console.warn('Hero board motion failed to load:', err));
+        _heroBoardStyles = Promise.all([import('../../styles/hero_board.css'), motion])
             .then(() => { _heroBoardStylesReady = true; })
             .catch((err) => {
                 _heroBoardStyles = null;
@@ -690,6 +696,7 @@ async function clearHeroStandingsList(list, html, seq) {
     list.__hcsParts = null;
     list.__hcsToken = null;
     list.className = _heroLite ? 'hcs-list hcs-list--lite hcs-list--leaving' : 'hcs-list hcs-list--leaving';
+    _heroMotion?.resetStandingsMotion(list);
     list.innerHTML = html;
     list.__hcsDrawnAt = performance.now();
     finishStandingsLeave(list);
@@ -966,7 +973,7 @@ export async function renderStudentLeaderboardTab({ freshVisit = false, classCha
         if (!s.isLegend) return '';
         const title = getHeroTitle(s.heroClass, s.heroLevel || 0) || s.heroClass;
         const legendName = getLegendQuest(s.heroClass)?.legend || 'Legend';
-        return `<span class="hcs-legend-title" title="${escapeLeaderboardHtml(legendName)}"><i class="fas fa-crown" aria-hidden="true"></i>${escapeLeaderboardHtml(title)}</span>`;
+        return `<span class="hcs-legend-title" data-hcs-badge="legend-title" title="${escapeLeaderboardHtml(legendName)}"><i class="fas fa-crown" aria-hidden="true"></i>${escapeLeaderboardHtml(title)}</span>`;
     };
 
     const getPillsHtml = (s) => {
@@ -1140,35 +1147,35 @@ export async function renderStudentLeaderboardTab({ freshVisit = false, classCha
     list.__hcsParts = partSignatures;
     list.__hcsToken = null;
 
-    // Same board, something changed (a star, a chip): swap only the sections
-    // that differ, and let an entrance still playing carry on where it was.
-    // (A star landing mid-entrance just updates; the board is still rising.)
-    // Data still trickling in around the opening (scores, logs, guilds,
-    // last month's Prodigies) is not a rank-change show: within a few seconds
-    // of the board's entrance it just updates in place, so the stage never
-    // replays the moment it has settled.
-    const sinceEntrance = list.__hcsDrawnAt ? performance.now() - list.__hcsDrawnAt : Infinity;
-    const entering = sinceEntrance < 7000;
-    if (sameBoard && !freshVisit && !leaving && (!moved || entering)) {
-        // The nodes already on screen stay where they are: only the text,
-        // attributes and pieces that changed are touched, so nothing flashes,
-        // no portrait reloads and an entrance still playing just carries on.
-        // The list's classes are left exactly as they are: dropping the
-        // entrance class here used to cut every entrance animation short
-        // (some still run after 2.6s on a hidden-then-shown tab), which
-        // flashed the banner and podium once they had settled.
-        morphStandingsList(list, outputHtml);
+    // Same board, something changed (a star, a chip, a new order): the fresh
+    // markup is laid over the nodes already on screen (keyed by hero, so a
+    // hero's card follows the hero), then everyone who moved glides there
+    // from where they stood, stars count up and badges arrive or leave with
+    // their own effect. An entrance still playing just carries on, and an
+    // update landing mid-show waits for the show to finish.
+    // The list's classes are left exactly as they are: dropping the
+    // entrance class here used to cut every entrance animation short
+    // (some still run after 2.6s on a hidden-then-shown tab), which
+    // flashed the banner and podium once they had settled.
+    if (sameBoard && !freshVisit && !leaving) {
+        if (_heroMotion) _heroMotion.updateStandings(list, outputHtml);
+        else morphStandingsList(list, outputHtml);
         if (classChange) spotlightPickedClass(list);
         return;
     }
 
     list.className = `hcs-list${lite}${leaving ? ' hcs-list--leaving' : ''}`;
+    _heroMotion?.resetStandingsMotion(list);
     list.innerHTML = outputHtml;
     list.__hcsDrawnAt = performance.now();
     finishStandingsLeave(list);
 
-    if (moved) playStandingsChanges(list, sections);
-    else if (freshVisit || !sameBoard || leaving) playStandingsEntrance(list);
-    else if (!resumeStandingsEntrance(list)) list.classList.add('hcs-list--settled');
+    if (moved) {
+        if (_heroMotion) _heroMotion.playStandingsShow(list, sections);
+        else playStandingsChanges(list, sections);
+    } else if (freshVisit || !sameBoard || leaving) {
+        playStandingsEntrance(list);
+        _heroMotion?.afterStandingsEntrance(list, sections);
+    } else if (!resumeStandingsEntrance(list)) list.classList.add('hcs-list--settled');
     if (classChange) spotlightPickedClass(list);
 }

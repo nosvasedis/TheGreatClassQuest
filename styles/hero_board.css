@@ -4464,3 +4464,133 @@ body.projector-mode .hcs-row {
         font-size: 0.52rem;
     }
 }
+
+/* ─── Motion: glides, hops and badge effects (ui/tabs/heroStandingsMotion.js) ───
+   Ghosts and sparkles live in one layer over the board, so nothing they do
+   shifts the layout or catches a tap. */
+
+.hcs-fx-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 40;
+    pointer-events: none;
+    overflow: visible;
+}
+
+.hcs-fx-layer > * {
+    pointer-events: none;
+}
+
+.hcs-fx-ghost {
+    z-index: 1;
+    box-sizing: border-box;
+    animation: none !important;
+}
+
+.hcs-fx-ghost *,
+.hcs-fx-hop,
+.hcs-fx-hop * {
+    animation: none !important;
+    transition: none !important;
+}
+
+.hcs-fx-hidden {
+    opacity: 0 !important;
+}
+
+.hcs-fx-wait {
+    opacity: 0 !important;
+}
+
+/* A hero on the move rides above the others: climbers glow, fallers dim a little. */
+.hcs-row.hcs-fx-climb,
+.hcs-figure.hcs-fx-climb {
+    z-index: 4;
+}
+
+.hcs-row.hcs-fx-climb {
+    box-shadow: 0 0 0 2px #fbbf24, 0 18px 40px -12px rgba(245, 158, 11, 0.65);
+}
+
+.hcs-figure.hcs-fx-climb {
+    filter: drop-shadow(0 0 16px rgba(253, 224, 71, 0.75));
+}
+
+.hcs-row.hcs-fx-fall,
+.hcs-figure.hcs-fx-fall {
+    z-index: 2;
+}
+
+/* The flying portrait when a hero steps onto the podium or down from it. */
+.hcs-fx-hop {
+    z-index: 3;
+    display: grid;
+    place-items: center;
+    will-change: transform, opacity;
+}
+
+.hcs-fx-hop > .hcs-figure__portrait,
+.hcs-fx-hop > .hcs-row__portrait {
+    margin: 0;
+}
+
+.hcs-fx-hop--climb {
+    filter: drop-shadow(0 0 14px rgba(253, 224, 71, 0.85)) drop-shadow(0 10px 18px rgba(120, 53, 15, 0.35));
+}
+
+.hcs-fx-hop--fall {
+    filter: drop-shadow(0 0 10px rgba(196, 181, 253, 0.75)) drop-shadow(0 8px 14px rgba(30, 27, 75, 0.35));
+}
+
+/* Particles */
+.hcs-fx-p {
+    position: absolute;
+    display: block;
+    margin: 0;
+    translate: -50% -50%;
+    background: var(--c, #fde047);
+    will-change: transform, opacity;
+}
+
+.hcs-fx-p--star {
+    clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    filter: drop-shadow(0 0 4px var(--c, #fde047));
+}
+
+.hcs-fx-p--dot {
+    border-radius: 50%;
+    box-shadow: 0 0 6px 1px var(--c, #fde047);
+}
+
+.hcs-fx-p--ember {
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    box-shadow: 0 0 8px 2px var(--c, #fb923c);
+}
+
+.hcs-fx-p--spark {
+    width: 3px !important;
+    border-radius: 2px;
+    box-shadow: 0 0 6px 1px var(--c, #818cf8);
+}
+
+.hcs-fx-p--smoke {
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--c, #d1d5db) 0%, transparent 70%);
+}
+
+.hcs-fx-p--ring {
+    background: none;
+    border-radius: 50%;
+    border: 2px solid var(--c, #fde047);
+    box-shadow: 0 0 10px var(--c, #fde047);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hcs-fx-layer {
+        display: none;
+    }
+    .hcs-fx-hidden,
+    .hcs-fx-wait {
+        opacity: 1 !important;
+    }
+}

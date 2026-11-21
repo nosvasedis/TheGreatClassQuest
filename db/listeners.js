@@ -35,16 +35,18 @@ import {
     updateAwardBoonButtons,
 } from "../ui/tabs/index.js";
 
-import {
-    renderScholarsScrollTab,
-    renderTrialHistoryContent,
-} from "../features/scholarScroll.js";
+// Scholar's Scroll loads when its tab (or a trial window) is first opened.
+const scholarScroll = () => import("../features/scholarScroll.js");
+const renderScholarsScrollTab = (...args) =>
+    scholarScroll().then((m) => m.renderScholarsScrollTab(...args));
+const renderTrialHistoryContent = (...args) =>
+    scholarScroll().then((m) => m.renderTrialHistoryContent(...args));
 import {
     updateStudentCardAttendanceState,
     findAndSetCurrentClass,
 } from "../ui/core/index.js";
 import { renderStoryArchive } from "../features/storyWeaver.js";
-import { updateCeremonyStatus } from "../features/ceremony.js";
+import { updateCeremonyStatus } from "../features/ceremonyStatus.js";
 import * as utils from "../utils.js";
 import { DEFAULT_SCHOOL_NAME } from "../constants.js";
 import * as modals from "../ui/modals/index.js";
@@ -1470,7 +1472,7 @@ export async function setupDataListeners(
                         document.querySelector(
                             "#trial-history-view-toggle .active-toggle",
                         )?.dataset.view || "test";
-                    renderTrialHistoryContent(classId, activeView);
+                    void renderTrialHistoryContent(classId, activeView).catch((e) => console.warn("Trial history render:", e));
                 }
                 scheduleHomeRender();
                 if (isSecretary) {

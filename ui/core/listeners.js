@@ -19,7 +19,6 @@ import {
 import * as tabs from '../tabs/index.js';
 import * as storyWeaver from '../../features/storyWeaver.js';
 import * as avatar from '../../features/avatar.js';
-import * as ceremony from '../../features/ceremony.js';
 import * as utils from '../../utils.js';
 import { playSound } from '../../audio.js';
 import { clearLocalAppData, getDeviceCacheChoice } from '../../utils/deviceCache.js';

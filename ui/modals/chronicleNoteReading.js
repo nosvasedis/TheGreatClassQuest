@@ -8,6 +8,7 @@
 // Lazy: imported by ui/modals/hero.js#renderHeroChronicleContent after the feed is drawn.
 // Reading: features/classGreenhouseNotes.mjs (pure). Styles: styles/chronicle_reading.css.
 
+import '../../styles/chronicle.css';
 import * as state from '../../state.js';
 import { readNote, noteTheme, NOTE_THEMES } from '../../features/classGreenhouseNotes.mjs';
 import { NOTE_DOMAINS } from '../../features/noteLexicon.mjs';

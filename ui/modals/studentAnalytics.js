@@ -19,6 +19,8 @@
 // motion skip the choreography, and .sf--still (live refreshes) never replays it.
 // Markup shell: templates/modals/studentAnalytics.js · styles: styles/student_analytics.css
 
+import '../../styles/performance_chart.css';
+import '../../styles/student_analytics.css';
 import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';

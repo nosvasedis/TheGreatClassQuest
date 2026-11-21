@@ -1,4 +1,5 @@
 // /ui/modals/hero.js
+import '../../styles/chronicle.css';
 import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
 import { showAnimatedModal, hideModal } from './base.js';

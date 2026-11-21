@@ -7,6 +7,7 @@
 // The hidden #shop-student-select stays the source of truth (listeners, purchases and the
 // floating keeper all read it); this module only draws and drives it.
 
+import '../../styles/mystic_market.css';
 import * as state from '../../state.js';
 import { getLiveYearGoldFromAppState } from '../../utils/yearGold.js';
 import '../../styles/market_till.css';

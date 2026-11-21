@@ -82,8 +82,8 @@
 @import url('./styles/guilds.css');
 
 /* 11b-ii. Guild Hall: the hall scene, month banners and the Crown Race board */
-@import url('./styles/guild_hall.css');
-@import url('./styles/guild_spotlight.css');
+/* styles/guild_hall.css loads with ui/tabs/guilds.js (lazy, not first paint) */
+/* styles/guild_spotlight.css loads with ui/modals/guildHeroes.js (lazy, not first paint) */
 @import url('./styles/fortune_ledger.css');
 
 /* 11c. Fortune's Wheel modal */
@@ -93,7 +93,7 @@
 @import url('./styles/diary_log.css');
 
 /* 13. Story Weavers panel, storybook archive */
-@import url('./styles/story.css');
+/* styles/story.css loads with the Story Weavers modules (features/storyWeaver.js, storyReader.js, trainingGrounds.js) (lazy, not first paint) */
 
 /* 14. Loading screen star pulse, spinning rings */
 @import url('./styles/loading.css');
@@ -118,10 +118,10 @@
 @import url('./styles/enlarged_avatar.css');
 
 /* 21. Scholar's Scroll desk: notices, class ledger, Honour Roll (performance chart) */
-@import url('./styles/performance_chart.css');
+/* styles/performance_chart.css loads with features/scholarScroll.js (and the modules sharing its classes) (lazy, not first paint) */
 
 /* 22b. Student analytics modal: tabs, charts, heatmap, exports */
-@import url('./styles/student_analytics.css');
+/* styles/student_analytics.css loads with ui/modals/studentAnalytics.js (lazy, not first paint) */
 
 /* 22c. App header flourish: gilded trim, title/date swashes, twinkles */
 @import url('./styles/header_flourish.css');
@@ -140,7 +140,7 @@
 
 /* 26. Bounty cards, shop item cards, inventory grid, coin-pill */
 @import url('./styles/shop.css');
-@import url('./styles/mystic_market.css');
+/* styles/mystic_market.css loads with ui/core/shop.js (and the modules sharing its classes) (lazy, not first paint) */
 
 /* 26b. Tab signs: a crafted title piece for every tab, in the Mystic Market's family */
 @import url('./styles/tab_headers.css');
@@ -200,10 +200,11 @@
 @import url('./styles/auth.css');
 
 /* 39. Quiz of the Week: weather button + game-show modal styles */
-@import url('./styles/quiz_of_the_week.css');
+@import url('./styles/quiz_week_button.css');
+/* styles/quiz_of_the_week.css loads with ui/modals/quizOfTheWeek.js (the show stage); the Home ticket is styles/quiz_week_button.css (lazy, not first paint) */
 
 /* 40. Hero's Chronicle: notes, tabs, and Oracle AI styles */
-@import url('./styles/chronicle.css');
+/* styles/chronicle.css loads with ui/modals/hero.js (and the modules sharing its classes) (lazy, not first paint) */
 
 /* 40b. Student Profile (edit student): the Adventurer's Passport */
 @import url('./styles/student_profile.css');
@@ -212,7 +213,7 @@
 /* styles/move_student.css loads with the module that draws it (lazy, not first paint) */
 
 /* 41. Skill Tree: RPG path, node glows, and branch card animations */
-@import url('./styles/skill_tree.css');
+/* styles/skill_tree.css loads with ui/modals/skillTree.js (lazy, not first paint) */
 
 /* 41b. Hero Class selection ceremony */
 /* styles/hero_class_ceremony.css loads with the module that draws it (lazy, not first paint) */
@@ -276,7 +277,7 @@
 @import url('./styles/award_stars.css');
 
 /* 48b. Boons: Hero's Boon and Teacher Boon modals, in the Award Stars sky */
-@import url('./styles/boons.css');
+/* styles/boons.css loads with ui/modals/teacherBoon.js and ui/boonSponsorPicker.js (lazy, not first paint) */
 
 /* 48. Secretary Office: the school's front office (signs, registry, dialogs, modal motion) */
 /* styles/secretary_office.css loads with the module that draws it (lazy, not first paint) */

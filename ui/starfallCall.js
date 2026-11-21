@@ -1,5 +1,6 @@
 // ui/starfallCall.js — the look of a Starfall that waited for the lesson: the Scholar's Scroll
 // call and the summon that opens the Starfall window. No Firebase here (see features/pendingStarfall.js).
+import '../styles/performance_chart.css';
 import { escapeHtml as esc } from '../utils/html.mjs';
 import { playStarfallSfx } from '../audio.js';
 import { formatMarkedDay } from '../features/pendingStarfallCore.mjs';

@@ -3,6 +3,7 @@
 // Loaded on demand with its stylesheet, once a Chapter has been sealed.
 
 import { escapeHtml as esc } from '../utils/html.mjs';
+import '../styles/guild_hall.css';
 import '../styles/guild_chronicle.css';
 
 function byline(chronicle) {

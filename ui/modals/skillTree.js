@@ -1,5 +1,6 @@
 // /ui/modals/skillTree.js — Ascension Path (Skill Tree) modal: open, render, choose + awaken a skill.
 // Model: features/skillTreeCore.mjs · Markup: ui/modals/skillTreeView.mjs · Styles: styles/skill_tree.css
+import '../../styles/skill_tree.css';
 import * as state from '../../state.js';
 import { showToast } from '../effects.js';
 import { showAnimatedModal } from './index.js';

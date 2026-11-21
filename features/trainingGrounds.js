@@ -6,6 +6,7 @@
 // adventures, council questions) is per Quest League and loads lazily from
 // features/trainingGrounds/content/.
 
+import '../styles/story.css';
 import { quietly } from '../utils/runtimeMetrics.js';
 import '../styles/training_grounds.css';
 import { db, doc, runTransaction } from '../firebase.js';

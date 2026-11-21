@@ -1,5 +1,6 @@
 // Hero Seals preview: the real markup with sample heroes, no Firebase.
 // /hero-seals-preview.html?view=catalogue|folio|trophy|summary|notice|opens[&lite=1][&shot=1]
+import './styles/student_analytics.css';
 import './styles/notifications.css';
 import './styles/hero_seals.css';
 import './styles/satchel.css';

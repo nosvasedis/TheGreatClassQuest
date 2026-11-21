@@ -14,6 +14,7 @@
 //
 // Markup: templates/modals/hero.js (#hero-chronicle-content-oracle) · styles: styles/hero_oracle.css
 
+import '../../styles/chronicle.css';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { db, doc, getDoc, setDoc } from '../../firebase.js';

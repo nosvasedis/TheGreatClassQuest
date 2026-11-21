@@ -1,17 +1,16 @@
 // /db/listeners.js
 
 import {
-    db,
-    collection,
-    query,
-    where,
-    onSnapshot as firebaseOnSnapshot,
-    orderBy,
-    doc,
-    getDoc,
-    collectionGroup,
-    limit,
-    updateDoc,
+  db,
+  collection,
+  query,
+  where,
+  onSnapshot as firebaseOnSnapshot,
+  orderBy,
+  doc,
+  getDoc,
+  limit,
+  updateDoc
 } from "../firebase.js";
 import { isLegacyHeroClass, normalizeHeroClass } from "../features/heroClassNames.mjs";
 import { buildTodaysStarsMap, changedTodaysStarIds } from "../features/awardPending.mjs";

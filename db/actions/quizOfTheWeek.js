@@ -1,7 +1,7 @@
-import { db, doc, setDoc, getDoc, getDocs, collection, writeBatch, serverTimestamp, increment, arrayUnion, runTransaction, where, query, deleteDoc } from '../../firebase.js';
+import { db, doc, setDoc, getDoc, getDocs, collection, serverTimestamp, increment, runTransaction, where, query, deleteDoc } from '../../firebase.js';
 import * as state from '../../state.js';
 import { compressImageBase64, getTodayDateString, getLeagueAiAudience, getLeagueAiVisualStyle, getAgeCategoryForLeague } from '../../utils.js';
-import { getISOWeekKey, getTargetWeekKey, updateGuildScores } from '../../features/guildScoring.js';
+import { getTargetWeekKey, updateGuildScores } from '../../features/guildScoring.js';
 import { callGeminiApi, callCloudflareAiImageApi } from '../../api.js';
 import { applyClassQuestBonusDelta } from './fortuneWheelEffects.js';
 import { playSound } from '../../audio.js';

@@ -1,22 +1,15 @@
 // /db/actions/quests.js — quest assignments, adventure log, star manager
 import { quietly } from '../../utils/runtimeMetrics.js';
 import {
-    db,
-    doc,
-    addDoc,
-    updateDoc,
-    deleteDoc,
-    collection,
-    query,
-    where,
-    getDocs,
-    getDoc,
-    runTransaction,
-    writeBatch,
-    serverTimestamp,
-    increment,
-    orderBy,
-    limit
+  db,
+  doc,
+  updateDoc,
+  collection,
+  getDoc,
+  runTransaction,
+  writeBatch,
+  serverTimestamp,
+  increment
 } from '../../firebase.js';
 import * as state from '../../state.js';
 import { showToast } from '../../ui/effects.js';

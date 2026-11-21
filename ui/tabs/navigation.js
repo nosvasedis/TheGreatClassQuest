@@ -471,7 +471,6 @@ export async function showTab(tabName) {
     if (state.get('currentUserRole') === 'secretary') return;
     updateBottomNavGateState();
 
-    const allTabs = document.querySelectorAll('.app-tab');
     const tabId = tabName.endsWith('-tab') ? tabName : `${tabName}-tab`;
 
     // My Classes lives under Teacher Settings now

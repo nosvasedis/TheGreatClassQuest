@@ -315,7 +315,6 @@ export async function renderAttendanceChronicle(classId) {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const viewMonthStart = new Date(currentYear, currentMonth, 1);
     const now = new Date();
     const isCurrentMonthView = currentYear === now.getFullYear() && currentMonth === now.getMonth();
     const isEditableMonth = isCurrentMonthView;

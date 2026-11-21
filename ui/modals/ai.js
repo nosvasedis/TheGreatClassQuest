@@ -28,7 +28,6 @@ export async function handleGetQuestUpdate() {
     narrativeContainer.innerHTML = `<i class="fas fa-spinner fa-spin text-4xl text-purple-400"></i>`;
     showAnimatedModal('quest-update-modal');
 
-    const GOAL_PER_STUDENT = { DIAMOND: 18 };
     const classesInLeague = state.get('allSchoolClasses').filter(c => c.questLevel === state.get('globalSelectedLeague'));
 
     // Correct Calculation Logic

@@ -69,12 +69,6 @@ function getLevelTier(questLevel) {
     return questLevel ? utils.getAgeTierForLeague(questLevel) : 'mid';
 }
 
-const AI_CARD_TYPES = new Set([
-    'ai_fact_science', 'ai_fact_history', 'ai_fact_nature', 'ai_fact_geography',
-    'ai_fact_math', 'ai_did_you_know',
-    'ai_word', 'ai_joke', 'ai_riddle', 'ai_idiom', 'ai_brain_teaser', 'ai_tongue_twister'
-]);
-
 const CARD_FEATURE_REQUIREMENTS = {
     // The AI cards work on every plan: without Elite AI they draw from the Wonder Library.
     school_upcoming_event: 'calendar',
@@ -1295,7 +1289,6 @@ function buildDeckList(classId, capabilities = getWallpaperCapabilities(), { ign
         list = [...classPool, ...getLanguageCardDeck(classId), ...getSkyCardDeck(classId), ...getAtlasCardDeck(classId), ...getQuestCardDeck(classId), ...(fullGlobal ? globalChoices : globalChoices.sort(() => 0.5 - Math.random()).slice(0, globalSample))];
 
         const students = state.get('allStudents').filter(s => s.classId === classId);
-        const scores = state.get('allStudentScores');
 
         // --- Test Today: big luck boost ---
         const hasTestToday = getNextAssessmentOccurrenceForToday(classId).some((item) =>
@@ -1747,7 +1740,6 @@ function getStudentSpotlightCard(studentId, questLevel) {
     const totalStars = sc.totalStars || 0;
     const monthlyStars = sc.monthlyStars || 0;
     const hero = s.hero || 'Adventurer';
-    const tier = getLevelTier(questLevel);
 
     // Superlatives
     const superlatives = [
@@ -1756,7 +1748,6 @@ function getStudentSpotlightCard(studentId, questLevel) {
     ];
     const superL = superlatives[Math.floor(Math.random() * superlatives.length)];
 
-    const tagline = tier === 'junior' ? 'Super Learner! 🌟' : tier === 'mid' ? 'Class Adventurer ⚔️' : 'Quest Scholar 📜';
     const avatar = s.avatar
         ? `<img src="${s.avatar}" class="w-40 h-40 rounded-full border-8 border-white shadow-xl mx-auto mb-4 object-cover">`
         : `<div class="w-40 h-40 rounded-full bg-indigo-200 flex items-center justify-center text-7xl mx-auto mb-4 border-8 border-white font-bold">${s.name.charAt(0)}</div>`;
@@ -2342,25 +2333,6 @@ function getClassAttendanceCard(classId) {
     };
 }
 
-function getHighScoreCard(classId, type) {
-    // A "?" (could not be marked) is never anyone's champion score.
-    const scores = state.get('allWrittenScores').filter(s => s.classId === classId && s.type === type && s.unmarkable !== true);
-    if (scores.length === 0) return null;
-
-    scores.sort((a, b) => (utils.parseFlexibleDate(b.date) || 0) - (utils.parseFlexibleDate(a.date) || 0));
-    const recent = scores[0];
-    const student = state.get('allStudents').find(s => s.id === recent.studentId);
-    if (!student) return null;
-
-    const scoreText = recent.scoreQualitative || `${recent.scoreNumeric}%`;
-    const label = type === 'test' ? 'Test Champion' : 'Dictation Hero';
-
-    return {
-        html: `<div class="text-center"><div class="badge-pill bg-blue-100 text-blue-800">${label}</div><h3 class="font-title text-3xl text-white mb-2">${student.name}</h3><p class="text-white text-xl">Recent Score: <b>${scoreText}</b></p></div>`,
-        css: 'float-card-blue'
-    };
-}
-
 async function getAIFromDB(typeFilter) {
     const item = await fetchRandomDailyAI(typeFilter);
     if (!item) return null; // Returning null tells the app to skip this card and pick a different one
@@ -2575,8 +2547,6 @@ function getSpecificLogCard(logId) {
         css: 'float-card-teal'
     };
 }
-
-function getHomeworkCard(classId) { const assignments = state.get('allQuestAssignments').filter(a => a.classId === classId); if (assignments.length === 0) return null; return { html: `<div class="text-center"><div class="badge-pill bg-amber-100 text-amber-800">Mission</div><div class="text-7xl mb-2">📜</div><div class="bg-white/80 p-6 rounded-xl border-l-4 border-amber-400 text-left shadow-sm"><p class="font-handwriting text-2xl text-amber-900">${assignments[assignments.length - 1].text}</p></div></div>`, css: 'float-card-gold' }; }
 
 function getWeatherCard() { return { html: `<div class="text-center"><div class="badge-pill bg-sky-100 text-sky-700">Forecast</div><div class="text-8xl mb-2 animate-pulse-slow">🌤️</div><h3 class="font-title text-4xl text-sky-900">Look Outside!</h3><p class="text-sky-600 font-bold">The world is beautiful.</p></div>`, css: 'float-card-blue' }; }
 

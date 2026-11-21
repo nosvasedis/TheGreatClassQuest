@@ -1134,7 +1134,6 @@ export async function renderStudentLeaderboardTab({ freshVisit = false, classCha
     }
 
     const lite = _heroLite ? ' hcs-list--lite' : '';
-    const previousParts = list.__hcsParts;
     list.dataset.hcsBoard = boardKey;
     list.__hcsHtml = boardSignature;
     list.__hcsParts = partSignatures;

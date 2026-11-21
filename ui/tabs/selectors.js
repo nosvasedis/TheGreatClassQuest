@@ -2,14 +2,11 @@
 import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
-import * as constants from '../../constants.js';
-import { normalizeQuestType, QUEST_TYPE_LABELS } from '../../features/specialQuestEngine.js';
-import { renderAwardStarsStudentList } from './award.js';
+import { normalizeQuestType } from '../../features/specialQuestEngine.js';
 import { getAwardLogMonthlyStarCredit } from '../../features/awardLogReasonMeta.js';
 import { filterDocsForActiveYear } from '../../utils/schoolYear.js';
-import { getDayAgenda, QUEST_EVENT_ICONS } from '../../utils/calendarDay.js';
+import { getDayAgenda } from '../../utils/calendarDay.js';
 import { escapeHtml } from '../../features/roles/shared.js';
-import { classUsesTests } from '../../features/assessmentConfig.js';
 // Holiday tiles, the month's holiday strip and the Planner's day story; loaded with this module.
 import '../../styles/calendar_holidays.css';
 import { raidDayOf } from '../../features/realmRaidCore.mjs';

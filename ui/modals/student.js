@@ -2,9 +2,8 @@
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { db, query, collection, where, orderBy, limit, getDocs } from '../../firebase.js';
-import { showAnimatedModal, showModal, hideModal, populateDateDropdowns } from './base.js';
+import { showAnimatedModal, hideModal, populateDateDropdowns } from './base.js';
 import { showToast } from '../effects.js';
-import { playSound } from '../../audio.js';
 import { handleAwardBonusStar, handleBatchAwardBonus } from '../../db/actions/index.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';

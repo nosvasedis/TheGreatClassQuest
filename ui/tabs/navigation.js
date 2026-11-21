@@ -3,24 +3,14 @@
 // --- IMPORTS ---
 import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
-import * as utils from '../../utils.js';
-import * as constants from '../../constants.js';
-import { deleteClass, deleteStudent, ensureHistoryLoaded } from '../../db/actions/index.js';
+import { ensureHistoryLoaded } from '../../db/actions/index.js';
 import { filterDocsForActiveYear } from '../../utils/schoolYear.js';
-import { db } from '../../firebase.js';
-import { fetchMonthlyHistory } from '../../state.js';
-import * as modals from '../modals/index.js';
 import * as scholarScroll from '../../features/scholarScroll.js';
-import * as avatar from '../../features/avatar.js';
-import * as storyWeaver from '../../features/storyWeaver.js';
 import { playSound } from '../../audio.js';
-import { showToast } from '../effects.js';
-import { renderActiveBounties } from '../core/index.js';
 import { renderClassEndDatesList } from '../core/misc.js';
 import { updateCeremonyStatus } from '../../features/ceremony.js';
 import { renderHomeTab } from '../../features/home.js';
 import { requestDayRingIntro } from '../../features/homeGreetingScene.js';
-import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { refreshFortunesWheelModalFromGlobalClass } from '../../features/fortunesWheel.js';
 import { renderClassLeaderboardTab, renderStudentLeaderboardTab } from './leaderboard.js';
 import { renderGuildsTab } from './guilds.js';

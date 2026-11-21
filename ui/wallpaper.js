@@ -1,6 +1,6 @@
 import { quietly } from '../utils/runtimeMetrics.js';
 import { onSecond } from '../utils/clock.mjs';
-import { db, collection, query, where, getDocs, addDoc, writeBatch, serverTimestamp, orderBy, limit, doc } from '../firebase.js';
+import { db, collection, query, where, getDocs, writeBatch, serverTimestamp, limit, doc } from '../firebase.js';
 import * as state from '../state.js';
 import * as utils from '../utils.js';
 import { callGeminiApi } from '../api.js';

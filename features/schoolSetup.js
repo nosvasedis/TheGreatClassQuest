@@ -77,24 +77,6 @@ function setSetupLocationStatus(location) {
     }
 }
 
-function prefillSetupLocationFromState() {
-    const locationInput = document.getElementById('setup-school-location-search');
-    const stored = utils.normalizeWeatherLocation(state.get('schoolWeatherLocation'));
-    selectedSchoolWeatherLocation = stored;
-
-    if (locationInput && stored) {
-        locationInput.value = formatLocationLabel(stored);
-    }
-
-    const resultsSelect = document.getElementById('setup-location-results');
-    if (resultsSelect) {
-        resultsSelect.classList.add('hidden');
-        resultsSelect.innerHTML = '';
-    }
-    locationSearchResults = [];
-    setSetupLocationStatus(stored);
-}
-
 function populateSetupSelectors() {
     const levelSelect = document.getElementById('setup-class-level');
 

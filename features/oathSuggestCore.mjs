@@ -51,12 +51,6 @@ const VIRTUE_SHARE = {
     Focus: { junior: 'I help my partner find the right page. 📖', mid: 'I help our group stay on task.', upper: 'I help my group plan our time.' },
     Creativity: { junior: 'I help a friend with a fun idea. 🎨', mid: 'I share a creative idea with my group.', upper: 'I help my group see a problem in a new way.' }
 };
-const VIRTUE_TRY = {
-    Teamwork: { early: 'I share my things with a friend. 🤝', junior: 'I take turns without being asked. 🤝', mid: 'I do my share of the group work.', upper: 'I take a role in the group without being asked.' },
-    Respect: { early: 'I say “please” and “thank you”. 💛', junior: 'I say something kind to someone new. 💛', mid: 'I thank someone for helping me.', upper: 'I listen to an opinion I disagree with.' },
-    Focus: { early: 'I sit and listen for the whole story. 🎯', junior: 'I finish one task before I start another. 🎯', mid: 'I put my hand up instead of calling out.', upper: 'I check my work before I hand it in.' },
-    Creativity: { early: 'I try a new colour or shape. 🎨', junior: 'I try a new way to say something. 🎨', mid: 'I use a new expression I have just learned.', upper: 'I try a more ambitious word or structure.' }
-};
 const TEMPLATES = {
     words: (band, words) => words.length
         ? { early: 'I can say: ' + words.slice(0, 2).join(', ') + '. 🔤', junior: 'I use our new words: ' + words.slice(0, 3).join(', ') + '.', mid: 'I use these words in my own sentences: ' + words.slice(0, 4).join(', ') + '.', upper: 'I use ' + words.slice(0, 5).join(', ') + ' in my speaking and writing.' }

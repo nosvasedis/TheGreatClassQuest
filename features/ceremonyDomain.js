@@ -159,8 +159,6 @@ function positiveLogs(studentLogs = []) {
     return studentLogs.filter((log) => (Number(log.appliedStarCredit ?? log.stars) || 0) > 0 && !['welcome_back', 'absence', 'special_quest'].includes(log.reason));
 }
 
-function distinctDates(logs) { return new Set(logs.map((log) => log.date).filter(Boolean)); }
-
 export function buildGrowthSpotlight(student, { currentLogs = [], previousLogs = [], attendedLessons = [], currentMonthKey = '', hasTeacherBoon = false } = {}) {
     const logs = positiveLogs(currentLogs);
     const reasonStats = Object.fromEntries(REASONS.map((reason) => [reason, { credit: 0, dates: new Set(), count: 0, first: '9999-99-99' }]));

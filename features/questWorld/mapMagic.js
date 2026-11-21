@@ -169,7 +169,6 @@ export function mountMapMagic({ root, scene, parties, tier }) {
         el.style.strokeDashoffset = '0';
     };
 
-    const animated = () => tier() === 'full' && !paused;
 
     // ── Wisps: little lights that run up the explored road to the leader ──
     const clearWisps = () => {

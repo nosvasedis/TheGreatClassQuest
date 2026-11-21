@@ -95,16 +95,12 @@ function isFirstLessonDay(classId) {
 
     const today = new Date();
     const todayDayOfWeek = today.getDay();
-    const todayStr = utils.getTodayDateString();
 
     // Check if class meets today
     const scheduleDays = classData.scheduleDays.map(Number);
     if (!scheduleDays.includes(todayDayOfWeek)) return false;
 
     // Check that today is the first scheduled day in the week for this class
-    // Sort schedule days, take the lowest number that comes before or equals today
-    const sortedDays = [...scheduleDays].sort((a, b) => a - b);
-    const firstDay = sortedDays[0];
 
     // Check if there's an earlier scheduled day this week that was cancelled
     // If so, and today is the next available day, it should also count
@@ -622,10 +618,3 @@ export function resetQuiz(classId) {
 // 4. UTILITY — format date for override lookup
 // =============================================================================
 
-function formatDateKey(date) {
-    const d = new Date(date);
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const yyyy = d.getFullYear();
-    return `${dd}-${mm}-${yyyy}`;
-}

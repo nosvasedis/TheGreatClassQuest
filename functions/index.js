@@ -1491,6 +1491,9 @@ exports.createParentAccess = callable(async (request) => {
     parentUid,
     username,
     status: 'active',
+    // Kept so staff can reprint the same family slip later. parent_links is readable only by
+    // the student's teacher and the school office (firestore.rules), never by families.
+    slipPassword: password,
     createdBy: { uid: caller.uid, role: caller.profile.role || 'teacher', name: caller.profile.displayName || '' },
     createdAt: FieldValue.serverTimestamp(),
     lastPasswordResetAt: FieldValue.serverTimestamp()
@@ -1530,6 +1533,7 @@ exports.resetParentAccessPassword = callable(async (request) => {
   await auth.updateUser(link.parentUid, { password, disabled: false });
   await db.doc(`${dataRoot()}/parent_links/${studentId}`).set({
     lastPasswordResetAt: FieldValue.serverTimestamp(),
+    slipPassword: password,
     status: 'active'
   }, { merge: true });
   return { ok: true };

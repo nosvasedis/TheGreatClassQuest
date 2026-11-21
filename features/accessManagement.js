@@ -19,7 +19,6 @@ const loadStudentPicker = () => import('./familyStudentPicker.js');
 let selectedStudentId = '';
 // The details just saved, kept only so the teacher can print the family's slip; never stored.
 let lastIssued = null;
-let slipAsk = null; // the student whose "new slip" confirm is open
 let accessData = {
     parentLinksByStudent: {}
 };
@@ -96,6 +95,8 @@ export function renderParentAccessCard(data = accessData) {
         ? suggestFamilyUsername(selectedStudent.name, Object.values(data.parentLinksByStudent || {}).map((item) => item.username))
         : '';
     const issued = lastIssued && selectedStudent && lastIssued.studentId === selectedStudent.id ? lastIssued : null;
+    // The slip shows the password the family has: just set here, or kept with the login.
+    const slip = issued || (link && status === 'active' && link.slipPassword ? { username: link.username, password: link.slipPassword } : null);
 
     return `
         <article class="ts-access">
@@ -125,20 +126,14 @@ export function renderParentAccessCard(data = accessData) {
                             <input id="options-parent-password" type="text" class="ts-input" placeholder="${link ? 'Type a new password' : 'At least 6 characters'}" autocomplete="off" autocapitalize="off" spellcheck="false">
                         </label>
                     </div>
-                    ${issued ? `
+                    ${slip ? `
                         <div class="ts-access__issued" role="status">
-                            <span><i class="fas fa-circle-check" aria-hidden="true"></i> Ready: <code>${escapeHtml(issued.username)}</code> / <code>${escapeHtml(issued.password)}</code></span>
+                            <span><i class="fas fa-circle-check" aria-hidden="true"></i> ${issued ? 'Ready' : 'Family login'}: <code>${escapeHtml(slip.username)}</code> / <code>${escapeHtml(slip.password)}</code></span>
                             <button type="button" id="options-parent-print-btn" class="ts-btn ts-btn--quiet bubbly-button"><i class="fas fa-print"></i> Print family slip</button>
                         </div>` : (link && status === 'active' ? `
                         <div class="ts-access__issued ts-access__issued--slip">
-                            ${slipAsk === selectedStudent?.id
-                                ? `<span><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> A new slip comes with a new password. The family's old slip and password stop working.</span>
-                                   <span class="ts-access__slipbtns">
-                                       <button type="button" id="options-parent-slip-cancel" class="ts-btn ts-btn--quiet bubbly-button">Cancel</button>
-                                       <button type="button" id="options-parent-slip-go" class="ts-btn bubbly-button"><i class="fas fa-print"></i> New password and print</button>
-                                   </span>`
-                                : `<span><i class="fas fa-receipt" aria-hidden="true"></i> Lost the slip? Passwords are never stored, so a new slip gets a new easy password.</span>
-                                   <button type="button" id="options-parent-slip-btn" class="ts-btn ts-btn--quiet bubbly-button"><i class="fas fa-print"></i> Print a new slip</button>`}
+                            <span><i class="fas fa-receipt" aria-hidden="true"></i> This login was made before slips were saved. Type the password the family already has above, then print. Their password stays the same.</span>
+                            <button type="button" id="options-parent-slip-btn" class="ts-btn ts-btn--quiet bubbly-button"><i class="fas fa-print"></i> Print family slip</button>
                         </div>` : '')}
                     <div class="ts-actions">
                         <button type="button" id="options-parent-suggest-btn" class="ts-btn ts-btn--quiet bubbly-button" title="Make an easy password"><i class="fas fa-dice"></i> Easy password</button>
@@ -202,7 +197,53 @@ function renderQrSheetRow(students) {
                     return `<button type="button" class="ts-btn ts-btn--quiet bubbly-button" data-access-qr-sheet="${escapeHtml(id)}"><i class="fas fa-print"></i> ${escapeHtml(classData.logo || '')} ${escapeHtml(classData.name || 'Class')}</button>`;
                 }).join('')}
             </div>
+            <p class="ts-access__lede"><i class="fas fa-receipt" aria-hidden="true"></i> Family slips: every family login of a class, two slips per A4, with username, password and the QR that signs them straight in.</p>
+            <div class="ts-actions">
+                ${ids.map((id) => {
+                    const classData = classes.get(id);
+                    return `<button type="button" class="ts-btn ts-btn--quiet bubbly-button" data-access-class-slips="${escapeHtml(id)}"><i class="fas fa-print"></i> ${escapeHtml(classData.logo || '')} ${escapeHtml(classData.name || 'Class')}</button>`;
+                }).join('')}
+            </div>
         </div>`;
+}
+
+function printOneSlip(student, username, password) {
+    const classData = (state.get('allSchoolClasses') || state.get('allTeachersClasses') || []).find((item) => item.id === student.classId);
+    return printFamilySlips({
+        schoolName: state.get('schoolName') || '',
+        slips: [{ studentName: student.name, className: classData?.name || '', username, password }]
+    });
+}
+
+/** Every active family login of a class whose password is kept, as printed slips. */
+async function printClassSlips(button) {
+    const classId = button.dataset.accessClassSlips;
+    const classData = classesById().get(classId);
+    const students = getManageableStudents()
+        .filter((student) => student.classId === classId)
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+    const active = students.map((student) => ({ student, link: accessData.parentLinksByStudent[student.id] }))
+        .filter(({ link }) => link && String(link.status || 'active') === 'active');
+    const slips = active.filter(({ link }) => link.slipPassword).map(({ student, link }) => ({
+        studentName: student.name, className: classData?.name || '', username: link.username, password: link.slipPassword
+    }));
+    const missing = active.length - slips.length;
+    if (!slips.length) {
+        showToast(active.length
+            ? 'These logins were made before slips were saved. Open each student, type the family\'s password and print their slip once; after that the class slips include them.'
+            : 'No family logins in this class yet.', 'info');
+        return;
+    }
+    setBusyState(button, true, 'Preparing…');
+    try {
+        await printFamilySlips({ schoolName: state.get('schoolName') || '', slips });
+        if (missing) showToast(`${missing} older ${missing === 1 ? 'login was' : 'logins were'} left out: open the student, type the family's password and print once.`, 'info');
+    } catch (error) {
+        console.error('Could not print the class slips:', error);
+        showToast('Could not open printing. Try again.', 'error');
+    } finally {
+        setBusyState(button, false);
+    }
 }
 
 async function printQrSheetForClass(button) {
@@ -298,6 +339,12 @@ export function wireAccessCenterEvents() {
             return;
         }
 
+        const classSlipsBtn = event.target.closest('[data-access-class-slips]');
+        if (classSlipsBtn) {
+            void printClassSlips(classSlipsBtn);
+            return;
+        }
+
         const qrSheetBtn = event.target.closest('[data-access-qr-sheet]');
         if (qrSheetBtn) {
             void printQrSheetForClass(qrSheetBtn);
@@ -305,48 +352,39 @@ export function wireAccessCenterEvents() {
         }
 
         if (event.target.closest('#options-parent-slip-btn')) {
-            slipAsk = selectedStudent?.id || null;
-            await renderAccessCenterUi();
-            document.getElementById('options-parent-slip-go')?.focus();
-            return;
-        }
-
-        if (event.target.closest('#options-parent-slip-cancel')) {
-            slipAsk = null;
-            await renderAccessCenterUi();
-            return;
-        }
-
-        if (event.target.closest('#options-parent-slip-go')) {
-            const button = event.target.closest('#options-parent-slip-go');
+            // An older login with no kept password: the teacher types the one the family already
+            // has. Setting it again changes nothing for the family and keeps it for later slips.
+            const button = event.target.closest('#options-parent-slip-btn');
             if (!selectedStudent || !currentLink) return;
-            const password = generateFamilyPassword();
+            const input = document.getElementById('options-parent-password');
+            const password = input?.value?.trim() || '';
+            if (password.length < 6) {
+                showToast('Type the password the family already has in the Password box, then press Print family slip.', 'info');
+                input?.focus();
+                return;
+            }
             try {
-                setBusyState(button, true, 'Making the slip...');
+                setBusyState(button, true, 'Preparing…');
                 await resetParentAccessPassword({ studentId: selectedStudent.id, password });
+                currentLink.slipPassword = password;
                 lastIssued = { studentId: selectedStudent.id, username: currentLink.username, password };
-                slipAsk = null;
-                const classData = (state.get('allSchoolClasses') || state.get('allTeachersClasses') || []).find((item) => item.id === selectedStudent.classId);
-                await printFamilySlips({
-                    schoolName: state.get('schoolName') || '',
-                    slips: [{ studentName: selectedStudent.name, className: classData?.name || '', username: currentLink.username, password }]
-                }).catch(() => showToast('Could not open printing. Use Print family slip to try again.', 'error'));
+                await printOneSlip(selectedStudent, currentLink.username, password);
                 await renderAccessCenterUi();
             } catch (error) {
-                console.error('Could not make a new family slip:', error);
-                showToast(friendlyActionError(error, 'Could not make a new slip.'), 'error');
+                console.error('Could not print the family slip:', error);
+                showToast(friendlyActionError(error, 'Could not print the slip.'), 'error');
                 setBusyState(button, false);
             }
             return;
         }
 
         if (event.target.closest('#options-parent-print-btn')) {
-            if (!lastIssued || lastIssued.studentId !== selectedStudent?.id) return;
-            const classData = (state.get('allSchoolClasses') || state.get('allTeachersClasses') || []).find((item) => item.id === selectedStudent.classId);
-            printFamilySlips({
-                schoolName: state.get('schoolName') || '',
-                slips: [{ studentName: selectedStudent.name, className: classData?.name || '', username: lastIssued.username, password: lastIssued.password }]
-            }).catch(() => showToast('Could not open printing. Try again.', 'error'));
+            if (!selectedStudent) return;
+            const issued = lastIssued && lastIssued.studentId === selectedStudent.id ? lastIssued : null;
+            const username = issued?.username || currentLink?.username;
+            const password = issued?.password || currentLink?.slipPassword;
+            if (!username || !password) return;
+            printOneSlip(selectedStudent, username, password).catch(() => showToast('Could not open printing. Try again.', 'error'));
             return;
         }
 

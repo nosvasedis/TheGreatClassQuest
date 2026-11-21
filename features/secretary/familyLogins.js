@@ -263,6 +263,10 @@ function renderDrawer(group) {
                     title="Every student's QR card on A4, with cut lines, to stick in notebooks">
                     <i class="fas fa-qrcode" aria-hidden="true"></i> Print QR cards
                 </button>
+                <button type="button" class="office-btn office-btn--quiet office-btn--small family-drawer__qr" data-family-class-slips="${escapeHtml(classData?.id || '__unplaced')}"
+                    title="Every family's slip with username, password and sign-in QR, two per A4">
+                    <i class="fas fa-receipt" aria-hidden="true"></i> Print slips
+                </button>
             </header>
             <div class="family-drawer__hooks">
                 ${visible.map(renderTag).join('')}
@@ -452,9 +456,16 @@ function renderManage(student, link) {
             : 'Give a new password, or change the username. The family uses the new details from their next sign-in.',
         body: `
             ${keyCard(student, link)}
+            ${!off && link?.slipPassword ? `
+                <div class="family-slip-again">
+                    <span><i class="fas fa-receipt" aria-hidden="true"></i> Their slip: <code>${escapeHtml(link.username)}</code> / <code>${escapeHtml(link.slipPassword)}</code></span>
+                    <button type="button" class="office-btn office-btn--gold office-btn--small" data-family-print-kept><i class="fas fa-print" aria-hidden="true"></i> Print their slip</button>
+                </div>` : ''}
             ${credentialFields({
                 passwordLabel: 'New password',
-                passwordHint: 'Lost the slip? Passwords are never stored, so saving this easy password gives a fresh slip to print. The old slip stops working.'
+                passwordHint: link?.slipPassword
+                    ? 'Only for a new password. The family’s old slip stops working.'
+                    : 'Older login: type the password the family already has and save, and their slip can be printed from now on. Or save this easy password for a fresh slip.'
             })}
             <div class="family-danger-row">
                 ${off ? '' : '<button type="button" class="office-btn office-btn--quiet office-btn--small" data-family-ask-off><i class="fas fa-power-off" aria-hidden="true"></i> Switch off</button>'}
@@ -471,7 +482,7 @@ function renderManage(student, link) {
 function manageSaveLabel(link) {
     const changedName = normalizeFamilyUsername(dialog.username) !== String(link?.username || '');
     if (linkStatus(link) === 'off') return changedName ? 'Save and switch on' : 'Switch back on';
-    return changedName ? 'Save new username' : 'New password and slip';
+    return changedName ? 'Save new username' : 'Save password and slip';
 }
 
 function syncManageButtons() {
@@ -561,7 +572,7 @@ function renderDone() {
         tab: 'Ready',
         kicker: 'Family login',
         title: single ? `${single.studentName}’s family can sign in` : `${ok.length} family login${ok.length === 1 ? '' : 's'} ready`,
-        subtitle: 'Print the slip now or copy the details. For safety, passwords are not shown again after you close this.',
+        subtitle: 'Print the slip now or copy the details. You can print the same slip again any time from the family login or the class drawer.',
         body: `
             <div class="family-done">
                 ${ok.map((item) => `
@@ -790,6 +801,22 @@ async function handleDialogClick(event) {
         }
         return;
     }
+    const keptBtn = event.target.closest('[data-family-print-kept]');
+    if (keptBtn) {
+        const student = studentById(dialog.studentId);
+        const link = student ? linksByStudent.get(student.id) : null;
+        if (!student || !link?.slipPassword) return;
+        try {
+            setBusyState(keptBtn, true, 'Preparing…');
+            await printFamilySlips({ schoolName: schoolName(), slips: [{ studentName: student.name, className: classById(student.classId)?.name || '', username: link.username, password: link.slipPassword }] });
+        } catch (error) {
+            console.error('Could not print the family slip:', error);
+            showToast('Could not open printing. Try again.', 'error');
+        } finally {
+            setBusyState(keptBtn, false);
+        }
+        return;
+    }
     const saveBtn = event.target.closest('[data-family-save]');
     if (saveBtn) { await saveSingle(saveBtn); return; }
 
@@ -829,6 +856,38 @@ async function handleDialogClick(event) {
 }
 
 /** Every student of the class (never only the filtered ones) on cut-out notebook QR cards. */
+/** Every active family login of a class whose password is kept, as printed slips. */
+async function printClassSlips(button) {
+    const classId = button.dataset.familyClassSlips;
+    const classIds = new Set(liveSchoolClasses().map((item) => item.id));
+    const classData = classId === '__unplaced' ? null : classById(classId);
+    const active = liveStudents()
+        .filter((student) => (classId === '__unplaced' ? !classIds.has(student.classId) : student.classId === classId))
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')))
+        .map((student) => ({ student, link: linksByStudent.get(student.id) }))
+        .filter(({ link }) => linkStatus(link) === 'active');
+    const slips = active.filter(({ link }) => link.slipPassword).map(({ student, link }) => ({
+        studentName: student.name, className: classData?.name || '', username: link.username, password: link.slipPassword
+    }));
+    const missing = active.length - slips.length;
+    if (!slips.length) {
+        showToast(active.length
+            ? 'These logins were made before slips were saved. Open each family login, type the password they already have and save once; after that the class slips include them.'
+            : 'No family logins in this class yet.', 'info');
+        return;
+    }
+    setBusyState(button, true, 'Preparing…');
+    try {
+        await printFamilySlips({ schoolName: schoolName(), slips });
+        if (missing) showToast(`${missing} older ${missing === 1 ? 'login was' : 'logins were'} left out: open it, type the family's password and save once.`, 'info');
+    } catch (error) {
+        console.error('Could not print the class slips:', error);
+        showToast('Could not open printing. Try again.', 'error');
+    } finally {
+        setBusyState(button, false);
+    }
+}
+
 async function printClassQrCards(button) {
     const classId = button.dataset.familyQrSheet;
     const classIds = new Set(liveSchoolClasses().map((item) => item.id));
@@ -867,6 +926,9 @@ export function handleFamilyLoginsClick(event) {
 
     const qrSheetBtn = event.target.closest('[data-family-qr-sheet]');
     if (qrSheetBtn) { void printClassQrCards(qrSheetBtn); return true; }
+
+    const classSlipsBtn = event.target.closest('[data-family-class-slips]');
+    if (classSlipsBtn) { void printClassSlips(classSlipsBtn); return true; }
 
     const filterBtn = event.target.closest('[data-family-filter]');
     if (filterBtn) {

@@ -1,6 +1,7 @@
 // /ui/tabs/guilds.js — Guild Hall: month banners, the Crown Race, lore overlay, guild sounds, anthem music video
 
 import '../../styles/guild_hall.css';
+import '../../styles/fortune_ledger.css';
 import { quietly } from '../../utils/runtimeMetrics.js';
 import { getCrownRoadKeys, getGuildLeaderboardData } from '../../features/guildScoring.js';
 import { CHAPTER_CROWNS, TAILWIND, UNITY_SEAL, chapterDaysLeft, chapterName, chapterShortName, sharedPlaces, unityProgress, unityProgressLabel } from '../../features/guildScoringCore.js';

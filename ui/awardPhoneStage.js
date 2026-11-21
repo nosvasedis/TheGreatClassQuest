@@ -6,6 +6,7 @@
 // scroll-snap track by mobile/styles/award.css, so swiping is native and costs nothing; this file
 // only renders the dock and keeps it in step with the track.
 
+import '../styles/award_stars.css';
 import { escapeHtml as esc } from '../utils/html.mjs';
 
 const STATUS_WORDS = { shining: 'Shining', waiting: 'Waiting', returning: 'Back today', away: 'Away today' };

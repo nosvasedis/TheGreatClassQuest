@@ -3,6 +3,7 @@
 //   "Add missed stars": pick a class, the lesson day, a reason and the students; one tap
 //   files a dated row for each of them. The day stays put while students are picked.
 //   "Fix star counts": set one student's today / month / year counters, kept nested.
+import '../styles/teacher_settings.css';
 import * as state from "../state.js";
 import {
     doesClassMeetOnDate,

@@ -75,7 +75,7 @@
 @import url('./styles/sky_theater.css');
 
 /* 11. Team Quest / Hero's Challenge controls + league picker: styles/league_controls.css (lazy, ui/leagueControlsStyles.js) */
-@import url('./styles/hero_logs.css');
+/* styles/hero_logs.css loads with ui/modals/rankings.js (lazy, not first paint) */
 /* styles/league_archive.css loads with the module that draws it (lazy, not first paint) */
 
 /* 11b. Guilds: color schemes, badges, quiz modal, guild leaderboard cards */
@@ -84,7 +84,7 @@
 /* 11b-ii. Guild Hall: the hall scene, month banners and the Crown Race board */
 /* styles/guild_hall.css loads with ui/tabs/guilds.js (lazy, not first paint) */
 /* styles/guild_spotlight.css loads with ui/modals/guildHeroes.js (lazy, not first paint) */
-@import url('./styles/fortune_ledger.css');
+/* styles/fortune_ledger.css loads with ui/tabs/guilds.js (lazy, not first paint) */
 
 /* 11c. Fortune's Wheel modal */
 /* styles/fortunes_wheel.css loads with the module that draws it (lazy, not first paint) */
@@ -127,7 +127,7 @@
 @import url('./styles/header_flourish.css');
 
 /* 23. Log New Trial marking board: clipboard, ruled sheet, grade stamps */
-@import url('./styles/bulk_trial.css');
+/* styles/bulk_trial.css loads with features/scholarScroll.js (lazy, not first paint) */
 
 /* 23b. Trial History record book: leather boards, sittings, scholar marks */
 /* styles/trial_history.css loads with the module that draws it (lazy, not first paint) */
@@ -162,8 +162,8 @@
 
 /* 31. Shared app effects + Ceremony of the Month (torchlit arena, storybook garden) */
 @import url('./styles/ceremony2.css');
-@import url('./styles/special_quests.css');
-@import url('./styles/quest_events.css');
+/* styles/special_quests.css loads with ui/modals/specialQuest.js (lazy, not first paint) */
+/* styles/quest_events.css loads with ui/modals/planner.js (lazy, not first paint) */
 
 /* 32. Wallpaper V2/V3: float-bob-v2, wallpaper-float-card, night hub, legibility fixes, mindfulness, seasonal, weather states */
 @import url('./styles/wallpaper2.css');
@@ -207,7 +207,7 @@
 /* styles/chronicle.css loads with ui/modals/hero.js (and the modules sharing its classes) (lazy, not first paint) */
 
 /* 40b. Student Profile (edit student): the Adventurer's Passport */
-@import url('./styles/student_profile.css');
+/* styles/student_profile.css loads with ui/modals/student.js (lazy, not first paint) */
 
 /* 40c. Move Student: transfer orders (another class or the waiting list) */
 /* styles/move_student.css loads with the module that draws it (lazy, not first paint) */
@@ -221,13 +221,13 @@
 /* 42. Inventory Refresh: Beautiful expanded inventory view */
 
 /* 43. Refreshed Team Quest Analysis Cards */
-@import url('./styles/team_quest_cards.css');
+/* styles/team_quest_cards.css loads with ui/tabs/teamQuestChronicles.js and ui/tabs/leaderboard.js (lazy, not first paint) */
 
 /* 44. Team Quest living storybook map */
 @import url('./styles/team_quest_map_living.css');
 
 /* 44a. Realm Overview modal (tap a realm crest on the Team Quest map) */
-@import url('./styles/realm_overview.css');
+/* styles/realm_overview.css loads with ui/modals/realmOverview.js (lazy, not first paint) */
 
 /* 45. Teacher Team Quest phone/tablet race overview */
 
@@ -253,11 +253,11 @@
 @import url('./styles/adventure_diary.css');
 /* Crown first, then the page: Today's Page chooser, blank crowned page, Manual writer helpers */
 @import url('./styles/diary_chooser.css');
-@import url('./styles/hall_of_heroes.css');
+/* styles/hall_of_heroes.css loads with ui/modals/rankings.js (lazy, not first paint) */
 /* Hall of Prodigies: sunlit marble hall (templates/modals/hero.js, ui/modals/prodigyHallView.js) */
 /* styles/prodigy_hall.css loads with the module that draws it (lazy, not first paint) */
-@import url('./styles/attendance_register.css');
-@import url('./styles/quest_board.css');
+/* styles/attendance_register.css loads with ui/modals/attendance.js (lazy, not first paint) */
+/* styles/quest_board.css loads with ui/modals/student.js and ui/modals/questBoardImport.js (lazy, not first paint) */
 /* styles/certificate.css loads with the module that draws it (lazy, not first paint) */
 /* Weekly Report: The Week's Scroll (ui/modals/weeklyReportView.mjs) */
 /* styles/weekly_report.css loads with the module that draws it (lazy, not first paint) */
@@ -270,11 +270,11 @@
 @import url('./styles/wallpaper_sky.css');
 
 /* 47. Teacher Settings: the teacher's desk (pages, stationery, picker) */
-@import url('./styles/teacher_settings.css');
-@import url('./styles/quiz_setup.css');
+/* styles/teacher_settings.css loads with the Options tab modules (ui/core/misc.js, marketManager.js, accessManagement.js, ...) (lazy, not first paint) */
+/* styles/quiz_setup.css loads with ui/tabs/quizSetup.js (lazy, not first paint) */
 
 /* 48. Award Stars: star clouds, virtues, tallies, award moments (features/awardCloudCard.mjs) */
-@import url('./styles/award_stars.css');
+/* styles/award_stars.css loads with ui/tabs/award.js (and the award modules that draw its cards) (lazy, not first paint) */
 
 /* 48b. Boons: Hero's Boon and Teacher Boon modals, in the Award Stars sky */
 /* styles/boons.css loads with ui/modals/teacherBoon.js and ui/boonSponsorPicker.js (lazy, not first paint) */

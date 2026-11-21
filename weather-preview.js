@@ -1,5 +1,6 @@
 // Dev-only preview of the header, Award sky and Home weather card in every weather.
 // Open /weather-preview.html?code=63&time=23:00&sky=1 under `npm run dev`.
+import './styles/award_stars.css';
 import { headerHTML, svgFiltersHTML } from './templates/app/header.js';
 import { awardImmersiveSkyHTML } from './templates/app/index.js';
 import { awardTabHTML } from './templates/app/tabs/award.js';

@@ -1,5 +1,6 @@
 // Dev-only preview of the two award moments (ui/awardMoments.js), no Firebase.
 // Open /award-moments-preview.html under `npm run dev`; ?play=boon|fail|hero|away plays one on load.
+import './styles/award_stars.css';
 import { buildAwardCloudCardHtml } from './features/awardCloudCard.mjs';
 import { startBoonMoment, announceBoon, playHeroBonusMoment } from './ui/awardMoments.js';
 

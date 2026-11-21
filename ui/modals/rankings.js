@@ -1,4 +1,6 @@
 // /ui/modals/rankings.js
+import '../../styles/hero_logs.css';
+import '../../styles/hall_of_heroes.css';
 import '../../styles/prodigy_hall.css';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';

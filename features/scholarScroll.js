@@ -89,6 +89,7 @@ async function playInnerClassSwap(inner, runRender) {
 }
 
 // --- IMPORTS ---
+import '../styles/bulk_trial.css';
 import '../styles/performance_chart.css';
 import '../styles/trial_history.css';
 import { db, doc, addDoc, updateDoc, collection, serverTimestamp, writeBatch, runTransaction } from '../firebase.js';

@@ -1,3 +1,4 @@
+import '../../styles/teacher_settings.css';
 import * as state from '../../state.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';

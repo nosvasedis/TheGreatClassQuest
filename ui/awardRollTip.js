@@ -1,6 +1,7 @@
 // The star roll's own tooltip (Award Stars tab): a little sky card above a bead or chip,
 // instead of the browser's title box. Reads data-tip-name / -note / -hint / -avatar.
 // Styles: .aw-roll-tip in styles/award_stars.css.
+import '../styles/award_stars.css';
 import { escapeHtml as esc } from '../utils/html.mjs';
 
 let tipEl = null;

@@ -1,4 +1,5 @@
 // /ui/tabs/award.js
+import '../../styles/award_stars.css';
 import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';

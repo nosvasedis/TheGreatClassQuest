@@ -1,5 +1,7 @@
 // Settings → Quiz with the real page code and sample classes, no sign-in.
 // /quiz-plan-preview.html?class=b|junior|none
+import './styles/teacher_settings.css';
+import './styles/quiz_setup.css';
 import { optionsTabHTML } from './templates/app/tabs/options.js';
 import * as state from './state.js';
 import { applySubscriptionPreview } from './utils/subscription.js';

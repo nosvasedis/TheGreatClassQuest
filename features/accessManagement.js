@@ -1,3 +1,4 @@
+import '../styles/teacher_settings.css';
 import {
     db,
     doc,

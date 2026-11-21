@@ -7,6 +7,19 @@ async function loadSegments() {
   return import('../utils/fortuneWheelSegments.mjs');
 }
 
+// The rate checks ("about a third of wheels") use a fixed seed, so they always check the same
+// wheels instead of failing by chance about one run in twenty.
+function seededRng(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 async function loadChallenges() {
   return import('../utils/wheelChallenges.mjs');
 }
@@ -229,8 +242,9 @@ test('Omens are rare: at most one per wheel, about a third of wheels, and never 
   const { composeWheel, OMEN_CHANCE } = await loadSegments();
   const catalog = withOmens(buildCatalog());
   let withOmen = 0;
+  const rng = seededRng(20261121);
   for (let i = 0; i < 2000; i += 1) {
-    const segs = composeWheel(catalog, WEIGHTS, { mode: 'normal' });
+    const segs = composeWheel(catalog, WEIGHTS, { mode: 'normal', rng });
     assert.equal(segs.length, 20);
     assert.ok(countOf(segs, 'omen') <= 1);
     if (countOf(segs, 'omen')) withOmen += 1;
@@ -254,8 +268,9 @@ test('the Envoy\'s wheel: mostly mischief, each gift once and never side by side
   const catalog = [...buildCatalog(), ...gifts, jest, ...tolls, trick];
   let tricks = 0;
   let harsh = 0;
+  const rng = seededRng(20261121);
   for (let i = 0; i < 1500; i += 1) {
-    const segs = composeEnvoyWheel(catalog);
+    const segs = composeEnvoyWheel(catalog, { rng });
     assert.equal(segs.length, 14);
     assert.ok(segs.every((s) => s.rarity === 'envoy'));
     [...gifts, jest, ...tolls].forEach((g) => assert.ok(segs.some((s) => s.id === g.id), `${g.id} on the wheel`));

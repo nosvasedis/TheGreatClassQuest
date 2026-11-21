@@ -9,7 +9,6 @@ import { isSpeaking, isTtsSupported, speakText, stopSpeech } from '../../feature
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 import { morphInto } from '../../utils/domMorph.mjs';
 import { createLivePacer, diffStandings, formatGlory, heraldLines, standingsSnapshot } from '../../features/guildLiveCore.mjs';
-import { openGuildHeroesModal } from '../modals/guildHeroes.js';
 import { hideModal, showAnimatedModal } from '../modals/base.js';
 import { openFortunesWheel, advanceWheel, triggerSpin, closeFortunesWheel, canSpinThisWeek, getWheelState } from '../../features/fortunesWheel.js';
 import { GLORY_EMOJI } from '../../constants.js';
@@ -1122,7 +1121,7 @@ function _wireHall(hall) {
         if (t.closest('[data-guild-power-info="true"]')) { e.stopPropagation(); _openPowerExplainer(); return; }
         if (_chronicleAction(hall, t)) { e.stopPropagation(); return; }
         const spot = t.closest('[data-top-heroes-guild]');
-        if (spot) { e.stopPropagation(); openGuildHeroesModal(spot.dataset.topHeroesGuild); return; }
+        if (spot) { e.stopPropagation(); import('../modals/guildHeroes.js').then((m) => m.openGuildHeroesModal(spot.dataset.topHeroesGuild)).catch(() => showToast('That window could not load. Check the connection and try again.', 'error')); return; }
         const anthem = t.closest('[data-anthem-guild]');
         if (anthem) { e.stopPropagation(); openAnthemMusicVideo(anthem.dataset.anthemGuild, anthem); return; }
         if (t.closest('#guild-stats-expand-toggle')) {

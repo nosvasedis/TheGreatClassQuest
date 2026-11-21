@@ -10,16 +10,14 @@ export * from './calendarDay.js';
 export * from './attendance.js';
 export * from './student.js';
 export * from './ai.js';
-export * from './reports.js';
 export * from './class.js';
 export * from './hero.js';
-export * from './rankings.js';
 export * from './trophyRoom.js';
 export * from './sortingQuiz.js';
-export * from './guildHeroes.js';
 export * from './teacherBoon.js';
 // Quiz of the Week loads with its stage (features/home.js, ui/tabs/quizSetup.js): import it directly.
-export * from './studentAnalytics.js';
+// On-demand windows (rankings, reports, analytics) load on first open: thin entry points.
+export * from './lazyScreens.js';
 export * from './specialQuest.js';
 export * from './heroClass.js';
 

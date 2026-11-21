@@ -5,10 +5,9 @@ import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
 import { ensureHistoryLoaded } from '../../db/actions/index.js';
 import { filterDocsForActiveYear } from '../../utils/schoolYear.js';
-import * as scholarScroll from '../../features/scholarScroll.js';
 import { playSound } from '../../audio.js';
 import { renderClassEndDatesList } from '../core/misc.js';
-import { updateCeremonyStatus } from '../../features/ceremony.js';
+import { updateCeremonyStatus } from '../../features/ceremonyStatus.js';
 import { renderHomeTab } from '../../features/home.js';
 import { requestDayRingIntro } from '../../features/homeGreetingScene.js';
 import { refreshFortunesWheelModalFromGlobalClass } from '../../features/fortunesWheel.js';
@@ -29,11 +28,11 @@ import { GATED_TABS, TAB_FEATURE_FLAGS, getTierSummary, getUpgradeMessage } from
 import { renderFamiliarOptionsUi } from '../../features/familiars.js';
 import { renderAccessCenterUi, wireAccessCenterEvents } from '../../features/accessManagement.js';
 import { renderMarketManagerUi, wireMarketManagerEvents } from '../core/marketManager.js';
-import { renderQuizOptionsUi } from './quizSetup.js';
 import { NAV_TABS, navTipText } from '../../templates/app/nav.js';
 import { loadLeagueControlStyles, prefetchLeagueControlStyles } from '../leagueControlsStyles.js';
 
-export { renderQuizOptionsUi };
+// Quiz setup (Settings › Quiz) loads the first time Settings asks for it.
+export const renderQuizOptionsUi = () => import('./quizSetup.js').then((m) => m.renderQuizOptionsUi());
 
 // --- TAB NAVIGATION ---
 
@@ -285,6 +284,7 @@ export async function applyTabPrimaryRefresh(tabId, opts = {}) {
 
     if (tabId === 'scholars-scroll-tab') {
         const { findAndSetCurrentClass } = await import('../core/index.js');
+        const scholarScroll = await import('../../features/scholarScroll.js');
         await scholarScroll.renderScholarsScrollTab(null, { subtleReenter: opts.subtleScrollEnter === true });
         findAndSetCurrentClass();
     }
@@ -643,7 +643,7 @@ export async function showTab(tabName) {
                     renderAccessCenterUi();
                 }
                 if (key === 'quiz' && hasQuizFeature) {
-                    renderQuizOptionsUi();
+                    renderQuizOptionsUi().catch(quietly('ui/tabs/navigation.js'));
                 }
                 if (key === 'market' && hasMarketManager) {
                     renderMarketManagerUi();

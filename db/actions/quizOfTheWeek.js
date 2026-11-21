@@ -55,10 +55,6 @@ function quizDocRef(classId) {
     return doc(db, `${PUBLIC_DATA_PATH}/quiz_of_the_week`, quizDocId(classId));
 }
 
-function quizAttemptsCollection(classId, week) {
-    return collection(db, `${PUBLIC_DATA_PATH}/quiz_of_the_week/${classId}_${week}/attempts`);
-}
-
 function quizAttemptsCollectionRef(classId) {
     return collection(db, `${PUBLIC_DATA_PATH}/quiz_of_the_week/${quizDocId(classId)}/attempts`);
 }

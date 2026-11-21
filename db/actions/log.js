@@ -908,11 +908,12 @@ export async function handleAddQuestEvent() {
                     throw new Error("Please enter a valid bonus amount.");
                 }
                 break;
-            case 'Reason Bonus Day':
+            case 'Reason Bonus Day': {
                 const reason = document.getElementById('quest-event-reason').value;
                 details.reason = reason;
                 details.title = `${reason.charAt(0).toUpperCase() + reason.slice(1)} Bonus Day`;
                 break;
+            }
             case '2x Star Day':
                 break;
             case 'Day Treasure': {

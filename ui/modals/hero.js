@@ -4,7 +4,6 @@ import * as state from '../../state.js';
 import { showAnimatedModal, hideModal } from './base.js';
 
 import { canUseFeature } from '../../utils/subscription.js';
-import { openAdventurersGuide } from './adventurersGuide.js';
 
 // --- NEW: HERO'S CHRONICLE MODAL ---
 
@@ -321,6 +320,7 @@ export async function publishParentSummary(studentId) {
 }
 
 /** The Adventurer's Guide lives in its own module; kept here so existing callers still work. */
-export function openAppInfoModal(options) {
+export async function openAppInfoModal(options) {
+    const { openAdventurersGuide } = await import('./adventurersGuide.js');
     openAdventurersGuide(options);
 }

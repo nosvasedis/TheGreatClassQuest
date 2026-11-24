@@ -334,14 +334,27 @@
     opacity: 0;
 }
 
+.loading-dawn {
+    /* The hand-over light follows the real sky (styles/loading-sky.css data-ls-light):
+       a morning glow by day, moonlight after dark, so the app opens under the
+       same time of day instead of a sunrise. */
+    --ls-exit-pool: rgba(255, 224, 170, 0.95);
+    --ls-exit-pool-soft: rgba(255, 236, 205, 0.6);
+    --ls-exit-pool-edge: rgba(255, 236, 205, 0);
+    --ls-exit-low: rgba(255, 233, 196, 0.85);
+    --ls-exit-mid: rgba(214, 238, 255, 0.55);
+    --ls-exit-high: rgba(186, 225, 255, 0.35);
+    --ls-exit-veil: linear-gradient(180deg, #eef8ff 0%, #f7fbff 50%, #f4fff6 100%);
+}
+
 .loading-dawn::before {
     background:
-        radial-gradient(ellipse 80% 60% at 50% 100%, rgba(255, 224, 170, 0.95) 0%, rgba(255, 236, 205, 0.6) 40%, rgba(255, 236, 205, 0) 80%),
-        linear-gradient(0deg, rgba(255, 233, 196, 0.85) 0%, rgba(214, 238, 255, 0.55) 55%, rgba(186, 225, 255, 0.35) 100%);
+        radial-gradient(ellipse 80% 60% at 50% 100%, var(--ls-exit-pool) 0%, var(--ls-exit-pool-soft) 40%, var(--ls-exit-pool-edge) 80%),
+        linear-gradient(0deg, var(--ls-exit-low) 0%, var(--ls-exit-mid) 55%, var(--ls-exit-high) 100%);
 }
 
 .loading-dawn::after {
-    background: linear-gradient(180deg, #eef8ff 0%, #f7fbff 50%, #f4fff6 100%);
+    background: var(--ls-exit-veil);
 }
 
 #loading-screen.loading-screen-exit .loading-dawn::before {

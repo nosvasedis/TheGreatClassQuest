@@ -106,6 +106,28 @@
     --ls-veil-top: #4a4566; --ls-veil-bottom: #8a7f94;
 }
 
+/* ── The hand-over light (styles/loading.css .loading-dawn) ──────
+   Golden hour hands over in amber; twilight and night in moonlight,
+   cool silver over a deep indigo top, the colours of the app's night sky. */
+#loading-screen[data-ls-light="golden"] .loading-dawn {
+    --ls-exit-pool: rgba(255, 200, 140, 0.92);
+    --ls-exit-pool-soft: rgba(255, 220, 185, 0.55);
+    --ls-exit-pool-edge: rgba(255, 220, 185, 0);
+    --ls-exit-low: rgba(255, 222, 186, 0.85);
+    --ls-exit-mid: rgba(246, 196, 180, 0.5);
+    --ls-exit-high: rgba(160, 166, 230, 0.4);
+    --ls-exit-veil: linear-gradient(180deg, #f3efff 0%, #fbf6f4 50%, #f6fbf4 100%);
+}
+#loading-screen:is([data-ls-light="twilight"], [data-ls-light="night"]) .loading-dawn {
+    --ls-exit-pool: rgba(199, 210, 254, 0.75);
+    --ls-exit-pool-soft: rgba(165, 180, 252, 0.4);
+    --ls-exit-pool-edge: rgba(129, 140, 248, 0);
+    --ls-exit-low: rgba(214, 222, 255, 0.7);
+    --ls-exit-mid: rgba(99, 102, 241, 0.42);
+    --ls-exit-high: rgba(30, 41, 110, 0.75);
+    --ls-exit-veil: linear-gradient(180deg, #c7cff5 0%, #e4e9fb 30%, #eef2fc 60%, #eef8f6 100%);
+}
+
 /* ── Weather: a veil over the sky and heavier clouds ─────────── */
 
 #loading-screen[data-ls-wx="grey"] { --ls-veil: 0.55; }

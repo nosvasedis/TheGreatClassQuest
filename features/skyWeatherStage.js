@@ -12,9 +12,24 @@
 import { resolveSkyScene, sceneLayoutKey } from './skyWeather.mjs';
 import { buildCloudsHtml, buildWeatherFxHtml, BOLT_PATHS } from './skyWeatherArt.js';
 import { moonPhase, moonShadowPath } from '../utils/dayCycle.mjs';
+import { loadingSkyPlan } from './skyMemory.mjs';
 
 let currentScene = null;
 let lastReading = null;
+// Until the first live reading, the sky paints the weather this device
+// remembers (the same one the loading screen showed), so the app opens under
+// the loading screen's sky instead of a fair one that then melts into rain.
+// Dropped once a live reading arrives.
+let useRemembered = true;
+
+function rememberedReading(now = Date.now()) {
+    if (!useRemembered) return null;
+    try {
+        return loadingSkyPlan(now).weather;
+    } catch (_) {
+        return null;
+    }
+}
 let lightningTimer = null;
 
 function detectLite() {
@@ -41,9 +56,9 @@ export function getLastSkyReading() {
     return lastReading;
 }
 
-/** Scene for a reading + sun times, with the device's lite setting. */
+/** Scene for a reading + sun times, with the device's lite setting (no reading yet: the remembered one). */
 export function computeSkyScene(reading, sun) {
-    return resolveSkyScene(reading || {}, sun || {}, { lite: LITE });
+    return resolveSkyScene(reading || rememberedReading(sun?.now) || {}, sun || {}, { lite: LITE });
 }
 
 /** Cloud and weather-layer slots for each surface. Missing ones are skipped. */
@@ -71,7 +86,8 @@ function prefersReducedMotion() {
 function paint(el, key, build) {
     if (!el || el.dataset.wxKey === key) return;
     const live = [...el.children].filter((child) => !child.classList.contains('wx-fading-out'));
-    const fade = !!el.dataset.wxKey && live.length > 0 && isShown(el) && !prefersReducedMotion();
+    const fade = !!el.dataset.wxKey && live.length > 0 && isShown(el) && !prefersReducedMotion()
+        && !document.documentElement.classList.contains('wx-instant');
     el.dataset.wxKey = key;
     if (!fade) {
         el.innerHTML = build();
@@ -124,9 +140,35 @@ function paintMoonPhase(now = Date.now()) {
     });
 }
 
+/**
+ * While the loading screen still hides the app, the sky behind it is set at
+ * once (no melt, no cloud cross-fade): when the screen lifts, the app is
+ * already under the right light and weather, never easing into it.
+ */
+function skyIsCovered() {
+    const screen = document.getElementById('loading-screen');
+    return !!screen && !screen.classList.contains('hidden') && !screen.classList.contains('loading-revealing')
+        && !screen.classList.contains('opacity-0');
+}
+
+let instantRelease = 0;
+function holdSkyInstant() {
+    const html = document.documentElement;
+    html.classList.add('wx-instant');
+    if (instantRelease) cancelAnimationFrame(instantRelease);
+    // Two frames: the new colours are styled (and so settled) before the melt returns.
+    instantRelease = requestAnimationFrame(() => {
+        instantRelease = requestAnimationFrame(() => {
+            instantRelease = 0;
+            html.classList.remove('wx-instant');
+        });
+    });
+}
+
 export function applySkyScene(scene) {
     if (!scene || typeof document === 'undefined') return;
     currentScene = scene;
+    if (skyIsCovered()) holdSkyInstant();
     setHtmlState(scene);
     paintMoonPhase(scene.now);
     for (const { surface } of SURFACES) paintSkySurface(surface);
@@ -139,6 +181,7 @@ export function applySkyScene(scene) {
 export function applySkyReading(reading, sun, { reset = false } = {}) {
     if (reset) lastReading = null;
     if (reading) lastReading = reading;
+    if (reading) useRemembered = false;
     applySkyScene(computeSkyScene(lastReading, sun));
     return currentScene;
 }

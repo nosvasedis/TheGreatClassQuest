@@ -289,6 +289,15 @@ html[data-wx-dir="w"] { --wx-gust-flip: -1; }
         opacity 0.4s ease;
 }
 
+/* Behind the loading screen the sky is set at once (skyWeatherStage.js#holdSkyInstant),
+   so the app is already under the right light when the screen lifts. */
+html.wx-instant :not(#loading-screen, #loading-screen *),
+html.wx-instant :not(#loading-screen, #loading-screen *)::before,
+html.wx-instant :not(#loading-screen, #loading-screen *)::after {
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+}
+
 /* Cloud and weather layers cross-fade when the weather changes (skyWeatherStage.js#paint). */
 .wx-layer {
     position: absolute;

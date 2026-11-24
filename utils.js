@@ -2,7 +2,7 @@ import { getLocalMonthKey, isTeacherBoonWindow } from './utils/teacherBoonWindow
 import { getQuestLeagueDefinition } from './constants.js';
 import { HEADER_WEATHER_CLASSES } from './features/weatherTheme.js';
 import { refreshSkyLight } from './features/skyWeatherStage.js';
-import { rememberSunTimes } from './features/skyMemory.mjs';
+import { rememberSunTimes, loadingSkyPlan } from './features/skyMemory.mjs';
 import { paintHeaderDateTime } from './ui/headerClock.js';
 import {
     defaultSolarTimes,
@@ -178,11 +178,18 @@ export function getWeatherCacheKey(prefix, location) {
 }
 
 // Global Solar Data (school location)
-// Default fallback times until API loads
-export let solarData = {
-    sunrise: new Date().setHours(6, 30, 0, 0),
-    sunset: new Date().setHours(20, 30, 0, 0)
-};
+// Until the API answers, the sun the loading screen painted: this device's
+// remembered sunrise and sunset, else worked out for the school (or Athens).
+// A fixed 06:30/20:30 guess here once opened the app in daylight on winter
+// evenings, then melted it to night when the real times arrived.
+function initialSolarData() {
+    try {
+        const { sun } = loadingSkyPlan();
+        if (Number.isFinite(sun?.sunrise) && Number.isFinite(sun?.sunset)) return { sunrise: sun.sunrise, sunset: sun.sunset };
+    } catch (_) { /* fall back to the fixed guess */ }
+    return defaultSolarTimes();
+}
+export let solarData = initialSolarData();
 
 export async function fetchSolarCycle() {
     try {

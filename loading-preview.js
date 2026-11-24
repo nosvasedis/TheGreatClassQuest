@@ -5,12 +5,15 @@
 //   film=full|short (force a cut)  shot=1 (hide the toolbar)  ready=<ms> (when the app is ready)
 //   header=0 (plain next screen, no app header: Lumi leaves by the top corner)
 //   sky=dawn|day|golden|twilight|night  wx=<WMO weather code, e.g. 0 clear, 3 grey, 45 fog, 63 rain, 73 snow, 95 storm>
+//   live=<WMO code> (a live reading lands under the screen at 1.2s, as the Home render's fetch does)
 // Below 1024px wide it shows the phone scene (templates/loadingPhone.js): role= also picks the scene
 // before sign-in (guess= overrides it), lang=el shows families' Greek, low=1 the weak-phone tier.
 // The hand-over is the app's own (templates/loading.js#playLoadingExit); window.__pvLog
 // records when each step happened, for headless timing checks.
 import { headerHTML } from './templates/app/header.js';
 import { startPixieDust } from './ui/headerClock.js';
+import { refreshSkyLight, applySkyReading } from './features/skyWeatherStage.js';
+import { loadingSkyPlan, rememberSkyReading } from './features/skyMemory.mjs';
 import { getLoadingHTML, initLoadingAtmosphere, initLoadingTips, markLoadingStage, stageLoadingPersonalization, playLoadingExit, reopenLoadingScreen, setLoadingFilmCut } from './templates/loading.js';
 
 const params = new URLSearchParams(location.search);
@@ -34,8 +37,25 @@ if (params.get('header') !== '0') {
     // The real app header, so Lumi can fly home to the little Lumi over its title.
     const next = document.getElementById('pv-next');
     next.style.placeItems = 'start stretch';
-    next.innerHTML = `<div class="gcq-sky-atmosphere relative">${headerHTML}</div>`;
+    next.innerHTML = `<div id="app-screen" class="flex flex-col" style="width:100%">
+        <div id="award-header-atmosphere" class="award-header-atmosphere relative z-[60] flex shrink-0 flex-col overflow-visible shadow-md">${headerHTML}</div>
+        <div class="greeting-panel vibrant-card" style="margin:24px;height:200px;border-radius:28px;border:1px solid"></div>
+    </div>`;
     startPixieDust();
+}
+// The app's own sky under the screen, painted the way the app paints it before any live
+// reading (features/skyWeatherStage.js): the sun the loading screen used and the weather it
+// remembers. sky= and wx= move the clock and the remembered weather to match the screen.
+const previewSun = loadingSkyPlan().sun;
+const SKY_AT = { dawn: previewSun.sunrise + 10 * 60000, day: (previewSun.sunrise + previewSun.sunset) / 2,
+    golden: previewSun.sunset - 30 * 60000, twilight: previewSun.sunset + 20 * 60000, night: previewSun.sunset + 3 * 3600000 };
+if (params.get('wx') !== null) rememberSkyReading({ code: Number(params.get('wx')) });
+const previewNow = () => SKY_AT[params.get('sky')] || Date.now();
+refreshSkyLight({ now: previewNow(), ...previewSun });
+// live=<WMO code>: a live reading lands while the screen still covers the app (the Home
+// render's weather fetch); it must already be in place, not melting, when the screen lifts.
+if (params.get('live') !== null) {
+    setTimeout(() => applySkyReading({ code: Number(params.get('live')), temp: 14 }, { now: previewNow(), ...previewSun }), 1200);
 }
 document.getElementById('app-root').innerHTML = getLoadingHTML();
 initLoadingAtmosphere();

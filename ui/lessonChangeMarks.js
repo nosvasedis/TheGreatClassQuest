@@ -58,3 +58,24 @@ export function makeupTagHtml(makeupFor, { compact = false } = {}) {
 export function extraTagHtml() {
     return '<span class="lcx-extra"><i class="fas fa-plus" aria-hidden="true"></i><span>Extra lesson</span></span>';
 }
+
+/**
+ * The chip that rides in the Award Stars roll and the phone dock: 'makeup' (teal, glinting,
+ * "Make-up · Mon 23"), 'off' (rose "No lesson") or 'ask' (dashed "Make-up?").
+ */
+export function lessonChipHtml(kind, makeupFor = null) {
+    const chip = (action, tipName, tipNote, inner) => `<button type="button" class="aw-lesson-chip aw-lesson-chip--${kind}" data-award-lesson="${action}"`
+        + ` data-tip-name="${esc(tipName)}" data-tip-note="${esc(tipNote)}" aria-label="${esc(`${tipName}. ${tipNote}`)}">${inner}</button>`;
+    if (kind === 'makeup') {
+        const day = lessonDayLabel(makeupFor);
+        const short = day.split(' ').slice(0, 2).join(' ');
+        return chip('edit', 'Make-up lesson', `Today makes up ${day}. Tap to change`,
+            `<i class="fas fa-rotate" aria-hidden="true"></i><span>Make-up</span><span class="aw-lesson-chip__for">${esc(short)}</span>`);
+    }
+    if (kind === 'off') {
+        return chip('cancelled', 'No lesson today', "Marked as didn't happen. Tap to change",
+            '<i class="fas fa-calendar-xmark" aria-hidden="true"></i><span>No lesson</span>');
+    }
+    return chip('makeup', 'Not on the timetable today', 'Teaching a make-up? Tap to make today a lesson day',
+        '<i class="fas fa-calendar-plus" aria-hidden="true"></i><span>Make-up?</span>');
+}

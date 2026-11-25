@@ -231,8 +231,8 @@ function modifierChip(modifier) {
     return '';
 }
 
-export function renderAwardPhoneStage({ classId, heroes, starsToday, modifier = null }) {
-    const modifierHtml = modifierChip(modifier);
+export function renderAwardPhoneStage({ classId, heroes, starsToday, modifier = null, lessonHtml = '' }) {
+    const modifierHtml = modifierChip(modifier) + lessonHtml;
     const dock = document.getElementById('award-phone-dock');
     if (!dock) return;
     if (!isAwardPhoneStage() || !classId || !heroes?.length) {

@@ -95,8 +95,20 @@ if (list && params.get('heroes') && params.get('mobile') === '1') {
         stars: c.classList.contains('is-locked') ? 2 : 0,
         status: c.classList.contains('is-locked') ? 'shining' : c.classList.contains('is-absent') ? 'away' : 'waiting'
     }));
-    renderAwardPhoneStage({ classId: 'pv', heroes, starsToday: heroes.filter((h) => h.status === 'shining').length * 2 });
+    const { lessonChipHtml } = await import('./ui/lessonChangeMarks.js');
+    const lessonHtml = params.get('lesson') ? lessonChipHtml(params.get('lesson'), '23-11-2026') : '';
+    renderAwardPhoneStage({ classId: 'pv', heroes, starsToday: heroes.filter((h) => h.status === 'shining').length * 2, lessonHtml });
     syncAwardPhoneStage({ reset: true });
+}
+// ?lesson=makeup|off|ask puts today's lesson-change chip in the star roll (desktop).
+if (list && params.get('lesson') && params.get('mobile') !== '1') {
+    const { lessonChipHtml } = await import('./ui/lessonChangeMarks.js');
+    const { buildAwardSkySummaryHtml } = await import('./features/awardCloudCard.mjs');
+    const sum = document.getElementById('award-sky-summary');
+    const heroes = [...list.querySelectorAll('.aw-card')].map((c, i) => ({ id: c.dataset.studentid, name: c.getAttribute('aria-label'), stars: i % 2 ? 2 : 0, status: i % 2 ? 'shining' : (i % 5 === 4 ? 'away' : 'waiting') }));
+    sum.innerHTML = buildAwardSkySummaryHtml({ heroes, starsToday: 8, modifier: params.get('mod') ? { type: 'double' } : null, lessonHtml: lessonChipHtml(params.get('lesson'), '23-11-2026') });
+    sum.classList.remove('hidden');
+    document.getElementById('open-teacher-boon-btn')?.classList.remove('hidden');
 }
 if (list) {
     // Same as ui/tabs/award.js: only clouds on screen count as afloat.

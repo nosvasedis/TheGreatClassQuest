@@ -498,7 +498,7 @@ function rollBeadHtml(hero, index) {
  * heroes: [{ id, name, avatar, status: 'shining'|'waiting'|'returning'|'away', stars }]
  * Away heroes never count as waiting, and the class total is the heroes in the room.
  */
-export function buildAwardSkySummaryHtml({ heroes = [], starsToday = 0, modifier = null } = {}) {
+export function buildAwardSkySummaryHtml({ heroes = [], starsToday = 0, modifier = null, lessonHtml = '' } = {}) {
     const sorted = [...heroes].sort((a, b) => (ROLL_ORDER[a.status] ?? 1) - (ROLL_ORDER[b.status] ?? 1)
         || String(a.name || '').localeCompare(String(b.name || '')));
     const away = sorted.filter((h) => h.status === 'away').length;
@@ -527,6 +527,7 @@ export function buildAwardSkySummaryHtml({ heroes = [], starsToday = 0, modifier
         + count
         + `<span class="aw-roll__stars"><b>${esc(formatAwardStars(starsToday))}</b><i class="fas fa-star" aria-hidden="true"></i>today</span>`
         + mod
+        + lessonHtml
         + `<span class="aw-roll__beads">${sorted.map((hero, i) => rollBeadHtml(hero, i)).join('')}</span>`
         + notes
         + `</div>`;

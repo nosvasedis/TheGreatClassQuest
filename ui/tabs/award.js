@@ -40,7 +40,7 @@ import { buildHeroTieStats, pickProdigyWinners, rankHeroes } from '../../feature
 import { withPendingAwards } from '../../features/awardPending.mjs';
 import { withPendingAttendance } from '../../features/attendancePending.mjs';
 import { describeLessonChange } from '../../features/lessonChangesCore.mjs';
-import { lessonLeafHtml, noLessonStampHtml } from '../lessonChangeMarks.js';
+import { lessonChipHtml } from '../lessonChangeMarks.js';
 import { isMonthFinaleLesson, monthFinaleContextFrom } from '../../features/monthFinale.js';
 import { playAttendanceTurn, readCloudPalette } from '../awardFx.js';
 import { renderAwardPhoneStage, syncAwardPhoneStage } from '../awardPhoneStage.js';
@@ -399,50 +399,41 @@ function getClassStudents(classId) {
 }
 
 /**
- * One small row above the roll when today isn't an ordinary lesson for the class: a make-up
- * (which lesson it replaces), or no lesson on the timetable at all, with a way to say "I'm
- * teaching a make-up today", which turns today into a real lesson day (absences, Welcome Back).
+ * When today isn't an ordinary lesson for the class, a chip rides in the star roll itself
+ * (and the phone dock): a shining teal "Make-up · Mon 23", a rose "No lesson", or, on a day
+ * with nothing on the timetable, "Make-up?" to say "I'm teaching a make-up today".
  */
-function renderAwardLessonNote(classId) {
-    const el = document.getElementById('award-lesson-note');
-    if (!el) return;
+function awardLessonChipHtml(classId) {
     const mine = (state.get('allTeachersClasses') || []).some((c) => c.id === classId);
-    let html = '';
-    if (classId && mine) {
-        const today = utils.getTodayDateString();
-        const overrides = state.get('allScheduleOverrides') || [];
-        const change = describeLessonChange(classId, today, overrides);
-        const meets = utils.doesClassMeetOnDate(classId, today, state.get('allSchoolClasses') || [], overrides, state.get('schoolHolidayRanges') || [], state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {});
-        if (change?.kind === 'makeup') {
-            html = `<span class="aw-lesson-note__icon aw-lesson-note__icon--makeup" aria-hidden="true"><i class="fas fa-rotate"></i></span>
-                <span class="aw-lesson-note__text">Today is a <strong>make-up</strong> for</span>${lessonLeafHtml(change.makeupFor, 'off')}
-                <button type="button" class="aw-lesson-note__btn" data-award-lesson="edit">Change</button>`;
-        } else if (change?.kind === 'cancelled') {
-            html = `${noLessonStampHtml('No lesson')}
-                <span class="aw-lesson-note__text">Today's lesson is marked as didn't happen</span>
-                <button type="button" class="aw-lesson-note__btn" data-award-lesson="cancelled">Change</button>`;
-        } else if (!meets) {
-            html = `<span class="aw-lesson-note__icon" aria-hidden="true"><i class="fas fa-calendar-day"></i></span>
-                <span class="aw-lesson-note__text">No lesson on today's timetable. Teaching a make-up?</span>
-                <button type="button" class="aw-lesson-note__btn aw-lesson-note__btn--go" data-award-lesson="makeup"><i class="fas fa-rotate" aria-hidden="true"></i> Make-up lesson</button>`;
-        }
-    }
-    el.innerHTML = html;
-    el.classList.toggle('hidden', !html);
-    if (html && !el.dataset.bound) {
-        el.dataset.bound = '1';
-        el.addEventListener('click', (e) => {
-            const btn = e.target.closest('[data-award-lesson]');
-            const id = state.get('globalSelectedClassId');
-            if (!btn || !id) return;
-            const today = utils.getTodayDateString();
-            const options = btn.dataset.awardLesson === 'cancelled'
-                ? { classId: id, missedDate: today }
-                : { classId: id, makeupDate: today, mode: 'makeup' };
-            import('../modals/lessonChange.js').then((m) => m.openLessonChange(options));
-        });
-    }
+    if (!classId || !mine) return '';
+    const today = utils.getTodayDateString();
+    const overrides = state.get('allScheduleOverrides') || [];
+    const change = describeLessonChange(classId, today, overrides);
+    if (change?.kind === 'makeup') return lessonChipHtml('makeup', change.makeupFor);
+    if (change?.kind === 'cancelled') return lessonChipHtml('off');
+    const meets = utils.doesClassMeetOnDate(classId, today, state.get('allSchoolClasses') || [], overrides, state.get('schoolHolidayRanges') || [], state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {});
+    return meets ? '' : lessonChipHtml('ask');
 }
+
+/** The old separate row stays empty; its taps live on the roll and the dock now. */
+function renderAwardLessonNote() {
+    const el = document.getElementById('award-lesson-note');
+    if (el) { el.innerHTML = ''; el.classList.add('hidden'); }
+    if (awardLessonChipBound) return;
+    awardLessonChipBound = true;
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest?.('[data-award-lesson]');
+        const id = state.get('globalSelectedClassId');
+        if (!btn || !id) return;
+        hideAwardRollTip();
+        const today = utils.getTodayDateString();
+        const options = btn.dataset.awardLesson === 'cancelled'
+            ? { classId: id, missedDate: today }
+            : { classId: id, makeupDate: today, mode: 'makeup' };
+        import('../modals/lessonChange.js').then((m) => m.openLessonChange(options));
+    });
+}
+let awardLessonChipBound = false;
 
 /** The star roll above the clouds: who shines today, who still waits, who is away. */
 function renderAwardSkySummary(classId) {
@@ -459,6 +450,7 @@ function renderAwardSkySummary(classId) {
     bindAwardSkySummary(el);
     // The same attendance reading the clouds use, so the roll and the clouds always agree.
     const ctx = buildAwardClassContext(classId, students);
+    const lessonHtml = awardLessonChipHtml(classId);
     let starsToday = 0;
     const heroes = students.map((s) => {
         const day = getStudentDayState(s, ctx);
@@ -477,9 +469,10 @@ function renderAwardSkySummary(classId) {
         classId,
         heroes: sortStudentsByAwardOrder(classId, students).map((s) => byId.get(s.id)).filter(Boolean),
         starsToday,
-        modifier: ctx.modifier
+        modifier: ctx.modifier,
+        lessonHtml
     });
-    const html = buildAwardSkySummaryHtml({ heroes, starsToday, modifier: ctx.modifier });
+    const html = buildAwardSkySummaryHtml({ heroes, starsToday, modifier: ctx.modifier, lessonHtml });
     if (html !== awardSkySummaryHtml || !el.firstChild) {
         // A new class (or the first visit) strings the beads in one by one; after that only
         // a hero who has just started shining gets a burst.

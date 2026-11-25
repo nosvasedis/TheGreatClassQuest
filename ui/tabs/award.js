@@ -39,6 +39,7 @@ import {
 import { buildHeroTieStats, pickProdigyWinners, rankHeroes } from '../../features/heroRanking.js';
 import { withPendingAwards } from '../../features/awardPending.mjs';
 import { withPendingAttendance } from '../../features/attendancePending.mjs';
+import { describeLessonChange, lessonDayLabel } from '../../features/lessonChangesCore.mjs';
 import { isMonthFinaleLesson, monthFinaleContextFrom } from '../../features/monthFinale.js';
 import { playAttendanceTurn, readCloudPalette } from '../awardFx.js';
 import { renderAwardPhoneStage, syncAwardPhoneStage } from '../awardPhoneStage.js';
@@ -394,6 +395,52 @@ export function getEffectiveTodayStarsFor(studentId) {
 
 function getClassStudents(classId) {
     return (state.get('allStudents') || []).filter((s) => s.classId === classId);
+}
+
+/**
+ * One small row above the roll when today isn't an ordinary lesson for the class: a make-up
+ * (which lesson it replaces), or no lesson on the timetable at all, with a way to say "I'm
+ * teaching a make-up today", which turns today into a real lesson day (absences, Welcome Back).
+ */
+function renderAwardLessonNote(classId) {
+    const el = document.getElementById('award-lesson-note');
+    if (!el) return;
+    const mine = (state.get('allTeachersClasses') || []).some((c) => c.id === classId);
+    let html = '';
+    if (classId && mine) {
+        const today = utils.getTodayDateString();
+        const overrides = state.get('allScheduleOverrides') || [];
+        const change = describeLessonChange(classId, today, overrides);
+        const meets = utils.doesClassMeetOnDate(classId, today, state.get('allSchoolClasses') || [], overrides, state.get('schoolHolidayRanges') || [], state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {});
+        if (change?.kind === 'makeup') {
+            html = `<span class="aw-lesson-note__icon aw-lesson-note__icon--makeup" aria-hidden="true"><i class="fas fa-rotate"></i></span>
+                <span class="aw-lesson-note__text">Make-up lesson for <strong>${lessonDayLabel(change.makeupFor)}</strong></span>
+                <button type="button" class="aw-lesson-note__btn" data-award-lesson="edit">Change</button>`;
+        } else if (change?.kind === 'cancelled') {
+            html = `<span class="aw-lesson-note__icon" aria-hidden="true"><i class="fas fa-ban"></i></span>
+                <span class="aw-lesson-note__text">Today's lesson is marked as <strong>didn't happen</strong></span>
+                <button type="button" class="aw-lesson-note__btn" data-award-lesson="cancelled">Change</button>`;
+        } else if (!meets) {
+            html = `<span class="aw-lesson-note__icon" aria-hidden="true"><i class="fas fa-calendar-day"></i></span>
+                <span class="aw-lesson-note__text">No lesson on today's timetable. Teaching a make-up?</span>
+                <button type="button" class="aw-lesson-note__btn aw-lesson-note__btn--go" data-award-lesson="makeup"><i class="fas fa-rotate" aria-hidden="true"></i> Make-up lesson</button>`;
+        }
+    }
+    el.innerHTML = html;
+    el.classList.toggle('hidden', !html);
+    if (html && !el.dataset.bound) {
+        el.dataset.bound = '1';
+        el.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-award-lesson]');
+            const id = state.get('globalSelectedClassId');
+            if (!btn || !id) return;
+            const today = utils.getTodayDateString();
+            const options = btn.dataset.awardLesson === 'cancelled'
+                ? { classId: id, missedDate: today }
+                : { classId: id, makeupDate: today, mode: 'makeup' };
+            import('../modals/lessonChange.js').then((m) => m.openLessonChange(options));
+        });
+    }
 }
 
 /** The star roll above the clouds: who shines today, who still waits, who is away. */
@@ -775,6 +822,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
 
     const renderContent = () => {
         if (!selectedClassId) {
+            renderAwardLessonNote(null);
             renderAwardEmptyState(listContainer, 'Choose a class from the header to award stars.');
             renderAwardSkySummary(null);
             return;
@@ -795,6 +843,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
         }
 
         renderAwardSkySummary(selectedClassId);
+        renderAwardLessonNote(selectedClassId);
 
         if (studentsInClass.length === 0) {
             renderAwardEmptyState(listContainer, 'No students in this class yet. Add some in "My Classes"!');

@@ -166,7 +166,7 @@ function chronicleChipIcon(insight) {
         case 'after_term':
             return '<i class="fas fa-door-open"></i>';
         case 'lesson':
-            return '<i class="fas fa-school"></i>';
+            return insight.makeupFor ? '<i class="fas fa-rotate"></i>' : '<i class="fas fa-school"></i>';
         default:
             return '<i class="fas fa-minus"></i>';
     }
@@ -182,16 +182,21 @@ function chronicleChipTitle(row, todayMidnightMs) {
     switch (insight.kind) {
         case 'school_holiday':
             return `${wd} — School break: ${insight.label || 'Holiday'}`;
-        case 'class_cancelled':
-            return `${wd} — Class cancelled (no lesson this day)`;
+        case 'class_cancelled': {
+            const why = insight.reason === 'teacher' ? 'the teacher could not hold it'
+                : insight.reason === 'class' ? 'the class did not meet'
+                    : insight.reason === 'school' ? 'the school was closed' : '';
+            const makeup = insight.makeupDate ? ` Made up on ${d_label(insight.makeupDate)}.` : '';
+            return `${wd} — No lesson${why ? `: ${why}` : ' (cancelled)'}. Nobody is absent.${makeup}`;
+        }
         case 'before_term':
             return `${wd} — Before the school year opening day (no lesson)`;
         case 'after_term':
             return `${wd} — Past the class end date from your settings (no lesson)`;
-        case 'lesson':
-            return date.getTime() > todayMidnightMs
-                ? `${wd} — Scheduled lesson day (upcoming)`
-                : `${wd} — Scheduled lesson day`;
+        case 'lesson': {
+            const kind = insight.makeupFor ? `Make-up lesson for ${d_label(insight.makeupFor)}` : insight.oneTime ? 'Extra lesson' : 'Scheduled lesson day';
+            return date.getTime() > todayMidnightMs ? `${wd} — ${kind} (upcoming)` : `${wd} — ${kind}`;
+        }
         default:
             return `${wd} — No weekly class this weekday`;
     }
@@ -488,13 +493,15 @@ export async function renderAttendanceChronicle(classId) {
             const d = utils.parseDDMMYYYY(dateStr);
             const absentCount = attendanceByDate[dateStr] || 0;
             const isToday = dateStr === todayKey;
+            const makeupFor = (state.get('allScheduleOverrides') || []).find((o) => o.classId === classId && o.date === dateStr && o.type === 'one-time')?.makeupFor || null;
             html += `<th class="attendance-date-col ${isToday ? 'attendance-date-col--today' : ''}">
                 <div class="attendance-date-chip ${isToday ? 'attendance-date-chip--today' : ''}">
                     <span class="attendance-date-chip-day">${d.getDate()}</span>
                     <span class="attendance-date-chip-weekday">${d.toLocaleDateString('en-GB', { weekday: 'short' })}</span>
                     <span class="attendance-date-chip-meta">${isToday ? 'Today' : `${absentCount} absent`}</span>
-                    <button class="delete-column-btn" data-date="${dateStr}" data-class-id="${classId}" title="Remove this day (Holiday/Cancelled)" ${!isEditableMonth ? 'disabled' : ''}>
-                        <i class="fas fa-trash-alt"></i>
+                    ${makeupFor ? `<span class="attendance-date-chip-meta attendance-date-chip-meta--makeup" title="Make-up for ${d_label(makeupFor)}"><i class="fas fa-rotate" aria-hidden="true"></i> make-up</span>` : ''}
+                    <button class="delete-column-btn" data-date="${dateStr}" data-class-id="${classId}" title="This lesson didn't happen (mark it, book a make-up)" ${!isEditableMonth ? 'disabled' : ''}>
+                        <i class="fas fa-calendar-xmark"></i>
                     </button>
                 </div>
             </th>`;
@@ -563,6 +570,16 @@ export async function renderAttendanceChronicle(classId) {
         btn.addEventListener('click', (e) => {
             const dateStr = e.currentTarget.dataset.date;
             const cId = e.currentTarget.dataset.classId;
+            // The Lesson Change slip: why it didn't happen (you, the class, or the whole school
+            // closed), a make-up day, and the test moved, all in one place.
+            if ((state.get('allTeachersClasses') || []).some((c) => c.id === cId)) {
+                import('./lessonChange.js').then((m) => m.openLessonChange({
+                    classId: cId,
+                    missedDate: dateStr,
+                    onSaved: () => setTimeout(() => renderAttendanceChronicle(cId), 400),
+                }));
+                return;
+            }
             
             // Inject a checkbox into the confirmation message
             const messageHtml = `

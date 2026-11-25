@@ -510,3 +510,10 @@ html:has(body.gcq-family),
 body.gcq-family {
     background: #fffcf6;
 }
+
+/* A lesson that didn't happen, and its make-up (functions familyLessonChangesFrom). */
+.fp-day.is-cancelled { background: repeating-linear-gradient(135deg, #fdeef2 0 6px, #fbe2ea 6px 12px); color: #a3264c; }
+.fp-day.is-cancelled .fp-day__num { color: #a3264c; text-decoration: line-through; text-decoration-color: rgba(163, 38, 76, 0.5); }
+.fp-day.is-makeup { background: #dcf5f1; color: #0b6e63; box-shadow: inset 0 0 0 2px #9edcd3; }
+.fp-day.is-makeup .fp-day__mark { color: #0f9c8c; }
+.fp-holiday--lesson-change { background: #eefaf7; border-color: #bfe8e1; }

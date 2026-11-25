@@ -49,6 +49,7 @@ export const awardTabHTML = `
                         </button>
                     </div>
 
+                    <div id="award-lesson-note" class="aw-lesson-note hidden"></div>
                     <div id="award-sky-summary" class="aw-sky-summary hidden" aria-live="polite"></div>
                     <div id="award-phone-dock" class="aw-dock-wrap hidden"></div>
 

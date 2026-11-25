@@ -1548,6 +1548,12 @@ export async function setupDataListeners(
                 renderCalendarTab();
                 updateCeremonyStatus();
                 scheduleHomeRender();
+                // A make-up today turns today into a lesson day: absences and Welcome Back follow.
+                if (isTabVisible("award-stars-tab"))
+                    renderAwardStarsStudentList(
+                        state.get("globalSelectedClassId"),
+                        false,
+                    );
             },
             (error) =>
                 console.error("Error listening to schedule overrides:", error),

@@ -437,3 +437,16 @@ button.qe-treasure__class.is-ready {
 .schedule-lesson-card[data-tone='sky'] { --tone: #38bdf8; --tone-soft: #f0f9ff; }
 .schedule-lesson-card[data-tone='violet'] { --tone: #a78bfa; --tone-soft: #f5f3ff; }
 #day-planner-modal .quest-event-type-card--star .quest-event-type-card__glyph { font-size: 1.05rem; }
+
+/* Lessons that didn't happen (Lesson Change slip, ui/modals/lessonChange.js). */
+.schedule-group-label--cancelled { margin-top: 0.7rem; color: #d9466f; }
+#day-planner-modal .schedule-lesson-card--cancelled {
+    background: repeating-linear-gradient(-45deg, #fff 0 10px, #fff5f8 10px 20px);
+    border-style: dashed;
+}
+#day-planner-modal .schedule-lesson-card--cancelled .schedule-lesson-card__time-col strong,
+#day-planner-modal .schedule-lesson-card--cancelled .schedule-lesson-card__name { text-decoration: line-through; text-decoration-color: rgba(217, 70, 111, 0.6); }
+#day-planner-modal .schedule-lesson-cancel--edit { color: #0b6e63; }
+#day-planner-modal .schedule-add-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+#day-planner-modal .schedule-add-row .schedule-add-btn { flex: 1 1 12rem; }
+#day-planner-modal .schedule-add-btn--makeup { background: linear-gradient(110deg, #0f9c8c, #1e2a44); }

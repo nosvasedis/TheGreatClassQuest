@@ -2313,3 +2313,42 @@ body.projector-mode .aw-desk__arrive {
     .aw-star,
     .aw-stars.visible .aw-star { transition: opacity 0.15s ease; transform: none; }
 }
+
+/* One small row when today isn't an ordinary lesson for the class (Lesson Change slip). */
+.aw-lesson-note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 auto 8px;
+    padding: 5px 6px 5px 10px;
+    width: fit-content;
+    max-width: 100%;
+    font: 500 13px/1.3 'Fredoka', 'Open Sans', sans-serif;
+    color: #1e2a44;
+    background: rgba(255, 250, 240, 0.92);
+    border: 1px solid rgba(234, 217, 184, 0.9);
+    border-radius: 999px;
+    box-shadow: 0 4px 14px rgba(30, 42, 68, 0.12);
+}
+.aw-lesson-note.hidden { display: none; }
+.aw-lesson-note__icon { color: #d9466f; }
+.aw-lesson-note__icon--makeup { color: #0f9c8c; }
+.aw-lesson-note__text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aw-lesson-note__btn {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 11px;
+    font: 600 12px/1.3 'Fredoka', 'Open Sans', sans-serif;
+    color: #1e2a44;
+    background: #fff;
+    border: 1.5px solid #d9cdb4;
+    border-radius: 999px;
+    cursor: pointer;
+}
+.aw-lesson-note__btn--go { color: #fff; background: #0f9c8c; border-color: #0f9c8c; }
+@media (max-width: 560px) {
+    .aw-lesson-note { font-size: 12px; }
+    .aw-lesson-note__text { white-space: normal; }
+}

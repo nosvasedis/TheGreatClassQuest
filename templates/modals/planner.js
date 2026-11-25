@@ -76,10 +76,16 @@ export const plannerModalHTML = `
                         <select id="add-onetime-lesson-select" class="quest-event-native"></select>
                         <div id="schedule-onetime-chips" class="quest-event-class-chips"></div>
                         <p id="schedule-onetime-empty" class="quest-event-footnote hidden">Every class you teach is already on this day.</p>
-                        <button type="button" id="add-onetime-lesson-btn" class="schedule-add-btn">
-                            <i class="fas fa-calendar-plus" aria-hidden="true"></i>
-                            <span>Add lesson</span>
-                        </button>
+                        <div class="schedule-add-row">
+                            <button type="button" id="add-onetime-lesson-btn" class="schedule-add-btn">
+                                <i class="fas fa-calendar-plus" aria-hidden="true"></i>
+                                <span>Add extra lesson</span>
+                            </button>
+                            <button type="button" id="add-makeup-lesson-btn" class="schedule-add-btn schedule-add-btn--makeup" title="This lesson replaces one that didn't happen">
+                                <i class="fas fa-rotate" aria-hidden="true"></i>
+                                <span>It's a make-up</span>
+                            </button>
+                        </div>
                     </section>
 
                     <details class="schedule-closure">

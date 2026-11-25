@@ -15,6 +15,7 @@ import {
 import { showAnimatedModal } from './base.js';
 import { fetchLogsForDate } from '../../db/queries.js';
 import { filterDocsForActiveYear } from '../../utils/schoolYear.js';
+import { describeLessonChange, lessonDayLabel, reasonInfo } from '../../features/lessonChangesCore.mjs';
 
 
 function getQuestBonusFromLog(log) {
@@ -80,6 +81,39 @@ function paintLogbookHeader(dateString) {
     if (planBtnLabel) planBtnLabel.textContent = diff === 0 ? 'Plan today' : 'Planner';
 }
 
+/**
+ * Your lessons on this day, and whether each one really ran: a lesson that didn't happen
+ * (and its make-up) is marked here, where a teacher looks back at a day.
+ */
+function logbookLessonsStripHtml(dateString) {
+    const mine = state.get('allTeachersClasses') || [];
+    if (!mine.length) return '';
+    const overrides = state.get('allScheduleOverrides') || [];
+    const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
+    const ran = new Map(utils.getClassesOnDay(dateString, state.get('allSchoolClasses') || [], overrides, classEndDates).map((c) => [c.id, c]));
+    const rows = mine.map((c) => {
+        const change = describeLessonChange(c.id, dateString, overrides);
+        if (change?.kind === 'cancelled') {
+            const why = reasonInfo(change.reason);
+            return { c, html: `<span class="lc-mark lc-mark--cancelled"><i class="fas fa-ban" aria-hidden="true"></i> ${escapeLogText(why?.short || 'No lesson')}</span>${change.makeupDate ? `<span class="lc-mark lc-mark--makeup"><i class="fas fa-rotate" aria-hidden="true"></i> Made up ${escapeLogText(lessonDayLabel(change.makeupDate))}</span>` : ''}`, label: change.makeupDate || change.reason === 'school' ? 'Edit' : 'Make it up' };
+        }
+        if (!ran.has(c.id)) return null;
+        const tag = change?.kind === 'makeup'
+            ? `<span class="lc-mark lc-mark--makeup"><i class="fas fa-rotate" aria-hidden="true"></i> Make-up for ${escapeLogText(lessonDayLabel(change.makeupFor))}</span>`
+            : change?.kind === 'extra' ? '<span class="lc-mark lc-mark--extra"><i class="fas fa-plus" aria-hidden="true"></i> Extra lesson</span>' : '';
+        return { c, html: tag, label: "Didn't happen?" };
+    }).filter(Boolean);
+    if (!rows.length) return '';
+    return `<section class="qc-log-lessons" aria-label="Your lessons on this day">
+        ${rows.map(({ c, html, label }) => `<div class="qc-log-lesson">
+            <span class="qc-log-lesson__logo" aria-hidden="true">${escapeLogText(c.logo || '🏫')}</span>
+            <span class="qc-log-lesson__name">${escapeLogText(c.name)}</span>
+            ${html}
+            <button type="button" class="qc-log-lesson__btn" data-log-lesson="${escapeLogText(c.id)}">${escapeLogText(label)}</button>
+        </div>`).join('')}
+    </section>`;
+}
+
 function logbookEmptyStateHtml(dateString) {
     const isToday = utils.datesMatch(dateString, utils.getTodayDateString());
     return `
@@ -134,7 +168,7 @@ export async function showLogbookModal(dateString, isOndemand = false) {
     const daySpecial = specialDayFor(dateString);
     const dayCard = dayCardHtml(daySpecial, { compact: true, eyebrow: daySpecial && !daySpecial.closed ? 'On this day' : '' });
     if (logs.length === 0) {
-        contentEl.innerHTML = dayCard + logbookEmptyStateHtml(dateString);
+        contentEl.innerHTML = dayCard + logbookLessonsStripHtml(dateString) + logbookEmptyStateHtml(dateString);
     } else {
         const allSchoolClasses = state.get('allSchoolClasses') || [];
         const allStudents = state.get('allStudents') || [];
@@ -301,7 +335,7 @@ export async function showLogbookModal(dateString, isOndemand = false) {
             detailsHtml += `</ol></details>`;
         }
         detailsHtml += '</div>';
-        contentEl.innerHTML = dayCard + summaryHtml + mixHtml + toolbarHtml + detailsHtml;
+        contentEl.innerHTML = dayCard + logbookLessonsStripHtml(dateString) + summaryHtml + mixHtml + toolbarHtml + detailsHtml;
         syncLogbookToggleAll(contentEl);
     }
 
@@ -362,6 +396,16 @@ export function handleLogbookToolbarClick(target) {
             btn.setAttribute('aria-pressed', on ? 'true' : 'false');
         });
         applyLogbookFilters();
+        return true;
+    }
+    const lessonBtn = target.closest('[data-log-lesson]');
+    if (lessonBtn) {
+        const date = document.getElementById('logbook-modal')?.dataset.date;
+        import('./lessonChange.js').then((m) => m.openLessonChange({
+            classId: lessonBtn.dataset.logLesson,
+            missedDate: date,
+            onSaved: () => { if (date) setTimeout(() => showLogbookModal(date), 400); },
+        }));
         return true;
     }
     const toggle = target.closest('[data-log-action="toggle-all"]');

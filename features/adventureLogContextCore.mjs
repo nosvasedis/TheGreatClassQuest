@@ -62,6 +62,11 @@ export function buildAdventureLogContext(input = {}) {
     };
     const upcoming = [];
 
+    // A make-up lesson replaces one that didn't happen (Lesson Change slip): worth one light line.
+    if (input.lessonChange?.kind === 'makeup' && adventureDateKey(input.lessonChange.makeupFor)) {
+        add('lessonDay', 'Today was a make-up lesson (we met on another day to make up a missed lesson; mention it lightly, never blame anyone)', [{ madeUpLessonFrom: adventureDateKey(input.lessonChange.makeupFor) }], false);
+    }
+
     // Attendance is background: the page should not open with a roll call.
     const presentCount = roster.filter(s => !absentIds.has(s.id)).length;
     add('attendance', 'Who was with us', roster.length ? [{ everyonePresent: absences.length === 0, ...(early ? {} : { presentCount }), missed: absences.map(a => name(a.studentId)).filter(Boolean) }] : [], false);

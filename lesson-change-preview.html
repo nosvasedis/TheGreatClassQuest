@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson Change preview</title>
+<link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<style>body { margin: 0; min-height: 100vh; background: #e9eef7; font-family: 'Open Sans', sans-serif; } #pv-bar { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px; } #pv-bar button { padding: 6px 10px; } #pv-log { padding: 0 12px; font: 12px monospace; white-space: pre-wrap; }</style>
+</head>
+<body>
+<div id="pv-bar">
+  <button data-pv="missed">Mon 23 didn't happen</button>
+  <button data-pv="makeup">Make-up today (Award Stars)</button>
+  <button data-pv="edit">Edit Mon 23 after saving</button>
+</div>
+<div id="award-lesson-note-host" style="padding: 0 12px"></div>
+<pre id="pv-log"></pre>
+<script type="module" src="./lesson-change-preview.js"></script>
+</body>
+</html>

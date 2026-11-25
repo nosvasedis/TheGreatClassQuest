@@ -406,6 +406,11 @@ export function setupUIListeners() {
         const dateString = document.getElementById('day-planner-modal').dataset.date;
         handleAddOneTimeLesson(dateString);
     });
+    document.getElementById('add-makeup-lesson-btn')?.addEventListener('click', () => {
+        const dateString = document.getElementById('day-planner-modal').dataset.date;
+        const classId = document.getElementById('add-onetime-lesson-select')?.value || null;
+        import('../modals/lessonChange.js').then(m => m.openLessonChange({ classId, makeupDate: dateString, mode: 'makeup' }));
+    });
     document.getElementById('day-planner-schedule-content')?.addEventListener('click', (e) => {
         const chip = e.target.closest('[data-onetime-class]');
         if (chip) modals.selectOnetimeClass(chip.dataset.onetimeClass);

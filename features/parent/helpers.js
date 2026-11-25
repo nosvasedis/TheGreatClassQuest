@@ -220,21 +220,31 @@ function isHoliday(date, ranges = []) {
 /** The class's next lesson from its weekly days and start time, skipping school holidays. */
 export function getNextLesson(snapshot = getSnapshot(), now = new Date()) {
     const days = (snapshot.scheduleDays || []).map(String);
-    if (!days.length) return null;
+    // A lesson that didn't happen is skipped; a make-up (or extra) lesson counts, at its own time.
+    const changes = new Map((Array.isArray(snapshot.lessonChanges) ? snapshot.lessonChanges : []).map((c) => [c.date, c]));
+    if (!days.length && !changes.size) return null;
     const holidays = state.get('schoolHolidayRanges') || [];
-    const [hours, minutes] = String(snapshot.timeEnd || snapshot.timeStart || '').split(':').map(Number);
     for (let offset = 0; offset < 60; offset += 1) {
         const date = new Date(now);
         date.setDate(now.getDate() + offset);
-        if (!days.includes(String(date.getDay()))) continue;
-        if (isHoliday(date, holidays)) continue;
+        const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        const change = changes.get(iso);
+        const extra = change && change.kind !== 'cancelled';
+        if (!extra) {
+            if (change?.kind === 'cancelled') continue;
+            if (!days.includes(String(date.getDay()))) continue;
+            if (isHoliday(date, holidays)) continue;
+        }
+        const time = (extra && change.timeStart) || snapshot.timeStart || '';
+        const timeEnd = extra && change.timeStart ? '' : (snapshot.timeEnd || '');
         // Today's lesson counts until it ends.
+        const [hours, minutes] = String(timeEnd || time).split(':').map(Number);
         if (offset === 0 && Number.isFinite(hours)) {
             const end = new Date(now);
             end.setHours(hours, Number.isFinite(minutes) ? minutes : 0, 0, 0);
             if (now > end) continue;
         }
-        return { date, inDays: offset, time: snapshot.timeStart || '', timeEnd: snapshot.timeEnd || '' };
+        return { date, inDays: offset, time, timeEnd, makeup: change?.kind === 'makeup' };
     }
     return null;
 }

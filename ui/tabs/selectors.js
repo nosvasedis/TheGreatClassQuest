@@ -271,19 +271,42 @@ function renderQuestEventRibbon(e) {
         </div>`;
 }
 
+const shortLessonDay = (dmy) => {
+    const d = utils.parseDDMMYYYY(dmy);
+    return d ? d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' }) : '';
+};
+
 function renderLessonChip(c) {
     const testTitle = c.testAssignment?.testData?.title || 'Test';
     const test = c.testAssignment
         ? `<span class="qc-lesson__test" title="Test: ${escapeHtml(testTitle)}">📝</span>`
         : '';
+    // A make-up (or extra) lesson carries its own small mark (features/lessonChangesCore.mjs).
+    const change = c.makeupFor
+        ? `<span class="qc-lesson__change" title="Make-up for ${escapeHtml(shortLessonDay(c.makeupFor))}" aria-label="Make-up lesson"><i class="fas fa-rotate" aria-hidden="true"></i></span>`
+        : '';
     return `
-        <div class="qc-lesson ${c.color?.bg || ''} ${c.color?.text || ''} ${c.color?.border || ''}${c.testAssignment ? ' qc-lesson--test' : ''}" title="${escapeHtml(c.name)}${c.timeDisplay ? ` · ${escapeHtml(c.timeDisplay)}` : ''}">
+        <div class="qc-lesson ${c.color?.bg || ''} ${c.color?.text || ''} ${c.color?.border || ''}${c.testAssignment ? ' qc-lesson--test' : ''}" title="${escapeHtml(c.name)}${c.timeDisplay ? ` · ${escapeHtml(c.timeDisplay)}` : ''}${c.makeupFor ? ` · make-up for ${escapeHtml(shortLessonDay(c.makeupFor))}` : ''}">
             <span class="qc-lesson__logo" aria-hidden="true">${escapeHtml(c.logo || '🏫')}</span>
             <span class="qc-lesson__text">
                 ${c.timeDisplay ? `<span class="qc-lesson__time">${escapeHtml(c.timeDisplay)}</span>` : ''}
                 <span class="qc-lesson__name">${escapeHtml(c.name)}</span>
             </span>
-            ${test}
+            ${change}${test}
+        </div>`;
+}
+
+/** A lesson of yours that didn't happen: struck through, with its make-up day if booked. */
+function renderCancelledLessonChip(c) {
+    const note = c.makeupDate ? `made up ${shortLessonDay(c.makeupDate)}` : (c.reason === 'school' ? 'school closed' : 'no lesson');
+    return `
+        <div class="qc-lesson qc-lesson--cancelled ${c.color?.text || ''} ${c.color?.border || ''}" title="${escapeHtml(c.name)}: didn't happen · ${escapeHtml(note)}">
+            <span class="qc-lesson__logo" aria-hidden="true">${escapeHtml(c.logo || '🏫')}</span>
+            <span class="qc-lesson__text">
+                ${c.timeDisplay ? `<span class="qc-lesson__time">${escapeHtml(c.timeDisplay)}</span>` : ''}
+                <span class="qc-lesson__name">${escapeHtml(c.name)}</span>
+            </span>
+            <span class="qc-lesson__change" aria-label="${escapeHtml(note)}">${c.makeupDate ? '<i class="fas fa-rotate" aria-hidden="true"></i>' : '<i class="fas fa-ban" aria-hidden="true"></i>'}</span>
         </div>`;
 }
 
@@ -717,7 +740,7 @@ export function renderCalendarTab(customLogs = null) {
             <div class="qc-day__head">${dayNumber}${starBadge}</div>
             ${raidRibbonHtml(raidDay)}${specialRibbon}${edgeTag}
             ${events.length ? `<div class="qc-day__events">${events.map(renderQuestEventRibbon).join('')}</div>` : ''}
-            <div class="qc-day__lessons custom-scrollbar">${agenda.classes.map(renderLessonChip).join('')}</div>
+            <div class="qc-day__lessons custom-scrollbar">${agenda.classes.map(renderLessonChip).join('')}${(agenda.cancelledLessons || []).map(renderCancelledLessonChip).join('')}</div>
             ${hint}`;
         grid.appendChild(dayCell);
     }

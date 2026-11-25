@@ -144,7 +144,7 @@ function renderNextLessonTile(lesson) {
         <div class="fp-tile">
             ${calendarLeaf(lesson.date, 'sage')}
             <div class="fp-tile__copy">
-                <p class="fp-tile__kicker">${tr('Next lesson', 'Επόμενο μάθημα')}</p>
+                <p class="fp-tile__kicker">${lesson.makeup ? tr('Next lesson (make-up)', 'Επόμενο μάθημα (αναπλήρωση)') : tr('Next lesson', 'Επόμενο μάθημα')}</p>
                 <p class="fp-tile__title">${escapeHtml(weekdayName(lesson.date))}${lesson.time ? ` · ${escapeHtml(lesson.time)}` : ''}</p>
                 <p class="fp-tile__meta">${escapeHtml(countdownLabel(lesson.date))}${lesson.timeEnd ? ` · ${tr('until', 'έως')} ${escapeHtml(lesson.timeEnd)}` : ''}</p>
             </div>

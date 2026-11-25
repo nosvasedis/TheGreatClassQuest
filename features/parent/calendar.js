@@ -28,6 +28,8 @@ function testsByDay() {
 export function buildFortnight(snapshot = getSnapshot(), now = new Date()) {
     const lessonDays = new Set((snapshot.scheduleDays || []).map(String));
     const tests = testsByDay();
+    // A lesson that didn't happen, and its make-up (functions/index.js familyLessonChangesFrom).
+    const changes = new Map((Array.isArray(snapshot.lessonChanges) ? snapshot.lessonChanges : []).map((c) => [c.date, c]));
     const cells = [];
     for (let offset = 0; offset < DAYS_SHOWN; offset += 1) {
         const date = new Date(now);
@@ -36,12 +38,17 @@ export function buildFortnight(snapshot = getSnapshot(), now = new Date()) {
         const iso = isoOf(date);
         const info = describeSchoolDay(iso);
         const closed = Boolean(info.closure);
-        const lesson = !closed && lessonDays.has(String(date.getDay()));
+        const change = changes.get(iso) || null;
+        const cancelled = change?.kind === 'cancelled';
+        const makeup = change?.kind === 'makeup' || change?.kind === 'extra' ? change : null;
+        const lesson = Boolean(makeup) || (!closed && !cancelled && lessonDays.has(String(date.getDay())));
         cells.push({
             iso,
             date,
             offset,
             lesson,
+            cancelled: cancelled && !closed ? change : null,
+            makeup,
             closed,
             holiday: closed ? holidayName(info.headline, info.closure) : '',
             holidayIcon: closed ? (info.headline?.icon || '🏖️') : '',
@@ -54,10 +61,13 @@ export function buildFortnight(snapshot = getSnapshot(), now = new Date()) {
 function cellLabel(cell, snapshot) {
     const parts = [shortDate(cell.date)];
     if (cell.offset === 0) parts.unshift(tr('Today', 'Σήμερα'));
-    if (cell.closed) parts.push(cell.holiday);
-    else if (cell.lesson) parts.push(tr(`Lesson${snapshot.timeStart ? ` at ${snapshot.timeStart}` : ''}`, `Μάθημα${snapshot.timeStart ? ` στις ${snapshot.timeStart}` : ''}`));
+    const at = cell.makeup?.timeStart || snapshot.timeStart;
+    if (cell.closed && !cell.makeup) parts.push(cell.holiday);
+    else if (cell.makeup?.kind === 'makeup') parts.push(tr(`Make-up lesson${at ? ` at ${at}` : ''}`, `Αναπλήρωση μαθήματος${at ? ` στις ${at}` : ''}`));
+    else if (cell.cancelled) parts.push(tr('No lesson', 'Δεν γίνεται μάθημα'));
+    else if (cell.lesson) parts.push(tr(`Lesson${at ? ` at ${at}` : ''}`, `Μάθημα${at ? ` στις ${at}` : ''}`));
     if (cell.test) parts.push(tr(`Test: ${cell.test}`, `Διαγώνισμα: ${cell.test}`));
-    if (!cell.closed && !cell.lesson && !cell.test) parts.push(tr('No lesson', 'Χωρίς μάθημα'));
+    if (!cell.closed && !cell.lesson && !cell.test && !cell.cancelled) parts.push(tr('No lesson', 'Χωρίς μάθημα'));
     return parts.join(' · ');
 }
 
@@ -89,6 +99,38 @@ function renderHolidayNotice() {
         </p>`;
 }
 
+/** The notice above the strip: a lesson that won't happen (or didn't), and its make-up. */
+function renderLessonChangeNotice(cells, snapshot) {
+    const today = cells[0]?.iso || '';
+    const all = Array.isArray(snapshot.lessonChanges) ? snapshot.lessonChanges : [];
+    // The nearest change still worth telling: an upcoming make-up, or a coming lesson that won't run.
+    const makeup = all.find((c) => c.kind === 'makeup' && c.date >= today);
+    const cancelled = all.find((c) => c.kind === 'cancelled' && c.date >= today && !c.makeupDate);
+    const pick = makeup || cancelled;
+    if (!pick) return '';
+    const day = (iso) => shortDate(toDate(iso));
+    let title;
+    let line;
+    if (pick.kind === 'makeup') {
+        const at = pick.timeStart || snapshot.timeStart;
+        title = pick.date === today ? tr('Make-up lesson today', 'Αναπλήρωση σήμερα') : tr('Make-up lesson', 'Αναπλήρωση μαθήματος');
+        line = pick.makeupFor
+            ? tr(`The lesson of ${day(pick.makeupFor)} takes place on ${day(pick.date)}${at ? ` at ${at}` : ''}.`, `Το μάθημα της ${day(pick.makeupFor)} γίνεται ${day(pick.date)}${at ? ` στις ${at}` : ''}.`)
+            : tr(`Extra lesson on ${day(pick.date)}${at ? ` at ${at}` : ''}.`, `Επιπλέον μάθημα ${day(pick.date)}${at ? ` στις ${at}` : ''}.`);
+    } else {
+        title = tr('No lesson', 'Δεν γίνεται μάθημα');
+        line = tr(`There is no lesson on ${day(pick.date)}. We will let you know the make-up day.`, `Δεν γίνεται μάθημα ${day(pick.date)}. Θα σας ενημερώσουμε για την αναπλήρωση.`);
+    }
+    return `
+        <p class="fp-holiday fp-holiday--lesson-change" role="note">
+            <span class="fp-holiday__icon" aria-hidden="true">${pick.kind === 'makeup' ? '🔁' : '📅'}</span>
+            <span class="fp-holiday__copy">
+                <span class="fp-holiday__name">${escapeHtml(title)}</span>
+                <span class="fp-holiday__line">${escapeHtml(line)}</span>
+            </span>
+        </p>`;
+}
+
 /** Home: a ribbon of fourteen days the family can swipe through. */
 export function renderFortnight() {
     const snapshot = getSnapshot();
@@ -109,21 +151,27 @@ export function renderFortnight() {
                 </div>
                 <span class="fp-pill fp-pill--quiet">${escapeHtml(firstMonth === lastMonth ? firstMonth : `${firstMonth}–${lastMonth}`)}</span>
             </div>
+            ${renderLessonChangeNotice(cells, snapshot)}
             ${renderHolidayNotice()}
             <ol class="fp-days" aria-label="${tr('Day by day', 'Μέρα με τη μέρα')}">
                 ${cells.map((cell) => {
                     const classes = ['fp-day'];
                     if (cell.offset === 0) classes.push('is-today');
                     if (cell.lesson) classes.push('is-lesson');
-                    if (cell.closed) classes.push('is-closed');
+                    if (cell.closed && !cell.makeup) classes.push('is-closed');
+                    if (cell.cancelled) classes.push('is-cancelled');
+                    if (cell.makeup) classes.push('is-makeup');
                     if (cell.test) classes.push('is-test');
                     if ([0, 6].includes(cell.date.getDay())) classes.push('is-weekend');
                     return `
                         <li class="${classes.join(' ')}" aria-label="${escapeHtml(cellLabel(cell, snapshot))}">
                             <span class="fp-day__name" aria-hidden="true">${WEEKDAY_LETTERS[lang][cell.date.getDay()]}</span>
                             <span class="fp-day__num" aria-hidden="true">${cell.date.getDate()}</span>
-                            <span class="fp-day__mark" aria-hidden="true">${cell.closed
+                            <span class="fp-day__mark" aria-hidden="true">${cell.makeup
+                                ? '<i class="fas fa-rotate"></i>'
+                                : cell.closed
                                 ? `<span class="fp-day__emoji">${escapeHtml(cell.holidayIcon)}</span>`
+                                : cell.cancelled ? '<i class="fas fa-ban"></i>'
                                 : cell.test ? '<i class="fas fa-pen-clip"></i>'
                                     : cell.lesson ? '<i class="fas fa-bell"></i>' : ''}</span>
                         </li>`;

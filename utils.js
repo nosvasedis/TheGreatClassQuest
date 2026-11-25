@@ -558,18 +558,28 @@ export function toHtmlDateInputValue(canonicalOrAny) {
     return `${y}-${m}-${dd}`;
 }
 
+/** A one-time lesson (make-up or extra) on the class: its own times, and what it makes up. */
+function withOneTimeLesson(classData, override) {
+    const timeStart = override.timeStart || classData.timeStart;
+    const timeEnd = override.timeEnd || classData.timeEnd;
+    if (timeStart === classData.timeStart && timeEnd === classData.timeEnd && !override.makeupFor) return classData;
+    return { ...classData, timeStart, timeEnd, lessonOneTime: true, ...(override.makeupFor ? { makeupFor: override.makeupFor } : {}) };
+}
+
 export function getClassesOnDay(dateString, allSchoolClasses, allScheduleOverrides, classEndDates = {}) {
     const day = parseDDMMYYYY(dateString).getDay().toString();
     let classes = allSchoolClasses.filter(c => c.scheduleDays && c.scheduleDays.includes(day));
     const overridesForDay = allScheduleOverrides.filter(o => o.date === dateString);
     const cancelledClassIds = overridesForDay.filter(o => o.type === 'cancelled').map(o => o.classId);
     classes = classes.filter(c => !cancelledClassIds.includes(c.id));
-    const oneTimeClassIds = overridesForDay.filter(o => o.type === 'one-time').map(o => o.classId);
-    oneTimeClassIds.forEach(classId => {
-        if (!classes.some(c => c.id === classId)) {
-            const classToAdd = allSchoolClasses.find(c => c.id === classId);
-            if (classToAdd) classes.push(classToAdd);
-        }
+    const oneTimes = overridesForDay.filter(o => o.type === 'one-time' && !cancelledClassIds.includes(o.classId));
+    oneTimes.forEach(override => {
+        const at = classes.findIndex(c => c.id === override.classId);
+        const base = at >= 0 ? classes[at] : allSchoolClasses.find(c => c.id === override.classId);
+        if (!base) return;
+        // A make-up can run at another hour: its own times win, so follow-schedule finds it.
+        const lesson = withOneTimeLesson(base, override);
+        if (at >= 0) classes[at] = lesson; else classes.push(lesson);
     });
     // School holidays (the built-in calendar and the School Office's breaks) empty the day.
     const holidayRanges = getEffectiveHolidayRanges();
@@ -646,9 +656,11 @@ export function getClassDayChronicleInsight(classId, dateInput, allSchoolClasses
     const overridesForDay = (allScheduleOverrides || []).filter((override) =>
         override.date === dateString && override.classId === classId
     );
-    const hasCancellation = overridesForDay.some((override) => override.type === 'cancelled');
-    if (!hasCancellation && overridesForDay.some((override) => override.type === 'one-time')) {
-        return { kind: 'lesson' };
+    const cancellation = overridesForDay.find((override) => override.type === 'cancelled');
+    const hasCancellation = Boolean(cancellation);
+    const oneTime = overridesForDay.find((override) => override.type === 'one-time');
+    if (!hasCancellation && oneTime) {
+        return { kind: 'lesson', makeupFor: oneTime.makeupFor || null, oneTime: true };
     }
 
     for (let i = 0; i < ranges.length; i++) {
@@ -669,11 +681,10 @@ export function getClassDayChronicleInsight(classId, dateInput, allSchoolClasses
     }
 
     if (hasCancellation) {
-        return { kind: 'class_cancelled' };
-    }
-
-    if (overridesForDay.some((override) => override.type === 'one-time')) {
-        return { kind: 'lesson' };
+        // A lesson that didn't happen (Lesson Change slip): why, and the make-up day if booked.
+        const makeup = (allScheduleOverrides || []).find((override) =>
+            override.classId === classId && override.type === 'one-time' && override.makeupFor === dateString);
+        return { kind: 'class_cancelled', reason: cancellation.reason || null, makeupDate: makeup?.date || null };
     }
 
     if (isBeforeSchoolYearOpening(targetDate)) {

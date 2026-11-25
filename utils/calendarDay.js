@@ -87,7 +87,10 @@ export function getDayAgenda({
 
     const isNoSchool = Boolean(
         holiday
-        || (myScheduledClasses.length > 0 && classesOnThisDay.length === 0 && myCancellations.length > 0),
+        // A whole day of cancelled lessons reads as "No School", unless they are lessons that
+        // didn't happen for the class or the teacher (Lesson Change slip): those stay lesson chips.
+        || (myScheduledClasses.length > 0 && classesOnThisDay.length === 0 && myCancellations.length > 0
+            && !myCancellations.some((o) => o.reason === 'teacher' || o.reason === 'class')),
     );
 
     const schoolDay = describeSchoolDay(compDate);
@@ -125,6 +128,15 @@ export function getDayAgenda({
         };
     });
 
+    // Your lessons that didn't happen this day (with a make-up date when one is booked).
+    const cancelledLessons = isNoSchool ? [] : myCancellations.map((o) => {
+        const c = myClasses.find((item) => item.id === o.classId);
+        if (!c) return null;
+        const makeup = (allScheduleOverrides || []).find((m) => m.classId === c.id && m.type === 'one-time' && m.makeupFor === dateString);
+        const color = c.color || constants.classColorPalettes[simpleHashCode(c.id) % constants.classColorPalettes.length];
+        return { ...c, color, reason: o.reason || '', makeupDate: makeup?.date || null, timeDisplay: c.timeStart || '' };
+    }).filter(Boolean);
+
     const questEvents = (allQuestEvents || [])
         .filter((e) => datesMatch(e.dateKey || e.date, dateString))
         .map((e) => ({
@@ -157,6 +169,7 @@ export function getDayAgenda({
         breakEdge: holiday ? null : schoolDay.breakEdge,
         theme: special?.theme || (holiday ? (holiday.type === 'christmas' ? 'winter' : holiday.type === 'easter' ? 'spring' : 'break') : (isNoSchool ? 'cancelled' : null)),
         classes,
+        cancelledLessons,
         questEvents,
         starTotal,
         starsByClass,

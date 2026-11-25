@@ -931,13 +931,55 @@ function familyFamiliar(familiar) {
   return pick;
 }
 
+// Lesson changes the family should see on its two-week calendar: a lesson that didn't happen
+// and its make-up (features/lessonChangesCore.mjs, familyLessonChanges, has the same shape).
+// Only dates and times: never a reason note or anything naming other children.
+function familyLessonChangesFrom(overrides = [], now = new Date()) {
+  const dmyToIso = (value) => {
+    const m = /^(\d{2})-(\d{2})-(\d{4})$/.exec(String(value || ''));
+    return m ? `${m[3]}-${m[2]}-${m[1]}` : '';
+  };
+  const dayIso = (offset) => {
+    const d = new Date(now.getTime() + offset * 86400000);
+    return d.toISOString().slice(0, 10);
+  };
+  const from = dayIso(-7);
+  const to = dayIso(28);
+  const cancelled = new Set(overrides.filter((o) => o.type === 'cancelled').map((o) => o.date));
+  const out = [];
+  overrides.forEach((o) => {
+    const iso = dmyToIso(o.date);
+    if (!iso || iso < from || iso > to) return;
+    if (o.type === 'cancelled') {
+      const makeup = overrides.find((m) => m.type === 'one-time' && m.makeupFor === o.date);
+      out.push({ date: iso, kind: 'cancelled', reason: ['teacher', 'class', 'school'].includes(o.reason) ? o.reason : '', makeupDate: dmyToIso(makeup?.date) });
+    } else if (o.type === 'one-time' && !cancelled.has(o.date)) {
+      const makeup = o.makeupFor && cancelled.has(o.makeupFor);
+      out.push({ date: iso, kind: makeup ? 'makeup' : 'extra', makeupFor: makeup ? dmyToIso(o.makeupFor) : '', timeStart: String(o.timeStart || '').slice(0, 5) });
+    }
+  });
+  return out.sort((a, b) => a.date.localeCompare(b.date)).slice(0, 20);
+}
+
+async function getFamilyLessonChanges(classId) {
+  if (!classId) return [];
+  try {
+    const snap = await db.collection(`${dataRoot()}/schedule_overrides`).where('classId', '==', classId).get();
+    return familyLessonChangesFrom(snap.docs.map((d) => d.data()));
+  } catch (error) {
+    console.error('Family lesson changes failed:', error?.message || error);
+    return [];
+  }
+}
+
 async function buildParentSnapshot(studentId, extra = {}) {
   // Everything except the class is read at once; the class waits only for the student record.
   const studentPromise = getStudent(studentId);
   const classPromise = studentPromise.then((student) => db.doc(`${dataRoot()}/classes/${student.classId}`).get());
   const scorePromise = getScore(studentId);
   const scopePromise = familyYearScope();
-  const [student, classSnap, score, assessments, attendanceSummary, awardLogs, starsHistory, monthReasons, parentLink, schoolSettings, homeworkCount, previousSnap] = await Promise.all([
+  const lessonChangesPromise = studentPromise.then((student) => getFamilyLessonChanges(student.classId));
+  const [student, classSnap, score, assessments, attendanceSummary, awardLogs, starsHistory, monthReasons, parentLink, schoolSettings, homeworkCount, previousSnap, lessonChanges] = await Promise.all([
     studentPromise,
     classPromise,
     scorePromise,
@@ -955,7 +997,8 @@ async function buildParentSnapshot(studentId, extra = {}) {
     getParentLink(studentId),
     getSchoolSettings(),
     countPublishedHomework(studentId),
-    db.doc(`${dataRoot()}/parent_snapshots/${studentId}`).get()
+    db.doc(`${dataRoot()}/parent_snapshots/${studentId}`).get(),
+    lessonChangesPromise
   ]);
   const classData = classSnap.exists ? classSnap.data() : {};
   const assessmentUses = resolveClassAssessmentUses(classData, schoolSettings);
@@ -986,6 +1029,7 @@ async function buildParentSnapshot(studentId, extra = {}) {
     scheduleDays: Array.isArray(classData.scheduleDays) ? classData.scheduleDays.map(String) : [],
     timeStart: classData.timeStart || '',
     timeEnd: classData.timeEnd || '',
+    lessonChanges,
     assessmentUses,
     heroClass: student.heroClass || '',
     progress: {

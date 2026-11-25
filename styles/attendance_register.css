@@ -584,3 +584,6 @@
     #attendance-chronicle-modal .attendance-student-col { min-width: 9.5rem; }
     #attendance-chronicle-modal .attendance-student-subtitle { display: none; }
 }
+
+/* A make-up lesson's column (Lesson Change slip). */
+.attendance-date-chip-meta--makeup { color: #0b6e63; font-weight: 800; }

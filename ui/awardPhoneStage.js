@@ -174,16 +174,34 @@ export function fitAwardPhoneStage() {
         mounts(track).forEach((mount) => {
             const card = mount.querySelector('.aw-card');
             if (!card) return;
-            const room = mount.clientHeight - 8;
-            // The cloud reaches about 3rem past the card (top puffs, shelf); count that in.
-            const need = card.offsetHeight + 48;
-            const scale = room > 0 ? Math.max(0.5, Math.min(1, room / need)) : 1;
+            watchCard(card);
+            const pad = parseFloat(getComputedStyle(mount).paddingTop) + parseFloat(getComputedStyle(mount).paddingBottom);
+            const room = mount.clientHeight - pad - 2;
+            // The cloud reaches 3.1rem past the card (top puffs, shelf); its margins hold that.
+            const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+            const height = card.offsetHeight;
+            const need = height + 3.1 * rem;
+            // Never smaller than 0.56 (still easy to read and tap); past that the stage scrolls.
+            const fit = room > 0 ? room / need : 1;
+            const scale = Math.max(0.56, Math.min(1, fit));
+            mount.classList.toggle('is-tall', fit < 0.56);
+            mount.classList.toggle('is-end', mount.scrollTop + mount.clientHeight >= mount.scrollHeight - 4);
             card.style.setProperty('--aw-fit', scale.toFixed(3));
+            card.style.setProperty('--aw-shrink', `${Math.round(height * (1 - scale))}px`);
         });
     });
 }
 
 let fitObserver = null;
+// Clouds grow and shrink on their own (a virtue's stars open, fonts and faces load): refit then too.
+const watchedCards = new WeakSet();
+let cardObserver = null;
+function watchCard(card) {
+    if (watchedCards.has(card) || typeof ResizeObserver === 'undefined') return;
+    watchedCards.add(card);
+    cardObserver ||= new ResizeObserver(() => fitAwardPhoneStage());
+    cardObserver.observe(card);
+}
 function bindTrack(track) {
     if (boundTrack === track) return;
     boundTrack = track;
@@ -197,6 +215,12 @@ function bindTrack(track) {
     track.addEventListener('scroll', () => {
         if (!scrollFrame) scrollFrame = requestAnimationFrame(readCurrentFromScroll);
     }, { passive: true });
+    // A tall cloud's own up-and-down scroll: drop the "more below" fade once at the end.
+    track.addEventListener('scroll', (event) => {
+        const mount = event.target;
+        if (mount === track || !mount.classList?.contains('award-card-mount')) return;
+        mount.classList.toggle('is-end', mount.scrollTop + mount.clientHeight >= mount.scrollHeight - 4);
+    }, { passive: true, capture: true });
 }
 
 function bindDock(dock) {

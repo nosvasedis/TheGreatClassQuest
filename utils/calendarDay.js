@@ -134,7 +134,7 @@ export function getDayAgenda({
         if (!c) return null;
         const makeup = (allScheduleOverrides || []).find((m) => m.classId === c.id && m.type === 'one-time' && m.makeupFor === dateString);
         const color = c.color || constants.classColorPalettes[simpleHashCode(c.id) % constants.classColorPalettes.length];
-        return { ...c, color, reason: o.reason || '', makeupDate: makeup?.date || null, timeDisplay: c.timeStart || '' };
+        return { ...c, color, reason: o.reason || '', makeupDate: makeup?.date || null, timeDisplay: c.timeStart && c.timeEnd ? `${c.timeStart}-${c.timeEnd}` : (c.timeStart || '') };
     }).filter(Boolean);
 
     const questEvents = (allQuestEvents || [])

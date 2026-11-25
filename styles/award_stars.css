@@ -2352,3 +2352,7 @@ body.projector-mode .aw-desk__arrive {
     .aw-lesson-note { font-size: 12px; }
     .aw-lesson-note__text { white-space: normal; }
 }
+.aw-lesson-note .lcx-leaf { width: 1.8rem; transform: rotate(-4deg); }
+.aw-lesson-note .lcx-leaf b { font-size: 0.42rem; }
+.aw-lesson-note .lcx-leaf i { font-size: 0.8rem; }
+.aw-lesson-note .lcx-stamp { margin-left: 2px; }

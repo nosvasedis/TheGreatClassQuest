@@ -39,7 +39,8 @@ import {
 import { buildHeroTieStats, pickProdigyWinners, rankHeroes } from '../../features/heroRanking.js';
 import { withPendingAwards } from '../../features/awardPending.mjs';
 import { withPendingAttendance } from '../../features/attendancePending.mjs';
-import { describeLessonChange, lessonDayLabel } from '../../features/lessonChangesCore.mjs';
+import { describeLessonChange } from '../../features/lessonChangesCore.mjs';
+import { lessonLeafHtml, noLessonStampHtml } from '../lessonChangeMarks.js';
 import { isMonthFinaleLesson, monthFinaleContextFrom } from '../../features/monthFinale.js';
 import { playAttendanceTurn, readCloudPalette } from '../awardFx.js';
 import { renderAwardPhoneStage, syncAwardPhoneStage } from '../awardPhoneStage.js';
@@ -414,11 +415,11 @@ function renderAwardLessonNote(classId) {
         const meets = utils.doesClassMeetOnDate(classId, today, state.get('allSchoolClasses') || [], overrides, state.get('schoolHolidayRanges') || [], state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {});
         if (change?.kind === 'makeup') {
             html = `<span class="aw-lesson-note__icon aw-lesson-note__icon--makeup" aria-hidden="true"><i class="fas fa-rotate"></i></span>
-                <span class="aw-lesson-note__text">Make-up lesson for <strong>${lessonDayLabel(change.makeupFor)}</strong></span>
+                <span class="aw-lesson-note__text">Today is a <strong>make-up</strong> for</span>${lessonLeafHtml(change.makeupFor, 'off')}
                 <button type="button" class="aw-lesson-note__btn" data-award-lesson="edit">Change</button>`;
         } else if (change?.kind === 'cancelled') {
-            html = `<span class="aw-lesson-note__icon" aria-hidden="true"><i class="fas fa-ban"></i></span>
-                <span class="aw-lesson-note__text">Today's lesson is marked as <strong>didn't happen</strong></span>
+            html = `${noLessonStampHtml('No lesson')}
+                <span class="aw-lesson-note__text">Today's lesson is marked as didn't happen</span>
                 <button type="button" class="aw-lesson-note__btn" data-award-lesson="cancelled">Change</button>`;
         } else if (!meets) {
             html = `<span class="aw-lesson-note__icon" aria-hidden="true"><i class="fas fa-calendar-day"></i></span>

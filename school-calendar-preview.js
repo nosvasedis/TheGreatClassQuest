@@ -28,7 +28,15 @@ if (params.has('sample')) classes.push(
 );
 state.set('allSchoolClasses', classes);
 state.set('allTeachersClasses', classes);
-state.set('allScheduleOverrides', []);
+state.set('allScheduleOverrides', params.has('changes') ? [
+    // ?changes=1 : lessons that didn't happen and their make-ups (Lesson Change slip), November 2026.
+    { id: 'x1', classId: 'c3', date: '23-11-2026', type: 'cancelled', reason: 'teacher', createdBy: { uid: 'me' } },
+    { id: 'x2', classId: 'c3', date: '25-11-2026', type: 'one-time', makeupFor: '23-11-2026', timeStart: '16:00', timeEnd: '17:00', createdBy: { uid: 'me' } },
+    { id: 'x3', classId: 'c2', date: '12-11-2026', type: 'cancelled', reason: 'class', createdBy: { uid: 'me' } },
+    { id: 'x4', classId: 'c1', date: '30-11-2026', type: 'cancelled', reason: 'teacher', createdBy: { uid: 'me' } },
+    { id: 'x5', classId: 'c1', date: '04-12-2026', type: 'one-time', makeupFor: '30-11-2026', timeStart: '17:00', timeEnd: '18:30', createdBy: { uid: 'me' } },
+] : []);
+if (params.has('changes')) state.set('currentUserId', 'me');
 state.set('allQuestEvents', []);
 state.set('allQuestAssignments', []);
 state.set('schoolYearState', { activeYearKey: '2026-2027' });

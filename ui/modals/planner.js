@@ -9,7 +9,8 @@ import { treasureDayNear, treasureForSpecial, lessonClassIdsOn, eventWindow, isT
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { showAnimatedModal, setCurrentlySelectedDayCell, getCurrentlySelectedDayCell } from './base.js';
-import { describeLessonChange, lessonDayLabel, reasonInfo } from '../../features/lessonChangesCore.mjs';
+import { describeLessonChange } from '../../features/lessonChangesCore.mjs';
+import { lessonReasonHtml, lessonRouteHtml, noLessonStampHtml, makeupTagHtml, extraTagHtml } from '../lessonChangeMarks.js';
 import { QUEST_DEFINITIONS, normalizeQuestType, isSchoolWideModifierType } from '../../features/specialQuestEngine.js';
 import { getDayAgenda } from '../../utils/calendarDay.js';
 import { filterDocsForActiveYear } from '../../utils/schoolYear.js';
@@ -519,7 +520,7 @@ function renderScheduleManagerList(dateString) {
                    </button>`
                 : `<div class="schedule-lesson-foreign"><i class="fas fa-chalkboard-user" aria-hidden="true"></i> ${escapeHtml(c.createdBy?.name || 'Another teacher')}</div>`;
             return `
-                <article data-tone="${escapeHtml(String(color.bg || '').replace(/^bg-|-100$/g, ''))}" class="schedule-lesson-card${isMine ? ' schedule-lesson-card--mine' : ''}${phase ? ` schedule-lesson-card--${phase}` : ''}">
+                <article data-tone="${escapeHtml(String(color.bg || '').replace(/^bg-|-100$/g, ''))}" class="schedule-lesson-card${isMine ? ' schedule-lesson-card--mine' : ''}${phase ? ` schedule-lesson-card--${phase}` : ''}${c.makeupFor ? ' schedule-lesson-card--makeup' : ''}">
                     <div class="schedule-lesson-card__time-col">
                         <strong>${escapeHtml(c.timeStart || '—')}</strong>
                         <span>${escapeHtml(c.timeEnd || '')}</span>
@@ -579,12 +580,12 @@ export function openLessonChangeSlip(options) {
 /** A small tag on a lesson card: a make-up, or an extra lesson. */
 function lessonChangeTag(classId, dateString) {
     const change = describeLessonChange(classId, dateString, state.get('allScheduleOverrides') || []);
-    if (change?.kind === 'makeup') return `<span class="lc-mark lc-mark--makeup"><i class="fas fa-rotate" aria-hidden="true"></i> Make-up for ${escapeHtml(lessonDayLabel(change.makeupFor))}</span>`;
-    if (change?.kind === 'extra') return '<span class="lc-mark lc-mark--extra"><i class="fas fa-plus" aria-hidden="true"></i> Extra lesson</span>';
+    if (change?.kind === 'makeup') return makeupTagHtml(change.makeupFor);
+    if (change?.kind === 'extra') return extraTagHtml();
     return '';
 }
 
-/** Your lessons that didn't happen on this day, with their make-up (or a nudge to book one). */
+/** Your lessons that didn't happen on this day: torn tickets with their route to the make-up. */
 function cancelledLessonsHtml(dateString) {
     const overrides = state.get('allScheduleOverrides') || [];
     const mine = state.get('allTeachersClasses') || [];
@@ -592,23 +593,19 @@ function cancelledLessonsHtml(dateString) {
     if (!rows.length) return '';
     return `<p class="schedule-group-label schedule-group-label--cancelled"><i class="fas fa-calendar-xmark" aria-hidden="true"></i> Didn't happen</p>
         ${rows.map(({ c, change }) => {
-            const why = reasonInfo(change.reason);
-            return `<article class="schedule-lesson-card schedule-lesson-card--mine schedule-lesson-card--cancelled">
-                <div class="schedule-lesson-card__time-col"><strong>${escapeHtml(c.timeStart || '—')}</strong><span>${escapeHtml(c.timeEnd || '')}</span></div>
-                <div class="schedule-lesson-card__main">
-                    <div class="schedule-lesson-card__logo">${escapeHtml(c.logo || '🏫')}</div>
-                    <div class="schedule-lesson-card__copy">
-                        <h4 class="schedule-lesson-card__name">${escapeHtml(c.name)}</h4>
-                        <div class="schedule-lesson-card__tags">
-                            <span class="lc-mark lc-mark--cancelled"><i class="fas fa-ban" aria-hidden="true"></i> ${escapeHtml(why?.short || 'No lesson')}</span>
-                            ${change.makeupDate
-                                ? `<span class="lc-mark lc-mark--makeup"><i class="fas fa-rotate" aria-hidden="true"></i> Made up ${escapeHtml(lessonDayLabel(change.makeupDate))}</span>`
-                                : (change.reason === 'school' ? '' : '<span class="lc-mark lc-mark--extra">No make-up yet</span>')}
-                        </div>
-                    </div>
+            const time = change.makeup ? [change.makeup.timeStart || c.timeStart, change.makeup.timeEnd || c.timeEnd].filter(Boolean).join('–') : '';
+            const school = change.reason === 'school';
+            return `<article class="lcx-ticket">
+                <div class="lcx-ticket__time"><strong>${escapeHtml(c.timeStart || '—')}</strong><span>${escapeHtml(c.timeEnd || '')}</span></div>
+                <span class="lcx-ticket__logo" aria-hidden="true">${escapeHtml(c.logo || '🏫')}</span>
+                <div class="lcx-ticket__body">
+                    <h4 class="lcx-ticket__name">${escapeHtml(c.name)}</h4>
+                    ${lessonReasonHtml(change.reason)}
+                    ${lessonRouteHtml({ from: dateString, to: change.makeupDate, time, school })}
                 </div>
-                <button type="button" class="schedule-lesson-cancel schedule-lesson-cancel--edit" data-lesson-change="edit" data-class-id="${escapeHtml(c.id)}" title="Change the reason, book or move the make-up, or restore the lesson">
-                    <i class="fas fa-pen" aria-hidden="true"></i><span>${change.makeupDate || change.reason === 'school' ? 'Edit' : 'Make it up'}</span>
+                ${noLessonStampHtml('No lesson')}
+                <button type="button" class="lcx-ticket__btn${change.makeupDate || school ? '' : ' lcx-ticket__btn--go'}" data-lesson-change="edit" data-class-id="${escapeHtml(c.id)}" title="Change the reason, book or move the make-up, or restore the lesson">
+                    <i class="fas ${change.makeupDate || school ? 'fa-pen' : 'fa-rotate'}" aria-hidden="true"></i><span>${change.makeupDate || school ? 'Edit' : 'Make it up'}</span>
                 </button>
             </article>`;
         }).join('')}`;

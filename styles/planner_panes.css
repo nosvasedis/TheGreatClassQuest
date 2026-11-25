@@ -440,13 +440,8 @@ button.qe-treasure__class.is-ready {
 
 /* Lessons that didn't happen (Lesson Change slip, ui/modals/lessonChange.js). */
 .schedule-group-label--cancelled { margin-top: 0.7rem; color: #d9466f; }
-#day-planner-modal .schedule-lesson-card--cancelled {
-    background: repeating-linear-gradient(-45deg, #fff 0 10px, #fff5f8 10px 20px);
-    border-style: dashed;
-}
-#day-planner-modal .schedule-lesson-card--cancelled .schedule-lesson-card__time-col strong,
-#day-planner-modal .schedule-lesson-card--cancelled .schedule-lesson-card__name { text-decoration: line-through; text-decoration-color: rgba(217, 70, 111, 0.6); }
-#day-planner-modal .schedule-lesson-cancel--edit { color: #0b6e63; }
+/* A make-up lesson: a teal edge, and its "Make-up for [Mon 23]" tag. */
+#day-planner-modal .schedule-lesson-card--makeup { box-shadow: 0 0 0 2px rgba(15, 156, 140, 0.55), 0 14px 24px -18px rgba(15, 156, 140, 0.9); background: linear-gradient(100deg, #fff 55%, #e7f8f4); }
 #day-planner-modal .schedule-add-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 #day-planner-modal .schedule-add-row .schedule-add-btn { flex: 1 1 12rem; }
 #day-planner-modal .schedule-add-btn--makeup { background: linear-gradient(110deg, #0f9c8c, #1e2a44); }

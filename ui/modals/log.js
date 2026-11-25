@@ -15,7 +15,8 @@ import {
 import { showAnimatedModal } from './base.js';
 import { fetchLogsForDate } from '../../db/queries.js';
 import { filterDocsForActiveYear } from '../../utils/schoolYear.js';
-import { describeLessonChange, lessonDayLabel, reasonInfo } from '../../features/lessonChangesCore.mjs';
+import { describeLessonChange } from '../../features/lessonChangesCore.mjs';
+import { lessonReasonHtml, lessonRouteHtml, noLessonStampHtml, makeupTagHtml, extraTagHtml } from '../lessonChangeMarks.js';
 
 
 function getQuestBonusFromLog(log) {
@@ -94,23 +95,34 @@ function logbookLessonsStripHtml(dateString) {
     const rows = mine.map((c) => {
         const change = describeLessonChange(c.id, dateString, overrides);
         if (change?.kind === 'cancelled') {
-            const why = reasonInfo(change.reason);
-            return { c, html: `<span class="lc-mark lc-mark--cancelled"><i class="fas fa-ban" aria-hidden="true"></i> ${escapeLogText(why?.short || 'No lesson')}</span>${change.makeupDate ? `<span class="lc-mark lc-mark--makeup"><i class="fas fa-rotate" aria-hidden="true"></i> Made up ${escapeLogText(lessonDayLabel(change.makeupDate))}</span>` : ''}`, label: change.makeupDate || change.reason === 'school' ? 'Edit' : 'Make it up' };
+            const school = change.reason === 'school';
+            const time = change.makeup ? [change.makeup.timeStart || c.timeStart, change.makeup.timeEnd || c.timeEnd].filter(Boolean).join('–') : '';
+            return { t: c.timeStart || '99', html: `<article class="lcx-ticket lcx-ticket--compact">
+                <span class="lcx-ticket__logo" aria-hidden="true">${escapeLogText(c.logo || '🏫')}</span>
+                <div class="lcx-ticket__body">
+                    <h4 class="lcx-ticket__name">${escapeLogText(c.name)}</h4>
+                    ${lessonReasonHtml(change.reason)}
+                    ${lessonRouteHtml({ from: dateString, to: change.makeupDate, time, school })}
+                </div>
+                ${noLessonStampHtml('No lesson')}
+                <button type="button" class="lcx-ticket__btn${change.makeupDate || school ? '' : ' lcx-ticket__btn--go'}" data-log-lesson="${escapeLogText(c.id)}"><i class="fas ${change.makeupDate || school ? 'fa-pen' : 'fa-rotate'}" aria-hidden="true"></i><span>${change.makeupDate || school ? 'Edit' : 'Make it up'}</span></button>
+            </article>` };
         }
-        if (!ran.has(c.id)) return null;
-        const tag = change?.kind === 'makeup'
-            ? `<span class="lc-mark lc-mark--makeup"><i class="fas fa-rotate" aria-hidden="true"></i> Make-up for ${escapeLogText(lessonDayLabel(change.makeupFor))}</span>`
-            : change?.kind === 'extra' ? '<span class="lc-mark lc-mark--extra"><i class="fas fa-plus" aria-hidden="true"></i> Extra lesson</span>' : '';
-        return { c, html: tag, label: "Didn't happen?" };
-    }).filter(Boolean);
-    if (!rows.length) return '';
-    return `<section class="qc-log-lessons" aria-label="Your lessons on this day">
-        ${rows.map(({ c, html, label }) => `<div class="qc-log-lesson">
+        const lesson = ran.get(c.id);
+        if (!lesson) return null;
+        const tag = change?.kind === 'makeup' ? makeupTagHtml(change.makeupFor) : change?.kind === 'extra' ? extraTagHtml() : '';
+        return { t: lesson.timeStart || '99', html: `<div class="qc-log-lesson${change?.kind === 'makeup' ? ' qc-log-lesson--makeup' : ''}">
+            <span class="qc-log-lesson__time">${escapeLogText(lesson.timeStart || '')}</span>
             <span class="qc-log-lesson__logo" aria-hidden="true">${escapeLogText(c.logo || '🏫')}</span>
             <span class="qc-log-lesson__name">${escapeLogText(c.name)}</span>
-            ${html}
-            <button type="button" class="qc-log-lesson__btn" data-log-lesson="${escapeLogText(c.id)}">${escapeLogText(label)}</button>
-        </div>`).join('')}
+            ${tag}
+            <button type="button" class="qc-log-lesson__btn" data-log-lesson="${escapeLogText(c.id)}"><i class="fas fa-calendar-xmark" aria-hidden="true"></i> Didn't happen?</button>
+        </div>` };
+    }).filter(Boolean).sort((a, b) => String(a.t).localeCompare(String(b.t)));
+    if (!rows.length) return '';
+    return `<section class="qc-log-lessons" aria-label="Your lessons on this day">
+        <p class="qc-log-lessons__kicker"><i class="fas fa-chalkboard-user" aria-hidden="true"></i> Your lessons this day</p>
+        ${rows.map((r) => r.html).join('')}
     </section>`;
 }
 

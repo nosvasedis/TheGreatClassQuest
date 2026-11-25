@@ -1931,20 +1931,273 @@ body.gcq-mobile .qc-bar__title {
     }
 }
 
-/* Lesson changes: small marks for a lesson that didn't happen and its make-up (features/lessonChangesCore.mjs). */
-.lc-mark { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; font: 700 11px/1.5 'Fredoka', 'Open Sans', sans-serif; border-radius: 999px; white-space: nowrap; letter-spacing: 0; text-transform: none; }
-.lc-mark--cancelled { color: #a3264c; background: #fde6ec; border: 1px solid #f3b7c7; }
-.lc-mark--makeup { color: #0b6e63; background: #dcf5f1; border: 1px solid #9edcd3; }
-.lc-mark--extra { color: #36507a; background: #e8eefb; border: 1px solid #c3d0ec; }
-.qc-lesson--cancelled { opacity: 0.75; background: repeating-linear-gradient(-45deg, rgba(255,255,255,0.85) 0 5px, rgba(253,230,236,0.9) 5px 10px) !important; border-style: dashed !important; }
-.qc-lesson--cancelled .qc-lesson__name, .qc-lesson--cancelled .qc-lesson__time { text-decoration: line-through; text-decoration-color: rgba(217, 70, 111, 0.7); }
-.qc-lesson__change { flex: 0 0 auto; font-size: 10px; font-weight: 800; color: #0b6e63; }
-.qc-lesson--cancelled .qc-lesson__change { color: #a3264c; }
+/* ===== Lesson changes (ui/lessonChangeMarks.js) =========================================
+   One look wherever a lesson didn't happen or is made up: a torn timetable ticket with a rose
+   "NO LESSON" rubber stamp, a teal make-up ribbon, and a route of two calendar leaves.
+   Rose #d9466f / #fde6ec, teal #0f9c8c / #dcf5f1, ink #1e2a44 (same as the Lesson Change slip). */
+:root {
+    --lcx-rose: #d9466f;
+    --lcx-rose-ink: #a3264c;
+    --lcx-rose-soft: #fde6ec;
+    --lcx-teal: #0f9c8c;
+    --lcx-teal-ink: #0b6e63;
+    --lcx-teal-soft: #dcf5f1;
+    --lcx-ink: #1e2a44;
+    --lcx-paper: #fffaf0;
+    --lcx-line: #ead9b8;
+}
 
-/* Quest Log: your lessons that day, and whether each one ran (Lesson Change slip). */
-.qc-log-lessons { display: flex; flex-direction: column; gap: 6px; margin: 0 0 12px; }
-.qc-log-lesson { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 7px 10px; background: rgba(255, 255, 255, 0.85); border: 1px dashed #e2d6bf; border-radius: 12px; }
-.qc-log-lesson__logo { font-size: 18px; }
-.qc-log-lesson__name { font: 600 14px/1.2 'Fredoka', 'Open Sans', sans-serif; color: #1e2a44; margin-right: auto; }
-.qc-log-lesson__btn { padding: 4px 11px; font: 600 12px/1.4 'Fredoka', 'Open Sans', sans-serif; color: #1e2a44; background: #fff; border: 1.5px solid #d9cdb4; border-radius: 999px; cursor: pointer; }
-.qc-log-lesson__btn:hover { border-color: #1e2a44; }
+/* The rubber stamp */
+.lcx-stamp {
+    display: inline-block;
+    padding: 0.1rem 0.4rem;
+    font: 800 0.62rem/1.15 'Fredoka', 'Open Sans', sans-serif;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--lcx-rose);
+    border: 2px solid currentColor;
+    border-radius: 0.35rem;
+    transform: rotate(-9deg);
+    opacity: 0.85;
+    /* Worn ink: the stamp never prints perfectly. */
+    background-image: radial-gradient(circle at 25% 30%, rgba(255,255,255,0.5) 0 12%, transparent 13%), radial-gradient(circle at 70% 75%, rgba(255,255,255,0.4) 0 10%, transparent 11%);
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+/* Mini calendar leaves and the route between them */
+.lcx-leaf {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    width: 2.1rem;
+    overflow: hidden;
+    background: #fff;
+    border-radius: 0.4rem;
+    box-shadow: 0 1px 0 rgba(30, 42, 68, 0.12), 0 2px 6px -2px rgba(30, 42, 68, 0.25);
+    line-height: 1;
+    flex: 0 0 auto;
+}
+.lcx-leaf b {
+    display: block;
+    width: 100%;
+    padding: 0.12rem 0;
+    font: 800 0.5rem/1 'Fredoka', 'Open Sans', sans-serif;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-align: center;
+    color: #fff;
+}
+.lcx-leaf i {
+    font: 600 0.95rem/1.15 'Fredoka', 'Open Sans', sans-serif;
+    font-style: normal;
+    padding: 0.05rem 0 0.1rem;
+    color: var(--lcx-ink);
+}
+.lcx-leaf--off b { background: var(--lcx-rose); }
+.lcx-leaf--off i { color: var(--lcx-rose-ink); text-decoration: line-through; text-decoration-thickness: 2px; text-decoration-color: rgba(217, 70, 111, 0.55); }
+.lcx-leaf--on b { background: var(--lcx-teal); }
+.lcx-leaf--wait { background: transparent; box-shadow: none; outline: 2px dashed #e5c9d2; outline-offset: -2px; }
+.lcx-leaf--wait b { background: transparent; color: var(--lcx-rose); }
+.lcx-leaf--wait i { color: #c9a3b0; }
+
+.lcx-route { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.35rem; }
+.lcx-route__path { position: relative; display: inline-flex; align-items: center; width: 2.2rem; height: 1rem; color: var(--lcx-teal); }
+.lcx-route__path > span { position: absolute; left: 0; right: 0.55rem; top: 50%; border-top: 2px dashed currentColor; opacity: 0.7; }
+.lcx-route__path > i { position: absolute; right: 0; font-size: 0.7rem; }
+.lcx-route--open .lcx-route__path { color: #d7a5b5; }
+.lcx-route__note { margin-left: 0.15rem; font: 600 0.78rem/1.2 'Fredoka', 'Open Sans', sans-serif; color: var(--lcx-teal-ink); }
+.lcx-route--open .lcx-route__note { color: var(--lcx-rose-ink); }
+
+.lcx-reason { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.78rem; font-weight: 600; color: #6b5560; }
+.lcx-reason i { color: var(--lcx-rose); }
+
+/* Make-up / extra tags */
+.lcx-makeup, .lcx-extra {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.12rem 0.25rem 0.12rem 0.5rem;
+    font: 700 0.72rem/1.2 'Fredoka', 'Open Sans', sans-serif;
+    letter-spacing: 0;
+    text-transform: none;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+.lcx-makeup { color: #fff; background: linear-gradient(110deg, var(--lcx-teal), #12806f); box-shadow: 0 4px 10px -6px rgba(15, 156, 140, 0.9); }
+.lcx-makeup em { font-style: normal; font-weight: 500; opacity: 0.85; }
+.lcx-makeup .lcx-leaf { width: 1.7rem; transform: rotate(4deg); }
+.lcx-makeup .lcx-leaf b { font-size: 0.42rem; }
+.lcx-makeup .lcx-leaf i { font-size: 0.78rem; }
+.lcx-makeup--compact { padding-right: 0.5rem; }
+.lcx-extra { padding-right: 0.55rem; color: #36507a; background: #e8eefb; border: 1px solid #c3d0ec; }
+
+/* The torn ticket (Day Planner, Quest Log, phone day card) */
+.lcx-ticket {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 0.8rem 0.7rem 1.1rem;
+    color: var(--lcx-ink);
+    background: linear-gradient(100deg, #fff 0%, var(--lcx-paper) 55%, #fdf0f3 100%);
+    border: 1.5px solid #f1cfd9;
+    border-radius: 0.95rem;
+    box-shadow: 0 10px 22px -18px rgba(163, 38, 76, 0.7);
+    overflow: hidden;
+    isolation: isolate;
+}
+/* Perforated stub edge on the left */
+.lcx-ticket::before {
+    content: '';
+    position: absolute;
+    left: 0.45rem;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    border-left: 2px dotted #e8b3c3;
+}
+/* Faint diagonal hatching: a page that didn't get used */
+.lcx-ticket::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: repeating-linear-gradient(-45deg, transparent 0 14px, rgba(217, 70, 111, 0.045) 14px 16px);
+}
+.lcx-ticket__time { display: flex; flex-direction: column; align-items: center; min-width: 2.8rem; line-height: 1.1; }
+.lcx-ticket__time strong { font: 700 0.95rem/1.1 'Fredoka', 'Open Sans', sans-serif; color: #9a8a90; text-decoration: line-through; text-decoration-color: rgba(217, 70, 111, 0.6); text-decoration-thickness: 2px; }
+.lcx-ticket__time span { font-size: 0.7rem; color: #b3a5aa; }
+.lcx-ticket__logo {
+    display: grid;
+    place-items: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    font-size: 1.35rem;
+    background: #fff;
+    border-radius: 0.75rem;
+    box-shadow: inset 0 0 0 1.5px #f1cfd9;
+    filter: saturate(0.6);
+}
+.lcx-ticket__body { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem; }
+.lcx-ticket__name { margin: 0; font: 600 1rem/1.2 'Fredoka', 'Open Sans', sans-serif; color: var(--lcx-ink); text-transform: none; letter-spacing: 0; }
+.lcx-ticket > .lcx-stamp {
+    position: absolute;
+    right: 7.2rem;
+    top: 0.55rem;
+    font-size: 0.78rem;
+    padding: 0.15rem 0.5rem;
+    border-width: 2.5px;
+    transform: rotate(-10deg);
+    opacity: 0.7;
+    z-index: -1;
+}
+.lcx-ticket__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.8rem;
+    font: 600 0.82rem/1 'Fredoka', 'Open Sans', sans-serif;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--lcx-ink);
+    background: #fff;
+    border: 1.5px solid var(--lcx-line);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.lcx-ticket__btn:hover { transform: translateY(-1px); border-color: var(--lcx-ink); }
+.lcx-ticket__btn--go { color: #fff; background: var(--lcx-teal); border-color: var(--lcx-teal); box-shadow: 0 8px 16px -10px rgba(15, 156, 140, 0.9); }
+.lcx-ticket__btn--go:hover { border-color: var(--lcx-teal-ink); }
+.lcx-ticket--compact { grid-template-columns: auto minmax(0, 1fr) auto; }
+.lcx-ticket--compact > .lcx-stamp { right: 6.6rem; }
+@media (max-width: 560px) {
+    .lcx-ticket { grid-template-columns: auto minmax(0, 1fr); gap: 0.6rem; }
+    .lcx-ticket__time { display: none; }
+    .lcx-ticket__btn { grid-column: 1 / -1; justify-content: center; }
+    .lcx-ticket > .lcx-stamp, .lcx-ticket--compact > .lcx-stamp { right: 0.7rem; top: 0.6rem; }
+}
+
+/* Calendar tile: a lesson that didn't happen */
+.qc-lesson-off { position: relative; display: flex; flex-direction: column; flex-shrink: 0; }
+.qc-lesson--off {
+    overflow: hidden;
+    background: repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.92) 0 5px, rgba(253, 230, 236, 0.95) 5px 10px) !important;
+    border-left-style: dotted !important;
+    box-shadow: inset 0 0 0 1px rgba(217, 70, 111, 0.22);
+}
+.qc-lesson--off .qc-lesson__logo { filter: grayscale(0.6); opacity: 0.8; }
+.qc-lesson--off .qc-lesson__name { opacity: 0.7; text-decoration: line-through; text-decoration-color: rgba(217, 70, 111, 0.75); text-decoration-thickness: 1.5px; }
+.qc-lesson--off .qc-lesson__time s { opacity: 0.7; text-decoration-color: rgba(217, 70, 111, 0.75); }
+.qc-lesson--off .qc-lesson__time .lcx-stamp {
+    margin-left: 0.3rem;
+    padding: 0 0.22rem;
+    font-size: 0.46rem;
+    line-height: 1.35;
+    border-width: 1.5px;
+    border-radius: 0.25rem;
+    transform: rotate(-5deg);
+    background-color: rgba(255, 255, 255, 0.8);
+    vertical-align: 1px;
+    opacity: 1;
+}
+.qc-lesson-off__tab {
+    align-self: flex-end;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    margin: -1px 0.35rem 0 0;
+    padding: 0.05rem 0.4rem 0.1rem;
+    font: 700 0.58rem/1.3 'Fredoka', 'Open Sans', sans-serif;
+    color: #fff;
+    background: var(--lcx-teal);
+    border-radius: 0 0 0.4rem 0.4rem;
+    box-shadow: 0 3px 6px -3px rgba(15, 156, 140, 0.8);
+}
+.qc-lesson-off__tab--open { color: var(--lcx-rose-ink); background: #fff; box-shadow: inset 0 0 0 1px #f1cfd9; }
+.qc-day--past .qc-lesson-off { opacity: 0.9; }
+
+/* Calendar tile: a make-up lesson carries a teal ribbon */
+.qc-lesson--makeup { box-shadow: inset 0 0 0 1.5px rgba(15, 156, 140, 0.55); }
+.qc-lesson__ribbon {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+    margin-left: 0.3rem;
+    padding: 0 0.3rem;
+    font: 700 0.5rem/1.45 'Fredoka', 'Open Sans', sans-serif;
+    letter-spacing: 0.02em;
+    color: #fff;
+    background: var(--lcx-teal);
+    border-radius: 999px;
+    vertical-align: 1px;
+    white-space: nowrap;
+}
+.qc-lesson__ribbon i { font-size: 0.42rem; }
+@media (max-width: 900px) {
+    .qc-lesson__time .lcx-stamp, .qc-lesson__ribbon { display: none; }
+}
+
+/* Quest Log: your lessons that day */
+.qc-log-lessons { display: flex; flex-direction: column; gap: 0.5rem; margin: 0 0 0.9rem; }
+.qc-log-lessons__kicker { display: flex; align-items: center; gap: 0.4rem; margin: 0; font-size: 0.7rem; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; color: #6366f1; }
+.qc-log-lesson {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.6rem;
+    padding: 0.55rem 0.7rem;
+    background: #fff;
+    border: 1px solid #e6e9f2;
+    border-radius: 0.9rem;
+    box-shadow: 0 6px 16px -14px rgba(30, 42, 68, 0.6);
+}
+.qc-log-lesson--makeup { border-color: #9edcd3; background: linear-gradient(100deg, #fff 60%, var(--lcx-teal-soft)); }
+.qc-log-lesson__time { font: 700 0.8rem/1 'Fredoka', 'Open Sans', sans-serif; color: #64748b; min-width: 2.6rem; }
+.qc-log-lesson__logo { font-size: 1.15rem; }
+.qc-log-lesson__name { font: 600 0.95rem/1.2 'Fredoka', 'Open Sans', sans-serif; color: var(--lcx-ink); margin-right: auto; }
+.qc-log-lesson__btn { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.3rem 0.7rem; font: 600 0.76rem/1.3 'Fredoka', 'Open Sans', sans-serif; color: var(--lcx-rose-ink); background: #fff; border: 1.5px solid #f1cfd9; border-radius: 999px; cursor: pointer; }
+.qc-log-lesson__btn:hover { background: var(--lcx-rose-soft); }
+.qc-lesson--makeup .qc-lesson__time, .qc-lesson--off .qc-lesson__time { opacity: 1; }
+.qc-lesson--makeup .qc-lesson__time { color: inherit; }

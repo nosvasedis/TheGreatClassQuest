@@ -3,15 +3,15 @@
 // loudness reading a few times a second; the reward is paid by db/actions/quietDragon.js.
 //
 // How the dragon listens: the first seconds measure how quiet this room is (the "floor"). The
-// teacher's level sets how far above that floor the class may go. A single short bump (a cough,
-// a dropped pencil) only makes it stir, but noise keeps adding up while the room stays above the
-// limit, a noisy room ("stirs" zone) never lets it calm down, and it forgets only slowly once the
+// teacher's level sets how far above that floor the class may go. A tiny sound shorter than about
+// a third of a second (a pencil tap, a chair creak) is only seen on the meter; a short bump (a
+// cough) only makes it stir, but noise keeps adding up while the room stays above the limit, a noisy room ("stirs" zone) never lets it calm down, and it forgets only slowly once the
 // room is truly quiet. Once it wakes it stays awake: the quiet time is over and there is no gift.
 
 export const QUIET_LEVELS = [
-    { key: 'test', name: 'Test silence', hint: 'Pin-drop quiet, for tests', margin: 5 },
-    { key: 'whisper', name: 'Whispers', hint: 'Writing time, whispers only', margin: 9 },
-    { key: 'soft', name: 'Soft voices', hint: 'Quiet partner work', margin: 14 }
+    { key: 'test', name: 'Test silence', hint: 'Pin-drop quiet, for tests', margin: 6 },
+    { key: 'whisper', name: 'Whispers', hint: 'Writing time, whispers only', margin: 10 },
+    { key: 'soft', name: 'Soft voices', hint: 'Quiet partner work', margin: 15 }
 ];
 
 export const QUIET_MINUTES = [5, 10, 15, 20, 30];
@@ -19,13 +19,14 @@ export const DEFAULT_MINUTES = 15;
 export const HOARD_PIECES = 8;
 
 export const CALIBRATE_SECONDS = 3;
-const FLOOR_MIN = -78;
+const FLOOR_MIN = -72;       // a near-silent room still gets a little headroom
 const FLOOR_MAX = -32;
-const WAKE_BASE = 0.5;        // annoyance per second just for being over the limit at all
+const WAKE_BASE = 0.6;        // annoyance per second just for being over the limit at all
 const WAKE_RATE = 0.9;        // plus this much per second for each "threshold" of extra noise
 const CALM_RATE = 0.12;       // annoyance that fades per second, only while the room is truly calm
 const CALM_BELOW = 0.6;       // ratio under which the room counts as calm (the "calm" zone)
 const MAX_OVER = 1.0;         // a door slam counts no more than a loud voice
+const HEAR_WINDOW = 3;        // readings (about 0.45 s) averaged before a noise can annoy it
 const TUNE_STEP_DB = 2;
 const TUNE_LIMIT_DB = 6;
 
@@ -52,7 +53,7 @@ export function rmsDb(samples) {
 export function calibrateFloor(readings = []) {
     const clean = readings.filter((v) => Number.isFinite(v)).sort((a, b) => a - b);
     if (!clean.length) return -55;
-    const at = clean[Math.min(clean.length - 1, Math.floor(clean.length * 0.4))];
+    const at = clean[Math.min(clean.length - 1, Math.floor(clean.length * 0.5))];
     return Math.min(FLOOR_MAX, Math.max(FLOOR_MIN, at));
 }
 
@@ -72,7 +73,7 @@ export function tuneBy(current, direction) {
 export function createDragonEars({ floor = -55, margin = 12, tune = 0 } = {}) {
     const ears = {
         floor, margin, tune,
-        mood: 'asleep', ratio: 0, annoyance: 0, wakes: 0,
+        mood: 'asleep', ratio: 0, annoyance: 0, wakes: 0, recent: [],
         step(db, dt = 0.15, { held = false } = {}) {
             const seconds = Math.max(0, Math.min(1, Number(dt) || 0));
             if (held || ears.mood === 'awake') return ears.snapshot(false);
@@ -82,7 +83,12 @@ export function createDragonEars({ floor = -55, margin = 12, tune = 0 } = {}) {
             const k = target > ears.ratio ? 0.6 : 0.22;
             ears.ratio += (target - ears.ratio) * k;
 
-            if (raw > 1) ears.annoyance += (WAKE_BASE + (Math.min(raw, 1 + MAX_OVER) - 1) * WAKE_RATE) * seconds;
+            // Annoyance listens to the last few readings together, so one tiny click (a single
+            // reading) never counts, while a cough, a word or chatter still does.
+            ears.recent.push(Math.min(target, 1 + MAX_OVER));
+            if (ears.recent.length > HEAR_WINDOW) ears.recent.shift();
+            const heard = ears.recent.reduce((sum, v) => sum + v, 0) / HEAR_WINDOW;
+            if (heard > 1) ears.annoyance += (WAKE_BASE + (heard - 1) * WAKE_RATE) * seconds;
             else if (ears.ratio < CALM_BELOW) ears.annoyance -= CALM_RATE * seconds;
             // In between (the "stirs" zone) the annoyance simply stays: chatter never calms it.
             ears.annoyance = Math.max(0, Math.min(1, ears.annoyance));

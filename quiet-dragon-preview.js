@@ -22,7 +22,7 @@ const p = Number(params.get('p') ?? 0.55);
 setTimeout(() => {
     if (view === 'calibrating') hooks.showCalibrating();
     else if (view === 'ending') { hooks.showMood('asleep'); hooks.showProgress(p); hooks.showEnding(); }
-    else if (view === 'gift') hooks.showGift({ hoard: { key: params.get('hoard') || 'gold', amount: Number(params.get('amount') || 2) }, treat: params.get('treat') ?? 'A game at the end of the lesson' });
+    else if (view === 'gift') hooks.showGift({ hoard: { key: params.get('hoard') || 'gold', amount: Number(params.get('amount') || 2) }, treat: params.get('treat') ?? 'A game at the end of the lesson' }, Number(params.get('heroes') || 23), { fail: params.has('fail'), sound: params.has('sound') });
     else if (view === 'woke' || view === 'waking') hooks.showWoke(p, { card: view === 'woke' });
     else if (view === 'held') { hooks.showMood('asleep'); hooks.showProgress(p, 0); hooks.hold(true); }
     else if (view !== 'setup') {

@@ -14,8 +14,9 @@
 // the dragon never hears itself.
 // Rules: features/quietDragonCore.mjs · Art: ui/quietDragonArt.js · Gift: db/actions/quietDragon.js
 import { quietly } from '../../utils/runtimeMetrics.js';
+import { GOLD_COIN_HTML } from '../../utils/goldCoin.js';
 import '../../styles/quiet_dragon.css';
-import { playSound, playHeroFanfare, playWheelSfx } from '../../audio.js';
+import { quietDragonSound, warmQuietDragonSounds } from '../../features/quietDragonSounds.js';
 import { detectLowPowerTier } from '../../utils/devicePerformance.mjs';
 import { quietDragonHtml } from '../quietDragonArt.js';
 import { lairBackHtml, lairFrontHtml, journeyHtml, flyCamera, settleCamera, CAVE_Z_END, easeInCamera } from '../quietDragonCave.js';
@@ -35,6 +36,7 @@ const CAL_R = 30;
 const CAL_LENGTH = 2 * Math.PI * CAL_R;
 const DEFAULT_AMOUNTS = { gold: 2, stars: 0.5, quest: 1 };
 const METER_MAX = 1.5; // the hush meter shows loudness up to 1.5× the limit
+const ROLL_START = 2.35; // seconds into the gift when the first hero's share lands (matches the CSS)
 
 const MOOD_TEXT = {
     asleep: 'Fast asleep…',
@@ -102,6 +104,7 @@ export function openQuietDragon({ from = 'header', lite: forceLite = null, origi
     requestAnimationFrame(() => requestAnimationFrame(() => {
         if (!stage) return;
         stage.classList.add('is-in');
+        warmQuietDragonSounds().then(() => quietDragonSound('open', { at: journey ? 0.2 : 0 }));
         if (journey) {
             camera = flyCamera(stage, { duration: lite ? 2000 : 4200, story: true });
             camera.done.then(() => arrive());
@@ -162,7 +165,9 @@ function closeQuietDragon() {
         stage.classList.add('is-leaving-lair');
         flyCamera(stage, { from: CAVE_Z_END, to: CAVE_Z_END - 2.2, duration: 1000, ease: easeInCamera });
     }
+    const wasListening = Boolean(run?.timer);
     stopListening();
+    if (!wasListening) quietDragonSound('close');
     unfollow?.();
     unfollow = null;
     clearTimeout(toastTimer);
@@ -237,10 +242,13 @@ function sceneHtml(lite, journey) {
             ${quietDragonHtml()}
             <div class="qd-breath-gold" aria-hidden="true">${'<i></i>'.repeat(lite ? 0 : 14)}</div>
             <div class="qd-burst" aria-hidden="true">${burstHtml(lite)}</div>
+            <div class="qd-shock" aria-hidden="true"><i></i><i></i></div>
         </div>
+        ${lite ? '' : `<div class="qd-lull" aria-hidden="true">${'<i></i>'.repeat(16)}</div>`}
         ${lairFrontHtml()}
     </div>
     <div class="qd-alarm" aria-hidden="true"></div>
+    <div class="qd-flash" aria-hidden="true"></div>
     ${journey ? journeyHtml(lite) : ''}
     <div class="qd-veil" aria-hidden="true"></div>
 
@@ -317,6 +325,46 @@ function levelIcon(index) {
     return `<svg viewBox="0 0 32 32" aria-hidden="true"><defs><mask id="qd-lv-${index}"><rect width="32" height="32" fill="#fff"/><circle cx="${16 + cut}" cy="${16 - cut * 0.45}" r="11" fill="#000"/></mask></defs><circle cx="16" cy="16" r="11" fill="currentColor" mask="url(#qd-lv-${index})"/></svg>`;
 }
 
+/** A little sound line for each quiet level: flat for pin-drop, a ripple for whispers, waves for soft voices. */
+function waveIcon(index) {
+    const amp = [1.2, 4, 8][index] ?? 4;
+    let d = 'M2 16';
+    for (let x = 2; x <= 46; x += 4) d += ` Q ${x + 1} ${16 - amp * (x % 8 === 2 ? 1 : -1)} ${x + 2} 16`;
+    return `<svg viewBox="0 0 48 32" aria-hidden="true"><path d="${d} L46 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>`;
+}
+
+/** The dragon's sleeping eye: the crest of the lullaby card. */
+function crestHtml() {
+    return `<span class="qd-crest" aria-hidden="true">
+        <svg viewBox="0 0 64 64">
+            <defs><radialGradient id="qd-crest-g" cx=".38" cy=".32" r=".75"><stop offset="0" stop-color="#e9fffb"/><stop offset=".45" stop-color="#7fe3d9"/><stop offset="1" stop-color="#1f6f7a"/></radialGradient></defs>
+            <circle cx="32" cy="32" r="29" fill="url(#qd-crest-g)"/>
+            <path class="qd-crest__lid" d="M14 34 Q32 46 50 34" fill="none" stroke="#0b2a33" stroke-width="3.4" stroke-linecap="round"/>
+            <path d="M18 39 l-3 4 M25 42 l-1.5 4.5 M32 43 v5 M39 42 l1.5 4.5 M46 39 l3 4" stroke="#0b2a33" stroke-width="2.4" stroke-linecap="round"/>
+            <circle cx="22" cy="20" r="4" fill="#fff" opacity=".7"/>
+        </svg>
+        <i class="qd-crest__z">z</i><i class="qd-crest__z">z</i>
+    </span>`;
+}
+
+function minutesDial(minutes) {
+    const r = 46;
+    const len = 2 * Math.PI * r;
+    const frac = Math.min(1, minutes / 60);
+    const ticks = Array.from({ length: 12 }, (_, i) => {
+        const a = (i / 12) * Math.PI * 2 - Math.PI / 2;
+        return `<line x1="${(60 + 52 * Math.cos(a)).toFixed(1)}" y1="${(60 + 52 * Math.sin(a)).toFixed(1)}" x2="${(60 + 56 * Math.cos(a)).toFixed(1)}" y2="${(60 + 56 * Math.sin(a)).toFixed(1)}"/>`;
+    }).join('');
+    return `<span class="qd-dial" aria-hidden="true">
+        <svg viewBox="0 0 120 120">
+            <g class="qd-dial__ticks">${ticks}</g>
+            <circle class="qd-dial__track" cx="60" cy="60" r="${r}"/>
+            <circle class="qd-dial__fill" cx="60" cy="60" r="${r}" style="stroke-dasharray:${len.toFixed(1)};stroke-dashoffset:${(len * (1 - frac)).toFixed(1)}"/>
+        </svg>
+        <span class="qd-dial__value"><strong data-qd-minutes-value>${minutes}</strong><small>calm min</small></span>
+    </span>`;
+}
+
 function setupHtml() {
     const classes = myClasses();
     const cls = classById(ui.classId);
@@ -325,76 +373,81 @@ function setupHtml() {
     const giftDef = hoardGiftByKey(gift.hoard.key);
     const isCustom = gift.treat && !CLASS_TREATS.includes(gift.treat);
     const ready = Boolean(cls) && giftIsReady(gift);
-    const summary = [
-        `<b>${ui.minutes}</b> calm minute${ui.minutes === 1 ? '' : 's'}`,
-        hoardGiftLine(gift) ? esc(amountLabel(gift.hoard.key, gift.hoard.amount)) : '',
-        gift.treat ? esc(gift.treat) : ''
-    ].filter(Boolean).join(' <i aria-hidden="true">·</i> ');
+    const level = levelByKey(ui.level);
+    const tokens = [
+        `<span class="qd-token"><span class="qd-token__icon">${levelIcon(QUIET_LEVELS.indexOf(level))}</span>${esc(level.name)}</span>`,
+        `<span class="qd-token"><i class="fas fa-hourglass-half" aria-hidden="true"></i><b>${ui.minutes}</b> min</span>`,
+        hoardGiftLine(gift) ? `<span class="qd-token qd-token--gift"><span class="qd-token__icon">${giftIcon(gift.hoard.key)}</span>${esc(amountLabel(gift.hoard.key, gift.hoard.amount))}</span>` : '',
+        gift.treat ? `<span class="qd-token qd-token--treat"><span class="qd-token__icon">${giftIcon('none')}</span>${esc(gift.treat)}</span>` : ''
+    ].filter(Boolean).join('');
+    let step = 0;
+    const num = () => `<b class="qd-step__num">${++step}</b>`;
     return `
     <div class="qd-panel__head">
-        <span class="qd-panel__seal" aria-hidden="true">${levelIcon(1)}</span>
+        ${crestHtml()}
         <div>
+            <p class="qd-panel__kicker">A lullaby for the class</p>
             <h3 class="qd-panel__title">Let the dragon sleep</h3>
-            <p class="qd-panel__lede">Keep the room calm and the dragon leaves a gift. If the noise wakes it, the quiet time is over and there is no gift.</p>
+            <p class="qd-panel__lede">Keep the room calm and it leaves a gift. If the noise wakes it, the quiet time ends with no gift.</p>
         </div>
         <button type="button" class="qd-x" data-qd="close" aria-label="Close"><i class="fas fa-xmark"></i></button>
     </div>
 
     <div class="qd-panel__body">
         ${cls ? `<p class="qd-panel__class"><span class="qd-panel__classname">${classLine(cls.id)}</span><span class="qd-panel__heroes"><i class="fas fa-user-group" aria-hidden="true"></i> ${here} hero${here === 1 ? '' : 'es'} here</span></p>`
-        : `<div class="qd-field"><span class="qd-label"><b>1</b> Which class?</span><div class="qd-chips">${classes.map((c) => `<button type="button" class="qd-chip" data-qd-class-pick="${esc(c.id)}">${esc(c.logo || '')} ${esc(c.name || 'Class')}</button>`).join('') || '<em class="qd-muted">Add a class first.</em>'}</div></div>`}
+        : `<section class="qd-step"><span class="qd-label">${num()} Which class?</span><div class="qd-chips">${classes.map((c) => `<button type="button" class="qd-chip" data-qd-class-pick="${esc(c.id)}">${esc(c.logo || '')} ${esc(c.name || 'Class')}</button>`).join('') || '<em class="qd-muted">Add a class first.</em>'}</div></section>`}
 
-        <div class="qd-field">
-            <span class="qd-label"><b>${cls ? 1 : 2}</b> How quiet?</span>
+        <section class="qd-step">
+            <span class="qd-label">${num()} How quiet?</span>
             <div class="qd-levels">
-                ${QUIET_LEVELS.map((l, i) => `<button type="button" class="qd-level${ui.level === l.key ? ' is-on' : ''}" data-qd-level="${l.key}" aria-pressed="${ui.level === l.key}">
+                ${QUIET_LEVELS.map((l, i) => `<button type="button" class="qd-level qd-level--${i}${ui.level === l.key ? ' is-on' : ''}" data-qd-level="${l.key}" aria-pressed="${ui.level === l.key}">
                     <span class="qd-level__icon">${levelIcon(i)}</span>
+                    <span class="qd-level__wave">${waveIcon(i)}</span>
                     <strong>${esc(l.name)}</strong><small>${esc(l.hint)}</small></button>`).join('')}
             </div>
-        </div>
+        </section>
 
-        <div class="qd-field">
-            <span class="qd-label"><b>${cls ? 2 : 3}</b> How long?</span>
+        <section class="qd-step">
+            <span class="qd-label">${num()} How long?</span>
             <div class="qd-time">
                 <div class="qd-stepper">
                     <button type="button" class="qd-stepper__btn" data-qd="minus" aria-label="One minute less" ${ui.minutes <= 1 ? 'disabled' : ''}><i class="fas fa-minus"></i></button>
-                    <span class="qd-stepper__value"><strong data-qd-minutes-value>${ui.minutes}</strong><small>calm min</small></span>
+                    ${minutesDial(ui.minutes)}
                     <button type="button" class="qd-stepper__btn" data-qd="plus" aria-label="One minute more" ${ui.minutes >= 60 ? 'disabled' : ''}><i class="fas fa-plus"></i></button>
                 </div>
-                <div class="qd-chips qd-chips--quick">
-                    ${QUIET_MINUTES.map((m) => `<button type="button" class="qd-chip${ui.minutes === m ? ' is-on' : ''}" data-qd-minutes="${m}" aria-pressed="${ui.minutes === m}">${m}</button>`).join('')}
+                <div class="qd-chips qd-chips--quick" role="group" aria-label="Quick picks">
+                    ${QUIET_MINUTES.map((m) => `<button type="button" class="qd-chip${ui.minutes === m ? ' is-on' : ''}" data-qd-minutes="${m}" aria-pressed="${ui.minutes === m}">${m}<small>min</small></button>`).join('')}
                 </div>
             </div>
-        </div>
+        </section>
 
-        <div class="qd-field">
-            <span class="qd-label"><b>${cls ? 3 : 4}</b> The dragon's gift</span>
+        <section class="qd-step">
+            <span class="qd-label">${num()} The dragon's gift</span>
             <div class="qd-gifts">
                 ${HOARD_GIFTS.map((g) => `<button type="button" class="qd-gift qd-gift--${g.key}${gift.hoard.key === g.key ? ' is-on' : ''}" data-qd-hoard="${g.key}" aria-pressed="${gift.hoard.key === g.key}">
-                    <span class="qd-gift__icon" aria-hidden="true">${giftIcon(g.key)}</span>
+                    <span class="qd-gift__niche"><span class="qd-gift__icon" aria-hidden="true">${giftIcon(g.key)}</span></span>
                     <strong>${esc(g.name)}</strong><small>${esc(g.hint)}</small></button>`).join('')}
             </div>
             ${giftDef.amounts.length ? `<div class="qd-amounts" role="group" aria-label="How much">${giftDef.amounts.map((a) => `<button type="button" class="qd-amount${gift.hoard.amount === a ? ' is-on' : ''}" data-qd-amount="${a}" aria-pressed="${gift.hoard.amount === a}">${amountLabel(giftDef.key, a)}</button>`).join('')}</div>` : ''}
-        </div>
-
-        <details class="qd-treat"${ui.treatOpen || gift.hoard.key === 'none' ? ' open' : ''}>
-            <summary><span class="qd-gift__icon" aria-hidden="true">${giftIcon('none')}</span><span><strong>${gift.treat ? esc(gift.treat) : 'Add a classroom treat'}</strong><small>${gift.treat ? 'You give it in person' : 'Optional, you give it in person'}</small></span><i class="fas fa-chevron-down" aria-hidden="true"></i></summary>
-            <div class="qd-chips">
-                <button type="button" class="qd-chip${!gift.treat ? ' is-on' : ''}" data-qd-treat="">No treat</button>
-                ${CLASS_TREATS.map((t) => `<button type="button" class="qd-chip${gift.treat === t ? ' is-on' : ''}" data-qd-treat="${esc(t)}">${esc(t)}</button>`).join('')}
-                <label class="qd-chip qd-chip--input${isCustom ? ' is-on' : ''}"><i class="fas fa-pen" aria-hidden="true"></i><input type="text" maxlength="80" data-qd-treat-input value="${esc(isCustom ? gift.treat : ui.customTreat)}" placeholder="Your own treat…" aria-label="Your own treat"></label>
-            </div>
-        </details>
+            <details class="qd-treat"${ui.treatOpen || gift.hoard.key === 'none' ? ' open' : ''}>
+                <summary><span class="qd-gift__icon" aria-hidden="true">${giftIcon('none')}</span><span><strong>${gift.treat ? esc(gift.treat) : 'Add a classroom treat'}</strong><small>${gift.treat ? 'You give it in person' : 'Optional, you give it in person'}</small></span><i class="fas fa-chevron-down" aria-hidden="true"></i></summary>
+                <div class="qd-chips">
+                    <button type="button" class="qd-chip${!gift.treat ? ' is-on' : ''}" data-qd-treat="">No treat</button>
+                    ${CLASS_TREATS.map((t) => `<button type="button" class="qd-chip${gift.treat === t ? ' is-on' : ''}" data-qd-treat="${esc(t)}">${esc(t)}</button>`).join('')}
+                    <label class="qd-chip qd-chip--input${isCustom ? ' is-on' : ''}"><i class="fas fa-pen" aria-hidden="true"></i><input type="text" maxlength="80" data-qd-treat-input value="${esc(isCustom ? gift.treat : ui.customTreat)}" placeholder="Your own treat…" aria-label="Your own treat"></label>
+                </div>
+            </details>
+        </section>
 
         <p class="qd-privacy"><i class="fas fa-microphone-lines" aria-hidden="true"></i> The microphone only measures how loud the room is. Nothing is recorded, kept or sent anywhere.</p>
         ${ui.error ? `<p class="qd-error" role="alert">${esc(ui.error)}</p>` : ''}
     </div>
 
     <div class="qd-panel__foot">
-        <p class="qd-summary" data-qd-summary>${ready ? summary : (cls ? 'Pick a gift or a treat' : 'Pick a class')}</p>
+        <div class="qd-summary" data-qd-summary>${ready ? tokens : `<span class="qd-summary__hint">${cls ? 'Pick a gift or a treat' : 'Pick a class'}</span>`}</div>
         <div class="qd-actions">
             <button type="button" class="qd-btn qd-btn--ghost" data-qd="close">${ui.from === 'wallpaper' ? 'Back' : 'Not now'}</button>
-            <button type="button" class="qd-btn qd-btn--go" data-qd="start" ${ready ? '' : 'disabled'}><i class="fas fa-moon"></i> Let the dragon sleep</button>
+            <button type="button" class="qd-btn qd-btn--go qd-btn--big" data-qd="start" ${ready ? '' : 'disabled'}><span class="qd-btn__gem" aria-hidden="true"><i class="fas fa-moon"></i></span><span>Let the dragon sleep</span></button>
         </div>
     </div>`;
 }
@@ -407,23 +460,11 @@ function amountLabel(key, amount) {
 }
 
 function giftIcon(key) {
-    // Small hand-drawn marks, matching the hoard on stage.
-    if (key === 'gold') return '<svg viewBox="0 0 40 40"><ellipse cx="20" cy="27" rx="13" ry="5" fill="#8a5516"/><ellipse cx="20" cy="25" rx="13" ry="5" fill="#f4c34d"/><ellipse cx="17" cy="19" rx="11" ry="4.5" fill="#8a5516"/><ellipse cx="17" cy="17" rx="11" ry="4.5" fill="#ffd970"/><ellipse cx="23" cy="11" rx="9" ry="3.8" fill="#8a5516"/><ellipse cx="23" cy="9.5" rx="9" ry="3.8" fill="#fff0b3"/></svg>';
+    // Gold is always the app's own coin; the rest are small hand-drawn marks matching the hoard.
+    if (key === 'gold') return `<span class="qd-coin">${GOLD_COIN_HTML}</span>`;
     if (key === 'stars') return '<svg viewBox="0 0 40 40"><path d="M20 4 L24.5 15 L36 15.6 L27 23 L30 34.5 L20 28 L10 34.5 L13 23 L4 15.6 L15.5 15 Z" fill="#ffd970" stroke="#b9823c" stroke-width="1.5" stroke-linejoin="round"/><path d="M20 9 L22.6 16.5" stroke="#fff6dc" stroke-width="2" stroke-linecap="round"/></svg>';
     if (key === 'quest') return '<svg viewBox="0 0 40 40"><path d="M6 32 C 12 22 18 26 22 18 C 25 12 30 12 34 6" fill="none" stroke="#c7b3ff" stroke-width="2.5" stroke-dasharray="3 3" stroke-linecap="round"/><path d="M30 4 L30 14 M30 4 L38 7 L30 10" fill="#ff7a59" stroke="#ff7a59" stroke-width="2" stroke-linejoin="round"/><circle cx="6" cy="32" r="3.5" fill="#5eead4"/></svg>';
     return '<svg viewBox="0 0 40 40"><rect x="7" y="16" width="26" height="18" rx="3" fill="#a3564b"/><rect x="5" y="11" width="30" height="7" rx="2" fill="#e07a5f"/><path d="M20 11 V34" stroke="#ffd970" stroke-width="3"/><path d="M20 11 C 14 4 8 8 12 11 M20 11 C 26 4 32 8 28 11" fill="none" stroke="#ffd970" stroke-width="2.5" stroke-linecap="round"/></svg>';
-}
-
-function chestIcon() {
-    return `<svg viewBox="0 0 120 100" aria-hidden="true">
-        <defs><radialGradient id="qd-chest-glow" cx=".5" cy=".55" r=".5"><stop offset="0" stop-color="#fff3c0"/><stop offset=".5" stop-color="#ffd25e" stop-opacity=".55"/><stop offset="1" stop-color="#ffd25e" stop-opacity="0"/></radialGradient></defs>
-        <ellipse cx="60" cy="44" rx="56" ry="40" fill="url(#qd-chest-glow)"/>
-        <g class="qd-chest__lid"><path d="M22 44 L22 30 Q60 4 98 30 L98 44 Z" fill="#7d4520" stroke="#3a1d0a" stroke-width="2.5"/><path d="M22 36 Q60 12 98 36" fill="none" stroke="#e8b94e" stroke-width="4"/><path d="M34 26 Q46 16 58 13" fill="none" stroke="#ffe7a0" stroke-opacity=".55" stroke-width="2.5" stroke-linecap="round"/></g>
-        <circle cx="46" cy="46" r="5" fill="#ffd970"/><circle cx="60" cy="42" r="6" fill="#fff0b3"/><circle cx="74" cy="46" r="5" fill="#f4c34d"/>
-        <rect x="20" y="46" width="80" height="40" rx="4" fill="#8a4d22" stroke="#3a1d0a" stroke-width="2.5"/>
-        <path d="M20 58 H100 M20 76 H100" stroke="#e8b94e" stroke-width="4"/>
-        <rect x="53" y="52" width="14" height="16" rx="3" fill="#f4c34d" stroke="#8a5516" stroke-width="1.5"/>
-    </svg>`;
 }
 
 function calibrateHtml() {
@@ -436,7 +477,7 @@ function calibrateHtml() {
             </svg>
             <strong data-qd-cal-count>${CALIBRATE_SECONDS}</strong>
         </div>
-        <span class="qd-listen" aria-hidden="true" data-qd-bars>${'<i></i>'.repeat(9)}</span>
+        <span class="qd-listen" aria-hidden="true" data-qd-bars>${'<i></i>'.repeat(13)}</span>
         <h3 class="qd-panel__title">Shhh… the dragon is listening</h3>
         <p class="qd-panel__lede">Stay quiet for ${CALIBRATE_SECONDS} seconds so it learns how a calm room sounds here.</p>
     </div>`;
@@ -445,13 +486,13 @@ function calibrateHtml() {
 function confirmEndHtml() {
     const done = run ? Math.floor((run.calm || 0) / 60) : 0;
     return `
-    <div class="qd-panel__center">
-        <span class="qd-panel__seal qd-panel__seal--big" aria-hidden="true">${levelIcon(1)}</span>
+    <div class="qd-panel__center qd-end-card">
+        ${crestHtml()}
         <h3 class="qd-panel__title">End the quiet time?</h3>
         <p class="qd-panel__lede">${done ? `The class has given the dragon <b>${done} calm minute${done === 1 ? '' : 's'}</b> so far.` : 'The dragon has only just fallen asleep.'} You can still give the gift if you feel they earned it.</p>
         <div class="qd-actions qd-actions--stack">
-            <button type="button" class="qd-btn qd-btn--go" data-qd="resume"><i class="fas fa-moon"></i> Keep listening</button>
-            <button type="button" class="qd-btn qd-btn--gold" data-qd="gift-now"><i class="fas fa-gift"></i> Give the gift now</button>
+            <button type="button" class="qd-btn qd-btn--go" data-qd="resume"><span class="qd-btn__gem" aria-hidden="true"><i class="fas fa-moon"></i></span><span>Keep listening</span></button>
+            <button type="button" class="qd-btn qd-btn--gold" data-qd="gift-now"><span class="qd-btn__gem" aria-hidden="true"><i class="fas fa-gift"></i></span><span>Give the gift now</span></button>
             <button type="button" class="qd-btn qd-btn--ghost" data-qd="close">End without a gift</button>
         </div>
     </div>`;
@@ -463,7 +504,7 @@ function wokeHtml() {
     const pieces = hoardPiecesFor(goal ? calm / goal : 0);
     return `
     <div class="qd-panel__center qd-woke-card">
-        <span class="qd-woke-card__eye" aria-hidden="true"><i class="fas fa-eye"></i></span>
+        <span class="qd-woke-card__eye" aria-hidden="true"><svg viewBox="0 0 80 48"><path d="M4 24 Q40 -6 76 24 Q40 54 4 24 Z" fill="#2a0a0a" stroke="#ff9a4a" stroke-width="2.5"/><ellipse class="qd-woke-card__iris" cx="40" cy="24" rx="15" ry="15" fill="#ffb02e"/><ellipse class="qd-woke-card__pupil" cx="40" cy="24" rx="3.2" ry="13" fill="#1a0400"/><circle cx="34" cy="18" r="3" fill="#fff6d0" opacity=".85"/></svg></span>
         <p class="qd-gift-card__kicker">The quiet time is over</p>
         <h3 class="qd-panel__title">The dragon woke up!</h3>
         <div class="qd-stats">
@@ -473,58 +514,87 @@ function wokeHtml() {
         </div>
         <p class="qd-panel__lede">The room got too loud and the dragon woke. It keeps its hoard, so there is no gift this time.</p>
         <div class="qd-actions qd-actions--stack">
-            <button type="button" class="qd-btn qd-btn--go" data-qd="again"><i class="fas fa-moon"></i> Try again from the start</button>
+            <button type="button" class="qd-btn qd-btn--go" data-qd="again"><span class="qd-btn__gem" aria-hidden="true"><i class="fas fa-moon"></i></span><span>Try again from the start</span></button>
             <button type="button" class="qd-btn qd-btn--ghost" data-qd="close">${ui?.from === 'wallpaper' ? 'Back to the projector' : 'Close'}</button>
         </div>
     </div>`;
 }
 
-function giftHtml(result) {
-    const gift = run.gift;
-    const hoardLine = hoardGiftLine(gift);
-    const paid = result?.paid || result?.alreadyPaid;
-    const heroes = result?.heroes || run.heroIds.length;
-    let hoardNote = '';
-    if (gift.hoard.key === 'gold' || gift.hoard.key === 'stars') hoardNote = paid ? `Given to ${heroes} hero${heroes === 1 ? '' : 'es'}.` : '';
-    if (gift.hoard.key === 'quest') hoardNote = paid ? 'Added to this month’s Team Quest.' : '';
-    if (!result) hoardNote = 'Placing it in the hoard…';
-    return `
-    <div class="qd-panel__center qd-gift-card">
-        <div class="qd-gift-card__chest">${chestIcon()}</div>
-        <p class="qd-gift-card__kicker">A gift from the hoard</p>
-        <h3 class="qd-panel__title">The dragon leaves a gift!</h3>
-        <div class="qd-stats">
-            <span><strong data-count="${run.minutes}">${run.minutes}</strong><small>calm minute${run.minutes === 1 ? '' : 's'}</small></span>
-            <span><strong data-count="${run.heroIds.length}">${run.heroIds.length}</strong><small>hero${run.heroIds.length === 1 ? '' : 'es'} here</small></span>
-        </div>
-        <p class="qd-panel__lede">${run.calm >= run.goal ? 'It never woke once. A truly quiet class!' : 'The teacher ended the quiet time early with a gift.'}</p>
-        <ul class="qd-gift-card__list">
-            ${hoardLine ? `<li><span class="qd-gift__icon" aria-hidden="true">${giftIcon(gift.hoard.key)}</span><span><strong>${esc(hoardLine)}</strong>${hoardNote ? `<small${!result ? ' class="qd-pending"' : ''}>${esc(hoardNote)}</small>` : ''}${result && !paid ? '<small class="qd-error">This could not be saved. Check the connection and try again.</small>' : ''}</span>${paid ? '<i class="fas fa-circle-check qd-tick" aria-label="Saved"></i>' : ''}</li>` : ''}
-            ${gift.treat ? `<li><span class="qd-gift__icon" aria-hidden="true">${giftIcon('none')}</span><span><strong>${esc(gift.treat)}</strong><small>From the teacher, in person.</small></span></li>` : ''}
-        </ul>
-        <div class="qd-actions">
-            ${result && !paid ? '<button type="button" class="qd-btn qd-btn--gold" data-qd="retry-pay"><i class="fas fa-rotate"></i> Try again</button>' : ''}
-            <button type="button" class="qd-btn qd-btn--go" data-qd="close">${ui.from === 'wallpaper' ? 'Back to the projector' : 'Close'}</button>
-        </div>
-    </div>`;
+/** First names for the hero roll (a last-name initial when two heroes share a first name). */
+function heroLabels(heroes) {
+    const counts = new Map();
+    heroes.forEach((h) => counts.set(h.first, (counts.get(h.first) || 0) + 1));
+    return heroes.map((h) => {
+        if (counts.get(h.first) < 2) return { id: h.id, label: h.first };
+        const last = String(h.name || '').trim().split(/\s+/).slice(1).join(' ');
+        return { id: h.id, label: last ? `${h.first} ${last.charAt(0)}.` : h.first };
+    });
 }
 
-/** The gift card's numbers count up as each stat pops in. */
-function countUp() {
-    if (!stage || stage.classList.contains('qd-stage--still')) return;
-    stage.querySelectorAll('[data-count]').forEach((el, i) => {
-        const target = Number(el.dataset.count) || 0;
-        if (target < 2) return;
-        el.textContent = '0';
-        const start = performance.now() + 1350 + i * 100;
-        const step = (now) => {
-            if (!el.isConnected) return;
-            const t = Math.max(0, Math.min(1, (now - start) / 900));
-            el.textContent = String(Math.round(target * (1 - Math.pow(1 - t, 3))));
-            if (t < 1) requestAnimationFrame(step);
-        };
-        requestAnimationFrame(step);
-    });
+/** Every hero who was here, by name: each lights up as their share lands. */
+function rollHtml(gift) {
+    const heroes = run.heroes || [];
+    if (!heroes.length) return '';
+    const perHero = gift.hoard.key === 'gold' || gift.hoard.key === 'stars';
+    const badge = gift.hoard.key === 'gold' ? `+${gift.hoard.amount}${GOLD_COIN_HTML}`
+        : gift.hoard.key === 'stars' ? `+${gift.hoard.amount === 0.5 ? '½' : gift.hoard.amount}<i class="fas fa-star" aria-hidden="true"></i>` : '';
+    const step = Math.min(0.09, 1.4 / heroes.length);
+    return `<ul class="qd-roll${perHero ? '' : ' qd-roll--plain'}" aria-label="Heroes who were here">
+        ${heroLabels(heroes).map((h, i) => `<li style="--i:${(i * step).toFixed(3)}s"><span>${esc(h.label)}</span>${badge ? `<b>${badge}</b>` : ''}</li>`).join('')}
+    </ul>`;
+}
+
+function giftStatusHtml(result) {
+    const gift = run.gift;
+    if (!result) return `<span class="qd-status qd-pending"><i class="fas fa-feather-pointed" aria-hidden="true"></i> ${gift.hoard.key === 'none' ? 'Writing it in the class log…' : 'Placing it in the hoard…'}</span>`;
+    const paid = result.paid || result.alreadyPaid;
+    if (!paid && gift.hoard.key === 'none') return '<span class="qd-status is-bad"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> This could not be saved. Check the connection and try again.</span>';
+    if (gift.hoard.key === 'none') return '<span class="qd-status is-ok"><i class="fas fa-circle-check" aria-hidden="true"></i> Saved in the class log</span>';
+    if (!paid) {
+        const some = result.heroes > 0 ? ` ${result.heroes} of ${run.heroIds.length} heroes have theirs.` : '';
+        return `<span class="qd-status is-bad"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Not everything could be saved.${esc(some)} Check the connection and try again.</span>`;
+    }
+    if (gift.hoard.key === 'quest') return '<span class="qd-status is-ok"><i class="fas fa-circle-check" aria-hidden="true"></i> Added to this month’s Team Quest</span>';
+    const heroes = result.heroes || run.heroIds.length;
+    return `<span class="qd-status is-ok"><i class="fas fa-circle-check" aria-hidden="true"></i> Given to ${heroes} hero${heroes === 1 ? '' : 'es'}</span>`;
+}
+
+function giftActionsHtml(result) {
+    const failed = result && !(result.paid || result.alreadyPaid);
+    return `${failed ? '<button type="button" class="qd-btn qd-btn--gold" data-qd="retry-pay"><span class="qd-btn__gem" aria-hidden="true"><i class="fas fa-rotate"></i></span><span>Try again</span></button>' : ''}
+        <button type="button" class="qd-btn qd-btn--go" data-qd="close"><span>${ui.from === 'wallpaper' ? 'Back to the projector' : 'Close'}</span></button>`;
+}
+
+/** The big amount under the title: "+2 Gold", "+½ star", "+1 Team Quest", or the treat. */
+function giftHeadline(gift) {
+    const { key, amount } = gift.hoard;
+    if (key === 'gold') return `<span class="qd-reveal__amount"><span class="qd-reveal__line"><b>+${amount}</b>${GOLD_COIN_HTML}<em>Gold</em></span><small>for every hero here</small></span>`;
+    if (key === 'stars') return `<span class="qd-reveal__amount"><span class="qd-reveal__line"><b>+${amount === 0.5 ? '½' : amount}</b><i class="fas fa-star qd-reveal__star" aria-hidden="true"></i><em>star</em></span><small>for every hero here</small></span>`;
+    if (key === 'quest') return `<span class="qd-reveal__amount"><span class="qd-reveal__line"><b>+${amount}</b><em>Team Quest</em></span><small>for the whole class</small></span>`;
+    return `<span class="qd-reveal__amount qd-reveal__amount--treat">${esc(gift.treat)} <small>from the teacher, in person</small></span>`;
+}
+
+function giftHtml(result) {
+    const gift = run.gift;
+    const title = 'The dragon leaves a gift!';
+    const letters = [...title].map((ch, i) => ch === ' ' ? ' ' : `<span style="--i:${i}">${esc(ch)}</span>`).join('');
+    const medal = gift.hoard.key === 'none' ? 'none' : gift.hoard.key;
+    return `
+    <div class="qd-panel__center qd-gift-card qd-gift-card--${medal}">
+        <div class="qd-medal" aria-hidden="true">
+            <span class="qd-medal__rays"></span>
+            <span class="qd-medal__ring"></span>
+            <span class="qd-medal__face">${giftIcon(medal)}</span>
+            <span class="qd-medal__orbit"><i></i><i></i><i></i><i></i><i></i></span>
+        </div>
+        <p class="qd-gift-card__kicker">${run.calm >= run.goal ? `${run.minutes} calm minute${run.minutes === 1 ? '' : 's'} · it never woke` : `${run.minutes} calm minute${run.minutes === 1 ? '' : 's'} · ended early with a gift`}</p>
+        <h3 class="qd-panel__title qd-reveal__title" aria-label="${esc(title)}">${letters}</h3>
+        ${giftHeadline(gift)}
+        ${rollHtml(gift)}
+        ${gift.treat && gift.hoard.key !== 'none' ? `<p class="qd-reveal__treat"><span class="qd-gift__icon" aria-hidden="true">${giftIcon('none')}</span><span><strong>${esc(gift.treat)}</strong><small>And a treat from the teacher, in person.</small></span></p>` : ''}
+        <p class="qd-reveal__status" data-qd-status aria-live="polite">${giftStatusHtml(result)}</p>
+        <div class="qd-actions" data-qd-gift-actions>${giftActionsHtml(result)}</div>
+    </div>`;
 }
 
 function setPanel(html) {
@@ -750,7 +820,8 @@ async function beginSession() {
     if (ctx.state === 'suspended') ctx.resume().catch(quietly('ui/modals/quietDragon.js'));
 
     const level = levelByKey(ui.level);
-    const heroIds = classRoster(ui.classId).filter((h) => !h.away).map((h) => h.id);
+    const heroes = classRoster(ui.classId).filter((h) => !h.away);
+    const heroIds = heroes.map((h) => h.id);
     run = {
         sessionId: `${ui.classId}_${Date.now().toString(36)}`,
         classId: ui.classId,
@@ -759,6 +830,7 @@ async function beginSession() {
         goal: ui.minutes * 60,
         gift: normalizeGift(ui.gift),
         heroIds,
+        heroes,
         stream, ctx, analyser,
         buf: new Float32Array(analyser.fftSize),
         calibration: [],
@@ -782,6 +854,10 @@ async function beginSession() {
     unfollow = null;
     // The lullaby card folds away and the dragon glides to the middle of the hollow.
     const panel = $('[data-qd-panel]');
+    stage.classList.remove('is-lulling');
+    void stage.offsetWidth;
+    stage.classList.add('is-lulling');
+    setTimeout(() => stage?.classList.remove('is-lulling'), 3600);
     if (panel && !stage.classList.contains('qd-stage--still')) {
         panel.classList.add('is-leaving');
         await new Promise((resolve) => setTimeout(resolve, 380));
@@ -961,7 +1037,7 @@ function dragonWoke(snap) {
     stage.dataset.phase = 'woke';
     paint({ ...snap, mood: 'awake', annoyance: 1 });
     // The microphone is off now, so the dragon may roar.
-    try { playWheelSfx('thunder'); } catch { /* sound is optional */ }
+    quietDragonSound('woke');
     clearTimeout(run.wokeTimer);
     run.wokeTimer = setTimeout(() => {
         if (stage?.dataset.phase !== 'woke') return;
@@ -1006,39 +1082,55 @@ async function finish() {
     if (leftLabel) leftLabel.textContent = 'calm minutes given';
     const fill = $('.qd-ring__fill');
     if (fill) fill.style.strokeDashoffset = '0';
-    try { playHeroFanfare(); } catch { /* sound is optional */ }
+    // The microphone is off now: the dragon may purr and the hoard may sing.
+    playGiftSounds(run);
     run.giftShownAt = performance.now();
     setPanel(giftHtml(null));
-    countUp();
     await payGift();
+}
+
+/** The gift's music, and a soft coin for every hero as their name lights up on the roll. */
+function playGiftSounds(r) {
+    quietDragonSound('gift');
+    const perHero = r.gift.hoard.key === 'gold' || r.gift.hoard.key === 'stars';
+    const n = (r.heroes || []).length;
+    if (!perHero || !n || stage?.classList.contains('qd-stage--still')) return;
+    const step = Math.min(0.09, 1.4 / n);
+    const every = Math.max(1, Math.ceil(n / 18)); // never more than ~18 coins, however big the class
+    for (let i = 0; i < n; i += every) quietDragonSound('coin', { at: ROLL_START + 0.18 + i * step, i });
 }
 
 async function payGift() {
     if (!run || !stage) return;
+    const r = run;
+    const status = $('[data-qd-status]');
+    if (status && r.paid) status.innerHTML = giftStatusHtml(null);
     // Always saved, even for a classroom treat only: the calm session counts as a completed bounty.
     try {
         const { payQuietDragonGift } = await import('../../db/actions/quietDragon.js');
-        run.paid = await payQuietDragonGift({
-            classId: run.classId,
-            sessionId: run.sessionId,
-            gift: run.gift,
-            heroIds: run.heroIds,
-            minutes: run.minutes,
-            levelKey: run.level.key,
-            wakes: run.ears?.wakes || 0
+        r.paid = await payQuietDragonGift({
+            classId: r.classId,
+            sessionId: r.sessionId,
+            gift: r.gift,
+            heroIds: r.heroIds,
+            minutes: r.minutes,
+            levelKey: r.level.key,
+            wakes: r.ears?.wakes || 0
         });
-        try { playSound('magic_chime'); } catch { /* optional */ }
     } catch (error) {
         console.error('Quiet Dragon gift failed:', error);
-        run.paid = { paid: false, heroes: 0 };
+        r.paid = { paid: false, heroes: 0 };
     }
-    // Let the card's entrance (rise, stats popping, numbers counting) finish before it updates.
-    const wait = Math.max(0, 2800 - (performance.now() - (run?.giftShownAt || 0)));
+    // Let the reveal (medal, title, the roll of names) play before the card says it is saved.
+    const wait = Math.max(0, 3600 - (performance.now() - (r.giftShownAt || 0)));
     if (wait) await new Promise((resolve) => setTimeout(resolve, wait));
-    if (stage?.dataset.phase === 'gift') {
-        $('[data-qd-panel]')?.classList.add('is-settled');
-        setPanel(giftHtml(run.paid));
-    }
+    if (run !== r || stage?.dataset.phase !== 'gift') return;
+    const ok = r.paid.paid || r.paid.alreadyPaid;
+    if (ok) quietDragonSound('saved');
+    const statusEl = $('[data-qd-status]');
+    if (statusEl) statusEl.innerHTML = giftStatusHtml(r.paid);
+    const actions = $('[data-qd-gift-actions]');
+    if (actions) actions.innerHTML = giftActionsHtml(r.paid);
 }
 
 // Test hooks for the preview page (no microphone in headless browsers).
@@ -1069,9 +1161,10 @@ export const quietDragonTestHooks = {
         $('[data-qd-wake]').style.transform = `scaleX(${stage.dataset.mood === 'awake' ? 1 : a})`;
         stage.dataset.zone = x >= 1 / METER_MAX ? 'loud' : x >= 0.6 / METER_MAX ? 'stir' : 'calm';
     },
-    showGift(gift, heroes = 23) {
+    showGift(gift, heroes = 23, { sound = false, fail = false } = {}) {
         if (!stage) return;
-        run = { gift: normalizeGift(gift), minutes: 15, calm: 900, goal: 900, heroIds: Array.from({ length: heroes }, (_, i) => `h${i}`) };
+        const roster = classRoster(selectedToolClassId() || 'c1').slice(0, heroes);
+        run = { gift: normalizeGift(gift), minutes: 15, calm: 900, goal: 900, heroes: roster, heroIds: roster.map((h) => h.id), giftShownAt: performance.now() };
         stage.dataset.phase = 'gift';
         stage.dataset.mood = 'gift';
         setMoodText(MOOD_TEXT.gift);
@@ -1082,9 +1175,14 @@ export const quietDragonTestHooks = {
         if (leftLabel) leftLabel.textContent = 'calm minutes given';
         const fill = $('.qd-ring__fill');
         if (fill) fill.style.strokeDashoffset = '0';
-        setPanel(giftHtml({ paid: true, heroes }));
-        countUp();
-    },
+        if (sound) playGiftSounds(run);
+        setPanel(giftHtml(null));
+        setTimeout(() => {
+            const result = fail ? { paid: false, heroes: Math.floor(roster.length / 2) } : { paid: true, heroes: roster.length };
+            const st = $('[data-qd-status]'); if (st) st.innerHTML = giftStatusHtml(result);
+            const ac = $('[data-qd-gift-actions]'); if (ac) ac.innerHTML = giftActionsHtml(result);
+        }, 3600);
+        },
     showWoke(p = 0.55, { card = true } = {}) {
         if (!stage) return;
         run = { calm: 900 * p, goal: 900, tune: 0, lastMood: 'peeking', shownSecond: -1, shownPieces: -1 };

@@ -74,7 +74,7 @@ test('a softer level is stricter than a louder one', () => {
 
 test('calibration, loudness and tuning stay in range', () => {
     assert.equal(calibrateFloor([]), -55);
-    assert.equal(calibrateFloor([-90, -95]), -78);
+    assert.equal(calibrateFloor([-90, -95]), -72);
     assert.equal(calibrateFloor([-10, -12]), -32);
     assert.equal(calibrateFloor([-60, -50, -58, -20, -59]), -58);
     assert.ok(Math.abs(rmsDb(new Float32Array(100).fill(0.5)) - -6.02) < 0.05);
@@ -103,4 +103,14 @@ test('gifts are cleaned and described', () => {
     assert.deepEqual(normalizeGift({ hoard: { key: 'nope' } }).hoard, { key: 'none', amount: 0 });
     assert.equal(describeGift({ hoard: { key: 'stars', amount: 0.5 }, treat: 'A game' }), '+½ star for every hero here + A game');
     assert.equal(describeGift({ hoard: { key: 'quest', amount: 2 } }), "+2 to the class's Team Quest");
+});
+
+test('tiny sounds (a pencil tap, a chair creak) never annoy it; steady whispering still does', () => {
+    const ears = createDragonEars({ floor: -60, margin: levelByKey('whisper').margin });
+    for (let i = 0; i < 8; i++) { run(ears, -25, 0.15); run(ears, -60, 1.5); }
+    assert.equal(ears.annoyance, 0);
+    assert.equal(ears.mood, 'asleep');
+    for (let i = 0; i < 6; i++) { run(ears, -48, 0.3); run(ears, -60, 0.7); }
+    assert.equal(ears.annoyance, 0);
+    assert.equal(run(ears, -47, 4).mood, 'awake');
 });

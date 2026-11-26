@@ -1601,7 +1601,11 @@ export function openTrialHistoryModal(classId) {
     actionsContainer.innerHTML = `
         <button id="trial-history-load-full-btn" type="button" class="th-btn" title="Fetch every assessment for this class from the database">
             <i class="fas fa-box-archive" aria-hidden="true"></i><span>Open the full archive</span>
+        </button>
+        <button id="trial-history-export-btn" type="button" class="th-btn th-btn--quiet" title="Export tests, dictations or a scholar's marks as a PDF">
+            <i class="fas fa-file-pdf" aria-hidden="true"></i><span>Export PDF</span>
         </button>`;
+    document.getElementById('trial-history-export-btn').onclick = () => openTrialHistoryExportSheet(classId, classData, { showTests, showDictations });
     const loadBtn = document.getElementById('trial-history-load-full-btn');
     loadBtn.onclick = async () => {
         loadBtn.disabled = true;
@@ -1625,6 +1629,55 @@ export function openTrialHistoryModal(classId) {
 
     renderTrialHistoryContent(classId, initialView);
     modals.showAnimatedModal('trial-history-modal');
+}
+
+/** Export PDF: loads the sheet + PDF tools only when pressed. */
+async function openTrialHistoryExportSheet(classId, classData, { showTests, showDictations }) {
+    const btn = document.getElementById('trial-history-export-btn');
+    if (btn) btn.disabled = true;
+    try {
+        const { openTrialHistoryExport } = await import('./trialHistoryPdf.js');
+        const fullClass = findScrollClass(classId) || classData;
+        const pctCache = new Map();
+        const kindsAvailable = [showTests && 'test', showDictations && 'dictation'].filter(Boolean);
+        openTrialHistoryExport({
+            mount: document.querySelector('#trial-history-modal .th-book'),
+            classData: fullClass,
+            view: activeHistoryView(),
+            kindsAvailable,
+            students: state.get('allStudents') || [],
+            loadedScores: () => historyScoresForClass(classId),
+            // The book keeps the last 3 months; anything older needs the archive (once).
+            needsArchive: (from) => !thState.fullLoaded && (!from || from < rangeStart('3m')),
+            fetchArchive: async () => {
+                const { fetchAllTrialsForClass } = await import('../db/queries.js');
+                loadedHistoricalScores = await fetchAllTrialsForClass(classId);
+                thState.fullLoaded = true;
+                const loadBtn = document.getElementById('trial-history-load-full-btn');
+                if (loadBtn) loadBtn.innerHTML = '<i class="fas fa-rotate" aria-hidden="true"></i><span>Refresh archive</span>';
+                renderTrialHistoryContent(classId, activeHistoryView());
+                return historyScoresForClass(classId);
+            },
+            pctOf: (score) => {
+                if (!pctCache.has(score.id)) {
+                    const p = getNormalizedPercentForScore(score, fullClass);
+                    pctCache.set(score.id, Number.isFinite(p) ? p : null);
+                }
+                return pctCache.get(score.id);
+            },
+            labelOf: (score) => getAssessmentValueLabel(score, fullClass),
+            timeOf: (score) => utils.parseFlexibleDate(score.date)?.getTime() ?? null,
+            isUnmarkable: isUnmarkableScore,
+            teacherName: state.get('currentTeacherName') || '',
+            schoolName: state.get('schoolName') || '',
+            toast: showToast
+        });
+    } catch (err) {
+        console.error('Trial History export failed to open:', err);
+        showToast('Could not open the PDF export. Please try again.', 'error');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
 }
 
 function historyStudentSorter(pctOf) {

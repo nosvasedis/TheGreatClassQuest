@@ -3,7 +3,7 @@
 // timetable ticket with a rose "NO LESSON" rubber stamp; its make-up is a teal ticket, and a
 // small route of two calendar leaves (Mon 23 → Wed 25) tells where the lesson went.
 // Styles: styles/calendar.css ("Lesson changes" block), so every view has them at first paint.
-import { dmyToDate, reasonInfo, lessonDayLabel } from '../features/lessonChangesCore.mjs';
+import { dmyToDate, reasonInfo, lessonDayLabel, lessonShortLabel, crossesMonth, dateToDmy } from '../features/lessonChangesCore.mjs';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -19,11 +19,14 @@ export function lessonReasonHtml(reason) {
     return `<span class="lcx-reason"><i class="fas ${info?.icon || 'fa-calendar-xmark'}" aria-hidden="true"></i>${esc(REASON_LINES[reason] || 'Cancelled')}</span>`;
 }
 
-/** A tiny calendar leaf: coloured weekday band over the day number. tone: 'off' | 'on' | 'wait'. */
-export function lessonLeafHtml(dmy, tone = 'on') {
+/**
+ * A tiny calendar leaf: coloured weekday band over the day number. tone: 'off' | 'on' | 'wait'.
+ * `month` adds the month under the number (when a lesson moves into another month).
+ */
+export function lessonLeafHtml(dmy, tone = 'on', { month = false } = {}) {
     const d = dmyToDate(dmy);
     if (!d) return `<span class="lcx-leaf lcx-leaf--wait" aria-hidden="true"><b>?</b><i>…</i></span>`;
-    return `<span class="lcx-leaf lcx-leaf--${tone}" aria-hidden="true"><b>${esc(d.toLocaleDateString('en-GB', { weekday: 'short' }))}</b><i>${d.getDate()}</i></span>`;
+    return `<span class="lcx-leaf lcx-leaf--${tone}${month ? ' lcx-leaf--month' : ''}" aria-hidden="true"><b>${esc(d.toLocaleDateString('en-GB', { weekday: 'short' }))}</b><i>${d.getDate()}</i>${month ? `<u>${esc(d.toLocaleDateString('en-GB', { month: 'short' }))}</u>` : ''}</span>`;
 }
 
 /**
@@ -34,10 +37,12 @@ export function lessonRouteHtml({ from, to = null, time = '', compact = false, s
     const label = to
         ? `Made up on ${lessonDayLabel(to)}${time ? ` at ${time}` : ''}`
         : (school ? 'School closed, no make-up needed' : 'No make-up booked yet');
-    return `<span class="lcx-route${to ? '' : ' lcx-route--open'}${compact ? ' lcx-route--compact' : ''}" aria-label="${esc(label)}">
-        ${lessonLeafHtml(from, 'off')}
+    // A make-up in another month: both leaves say their month, and the path is a month apart.
+    const month = Boolean(to && crossesMonth(from, to));
+    return `<span class="lcx-route${to ? '' : ' lcx-route--open'}${compact ? ' lcx-route--compact' : ''}${month ? ' lcx-route--months' : ''}" aria-label="${esc(label)}">
+        ${lessonLeafHtml(from, 'off', { month })}
         <span class="lcx-route__path" aria-hidden="true"><span></span><i class="fas ${to ? 'fa-share' : 'fa-ellipsis'}"></i></span>
-        ${to ? lessonLeafHtml(to, 'on') : (school ? '' : lessonLeafHtml(null, 'wait'))}
+        ${to ? lessonLeafHtml(to, 'on', { month }) : (school ? '' : lessonLeafHtml(null, 'wait'))}
         ${compact ? '' : `<span class="lcx-route__note">${esc(to ? `${lessonDayLabel(to)}${time ? ` · ${time}` : ''}` : (school ? 'No make-up needed' : 'No make-up yet'))}</span>`}
     </span>`;
 }
@@ -47,10 +52,11 @@ export function noLessonStampHtml(text = 'No lesson') {
     return `<span class="lcx-stamp" aria-hidden="true">${esc(text)}</span>`;
 }
 
-/** The teal make-up tag: "Make-up · for [Mon 23]". */
-export function makeupTagHtml(makeupFor, { compact = false } = {}) {
+/** The teal make-up tag: "Make-up · for [Mon 23]" (with the month when `on` is another month). */
+export function makeupTagHtml(makeupFor, { compact = false, on = null } = {}) {
+    const month = Boolean(on && crossesMonth(makeupFor, on));
     return `<span class="lcx-makeup${compact ? ' lcx-makeup--compact' : ''}" title="Make-up for ${esc(lessonDayLabel(makeupFor))}">
-        <i class="fas fa-rotate" aria-hidden="true"></i><span>Make-up</span>${compact ? '' : `<em>for</em>${lessonLeafHtml(makeupFor, 'off')}`}
+        <i class="fas fa-rotate" aria-hidden="true"></i><span>Make-up</span>${compact ? '' : `<em>for</em>${lessonLeafHtml(makeupFor, 'off', { month })}`}
     </span>`;
 }
 
@@ -68,7 +74,7 @@ export function lessonChipHtml(kind, makeupFor = null) {
         + ` data-tip-name="${esc(tipName)}" data-tip-note="${esc(tipNote)}" aria-label="${esc(`${tipName}. ${tipNote}`)}">${inner}</button>`;
     if (kind === 'makeup') {
         const day = lessonDayLabel(makeupFor);
-        const short = day.split(' ').slice(0, 2).join(' ');
+        const short = lessonShortLabel(makeupFor, dateToDmy(new Date()));
         return chip('edit', 'Make-up lesson', `Today makes up ${day}. Tap to change`,
             `<i class="fas fa-rotate" aria-hidden="true"></i><span>Make-up</span><span class="aw-lesson-chip__for">${esc(short)}</span>`);
     }

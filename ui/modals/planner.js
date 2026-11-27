@@ -580,7 +580,7 @@ export function openLessonChangeSlip(options) {
 /** A small tag on a lesson card: a make-up, or an extra lesson. */
 function lessonChangeTag(classId, dateString) {
     const change = describeLessonChange(classId, dateString, state.get('allScheduleOverrides') || []);
-    if (change?.kind === 'makeup') return makeupTagHtml(change.makeupFor);
+    if (change?.kind === 'makeup') return makeupTagHtml(change.makeupFor, { on: dateString });
     if (change?.kind === 'extra') return extraTagHtml();
     return '';
 }

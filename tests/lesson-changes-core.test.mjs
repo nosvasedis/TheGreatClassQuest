@@ -124,3 +124,44 @@ test('previous lesson from a make-up today skips the missed Monday', () => {
     const prev = getPreviousLessonDate('c1', [cls], overrides, [], {});
     assert.notEqual(prev, '23-11-2026');
 });
+
+// A lesson missed at the end of one month and made up in the next.
+import { crossesMonth, lessonShortLabel, monthKeyOfDmy, overridesAfterLessonChange, monthsTouchedByLessonChange } from '../features/lessonChangesCore.mjs';
+import { getMonthlyGoalModifierForDate } from '../utils.js';
+
+test('a make-up in another month: each month counts the lessons it really holds', () => {
+    const dec = new Date(2026, 11, 1);
+    const nov = new Date(2026, 10, 1);
+    const missedNov = { classId: 'c1', date: '30-11-2026', type: 'cancelled', reason: 'teacher' };
+    const makeupDec = { classId: 'c1', date: '02-12-2026', type: 'one-time', makeupFor: '30-11-2026' };
+    const baseNov = getMonthlyLessonBalanceForDate(cls, [], [], nov);
+    const baseDec = getMonthlyLessonBalanceForDate(cls, [], [], dec);
+    const novAfter = getMonthlyLessonBalanceForDate(cls, [], [missedNov, makeupDec], nov);
+    const decAfter = getMonthlyLessonBalanceForDate(cls, [], [missedNov, makeupDec], dec);
+    assert.equal(novAfter.ran, baseNov.ran - 1);
+    assert.equal(decAfter.ran, baseDec.ran + 1);
+    // November's goal gets smaller, December's bigger (fair goals from December).
+    assert.ok(getMonthlyGoalModifierForDate(cls, [], [missedNov], nov) < getMonthlyGoalModifierForDate(cls, [], [], nov));
+    assert.ok(getMonthlyGoalModifierForDate(cls, [], [missedNov, makeupDec], dec) > getMonthlyGoalModifierForDate(cls, [], [], dec));
+    assert.equal(crossesMonth('30-11-2026', '02-12-2026'), true);
+    assert.equal(crossesMonth('23-11-2026', '25-11-2026'), false);
+    assert.equal(monthKeyOfDmy('02-12-2026'), '2026-12');
+    assert.equal(lessonShortLabel('30-11-2026', '02-12-2026'), 'Mon 30 Nov');
+    assert.equal(lessonShortLabel('25-11-2026', '23-11-2026'), 'Wed 25');
+});
+
+test('a make-up beside the class own running lesson is a second lesson that day', () => {
+    const nov = new Date(2026, 10, 1);
+    const double = { classId: 'c1', date: '26-11-2026', type: 'one-time', makeupFor: '23-11-2026', timeStart: '19:00' };
+    const base = getMonthlyLessonBalanceForDate(cls, [], [], nov);
+    assert.equal(getMonthlyLessonBalanceForDate(cls, [], [missed, double], nov).ran, base.ran);
+    // An old-style one-time on its own lesson day (no makeupFor) adds nothing, as before.
+    assert.equal(getMonthlyLessonBalanceForDate(cls, [], [{ classId: 'c1', date: '26-11-2026', type: 'one-time' }], nov).ran, base.ran);
+});
+
+test('the slip can show the goal change before saving', () => {
+    const after = overridesAfterLessonChange(overrides, { classId: 'c1', missedDate: '23-11-2026', reason: 'teacher', makeupDate: '02-12-2026' });
+    assert.equal(after.filter((o) => o.makeupFor === '23-11-2026').length, 1);
+    assert.equal(after.find((o) => o.makeupFor === '23-11-2026').date, '02-12-2026');
+    assert.deepEqual(monthsTouchedByLessonChange(overrides, { classId: 'c1', missedDate: '23-11-2026', makeupDate: '02-12-2026' }), ['2026-11', '2026-12']);
+});

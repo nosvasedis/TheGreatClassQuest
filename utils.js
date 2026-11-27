@@ -958,7 +958,10 @@ function normalizeMonthDate(dateInput = new Date()) {
  * The class's own lesson month: how many lessons its weekly rotation puts in the month
  * (`scheduled`) and how many of THOSE it loses (`lost`) to a school holiday or a cancellation.
  * A holiday on a day the class has no lesson costs it nothing. A one-time (make-up) lesson
- * gives back a lost lesson: on a lost day it simply runs, on another day it makes up one loss.
+ * gives back a lost lesson: on a lost day it simply runs, on another day it makes up one loss,
+ * and a make-up beside the class's own running lesson is a second lesson that day.
+ * Every lesson counts in the month it is held: a lesson missed in one month and made up in the
+ * next is lost to the first month (a smaller goal) and added to the second (a bigger one).
  */
 export function getMonthlyLessonBalanceForDate(classData, schoolHolidayRanges, allScheduleOverrides, date = new Date()) {
     const targetDate = normalizeMonthDate(date);
@@ -975,6 +978,8 @@ export function getMonthlyLessonBalanceForDate(classData, schoolHolidayRanges, a
         if (!oDate || oDate.getMonth() !== month || oDate.getFullYear() !== year) return;
         const types = overridesByDate.get(oDate.getDate()) || new Set();
         types.add(override.type);
+        // A make-up booked on a day the class already has its own lesson is a second lesson.
+        if (override.type === 'one-time' && override.makeupFor) types.add('makeup');
         overridesByDate.set(oDate.getDate(), types);
     });
 
@@ -989,7 +994,10 @@ export function getMonthlyLessonBalanceForDate(classData, schoolHolidayRanges, a
         const oneTime = types.has('one-time') && !cancelled;
         if (onRotation) {
             scheduled += 1;
-            if (!oneTime && (cancelled || isLessonBlockedByHoliday(current, ranges))) lost += 1;
+            const blocked = cancelled || isLessonBlockedByHoliday(current, ranges);
+            if (!oneTime && blocked) lost += 1;
+            // Its own lesson runs AND a make-up runs beside it: that day holds two lessons.
+            if (oneTime && !blocked && types.has('makeup')) makeUps += 1;
         } else if (oneTime) {
             makeUps += 1;
         }

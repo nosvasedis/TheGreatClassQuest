@@ -7,9 +7,9 @@ import * as state from '../../state.js';
 import { showToast } from '../../ui/effects.js';
 import { withSchoolYear } from '../../utils/schoolYear.js';
 import { PUBLIC_DATA_PATH } from '../../utils/tenant.mjs';
-import { datesMatch, doesClassMeetOnDate, getDDMMYYYY } from '../../utils.js';
+import { datesMatch, doesClassMeetOnDate, getDDMMYYYY, calculateMonthlyClassGoalForDate, getMonthlyLessonBalanceForDate } from '../../utils.js';
 import { syncQuestAssignmentToParentHomework } from '../../utils/adminRuntime.js';
-import { findCancellation, findOneTime, findMakeupFor, dmyToIso, lessonDayLabel, reasonInfo } from '../../features/lessonChangesCore.mjs';
+import { findCancellation, findOneTime, findMakeupFor, dmyToIso, lessonDayLabel, reasonInfo, overridesAfterLessonChange, monthsTouchedByLessonChange } from '../../features/lessonChangesCore.mjs';
 
 const overridesPath = () => `${PUBLIC_DATA_PATH}/schedule_overrides`;
 const me = () => ({ uid: state.get('currentUserId'), name: state.get('currentTeacherName') });
@@ -49,8 +49,34 @@ export function testOn(classId, dmy) {
 }
 
 /** What saving the slip will touch, for its "What changes" list. */
-export function previewLessonChange({ classId, missedDate = null, makeup = null }) {
+/**
+ * Each month the change touches: its Team Quest goal and lessons now and after saving.
+ * Same goal sum as the Team Quest tab (utils.calculateMonthlyClassGoal), for that month.
+ */
+export function goalShiftForLessonChange({ classId, missedDate = null, reason = 'teacher', makeupDate = null }) {
+    const cls = (state.get('allSchoolClasses') || []).find((c) => c.id === classId);
+    if (!cls) return [];
+    const students = (state.get('allStudents') || []).filter((s) => s.classId === classId).length;
+    const ranges = state.get('schoolHolidayRanges') || [];
+    const before = overrides();
+    const after = overridesAfterLessonChange(before, { classId, missedDate, reason, makeupDate });
+    return monthsTouchedByLessonChange(before, { classId, missedDate, makeupDate }).map((key) => {
+        const [y, m] = key.split('-').map(Number);
+        const month = new Date(y, m - 1, 1);
+        return {
+            monthKey: key,
+            monthName: month.toLocaleDateString('en-GB', { month: 'long' }),
+            goalBefore: calculateMonthlyClassGoalForDate(cls, students, ranges, before, month),
+            goalAfter: calculateMonthlyClassGoalForDate(cls, students, ranges, after, month),
+            lessonsBefore: getMonthlyLessonBalanceForDate(cls, ranges, before, month).ran,
+            lessonsAfter: getMonthlyLessonBalanceForDate(cls, ranges, after, month).ran,
+        };
+    });
+}
+
+export function previewLessonChange({ classId, missedDate = null, makeup = null, reason = 'teacher' }) {
     return {
+        goals: goalShiftForLessonChange({ classId, missedDate, reason, makeupDate: makeup?.date || null }),
         absences: missedDate ? attendanceOn(classId, missedDate).length : 0,
         stars: missedDate ? starLogsOn(classId, missedDate).length : 0,
         test: missedDate ? testOn(classId, missedDate) : null,

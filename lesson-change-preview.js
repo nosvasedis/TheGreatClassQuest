@@ -49,3 +49,6 @@ document.getElementById('pv-bar').addEventListener('click', (e) => {
 const params = new URLSearchParams(location.search);
 if (params.get('open') === 'missed') openLessonChange({ classId: 'c1', missedDate: '23-11-2026' });
 if (params.get('open') === 'makeup') openLessonChange({ classId: 'c1', makeupDate: '25-11-2026', mode: 'makeup' });
+// ?open=late: the last lesson of November didn't happen; book its make-up in December.
+state.set('allStudents', Array.from({ length: 9 }, (_, i) => ({ id: `s${i}`, classId: 'c1', name: `Hero ${i}` })));
+if (params.get('open') === 'late') openLessonChange({ classId: 'c1', missedDate: '30-11-2026' });

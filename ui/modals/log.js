@@ -110,7 +110,7 @@ function logbookLessonsStripHtml(dateString) {
         }
         const lesson = ran.get(c.id);
         if (!lesson) return null;
-        const tag = change?.kind === 'makeup' ? makeupTagHtml(change.makeupFor) : change?.kind === 'extra' ? extraTagHtml() : '';
+        const tag = change?.kind === 'makeup' ? makeupTagHtml(change.makeupFor, { on: dateString }) : change?.kind === 'extra' ? extraTagHtml() : '';
         return { t: lesson.timeStart || '99', html: `<div class="qc-log-lesson${change?.kind === 'makeup' ? ' qc-log-lesson--makeup' : ''}">
             <span class="qc-log-lesson__time">${escapeLogText(lesson.timeStart || '')}</span>
             <span class="qc-log-lesson__logo" aria-hidden="true">${escapeLogText(c.logo || '🏫')}</span>

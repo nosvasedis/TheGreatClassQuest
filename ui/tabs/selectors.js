@@ -1,5 +1,6 @@
 // /ui/tabs/selectors.js
 import { noLessonStampHtml, makeupTagHtml, lessonReasonHtml, lessonRouteHtml } from '../lessonChangeMarks.js';
+import { lessonShortLabel, lessonDayLabel } from '../../features/lessonChangesCore.mjs';
 import { quietly } from '../../utils/runtimeMetrics.js';
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
@@ -148,7 +149,7 @@ function renderMobileCalendarDay(customLogs = null) {
                 <div class="m-cal-lesson__meta">
                     <span class="m-cal-lesson__time">${escapeHtml(c.timeDisplay || 'Lesson')}</span>
                     ${testHtml}
-                    ${c.makeupFor ? makeupTagHtml(c.makeupFor) : ''}
+                    ${c.makeupFor ? makeupTagHtml(c.makeupFor, { on: dateString }) : ''}
                 </div>
                 <p class="m-cal-lesson__name">${escapeHtml(c.logo || '')} ${escapeHtml(c.name || 'Class')}</p>
             </article>`;
@@ -284,10 +285,6 @@ function renderQuestEventRibbon(e) {
         </div>`;
 }
 
-const shortLessonDay = (dmy) => {
-    const d = utils.parseDDMMYYYY(dmy);
-    return d ? d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' }) : '';
-};
 
 function renderLessonChip(c) {
     const testTitle = c.testAssignment?.testData?.title || 'Test';
@@ -296,10 +293,10 @@ function renderLessonChip(c) {
         : '';
     // A make-up carries a teal ribbon with the day it replaces (ui/lessonChangeMarks.js).
     const change = c.makeupFor
-        ? `<span class="qc-lesson__ribbon" aria-label="Make-up for ${escapeHtml(shortLessonDay(c.makeupFor))}"><i class="fas fa-rotate" aria-hidden="true"></i>make-up</span>`
+        ? `<span class="qc-lesson__ribbon" aria-label="Make-up for ${escapeHtml(lessonDayLabel(c.makeupFor))}"><i class="fas fa-rotate" aria-hidden="true"></i>make-up</span>`
         : '';
     return `
-        <div class="qc-lesson ${c.color?.bg || ''} ${c.color?.text || ''} ${c.color?.border || ''}${c.testAssignment ? ' qc-lesson--test' : ''}${c.makeupFor ? ' qc-lesson--makeup' : ''}" title="${escapeHtml(c.name)}${c.timeDisplay ? ` · ${escapeHtml(c.timeDisplay)}` : ''}${c.makeupFor ? ` · make-up for ${escapeHtml(shortLessonDay(c.makeupFor))}` : ''}">
+        <div class="qc-lesson ${c.color?.bg || ''} ${c.color?.text || ''} ${c.color?.border || ''}${c.testAssignment ? ' qc-lesson--test' : ''}${c.makeupFor ? ' qc-lesson--makeup' : ''}" title="${escapeHtml(c.name)}${c.timeDisplay ? ` · ${escapeHtml(c.timeDisplay)}` : ''}${c.makeupFor ? ` · make-up for ${escapeHtml(lessonDayLabel(c.makeupFor))}` : ''}">
             <span class="qc-lesson__logo" aria-hidden="true">${escapeHtml(c.logo || '🏫')}</span>
             <span class="qc-lesson__text">
                 ${c.timeDisplay || change ? `<span class="qc-lesson__time">${escapeHtml(c.timeDisplay || '')}${change}</span>` : ''}
@@ -314,7 +311,7 @@ function renderLessonChip(c) {
  * "NO LESSON" stamp, and a teal tab under it pointing to the make-up day when one is booked.
  */
 function renderCancelledLessonChip(c) {
-    const note = c.makeupDate ? `made up ${shortLessonDay(c.makeupDate)}` : (c.reason === 'school' ? 'school closed' : 'no make-up yet');
+    const note = c.makeupDate ? `made up ${lessonDayLabel(c.makeupDate)}` : (c.reason === 'school' ? 'school closed' : 'no make-up yet');
     return `
         <div class="qc-lesson-off" title="${escapeHtml(c.name)}: didn't happen · ${escapeHtml(note)}">
             <div class="qc-lesson qc-lesson--off ${c.color?.text || ''} ${c.color?.border || ''}">
@@ -325,7 +322,7 @@ function renderCancelledLessonChip(c) {
                 </span>
             </div>
             ${c.makeupDate
-                ? `<span class="qc-lesson-off__tab"><i class="fas fa-share" aria-hidden="true"></i>${escapeHtml(shortLessonDay(c.makeupDate))}</span>`
+                ? `<span class="qc-lesson-off__tab"><i class="fas fa-share" aria-hidden="true"></i>${escapeHtml(lessonShortLabel(c.makeupDate, c.missedDate))}</span>`
                 : (c.reason === 'school' ? '' : '<span class="qc-lesson-off__tab qc-lesson-off__tab--open"><i class="fas fa-hourglass-half" aria-hidden="true"></i>make-up?</span>')}
         </div>`;
 }

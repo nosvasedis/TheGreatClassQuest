@@ -1997,6 +1997,18 @@ body.gcq-mobile .qc-bar__title {
 .lcx-leaf--off b { background: var(--lcx-rose); }
 .lcx-leaf--off i { color: var(--lcx-rose-ink); text-decoration: line-through; text-decoration-thickness: 2px; text-decoration-color: rgba(217, 70, 111, 0.55); }
 .lcx-leaf--on b { background: var(--lcx-teal); }
+.lcx-leaf u {
+    display: block;
+    width: 100%;
+    margin-top: -0.1rem;
+    padding-bottom: 0.08rem;
+    text-align: center;
+    font: 700 0.42rem/1.1 'Fredoka', 'Open Sans', sans-serif;
+    letter-spacing: 0.08em;
+    text-decoration: none;
+    text-transform: uppercase;
+    color: #7a8297;
+}
 .lcx-leaf--wait { background: transparent; box-shadow: none; outline: 2px dashed #e5c9d2; outline-offset: -2px; }
 .lcx-leaf--wait b { background: transparent; color: var(--lcx-rose); }
 .lcx-leaf--wait i { color: #c9a3b0; }
@@ -2006,6 +2018,8 @@ body.gcq-mobile .qc-bar__title {
 .lcx-route__path > span { position: absolute; left: 0; right: 0.55rem; top: 50%; border-top: 2px dashed currentColor; opacity: 0.7; }
 .lcx-route__path > i { position: absolute; right: 0; font-size: 0.7rem; }
 .lcx-route--open .lcx-route__path { color: #d7a5b5; }
+/* Across a month: the path is drawn a little longer. */
+.lcx-route--months .lcx-route__path { width: 2.8rem; }
 .lcx-route__note { margin-left: 0.15rem; font: 600 0.78rem/1.2 'Fredoka', 'Open Sans', sans-serif; color: var(--lcx-teal-ink); }
 .lcx-route--open .lcx-route__note { color: var(--lcx-rose-ink); }
 

@@ -184,3 +184,58 @@ export function familyLessonChanges(classId, overrides = [], today = new Date(),
     });
     return out.sort((a, b) => a.date.localeCompare(b.date));
 }
+
+// ───────────────────── Lessons that move into another month ─────────────────────
+// Every lesson counts in the month it is held (utils.getMonthlyLessonBalanceForDate): a lesson
+// missed in November and made up in December is lost to November's Team Quest (a smaller goal)
+// and added to December's (a bigger one), so neither month gets a lesson for free.
+
+/** "2026-11" for a DD-MM-YYYY date, or null. */
+export function monthKeyOfDmy(dmy) {
+    const d = dmyToDate(dmy);
+    return d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` : null;
+}
+
+/** True when the make-up is held in another month than the lesson it makes up. */
+export function crossesMonth(missedDate, makeupDate) {
+    const a = monthKeyOfDmy(missedDate);
+    const b = monthKeyOfDmy(makeupDate);
+    return Boolean(a && b && a !== b);
+}
+
+/** "Mon 23", or "Mon 30 Nov" when `dmy` falls in another month than `refDmy`. */
+export function lessonShortLabel(dmy, refDmy = null) {
+    const d = dmyToDate(dmy);
+    if (!d) return '';
+    const label = `${WEEKDAYS_EN[d.getDay()].slice(0, 3)} ${d.getDate()}`;
+    return refDmy && monthKeyOfDmy(refDmy) !== monthKeyOfDmy(dmy) ? `${label} ${MONTHS_EN[d.getMonth()]}` : label;
+}
+
+/**
+ * The class's overrides as saving the slip would leave them (this class only), so the goal
+ * change can be shown before anything is written. Mirrors db/actions/lessonChanges.js.
+ */
+export function overridesAfterLessonChange(overrides = [], { classId, missedDate = null, reason = 'teacher', makeupDate = null } = {}) {
+    const gone = new Set();
+    const added = [];
+    const mine = (o) => o?.classId === classId;
+    if (missedDate) {
+        overrides.forEach((o) => { if (mine(o) && o.date === missedDate) gone.add(o); });
+        added.push({ classId, date: missedDate, type: 'cancelled', reason });
+    }
+    if (makeupDate) {
+        overrides.forEach((o) => {
+            if (!mine(o)) return;
+            if (o.date === makeupDate) gone.add(o);
+            if (missedDate && o.type === 'one-time' && o.makeupFor === missedDate) gone.add(o);
+        });
+        added.push({ classId, date: makeupDate, type: 'one-time', ...(missedDate ? { makeupFor: missedDate } : {}) });
+    }
+    return overrides.filter((o) => !gone.has(o)).concat(added);
+}
+
+/** The months whose lessons a change touches: the missed day's, the make-up's, an old make-up's. */
+export function monthsTouchedByLessonChange(overrides = [], { classId, missedDate = null, makeupDate = null } = {}) {
+    const previous = missedDate ? findMakeupFor(classId, missedDate, overrides) : null;
+    return [...new Set([missedDate, makeupDate, previous?.date].map(monthKeyOfDmy).filter(Boolean))].sort();
+}

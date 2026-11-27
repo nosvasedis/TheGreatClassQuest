@@ -6,7 +6,7 @@ import * as utils from '../../utils.js';
 import { showToast } from '../effects.js';
 import {
     LESSON_CHANGE_REASONS, describeLessonChange, findMakeupFor, lessonsAwaitingMakeup,
-    dmyToDate, dateToDmy, dmyToIso, isoToDmy, lessonDayLabel,
+    dmyToDate, dateToDmy, dmyToIso, isoToDmy, lessonDayLabel, monthKeyOfDmy, crossesMonth,
 } from '../../features/lessonChangesCore.mjs';
 import { saveLessonChange, previewLessonChange, hasRegularLesson, restoreLesson, removeOneTimeLesson } from '../../db/actions/lessonChanges.js';
 
@@ -126,8 +126,50 @@ function ticketHtml(kind, dmy, sub) {
     </div>`;
 }
 
+/** "Tue", or "Tue · Dec" for a day in another month. */
+const dayChipWeekday = (d, other) => `${d.toLocaleDateString('en-GB', { weekday: 'short' })}${other ? ` · ${d.toLocaleDateString('en-GB', { month: 'short' })}` : ''}`;
+
+const lessonsWord = (n) => `${n} lesson${n === 1 ? '' : 's'}`;
+
+/**
+ * The Team Quest goal, month by month. Every lesson counts in the month it is held, so a
+ * make-up in another month moves the lesson (and its share of the goal) to that month.
+ */
+function goalRows(goals = []) {
+    const rows = [];
+    const thisMonth = monthKeyOfDmy(dateToDmy(new Date()));
+    const moved = goals.filter((g) => g.lessonsBefore !== g.lessonsAfter || g.goalBefore !== g.goalAfter);
+    if (!moved.length) {
+        if (goals.length) {
+            rows.push(['fa-flag-checkered', slip.missedDate && slip.makeupDate
+                ? `${goals.map((g) => g.monthName).join(' and ')}'s Team Quest goal stays the same: the make-up gives the lesson back.`
+                : `${goals.map((g) => g.monthName).join(' and ')}'s Team Quest goal stays at ${goals[0].goalBefore} stars.`]);
+        }
+        return rows;
+    }
+    if (slip.missedDate && slip.makeupDate && crossesMonth(slip.missedDate, slip.makeupDate)) {
+        const from = goals.find((g) => g.monthKey === monthKeyOfDmy(slip.missedDate));
+        const to = goals.find((g) => g.monthKey === monthKeyOfDmy(slip.makeupDate));
+        rows.push(['fa-right-left', `The lesson moves from ${from?.monthName || 'one month'} to ${to?.monthName || 'the next'}. Each month's Team Quest asks for the lessons it really holds, so neither month gets this lesson for free.`]);
+    }
+    goals.forEach((g) => {
+        const lessons = g.lessonsBefore === g.lessonsAfter ? '' : ` (${lessonsWord(g.lessonsAfter)} instead of ${g.lessonsBefore})`;
+        const text = g.goalBefore === g.goalAfter
+            ? `${g.monthName}'s Team Quest goal stays at ${g.goalBefore} stars${lessons}.`
+            : `${g.monthName}'s Team Quest goal: ${g.goalBefore} → ${g.goalAfter} stars${lessons}.`;
+        rows.push(['fa-flag-checkered', text]);
+        if (thisMonth && g.monthKey < thisMonth && (g.goalBefore !== g.goalAfter)) {
+            rows.push(['fa-lock', `${g.monthName} is already over. If its Ceremony has been held, the goal it crowned with stays.`, 'warn']);
+        }
+    });
+    if (slip.missedDate && !slip.makeupDate && slip.reason !== 'school') {
+        rows.push(['fa-rotate', 'Booking a make-up later gives the lesson back to the month it is held in.']);
+    }
+    return rows;
+}
+
 function previewHtml(cls) {
-    const p = previewLessonChange({ classId: slip.classId, missedDate: slip.missedDate, makeup: slip.makeupDate ? { date: slip.makeupDate } : null });
+    const p = previewLessonChange({ classId: slip.classId, missedDate: slip.missedDate, reason: slip.reason, makeup: slip.makeupDate ? { date: slip.makeupDate } : null });
     const rows = [];
     if (slip.missedDate) {
         rows.push(['fa-user-check', `Nobody is absent on ${lessonDayLabel(slip.missedDate)}${p.absences ? ` (${p.absences} absence mark${p.absences === 1 ? '' : 's'} cleared)` : ''}, and no stars are expected that day.`]);
@@ -138,11 +180,7 @@ function previewHtml(cls) {
         rows.push(['fa-calendar-plus', `${lessonDayLabel(slip.makeupDate)} becomes a real lesson day for ${cls?.name || 'the class'}: stars, absences, Welcome Back and the Quest Board all treat it as one.`]);
         if (p.makeupOnLessonDay) rows.push(['fa-triangle-exclamation', 'The class already has a lesson that day; this adds a second one.', 'warn']);
     }
-    if (slip.missedDate) {
-        rows.push(['fa-flag-checkered', slip.makeupDate
-            ? 'The Team Quest goal stays the same: the make-up gives the lesson back.'
-            : 'The Team Quest goal shrinks by one lesson until a make-up is booked.']);
-    }
+    rows.push(...goalRows(p.goals));
     if (p.test && slip.missedDate) {
         rows.push(['fa-pen-clip', slip.makeupDate
             ? `The test "${p.test.testData.title || 'Test'}" moves to ${lessonDayLabel(slip.makeupDate)}.`
@@ -195,8 +233,9 @@ function render() {
                 ${missed.map((c) => {
                     const d = dmyToDate(c.dmy);
                     const tag = c.change?.kind === 'cancelled' ? (c.change.makeupDate ? 'made up' : 'no lesson') : c.change?.kind === 'makeup' ? 'make-up' : c.change?.kind === 'extra' ? 'extra' : relLabel(c.dmy);
-                    return `<button type="button" class="lc-day${c.dmy === slip.missedDate ? ' is-on' : ''}${c.change?.kind === 'cancelled' ? ' is-cancelled' : ''}" data-lc-missed="${esc(c.dmy)}" aria-pressed="${c.dmy === slip.missedDate}">
-                        <span class="lc-day__wd">${esc(d.toLocaleDateString('en-GB', { weekday: 'short' }))}</span>
+                    const other = monthKeyOfDmy(c.dmy) !== monthKeyOfDmy(dateToDmy(new Date()));
+                    return `<button type="button" class="lc-day${c.dmy === slip.missedDate ? ' is-on' : ''}${c.change?.kind === 'cancelled' ? ' is-cancelled' : ''}${other ? ' is-other-month' : ''}" data-lc-missed="${esc(c.dmy)}" aria-pressed="${c.dmy === slip.missedDate}">
+                        <span class="lc-day__wd">${esc(dayChipWeekday(d, other))}</span>
                         <span class="lc-day__num font-title">${d.getDate()}</span>
                         <span class="lc-day__tag">${esc(tag)}</span></button>`;
                 }).join('')}
@@ -229,8 +268,10 @@ function render() {
                     <span class="lc-day__wd"><i class="fas fa-minus" aria-hidden="true"></i></span><span class="lc-day__num">Later</span><span class="lc-day__tag">no make-up yet</span></button>` : ''}
                 ${makeups.map((dmy) => {
                     const d = dmyToDate(dmy);
-                    return `<button type="button" class="lc-day lc-day--makeup${dmy === slip.makeupDate ? ' is-on' : ''}" data-lc-makeup="${esc(dmy)}" aria-pressed="${dmy === slip.makeupDate}">
-                        <span class="lc-day__wd">${esc(d.toLocaleDateString('en-GB', { weekday: 'short' }))}</span>
+                    // A make-up in another month than the lesson it replaces says its month.
+                    const other = monthKeyOfDmy(dmy) !== monthKeyOfDmy(slip.missedDate || dateToDmy(new Date()));
+                    return `<button type="button" class="lc-day lc-day--makeup${dmy === slip.makeupDate ? ' is-on' : ''}${other ? ' is-other-month' : ''}" data-lc-makeup="${esc(dmy)}" aria-pressed="${dmy === slip.makeupDate}">
+                        <span class="lc-day__wd">${esc(dayChipWeekday(d, other))}</span>
                         <span class="lc-day__num font-title">${d.getDate()}</span>
                         <span class="lc-day__tag">${esc(relLabel(dmy))}</span></button>`;
                 }).join('')}
